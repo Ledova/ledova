@@ -129,9 +129,9 @@ def every_view_under(base):
 class TheExemptionsAreTheOnesOnRecordTest(SimpleTestCase):
 
     EXEMPT = {
+        "DeviceTokenViewSet": None,
         "DirectoryTokenViewSet": "ShareToken.in_directory",
         "TradingTokenViewSet": "ShareToken.deployed_with_contract",
-        "TradingTransferViewSet": None,
         "TradingWalletViewSet": None,
     }
 

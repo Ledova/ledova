@@ -1,4 +1,3 @@
-from django.urls import reverse
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -38,7 +37,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
     is_expired = serializers.BooleanField(read_only=True)
 
     evidence_file = serializers.FileField(write_only=True)
-    evidence_url = serializers.SerializerMethodField()
 
     class Meta:
         model = InvestorClassification
@@ -54,7 +52,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
             "declaration_text",
             "declared_basis",
             "evidence_file",
-            "evidence_url",
             "evidence_file_size",
             "evidence_mime_type",
             "certificate_issued_at",
@@ -83,13 +80,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
             "expires_at",
             "created_at",
         ]
-
-    def get_evidence_url(self, obj) -> str | None:
-        if not obj.evidence_retained:
-            return None
-        url = reverse("investor-classifications-evidence", args=[obj.uuid])
-        request = self.context.get("request")
-        return request.build_absolute_uri(url) if request else url
 
     def validate_declaration_accepted(self, value):
         if not value:

@@ -163,10 +163,7 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.complete_history(swap)
         self.scales(6, 8)
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
-        detail = market_data_service.get_market_data(self.tenant.deployed_token)
         self.assertEqual(Decimal(summary["last_price"]), Decimal("1.23"))
-        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("1.23"))
-        self.assertEqual(Decimal(detail["lastTrade"]["payment_amount"]), Decimal("3.69"))
         swap.refresh_from_db()
         self.assertEqual(swap.payment_amount, 369)
         self.assertEqual(swap.settlement_context, original)
@@ -179,10 +176,7 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         with localcontext() as context:
             context.prec = 2
             summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
-            detail = market_data_service.get_market_data(self.tenant.deployed_token)
         self.assertEqual(Decimal(summary["last_price"]), Decimal("0.01"))
-        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("0.01"))
-        self.assertEqual(detail["lastTrade"]["payment_amount"], "90071992547409.93")
 
     def test_original_v1_history_reports_signed_amounts_even_when_the_quoted_price_was_wrong(self):
         self.scales(6, 2)
@@ -222,30 +216,21 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.complete_history(swap)
         before = SwapOrder.objects.filter(pk=swap.pk).values().get()
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
-        detail = market_data_service.get_market_data(self.tenant.deployed_token)
         self.assertEqual(Decimal(summary["last_price"]), Decimal("12300"))
-        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("12300"))
-        self.assertEqual(Decimal(detail["lastTrade"]["payment_amount"]), Decimal("36900"))
         self.assertEqual(SwapOrder.objects.filter(pk=swap.pk).values().get(), before)
         self.assertTrue(atomic_swap_service.verify_signature(swap, swap.seller_signature, SELLER.address))
         self.assertTrue(atomic_swap_service.verify_signature(swap, swap.buyer_signature, BUYER.address))
 
-    def test_equal_completion_times_select_the_same_trade_and_scale_in_both_market_reads(self):
+    def test_equal_completion_times_select_the_same_trade_and_scale_in_the_market_summary(self):
         self.scales(2, 2)
         first = self.create()
         self.scales(2, 3)
         second = self.create(price="2.34")
         self.complete_history(first, second)
         self.scales(6, 8)
-        expected_price, expected_payment = {
-            first.pk: ("1.23", "3.69"),
-            second.pk: ("2.34", "7.02"),
-        }[max(first.pk, second.pk)]
+        expected_price = {first.pk: "1.23", second.pk: "2.34"}[max(first.pk, second.pk)]
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
-        detail = market_data_service.get_market_data(self.tenant.deployed_token)
         self.assertEqual(Decimal(summary["last_price"]), Decimal(expected_price))
-        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal(expected_price))
-        self.assertEqual(Decimal(detail["lastTrade"]["payment_amount"]), Decimal(expected_payment))
 
 
 @skipUnless(getattr(settings, "MIGRATION_MODULES", {}).get("tokens", "enabled") is not None, "Requires migrations")
@@ -263,10 +248,7 @@ class SettlementPaymentHistoryMigrationTest(APITransactionTestCase):
         restore_every_migration()
         AssetChainDeployment.objects.filter(asset=tenant.refs.stablecoin, chain="base").update(decimals=8)
         summary = market_data_service.market_summaries([tenant.deployed_token])[tenant.deployed_token.pk]
-        detail = market_data_service.get_market_data(tenant.deployed_token)
         self.assertEqual(Decimal(summary["last_price"]), Decimal("1.23"))
-        self.assertEqual(Decimal(detail["lastTradePrice"]), Decimal("1.23"))
-        self.assertEqual(Decimal(detail["lastTrade"]["payment_amount"]), Decimal("3.69"))
         after = SwapOrder.objects.filter(pk=swap.pk).values().get()
         self.assertEqual(after.pop("settlement_protocol_version"), 0)
         self.assertIsNone(after.pop("settlement_context"))

@@ -1,11 +1,10 @@
-from django.http import Http404
-from drf_spectacular.utils import OpenApiTypes, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from shared.views import AuthenticatedModelViewSet, stream_stored_file
+from shared.views import AuthenticatedModelViewSet
 from shared.views.uploads import UploadProtectedView
 from users.models.investor_classification import InvestorClassification
 from users.serializers.investor_classification import (
@@ -39,11 +38,3 @@ class InvestorClassificationViewSet(UploadProtectedView, AuthenticatedModelViewS
     def eligibility(self, request):
         outcome = investor_eligibility(request.user)
         return Response(InvestorEligibilitySerializer(outcome, context=self.get_serializer_context()).data)
-
-    @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
-    @action(detail=True, methods=["get"])
-    def evidence(self, request, uuid=None):
-        classification = self.get_object()
-        if not classification.evidence_retained:
-            raise Http404("No evidence")
-        return stream_stored_file(classification.evidence_file, classification.evidence_mime_type)

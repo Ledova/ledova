@@ -22,17 +22,6 @@ ELIGIBILITY_SCOPED = (
     "Cross-tenant listing scoped by users.services.eligibility rather than by owner, "
     "and the documented exception in docs/architecture/tenancy.md. Pinned by MARKET_ROUTES and DIRECTORY_ROUTES."
 )
-SIGNED_RELAY = (
-    "Relays an already-signed transaction and takes no tenant identifier at all, so the signature is the only "
-    "thing that can carry tenancy. TradingTransferViewSet.broadcast recovers the sender with "
-    "decode_signed_transaction and hands it to tokens.trading_wallet_access.resolve_verified_evm_wallets, "
-    "which answers 404 unless the caller holds a verified wallet at that address - the same call the prepare "
-    "route beside it makes. BroadcastTransferSerializer (tokens/serializers/transfer_order.py) refuses a "
-    "foreign chain id, a contract creation and any target outside known_contract_addresses() before that. "
-    "Note what this reason may not say: that a caller cannot produce a signature it does not hold. A signed "
-    "transaction is public from the moment it is broadcast, so anyone can replay one - see issue #190. "
-    "Pinned by tokens/tests/test_trading_transfer_broadcast.py."
-)
 NOT_MATRIX_AUTHENTICABLE = (
     "It cannot become a ROUTES row however well it reads as one: the cross-tenant matrix authenticates "
     "through DRF, and a plain Django view never sees force_authenticate, so every case there answers 401 "
@@ -73,7 +62,6 @@ EXEMPT = {
     ("get", "/api/assets/exchange-rates/"): GLOBAL_CATALOGUE,
     ("get", "/api/feature-flags/"): GLOBAL_CATALOGUE,
     ("get", "/api/feature-flags/{}/"): GLOBAL_CATALOGUE,
-    ("post", "/api/device-tokens/"): CREATES_OWN_ROW,
     ("post", "/api/device-tokens/register/"): CREATES_OWN_ROW,
     ("post", "/api/financial-profiles/"): CREATES_OWN_ROW,
     ("post", "/api/user-profiles/"): CREATES_OWN_ROW_SCOPED_FK,
@@ -95,7 +83,6 @@ EXEMPT = {
     ("get", "/api/v1/directory/tokens/"): ELIGIBILITY_SCOPED,
     ("get", "/api/v1/trading/tokens/"): ELIGIBILITY_SCOPED,
     ("get", "/api/v1/trading/events/stream/"): ELIGIBILITY_SCOPED_ASYNC,
-    ("post", "/api/v1/trading/transfers/broadcast/"): SIGNED_RELAY,
     ("get", "/api/v1/companies/{}/api-key/"): STAFF_UNSCOPED,
     ("post", "/api/v1/companies/{}/api-key/"): STAFF_UNSCOPED,
     ("post", "/api/v1/companies/{}/status/"): STAFF_UNSCOPED,
