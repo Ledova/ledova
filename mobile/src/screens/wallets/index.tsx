@@ -2,16 +2,10 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  BLOCKCHAIN,
-  WALLET_VERIFICATION_STATUS,
-  formatCryptoBalance,
-  getNativeAssetSymbol,
-  useCurrency,
-} from '@ledova/shared';
+import { BLOCKCHAIN } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { Section, Row, Rows, Action } from '../../components/Ledger';
-import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
+import { Section, Action } from '../../components/Ledger';
+import { WalletSortModal, WalletSummary, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 import { useWallets } from './useWallets';
@@ -23,7 +17,6 @@ export function WalletsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
   const crud = useWalletsCrud();
   const form = useWallets(crud);
-  const { formatDisplayCurrency } = useCurrency();
   const [syncingAll, setSyncingAll] = useState(false);
   const { sortedWallets, chainFilter, sortOption, isFiltered, showSortModal, setShowSortModal, handleApply } =
     useWalletSort(crud.wallets);
@@ -86,19 +79,7 @@ export function WalletsScreen() {
                     {wallets.length ? (
                       wallets.map((wallet, index) => (
                         <View key={wallet.uuid} style={[styles.item, index === wallets.length - 1 && styles.lastItem]}>
-                          <Text style={styles.name}>{wallet.name || 'Unnamed wallet'}</Text>
-                          <Rows>
-                            <Row label="Address">{wallet.address}</Row>
-                            <Row label="Balance">
-                              {formatCryptoBalance(wallet.nativeBalance, getNativeAssetSymbol(wallet.chain))}
-                            </Row>
-                            <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
-                            <Row label="Verification">
-                              {wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED
-                                ? 'Address verified'
-                                : 'Pending'}
-                            </Row>
-                          </Rows>
+                          <WalletSummary wallet={wallet} />
                           <Action
                             label="Open wallet"
                             accessibilityLabel={`Open wallet ${wallet.name || wallet.address}`}

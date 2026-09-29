@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import type { Wallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
@@ -148,6 +148,26 @@ it('reads every wallet page and renders full addresses and exact balances, to ei
   expect(get).toHaveBeenCalledWith(url, { params: { page: 2 }, ledovaSessionEpoch: getSessionEpoch() });
   await fireEvent.press(view.getByRole('button', { name: 'Open wallet Fictional b' }));
   expect(mockNavigate).toHaveBeenCalledWith('WalletAction', { wallet: pages[2].results[0] });
+});
+
+it("names each row's status and signing preference, and labels its sync age and figures, as the choosers do", async () => {
+  pages[1].results[0] = {
+    ...pages[1].results[0],
+    verificationStatus: 'PENDING',
+    lastSyncedAt: new Date().toISOString(),
+  };
+  const view = await mount(<WalletsScreen />);
+  await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
+
+  const row = within(view.getByRole('button', { name: 'Open wallet Fictional a' }).parent!);
+  expect(row.getAllByRole('img').map((image) => image.props.accessibilityLabel)).toEqual([
+    'Wallet address verification pending',
+    'Hardware (self-declared)',
+  ]);
+  expect(row.getByText('just now')).toBeTruthy();
+  expect(row.getByText(wallet('a').address).parent).toBe(row.getByText('Address').parent);
+  expect(row.getByText('0 ETH').parent).toBe(row.getByText('Balance').parent);
+  expect(row.getByText('AUD 42.00').parent).toBe(row.getByText('Estimated value').parent);
 });
 
 it('reports a failed later wallet page and retries the whole ledger before presenting any complete list', async () => {

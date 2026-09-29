@@ -1,5 +1,6 @@
-import { cleanup, render } from '@testing-library/react-native';
+import { cleanup, render, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { formatWalletAddressShort } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
 import { SendFormScreen } from './SendFormScreen';
 
@@ -50,15 +51,48 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-it('offers every verified wallet to send from when they fill more than one page', async () => {
-  const view = await render(
+function show() {
+  return render(
     <QueryClientProvider client={client}>
       <SendFormScreen onDone={jest.fn()} />
     </QueryClientProvider>,
   );
+}
+
+it('offers every verified wallet to send from when they fill more than one page', async () => {
+  const view = await show();
 
   expect(await view.findByText('Second wallet')).toBeTruthy();
   expect(view.getByText('First wallet')).toBeTruthy();
   expect(view.queryByText('Unverified wallet')).toBeNull();
   expect(get.mock.calls.map(([, config]) => config.params)).toEqual([{ page: 1 }, { page: 2 }]);
+});
+
+it('lists each wallet as a Wallets row reads, by its name or short address, with its figures labelled', async () => {
+  const savings = {
+    ...wallet('1', 'Savings'),
+    signingPreference: 'hardware',
+    lastSyncedAt: new Date().toISOString(),
+    nativeBalance: '0.420000000000000000',
+    marketValue: '12.5',
+  };
+  const unnamed = { ...wallet('2', ''), chain: 'bitcoin', address: `tb1q${'2'.repeat(38)}`, nativeBalance: '0.001' };
+  get.mockResolvedValue({ data: { results: [savings, unnamed], count: 2, next: null, previous: null } });
+  const view = await show();
+
+  const choice = await view.findByRole('button', { name: /Savings/ });
+  expect(within(choice).getByText('0.42 ETH').parent).toBe(within(choice).getByText('Balance').parent);
+  expect(within(choice).getByText('AUD 12.5').parent).toBe(within(choice).getByText('Estimated value').parent);
+  expect(
+    within(choice)
+      .getAllByRole('img')
+      .map((image) => image.props.accessibilityLabel),
+  ).toEqual(['Wallet address verified', 'Hardware (self-declared)']);
+  expect(within(choice).getByText('just now')).toBeTruthy();
+  expect(within(choice).queryByText(savings.address)).toBeNull();
+  const short = within(
+    view.getByRole('button', { name: new RegExp(formatWalletAddressShort(unnamed.address).replace(/\./g, '\\.')) }),
+  );
+  expect(short.getByText('0.001 BTC').parent).toBe(short.getByText('Balance').parent);
+  expect(view.queryByText(unnamed.address)).toBeNull();
 });

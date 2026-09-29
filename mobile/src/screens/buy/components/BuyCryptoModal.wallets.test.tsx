@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/react-native';
+import { cleanup, render, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState } from 'react-native';
 import { WALLET_ENDPOINTS } from '@ledova/shared';
@@ -49,10 +49,10 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-it('offers every verified wallet on the chosen network when they fill more than one page, rather than buying into the first', async () => {
+function show() {
   const access = createCameraAccess();
   access.setAllowed(true);
-  const view = await render(
+  return render(
     <CameraAccessContext.Provider value={access}>
       <QueryClientProvider client={client}>
         <BuyCryptoModal
@@ -66,6 +66,10 @@ it('offers every verified wallet on the chosen network when they fill more than 
       </QueryClientProvider>
     </CameraAccessContext.Provider>,
   );
+}
+
+it('offers every verified wallet on the chosen network when they fill more than one page, rather than buying into the first', async () => {
+  const view = await show();
 
   expect(await view.findByText('Second wallet')).toBeTruthy();
   expect(view.getByText('First wallet')).toBeTruthy();
@@ -74,4 +78,41 @@ it('offers every verified wallet on the chosen network when they fill more than 
     get.mock.calls.filter(([url]) => url === WALLET_ENDPOINTS.BASE).map(([, config]) => config.params.page),
   ).toEqual([1, 2]);
   expect(apiClient.post).not.toHaveBeenCalled();
+});
+
+it('lists each wallet as a Wallets row reads, with its status, signing preference, balance and value labelled', async () => {
+  get.mockImplementation(async (url: string) =>
+    url === WALLET_ENDPOINTS.BASE
+      ? {
+          data: {
+            results: [
+              { ...wallet('1', 'First wallet'), signingPreference: 'software' },
+              {
+                ...wallet('2', 'Second wallet'),
+                signingPreference: 'hardware',
+                nativeBalance: '0.42',
+                marketValue: '2',
+              },
+            ],
+            count: 2,
+            next: null,
+            previous: null,
+          },
+        }
+      : { data: { results: [{}], count: 1, next: null, previous: null } },
+  );
+  const view = await show();
+
+  const second = await view.findByRole('button', { name: /Second wallet/ });
+  expect(within(second).getByText('0.42 ETH').parent).toBe(within(second).getByText('Balance').parent);
+  expect(within(second).getByText('2').parent).toBe(within(second).getByText('Estimated value').parent);
+  expect(
+    within(second)
+      .getAllByRole('img')
+      .map((image) => image.props.accessibilityLabel),
+  ).toEqual(['Wallet address verified', 'Hardware (self-declared)']);
+  expect(within(second).queryByText(wallet('2', '').address)).toBeNull();
+  const first = view.getByRole('button', { name: /First wallet/ });
+  expect(within(first).getByText('1 ETH').parent).toBe(within(first).getByText('Balance').parent);
+  expect(within(first).getByRole('img', { name: 'Software (self-declared)' })).toBeTruthy();
 });
