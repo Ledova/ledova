@@ -12,7 +12,6 @@ import {
 import {
   getChainShortCode,
   BLOCKCHAIN,
-  DESIGN_TOKENS,
   getAddressPlaceholder,
   getBlockchainDisplayName,
   getEstimatedFee,
@@ -21,15 +20,12 @@ import {
   parseFiatValue,
   useCurrency,
 } from '@ledova/shared';
+import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from '../hooks/useTransferFlow';
 
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 const FIELD_CLASS =
   'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';

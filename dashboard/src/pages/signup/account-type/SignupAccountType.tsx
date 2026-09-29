@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserIcon, BuildingsIcon } from '@phosphor-icons/react';
-import { CACHE_TIMING, DESIGN_TOKENS, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
+import { CACHE_TIMING, describeFailure, getUserAccount, setAccountRole } from '@ledova/shared';
+import { ICON_LG } from '@components/iconSizes';
 import { AuthLayout } from '@components/AuthLayout';
 import apiClient from '@services/apiClient';
-
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 type AccountRole = 'investor' | 'company';
 

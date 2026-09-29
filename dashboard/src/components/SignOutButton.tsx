@@ -1,5 +1,5 @@
 import { SignOutIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { useSignOut } from '@hooks/useSignOut';
 
 const LOOKS = {
@@ -14,7 +14,7 @@ export function SignOutButton({ variant = 'header' }: { variant?: keyof typeof L
 
   return (
     <button type="button" onClick={signOut} disabled={isSigningOut} className={LOOKS[variant]}>
-      {variant === 'sidebar' && <SignOutIcon size={DESIGN_TOKENS.icon.sizes.md} />}
+      {variant === 'sidebar' && <SignOutIcon size={ICON_MD} />}
       {isSigningOut ? 'Signing out...' : 'Sign out'}
     </button>
   );

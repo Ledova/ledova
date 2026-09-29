@@ -1,8 +1,6 @@
 import { WalletIcon, CheckCircleIcon, ClockIcon } from '@phosphor-icons/react';
-import { WALLET_VERIFICATION_STATUS, DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { WALLET_VERIFICATION_STATUS } from '@ledova/shared';
+import { ICON_XS, ICON_SM } from '@components/iconSizes';
 
 interface WalletBadgeProps {
   verificationStatus: string;
