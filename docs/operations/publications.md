@@ -111,14 +111,13 @@ declaration dated in the future, a payment date before the record date, a rate
 at which the members between them are owed less than a cent, and any of these
 fields on something that is not a dividend.
 
-Each member on the roll is entitled to their shares on the record date times the
-rate, rounded down to the cent, and whatever rounding leaves over is recorded as
-undistributed rather than given to anyone (owner decision, 23 September 2026).
-It is always less than a cent for each member. The dividend's page in **Admin →
-Shareholder publications → Publications** shows the rate, the dates, the
-declared total and the undistributed amount, each member's entitlement on the
-roll, and its payment records, in sequence with their hashes. Seeing the records
-needs **Can view publication event** (`shareholders.view_publicationevent`).
+The dividend's page in **Admin → Shareholder publications → Publications** shows
+the rate, the dates, the declared total and the undistributed amount, each
+member's entitlement on the roll, and its payment records, in sequence with
+their hashes. Seeing the records needs **Can view publication event**
+(`shareholders.view_publicationevent`).
+[Entitlements live on the roll](../architecture/shareholder-publications.md#entitlements-live-on-the-roll)
+says how each entitlement and the undistributed amount are worked out.
 
 ## Recording a payment
 
@@ -159,21 +158,16 @@ record in place of the old.
 
 Nothing needs doing. `close_resolutions_past_their_window` runs every five
 minutes ([background jobs](jobs.md#schedule)) and closes each resolution whose
-voting window has passed. The database writes the tally into the close from the
-ballots on the chain: the shares and members for, against and abstaining, the
-shares and members on the roll, and whether it was carried.
+voting window has passed. The tally appears on the resolution's page once it
+has closed:
+[the event chain](../architecture/shareholder-publications.md#one-append-only-chain-of-events)
+says what the close records, and
+[the tally](../architecture/shareholder-publications.md#the-tally) when a
+resolution is carried.
 
-- An **ordinary** resolution is carried when the shares voted for exceed the
-  shares voted against. A tie is not carried.
-- A **special** resolution is carried when the shares voted for are at least 75%
-  of the votes cast (Corporations Act, section 9).
-- Abstentions are shown but are not votes cast, and a resolution on which no
-  votes were cast is not carried.
-
-The tally appears on the resolution's page once it has closed. If the worker is
-not running nothing closes, but nothing can be cast either: the database refuses
-every ballot once the window has passed, so a late close changes only when the
-tally appears, never what it says. Start the worker as
+If the worker is not running nothing closes, but nothing can be cast either: the
+database refuses every ballot once the window has passed, so a late close
+changes only when the tally appears, never what it says. Start the worker as
 [background jobs](jobs.md) describes.
 
 ## What a publication records
@@ -197,6 +191,8 @@ company reaches them the way it reaches any member it cannot address online.
 
 Nothing on a publication or its roll can be changed afterwards. The database
 refuses every update, and there is no admin path to add, change or delete one.
+[Retention](../architecture/shareholder-publications.md#retention) says how long
+a publication and its records are kept, and what removes them.
 
 ## What the member sees, and when
 
@@ -227,8 +223,9 @@ tally: shares and members for, against and abstaining, turnout against those
 eligible, and whether it was carried. **Published to your members** shows the
 resolution and its tally without personal ballot controls, even when the owner
 is also a member. If a ballot is refused on **Notices**, the page
-shows why, in the words the server used: voting has not opened, has closed, or a
-ballot was already recorded.
+shows why, in the words the server used;
+[casting a ballot](../architecture/shareholder-publications.md#casting-a-ballot)
+lists the refusals.
 
 A dividend shows the declared rate per share, the member's frozen holding, their
 entitlement and how it was worked out, and the payment date. Below them is what
@@ -255,11 +252,10 @@ Open a publication and choose **Open the published document**. It downloads
 rather than rendering. Each read — a member's, the company's, or yours — is
 recorded once in **Admin → Shareholder publications → Publication reads**: who
 read it, which publication, which roll row where there is one, and in which
-capacity. A read that cannot be recorded refuses the download rather than
-serving it, and a stored document that cannot be opened is refused before any
-read is recorded, so every record is of a document that was served. A member whose read
-cannot be recorded is told that nothing was served and to try again shortly; the
-document is not shown.
+capacity. When a download is refused rather than served,
+[every read is audited](../architecture/shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
+says why. A member whose read cannot be recorded is told that nothing was served
+and to try again shortly; the document is not shown.
 
 Those records cannot be rewritten or deleted in admin, are read only by staff,
 and carry no name, holding or document content. To confirm that a file is the
@@ -275,8 +271,9 @@ evidence downloads as the file type it was found to be when it was recorded. Its
 SHA-256 is on the same row, to compare with `sha256sum` on the copy you
 downloaded. Each opening is recorded in **Publication reads** like any other
 read, with the payment record's identifier in the event column. As with a
-published document, evidence that cannot be opened, or a read that cannot be
-recorded, serves nothing.
+published document,
+[the rule every read follows](../architecture/shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
+decides when evidence is refused rather than served.
 
 ## Checking a frozen roll and verifying a resolution
 
@@ -300,35 +297,17 @@ exercise](register-foundation.md#synthetic-operator-exercise)).
 For a resolution the same command also replays its event chain and prints, beside
 the roll's row count and digest, the number of events, the chain's head hash,
 the number of ballots and the tally — `null` until it has closed. It fails,
-naming the publication, when a sequence number is missing, when an event's
-stored hash or its link to the one before does not recompute, when an event
-names another company, when a ballot's member or shares differ from the roll,
-when one member has two ballots, when an
-event follows the close, or when the tally in the close differs from the tally
-recomputed from the ballots. Nothing the application does can cause any of
-these: they mean someone with the schema owner's rights rewrote the chain.
+naming the publication, on any fault that
+[verifying a resolution](../architecture/shareholder-publications.md#verifying-a-resolution)
+lists. Nothing the application does can cause any of these: they mean someone
+with the schema owner's rights rewrote the chain.
 
 ### Verifying a distribution
 
 For a dividend the command replays its payment records and rechecks its
 arithmetic, and prints the number of events, the chain's head hash, the number
 of standing payment records and the undistributed amount. It fails, naming the
-publication, on the same chain faults as a resolution, and when a payment is
-recorded for a member the roll does not entitle to one, when one member has two
-standing records, when a withdrawal has nothing to withdraw, when an event is a
-ballot or a close, when an entitlement is not the member's shares times the rate
-rounded down, or when the declared total or the undistributed amount does not
-agree with the roll. As for a resolution, only a rewrite with the schema owner's
-rights can cause these.
-
-## Retention
-
-Publications, their rolls, their read records, a resolution's ballots and
-close, and a dividend's payment records with their stored remittance evidence
-are kept for seven years from the publication and purged together by
-`purge_publications_past_the_clock`,
-daily at 03:50. They share `FORMER_MEMBER_RETENTION_DAYS` with the register's
-own outputs, so one clock governs both and a value below 2,557 days refuses the
-purge rather than shortening it; see
-[retention settings](uploads.md#data-retention). The purge deletes the stored
-document with the row. Nothing else removes a publication.
+publication, on any fault that
+[verifying a distribution](../architecture/shareholder-publications.md#verifying-a-distribution)
+lists. As for a resolution, only a rewrite with the schema owner's rights can
+cause these.
