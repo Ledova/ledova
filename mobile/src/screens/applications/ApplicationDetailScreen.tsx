@@ -47,6 +47,7 @@ export function ApplicationDetailScreen() {
         if (!submit.isPending && !withdraw.isPending) void retry();
       }}
     >
+      <Action label="Back to Applications" onPress={() => navigation.navigate('ApplicationsMain')} />
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>
@@ -135,7 +136,6 @@ export function ApplicationDetailScreen() {
           </Section>
         </>
       )}
-      <Action label="All applications" onPress={() => navigation.navigate('ApplicationsMain')} />
     </ApplicationsPage>
   );
 }

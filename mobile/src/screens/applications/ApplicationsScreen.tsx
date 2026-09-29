@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Section } from '../../components/Ledger';
 import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
 import { useSubscriptions } from './useApplications';
 import { applicationShares, applicationState } from './presentation';
@@ -15,7 +15,6 @@ export function ApplicationsScreen() {
     useSubscriptions();
   return (
     <ApplicationsPage loading={isLoading} refreshing={isRefreshing} refresh={() => void retry()}>
-      <Text style={styles.help}>Your applications for shares, from draft through allotment or closure.</Text>
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>
@@ -28,8 +27,8 @@ export function ApplicationsScreen() {
           {subscriptions.length === 0 && !hasMore && !moreFailed ? (
             <Section title="Your applications">
               <Text style={styles.help}>No applications yet.</Text>
-              <Action
-                label="Open Directory"
+              <LinkRow
+                label="Directory"
                 onPress={() => navigation.getParent()?.navigate('Directory', { screen: 'DirectoryMain' })}
               />
             </Section>
@@ -43,8 +42,8 @@ export function ApplicationsScreen() {
                 <Row label="Amount due">{formatMoney(application.amountDue, application.currency)}</Row>
                 <Row label="Drafted">{formatDate(application.createdAt)}</Row>
                 {application.reference && <Row label="Payment reference">{application.reference}</Row>}
-                <Action
-                  label="Open application"
+                <LinkRow
+                  label="Application"
                   accessibilityLabel={`Open application ${application.reference || application.uuid}`}
                   onPress={() => navigation.navigate('ApplicationDetail', { uuid: application.uuid })}
                 />

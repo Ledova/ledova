@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { raisedSupply, requestShares, wholeShares } from './shareQuantities';
+import { raisedSupply, requestShares, wholeShares } from '../../src/utils/share-quantities';
 
 describe('exact share quantities and the existing request limit', () => {
   it.each([

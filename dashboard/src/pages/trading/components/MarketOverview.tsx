@@ -52,7 +52,7 @@ export function MarketOverview({
         </div>
       ) : (
         tokens.map((token) => (
-          <div key={token.uuid} className="border-b border-border-subtle py-3">
+          <div key={token.uuid} className="border-b border-border-subtle py-3 last:border-b-0">
             <button
               className="max-w-full break-all text-left font-medium underline"
               aria-pressed={selectedTokenUuid === token.uuid}

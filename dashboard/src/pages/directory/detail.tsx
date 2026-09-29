@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { DESTINATIONS, formatDate, formatMoney, formatShareCount } from '@ledova/shared';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DESTINATIONS, formatDate, formatMoney, formatShareCount, useDirectoryToken } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { SubscribeForm } from '@pages/subscriptions/SubscribeForm';
 import { useCreateSubscription, useSubscribableWallets } from '@pages/subscriptions/useSubscriptions';
-import { useDirectoryToken } from './useDirectory';
 
 export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();
@@ -29,11 +28,13 @@ export default function DirectoryTokenPage() {
     navigate(DESTINATIONS.subscriptionDetail.path.replace(':uuid', created)),
   );
 
-  if (isLoading) return <Page loading />;
+  const back = <PageAction label="Back to Directory" onClick={() => navigate(DESTINATIONS.directory.path)} />;
+
+  if (isLoading) return <Page loading actions={back} />;
 
   if (hasError) {
     return (
-      <Page>
+      <Page actions={back}>
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">
             This share class could not be loaded. Try again before continuing.
@@ -46,18 +47,12 @@ export default function DirectoryTokenPage() {
 
   if (!token || notFound) {
     return (
-      <Page>
+      <Page actions={back}>
         <Section title="Share class not available">
           <p className="py-2 text-sm text-text-muted">
             This share class is not available to you in the directory. It may have closed or your investor status may
             need updating.
           </p>
-          <Link
-            to={DESTINATIONS.directory.path}
-            className="w-fit text-sm text-brand-light underline underline-offset-4"
-          >
-            Back to Directory
-          </Link>
         </Section>
       </Page>
     );
@@ -66,8 +61,7 @@ export default function DirectoryTokenPage() {
   const offering = token.openOffering;
 
   return (
-    <Page>
-      <p className="break-words text-sm text-text-muted">{token.company.displayName}</p>
+    <Page actions={back} lede={token.company.displayName}>
       <div className="min-w-0 break-words">
         <Section title={token.name}>
           <Rows>
@@ -156,9 +150,6 @@ export default function DirectoryTokenPage() {
           </p>
         )}
       </Section>
-      <Link to={DESTINATIONS.directory.path} className="w-fit text-sm text-brand-light underline underline-offset-4">
-        Back to Directory
-      </Link>
     </Page>
   );
 }

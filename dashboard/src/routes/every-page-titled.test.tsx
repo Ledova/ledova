@@ -20,7 +20,10 @@ import { SendTransferProvider } from '@hooks/useSendTransfer';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
-vi.mock('@hooks/useAuth', () => ({ useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
+}));
 vi.mock('@hooks/useRole', () => ({
   useRole: () => ({ role: 'both', isKnown: true, isUnavailable: false, isLoading: false, retry: vi.fn() }),
 }));
@@ -29,12 +32,19 @@ import { PAGES } from './pages';
 import { signedInRoutes } from './signedInRoutes';
 
 const KEYS = Object.keys(DESTINATIONS) as DestinationKey[];
+const LEDES: Partial<Record<DestinationKey, string>> = {
+  wallets: 'Select a wallet to edit, verify, derive an address or sync its balances.',
+  transactions: 'Select an entry for its status and details.',
+  companyRegister:
+    "The stored register records your company's members and their shares; wallet balances do not replace it.",
+  companyPublications: "Staff prepare and publish these records on your company's written instruction.",
+};
 const EMPTY = { results: [], count: 0, next: null, previous: null };
 const UUID = '7f1c2a9e';
 
 afterEach(cleanup);
 
-it.each(KEYS)('keeps the real %s page titled once everything it asked for has come back empty', async (key) => {
+it.each(KEYS)('titles the real %s page, with its lede where it has one, once reads come back empty', async (key) => {
   api.get.mockImplementation(async (url: string) => {
     if (url.startsWith(FEATURE_FLAG_ENDPOINTS.BASE)) {
       return { data: { ...EMPTY, results: [{ name: 'trading_enabled', enabled: true }] } };
@@ -69,5 +79,6 @@ it.each(KEYS)('keeps the real %s page titled once everything it asked for has co
     expect(client.isFetching()).toBe(0);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
   });
+  expect(screen.getByRole('heading', { level: 1, description: LEDES[key] ?? '' })).toBeTruthy();
   client.clear();
 });

@@ -117,7 +117,7 @@ it('reads every class page and renders exact stored shares with each member and 
   const summary = screen.getByText('Ordinary shares').closest('summary')!;
   fireEvent.click(summary);
   expect(summary.closest('details')!.open).toBe(true);
-  expect(screen.getAllByRole('link', { name: 'Open share class' })[0].getAttribute('href')).toBe(
+  expect(screen.getAllByRole('link', { name: 'Share class' })[0].getAttribute('href')).toBe(
     '/company/register/ordinary',
   );
   expect(screen.getAllByText('9,007,199,254,740,993 shares')).toHaveLength(2);

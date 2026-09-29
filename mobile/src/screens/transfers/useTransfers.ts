@@ -18,9 +18,9 @@ import {
   WALLET_VERIFICATION_STATUS,
   getErrorMessage,
   getHoldingTokenDeployment,
+  useUserPreferences,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { mockDataEnabled } from '../../_mock/mockDataEnabled';
 import { generateMockTransferableAssets, generateMockTransactionData, generateMockTxHash } from './_mock/mock';
 import { generateMockWalletsData } from '../wallets/_mock/mock';

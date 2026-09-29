@@ -5,8 +5,8 @@ import {
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
+  useCurrency,
 } from '@ledova/shared';
-import { useCurrency } from '@hooks/useCurrency';
 import type { Wallet } from '@ledova/shared';
 import { WalletBadge } from './WalletBadge';
 

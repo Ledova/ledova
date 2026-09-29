@@ -8,8 +8,8 @@ import {
   formatVerificationToken,
   EMAIL_CONFIRMATION_VALIDATION,
   describeFailure,
+  AUTH_QUERY_KEY,
 } from '@ledova/shared';
-import { AUTH_QUERY_KEY } from '@hooks/useAuth';
 import apiClient from '@services/apiClient';
 
 export const useSignupEmailConfirmation = () => {

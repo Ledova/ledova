@@ -1,12 +1,42 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="border-b border-border pb-2 font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
+    <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
+      <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
       {children}
     </section>
+  );
+}
+
+export function LinkRow({
+  to,
+  label,
+  aside,
+  children,
+}: {
+  to: string;
+  label: string;
+  aside?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="group relative flex items-center justify-between gap-4 py-3 text-sm">
+      <div className="min-w-0 flex-1">
+        <Link
+          to={to}
+          className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-mid"
+        >
+          {label}
+        </Link>
+        {children}
+      </div>
+      {aside}
+      <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-mid" />
+    </div>
   );
 }
 

@@ -1,14 +1,17 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { COMPANY_TOKEN_ENDPOINTS, REGISTER_COPY } from '@ledova/shared';
+import { COMPANY_TOKEN_ENDPOINTS, HOLDER_TYPE_LABELS, REGISTER_COPY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 
 const mockNavigate = jest.fn();
 let mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({ useUserPreferences: () => mockPreferences }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => mockPreferences,
+}));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 
 const get = jest.mocked(apiClient.get);
@@ -95,6 +98,22 @@ it('reads every class and displays exact stored members including members withou
   expect(view.getByText('Not recorded')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Open Ordinary shares' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('TokenDetail', { uuid: 'ordinary', name: 'Ordinary shares' });
+});
+
+it('draws one rule between classes and none above the card edge', async () => {
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  const lastLink = await view.findByRole('button', { name: 'Open Preference shares' });
+  expect(lastLink).toHaveStyle({ borderBottomWidth: 0 });
+  expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toHaveStyle({ borderBottomWidth: 0 });
+  expect(view.getByRole('button', { name: 'Ordinary shares register' }).parent).toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getByRole('button', { name: 'Preference shares register' }).parent).toHaveStyle({
+    borderBottomWidth: 0,
+  });
+  await fireEvent.press(view.getByRole('button', { name: 'Preference shares register' }));
+  expect(view.getByRole('button', { name: 'Open Preference shares' })).toHaveStyle({ borderBottomWidth: 1 });
+  await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));
+  expect(view.getByText('Alex Member').parent).toHaveStyle({ borderBottomWidth: 1 });
+  expect(view.getByText(HOLDER_TYPE_LABELS.unidentified).parent).toHaveStyle({ borderBottomWidth: 0 });
 });
 
 it.each([

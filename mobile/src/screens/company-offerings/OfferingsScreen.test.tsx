@@ -6,7 +6,8 @@ import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
 let mockRole = 'company';
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -193,6 +194,17 @@ it('reads all owned offering, class and application pages and retains precise mo
   expect(view.getByText(/AUD\s0\.00/)).toBeTruthy();
   expect(view.getByText('EXAMPLE-2')).toBeTruthy();
   for (const url of [TOKENS, OFFERINGS, SUBSCRIPTIONS]) expect(get).toHaveBeenCalledWith(url, { params: { page: 2 } });
+});
+
+it('puts Your offerings first, then its applications, the directory switch and what happens next', async () => {
+  const view = await start();
+  expect(view.getAllByRole('header').map((header) => header.props.children)).toEqual([
+    'Offerings',
+    'Your offerings (1)',
+    'Applications',
+    'Investor Directory',
+    'What happens next',
+  ]);
 });
 
 it('makes no company or offering read for a member account', async () => {

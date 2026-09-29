@@ -7,8 +7,6 @@ import type { Transaction } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { TransactionsScreen } from './index';
 
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 jest.mock('../../components/date-picker', () => {
   const { TextInput } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -93,14 +91,13 @@ afterEach(async () => {
   client.clear();
 });
 
-it('opens Notices and reads exact activity independently of an empty wallet list', async () => {
+it('reads exact activity independently of an empty wallet list and leaves Notices to the drawer', async () => {
   wallets = async () => page([]);
   const view = await show();
   expect(await view.findByText('9,007,199,254,740,993.000000000000000001 AUDX')).toBeTruthy();
   expect(view.getByText('Pending')).toBeTruthy();
   expect(reads()).toHaveLength(1);
-  await fireEvent.press(view.getByText('Open Notices'));
-  expect(mockNavigate).toHaveBeenCalledWith('Publications');
+  expect(view.queryByText('Open Notices')).toBeNull();
 });
 it('keeps history usable while wallet filters are still loading', async () => {
   let finish!: (value: unknown) => void;

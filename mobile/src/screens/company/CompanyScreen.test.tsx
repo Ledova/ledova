@@ -12,7 +12,8 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../hooks/useUserPreferences', () => ({
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
 }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patch: jest.fn(), post: jest.fn() } }));
@@ -81,7 +82,9 @@ afterEach(async () => {
 
 it('uses complete company detail and every class page with exact quantities and working destinations', async () => {
   const view = await render(<CompanyScreen />, { wrapper });
-  expect(await view.findByText('Fictional Company')).toBeTruthy();
+  expect(await view.findByRole('header', { name: 'Fictional Company' })).toBeTruthy();
+  expect(view.getAllByText('Fictional Company')).toHaveLength(1);
+  expect(view.queryByText('Company details')).toBeNull();
   expect(await view.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
   expect(view.getByText('Share classes (1)')).toBeTruthy();
   expect(view.queryByText('Foreign class')).toBeNull();
@@ -89,7 +92,7 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('TokenDetail', { uuid: 'class' });
   await fireEvent.press(view.getByRole('button', { name: 'Application' }));
   expect(mockNavigate).toHaveBeenCalledWith('Listing');
-  await fireEvent.press(view.getByRole('button', { name: 'Open Register' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Register' }));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');

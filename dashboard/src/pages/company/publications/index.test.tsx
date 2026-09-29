@@ -101,7 +101,8 @@ it('reads every page for the selected issuer without reusing the personal Notice
   expect(api.get).toHaveBeenCalledWith(BASE, { params: { page: 1, issuer: 'company-one' } });
   expect(api.get).toHaveBeenCalledWith(BASE, { params: { page: 2, issuer: 'company-one' } });
   expect(screen.getByRole('link', { name: 'Notices' }).getAttribute('href')).toBe('/publications');
-  expect(screen.getByRole('link', { name: 'Back to Company' }).getAttribute('href')).toBe('/company');
+  fireEvent.click(screen.getByRole('button', { name: 'Back to Company' }));
+  expect(await screen.findByText('Company page')).toBeTruthy();
 });
 
 it('distinguishes a successful empty list', async () => {

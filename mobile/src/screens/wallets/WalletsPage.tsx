@@ -53,6 +53,7 @@ export const useWalletStyles = () =>
     group: { gap: 12 },
     actions: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12 },
     item: { gap: 12, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border.default },
+    lastItem: { paddingBottom: 0, borderBottomWidth: 0 },
     input: {
       fontFamily: theme.fontFamily.regular,
       color: theme.colors.text.primary,

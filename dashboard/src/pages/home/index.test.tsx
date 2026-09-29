@@ -2,8 +2,9 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
+import { ApiClientProvider, HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import { HomePage } from './index';
 
@@ -62,9 +63,11 @@ function page(wallets = [firstWallet], next: string | null = null) {
 function renderPage() {
   return render(
     <QueryClientProvider client={client}>
-      <PageTitle.Provider value="Holdings">
-        <HomePage />
-      </PageTitle.Provider>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <PageTitle.Provider value="Holdings">
+          <HomePage />
+        </PageTitle.Provider>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }

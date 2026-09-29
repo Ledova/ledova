@@ -29,7 +29,8 @@ import { OrdersPanel } from './components/OrdersPanel';
 import { PlaceOrderPanel } from './components/PlaceOrderPanel';
 import { useTradingEvents } from './hooks/useTradingEvents';
 import { useInvestorEligibilityQuery } from './useTrading';
-import { Page } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
+import { Section } from '@components/Ledger';
 import { marketAmount, marketQuantity } from './marketData';
 
 const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
@@ -262,6 +263,12 @@ export function TradingPage() {
     handleCloseOrderSigningFlow();
   };
 
+  const savedWorkAlerts = [submissions.error, actions.error, swapSelectionError, settlements.error].filter(
+    (message): message is string => !!message,
+  );
+  const hasSavedWork =
+    submissions.pending.length + actions.pending.length + settlements.pending.length + savedWorkAlerts.length > 0;
+
   return (
     <Page>
       <MarketOverview
@@ -276,95 +283,6 @@ export function TradingPage() {
           void eligibilityQuery.refetch();
         }}
       />
-
-      <section className="space-y-2 border-b border-border py-4" aria-label="Saved orders">
-        <h2 className="font-display text-xl">Saved orders</h2>
-        <p className="text-sm text-text-muted">
-          Check unfinished orders here. New buy and sell orders are separate orders, even with the same terms.
-        </p>
-        {submissions.error && <p role="alert">{submissions.error}</p>}
-        {submissions.pending.map((record, index) => (
-          <button
-            key={record.submissionId}
-            className="block text-brand-light"
-            onClick={() => {
-              signingGeneration.current++;
-              closeSwapSigning();
-              actions.close();
-              submissions.recover(record);
-            }}
-          >
-            Check saved order {index + 1}
-            {wallets.find((wallet) => wallet.uuid === record.walletUuid)?.name
-              ? ` — ${wallets.find((wallet) => wallet.uuid === record.walletUuid)?.name}`
-              : ''}
-          </button>
-        ))}
-        <button
-          onClick={() => void submissions.refresh()}
-          disabled={submissions.isLoading}
-          className="text-sm text-brand-light"
-        >
-          Refresh saved orders
-        </button>
-      </section>
-
-      <section className="space-y-2 border-b border-border py-4" aria-label="Saved cancellations and changes">
-        <h2 className="font-display text-xl">Saved cancellations and changes</h2>
-        {actions.error && <p role="alert">{actions.error}</p>}
-        {actions.pending.map((record, index) => (
-          <button
-            key={record.actionId}
-            className="block text-brand-light"
-            onClick={() => {
-              signingGeneration.current++;
-              closeSwapSigning();
-              submissions.close();
-              actions.recover(record);
-            }}
-          >
-            Check {record.purpose === 'cancel' ? 'cancellation' : 'change'} {index + 1}
-          </button>
-        ))}
-        <button
-          className="text-sm text-brand-light"
-          disabled={actions.isLoading}
-          onClick={() => void actions.refresh()}
-        >
-          Refresh saved actions
-        </button>
-      </section>
-
-      <section className="space-y-2 border-b border-border py-4" aria-label="Saved trade signatures">
-        <h2 className="font-display text-xl">Saved trade signatures and approvals</h2>
-        <p className="text-sm text-text-muted">
-          Check the original trade after a lost connection or interrupted signing.
-        </p>
-        {swapSelectionError && <p role="alert">{swapSelectionError}</p>}
-        {settlements.error && <p role="alert">{settlements.error}</p>}
-        {settlements.pending.map((record, index) => (
-          <button
-            key={`${record.orderUuid}/${record.swapUuid}/${record.walletUuid}/${record.settlementDigest}/${record.kind}/${record.kind === 'approval' ? record.txHash : record.signerAddress}`}
-            className="block text-brand-light"
-            onClick={() => {
-              signingGeneration.current++;
-              submissions.close();
-              actions.close();
-              closeSwapSigning();
-              settlements.recover(record, walletCurrent(record.walletUuid));
-            }}
-          >
-            Check saved {record.kind === 'approval' ? 'approval' : 'trade signature'} {index + 1}
-          </button>
-        ))}
-        <button
-          className="text-sm text-brand-light"
-          disabled={settlements.isLoading}
-          onClick={() => void settlements.refresh()}
-        >
-          Refresh saved trades
-        </button>
-      </section>
 
       {tradingWallets.error && (
         <div role="alert">
@@ -397,6 +315,86 @@ export function TradingPage() {
         settlementOwner={settlements.owner}
         onSignSwap={handleSignSwap}
       />
+      {hasSavedWork && (
+        <Section title="Saved work">
+          {savedWorkAlerts.map((message) => (
+            <p key={message} role="alert" className="text-sm text-error-light">
+              {message}
+            </p>
+          ))}
+          {submissions.pending.length > 0 && (
+            <>
+              <p className="text-sm text-text-muted">
+                Check unfinished orders here. New buy and sell orders are separate orders, even with the same terms.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {submissions.pending.map((record, index) => {
+                  const walletName = wallets.find((wallet) => wallet.uuid === record.walletUuid)?.name;
+                  return (
+                    <PageAction
+                      key={record.submissionId}
+                      label={`Check saved order ${index + 1}${walletName ? ` — ${walletName}` : ''}`}
+                      onClick={() => {
+                        signingGeneration.current++;
+                        closeSwapSigning();
+                        actions.close();
+                        submissions.recover(record);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </>
+          )}
+          {actions.pending.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {actions.pending.map((record, index) => (
+                <PageAction
+                  key={record.actionId}
+                  label={`Check ${record.purpose === 'cancel' ? 'cancellation' : 'change'} ${index + 1}`}
+                  onClick={() => {
+                    signingGeneration.current++;
+                    closeSwapSigning();
+                    submissions.close();
+                    actions.recover(record);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          {settlements.pending.length > 0 && (
+            <>
+              <p className="text-sm text-text-muted">
+                Check the original trade after a lost connection or interrupted signing.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {settlements.pending.map((record, index) => (
+                  <PageAction
+                    key={`${record.orderUuid}/${record.swapUuid}/${record.walletUuid}/${record.settlementDigest}/${record.kind}/${record.kind === 'approval' ? record.txHash : record.signerAddress}`}
+                    label={`Check saved ${record.kind === 'approval' ? 'approval' : 'trade signature'} ${index + 1}`}
+                    onClick={() => {
+                      signingGeneration.current++;
+                      submissions.close();
+                      actions.close();
+                      closeSwapSigning();
+                      settlements.recover(record, walletCurrent(record.walletUuid));
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          <PageAction
+            label="Refresh saved work"
+            disabled={submissions.isLoading || actions.isLoading || settlements.isLoading}
+            onClick={() => {
+              void submissions.refresh();
+              void actions.refresh();
+              void settlements.refresh();
+            }}
+          />
+        </Section>
+      )}
       {selectedToken && (
         <>
           {balancesError && (

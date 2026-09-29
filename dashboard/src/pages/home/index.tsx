@@ -1,9 +1,8 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { formatShareCount, getChainConfig } from '@ledova/shared';
+import { formatShareCount, getChainConfig, useShareHoldings } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { HoldingWork } from './components/HoldingWork';
-import { useShareHoldings } from './hooks/useShareHoldings';
 
 export function HomePage() {
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
@@ -12,16 +11,16 @@ export function HomePage() {
     <Page>
       <Section title="Shares in your wallets">
         {isPending ? (
-          <p role="status" className="py-6 text-sm text-text-muted">
+          <p role="status" className="py-3 text-sm text-text-muted">
             Loading your holdings…
           </p>
         ) : isError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-6">
+          <div role="alert" className="flex flex-col items-start gap-3 py-3">
             <p className="text-sm text-text-muted">We couldn&apos;t load all your holdings.</p>
             <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
           </div>
         ) : holdings.length === 0 ? (
-          <p className="py-6 text-sm text-text-muted">
+          <p className="py-3 text-sm text-text-muted">
             None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
             appear here once they are in one of your wallets.
           </p>

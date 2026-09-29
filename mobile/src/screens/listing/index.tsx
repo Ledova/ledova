@@ -4,6 +4,8 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  OPTIONAL_DOCUMENTS,
+  REQUIRED_DOCUMENTS,
   formatDate,
   getErrorMessage,
   getOperator,
@@ -18,7 +20,6 @@ import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyUpload } from './CompanyUpload';
 import { DocumentEntry } from './DocumentEntry';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from './documents';
 import { useCompanyDocuments } from './useCompanyDocuments';
 
 const ACTION_ERROR = 'The request was refused. Please try again.';
@@ -106,10 +107,10 @@ export function ListingScreen() {
   };
   const documentSection = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
     <Section title={title}>
-      {types.map(({ type, label }) => {
+      {types.map(({ type, label }, index) => {
         const matches = documents.filter((document) => document.documentType === type);
         return (
-          <View key={type} style={styles.entry}>
+          <View key={type} style={[styles.entry, index === types.length - 1 && styles.lastEntry]}>
             <Text style={styles.heading}>{label}</Text>
             <Text style={styles.muted}>{matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}</Text>
             {matches.map((document) => (
@@ -168,7 +169,7 @@ export function ListingScreen() {
         ) : (
           <>
             <Section title="Application record">
-              <Text style={styles.heading}>{company.name}</Text>
+              <Text style={styles.text}>{company.name}</Text>
               <Row label="Status">{company.statusDisplay}</Row>
               {events.map(({ label, at }) => (
                 <Row key={label} label={label}>

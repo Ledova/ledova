@@ -48,8 +48,8 @@ offers only pages the role can open, in groups:
 
 - a company's own group first, named after the company, with Register, Offerings and
   Company.
-  The company's application sits under Company, opened from the Company page's
-  title row, rather than as a menu item.
+  The company's application sits under Company, opened from a row on the
+  Company page, rather than as a menu item.
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
 - then Wallets, Profile, Settings and Help.
@@ -108,8 +108,14 @@ Market presents For sale and Wanted lists with automatic matching. Buyers fund
 before placing an offer. Owned order history reads independently of listed share
 classes and wallet availability, retaining recorded class labels or an explicit
 unavailable label. Wallet, class, owned-order and pending-trade reads follow every
-page; read failures expose retry and suppress stale actions. Existing saved-order,
-change, cancellation and trade-signature recovery remain available. AUD totals use
+page; read failures expose retry and suppress stale actions. Saved orders,
+cancellations and changes, and trade signatures and approvals are records on this
+device for the signed-in account. Market reads them when it loads and after each
+recovery; one saved elsewhere later, such as in another browser tab, appears when
+Market is reopened on the web or pulled to refresh on mobile, whose Market tab
+stays loaded. They sit in one Saved work section after Trades awaiting signatures,
+shown only while something is saved or a message about them, such as a failed
+read, needs showing, with one refresh that reads all three again. AUD totals use
 integer cents; unsafe numeric quantities returned by legacy list APIs are marked
 unavailable. New quantities use exact integer strings above JavaScript's safe
 number range, within the existing signed 64-bit storage bound. The chosen wallet's
@@ -294,7 +300,8 @@ Share counts and AUD totals use exact integer arithmetic, with unavailable label
 for legacy numeric counts outside the safe range. An open order draft keeps its
 fields during failed refreshes, while current class, eligibility, wallet, holdings
 and allowlist checks gate submission. Existing signing, cancellation and settlement
-recovery retain their saved identities and session boundaries.
+recovery retain their saved identities and session boundaries, in the same Saved
+work section.
 
 Where market values are shown elsewhere, they are in AUD: the shared
 `useCurrency` converts the API's US-dollar values at the current rate, shows a
@@ -339,8 +346,9 @@ and pending requests keep their forms open until completion. Upload, removal and
 action refusals remain visible for retry. These pages add no staff approval or
 execution controls.
 
-Offerings uses ledger sections for directory visibility, every offering of the
-selected company and every subscription to the selected offering. Class and
+Offerings uses ledger sections for every offering of the selected company and
+every subscription to the selected offering, followed by directory visibility and
+what happens next. Class and
 offering lists follow every page before presenting issuer actions; subscriptions
 show requested and allotted shares separately, including zero allotments. AUD
 amounts stay exact decimal strings. Payment confirmation and allotment remain
@@ -413,17 +421,23 @@ the public layout has a footer.
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
 
-- `Section`: a Newsreader heading over a hairline rule, with no card.
+- `Section`: a white card on the paper ground (`bg-surface-raised`, a
+  `border-border` hairline, `rounded-xl`), with its Newsreader title inside at
+  the top and no rule under it. The page's title row stays on the paper above
+  the cards.
 - `Rows`: ruled label and value pairs, with figures right-aligned in tabular
   numerals. Every amount names its currency (`formatMoney`), and share counts
   are whole numbers.
+- `LinkRow`: a row that opens another page, named after its destination, with
+  optional detail lines, an optional aside such as a status or a price, and a
+  trailing chevron; the whole row is the link.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
 An empty section keeps its real title; the state is one muted sentence under
 it, in the `text-sm text-text-muted` paragraph ("No activity yet.", "No
-Ethereum wallets yet."), with at most one action, a `PageAction` or an inline
-link, and no icon block. A state is never a section's title. Activity's
+Ethereum wallets yet."), with at most one action, a `PageAction` or a
+`LinkRow`, and no icon block. A state is never a section's title. Activity's
 "Transfers" and each Wallets chain keep the same title whether or not they
 hold anything; Directory, Applications and Notices list one section per
 company, application or notice when they hold something, so their empty
@@ -431,8 +445,42 @@ section's title names what it would hold ("Share classes", "Your
 applications", "Your notices"). Mobile's `Section` and `Action` follow the
 same rule.
 
-White cards stay for forms and for things to act on, such as a payment
-instruction. The application page is the first page built this way.
+Actions use one language. `PageAction` is the button for whatever a page or a
+section does, and it keeps its content width wherever it sits: in the title row
+for the page as a whole (Edit company, Filter, Refresh, and the way back to the
+parent page such as Back to Register, Back to Company, Back to Directory or Back
+to Applications) and inside a section for what that section does (Create share
+class, Edit phone, Change password beside its sentence). A page reaches each of
+its own sub-pages, and each neighbour a section points to, from one place, a
+`LinkRow` in that section, never also from a title action or an underlined
+link: Company lists Application and Published to your members under its details
+and each share class and the Register under its classes; Register lists a Share
+class row inside each class; Settings lists Profile; Directory lists each share
+class under its company, or a Verification row until the investor is verified;
+Applications lists an Application row under each application, or a Directory
+row when there are none; Verification lists a Directory row once the investor
+is verified; and the apply form lists a Wallets row until there is a receiving
+wallet. A destination the sidebar already reaches, such as Notices, is not
+repeated in a title row. An underlined link is part of a sentence ("open
+Notices") or opens an external resource such as a block explorer or a stored
+document. Mobile's `LinkRow` and `Action` follow the same rule.
+
+A lede, the one muted sentence under a page's title, appears only where it says
+what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
+Published to your members, the company of a Directory share class). `Page` sets
+its `lede` under the title row as the heading's description; a page whose titles
+already say it, such as Directory, Applications, Verification or Notices, has
+none. Other explanations stay in the section they explain, after the content
+they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
+leads with Your offerings. Mobile's `Lede` follows the title and its actions.
+
+Every section is its own card, including forms and things to act on such as a
+payment instruction. A group inside a section is set off by a rule or a small
+heading rather than a card of its own, as the For sale and Wanted lists on
+Market, the saved payslips on Profile and a vote's confirmation on Notices are
+([decision](../decisions.md#the-signed-in-app)). The saved pause and unpause
+requests on a share class are the exception: each still sits in a bordered box
+inside the class's card. Dialogs keep their own panel over the page.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

@@ -4,7 +4,10 @@ import { cleanup, render } from '@testing-library/react';
 import type { Wallet } from '@ledova/shared';
 import { WalletItem } from './WalletItem';
 
-vi.mock('@hooks/useCurrency', () => ({ useCurrency: () => ({ formatDisplayCurrency: () => '$0.00' }) }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useCurrency: () => ({ formatDisplayCurrency: () => '$0.00' }),
+}));
 
 const wallet: Wallet = {
   uuid: 'wallet',

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCompanyTokens, formatShareCount, type Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Section } from '../../components/Ledger';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { apiClient } from '../../services/apiClient';
 import { everyCompanyPage } from '../company-register/useCompanyRegister';
@@ -67,8 +67,6 @@ export function CompanyScreen() {
         <Text accessibilityRole="header" style={styles.title}>
           Company
         </Text>
-        <Action label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
-        <Action label="Application" onPress={() => navigation.navigate('Listing')} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -77,8 +75,7 @@ export function CompanyScreen() {
           <Text style={styles.muted}>No company information available.</Text>
         ) : (
           <>
-            <Section title="Company details">
-              <Text style={styles.heading}>{company.name}</Text>
+            <Section title={company.name}>
               <Row label="Status">{company.statusDisplay}</Row>
               {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
               <Row label="Type">{company.companyTypeDisplay}</Row>
@@ -87,6 +84,8 @@ export function CompanyScreen() {
               {company.email && <Row label="Email">{company.email}</Row>}
               {company.phone && <Row label="Phone">{company.phone}</Row>}
               {!!address && <Row label="Address">{address}</Row>}
+              <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
+              <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
               <Action label="Edit company" onPress={() => setEditing(company)} disabled={data.isRefreshing} />
             </Section>
             <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
@@ -106,22 +105,24 @@ export function CompanyScreen() {
               ) : classes.data.length === 0 ? (
                 <Text style={styles.muted}>No share classes yet.</Text>
               ) : (
-                classes.data.map((token) => (
-                  <View key={token.uuid} style={styles.entry}>
-                    <Action
+                <>
+                  {classes.data.map((token) => (
+                    <LinkRow
+                      key={token.uuid}
                       label={token.name}
                       onPress={() => navigation.navigate('TokenDetail', { uuid: token.uuid })}
-                    />
-                    <Text style={styles.text}>{token.statusDisplay}</Text>
-                    <Text style={styles.muted}>
-                      {token.symbol} · {token.tokenTypeDisplay}
-                    </Text>
-                    <Text style={styles.muted}>{formatShareCount(token.totalSupply)} authorised shares</Text>
-                  </View>
-                ))
+                    >
+                      <Text style={styles.text}>{token.statusDisplay}</Text>
+                      <Text style={styles.muted}>
+                        {token.symbol} · {token.tokenTypeDisplay}
+                      </Text>
+                      <Text style={styles.muted}>{formatShareCount(token.totalSupply)} authorised shares</Text>
+                    </LinkRow>
+                  ))}
+                  <LinkRow label="Register" onPress={() => navigation.navigate('CompanyMain')} />
+                </>
               )}
               <Action label="Create share class" disabled={data.isRefreshing} onPress={() => setCreating(company)} />
-              <Action label="Open Register" onPress={() => navigation.navigate('CompanyMain')} />
             </Section>
           </>
         )}
