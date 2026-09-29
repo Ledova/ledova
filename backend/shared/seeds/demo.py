@@ -1,6 +1,6 @@
 DEMO_PASSWORD_ENV_VAR = "LEDOVA_DEMO_PASSWORD"
 
-DEMO_ADMIN_EMAIL = "admin@ledova.io"
+DEMO_ADMIN_EMAIL = "admin@demo.ledova.test"
 DEMO_OWNER_EMAIL = "founder@ledova.io"
 DEMO_INVESTOR_EMAIL = "investor@ledova.io"
 
