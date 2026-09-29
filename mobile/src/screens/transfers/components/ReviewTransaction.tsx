@@ -9,9 +9,10 @@ import type { TransactionData } from '@ledova/shared';
 interface ReviewTransactionProps {
   transactionData: TransactionData;
   chainShortName: string;
+  tokenSymbol?: string;
 }
 
-export function ReviewTransaction({ transactionData, chainShortName }: ReviewTransactionProps) {
+export function ReviewTransaction({ transactionData, chainShortName, tokenSymbol }: ReviewTransactionProps) {
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     scrollContent: {
@@ -47,9 +48,13 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
           {formatWalletAddressMedium(transactionData.toAddress)}
         </Row>
         <Row label="Amount">
-          {transactionData.amountToken
-            ? `${transactionData.amountToken} ${transactionData.tokenSymbol}`
-            : `${transactionData.amountEth || transactionData.amountBtc} ${nativeSymbol}`}
+          {transactionData.amountToken ? (
+            <>
+              {transactionData.amountToken} {tokenSymbol}
+            </>
+          ) : (
+            `${transactionData.amountEth || transactionData.amountBtc} ${nativeSymbol}`
+          )}
         </Row>
         <Row label="Transaction Fee">
           {transactionData.gasCostEth || transactionData.feeBtc} {nativeSymbol}
@@ -57,7 +62,7 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
         <Row label="Total">
           {transactionData.amountToken ? (
             <>
-              {transactionData.amountToken} {transactionData.tokenSymbol}
+              {transactionData.amountToken} {tokenSymbol}
               {'\n'}
               <Text style={styles.totalSubtext}>+ {transactionData.gasCostEth} ETH (gas)</Text>
             </>

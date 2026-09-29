@@ -213,7 +213,13 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
       case 'review':
         if (!transactionData) return null;
-        return <ReviewTransaction transactionData={transactionData} chainShortName={chainShortName} />;
+        return (
+          <ReviewTransaction
+            transactionData={transactionData}
+            chainShortName={chainShortName}
+            tokenSymbol={selectedAsset?.symbol}
+          />
+        );
 
       case 'sign':
         if (isBitcoin) {
@@ -234,6 +240,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
               wallet={wallet}
               transactionData={transactionData}
               tokenDecimals={selectedAsset?.decimals}
+              tokenSymbol={selectedAsset?.symbol}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />

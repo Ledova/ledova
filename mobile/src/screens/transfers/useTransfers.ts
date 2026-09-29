@@ -103,6 +103,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     initialWallet ? { ...INITIAL_STATE, step: 'enter-details', wallet: initialWallet } : INITIAL_STATE,
   );
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
+  const [prepareRefusal, setPrepareRefusal] = useState<string | null>(null);
   const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
   const walletsQuery = useQuery({
@@ -165,6 +166,8 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       validatePreparedTransfer(response.data, data, decimals);
       return response;
     },
+    onMutate: () => setPrepareRefusal(null),
+    onError: (error) => setPrepareRefusal(getErrorMessage(error)),
     onSuccess: (response) => {
       setState((prev) => ({
         ...prev,
@@ -219,19 +222,23 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, [pendingBroadcast, state.signedTransaction, state.wallet, state.step, broadcastTransferMutation, USE_MOCK_DATA]);
 
   const selectWallet = useCallback((wallet: Wallet) => {
+    setPrepareRefusal(null);
     setState((prev) => ({ ...prev, step: 'enter-details', wallet, selectedAsset: null, amount: '' }));
     setTransferableAssets([]);
   }, []);
 
   const selectAsset = useCallback((asset: TransferableAsset) => {
+    setPrepareRefusal(null);
     setState((prev) => ({ ...prev, selectedAsset: asset, amount: '' }));
   }, []);
 
   const setToAddress = useCallback((toAddress: string) => {
+    setPrepareRefusal(null);
     setState((prev) => ({ ...prev, toAddress }));
   }, []);
 
   const setAmount = useCallback((amount: string) => {
+    setPrepareRefusal(null);
     setState((prev) => ({ ...prev, amount }));
   }, []);
 
@@ -355,7 +362,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     isLoadingHoldings: USE_MOCK_DATA ? false : holdingsQuery.isLoading,
     isPreparing: USE_MOCK_DATA ? false : prepareTransferMutation.isPending,
     isBroadcasting: USE_MOCK_DATA ? false : broadcastTransferMutation.isPending,
-    prepareError: USE_MOCK_DATA ? null : getErrorMessage(prepareTransferMutation.error),
+    prepareError: USE_MOCK_DATA ? null : prepareRefusal,
     broadcastError: USE_MOCK_DATA ? null : getErrorMessage(broadcastTransferMutation.error),
     selectWallet,
     selectAsset,

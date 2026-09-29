@@ -229,7 +229,13 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
 
       case 'review':
         if (!transactionData) return null;
-        return <ReviewTransaction transactionData={transactionData} chainShortName={chainShortName} />;
+        return (
+          <ReviewTransaction
+            transactionData={transactionData}
+            chainShortName={chainShortName}
+            tokenSymbol={selectedAsset?.symbol}
+          />
+        );
 
       case 'sign':
         if (wallet.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE) {
@@ -239,6 +245,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
               wallet={wallet}
               transactionData={transactionData}
               tokenDecimals={selectedAsset?.decimals}
+              tokenSymbol={selectedAsset?.symbol}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />

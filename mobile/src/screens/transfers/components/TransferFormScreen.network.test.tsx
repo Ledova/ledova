@@ -24,9 +24,9 @@ jest.mock('../../../components/qr', () => ({
   },
   QRDisplay: () => null,
 }));
-const mockSoftware: { tokenDecimals?: number }[] = [];
+const mockSoftware: { tokenDecimals?: number; tokenSymbol?: string }[] = [];
 jest.mock('./SoftwareSignTransaction', () => ({
-  SoftwareSignTransaction: (props: { tokenDecimals?: number }) => {
+  SoftwareSignTransaction: (props: { tokenDecimals?: number; tokenSymbol?: string }) => {
     mockSoftware.push(props);
     return null;
   },
@@ -53,14 +53,18 @@ const wallet = {
 };
 const base = { ...fixture.native, transaction: { ...fixture.native.transaction, chainId: 84532 } };
 
-const NATIVE = { isNative: true, decimals: 18 };
-const TOKEN = { isNative: false, decimals: 2, contractAddress: fixture.token.tokenContract };
+const NATIVE = { isNative: true, decimals: 18, symbol: 'ETH' };
+const TOKEN = { isNative: false, decimals: 2, symbol: 'AUDY', contractAddress: fixture.token.tokenContract };
 const tokenAnsweredIn6 = { ...fixture.token, tokenDecimals: 6 };
 
 async function signing(transactionData: TransactionData, selectedAsset: object = NATIVE, signer: object = wallet) {
+  return showing('sign', transactionData, selectedAsset, signer);
+}
+
+async function showing(step: string, transactionData: TransactionData, selectedAsset: object, signer: object = wallet) {
   jest.mocked(useTransfers).mockReturnValue({
     wallet: signer,
-    step: 'sign',
+    step,
     transactionData,
     selectedAsset,
     selectWallet: jest.fn(),
@@ -117,7 +121,16 @@ it("encodes a token transfer checked in the selected asset's decimals, not the r
   );
 });
 
-it("hands the software signer the selected asset's decimals, not the response's", async () => {
+it("hands the software signer the selected asset's decimals and symbol, not the response's", async () => {
   await signing(tokenAnsweredIn6, TOKEN, { ...wallet, signingPreference: 'software' });
-  expect(mockSoftware.at(-1)?.tokenDecimals).toBe(2);
+  expect(mockSoftware.at(-1)).toMatchObject({ tokenDecimals: 2, tokenSymbol: 'AUDY' });
+});
+
+it.each([
+  ['token', fixture.token, TOKEN, '1.5 AUDY'],
+  ['native', base, NATIVE, '0.1 ETH'],
+])("reviews a %s amount in the selected asset's symbol", async (_, transactionData, selectedAsset, shown) => {
+  const view = await showing('review', transactionData, selectedAsset);
+  expect(view.getByText(shown)).toBeTruthy();
+  expect(view.queryByText(/R779/)).toBeNull();
 });

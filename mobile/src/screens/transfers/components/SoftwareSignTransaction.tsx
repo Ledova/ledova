@@ -14,6 +14,7 @@ interface SoftwareSignTransactionProps {
   wallet: Wallet;
   transactionData: TransactionData;
   tokenDecimals?: number;
+  tokenSymbol?: string;
   onSignComplete: (signedTxHex: string) => void;
   signTrigger?: number;
 }
@@ -24,6 +25,7 @@ export function SoftwareSignTransaction({
   wallet,
   transactionData,
   tokenDecimals,
+  tokenSymbol,
   onSignComplete,
   signTrigger = 0,
 }: SoftwareSignTransactionProps) {
@@ -116,6 +118,11 @@ export function SoftwareSignTransaction({
           {transactionData.amountEth && (
             <Row label="Amount" mono>
               {transactionData.amountEth} ETH
+            </Row>
+          )}
+          {transactionData.amountToken && (
+            <Row label="Amount" mono>
+              {transactionData.amountToken} {tokenSymbol}
             </Row>
           )}
           {transactionData.gasCostEth && (

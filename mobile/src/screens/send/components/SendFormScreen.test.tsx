@@ -24,9 +24,9 @@ jest.mock('../../../components/qr', () => ({
   QRDisplay: () => null,
 }));
 jest.mock('../../transfers/components/SendForm', () => ({ SendForm: () => null }));
-const mockSoftware: { tokenDecimals?: number }[] = [];
+const mockSoftware: { tokenDecimals?: number; tokenSymbol?: string }[] = [];
 jest.mock('../../transfers/components/SoftwareSignTransaction', () => ({
-  SoftwareSignTransaction: (props: { tokenDecimals?: number }) => {
+  SoftwareSignTransaction: (props: { tokenDecimals?: number; tokenSymbol?: string }) => {
     mockSoftware.push(props);
     return null;
   },
@@ -69,16 +69,23 @@ it.each([
   expect(view.getByRole('header', { name: title })).toBeTruthy();
 });
 
+const TOKEN = { isNative: false, decimals: 2, symbol: 'AUDY', contractAddress: fixture.token.tokenContract };
+const NATIVE = { isNative: true, decimals: 18, symbol: 'ETH' };
+
 function signing(transactionData: TransactionData, signingPreference = 'hardware') {
+  showing('sign', transactionData, signingPreference, TOKEN);
+}
+
+function showing(step: string, transactionData: TransactionData, signingPreference: string, selectedAsset: object) {
   jest.mocked(useTransfers).mockReturnValue({
-    step: 'sign',
+    step,
     wallet: { ...wallet, signingPreference, derivationPath: "m/44'/60'/0'/0/0", masterFingerprint: '12345678' },
     wallets: [],
     isLoading: false,
     transferableAssets: [],
     isPreparing: false,
     transactionData,
-    selectedAsset: { isNative: false, decimals: 2, contractAddress: fixture.token.tokenContract },
+    selectedAsset,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
@@ -124,8 +131,18 @@ it('shows why it refuses a scanned token-transfer signature, checked against the
   );
 });
 
-it("hands the software signer the selected asset's decimals, not the response's", async () => {
+it("hands the software signer the selected asset's decimals and symbol, not the response's", async () => {
   signing({ ...fixture.token, tokenDecimals: 6 }, 'software');
   await render(<SendFormScreen onDone={jest.fn()} />);
-  expect(mockSoftware.at(-1)?.tokenDecimals).toBe(2);
+  expect(mockSoftware.at(-1)).toMatchObject({ tokenDecimals: 2, tokenSymbol: 'AUDY' });
+});
+
+it.each([
+  ['token', fixture.token, TOKEN, '1.5 AUDY'],
+  ['native', fixture.native, NATIVE, '0.1 ETH'],
+])("reviews a %s amount in the selected asset's symbol", async (_, transactionData, selectedAsset, shown) => {
+  showing('review', transactionData as TransactionData, 'hardware', selectedAsset);
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(view.getByText(shown)).toBeTruthy();
+  expect(view.queryByText(/R779/)).toBeNull();
 });

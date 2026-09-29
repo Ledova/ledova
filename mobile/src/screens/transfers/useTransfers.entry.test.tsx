@@ -162,6 +162,66 @@ it.each([
   expect(transfer().amount).toBe(amount);
 });
 
+const REFUSAL =
+  'This wallet has no current approval with any company, so it cannot send R779. Ask the operator to approve it, then try again.';
+
+function refused() {
+  return Object.assign(new Error('Request failed with status code 403'), {
+    response: { status: 403, data: { detail: REFUSAL, code: 'stablecoin_approval_required' } },
+  });
+}
+
+async function refusedTokenSend() {
+  (apiClient.post as jest.Mock).mockRejectedValue(refused());
+  const { view, transfer } = await choose('token');
+  await act(async () => {
+    transfer().setToAddress(fixture.native.toAddress);
+    transfer().setAmount('1.5');
+  });
+  await act(async () => {
+    transfer().submitTransfer();
+  });
+  expect(await view.findByText(REFUSAL)).toBeTruthy();
+  return { view, transfer };
+}
+
+it.each([
+  ['another token is chosen', (transfer: Transfer) => transfer.selectAsset(transfer.transferableAssets[0])],
+  ['the recipient changes', (transfer: Transfer) => transfer.setToAddress(`0x${'5'.repeat(40)}`)],
+  ['the amount changes', (transfer: Transfer) => transfer.setAmount('2')],
+  ['Use Max fills the amount', (transfer: Transfer) => transfer.useMaxAmount()],
+  ['another wallet is chosen', (transfer: Transfer) => transfer.selectWallet({ ...wallet, uuid: 'wallet-other' })],
+])("clears a refused prepare's message when %s", async (_, change) => {
+  const { view, transfer } = await refusedTokenSend();
+  await act(async () => {
+    change(transfer());
+  });
+  await view.findByText('Destination Address');
+  expect(view.queryByText(REFUSAL)).toBeNull();
+  expect(transfer().prepareError).toBeNull();
+});
+
+it('shows the refusal again when the same inputs are retried, and not while the retry is prepared', async () => {
+  const { view, transfer } = await refusedTokenSend();
+  let refuse!: (error: unknown) => void;
+  (apiClient.post as jest.Mock).mockReturnValue(
+    new Promise((_, reject) => {
+      refuse = reject;
+    }),
+  );
+  await act(async () => {
+    transfer().submitTransfer();
+  });
+  const preparing = transfer().isPreparing;
+  const shownWhilePreparing = view.queryByText(REFUSAL);
+  await act(async () => {
+    refuse(refused());
+  });
+  expect(preparing).toBe(true);
+  expect(shownWhilePreparing).toBeNull();
+  expect(await view.findByText(REFUSAL)).toBeTruthy();
+});
+
 it('Try Anyway on an ETH balance below the fee estimate writes nine tenths of it as a plain decimal', async () => {
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   const { transfer } = await choose('native', { ...wallet, nativeBalance: '0.000001' });
