@@ -43,7 +43,11 @@ export function createLocalSigner<Wallet extends SigningWallet, Key>({
     return { privateKey, cleanup: () => wipe(privateKey) };
   }
 
-  function withPrivateKey<T>(mnemonic: string, derivationPath: string, use: (privateKey: Uint8Array) => T): T {
+  function withPrivateKey<T>(
+    mnemonic: string,
+    derivationPath: string,
+    use: (privateKey: Uint8Array) => T extends PromiseLike<unknown> ? never : T,
+  ): T {
     const { privateKey, cleanup } = deriveKey(mnemonic, derivationPath);
     try {
       return use(privateKey);

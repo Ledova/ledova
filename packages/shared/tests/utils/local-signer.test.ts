@@ -168,4 +168,17 @@ describe('using the private key directly', () => {
     ).toThrow('Synthetic use failure');
     expect(zeroed(used!)).toBe(true);
   });
+
+  it('refuses at compile time a callback that would read the key after it is wiped', async () => {
+    const { signer } = fakeCrypto();
+    const readLater = async (privateKey: Uint8Array) => {
+      await Promise.resolve();
+      return [...privateKey];
+    };
+
+    // @ts-expect-error
+    const late = signer.withPrivateKey(MNEMONIC, PATH, readLater);
+
+    expect(await late).toEqual([0, 0, 0]);
+  });
 });
