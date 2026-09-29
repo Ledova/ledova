@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { WalletIcon, KeyIcon, QrCodeIcon } from 'phosphor-react-native';
+import { KeyIcon, QrCodeIcon, CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { Rows } from '../../../components/Ledger';
+import { useDialogStyles } from '../../../components/modal';
 import type { WalletSigningPreference } from '@ledova/shared';
 
 interface WalletSigningPreferenceSelectorProps {
@@ -30,77 +32,48 @@ const WALLET_SIGNING_PREFERENCE_OPTIONS: {
 
 export function WalletSigningPreferenceSelector({ onSelect }: WalletSigningPreferenceSelectorProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    heroSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    optionsContainer: {
+    container: {
       gap: theme.spacing.sm,
     },
     option: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      backgroundColor: theme.colors.surface.tertiary,
-      gap: theme.spacing.md,
-    },
-    iconContainer: {
-      width: theme.icon.sizes.hero,
-      height: theme.icon.sizes.hero,
-      borderRadius: theme.borderRadius.full,
-      backgroundColor: theme.colors.surface.raised,
-      alignItems: 'center',
-      justifyContent: 'center',
+      paddingVertical: theme.spacing.smd,
+      gap: theme.spacing.smd,
     },
     textContainer: {
       flex: 1,
+      gap: 2,
     },
     optionLabel: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.sm,
       color: theme.colors.text.primary,
-      marginBottom: theme.spacing.xs,
     },
     optionDescription: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
     },
   }));
   return (
-    <View>
-      <View style={styles.heroSection}>
-        <WalletIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.info.icon}
-          weight={theme.icon.weights.light}
-        />
-        <Text style={styles.heroSubtitle}>Choose how to add your wallet</Text>
-      </View>
+    <View style={styles.container}>
+      <Text style={text.muted}>Choose how to add your wallet</Text>
 
-      <View style={styles.optionsContainer}>
+      <Rows>
         {WALLET_SIGNING_PREFERENCE_OPTIONS.map(({ type, label, description, Icon }) => (
           <TouchableOpacity key={type} style={styles.option} onPress={() => onSelect(type)} activeOpacity={0.7}>
-            <View style={styles.iconContainer}>
-              <Icon size={theme.icon.sizes.md} color={theme.colors.interactive.active} weight="regular" />
-            </View>
+            <Icon size={theme.icon.sizes.md} color={theme.colors.interactive.active} weight="regular" />
             <View style={styles.textContainer}>
               <Text style={styles.optionLabel}>{label}</Text>
               <Text style={styles.optionDescription}>{description}</Text>
             </View>
+            <CaretRightIcon size={16} color={theme.colors.text.muted} />
           </TouchableOpacity>
         ))}
-      </View>
+      </Rows>
     </View>
   );
 }

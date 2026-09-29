@@ -167,3 +167,50 @@ export function Action({
     </Pressable>
   );
 }
+
+export function Choice({
+  label,
+  selected,
+  onPress,
+  disabled = false,
+  accessibilityRole = 'button',
+  accessibilityLabel,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  disabled?: boolean;
+  accessibilityRole?: 'button' | 'radio';
+  accessibilityLabel?: string;
+}) {
+  const styles = useThemedStyles((theme) => ({
+    choice: {
+      alignSelf: 'flex-start' as const,
+      borderWidth: 1,
+      borderColor: selected ? theme.colors.interactive.defaultSubtle : theme.colors.border.default,
+      borderRadius: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      opacity: disabled ? 0.5 : 1,
+    },
+    label: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      color: selected ? theme.colors.interactive.active : theme.colors.text.primary,
+    },
+  }));
+  return (
+    <Pressable
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={
+        accessibilityRole === 'radio' ? { checked: selected, selected, disabled } : { selected, disabled }
+      }
+      disabled={disabled}
+      onPress={onPress}
+      style={styles.choice}
+    >
+      <Text style={styles.label}>{label}</Text>
+    </Pressable>
+  );
+}

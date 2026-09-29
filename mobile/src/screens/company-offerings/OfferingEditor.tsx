@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { apiErrorSentence, createOffering, updateOffering, type Company, type OfferingInput } from '@ledova/shared';
-import { CompanyModal } from '../company/CompanyModal';
+import { CustomModal } from '../../components/modal';
 import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { apiClient } from '../../services/apiClient';
@@ -59,11 +59,8 @@ export function OfferingEditor({
     if (!request.isPending) onClose();
   };
   return (
-    <CompanyModal onClose={close}>
+    <CustomModal visible title={uuid ? 'Edit offering' : 'New offering'} onClose={close} busy={request.isPending}>
       <View style={styles.group}>
-        <Text accessibilityRole="header" style={styles.heading}>
-          {uuid ? 'Edit offering' : 'New offering'}
-        </Text>
         <CompanyReadNotice read={companyRead} />
         <OfferingReadNotice read={data} />
         {uuid && (
@@ -104,6 +101,6 @@ export function OfferingEditor({
           />
         )}
       </View>
-    </CompanyModal>
+    </CustomModal>
   );
 }

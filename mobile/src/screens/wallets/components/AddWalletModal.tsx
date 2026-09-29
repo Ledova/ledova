@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { Action } from '../../../components/Ledger';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { WalletIcon, QrCodeIcon } from 'phosphor-react-native';
+import { QrCodeIcon } from 'phosphor-react-native';
 import { getChainConfig, getAddressPlaceholder } from '@ledova/shared';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport, WalletSigningPreference } from '@ledova/shared';
 import type { SoftwareWalletImport } from '../../../utils/softwareWallet';
 import { AnimatedQRScanner } from '../../../components/qr';
-import { CustomModal } from '../../../components/modal';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { HardwareAccountSelector } from './HardwareAccountSelector';
 import { WalletSigningPreferenceSelector } from './WalletSigningPreferenceSelector';
 import { SeedPhraseSetup } from './SeedPhraseSetup';
@@ -42,37 +42,23 @@ export function AddWalletModal({
   onSoftwareWalletCreate,
 }: AddWalletModalProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    heroSection: {
-      alignItems: 'center',
+    feedback: {
       gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
     },
     inputGroup: {
-      marginBottom: theme.spacing.lg,
-    },
-    inputGroupCompact: {
-      marginBottom: theme.spacing.sm,
+      gap: theme.spacing.xs,
     },
     labelRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: theme.spacing.sm,
     },
     label: {
+      fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.primary,
-    },
-    labelWithMargin: {
-      marginBottom: theme.spacing.sm,
     },
     scanButton: {
       flexDirection: 'row',
@@ -82,32 +68,23 @@ export function AddWalletModal({
       paddingVertical: theme.spacing.xs,
     },
     scanButtonText: {
-      fontSize: theme.fontSize.base,
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.sm,
       color: theme.colors.interactive.defaultSubtle,
-      fontWeight: theme.fontWeight.medium,
     },
     scannerContainer: {
-      marginBottom: theme.spacing.sm,
       alignItems: 'center',
     },
-    input: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingVertical: theme.spacing.md,
-      paddingHorizontal: theme.spacing.lg,
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
+    mono: {
       fontFamily: 'monospace',
     },
     inputError: {
       borderColor: theme.colors.status.error.text,
     },
     errorText: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.xs,
       color: theme.colors.status.error.text,
-      marginTop: theme.spacing.xs,
     },
   }));
   const form = useAddWalletForm({
@@ -148,8 +125,8 @@ export function AddWalletModal({
     return onSoftwareWalletCreate(addresses, importData);
   };
 
-  const feedback = (
-    <View>
+  const feedback = (notice || error) && (
+    <View style={styles.feedback}>
       {notice && (
         <Text accessibilityRole="alert" style={styles.errorText}>
           {notice}
@@ -166,6 +143,7 @@ export function AddWalletModal({
 
   const modalProps = {
     visible,
+    title: 'Add wallet',
     onClose: handleClose,
     showFooter: true,
     showCancelButton: true,
@@ -205,7 +183,7 @@ export function AddWalletModal({
 
       case FORM_STEPS.SELECT_ADDRESSES:
         return (
-          <CustomModal key="wallet-addresses" {...modalProps}>
+          <CustomModal key="wallet-addresses" {...modalProps} showFooter={false}>
             {feedback}
             <HardwareAccountSelector
               urString={form.scannedURString!}
@@ -239,18 +217,11 @@ export function AddWalletModal({
               onChange={form.setSelectedChain}
               disabled={isLoading}
             />
-            <View style={styles.heroSection}>
-              <WalletIcon
-                size={theme.icon.sizes.xxl}
-                color={theme.colors.status.info.icon}
-                weight={theme.icon.weights.light}
-              />
-              <Text style={styles.heroSubtitle}>
-                {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
-              </Text>
-            </View>
+            <Text style={text.muted}>
+              {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
+            </Text>
 
-            <View style={[styles.inputGroup, form.showScanner && styles.inputGroupCompact]}>
+            <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Wallet Address</Text>
                 <TouchableOpacity style={styles.scanButton} onPress={form.toggleScanner} disabled={isLoading}>
@@ -270,7 +241,7 @@ export function AddWalletModal({
               ) : (
                 <>
                   <TextInput
-                    style={[styles.input, form.errors.address && styles.inputError]}
+                    style={[text.field, styles.mono, form.errors.address && styles.inputError]}
                     accessibilityLabel="Wallet address"
                     value={form.address}
                     onChangeText={form.handleAddressChange}
@@ -288,10 +259,10 @@ export function AddWalletModal({
             </View>
 
             {!form.showScanner && (
-              <View>
-                <Text style={[styles.label, styles.labelWithMargin]}>Wallet Name (Optional)</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Wallet Name (Optional)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={text.field}
                   accessibilityLabel="Wallet name"
                   value={form.name}
                   onChangeText={form.setName}

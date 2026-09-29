@@ -5,7 +5,7 @@ import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPrefer
 import { Action, Section } from '../../components/Ledger';
 import { useAppLock } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
-import { AccountModal } from '../account/AccountModal';
+import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../account/styles';
 import { useSettings } from './useSettings';
 
@@ -213,7 +213,7 @@ export function SettingsScreen() {
           )}
         </Section>
       </ScrollView>
-      <AccountModal
+      <CustomModal
         visible={modal === 'password'}
         title="Change password"
         busy={busy}
@@ -259,8 +259,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'export'}
         title="Export data"
         busy={busy}
@@ -282,8 +282,8 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
-      <AccountModal
+      </CustomModal>
+      <CustomModal
         visible={modal === 'delete'}
         title="Delete account"
         busy={busy}
@@ -307,7 +307,7 @@ export function SettingsScreen() {
             {error}
           </Text>
         )}
-      </AccountModal>
+      </CustomModal>
     </>
   );
 }

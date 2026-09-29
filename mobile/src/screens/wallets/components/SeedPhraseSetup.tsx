@@ -15,7 +15,7 @@ import type { DerivedAddress } from '@ledova/shared';
 import type { SoftwareWalletImport } from '../../../utils/softwareWallet';
 import { useFetchBalances } from '../../../hooks/useFetchBalances';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { CustomModal } from '../../../components/modal';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { SeedPhraseGenerate } from './SeedPhraseGenerate';
 import { SeedPhraseConfirm } from './SeedPhraseConfirm';
 import { SeedAccountSelector } from './SeedAccountSelector';
@@ -41,16 +41,12 @@ interface SeedPhraseSetupProps {
 
 export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBlocked, notice }: SeedPhraseSetupProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    storingContainer: {
-      flex: 1,
+    storing: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.md,
-    },
-    storingText: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.muted,
+      gap: theme.spacing.sm,
     },
   }));
   const [step, setStep] = useState<SeedStep>(SEED_STEP.GENERATE);
@@ -228,10 +224,7 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
           confirmDisabled: quizAnswers.some((a) => !a),
         };
       default:
-        return {
-          cancelLabel: 'Back' as const,
-          onCancel: onCancel,
-        };
+        return {};
     }
   };
 
@@ -277,9 +270,9 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
 
       case SEED_STEP.STORING:
         return (
-          <View style={styles.storingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.interactive.default} />
-            <Text style={styles.storingText}>Securing your wallet...</Text>
+          <View style={styles.storing}>
+            <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+            <Text style={text.muted}>Securing your wallet...</Text>
           </View>
         );
 
@@ -291,10 +284,11 @@ export function SeedPhraseSetup({ visible, onClose, onComplete, onCancel, readBl
   return (
     <CustomModal
       visible={visible}
+      title="Add wallet"
       onClose={() => {
         if (step !== SEED_STEP.STORING) onClose();
       }}
-      showFooter={step !== SEED_STEP.STORING}
+      showFooter={step === SEED_STEP.GENERATE || step === SEED_STEP.CONFIRM}
       {...getFooterProps()}
     >
       {notice}

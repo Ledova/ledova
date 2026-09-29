@@ -1,5 +1,6 @@
+import { StyleSheet } from 'react-native';
 import { cleanup, fireEvent, render } from '@testing-library/react-native';
-import { LinkRow, Row, Rows } from './Ledger';
+import { Choice, LinkRow, Row, Rows } from './Ledger';
 
 afterEach(async () => {
   await cleanup();
@@ -41,4 +42,29 @@ it('draws no rule around a single row or link', async () => {
   expect(link).not.toHaveStyle({ borderBottomWidth: 1 });
   await fireEvent.press(link);
   expect(open).toHaveBeenCalledTimes(1);
+});
+
+it('marks the chosen option by its border, text and accessibility state', async () => {
+  const pick = jest.fn();
+  const view = await render(
+    <>
+      <Choice label="All" selected onPress={pick} />
+      <Choice
+        label="Base"
+        selected={false}
+        accessibilityRole="radio"
+        accessibilityLabel="Base network"
+        onPress={pick}
+      />
+    </>,
+  );
+  const chosen = StyleSheet.flatten(view.getByRole('button', { name: 'All', selected: true }).props.style);
+  const other = view.getByRole('radio', { name: 'Base network', checked: false });
+  expect(chosen.borderColor).not.toBe(StyleSheet.flatten(other.props.style).borderColor);
+  expect(chosen.backgroundColor).toBeUndefined();
+  expect(StyleSheet.flatten(view.getByText('All').props.style).color).not.toBe(
+    StyleSheet.flatten(view.getByText('Base').props.style).color,
+  );
+  await fireEvent.press(other);
+  expect(pick).toHaveBeenCalledTimes(1);
 });

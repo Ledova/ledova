@@ -57,10 +57,12 @@ jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScan
 jest.mock('../../components/modal', () => {
   const { View, Text, Pressable } = jest.requireActual('react-native');
   return {
+    ...jest.requireActual('../../components/modal'),
     CustomModal: jest.fn(
       ({
         visible,
         children,
+        actions,
         onClose,
         onConfirm,
         confirmLabel,
@@ -68,6 +70,7 @@ jest.mock('../../components/modal', () => {
       }: {
         visible: boolean;
         children: React.ReactNode;
+        actions?: React.ReactNode;
         onClose: () => void;
         onConfirm?: () => void;
         confirmLabel?: string;
@@ -76,6 +79,7 @@ jest.mock('../../components/modal', () => {
         visible ? (
           <View>
             {children}
+            {actions}
             <Pressable onPress={onClose}>
               <Text>Dismiss window</Text>
             </Pressable>

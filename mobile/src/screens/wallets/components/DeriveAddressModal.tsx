@@ -1,8 +1,8 @@
-import { Action } from '../../../components/Ledger';
+import { Action, Row, Rows } from '../../../components/Ledger';
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { KeyIcon, CheckCircleIcon } from 'phosphor-react-native';
-import { CustomModal } from '../../../components/modal';
+import { CheckCircleIcon } from 'phosphor-react-native';
+import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getBlockchainDisplayName, getChainShortCode } from '@ledova/shared';
 import type { Wallet, DerivedAddress } from '@ledova/shared';
@@ -30,101 +30,31 @@ export function DeriveAddressModal({
   createError,
 }: DeriveAddressModalProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
-    headerContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.md,
+    block: {
+      gap: theme.spacing.xs,
+      paddingVertical: 10,
     },
-    icon: {
-      marginBottom: theme.spacing.md,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.xs,
-      textAlign: 'center',
-    },
-    subtitle: {
+    label: {
+      fontFamily: theme.fontFamily.regular,
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    previewContainer: {
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.md,
-    },
-    previewRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    previewLabel: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    previewValue: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-    },
-    addressContainer: {
-      paddingVertical: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
     },
     addressValue: {
       fontSize: theme.fontSize.sm,
       fontFamily: 'monospace',
       color: theme.colors.text.primary,
-      marginTop: theme.spacing.xs,
-    },
-    pathContainer: {
-      paddingVertical: theme.spacing.sm,
     },
     pathValue: {
       fontSize: theme.fontSize.xs,
       fontFamily: 'monospace',
       color: theme.colors.text.secondary,
-      marginTop: theme.spacing.xs,
     },
-    infoContainer: {
+    loading: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.spacing.xs,
-      backgroundColor: theme.colors.surface.tertiary,
-      padding: theme.spacing.sm,
-      borderRadius: theme.borderRadius.md,
-      marginTop: theme.spacing.sm,
-    },
-    infoText: {
-      flex: 1,
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.secondary,
-    },
-    loadingContainer: {
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: theme.spacing.xl,
       gap: theme.spacing.sm,
-    },
-    loadingText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-    },
-    errorContainer: {
-      backgroundColor: theme.colors.form.errorBackground,
-      padding: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      marginTop: theme.spacing.md,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.text,
-      textAlign: 'center',
     },
   }));
   const [derivedAddress, setDerivedAddress] = useState<DerivedAddress | null>(null);
@@ -165,6 +95,7 @@ export function DeriveAddressModal({
   return (
     <CustomModal
       visible={visible}
+      title="Derive New Address"
       onClose={() => {
         if (!isCreating) onClose();
       }}
@@ -176,68 +107,50 @@ export function DeriveAddressModal({
       confirmLoading={isCreating}
     >
       {createError && (
-        <Text accessibilityRole="alert" style={styles.errorText}>
+        <Text accessibilityRole="alert" style={text.error}>
           {createError}
         </Text>
       )}
-      {blocked && <Text style={styles.subtitle}>Refresh wallets before continuing. Your selection is kept.</Text>}
+      {blocked && <Text style={text.muted}>Refresh wallets before continuing. Your selection is kept.</Text>}
       {blocked && <Action label="Retry wallets" disabled={isCreating} onPress={onRetry} />}
-      <View style={styles.headerContainer}>
-        <KeyIcon
-          size={theme.icon.sizes.xl}
-          color={theme.colors.interactive.active}
-          weight="regular"
-          style={styles.icon}
-        />
-        <Text style={styles.title}>Derive New Address</Text>
-        <Text style={styles.subtitle}>
-          {wallet.signingPreference === 'software'
-            ? 'Add another address from your software wallet'
-            : 'Add another address from your hardware wallet'}
-        </Text>
-      </View>
+      <Text style={text.muted}>
+        {wallet.signingPreference === 'software'
+          ? 'Add another address from your software wallet'
+          : 'Add another address from your hardware wallet'}
+      </Text>
 
       {error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <Text style={text.error}>{error}</Text>
       ) : derivedAddress ? (
-        <View style={styles.previewContainer}>
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>Network</Text>
-            <Text style={styles.previewValue}>{networkName}</Text>
-          </View>
+        <>
+          <Rows>
+            <Row label="Network">{networkName}</Row>
+            <Row label="Address Index">{derivedAddress.addressIndex}</Row>
+            <View style={styles.block}>
+              <Text style={styles.label}>New Address</Text>
+              <Text style={styles.addressValue} numberOfLines={2}>
+                {derivedAddress.address}
+              </Text>
+            </View>
+            <View style={styles.block}>
+              <Text style={styles.label}>Derivation Path</Text>
+              <Text style={styles.pathValue}>{derivedAddress.derivationPath}</Text>
+            </View>
+          </Rows>
 
-          <View style={styles.previewRow}>
-            <Text style={styles.previewLabel}>Address Index</Text>
-            <Text style={styles.previewValue}>{derivedAddress.addressIndex}</Text>
-          </View>
-
-          <View style={styles.addressContainer}>
-            <Text style={styles.previewLabel}>New Address</Text>
-            <Text style={styles.addressValue} numberOfLines={2}>
-              {derivedAddress.address}
-            </Text>
-          </View>
-
-          <View style={styles.pathContainer}>
-            <Text style={styles.previewLabel}>Derivation Path</Text>
-            <Text style={styles.pathValue}>{derivedAddress.derivationPath}</Text>
-          </View>
-
-          <View style={styles.infoContainer}>
+          <View style={text.line}>
             <CheckCircleIcon size={theme.icon.sizes.sm} color={theme.colors.status.info.icon} weight="fill" />
-            <Text style={styles.infoText}>
+            <Text style={[text.muted, text.lineText]}>
               {wallet.signingPreference === 'software'
                 ? 'This address is derived from the same recovery phrase as your existing wallet'
                 : 'This address shares the same master fingerprint as your existing wallet'}
             </Text>
           </View>
-        </View>
+        </>
       ) : (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loading}>
           <ActivityIndicator size="small" color={theme.colors.interactive.default} />
-          <Text style={styles.loadingText}>Deriving address...</Text>
+          <Text style={text.muted}>Deriving address...</Text>
         </View>
       )}
     </CustomModal>

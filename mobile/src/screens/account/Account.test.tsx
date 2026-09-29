@@ -246,8 +246,8 @@ it('blocks password duplicate submission and all dismissals until the request se
   await fireEvent.press(view.getByText('Save password'));
   await view.findByText('Saving…');
   await fireEvent.press(view.getByText('Cancel'));
-  await fireEvent.press(view.getByTestId('account-backdrop-Change password', { includeHiddenElements: true }));
-  const modal = view.getByTestId('account-modal-Change password');
+  await fireEvent.press(view.getByTestId('modal-backdrop-Change password', { includeHiddenElements: true }));
+  const modal = view.getByTestId('modal-Change password');
   await fireEvent(modal, 'requestClose');
   await fireEvent.press(view.getByText('Saving…'));
   expect(view.getByLabelText('Current password').props.editable).toBe(false);

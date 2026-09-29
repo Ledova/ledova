@@ -339,8 +339,8 @@ it('latches pending submission and guards Android Back, backdrop and Cancel, ret
     press();
   });
   expect(props.onSubmit).toHaveBeenCalledTimes(1);
-  await fireEvent(view.getByTestId('account-modal-Wanted · HEX'), 'requestClose');
-  await fireEvent.press(view.getByTestId('account-backdrop-Wanted · HEX', { includeHiddenElements: true }));
+  await fireEvent(view.getByTestId('modal-Wanted · HEX'), 'requestClose');
+  await fireEvent.press(view.getByTestId('modal-backdrop-Wanted · HEX', { includeHiddenElements: true }));
   await fireEvent.press(view.getByText('Cancel'));
   expect(props.onClose).not.toHaveBeenCalled();
   await act(async () => {

@@ -15,11 +15,11 @@ export function useMarketStyles() {
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      borderRadius: 6,
+      borderRadius: theme.borderRadius.md,
       padding: theme.spacing.smd,
       fontSize: 16,
       color: theme.colors.text.primary,
-      backgroundColor: theme.colors.surface.base,
+      backgroundColor: theme.colors.surface.raised,
     },
   }));
 }

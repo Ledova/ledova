@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useThemedStyles } from '../../../contexts';
+import { Row, Rows } from '../../../components/Ledger';
+import { useDialogStyles } from '../../../components/modal';
 import { formatWalletAddressMedium, getNativeAssetSymbol, isSupportedEvmChain } from '@ledova/shared';
 import type { TransactionData } from '@ledova/shared';
 
@@ -10,82 +12,17 @@ interface ReviewTransactionProps {
 }
 
 export function ReviewTransaction({ transactionData, chainShortName }: ReviewTransactionProps) {
+  const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     scrollContent: {
       flex: 1,
     },
     scrollContentContainer: {
-      paddingHorizontal: theme.spacing.md,
-      paddingTop: theme.spacing.md,
-      paddingBottom: theme.spacing.md,
-    },
-    section: {
-      gap: theme.spacing.sm,
-      marginBottom: theme.spacing.lg,
-    },
-    sectionTitle: {
-      fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.secondary,
-    },
-    valueCard: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.subtle,
-    },
-    addressValue: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
-      fontFamily: 'monospace',
-    },
-    amountValue: {
-      fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    feeValue: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.muted,
-    },
-    totalCard: {
-      backgroundColor: theme.colors.interactive.active + '10',
-      borderColor: theme.colors.interactive.active + '30',
-    },
-    totalValue: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.bold,
-      color: theme.colors.text.primary,
+      gap: theme.spacing.md,
     },
     totalSubtext: {
       fontSize: theme.fontSize.xs,
       color: theme.colors.text.muted,
-      marginTop: 2,
-    },
-    chainDetailsCard: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.md,
-      borderWidth: 1,
-      borderColor: theme.colors.border.subtle,
-      gap: theme.spacing.sm,
-    },
-    chainDetailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    chainDetailLabel: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-    chainDetailValue: {
-      fontSize: theme.fontSize.xs,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.primary,
     },
   }));
   const nativeSymbol = getNativeAssetSymbol(chainShortName);
@@ -97,87 +34,51 @@ export function ReviewTransaction({ transactionData, chainShortName }: ReviewTra
       contentContainerStyle={styles.scrollContentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>From</Text>
-        <View style={styles.valueCard}>
-          <Text style={styles.addressValue}>{formatWalletAddressMedium(transactionData.fromAddress)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>To</Text>
-        <View style={styles.valueCard}>
-          <Text style={styles.addressValue}>{formatWalletAddressMedium(transactionData.toAddress)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Amount</Text>
-        <View style={styles.valueCard}>
-          <Text style={styles.amountValue}>
-            {transactionData.amountToken
-              ? `${transactionData.amountToken} ${transactionData.tokenSymbol}`
-              : `${transactionData.amountEth || transactionData.amountBtc} ${nativeSymbol}`}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transaction Fee</Text>
-        <View style={styles.valueCard}>
-          <Text style={styles.feeValue}>
-            {transactionData.gasCostEth || transactionData.feeBtc} {nativeSymbol}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Total</Text>
-        <View style={[styles.valueCard, styles.totalCard]}>
+      <Rows>
+        <Row label="From">{formatWalletAddressMedium(transactionData.fromAddress)}</Row>
+        <Row label="To">{formatWalletAddressMedium(transactionData.toAddress)}</Row>
+        <Row label="Amount">
+          {transactionData.amountToken
+            ? `${transactionData.amountToken} ${transactionData.tokenSymbol}`
+            : `${transactionData.amountEth || transactionData.amountBtc} ${nativeSymbol}`}
+        </Row>
+        <Row label="Transaction Fee">
+          {transactionData.gasCostEth || transactionData.feeBtc} {nativeSymbol}
+        </Row>
+        <Row label="Total">
           {transactionData.amountToken ? (
             <>
-              <Text style={styles.totalValue}>
-                {transactionData.amountToken} {transactionData.tokenSymbol}
-              </Text>
+              {transactionData.amountToken} {transactionData.tokenSymbol}
+              {'\n'}
               <Text style={styles.totalSubtext}>+ {transactionData.gasCostEth} ETH (gas)</Text>
             </>
           ) : (
-            <Text style={styles.totalValue}>
-              {transactionData.totalCostEth || transactionData.totalCostBtc} {nativeSymbol}
-            </Text>
+            `${transactionData.totalCostEth || transactionData.totalCostBtc} ${nativeSymbol}`
           )}
-        </View>
-      </View>
+        </Row>
+      </Rows>
 
       {isEvm && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chain Details</Text>
-          <View style={styles.chainDetailsCard}>
-            <View style={styles.chainDetailRow}>
-              <Text style={styles.chainDetailLabel}>Gas Price</Text>
-              <Text style={styles.chainDetailValue}>{transactionData.gasPriceGwei} Gwei</Text>
-            </View>
-            <View style={styles.chainDetailRow}>
-              <Text style={styles.chainDetailLabel}>Gas Limit</Text>
-              <Text style={styles.chainDetailValue}>{transactionData.gasLimit}</Text>
-            </View>
-          </View>
+        <View style={text.group}>
+          <Text accessibilityRole="header" style={text.heading}>
+            Chain Details
+          </Text>
+          <Rows>
+            <Row label="Gas Price">{transactionData.gasPriceGwei} Gwei</Row>
+            <Row label="Gas Limit">{transactionData.gasLimit}</Row>
+          </Rows>
         </View>
       )}
 
       {transactionData.feePerByte && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fee Details</Text>
-          <View style={styles.chainDetailsCard}>
-            <View style={styles.chainDetailRow}>
-              <Text style={styles.chainDetailLabel}>Fee Rate</Text>
-              <Text style={styles.chainDetailValue}>{transactionData.feePerByte} sat/vB</Text>
-            </View>
-            <View style={styles.chainDetailRow}>
-              <Text style={styles.chainDetailLabel}>Estimated Size</Text>
-              <Text style={styles.chainDetailValue}>{transactionData.estimatedTxSize} vB</Text>
-            </View>
-          </View>
+        <View style={text.group}>
+          <Text accessibilityRole="header" style={text.heading}>
+            Fee Details
+          </Text>
+          <Rows>
+            <Row label="Fee Rate">{transactionData.feePerByte} sat/vB</Row>
+            <Row label="Estimated Size">{transactionData.estimatedTxSize} vB</Row>
+          </Rows>
         </View>
       )}
     </ScrollView>
