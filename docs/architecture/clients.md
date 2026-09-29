@@ -266,8 +266,9 @@ a retry without hiding history or clearing draft filters. History loads further
 pages on request, marks failed later reads as incomplete, and suppresses stale
 rows and details after a failed refresh. Filters use only supported API fields,
 with date bounds covering the whole selected days in the person's local time.
-Details preserve full wallet, address and transaction identities and can open the
-existing explorer; Activity adds no buying, sending or signing action.
+Each entry opens in place to its detail, which preserves full wallet, address and
+transaction identities and links to the existing explorer; Activity adds no
+buying, sending or signing action.
 
 Mobile Company Offerings reads every offering and share-class page, filters to
 classes of the selected owned company, and reads every page of the selected
@@ -449,6 +450,12 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `LinkRow`: a row that opens another page, named after its destination, with
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
+- `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
+  leading caret that turns when open, controlling the detail directly under it,
+  which it holds only while open. The detail is a landmark (`region`, labelled
+  by the button) only when asked, as Activity's filter is; entries are not,
+  since any number of them can be open. The page keeps whether it is open, so
+  it can close it when what it shows changes.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -465,7 +472,7 @@ same rule.
 
 Actions use one language. `PageAction` is the button for whatever a page or a
 section does, and it keeps its content width wherever it sits: in the title row
-for the page as a whole (Edit company, Filter, Refresh, and the way back to the
+for the page as a whole (Edit company, Wallets' Filter, Refresh, and the way back to the
 parent page such as Back to Register, Back to Company, Back to Directory or Back
 to Applications) and inside a section for what that section does (Create share
 class, Edit phone, Change password beside its sentence). A page reaches each of
@@ -482,6 +489,23 @@ wallet. A destination the sidebar already reaches, such as Notices, is not
 repeated in a title row. An underlined link is part of a sentence ("open
 Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
+
+A list on a page is read and filtered in place rather than in a dialog. An entry opens
+under its own row as a `Disclosure`, and the list's filter is a `Disclosure` at
+the top of the list's card, above the entries or the empty sentence; closed, it
+names the filters it applies. Opening an entry leaves any other open entry as it
+is, so the row stays where it was pressed and two entries can be compared.
+Applying or clearing the filter closes it and every open entry and returns focus
+to the filter's button. Activity's Transfers works this way, so its title row has
+no Filter action. Holdings and the Register also open their rows in place, with a
+native `details` element. A dialog is kept for work that sets the page aside: a
+form that creates or changes something, a signing step or a confirmation. One
+web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
+dialog that only reorders the list in memory, and it moves in place when Wallets
+is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
+On mobile, Activity's filter and entry detail, Market's order details and the
+Wallets sort still open in a dialog. The bell's notifications belong to the frame
+rather than a page, on both clients.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,

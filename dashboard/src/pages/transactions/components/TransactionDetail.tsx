@@ -1,29 +1,19 @@
-import { formatDate, formatTime, getChainShortCode, getBlockchainDisplayName } from '@ledova/shared';
+import {
+  formatDate,
+  formatTime,
+  getBlockExplorerTxUrl,
+  getBlockchainDisplayName,
+  getChainShortCode,
+} from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
-import { Modal } from '@components/Modal';
 import { Row, Rows, Status } from '@components/Ledger';
 import { activityAmount, activityDirection, activityState, feeUnit } from '../presentation';
 
-interface TransactionDetailModalProps {
-  isOpen: boolean;
-  transaction: Transaction | null;
-  onClose: () => void;
-  onViewExplorer: () => void;
-}
-
-export function TransactionDetailModal({ isOpen, transaction, onClose, onViewExplorer }: TransactionDetailModalProps) {
-  if (!transaction) return null;
+export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const state = activityState(transaction);
+  const explorerUrl = transaction.txHash ? getBlockExplorerTxUrl(transaction.chain, transaction.txHash) : '';
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Activity detail"
-      showFooter
-      cancelLabel="Close"
-      confirmLabel="View on Explorer"
-      onConfirm={transaction.txHash ? onViewExplorer : undefined}
-    >
+    <>
       <Rows>
         <Row label="Direction">{activityDirection(transaction)}</Row>
         <Row label="Status">
@@ -64,6 +54,16 @@ export function TransactionDetailModal({ isOpen, transaction, onClose, onViewExp
           </Row>
         )}
       </Rows>
-    </Modal>
+      {explorerUrl && (
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-block text-sm text-brand-light underline"
+        >
+          View on Explorer
+        </a>
+      )}
+    </>
   );
 }
