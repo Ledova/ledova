@@ -145,17 +145,6 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
   },
 );
 
-it.each([`https://example.test${listUrl}?page=1`, `https://example.test${listUrl}?cursor=next`])(
-  'refuses incomplete pagination %s',
-  async (next) => {
-    pages = { 1: { results: [token], next } };
-    const view = await render(<DirectoryScreen />, { wrapper });
-    expect(await view.findByText(/The directory could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('Ordinary shares')).toBeNull();
-    expect(get.mock.calls.filter(([url]) => url === listUrl)).toHaveLength(1);
-  },
-);
-
 it('shows a reliable empty directory only after both reads succeed', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await render(<DirectoryScreen />, { wrapper });

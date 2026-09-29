@@ -5,6 +5,7 @@ import {
   CACHE_TIMING,
   PUBLICATION_COPY,
   apiErrorSentence,
+  assertNextPageAdvances,
   castBallot,
   downloadPublication,
   getPublications,
@@ -37,10 +38,7 @@ export function usePublications() {
     queryKey: [...PUBLICATIONS_KEY, 'addressed', 'me'],
     queryFn: async ({ pageParam }) => {
       const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
-      const next = getPublicationsNextPage(response);
-      if (response.data.next && (next === undefined || !Number.isInteger(next) || next <= pageParam)) {
-        throw new Error('Publication pagination did not advance');
-      }
+      assertNextPageAdvances(pageParam, response.data);
       return response;
     },
     getNextPageParam: getPublicationsNextPage,

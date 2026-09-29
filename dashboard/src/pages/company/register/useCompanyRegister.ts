@@ -1,11 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  getCompanyTokens,
-  getCompanyTokenHolders,
-  getNextPageParam,
-  type CompanyShareTokenListItem,
-} from '@ledova/shared';
+import { CACHE_TIMING, getCompanyTokens, getCompanyTokenHolders, readEveryPage } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import apiClient from '@services/apiClient';
 
@@ -16,19 +10,7 @@ export function useCompanyRegister() {
     queryKey: ['tokens', 'register'],
     enabled: isKnown && isCompany,
     queryFn: async () => {
-      const classes: CompanyShareTokenListItem[] = [];
-      let page: number | undefined = 1;
-
-      while (page !== undefined) {
-        const { data } = await getCompanyTokens(apiClient, { page });
-        classes.push(...data.results);
-        const next = getNextPageParam(data);
-        if (next !== undefined && (!Number.isInteger(next) || next <= page)) {
-          throw new Error('Share class pagination did not advance');
-        }
-        page = next;
-      }
-
+      const classes = await readEveryPage((page) => getCompanyTokens(apiClient, { page }));
       return Promise.all(
         classes.map(async (shareClass) => {
           const { data: register } = await getCompanyTokenHolders(apiClient, shareClass.uuid);

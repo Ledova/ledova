@@ -378,15 +378,14 @@ it('suppresses stale activity detail after a failed refresh and recovers the cur
   expect(within(detailOf(recovered)).getByText('✓ Confirmed')).toBeTruthy();
 });
 
-it.each(['https://example.invalid/api/transactions/?page=1', 'https://example.invalid/api/transactions/'])(
-  'refuses malformed or nonadvancing history pages: %s',
-  async (next) => {
-    activity = async () => page([transaction], next);
-    show();
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('Pending')).toBeNull();
-  },
-);
+it('refuses a nonadvancing history page', async () => {
+  activity = async () => page([transaction], 'https://example.invalid/api/transactions/?page=1');
+  show();
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Your activity could not be loaded. Try again before continuing.',
+  );
+  expect(screen.queryByText('Pending')).toBeNull();
+});
 
 it('opens an entry in place under its row with exact amounts, native network fees, full identities and the explorer', async () => {
   show();

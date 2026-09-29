@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-l
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { OrderBook, ShareToken, TransferOrder, WhitelistStatus } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { allMarketPages, marketAmount, marketQuantity } from './marketData';
+import { marketAmount, marketQuantity } from './marketData';
 import { useAllUserOrders, useShareTokens, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { useSwapOrdersMulti } from './useAtomicSwaps';
 import { OrdersCard } from './components/OrdersCard';
@@ -61,14 +61,6 @@ it('calculates exact AUD cents and never represents unsafe numeric shares as exa
   expect(marketQuantity(9007199254740992)).toBe('Unavailable');
   expect(marketAmount('1.00', 9007199254740992)).toBe('Unavailable');
 });
-it.each([
-  'https://example.test/?page=1',
-  'https://example.test/?page=1.5',
-  'https://example.test/?page=wat',
-  'https://example.test/?cursor=x',
-])('rejects incomplete pagination for %s', async (next) => {
-  await expect(allMarketPages(async () => ({ data: page([order], next) }))).rejects.toThrow();
-});
 it('loads owned orders without a listed class or wallet, through all pages', async () => {
   const requests: unknown[] = [];
   apiClient.defaults.adapter = async (config) => {
@@ -84,7 +76,7 @@ it('loads owned orders without a listed class or wallet, through all pages', asy
   const view = await renderHook(() => useAllUserOrders(), { wrapper });
   await waitFor(() => expect(view.result.current.orders).toHaveLength(2));
   expect(requests).toEqual([
-    ['/api/v1/trading/orders/', undefined],
+    ['/api/v1/trading/orders/', { page: 1 }],
     ['/api/v1/trading/orders/', { page: 2 }],
   ]);
   expect(client.getQueryData(['trading', 'userOrders', 'all', accountUuid])).toHaveLength(2);

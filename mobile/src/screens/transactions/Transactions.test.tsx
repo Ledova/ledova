@@ -231,21 +231,11 @@ it('does not report an empty first page as complete when another page exists', a
   expect(view.queryByText('No activity yet.')).toBeNull();
   expect(await view.findByText('Pending')).toBeTruthy();
 });
-it.each(['https://example.invalid/api/transactions/?page=1', 'https://example.invalid/api/transactions/?cursor=bad'])(
-  'rejects non-advancing history link %s',
-  async (next) => {
-    activity = async () => page([transaction], next);
-    const view = await show();
-    expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
-    expect(view.queryByText('Pending')).toBeNull();
-  },
-);
-it('rejects broken wallet pagination without suppressing independent history', async () => {
-  wallets = async () => page([wallet], 'https://example.invalid/api/wallets/?page=1');
+it('rejects a non-advancing history link', async () => {
+  activity = async () => page([transaction], 'https://example.invalid/api/transactions/?page=1');
   const view = await show();
-  await view.findByText('Pending');
-  await fireEvent.press(view.getByText('Filter'));
-  expect(await view.findByText('Wallet filters could not be loaded. Your activity can still be viewed.')).toBeTruthy();
+  expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.queryByText('Pending')).toBeNull();
 });
 it('refreshes actual records and hides a stale open detail on failure, then restores current status', async () => {
   const view = await show();

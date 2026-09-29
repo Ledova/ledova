@@ -1,22 +1,4 @@
-import { formatMoney, formatShareCount, getNextPageParam } from '@ledova/shared';
-import type { PaginatedResponse } from '@ledova/shared';
-
-export async function allMarketPages<T>(
-  read: (page?: number) => Promise<{ data: PaginatedResponse<T> }>,
-): Promise<T[]> {
-  const rows: T[] = [];
-  let page: number | undefined;
-  do {
-    const { data } = await read(page);
-    rows.push(...data.results);
-    const next = getNextPageParam(data);
-    if (data.next && (!next || !Number.isInteger(next) || next <= (page ?? 1))) {
-      throw new Error('The next page could not be read.');
-    }
-    page = next;
-  } while (page);
-  return rows;
-}
+import { formatMoney, formatShareCount } from '@ledova/shared';
 
 export function marketQuantity(value: number): string {
   return Number.isSafeInteger(value) && value >= 0 ? formatShareCount(String(value)) : 'Unavailable';

@@ -113,8 +113,8 @@ function closedThenOpen(isOpen: boolean) {
   );
 }
 
-function page<T>(results: T[]) {
-  return { data: { results, count: results.length, next: null, previous: null } };
+function page<T>(results: T[], next: string | null = null) {
+  return { data: { results, count: results.length, next, previous: null } };
 }
 
 const PRICES: Record<string, string | null> = { BTC: '98000', ETH: '3500', USDC: '1', USDT: null };
@@ -190,7 +190,7 @@ it('goes straight to the widget for the only verified wallet of the chosen asset
   fireEvent.click(screen.getByText('Ethereum'));
   await waitFor(() => expect(navigate).toHaveBeenCalledWith('https://onramp.example.test/widget'));
   expect(walletCalls()[0][1]).toEqual({
-    params: { chain: 'ethereum', verification_status: 'VERIFIED', ordering: 'signing_preference' },
+    params: { chain: 'ethereum', verification_status: 'VERIFIED', ordering: 'signing_preference', page: 1 },
   });
   expect(api.post).toHaveBeenCalledOnce();
   expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-1' });
@@ -202,6 +202,32 @@ it('asks which wallet receives the chosen asset when several match', async () =>
   show({ onNavigateToWidget: navigate });
   fireEvent.click(screen.getByText('Ethereum'));
   fireEvent.click(await screen.findByText('Second wallet'));
+  await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
+});
+
+it('asks which wallet receives the asset when a later page holds a second one, rather than buying into the first', async () => {
+  answer([]);
+  const prices = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE
+      ? Promise.resolve(
+          (config?.params?.page ?? 1) === 1
+            ? page([wallet('wallet-1', 'First wallet')], 'https://example.test/api/wallets/?page=2')
+            : page([wallet('wallet-2', 'Second wallet')]),
+        )
+      : prices(url, config),
+  );
+  const navigate = vi.fn();
+  show({ onNavigateToWidget: navigate });
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /First wallet/ })).toBeTruthy();
+  expect(walletCalls().map(([, config]) => config.params.page)).toEqual([1, 2]);
+  expect(api.post).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole('button', { name: /Second wallet/ }));
   await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
   expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
 });
