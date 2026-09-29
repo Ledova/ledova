@@ -181,6 +181,20 @@ it('shows truthful empty networks and retains Buy and Send only as wallet destin
   expect(mockNavigate).toHaveBeenCalledWith('Send', { screen: 'SendMain' });
 });
 
+it('heads Wallets with its lede and then every screen action in one row, before the first network card', async () => {
+  const view = await mount(<WalletsScreen />);
+  await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
+  const title = view.getByRole('header', { name: 'Wallets' });
+  const lede = view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.');
+  const actions = ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'].map((name) =>
+    view.getByRole('button', { name }),
+  );
+  const row = actions[0].parent!;
+  expect(title.parent!.children).toEqual([title, lede, row]);
+  expect(row.children).toEqual(actions);
+  expect(title.parent!.parent!.children[1]).toBe(view.getByRole('header', { name: 'Ethereum' }).parent);
+});
+
 it('sorts complete balances exactly across unsafe integers and subunit fractions', async () => {
   const values = [
     wallet('a', '9007199254740992.1'),

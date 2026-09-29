@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode, useCurrency } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { Section, Row, Rows, Action, Lede } from '../../components/Ledger';
+import { Section, Row, Rows, Action } from '../../components/Ledger';
 import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
@@ -39,18 +39,26 @@ export function WalletsScreen() {
   };
   return (
     <>
-      <WalletsPage loading={crud.isLoading} refreshing={crud.isRefreshing} refresh={() => void crud.refetch()}>
-        <CryptoActions />
-        <View style={styles.actions}>
-          <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
-          <Action label={isFiltered ? 'Filter (active)' : 'Filter'} onPress={() => setShowSortModal(true)} />
-          <Action
-            label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
-            onPress={() => void syncAll()}
-            disabled={blocked || syncingAll || !crud.wallets.length}
-          />
-        </View>
-        <Lede>Open a wallet to verify, rename, derive another address or sync its balances.</Lede>
+      <WalletsPage
+        lede="Open a wallet to verify, rename, derive another address or sync its balances."
+        actions={
+          !crud.isLoading && (
+            <>
+              <CryptoActions />
+              <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
+              <Action label={isFiltered ? 'Filter (active)' : 'Filter'} onPress={() => setShowSortModal(true)} />
+              <Action
+                label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
+                onPress={() => void syncAll()}
+                disabled={blocked || syncingAll || !crud.wallets.length}
+              />
+            </>
+          )
+        }
+        loading={crud.isLoading}
+        refreshing={crud.isRefreshing}
+        refresh={() => void crud.refetch()}
+      >
         {crud.hasError ? (
           <View style={styles.group}>
             <Text accessibilityRole="alert" style={styles.message}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, TextInput, View, ScrollView, RefreshControl } from 'react-native';
+import { Text, TextInput, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -14,6 +14,7 @@ import {
 } from '@ledova/shared';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { CompanyReadNotice } from '../company/CompanyState';
@@ -139,27 +140,28 @@ export function ListingScreen() {
   );
   if (!data.access.allowed)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title="Application">
         <Text style={styles.muted}>
           {data.access.isLoading
             ? 'Loading your company access…'
             : 'Verify your company access before opening Application.'}
         </Text>
         {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </View>
+      </Page>
     );
   return (
     <>
-      <ScrollView
+      <Page
         testID="application-screen"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Application"
+        actions={
+          <Action
+            label="Back to Company"
+            onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })}
+          />
+        }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void data.refetch()} />}
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Application
-        </Text>
-        <Action label="Back to Company" onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -294,7 +296,7 @@ export function ListingScreen() {
             </Section>
           </>
         )}
-      </ScrollView>
+      </Page>
       {withdrawing && (
         <CustomModal
           visible

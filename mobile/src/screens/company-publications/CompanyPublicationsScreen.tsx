@@ -1,12 +1,15 @@
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { RefreshControl, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Action, Lede } from '../../components/Ledger';
+import { Action } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
+
+const TITLE = 'Published to your members';
 
 export function CompanyPublicationsScreen() {
   const styles = useCompanyStyles();
@@ -26,25 +29,21 @@ export function CompanyPublicationsScreen() {
   };
   if (!access.allowed)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title={TITLE}>
         <Text style={styles.muted}>
           {access.isLoading ? 'Loading your company access…' : 'Verify your company access before opening Company.'}
         </Text>
         {access.isError && <Action label="Retry company access" onPress={() => void access.refetch()} />}
-      </View>
+      </Page>
     );
   return (
-    <ScrollView
+    <Page
       testID="company-publications-screen"
-      style={styles.page}
-      contentContainerStyle={styles.content}
+      title={TITLE}
+      lede="Staff prepare and publish these records on your company's written instruction."
+      actions={<Action label="Refresh" disabled={refreshing} onPress={refresh} />}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
-      <Text accessibilityRole="header" style={styles.title}>
-        Published to your members
-      </Text>
-      <Action label="Refresh" disabled={refreshing} onPress={refresh} />
-      <Lede>Staff prepare and publish these records on your company&apos;s written instruction.</Lede>
       {companyRead.isLoading ? (
         <Text style={styles.muted}>Loading company information…</Text>
       ) : companyRead.error ? (
@@ -99,6 +98,6 @@ export function CompanyPublicationsScreen() {
           <Action label="Open Notices" onPress={() => navigation.navigate('Publications')} />
         </>
       )}
-    </ScrollView>
+    </Page>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -96,6 +96,15 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');
+});
+
+it('offers Edit company under the page title rather than inside the company card', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  const card = (await view.findByRole('header', { name: 'Fictional Company' })).parent!;
+  const title = view.getByRole('header', { name: 'Company' });
+  const edit = view.getByRole('button', { name: 'Edit company' });
+  expect(title.parent!.children).toEqual([title, edit.parent]);
+  expect(within(card).queryByRole('button', { name: 'Edit company' })).toBeNull();
 });
 
 it('keeps an edit draft after failed refresh and save refusal; submits changed fields only', async () => {
