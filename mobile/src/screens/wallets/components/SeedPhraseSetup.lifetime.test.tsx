@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { SeedPhraseSetup } from './SeedPhraseSetup';
+import { AddWalletModal } from './AddWalletModal';
 import { invalidateSessionScope } from '../../../services/sessionScope';
 
 let mockModalClose: () => void;
@@ -109,17 +109,25 @@ afterEach(async () => {
   await cleanup();
 });
 
-async function prepared(onComplete: React.ComponentProps<typeof SeedPhraseSetup>['onComplete'], onClose = jest.fn()) {
+async function prepared(
+  onComplete: NonNullable<React.ComponentProps<typeof AddWalletModal>['onSoftwareWalletCreate']>,
+  onClose = jest.fn(),
+) {
   const view = await render(
-    <SeedPhraseSetup
+    <AddWalletModal
       visible
-      onComplete={onComplete}
-      onClose={onClose}
-      onCancel={jest.fn()}
+      isLoading={false}
       readBlocked={false}
       notice={null}
+      error={null}
+      onRetry={jest.fn()}
+      onClose={onClose}
+      onSubmit={jest.fn()}
+      onBatchSubmit={jest.fn()}
+      onSoftwareWalletCreate={onComplete}
     />,
   );
+  await fireEvent.press(view.getByText('Software Wallet'));
   await fireEvent.press(view.getByText('Continue'));
   await fireEvent.press(view.getByText('Complete fictional confirmation'));
   await fireEvent.press(view.getByText('Verify'));

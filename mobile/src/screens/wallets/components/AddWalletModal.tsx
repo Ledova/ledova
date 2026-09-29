@@ -9,7 +9,7 @@ import { AnimatedQRScanner } from '../../../components/qr';
 import { CustomModal } from '../../../components/modal';
 import { HardwareAccountSelector } from './HardwareAccountSelector';
 import { WalletSigningPreferenceSelector } from './WalletSigningPreferenceSelector';
-import { SeedPhraseSetup } from './SeedPhraseSetup';
+import { useSeedPhraseSetup } from './SeedPhraseSetup';
 import { WalletNetworkSelector } from './WalletNetworkSelector';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useAddWalletForm, FORM_STEPS } from '../useAddWalletForm';
@@ -148,6 +148,18 @@ export function AddWalletModal({
     return onSoftwareWalletCreate(addresses, importData);
   };
 
+  const backToType = () => {
+    if (!isLoading) form.setStep(FORM_STEPS.SELECT_TYPE);
+  };
+
+  const seed = useSeedPhraseSetup({
+    visible: visible && form.step === FORM_STEPS.SEED_PHRASE,
+    onClose: handleClose,
+    onComplete: handleSoftwareWalletComplete,
+    onCancel: backToType,
+    readBlocked,
+  });
+
   const feedback = (
     <View>
       {notice && (
@@ -183,7 +195,7 @@ export function AddWalletModal({
     switch (resolveStep()) {
       case FORM_STEPS.SELECT_TYPE:
         return (
-          <CustomModal key="wallet-type" {...modalProps}>
+          <CustomModal contentKey="wallet-type" {...modalProps}>
             {feedback}
             <WalletSigningPreferenceSelector onSelect={handleWalletSigningPreferenceSelect} />
           </CustomModal>
@@ -191,21 +203,15 @@ export function AddWalletModal({
 
       case FORM_STEPS.SEED_PHRASE:
         return (
-          <SeedPhraseSetup
-            visible={visible}
-            onClose={handleClose}
-            onComplete={handleSoftwareWalletComplete}
-            onCancel={() => {
-              if (!isLoading) form.setStep(FORM_STEPS.SELECT_TYPE);
-            }}
-            readBlocked={readBlocked}
-            notice={feedback}
-          />
+          <CustomModal contentKey="wallet-seed" visible={visible} {...seed.modal}>
+            {feedback}
+            {seed.content}
+          </CustomModal>
         );
 
       case FORM_STEPS.SELECT_ADDRESSES:
         return (
-          <CustomModal key="wallet-addresses" {...modalProps}>
+          <CustomModal contentKey="wallet-addresses" {...modalProps}>
             {feedback}
             <HardwareAccountSelector
               urString={form.scannedURString!}
@@ -222,12 +228,10 @@ export function AddWalletModal({
       default:
         return (
           <CustomModal
-            key="wallet-input"
+            contentKey="wallet-input"
             {...modalProps}
             cancelLabel="Back"
-            onCancel={() => {
-              if (!isLoading) form.setStep(FORM_STEPS.SELECT_TYPE);
-            }}
+            onCancel={backToType}
             confirmLabel="Add Wallet"
             onConfirm={form.handleSubmit}
             confirmLoading={isLoading}
