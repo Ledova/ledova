@@ -63,6 +63,18 @@ it.each([
     { isVerified: true, showForm: false, showContinue: true, showSkip: false },
   ],
   [
+    'on hold but verified',
+    status({ status: 'onHold', isVerified: true }),
+    false,
+    { isVerified: true, showForm: false, showContinue: true, showSkip: false },
+  ],
+  [
+    'RED but verified',
+    status({ status: 'completed', reviewAnswer: 'RED', isVerified: true }),
+    false,
+    { isVerified: true, showForm: false, showContinue: true, showSkip: false },
+  ],
+  [
     'finally refused',
     status({ status: 'completed', reviewAnswer: 'RED' }),
     false,
