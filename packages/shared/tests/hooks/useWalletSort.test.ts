@@ -57,6 +57,18 @@ it('compares balances and values as exact decimals, across unsafe integers and s
   expect(sortWallets(values, 'highestValue').map((entry) => entry.uuid)).toEqual(['b', 'a', 'c', 'd']);
 });
 
+it('keeps wallets whose balances or values are equal, however they are written, in the order given', () => {
+  const zero = wallet('a', { nativeBalance: '0', marketValue: '0' });
+  const padded = wallet('b', { nativeBalance: '0.000000000000000000', marketValue: '0.000000000000000000' });
+  const one = wallet('c', { nativeBalance: '1', marketValue: '1' });
+  for (const option of ['highestBalance', 'highestValue'] as const) {
+    expect(sortWallets([zero, padded], option).map((entry) => entry.uuid)).toEqual(['a', 'b']);
+    expect(sortWallets([padded, zero], option).map((entry) => entry.uuid)).toEqual(['b', 'a']);
+    expect(sortWallets([zero, one, padded], option).map((entry) => entry.uuid)).toEqual(['c', 'a', 'b']);
+    expect(sortWallets([padded, one, zero], option).map((entry) => entry.uuid)).toEqual(['c', 'b', 'a']);
+  }
+});
+
 it('offers the six orders once each, starting with hardware first', () => {
   expect(WALLET_SORTS.map((option) => [option.id, option.label])).toEqual([
     ['default', 'Hardware first'],
