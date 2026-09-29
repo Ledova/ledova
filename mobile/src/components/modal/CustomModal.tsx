@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Modal, ScrollView, TouchableOpacity, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AccessibilityInfo, View, Modal, ScrollView, TouchableOpacity, Text } from 'react-native';
 import { overlayColors } from '../../contexts';
 import { useThemedStyles } from '../../contexts';
 
@@ -122,9 +122,16 @@ export function CustomModal({
       color: theme.colors.text.muted,
     },
   }));
+  const content = useRef<View>(null);
+  const shown = useRef({ contentKey, visible });
+  useEffect(() => {
+    const replaced = shown.current.visible && visible && shown.current.contentKey !== contentKey;
+    shown.current = { contentKey, visible };
+    if (replaced && content.current) AccessibilityInfo.sendAccessibilityEvent(content.current, 'focus');
+  }, [contentKey, visible]);
   return (
     <Modal visible={visible} animationType="fade" transparent={true} onRequestClose={onClose}>
-      <TouchableOpacity key={contentKey} style={styles.overlay} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity key={contentKey} ref={content} style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <View style={styles.modalContainer}>
           <TouchableOpacity activeOpacity={1} style={[styles.modal, { maxHeight }]}>
             <ScrollView
