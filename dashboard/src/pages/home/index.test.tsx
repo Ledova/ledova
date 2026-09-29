@@ -279,6 +279,32 @@ it('refreshes share counts when existing wallet actions invalidate wallets', asy
   await waitFor(() => expect(row.textContent).toContain('2 shares'));
 });
 
+it('hides stale holdings after a failed refresh and reopens an opened holding with its current split', async () => {
+  let failing = false;
+  let quantity = '250';
+  api.get.mockImplementation(async (url: string) => {
+    if (failing) throw new Error('Unavailable');
+    return url === WALLET_ENDPOINTS.BASE ? page() : { data: [holding({ quantity })] };
+  });
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: /Ordinary/ }));
+  expect(screen.getByText('Primary').parentElement!.textContent).toContain('250 shares');
+
+  failing = true;
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Ordinary/ })).toBeNull();
+  expect(screen.queryByText('Primary')).toBeNull();
+
+  failing = false;
+  quantity = '300';
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+  const recovered = await screen.findByRole('button', { name: /Ordinary\s*300 shares/ });
+  expect(recovered.getAttribute('aria-expanded')).toBe('true');
+  expect(screen.getByText('Primary').parentElement!.textContent).toContain('300 shares');
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
 it('reports a malformed share balance instead of rounding it into a whole-share claim', async () => {
   api.get.mockImplementation(async (url: string) =>
     url === WALLET_ENDPOINTS.BASE ? page() : { data: [holding({ quantity: '1.5' })] },
