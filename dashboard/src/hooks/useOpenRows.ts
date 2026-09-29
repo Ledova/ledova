@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export function useOpenRows() {
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
-  return {
-    isOpen: (id: string) => open.has(id),
-    toggle: (id: string) =>
+  const isOpen = useCallback((id: string) => open.has(id), [open]);
+  const toggle = useCallback(
+    (id: string) =>
       setOpen((current) => {
         const next = new Set(current);
         if (next.has(id)) next.delete(id);
         else next.add(id);
         return next;
       }),
-    closeAll: () => setOpen(new Set()),
-  };
+    [],
+  );
+  const closeAll = useCallback(() => setOpen((current) => (current.size === 0 ? current : new Set())), []);
+  return useMemo(() => ({ isOpen, toggle, closeAll }), [isOpen, toggle, closeAll]);
 }
