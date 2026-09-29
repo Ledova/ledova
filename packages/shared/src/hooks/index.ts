@@ -15,6 +15,7 @@ export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
+export { useOpenRows } from './useOpenRows';
 export { useDirectoryToken, useDirectoryTokens } from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
