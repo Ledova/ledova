@@ -24,7 +24,13 @@ jest.mock('../../../components/qr', () => ({
   },
   QRDisplay: () => null,
 }));
-jest.mock('./SoftwareSignTransaction', () => ({ SoftwareSignTransaction: () => null }));
+const mockSoftware: { tokenDecimals?: number }[] = [];
+jest.mock('./SoftwareSignTransaction', () => ({
+  SoftwareSignTransaction: (props: { tokenDecimals?: number }) => {
+    mockSoftware.push(props);
+    return null;
+  },
+}));
 jest.mock('./SignTransaction', () => ({
   SignTransaction: ({
     urEncodedTransaction,
@@ -47,12 +53,16 @@ const wallet = {
 };
 const base = { ...fixture.native, transaction: { ...fixture.native.transaction, chainId: 84532 } };
 
-async function signing(transactionData: TransactionData) {
+const NATIVE = { isNative: true, decimals: 18 };
+const TOKEN = { isNative: false, decimals: 2, contractAddress: fixture.token.tokenContract };
+const tokenAnsweredIn6 = { ...fixture.token, tokenDecimals: 6 };
+
+async function signing(transactionData: TransactionData, selectedAsset: object = NATIVE, signer: object = wallet) {
   jest.mocked(useTransfers).mockReturnValue({
-    wallet,
+    wallet: signer,
     step: 'sign',
     transactionData,
-    selectedAsset: { isNative: true, decimals: 18 },
+    selectedAsset,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
@@ -95,4 +105,19 @@ it('shows why it refuses a scanned signature, which it checks against the wallet
     preparedTransferTransaction(base.transaction),
     wallet.address,
   );
+});
+
+it("encodes a token transfer checked in the selected asset's decimals, not the response's", async () => {
+  await signing(tokenAnsweredIn6, TOKEN);
+  expect(encodeEthereumTransaction).toHaveBeenCalledWith(
+    wallet.address,
+    preparedTransferTransaction(fixture.token.transaction),
+    wallet.derivationPath,
+    wallet.masterFingerprint,
+  );
+});
+
+it("hands the software signer the selected asset's decimals, not the response's", async () => {
+  await signing(tokenAnsweredIn6, TOKEN, { ...wallet, signingPreference: 'software' });
+  expect(mockSoftware.at(-1)?.tokenDecimals).toBe(2);
 });

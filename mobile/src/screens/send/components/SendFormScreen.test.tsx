@@ -24,6 +24,13 @@ jest.mock('../../../components/qr', () => ({
   QRDisplay: () => null,
 }));
 jest.mock('../../transfers/components/SendForm', () => ({ SendForm: () => null }));
+const mockSoftware: { tokenDecimals?: number }[] = [];
+jest.mock('../../transfers/components/SoftwareSignTransaction', () => ({
+  SoftwareSignTransaction: (props: { tokenDecimals?: number }) => {
+    mockSoftware.push(props);
+    return null;
+  },
+}));
 jest.mock('../../../utils/keystone/urEncoder', () => ({ encodeEthereumTransaction: jest.fn() }));
 jest.mock('../../../utils/keystone/urDecoder', () => ({ decodeKeystoneSignature: jest.fn() }));
 
@@ -62,10 +69,10 @@ it.each([
   expect(view.getByRole('header', { name: title })).toBeTruthy();
 });
 
-function signing(transactionData: TransactionData) {
+function signing(transactionData: TransactionData, signingPreference = 'hardware') {
   jest.mocked(useTransfers).mockReturnValue({
     step: 'sign',
-    wallet: { ...wallet, derivationPath: "m/44'/60'/0'/0/0", masterFingerprint: '12345678' },
+    wallet: { ...wallet, signingPreference, derivationPath: "m/44'/60'/0'/0/0", masterFingerprint: '12345678' },
     wallets: [],
     isLoading: false,
     transferableAssets: [],
@@ -77,8 +84,8 @@ function signing(transactionData: TransactionData) {
   } as unknown as ReturnType<typeof useTransfers>);
 }
 
-it('hands the reviewed token transfer to the hardware encoder', async () => {
-  signing(fixture.token);
+it("hands the hardware encoder the token transfer checked in the selected asset's decimals", async () => {
+  signing({ ...fixture.token, tokenDecimals: 6 });
   await render(<SendFormScreen onDone={jest.fn()} />);
   expect(encodeEthereumTransaction).toHaveBeenCalledWith(
     wallet.address,
@@ -115,4 +122,10 @@ it('shows why it refuses a scanned token-transfer signature, checked against the
     preparedTransferTransaction(fixture.token.transaction),
     wallet.address,
   );
+});
+
+it("hands the software signer the selected asset's decimals, not the response's", async () => {
+  signing({ ...fixture.token, tokenDecimals: 6 }, 'software');
+  await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(mockSoftware.at(-1)?.tokenDecimals).toBe(2);
 });

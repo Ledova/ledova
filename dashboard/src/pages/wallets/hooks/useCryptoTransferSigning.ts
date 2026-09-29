@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { prepareTransfer, prepareBitcoinTransfer, broadcastTransfer, BLOCKCHAIN } from '@ledova/shared';
+import {
+  prepareTransfer,
+  prepareBitcoinTransfer,
+  broadcastTransfer,
+  BLOCKCHAIN,
+  validatePreparedTransfer,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, PreparedWalletTransfer } from '@ledova/shared';
 
@@ -9,6 +15,7 @@ interface UseCryptoTransferSigningParams {
   toAddress: string;
   amount: string;
   tokenContract?: string;
+  decimals?: number;
 }
 
 interface UseCryptoTransferSigningResult {
@@ -27,6 +34,7 @@ export function useCryptoTransferSigning({
   toAddress,
   amount,
   tokenContract,
+  decimals = 18,
 }: UseCryptoTransferSigningParams): UseCryptoTransferSigningResult {
   const queryClient = useQueryClient();
   const [preparedTransaction, setPreparedTransaction] = useState<PreparedWalletTransfer | null>(null);
@@ -42,6 +50,7 @@ export function useCryptoTransferSigning({
       }
       const data = tokenContract ? { toAddress, amountToken: amount, tokenContract } : { toAddress, amountEth: amount };
       const response = await prepareTransfer(apiClient, wallet.uuid, data);
+      validatePreparedTransfer(response.data, data, decimals);
       return response.data;
     },
     onSuccess: (data) => {

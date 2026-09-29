@@ -133,6 +133,7 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
     toAddress: pendingTransfer?.toAddress || '',
     amount: pendingTransfer?.amount || '',
     tokenContract,
+    decimals: selectedAsset?.decimals,
   });
 
   const handleCombinedTransfer = useCallback((asset: UnifiedAsset, toAddr: string, amt: string) => {

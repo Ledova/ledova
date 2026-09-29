@@ -41,7 +41,11 @@ async function signWith(transactionData: TransactionData, tokenDecimals?: number
 
 it.each([
   ['native', fixture.native, undefined],
-  ['token', fixture.token, 2],
+  [
+    'token, checked in the decimals the screen holds rather than the response',
+    { ...fixture.token, tokenDecimals: 6 },
+    2,
+  ],
 ] as const)('signs the %s transfer the backend sent, gas limit included', async (_, prepared, decimals) => {
   const { onSignComplete } = await signWith(prepared, decimals);
   await waitFor(() => expect(onSignComplete).toHaveBeenCalledTimes(1), { timeout: 5000 });

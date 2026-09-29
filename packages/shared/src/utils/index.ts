@@ -40,6 +40,7 @@ export { getHoldingTokenDeployment } from './asset-deployment';
 export { importAddressKey, importOnEvmNetwork, importedParentKey, canDeriveNextWalletAddress } from './wallet-import';
 export { readTransactionSignature, type TransactionSignature } from './transaction-signature';
 export { readWei } from './wei';
+export { validatePreparedTransfer } from './prepared-transfer';
 export { parseFiatValue } from './valuation';
 export { readFeatureFlags, type FeatureFlagInputs } from './feature-flags';
 export {
