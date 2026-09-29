@@ -5,7 +5,6 @@ from tokens.views import (
     SwapOrderViewSet,
     TradingOrderViewSet,
     TradingTokenViewSet,
-    TradingTransferViewSet,
     TradingWalletViewSet,
 )
 from tokens.views.trading_events import trading_events_stream
@@ -17,7 +16,6 @@ router = DefaultRouter()
 router.register(r"tokens", TradingTokenViewSet, basename="tokens")
 router.register(r"orders", TradingOrderViewSet, basename="orders")
 router.register(r"wallets", TradingWalletViewSet, basename="wallets")
-router.register(r"transfers", TradingTransferViewSet, basename="transfers")
 router.register(r"swaps", SwapOrderViewSet, basename="swaps")
 
 urlpatterns = router.urls + [

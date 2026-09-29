@@ -220,7 +220,6 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
         for method, url, data in (
             ("get", "/api/v1/documents/", None),
             ("get", self.url, None),
-            ("get", self.url + "file/", None),
             ("delete", self.url, None),
             ("post", self.url + "attach/", {"classification": str(self.claim.pk)}),
             ("post", "/api/v1/documents/", {}),
@@ -388,8 +387,7 @@ class SupportingPayslipRetentionTest(EvidenceCase, TestCase):
             self.assertFalse(Document.objects.with_available_content().filter(pk=self.document.pk).exists())
             self.document.refresh_from_db()
             self.assertFalse(self.document.content_available)
-            for suffix in ("", "file/"):
-                self.assertEqual(client.get(f"/api/v1/documents/{self.document.pk}/{suffix}").status_code, 404)
+            self.assertEqual(client.get(f"/api/v1/documents/{self.document.pk}/").status_code, 404)
         self.assertTrue(self.document.file.storage.exists(self.document.file.name))
         self.assertEqual(self.document.extractions.count(), 1)
 

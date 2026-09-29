@@ -7,8 +7,6 @@ import {
   LinkIcon,
   UserIcon,
   GearIcon,
-  QuestionIcon,
-  SignOutIcon,
   BuildingsIcon,
   ShieldCheckIcon,
   MegaphoneIcon,
@@ -21,11 +19,11 @@ import { DESIGN_TOKENS, DESTINATIONS, getCompanies, type DestinationKey } from '
 import apiClient from '@services/apiClient';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { useRole } from '@hooks/useRole';
-import { useSignOut } from '@hooks/useSignOut';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { MARKETING_URL } from '@utils/marketingUrl';
 import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
+import { SignOutButton } from '@components/SignOutButton';
 
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
@@ -73,7 +71,9 @@ const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-s
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
 
 function GroupLabel({ children }: { children: string }) {
-  return <p className="mb-1 truncate px-3 text-xs font-medium uppercase tracking-wider text-text-muted">{children}</p>;
+  return (
+    <p className="mb-1 break-words px-3 text-xs font-medium uppercase tracking-wider text-text-muted">{children}</p>
+  );
 }
 
 function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: (path: string) => void }) {
@@ -112,7 +112,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const { isInvestor, isCompany } = useRole();
   const { userProfile } = useUserProfile();
   const companyName = useCompanyName(isCompany);
-  const { signOut, isSigningOut } = useSignOut();
+  const person = userProfile?.fullName?.trim() || userProfile?.email;
 
   const groups: NavGroup[] = [
     ...(isCompany ? [{ id: 'company', label: companyName ?? DESTINATIONS.company.title, items: COMPANY }] : []),
@@ -141,44 +141,36 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         {withNotifications && <NotificationBell align="start" />}
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-        {groups.map((group) => (
-          <div key={group.id} className="space-y-1">
-            {group.label && <GroupLabel>{group.label}</GroupLabel>}
-            {group.items.map((item) => (
-              <NavButton
-                key={item.destination}
-                item={item}
-                active={DESTINATIONS[item.destination].path === activePath}
-                onSelect={handleNav}
-              />
-            ))}
-            {group.id === 'yours' && (
-              <a
-                href={`${MARKETING_URL}/contact`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onNavigate?.()}
-                className={`${ITEM_CLASS} ${IDLE_CLASS}`}
-              >
-                <QuestionIcon size={ICON_MD} />
-                <span>Help & Support</span>
-              </a>
-            )}
-          </div>
-        ))}
-      </nav>
+      <div className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="space-y-6">
+          {groups.map((group) => (
+            <div key={group.id} className="space-y-1">
+              {group.label && <GroupLabel>{group.label}</GroupLabel>}
+              {group.items.map((item) => (
+                <NavButton
+                  key={item.destination}
+                  item={item}
+                  active={DESTINATIONS[item.destination].path === activePath}
+                  onSelect={handleNav}
+                />
+              ))}
+            </div>
+          ))}
+        </nav>
+        <a
+          href={`${MARKETING_URL}/contact`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onNavigate?.()}
+          className="mx-3 mt-6 block w-fit text-sm text-text-muted transition-colors hover:text-text-primary"
+        >
+          Help & Support
+        </a>
+      </div>
 
       <div className="border-t border-border-subtle p-3">
-        {userProfile?.email && <p className="truncate px-3 pb-1 pt-1 text-xs text-text-muted">{userProfile.email}</p>}
-        <button
-          onClick={signOut}
-          disabled={isSigningOut}
-          className={`${ITEM_CLASS} text-text-secondary hover:bg-error/10 hover:text-error-light disabled:opacity-50`}
-        >
-          <SignOutIcon size={ICON_MD} />
-          <span>{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
-        </button>
+        {person && <p className="break-words px-3 py-1 text-sm font-medium text-text-primary">{person}</p>}
+        <SignOutButton variant="sidebar" />
       </div>
     </aside>
   );

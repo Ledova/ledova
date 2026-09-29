@@ -13,5 +13,3 @@ SYMBOL_TO_COINGECKO_ID = {
     "USDT": "tether",
     "USDD": "usdd",
 }
-
-COINGECKO_ID_TO_SYMBOL = {v: k for k, v in SYMBOL_TO_COINGECKO_ID.items()}

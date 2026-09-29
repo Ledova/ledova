@@ -30,9 +30,11 @@ Staff read company files through admin rather than widening customer ownership
 selectors. `admin_file_path` checks model and object view permission; refused
 staff receive 403, matching the change page.
 
-Serializers return the authenticated route as `file_url`. The dashboard uses a
-top-level navigation with its session cookie. Mobile fetches with its bearer
-client and shares a temporary cached copy; see [mobile lifecycles](mobile-lifecycles.md).
+The company document serializer returns the authenticated route as `file_url`;
+a personal document and classification evidence are read only through admin.
+The dashboard uses a top-level navigation with its session cookie. Mobile
+fetches with its bearer client and shares a temporary cached copy; see
+[mobile lifecycles](mobile-lifecycles.md).
 Admin downloads are attachments. Customer serving is inline only for the allowed
 PDF/PNG/JPEG MIME types; other or absent types become attachments.
 

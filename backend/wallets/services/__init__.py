@@ -2,8 +2,6 @@ from wallets.services.balance import BalanceService
 from wallets.services.fiat_onramp import generate_transak_widget_url
 from wallets.services.sync import sync_wallet
 from wallets.services.transfers import (
-    broadcast_bitcoin_transaction,
-    broadcast_ethereum_transaction,
     broadcast_transfer,
     prepare_bitcoin_transaction,
     prepare_ethereum_transaction,
@@ -25,8 +23,6 @@ __all__ = [
     "complete_wallet_verification",
     "prepare_ethereum_transaction",
     "prepare_bitcoin_transaction",
-    "broadcast_ethereum_transaction",
-    "broadcast_bitcoin_transaction",
     "generate_transak_widget_url",
     "generate_verification_challenge",
     "verify_bitcoin_signature",

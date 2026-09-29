@@ -25,8 +25,7 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import YieldToken
 from tokens.tests.market_fixtures import record_synthetic_admission
-from users.models import InvestorClassification, UserProfile
-from users.serializers.investor_classification import InvestorClassificationSerializer
+from users.models import UserProfile
 
 ASSETS = "/api/assets/"
 ELIGIBILITY = "/api/investor-classifications/eligibility/"
@@ -212,21 +211,6 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertNotIn("evidenceFile", body["classification"])
         self.assert_matches(schema, body)
 
-    def test_evidence_urls_keep_retained_relative_and_absent_forms(self):
-        classification = self.owner.investor_classification
-        path = f"/api/investor-classifications/{classification.uuid}/"
-        schema = self.response_schema("/api/investor-classifications/{uuid}/")["properties"]["evidenceUrl"]
-        body = self.get_json(path)
-        relative = reverse("investor-classifications-evidence", args=[classification.uuid])
-        self.assertEqual(body["evidenceUrl"], "http://testserver" + relative)
-        self.assert_matches(schema, body["evidenceUrl"])
-        self.assertEqual(InvestorClassificationSerializer(classification).data["evidence_url"], relative)
-        self.assert_matches(schema, relative)
-        InvestorClassification.objects.filter(pk=classification.pk).update(evidence_file="")
-        body = self.get_json(path)
-        self.assertIsNone(body["evidenceUrl"])
-        self.assert_matches(schema, body["evidenceUrl"])
-
     def test_operator_rails_allow_denied_empty_partial_and_staff_objects(self):
         operator = Operator.get()
         names = (
@@ -337,7 +321,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertTrue(self.owner.user.is_active)
         self.assertIsNone(self.owner.user.last_login)
 
-    def test_company_status_properties_match_list_detail_and_application_status(self):
+    def test_company_status_properties_match_list_and_detail(self):
         flags = ("isActive", "isApproved", "isPendingReview", "canIssueTokens")
         cases = (
             (CompanyStatus.DRAFT, (False, False, False, False)),
@@ -353,10 +337,6 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
                 self.assert_fields_match(self.response_schema(COMPANIES + "{uuid}/"), body, flags)
                 listing = self.get_json(COMPANIES)["results"][0]
                 self.assert_fields_match(self.response_schema(COMPANIES, page=True), listing, flags[:2])
-                status_body = self.get_json(f"{COMPANIES}{self.owner.company.uuid}/application-status/")
-                self.assert_fields_match(
-                    self.response_schema(COMPANIES + "{uuid}/application-status/"), status_body, flags[:3]
-                )
 
     def test_company_display_name_keeps_trading_name_then_legal_name_fallback(self):
         schema = self.response_schema(COMPANIES + "{uuid}/")["properties"]["displayName"]
@@ -417,11 +397,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         schema = self.response_schema(DOCUMENTS + "{uuid}/")
         body = self.get_json(path)
         self.assertIsNone(body["latestExtraction"])
-        self.assertTrue(body["fileUrl"].startswith("http://testserver/api/v1/documents/"))
-        self.assert_fields_match(schema, body, ("latestExtraction", "fileUrl"))
-        relative = reverse("documents:documents-file", kwargs={"uuid": document.uuid})
-        self.assertEqual(DocumentSerializer(document).data["file_url"], relative)
-        self.assert_matches(schema["properties"]["fileUrl"], relative)
+        self.assert_fields_match(schema, body, ("latestExtraction",))
         DocumentExtraction.objects.create(
             document=document, status=ExtractionStatus.SUCCEEDED, parsed_json={"value": 1}
         )
@@ -432,9 +408,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         document.refresh_from_db()
         body = DocumentSerializer(document).data
         self.assertIsNone(body["latest_extraction"])
-        self.assertIsNone(body["file_url"])
         self.assert_matches(schema["properties"]["latestExtraction"], body["latest_extraction"])
-        self.assert_matches(schema["properties"]["fileUrl"], body["file_url"])
 
     def test_latest_extraction_declares_sanitized_nested_history_and_arbitrary_json(self):
         document = self.owner.document

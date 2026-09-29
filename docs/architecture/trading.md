@@ -5,7 +5,7 @@
 The secondary market has order, matching and settlement code, and trading is
 enabled by default. `trading_enabled`
 middleware refuses every method under `/api/v1/trading/orders/`, `wallets/`,
-`transfers/`, `swaps/` and `events/` when the flag is off, and an operator can
+`swaps/` and `events/` when the flag is off, and an operator can
 disable it per deployment in Django admin. The read-only token market and
 the per-share-class whitelist status sit outside those prefixes. The flag does not establish
 safety: releases require the human checks in

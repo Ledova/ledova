@@ -84,9 +84,6 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
                 body = response.json()
                 row = next(row for row in body["results"] if row["uuid"] == token_id) if endpoint == path else body
                 self.assertEqual((row["bestBid"], row["bestAsk"]), (bid, ask), endpoint)
-        market = self.client.get(f"/api/v1/trading/tokens/{token_id}/market-data/")
-        self.assertEqual(market.status_code, 200, market.content)
-        self.assertEqual((market.json()["bestBid"], market.json()["bestAsk"]), (bid, ask))
         book = self.client.get(f"/api/v1/trading/tokens/{token_id}/order-book/")
         self.assertEqual(book.status_code, 200, book.content)
         self.assertEqual(book.json()["buyOrders"], [] if bid is None else [{"price": bid, "quantity": 10, "orders": 1}])

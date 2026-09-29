@@ -16,12 +16,7 @@ import { PageAction } from '@components/Page';
 const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
-import type {
-  Wallet,
-  WalletTokenBalance,
-  ShareTokenTransferPrepareResponse,
-  PreparedWalletTransfer,
-} from '@ledova/shared';
+import type { Wallet, WalletTokenBalance, PreparedWalletTransfer } from '@ledova/shared';
 import { encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { decodeKeystoneSignedTransaction } from '@utils/keystone/urDecoder';
 import { BitcoinSignStep } from './BitcoinSignStep';
@@ -39,7 +34,7 @@ interface TransferSigningFlowProps {
   toAddress?: string;
   amount?: string;
   token?: Pick<WalletTokenBalance, 'name' | 'symbol'>;
-  preparedTransaction?: ShareTokenTransferPrepareResponse | PreparedWalletTransfer | null;
+  preparedTransaction?: PreparedWalletTransfer | null;
   isPreparing?: boolean;
   prepareError?: string | null;
   onPrepare?: () => void;
@@ -58,24 +53,7 @@ interface TransactionForQr {
   chainId: string;
 }
 
-function formatTransactionForQr(
-  preparedTx: ShareTokenTransferPrepareResponse | PreparedWalletTransfer,
-  wallet: Wallet,
-): TransactionForQr | null {
-  if ('transactionData' in preparedTx && preparedTx.transactionData) {
-    const tx = preparedTx.transactionData;
-    return {
-      to: tx.to,
-      from: wallet.address,
-      data: tx.data,
-      value: '0x' + tx.value.toString(16),
-      gas: '0x' + tx.gas.toString(16),
-      gasPrice: '0x' + tx.gasPrice.toString(16),
-      nonce: '0x' + tx.nonce.toString(16),
-      chainId: '0x' + tx.chainId.toString(16),
-    };
-  }
-
+function formatTransactionForQr(preparedTx: PreparedWalletTransfer, wallet: Wallet): TransactionForQr | null {
   if ('transaction' in preparedTx && preparedTx.transaction) {
     const tx = preparedTx.transaction;
     return {

@@ -163,7 +163,6 @@ class DeviceTokenOwnershipTest(APITestCase):
     def test_anonymous_requests_are_rejected(self):
         self.client.force_authenticate(user=None)
 
-        list_response = self.client.get("/api/device-tokens/")
         register_response = self.client.post(
             "/api/device-tokens/register/",
             {
@@ -178,6 +177,5 @@ class DeviceTokenOwnershipTest(APITestCase):
             format="json",
         )
 
-        self.assertEqual(list_response.status_code, 401)
         self.assertEqual(register_response.status_code, 401)
         self.assertEqual(unregister_response.status_code, 401)

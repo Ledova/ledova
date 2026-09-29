@@ -1,17 +1,11 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase
 
 from integrations.base_chain.client import BaseChainClient
 from integrations.base_chain.exceptions import GasEstimationError
-from shared.api.exceptions import custom_exception_handler
-from shared.tests.reverts import RPC_HOST, RPC_KEY, actionable_reverts, provider_revert
-from shared.tests.tenants import make_tenant
-from tokens.exceptions import TransferPreparationException
-from tokens.services import token_transfer_service
 
-RPC_URL = "https://base-sepolia.g.alchemy.com/v2/pR3t3nd1ngT0B3aReAlK3y"
 RECIPIENT = "0x" + "d" * 40
 SENDER = "0x" + "a" * 40
 
@@ -53,71 +47,3 @@ class TheNodeIsAskedWhetherATransactionWorksTest(SimpleTestCase):
 
         self.assertEqual(built["gas"], 250_000)
         estimate.assert_not_called()
-
-
-class PreparingATransferAsksBeforeItGuessesTest(TestCase):
-
-    def setUp(self):
-        self.tenant = make_tenant("sender")
-        self.token = self.tenant.deployed_token
-
-    def service(self, estimate):
-        service = token_transfer_service
-        self.enterContext(patch.object(service, "get_base_chain_client", return_value=Mock()))
-        service.get_base_chain_client().to_checksum_address.side_effect = lambda address: address
-        service.get_base_chain_client().get_nonce.return_value = 1
-        service.get_base_chain_client().gas_price = 1
-        service.get_base_chain_client().chain_id = 84532
-        service.get_base_chain_client().estimate_gas = estimate
-        contract = Mock()
-        contract.functions.transfer.return_value._encode_transaction_data.return_value = "0xdata"
-        service.get_base_chain_client().load_contract.return_value = contract
-        return service
-
-    @patch.object(token_transfer_service, "validate_transfer")
-    def test_a_transfer_the_node_will_not_estimate_is_refused_rather_than_prepared(self, _validate):
-        service = self.service(Mock(side_effect=GasEstimationError("the node would not estimate gas")))
-
-        with self.assertRaises(TransferPreparationException):
-            service.prepare_transfer(self.token, SENDER, RECIPIENT, 5)
-
-    @patch.object(token_transfer_service, "validate_transfer")
-    def test_the_refusal_does_not_carry_the_node_credentials_to_the_caller(self, _validate):
-        service = self.service(Mock(side_effect=ConnectionError(f"Max retries exceeded with url: {RPC_URL}")))
-
-        with self.assertRaises(TransferPreparationException) as refusal:
-            service.prepare_transfer(self.token, SENDER, RECIPIENT, 5)
-
-        self.assertNotIn("pR3t3nd1ngT0B3aReAlK3y", str(refusal.exception.detail))
-        self.assertNotIn("alchemy.com", str(refusal.exception.detail))
-
-    @patch.object(token_transfer_service, "validate_transfer")
-    def test_a_transfer_the_node_can_estimate_carries_that_estimate(self, _validate):
-        service = self.service(Mock(return_value=96_000))
-
-        prepared = service.prepare_transfer(self.token, SENDER, RECIPIENT, 5)
-
-        self.assertEqual(prepared["gas"], 96_000)
-
-    @patch.object(token_transfer_service, "validate_transfer")
-    def test_each_estimate_refusal_survives_the_real_wrapper_and_served_error_without_credentials(self, _validate):
-        for payload, expected in actionable_reverts():
-            with self.subTest(expected=expected):
-                client = client_whose_estimate(Mock(side_effect=provider_revert(payload)))
-                service = self.service(client.estimate_gas)
-                with self.assertRaises(TransferPreparationException) as refusal:
-                    service.prepare_transfer(self.token, SENDER, RECIPIENT, 5)
-                with self.assertLogs("shared.api.exceptions", level="ERROR"):
-                    response = custom_exception_handler(refusal.exception, {})
-                self.assertEqual(response.status_code, 500)
-                self.assertEqual(response.data["detail"], expected)
-                self.assertNotIn(RPC_HOST, str(response.data))
-                self.assertNotIn(RPC_KEY, str(response.data))
-
-    @patch.object(token_transfer_service, "validate_transfer")
-    def test_an_unknown_estimate_refusal_still_has_a_fixed_default(self, _validate):
-        client = client_whose_estimate(Mock(side_effect=provider_revert("0xdeadbeef")))
-        service = self.service(client.estimate_gas)
-        with self.assertRaises(TransferPreparationException) as refusal:
-            service.prepare_transfer(self.token, SENDER, RECIPIENT, 5)
-        self.assertEqual(str(refusal.exception.detail), "Transfer preparation failed.")
