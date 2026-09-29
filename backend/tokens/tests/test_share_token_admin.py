@@ -167,11 +167,11 @@ class ShareTokenAdminPauseTest(TransactionTestCase):
         with patch("tokens.admin._helpers.CHAIN_READ_TIMEOUT", 0.05):
             with self.assertLogs("tokens.admin._helpers", "WARNING") as logs:
                 change_page = self.client.get(self.change_url)
-        self.assertTrue(entered.is_set())
-        self.assertFalse(finished.is_set())
+        self.assertTrue(entered.wait(SLOW_READ_BLOCKS_FOR))
+        self.assertFalse(finished.is_set(), "the change page waited for the chain read instead of abandoning it")
         self.assertContains(change_page, self.pause_url)
         self.assertContains(change_page, self.unpause_url)
-        self.assertIn("not answered within", logs.output[0])
+        self.assertIn("not answered within 0.05s", logs.output[0])
 
     def test_pause_confirmation_retains_the_same_submission_on_repeated_post(self):
         self._chain_paused(False)
