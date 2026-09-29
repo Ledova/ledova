@@ -31,7 +31,7 @@ export function BuyCryptoWidgetModal({ isOpen, onClose, onComplete, widgetUrl }:
   }, [isOpen, onClose, onComplete]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" fullHeight>
+    <Modal isOpen={isOpen} onClose={onClose} title="Buy crypto" size="lg" fullHeight>
       <div className="h-[650px] rounded-lg overflow-hidden">
         {widgetUrl ? (
           <iframe

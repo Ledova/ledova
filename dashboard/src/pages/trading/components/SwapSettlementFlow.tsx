@@ -2,7 +2,8 @@ import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 're
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { getNumber } from 'ethers';
 import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet } from '@ledova/shared';
-import { Modal } from '@components/Modal';
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
 import {
@@ -197,14 +198,11 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     resetView();
     onClose();
   };
-  const button =
-    'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:bg-surface-disabled disabled:text-text-secondary';
-
   return (
     <Modal isOpen onClose={close} title="Review and sign trade" size="md">
-      <div className="space-y-4">
+      <div className="space-y-4 text-sm text-text-primary">
         {response && context && (
-          <div className="rounded-lg bg-surface-tertiary p-4 space-y-2">
+          <div className="space-y-1">
             <p>You are the {response.userRole}.</p>
             <p>
               Shares: {exactSettlementAmount(response.typedData.message.shareAmount, context.shareToken.decimals)}{' '}
@@ -234,11 +232,19 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
                 : 'Checking or signing this trade...'}
           </p>
         )}
-        {state.error && <p role="alert">{state.error}</p>}
+        {state.error && (
+          <p role="alert" className="text-error-light">
+            {state.error}
+          </p>
+        )}
         {state.notice && <p role="status">{state.notice}</p>}
-        {view.error && <p role="alert">{view.error}</p>}
+        {view.error && (
+          <p role="alert" className="text-error-light">
+            {view.error}
+          </p>
+        )}
         {state.approvalResult && (
-          <div role="status" className="space-y-2">
+          <div role="status" className="space-y-1">
             <p>
               {'code' in state.approvalResult
                 ? 'The approval result is still unknown. Its transaction is saved for checking; do not send it again.'
@@ -248,7 +254,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
           </div>
         )}
         {state.unconfirmedApprovalHashes.length > 0 && (
-          <div role="status" className="space-y-2">
+          <div role="status" className="space-y-1">
             <p>
               Earlier approval transactions remain saved for checking, even if the token allowance is now sufficient.
             </p>
@@ -260,7 +266,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
           </div>
         )}
         {state.approvalOutcomes.map((approvalOutcome) => (
-          <div role="status" className="space-y-2" key={approvalOutcome.txHash}>
+          <div role="status" className="space-y-1" key={approvalOutcome.txHash}>
             <p>Original approval {approvalOutcome.outcome}.</p>
             <p className="break-all">Approval transaction: {approvalOutcome.txHash}</p>
             {approvalOutcome.outcome !== 'confirmed' && (
@@ -276,107 +282,94 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
         )}
         {response && !wallet && <p>The exact verified wallet is unavailable in the current account.</p>}
         {approval && response && (
-          <div className="space-y-2">
+          <div className="space-y-1">
             <p>This token approval has no spending limit.</p>
             <p className="break-all">Approved contract: {response.typedData.domain.verifyingContract}</p>
           </div>
         )}
-        {ready && canSign && view.step === 'review' && (
-          <div className="flex flex-wrap gap-3">
-            <button
-              className={button}
+        {ready && canSign && view.step === 'software' && (
+          <SeedPhraseInput
+            value={view.seedPhrase}
+            // eslint-disable-next-line react-hooks/immutability
+            onChange={(value) => {
+              if (!current()) return;
+              // eslint-disable-next-line react-hooks/immutability
+              view.seedPhrase = value;
+              render();
+            }}
+          />
+        )}
+        {ready && canSign && view.step === 'qr' && liveQr && view.qr && (
+          <div className="flex justify-center py-2">
+            <AnimatedQRCode cbor={view.qr.cborHex} type={view.qr.type} />
+          </div>
+        )}
+        {ready && view.step === 'scan' && liveQr && (
+          <QRScannerView scannerId="swap-settlement-signature" error={scannerError} />
+        )}
+        <ModalActions>
+          <PageAction label="Close" onClick={close} />
+          {ready && view.step !== 'review' && <PageAction label="Back" onClick={resetView} />}
+          {(state.phase === 'error' ||
+            response?.hasSigned ||
+            (response && !response.canSign) ||
+            state.unconfirmedApprovalHashes.length > 0) && (
+            <PageAction
+              label="Check saved status"
+              disabled={!ready && state.phase !== 'error'}
+              onClick={() => {
+                resetView();
+                void settlement.recover();
+              }}
+            />
+          )}
+          {ready && canSign && view.step === 'review' && (
+            <PageAction
+              label="Check token approval"
               onClick={() => {
                 resetView();
                 void settlement.refreshApprovalStatus();
               }}
-            >
-              Check token approval
-            </button>
-            {state.approvalStatus?.needsApproval && (
-              <button
-                className={button}
-                onClick={() => {
-                  resetView();
-                  void settlement.prepareApproval();
-                }}
-              >
-                Prepare approval
-              </button>
-            )}
-            {approval && (
-              // eslint-disable-next-line react-hooks/immutability
-              <button className={button} onClick={() => begin('approval')}>
-                Continue to approve
-              </button>
-            )}
-            {state.approvalStatus?.needsApproval === false && (
-              <button className={button} onClick={() => begin('signature')}>
-                Continue to sign
-              </button>
-            )}
-          </div>
-        )}
-        {ready && canSign && view.step === 'software' && (
-          <>
-            <SeedPhraseInput
-              value={view.seedPhrase}
-              onChange={(value) => {
-                if (!current()) return;
-                // eslint-disable-next-line react-hooks/immutability
-                view.seedPhrase = value;
-                render();
+            />
+          )}
+          {ready && canSign && view.step === 'review' && state.approvalStatus?.needsApproval && (
+            <PageAction
+              label="Prepare approval"
+              onClick={() => {
+                resetView();
+                void settlement.prepareApproval();
               }}
             />
-            {/* eslint-disable-next-line react-hooks/immutability */}
-            <button className={button} disabled={!view.seedPhrase.trim()} onClick={signSoftware}>
-              {view.kind === 'approval' ? 'Sign approval' : 'Sign trade'}
-            </button>
-          </>
-        )}
-        {ready && canSign && view.step === 'qr' && liveQr && view.qr && (
-          <>
-            <div className="flex justify-center bg-white p-4">
-              <AnimatedQRCode cbor={view.qr.cborHex} type={view.qr.type} />
-            </div>
-            <button
-              className={button}
+          )}
+          {ready && canSign && view.step === 'review' && approval && (
+            // eslint-disable-next-line react-hooks/immutability
+            <PageAction label="Continue to approve" primary onClick={() => begin('approval')} />
+          )}
+          {ready && canSign && view.step === 'review' && state.approvalStatus?.needsApproval === false && (
+            <PageAction label="Continue to sign" primary onClick={() => begin('signature')} />
+          )}
+          {ready && canSign && view.step === 'software' && (
+            <PageAction
+              label={view.kind === 'approval' ? 'Sign approval' : 'Sign trade'}
+              primary
+              disabled={!view.seedPhrase.trim()}
+              // eslint-disable-next-line react-hooks/immutability
+              onClick={signSoftware}
+            />
+          )}
+          {ready && canSign && view.step === 'qr' && liveQr && view.qr && (
+            <PageAction
+              label="I've signed it"
+              primary
               onClick={() => {
                 if (!idle() || !liveQr) return;
                 // eslint-disable-next-line react-hooks/immutability
                 view.step = 'scan';
                 render();
               }}
-            >
-              I&apos;ve signed it
-            </button>
-          </>
-        )}
-        {ready && view.step === 'scan' && liveQr && (
-          <QRScannerView scannerId="swap-settlement-signature" error={scannerError} />
-        )}
-        {ready && view.step !== 'review' && (
-          <button className={button} onClick={resetView}>
-            Back
-          </button>
-        )}
-        {(state.phase === 'error' ||
-          response?.hasSigned ||
-          (response && !response.canSign) ||
-          state.unconfirmedApprovalHashes.length > 0) && (
-          <button
-            className={button}
-            disabled={!ready && state.phase !== 'error'}
-            onClick={() => {
-              resetView();
-              void settlement.recover();
-            }}
-          >
-            Check saved status
-          </button>
-        )}
-        <button className={button} onClick={close}>
-          Close
-        </button>
+            />
+          )}
+        </ModalActions>
       </div>
     </Modal>
   );

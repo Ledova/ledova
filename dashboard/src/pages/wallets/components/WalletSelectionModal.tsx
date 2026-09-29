@@ -1,4 +1,4 @@
-import { WalletIcon, ArrowsClockwiseIcon, PaperPlaneTiltIcon } from '@phosphor-icons/react';
+import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BLOCKCHAIN,
@@ -19,7 +19,6 @@ import { HardDriveIcon, CloudIcon, ClockIcon } from '@phosphor-icons/react';
 
 const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
-const ICON_XXL = DESIGN_TOKENS.icon.sizes.xxl;
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -96,8 +95,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
 
     if (wallets.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 gap-2">
-          <WalletIcon size={ICON_XXL} className="text-text-subtle" />
+        <div className="space-y-1">
           <p className="text-sm text-text-muted">No verified wallets found</p>
           <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto</p>
         </div>
@@ -129,11 +127,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} showFooter showCancelButton onCancel={onClose}>
-      <div className="flex flex-col items-center gap-2 pt-2 pb-6">
-        <PaperPlaneTiltIcon size={ICON_XXL} className="text-info-light" weight="light" />
-        <p className="text-sm font-semibold text-text-muted">Select your wallet</p>
-      </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Select your wallet" showFooter showCancelButton onCancel={onClose}>
       {renderContent()}
     </Modal>
   );

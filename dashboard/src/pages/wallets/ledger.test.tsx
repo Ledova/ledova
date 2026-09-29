@@ -101,7 +101,8 @@ it('retains an edit while a delayed write rejects, then closes only after succes
   );
   show();
   fireEvent.doubleClick(await screen.findByText('Primary wallet'));
-  const dialog = screen.getByRole('dialog');
+  const dialog = screen.getByRole('dialog', { name: 'Edit Wallet' });
+  expect(within(dialog).getByText('Address').tagName).toBe('DT');
   fireEvent.change(within(dialog).getByLabelText('Wallet name'), { target: { value: 'Retained name' } });
   fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
@@ -156,7 +157,7 @@ it('offers one Add wallet action under each empty chain and opens the add form f
   expect(screen.getByText('No Base wallets yet.')).toBeTruthy();
   expect(screen.getAllByRole('button', { name: 'Add wallet' })).toHaveLength(3);
   fireEvent.click(screen.getAllByRole('button', { name: 'Add wallet' })[1]);
-  expect(within(screen.getByRole('dialog')).getByLabelText('Wallet address')).toBeTruthy();
+  expect(within(screen.getByRole('dialog', { name: 'Add wallet' })).getByLabelText('Wallet address')).toBeTruthy();
 });
 
 it('retains a refused new wallet and closes only on successful creation', async () => {

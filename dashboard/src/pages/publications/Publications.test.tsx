@@ -700,7 +700,10 @@ describe('personal Notices and preserved dividend behavior', () => {
     );
     expect((screen.getByRole('button', { name: PUBLICATION_COPY.CANCEL }) as HTMLButtonElement).disabled).toBe(true);
     await act(async () => reject({ response: { data: { detail: 'Ballot temporarily refused.' } } }));
-    expect((await screen.findByRole('alert')).textContent).toBe('Ballot temporarily refused.');
+    const refusal = await screen.findByRole('alert');
+    expect(refusal.textContent).toBe('Ballot temporarily refused.');
+    expect(refusal.className).toContain('text-error-light');
+    expect(refusal.className).not.toMatch(/\bbg-/);
     expect(client.getQueryState(['publications', 'summary'])?.isInvalidated).toBe(true);
     vi.mocked(apiClient.post).mockImplementation(async () => {
       const voted = {
