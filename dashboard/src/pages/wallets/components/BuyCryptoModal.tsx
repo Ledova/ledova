@@ -8,6 +8,7 @@ import {
   getAssets,
   getWallets,
   getOnRampWidgetUrl,
+  readEveryPage,
   useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
@@ -57,16 +58,19 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
-      getWallets(apiClient, {
-        chain: selectedAsset!.chain,
-        verification_status: 'VERIFIED',
-        ordering: 'signing_preference',
-      }),
+      readEveryPage((page) =>
+        getWallets(apiClient, {
+          chain: selectedAsset!.chain,
+          verification_status: 'VERIFIED',
+          ordering: 'signing_preference',
+          page,
+        }),
+      ),
     enabled: !!userAccountUuid && !!selectedAsset,
   });
 
   const walletsFailed = walletsQuery.isError;
-  const matchingWallets = walletsFailed ? [] : walletsQuery.data?.data.results || [];
+  const matchingWallets = walletsFailed ? [] : (walletsQuery.data ?? []);
   const isLoadingWallets = walletsQuery.isPending;
   const walletsSettled = walletsQuery.fetchStatus === 'idle';
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;

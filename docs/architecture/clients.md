@@ -148,13 +148,15 @@ Wallets could not read them. Buy crypto goes straight to the widget only when a
 read that has finished finds exactly one verified wallet on the chosen asset's
 network, and asks which one receives it when there are several; while a read is
 running, or waiting for the connection to come back, it opens nothing by itself
-and its chooser's wallets cannot be chosen. Both web choosers list a wallet as a
-Wallets row reads, by its name or short address, with its balance and value
-labelled; neither says there are none before a read has answered, even offline,
-and one that cannot read the wallets says so and offers Try again, hiding any it
-listed before. Mobile follows later: its Send always starts at the wallet choice,
-and its Buy crypto can still go straight to the widget for, or offer, the wallets
-it read before, and says there are none when a read fails.
+and its chooser's wallets cannot be chosen. Both web choosers read every page of
+verified wallets, so a wallet on a later page is offered and counted, and list
+each as a Wallets row reads, by its name or short address, with its balance and
+value labelled; neither says there are none before a read has answered, even
+offline, and one that cannot read the wallets says so and offers Try again,
+hiding any it listed before. Mobile follows later: its Send always starts at the
+wallet choice, and its Buy crypto can still go straight to the widget for, or
+offer, the wallets it read before, and says there are none when a read fails.
+Both mobile choosers also read every page of wallets.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
