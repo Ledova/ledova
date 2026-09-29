@@ -4,6 +4,7 @@ export function useMarketStyles() {
   return useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },
     heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
+    label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     text: { fontSize: 16, color: theme.colors.text.primary, lineHeight: 24 },
     muted: { fontSize: 14, color: theme.colors.text.muted, lineHeight: 22 },
     error: { fontSize: 14, color: theme.colors.status.error.icon, lineHeight: 22 },

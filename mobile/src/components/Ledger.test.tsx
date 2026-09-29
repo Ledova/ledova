@@ -1,11 +1,93 @@
-import React from 'react';
-import { StyleSheet } from 'react-native';
-import { cleanup, fireEvent, render, renderHook } from '@testing-library/react-native';
+import React, { createRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { cleanup, fireEvent, render, renderHook, within } from '@testing-library/react-native';
 import { useAppTheme } from '../contexts';
-import { Choice, LinkRow, Row, Rows, SwitchRow } from './Ledger';
+import { Choice, Disclosure, LinkRow, Row, Rows, SwitchRow } from './Ledger';
 
 afterEach(async () => {
   await cleanup();
+});
+
+function Harness({ name = 'Synthetic entry', opened = false }: { name?: string; opened?: boolean }) {
+  const [open, setOpen] = useState(opened);
+  return (
+    <Disclosure open={open} onToggle={() => setOpen(!open)} summary={<Text>{name}</Text>}>
+      <Text>{`${name} detail`}</Text>
+    </Disclosure>
+  );
+}
+
+it('is a button marked collapsed that holds its detail only while open, directly under it', async () => {
+  const view = await render(<Harness />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const [button, detail] = toggle.parent!.children as (typeof toggle)[];
+  expect(button).toBe(toggle);
+  expect(toggle).toBeCollapsed();
+  expect(detail.children).toHaveLength(0);
+  expect(view.queryByText('Synthetic entry detail')).toBeNull();
+
+  await fireEvent.press(toggle);
+  expect(toggle).toBeExpanded();
+  expect(within(detail).getByText('Synthetic entry detail')).toBeTruthy();
+
+  await fireEvent.press(toggle);
+  expect(toggle).toBeCollapsed();
+  expect(view.queryByText('Synthetic entry detail')).toBeNull();
+});
+
+it('puts its caret on the first line of the summary and indents the open detail past it', async () => {
+  const view = await render(<Harness opened />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const [, detail] = toggle.parent!.children as (typeof toggle)[];
+  expect(toggle).toHaveStyle({ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 16 });
+  const [caret, summary] = toggle.children as (typeof toggle)[];
+  expect(summary).toBe(view.getByText('Synthetic entry').parent);
+  expect(caret).toHaveStyle({ height: 21, justifyContent: 'center' });
+  expect(detail).toHaveStyle({ paddingLeft: 28, paddingBottom: 16 });
+});
+
+it('pads its detail only while open, so a closed row adds no space under its button', async () => {
+  const view = await render(<Harness />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const [, detail] = toggle.parent!.children as (typeof toggle)[];
+  expect(detail).not.toHaveStyle({ paddingBottom: 16 });
+  expect(detail).not.toHaveStyle({ paddingLeft: 28 });
+  await fireEvent.press(toggle);
+  expect(detail).toHaveStyle({ paddingLeft: 28, paddingBottom: 16 });
+  await fireEvent.press(toggle);
+  expect(detail).not.toHaveStyle({ paddingBottom: 16 });
+  expect(detail).not.toHaveStyle({ paddingLeft: 28 });
+});
+
+it('turns its caret a quarter to point at the open detail, and back when it closes', async () => {
+  const view = await render(<Harness />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const caret = (toggle.children as (typeof toggle)[])[0];
+  expect(caret).not.toHaveStyle({ transform: [{ rotate: '90deg' }] });
+  await fireEvent.press(toggle);
+  expect(caret).toHaveStyle({ transform: [{ rotate: '90deg' }] });
+  await fireEvent.press(toggle);
+  expect(caret).not.toHaveStyle({ transform: [{ rotate: '90deg' }] });
+});
+
+it('opens each disclosure on its own and hands its button to a ref', async () => {
+  const ref = createRef<View>();
+  const view = await render(
+    <>
+      <Disclosure ref={ref} open onToggle={() => {}} accessibilityLabel="First entry" summary={<Text>One</Text>}>
+        <Text>First detail</Text>
+      </Disclosure>
+      <Harness name="Second entry" />
+    </>,
+  );
+  expect(view.getByRole('button', { name: 'First entry' })).toBeExpanded();
+  expect(view.getByText('First detail')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Second entry' })).toBeCollapsed();
+  expect(view.queryByText('Second entry detail')).toBeNull();
+  expect((ref.current as unknown as { props: Record<string, unknown> }).props).toMatchObject({
+    accessibilityRole: 'button',
+    accessibilityLabel: 'First entry',
+  });
 });
 
 it('draws a rule between rows only, never above the first or below the last', async () => {
