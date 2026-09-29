@@ -181,6 +181,16 @@ it('retains the confirmed preference when saving fails and allows retry', async 
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('describes the alerts switch with the sentence beside it', async () => {
+  show('settings');
+  expect(
+    await screen.findByRole('switch', {
+      name: 'Transaction alerts',
+      description: 'Notifications for transaction status changes.',
+    }),
+  ).toBeTruthy();
+});
+
 it('holds the switch while the preference is saving', async () => {
   let save!: () => void;
   api.post.mockReturnValueOnce(

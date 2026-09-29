@@ -473,12 +473,14 @@ A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible
 investors on Offerings. Its `aria-checked` is the saved value; it is disabled
 while a change is saving, keeps the saved value when the change is refused, and
-the refusal is an alert in the same card. A choice that is saved with a form
-stays a checkbox, as the payment choices in the offering editor and the
-declaration in a claim do. Mobile's `SwitchRow` puts the native switch at the
-end of the same row, named by the label with the sentence as its hint, for
+the refusal is an alert in the same card. On the web a choice that is saved
+with a form stays a checkbox, as the payment choices in the offering editor and
+the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+the end of the same row, named by the label with the sentence as its hint, for
 biometric sign-in, App lock and Transaction alerts on Settings and Show this
-company to eligible investors on Offerings.
+company to eligible investors on Offerings. The mobile offering editor's
+payment choices are not in that row yet: each is still a bare native switch
+under its own line of text.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
