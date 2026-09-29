@@ -16,7 +16,7 @@ export { useSubmissionOwner } from './useSubmissionOwner';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
 export { useDirectoryToken, useDirectoryTokens } from './useDirectory';
-export { useSignupUser } from './useSignupUser';
+export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { useEmailVerification } from './useEmailVerification';
 export { useSignupPreScreening } from './useSignupPreScreening';
 export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';

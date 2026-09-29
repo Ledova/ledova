@@ -56,12 +56,23 @@ it('checks the password before asking the server', async () => {
   expect(remember).not.toHaveBeenCalled();
 });
 
-it('marks what the server refused, says it, and logs the failure without its body', async () => {
+const PROXY_PAGE =
+  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
+
+it.each<[string, number, unknown, string, Record<string, string[]>]>([
+  ['a sentence', 409, 'Sign-up is closed for now.', 'Sign-up is closed for now.', {}],
+  [
+    'refusals for a field the form shows and one it does not',
+    400,
+    { email: ['A user with that email already exists.'], passwordConfirm: ['The passwords do not match.'] },
+    'The passwords do not match.',
+    { email: ['A user with that email already exists.'] },
+  ],
+  ['a proxy error page', 502, PROXY_PAGE, 'Failed to create account. Please try again.', {}],
+  ['an empty answer', 503, '', 'Failed to create account. Please try again.', {}],
+])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  api.post.mockRejectedValue({
-    response: { status: 400, data: { email: ['A user with that email already exists.'] } },
-    config: { method: 'post', url: '/api/signup/' },
-  });
+  api.post.mockRejectedValue({ response: { status, data }, config: { method: 'post', url: '/api/signup/' } });
   const remember = jest.fn();
   const moveOn = jest.fn();
   const { result } = renderHook(() => useSignupUser(remember), { wrapper });
@@ -69,9 +80,21 @@ it('marks what the server refused, says it, and logs the failure without its bod
 
   await act(() => result.current.handleSubmit(moveOn));
 
-  expect(result.current.errors).toEqual({ email: ['A user with that email already exists.'] });
-  expect(result.current.generalError).toBe('A user with that email already exists.');
-  expect(console.error).toHaveBeenCalledWith('Account creation failed: status=400 request=POST /api/signup/');
+  expect(result.current.generalError).toBe(shown);
+  expect(result.current.errors).toEqual(marked);
+  expect(console.error).toHaveBeenCalledWith(`Account creation failed: status=${status} request=POST /api/signup/`);
   expect(remember).not.toHaveBeenCalled();
   expect(moveOn).not.toHaveBeenCalled();
+});
+
+it('still says to check the connection when no answer came back', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.post.mockRejectedValue(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+  const { result } = renderHook(() => useSignupUser(jest.fn()), { wrapper });
+  fill(result, 'synthetic@example.test', 'long enough');
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe('Network error. Please check your connection.');
+  expect(result.current.errors).toEqual({});
 });

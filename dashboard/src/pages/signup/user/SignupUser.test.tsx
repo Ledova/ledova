@@ -2,7 +2,8 @@
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SIGNUP_USER_FIELDS } from '@ledova/shared';
 import { SignupUser } from './SignupUser';
 
 const hook = vi.hoisted(() => ({ state: {} as Record<string, unknown> }));
@@ -36,4 +37,32 @@ it('lists the password rules as marked lines under the field, not in a box, and 
   const length = screen.getByText('Be at least 8 characters long');
   expect(length.className).toContain('text-error-light');
   expect(length.previousElementSibling!.className).toContain('bg-error-light');
+});
+
+const A_MESSAGE: Record<string, string> = {
+  email: 'A user with that email already exists.',
+  password: 'This password is too common.',
+};
+
+describe('every field SIGNUP_USER_FIELDS names is one this page actually renders', () => {
+  it.each(SIGNUP_USER_FIELDS)('renders the error it is handed for %s', (field) => {
+    hook.state = {
+      form: { email: 'synthetic@example.test', password: 'long enough', passwordConfirm: 'long enough' },
+      errors: { [field]: [A_MESSAGE[field]] },
+      generalError: '',
+      isLoading: false,
+      showPassword: false,
+      passwordValidation: { isValid: true, lengthValid: true, notNumeric: true },
+      setFieldValue: vi.fn(),
+      togglePassword: vi.fn(),
+      handleSubmit: vi.fn(),
+    };
+    render(
+      <MemoryRouter>
+        <SignupUser />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(A_MESSAGE[field])).toBeDefined();
+  });
 });
