@@ -6,6 +6,7 @@ export { useOrderSubmissions } from './useOrderSubmissions';
 export type { OrderSubmissionSession } from './useOrderSubmissions';
 export { useOrderSubmissionSigning } from './useOrderSubmissionSigning';
 export { useCurrency } from './useCurrency';
+export { useFeatureFlags } from './useFeatureFlags';
 export { useFinancialProfile } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
 export { usePublicationSummary } from './usePublicationSummary';

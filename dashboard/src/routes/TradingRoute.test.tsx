@@ -3,18 +3,23 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, useFeatureFlags } from '@ledova/shared';
 
-import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { PageTitle } from '@components/PageTitle';
 import { TradingRoute } from './TradingRoute';
 
-vi.mock('@hooks/useFeatureFlags', () => ({ useFeatureFlags: vi.fn() }));
+vi.mock('@ledova/shared', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useFeatureFlags: vi.fn(),
+}));
 vi.mock('@hooks/useRole', () => ({ useRole: () => ({ role: 'investor' }) }));
 vi.mock('@pages/trading', () => ({ default: () => <p>The market</p> }));
 
-function openTrading(flags: { tradingEnabled: boolean; isLoading: boolean }) {
-  vi.mocked(useFeatureFlags).mockReturnValue(flags as ReturnType<typeof useFeatureFlags>);
+function openTrading({ tradingEnabled, isLoading }: { tradingEnabled: boolean; isLoading: boolean }) {
+  vi.mocked(useFeatureFlags).mockReturnValue({
+    isEnabled: (name: string) => name === 'trading_enabled' && tradingEnabled,
+    isLoading,
+  } as unknown as ReturnType<typeof useFeatureFlags>);
   render(
     <MemoryRouter initialEntries={[DESTINATIONS.trading.path]}>
       <Routes>
