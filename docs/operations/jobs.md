@@ -40,7 +40,9 @@ delete, and a file it failed to delete is tried again on the next run.
 
 To see what it would delete now, run
 `python manage.py sweep_orphaned_files --dry-run` from `backend/`. The command
-runs the same sweep, prints each file it would delete and deletes nothing.
+runs the same sweep, prints each file it would delete and deletes nothing. What
+it prints matches what the job would delete only when the command runs with the
+worker's environment: the same database roles, `STORAGE_BACKEND` and bucket.
 Without `--dry-run` it runs the sweep immediately.
 
 For interrupted work, use [recovery and reconciliation](recovery.md).
