@@ -36,6 +36,7 @@ const state = vi.hoisted(() => ({
 }));
 vi.mock('@components/Modal', () => ({
   Modal: ({ isOpen, children }: { isOpen: boolean; children: ReactNode }) => (isOpen ? <div>{children}</div> : null),
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock('@components/SeedPhraseInput', () => ({
   SeedPhraseInput: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (

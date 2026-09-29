@@ -9,7 +9,8 @@ import {
   type ShareToken,
   formatWalletAddressShort,
 } from '@ledova/shared';
-import { Modal } from '@components/Modal';
+import { Modal, ModalActions } from '@components/Modal';
+import { PageAction } from '@components/Page';
 import { marketAmount } from '../marketData';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRScannerView, useQRScanner } from '@components/qr';
@@ -73,11 +74,9 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
       return signEthereumTypedData(phrase, wallet.derivationPath, message.domain, message.types, message.message);
     });
   };
-  const button =
-    'rounded-lg bg-brand-mid px-4 py-3 font-medium text-white disabled:bg-surface-disabled disabled:text-text-secondary';
   return (
     <Modal isOpen onClose={close} title={state.recovered ? 'Check saved order' : 'Review order'} size="md">
-      <div className="space-y-4">
+      <div className="space-y-4 text-sm text-text-primary">
         {state.phase === 'preparing' && <p>Checking order and preparing signing details...</p>}
         {state.phase === 'signing' && <p>Signing this order...</p>}
         {state.phase === 'submitting' && (
@@ -85,7 +84,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
         )}
         {state.phase === 'ready' && (
           <>
-            <div className="rounded-lg bg-surface-tertiary p-4 space-y-2">
+            <div className="space-y-1">
               <p>Token: {token ? `${token.symbol} — ${token.name}` : state.snapshot?.intent.token}</p>
               <p>Wallet: {formatWalletAddressShort(state.snapshot?.intent.walletAddress ?? '')}</p>
               <p>
@@ -100,53 +99,25 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
                 check.
               </p>
             )}
-            {view.error && <p role="alert">{view.error}</p>}
-            {view.step === 'instructions' && (
-              <button
-                className={button}
-                disabled={!signing.walletReady}
-                onClick={software ? signing.showSoftware : signing.showQr}
-              >
-                Continue to sign
-              </button>
+            {view.error && (
+              <p role="alert" className="text-error-light">
+                {view.error}
+              </p>
             )}
-            {view.step === 'software' && (
-              <>
-                <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />
-                <button className={button} disabled={!seedPhrase.trim() || !wallet?.derivationPath} onClick={sign}>
-                  Sign order
-                </button>
-              </>
-            )}
+            {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
             {view.step === 'show-qr' && view.qrData && (
-              <>
-                <div className="flex justify-center bg-white p-4">
-                  <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
-                </div>
-                <button className={button} onClick={signing.scan}>
-                  I&apos;ve signed it
-                </button>
-              </>
+              <div className="flex justify-center py-2">
+                <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
+              </div>
             )}
             {view.step === 'scan-signature' && (
               <QRScannerView scannerId="create-order-signature" error={scannerError} />
             )}
-            {view.step !== 'instructions' && (
-              <button
-                className={button}
-                onClick={() => {
-                  setSeedPhrase('');
-                  signing.back();
-                }}
-              >
-                Back
-              </button>
-            )}
           </>
         )}
         {state.phase === 'created' && state.snapshot?.order && (
-          <div role="status" className="space-y-2">
-            <h3>{state.recovered ? 'Order recovered' : 'Order created'}</h3>
+          <div role="status" className="space-y-1">
+            <h3 className="font-medium">{state.recovered ? 'Order recovered' : 'Order created'}</h3>
             <p>
               Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replace(/_/g, ' ')}
             </p>
@@ -157,29 +128,57 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
           </div>
         )}
         {state.phase === 'refused' && (
-          <div role="status">
-            <h3>Order declined</h3>
+          <div role="status" className="space-y-1">
+            <h3 className="font-medium">Order declined</h3>
             <p>{state.snapshot?.refusal?.detail}</p>
             <p>A new order requires a new review and signature.</p>
           </div>
         )}
         {state.phase === 'error' && (
-          <div role="alert" className="space-y-3">
-            <h3>Order status unconfirmed</h3>
+          <div role="alert" className="space-y-1">
+            <h3 className="font-medium">Order status unconfirmed</h3>
             <p>{state.error}</p>
             <p>
               This order remains saved. Check its status before signing again. An unavailable result does not start a
               replacement order.
             </p>
-            <button className={button} onClick={() => void submission.recover()}>
-              Check order status
-            </button>
           </div>
         )}
         {state.notice && <p>{state.notice}</p>}
-        <button className="rounded-lg bg-surface-tertiary px-4 py-3" onClick={close}>
-          {['created', 'refused'].includes(state.phase) ? 'Done' : 'Close'}
-        </button>
+        <ModalActions>
+          <PageAction label={['created', 'refused'].includes(state.phase) ? 'Done' : 'Close'} onClick={close} />
+          {state.phase === 'ready' && view.step !== 'instructions' && (
+            <PageAction
+              label="Back"
+              onClick={() => {
+                setSeedPhrase('');
+                signing.back();
+              }}
+            />
+          )}
+          {state.phase === 'ready' && view.step === 'instructions' && (
+            <PageAction
+              label="Continue to sign"
+              primary
+              disabled={!signing.walletReady}
+              onClick={software ? signing.showSoftware : signing.showQr}
+            />
+          )}
+          {state.phase === 'ready' && view.step === 'software' && (
+            <PageAction
+              label="Sign order"
+              primary
+              disabled={!seedPhrase.trim() || !wallet?.derivationPath}
+              onClick={sign}
+            />
+          )}
+          {state.phase === 'ready' && view.step === 'show-qr' && view.qrData && (
+            <PageAction label="I've signed it" primary onClick={signing.scan} />
+          )}
+          {state.phase === 'error' && (
+            <PageAction label="Check order status" primary onClick={() => void submission.recover()} />
+          )}
+        </ModalActions>
       </div>
     </Modal>
   );

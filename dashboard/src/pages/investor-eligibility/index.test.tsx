@@ -222,6 +222,39 @@ it.each(['eligibility', 'claims'])('retains an open claim through a failed %s re
   expect(payload.get('certifier_membership_number')).toBe('TEST-123');
 });
 
+it('keeps a claim that is being submitted open on Escape and closes it once it is saved', async () => {
+  let saved!: (value: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        saved = resolve;
+      }),
+  );
+  renderPage();
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
+  const dialog = await screen.findByRole('dialog');
+  const dropZone = within(dialog)
+    .getByText('Drag and drop your evidence or choose a file.')
+    .closest('div.border-dashed')!;
+  expect(dropZone.className).toContain('hover:bg-surface-tertiary');
+  expect(dropZone.className).not.toContain('bg-surface-hover');
+  fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), { target: { value: 'My evidence' } });
+  fireEvent.change(within(dialog).getByLabelText('Evidence file'), {
+    target: { files: [new File(['test'], 'proof.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(within(dialog).getByRole('checkbox'));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Submit for review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  expect((within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+  await act(async () => {});
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect((within(dialog).getByLabelText('Basis for the claim') as HTMLTextAreaElement).value).toBe('My evidence');
+  expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
+  await act(async () => saved({ data: claim({ status: 'submitted', isLive: false }) }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
 it('retains evidence but blocks a claim when a refresh discovers another pending claim', async () => {
   renderPage();
   fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
