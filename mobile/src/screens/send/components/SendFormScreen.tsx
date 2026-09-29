@@ -95,7 +95,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
         navigation.navigate('Wallets', {
           screen: 'TransferDetails',
           initial: false,
-          params: { wallet: selected },
+          params: { wallet: selected, chosen: true },
         });
         return;
       }

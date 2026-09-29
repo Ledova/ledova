@@ -43,7 +43,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
       gap: theme.spacing.sm,
     },
   }));
-  const { wallet: routeWallet } = route.params;
+  const { wallet: routeWallet, chosen = false } = route.params;
   const [showAddressScanner, setShowAddressScanner] = useState(false);
   const [showSignatureScanner, setShowSignatureScanner] = useState(false);
   const [softwareSignTrigger, setSoftwareSignTrigger] = useState(0);
@@ -269,12 +269,15 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
     if (step === 'enter-details') {
       return (
-        <Action
-          label={isPreparing ? 'Loading...' : 'Continue'}
-          primary
-          disabled={!canSubmit}
-          onPress={submitTransfer}
-        />
+        <>
+          <Action label={chosen ? 'Back' : 'Cancel'} onPress={() => navigation.goBack()} />
+          <Action
+            label={isPreparing ? 'Loading...' : 'Continue'}
+            primary
+            disabled={!canSubmit}
+            onPress={submitTransfer}
+          />
+        </>
       );
     }
 

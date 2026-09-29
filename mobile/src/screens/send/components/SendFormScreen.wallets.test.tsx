@@ -278,3 +278,17 @@ it("waits while the account's preferences are read, rather than saying the walle
   expect(view.queryByRole('alert')).toBeNull();
   expect(get).not.toHaveBeenCalled();
 });
+
+it('opens a Bitcoin wallet chosen from the choice in its own send form, marked as chosen so it offers Back', async () => {
+  const cold = { ...wallet('4', 'Cold storage'), chain: 'bitcoin', address: `tb1q${'4'.repeat(38)}` };
+  get.mockResolvedValue({
+    data: { results: [wallet('1', 'Base wallet'), cold], count: 2, next: null, previous: null },
+  });
+  const view = await show();
+
+  await fireEvent.press(await view.findByRole('button', { name: /Cold storage/ }));
+
+  expect(mockNavigate.mock.calls).toEqual([
+    ['Wallets', { screen: 'TransferDetails', initial: false, params: { wallet: cold, chosen: true } }],
+  ]);
+});
