@@ -1,6 +1,6 @@
 import { Children, Fragment, isValidElement, type ReactElement, type ReactNode, type Ref } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
-import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
+import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
 
 const CARET_SIZE = 16;
@@ -144,10 +144,10 @@ export function Disclosure({
       paddingVertical: theme.spacing.md,
     },
     caret: { height: 21, justifyContent: 'center' as const },
+    turned: { transform: [{ rotate: '90deg' }] },
     summary: { flex: 1 },
     detail: { paddingLeft: CARET_SIZE + theme.spacing.smd, paddingBottom: theme.spacing.md },
   }));
-  const Caret = open ? CaretDownIcon : CaretRightIcon;
   return (
     <View>
       <Pressable
@@ -158,8 +158,8 @@ export function Disclosure({
         onPress={onToggle}
         style={styles.toggle}
       >
-        <View style={styles.caret}>
-          <Caret size={CARET_SIZE} color={theme.colors.text.muted} />
+        <View style={[styles.caret, open && styles.turned]}>
+          <CaretRightIcon size={CARET_SIZE} color={theme.colors.text.muted} />
         </View>
         <View style={styles.summary}>{summary}</View>
       </Pressable>

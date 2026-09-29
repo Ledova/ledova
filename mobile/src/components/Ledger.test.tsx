@@ -47,6 +47,17 @@ it('announces its detail as it opens, with the caret on the first line and the d
   expect(detail).toHaveStyle({ paddingLeft: 28, paddingBottom: 16 });
 });
 
+it('turns its caret a quarter to point at the open detail, and back when it closes', async () => {
+  const view = await render(<Harness />);
+  const toggle = view.getByRole('button', { name: 'Synthetic entry' });
+  const caret = (toggle.children as (typeof toggle)[])[0];
+  expect(caret).not.toHaveStyle({ transform: [{ rotate: '90deg' }] });
+  await fireEvent.press(toggle);
+  expect(caret).toHaveStyle({ transform: [{ rotate: '90deg' }] });
+  await fireEvent.press(toggle);
+  expect(caret).not.toHaveStyle({ transform: [{ rotate: '90deg' }] });
+});
+
 it('opens each disclosure on its own and hands its button to a ref', async () => {
   const ref = createRef<View>();
   const view = await render(
