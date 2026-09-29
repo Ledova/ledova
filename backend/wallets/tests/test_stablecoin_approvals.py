@@ -10,7 +10,8 @@ from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment, AssetType
-from shared.constants import BLOCKCHAIN_BASE
+from operators.models import Operator
+from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.db import MIGRATE_ALIAS, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
@@ -31,6 +32,7 @@ from whitelist.models import WhitelistApproval, WhitelistEntry, WhitelistStatus
 from whitelist.tests.change_fixtures import REGISTRY, change_company
 
 OTHER_TOKEN_CONTRACT = Web3.to_checksum_address("0x" + "6b" * 20)
+OPERATOR_RECEIVING = Web3.to_checksum_address("0x" + "9c" * 20)
 SINGLE_CONNECTION = settings.RLS_AMBIENT_ALIAS == MIGRATE_ALIAS
 NOT_SINGLE_CONNECTION = (
     "this class measures the rule on the ordinary suite's shared connection; under the scoped alias the "
@@ -123,8 +125,14 @@ class StablecoinApprovalChecks:
             f"/api/wallets/{self.wallet.uuid}/broadcast-transfer/", {"signed_transaction": signed}, format="json"
         )
 
-    def payment(self, contract=None):
-        return sign(to=contract or self.contract, data=erc20_transfer_data(RECIPIENT, 500))
+    def payment(self, contract=None, to=RECIPIENT):
+        return sign(to=contract or self.contract, data=erc20_transfer_data(to, 500))
+
+    def receive_at(self, address, chain=BLOCKCHAIN_BASE):
+        with use_operator():
+            Operator.objects.filter(pk=Operator.get().pk).update(
+                receiving_wallet_address=address, receiving_wallet_chain=chain
+            )
 
     def refused(self, response, message):
         self.assertEqual(
@@ -260,6 +268,48 @@ class StablecoinApprovalChecks:
         self.assertEqual(again.json()["txHash"], first.json()["txHash"])
         with use_operator():
             self.assertEqual(WalletSubmission.objects.filter(wallet=self.wallet).count(), 1)
+
+    def test_an_investor_with_no_approval_can_pay_the_operator_receiving_wallet_at_prepare_and_at_submission(self):
+        self.receive_at(OPERATOR_RECEIVING)
+
+        prepared = self.prepare(to=OPERATOR_RECEIVING)
+        paid = self.broadcast(self.payment(to=OPERATOR_RECEIVING))
+
+        self.assertEqual((prepared.status_code, paid.status_code), (200, 200), (prepared.content, paid.content))
+        self.provider.broadcast_transaction.assert_called_once()
+        with use_operator():
+            self.assertEqual(Transaction.objects.get(wallet=self.wallet).to_address, OPERATOR_RECEIVING)
+
+    def test_every_other_unapproved_recipient_is_still_refused_on_both_sides(self):
+        self.receive_at(OPERATOR_RECEIVING)
+
+        self.refused(self.prepare(), SENDER_NOT_APPROVED)
+        self.refused(self.broadcast(self.payment()), SENDER_NOT_APPROVED)
+        self.approve(self.wallet)
+        self.refused(self.prepare(), RECIPIENT_NOT_APPROVED)
+        self.refused(self.broadcast(self.payment()), RECIPIENT_NOT_APPROVED)
+        self.nothing_recorded_or_sent()
+
+    def test_a_receiving_wallet_on_another_chain_or_unset_exempts_nothing(self):
+        for name, configured in (
+            ("another chain", (OPERATOR_RECEIVING, BLOCKCHAIN_ETHEREUM)),
+            ("unset", ("", BLOCKCHAIN_BASE)),
+        ):
+            with self.subTest(receiving_wallet=name):
+                self.receive_at(*configured)
+
+                self.refused(self.prepare(to=OPERATOR_RECEIVING), SENDER_NOT_APPROVED)
+                self.refused(self.broadcast(self.payment(to=OPERATOR_RECEIVING)), SENDER_NOT_APPROVED)
+        self.nothing_recorded_or_sent()
+
+    def test_a_recipient_written_in_another_case_still_matches_the_receiving_wallet(self):
+        self.receive_at(OPERATOR_RECEIVING.lower())
+
+        for recipient in (OPERATOR_RECEIVING, "0x" + OPERATOR_RECEIVING[2:].upper()):
+            with self.subTest(recipient=recipient):
+                self.assertEqual(self.prepare(to=recipient).status_code, 200)
+        paid = self.broadcast(self.payment(to=OPERATOR_RECEIVING))
+        self.assertEqual(paid.status_code, 200, paid.content)
 
     def test_native_coins_and_other_tokens_move_without_any_approval(self):
         self.other_token()

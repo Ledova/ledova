@@ -179,6 +179,7 @@ def _submission_plan(wallet, raw, decoded, tx_hash, declared_contract):
     if plan.token_contract:
         transaction_confirmation.require_stablecoin_approvals(
             transaction_confirmation.resolve_transfer_asset(wallet, plan.token_contract),
+            wallet.chain,
             wallet.address,
             plan.to_address,
         )

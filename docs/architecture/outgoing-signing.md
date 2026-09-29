@@ -325,8 +325,11 @@ Wallets > Send has no company registry to ask, so
 instead that the sending wallet and the recipient each hold a live stored
 approval for at least one company: when the transfer is prepared, and again when
 the signed transfer is submitted, before the submission is recorded or
-broadcast. The refusal is 403 `stablecoin_approval_required` and says which side
-lacks an approval. The recipient's wallet belongs to another account, so the
+broadcast. A transfer to the operator's receiving wallet, on the chain it is
+configured for, is exempt on both sides, because the stablecoin payment
+instruction names it and nothing approves it; an unset receiving wallet, or one
+on another chain, exempts nothing. The refusal is 403
+`stablecoin_approval_required` and says which side lacks an approval. The recipient's wallet belongs to another account, so the
 lookup runs on the operator connection and answers only yes or no. A submission
 already recorded is not checked again: a repeated request and the recovery sweep
 re-send the bytes the check admitted. `GET /api/v1/trading/whitelist/<token>/<address>/status/`

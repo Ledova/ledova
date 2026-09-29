@@ -51,9 +51,12 @@ each hold a live approval with at least one company. The message says which
 side lacks one. This is the
 [company-scoped approvals](../decisions.md#company-scoped-approvals) rule the
 retired trading transfer route used to enforce; Wallets > Send, where the
-clients send, never did. Native coins and other tokens are unaffected, and a
-submission recorded before the upgrade is still delivered. No database
-migration is needed.
+clients send, never did. A transfer to the operator's receiving wallet, on the
+chain it is configured for, is exempt on both sides, so an investor can pay a
+subscription to the address its payment instruction names without an approval;
+an unset receiving wallet, or one on another chain, exempts nothing. Native
+coins and other tokens are unaffected, and a submission recorded before the
+upgrade is still delivered. No database migration is needed.
 
 ## The publication summary's 30-day count
 

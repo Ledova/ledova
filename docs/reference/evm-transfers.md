@@ -15,7 +15,8 @@ rows, are refused before broadcast. The submission entry point requires the
 requesting user's ownership of the wallet and an outermost transaction boundary so
 that no caller can roll back the record after sending. A stablecoin transfer is
 also refused, before a journal or send RPC, unless the sending wallet and the
-recipient each hold a live approval with at least one company; see
+recipient each hold a live approval with at least one company or the recipient
+is the operator's receiving wallet on its configured chain; see
 [whitelist changes](../architecture/outgoing-signing.md#whitelist-changes). A
 retry of recorded bytes is not checked again.
 
