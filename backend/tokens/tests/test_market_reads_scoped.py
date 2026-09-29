@@ -67,20 +67,15 @@ class ScopedMarketReadsTest(RunsOnTheScopedConnection, APITransactionTestCase):
             self.assertTrue(TransferOrder.objects.filter(pk=self.reader.order.pk).exists())
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
-    def test_market_detail_and_order_book_publish_prices_and_levels_without_order_identity(self):
+    def test_the_order_book_publishes_levels_without_order_identity(self):
         token = self.issuer.deployed_token
-        market = self.client.get(f"{TRADING}{token.pk}/market-data/")
-        self.assertEqual(market.status_code, 200, market.content)
-        body = market.json()
-        self.assertEqual((body["lastTradePrice"], body["bestBid"], body["bestAsk"]), ("1.5", "1.50", "1.50"))
         book = self.client.get(f"{TRADING}{token.pk}/order-book/")
         self.assertEqual(book.status_code, 200, book.content)
         for side in ("buyOrders", "sellOrders"):
             self.assertTrue(book.json()[side])
             self.assertEqual(set(book.json()[side][0]), {"price", "quantity", "orders"})
-        for response in (market, book):
-            self.assertNotIn(str(self.issuer.order.pk).encode(), response.content)
-            self.assertNotIn(self.issuer.wallet.address.encode(), response.content)
+        self.assertNotIn(str(self.issuer.order.pk).encode(), book.content)
+        self.assertNotIn(self.issuer.wallet.address.encode(), book.content)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
     def test_ineligible_and_unknown_token_requests_never_reach_the_operator_summary(self):

@@ -33,7 +33,7 @@ it('removes an existing bearer header when the stored session is absent', async 
 
 it('sends a bearer token to a relative API route and its same-origin authenticated download', async () => {
   await apiClient.get('/api/v1/wallets/');
-  await apiClient.get('https://api.example.test/api/v1/documents/synthetic/file/');
+  await apiClient.get('https://api.example.test/api/v1/companies/synthetic/documents/synthetic/file/');
   expect(adapter).toHaveBeenCalledTimes(2);
   expect(adapter.mock.calls[0][0].headers.Authorization).toBe('Bearer synthetic-access');
 });

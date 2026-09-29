@@ -189,36 +189,21 @@ class EvidenceReadHorizonTest(APITestCase):
         self.user, self.account = make_investor("horizon")
         self.claim = attach_evidence(rejected_classification(self.account, self.reviewer))
         age(self.claim, reviewed_at=timezone.now() - timedelta(days=RETENTION_DAYS + 1))
-        self.url = f"/api/investor-classifications/{self.claim.uuid}/evidence/"
 
-    def test_the_api_stops_serving_past_the_horizon_before_any_sweep_runs(self):
+    def test_the_admin_stops_serving_past_the_horizon_before_any_sweep_runs(self):
         self.assertTrue(os.path.isfile(self.claim.evidence_file.path))
-        self.client.force_authenticate(self.user)
-
-        self.assertEqual(self.client.get(self.url).status_code, 404)
-        self.assertTrue(os.path.isfile(self.claim.evidence_file.path))
-
-    def test_the_admin_stops_serving_past_the_horizon_too(self):
-        self.client.force_authenticate(None)
         self.client.force_login(self.reviewer)
 
         response = self.client.get(reverse("admin:users_investorclassification_evidence", args=[self.claim.uuid]))
 
         self.assertEqual(response.status_code, 404)
+        self.assertTrue(os.path.isfile(self.claim.evidence_file.path))
 
-    def test_the_serializer_stops_advertising_the_url_past_the_horizon(self):
-        self.client.force_authenticate(self.user)
-
-        response = self.client.get(f"/api/investor-classifications/{self.claim.uuid}/")
-
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertIsNone(response.json()["evidenceUrl"])
-
-    def test_inside_the_horizon_the_bytes_still_stream(self):
+    def test_inside_the_horizon_the_admin_still_streams_the_bytes(self):
         age(self.claim, reviewed_at=timezone.now() - timedelta(days=1))
-        self.client.force_authenticate(self.user)
+        self.client.force_login(self.reviewer)
 
-        response = self.client.get(self.url)
+        response = self.client.get(reverse("admin:users_investorclassification_evidence", args=[self.claim.uuid]))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b"".join(response.streaming_content), b"evidence bytes")

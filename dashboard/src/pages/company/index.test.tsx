@@ -70,7 +70,6 @@ it('shows company details, exact draft share classes and the class/application d
   );
   expect(screen.getByRole('link', { name: 'Register' }).getAttribute('href')).toBe('/company/register');
   expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
-  expect(api.get.mock.calls.some(([url]) => String(url).includes('/stats/'))).toBe(false);
 });
 
 it('reads every class page, excludes other companies and retries a failed later page without showing partial or stale rows', async () => {

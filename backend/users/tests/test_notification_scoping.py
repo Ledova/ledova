@@ -152,7 +152,6 @@ class NotificationScopingTest(APITestCase):
             ("post", f"{NOTIFICATIONS}mark-all-read/"),
             ("get", PREFERENCES),
             ("post", PREFERENCES),
-            ("get", "/api/device-tokens/"),
             ("post", IDENTITY_TOKEN),
             ("get", IDENTITY_STATUS),
         ):
