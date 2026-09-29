@@ -98,9 +98,7 @@ export function AddWalletModal({
   });
 
   useEffect(() => {
-    if (visible) {
-      form.reset();
-    }
+    form.reset();
   }, [visible]);
 
   const handleClose = () => {
