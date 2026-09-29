@@ -1,11 +1,13 @@
 import { WalletNetworkSelector } from './WalletNetworkSelector';
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { WalletIcon, CheckIcon } from 'phosphor-react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { CheckIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { PrimaryButton, SecondaryButton } from '../../../components/buttons';
+import { Action, Rows } from '../../../components/Ledger';
+import { ModalActions, useDialogStyles } from '../../../components/modal';
 import type { DerivedAddress } from '@ledova/shared';
 import { getBlockchainDisplayName, importAddressKey } from '@ledova/shared';
+import { useAccountRowStyles } from './HardwareAccountSelector';
 
 interface SeedAccountSelectorProps {
   disabled?: boolean;
@@ -31,102 +33,16 @@ export function SeedAccountSelector({
   onBack,
 }: SeedAccountSelectorProps) {
   const theme = useAppTheme();
+  const text = useDialogStyles();
+  const row = useAccountRowStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
-      flex: 1,
-    },
-    heroSection: {
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-      paddingBottom: theme.spacing.lg,
-    },
-    heroSubtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-    },
-    scrollView: {
-      flex: 1,
-    },
-    accountItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      padding: theme.spacing.sm,
-      marginBottom: theme.spacing.sm,
-    },
-    accountItemSelected: {
-      borderColor: theme.colors.interactive.selected.border,
-      backgroundColor: theme.colors.interactive.selected.background,
-    },
-    checkbox: {
-      width: theme.spacing.lg,
-      height: theme.spacing.lg,
-      borderRadius: theme.borderRadius.sm,
-      borderWidth: 2,
-      borderColor: theme.colors.border.strong,
-      marginRight: theme.spacing.md,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    checkboxSelected: {
-      backgroundColor: theme.colors.interactive.default,
-      borderColor: theme.colors.interactive.default,
-    },
-    accountInfo: {
-      flex: 1,
-    },
-    accountHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: theme.spacing.xs,
-    },
-    networkName: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    accountBalance: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
-    accountAddress: {
-      fontSize: theme.fontSize.xs,
-      fontFamily: 'monospace',
-      color: theme.colors.text.muted,
-    },
-    errorText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.text,
-      marginTop: theme.spacing.sm,
-    },
-    actions: {
-      flexDirection: 'row',
       gap: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.default,
-    },
-    actionButton: {
-      flex: 1,
     },
   }));
   return (
     <View style={styles.container}>
-      <View style={styles.heroSection}>
-        <WalletIcon
-          size={theme.icon.sizes.xxl}
-          color={theme.colors.status.info.icon}
-          weight={theme.icon.weights.light}
-        />
-        <Text style={styles.heroSubtitle}>Choose which accounts to add to your wallet</Text>
-      </View>
+      <Text style={text.muted}>Choose which accounts to add to your wallet</Text>
 
       <WalletNetworkSelector
         evmOnly
@@ -136,7 +52,7 @@ export function SeedAccountSelector({
         }
         onChange={onNetworkChange}
       />
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+      <Rows>
         {addresses.map((addr) => {
           const isSelected = selectedAddresses.has(importAddressKey(addr));
           const balance = balances.get(importAddressKey(addr)) || 'Loading...';
@@ -145,43 +61,37 @@ export function SeedAccountSelector({
           return (
             <TouchableOpacity
               key={importAddressKey(addr)}
-              style={[styles.accountItem, isSelected && styles.accountItemSelected]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              style={row.item}
               disabled={disabled}
               onPress={() => onToggleAddress(importAddressKey(addr))}
             >
-              <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+              <View style={[row.checkbox, isSelected && row.checkboxSelected]}>
                 {isSelected && (
                   <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />
                 )}
               </View>
-              <View style={styles.accountInfo}>
-                <View style={styles.accountHeader}>
-                  <Text style={styles.networkName}>{networkName}</Text>
-                  <Text style={styles.accountBalance}>{balance}</Text>
+              <View style={row.info}>
+                <View style={row.header}>
+                  <Text style={row.network}>{networkName}</Text>
+                  <Text style={row.balance}>{balance}</Text>
                 </View>
-                <Text style={styles.accountAddress}>
+                <Text style={row.address}>
                   {addr.address.slice(0, 10)}...{addr.address.slice(-8)}
                 </Text>
               </View>
             </TouchableOpacity>
           );
         })}
+      </Rows>
 
-        {storeError && <Text style={styles.errorText}>{storeError}</Text>}
-      </ScrollView>
+      {storeError && <Text style={text.error}>{storeError}</Text>}
 
-      <View style={styles.actions}>
-        <SecondaryButton onPress={onBack} style={styles.actionButton}>
-          Back
-        </SecondaryButton>
-        <PrimaryButton
-          onPress={onConfirm}
-          disabled={disabled || selectedAddresses.size === 0}
-          style={styles.actionButton}
-        >
-          Create Wallet
-        </PrimaryButton>
-      </View>
+      <ModalActions>
+        <Action label="Back" onPress={onBack} />
+        <Action label="Create Wallet" primary disabled={disabled || selectedAddresses.size === 0} onPress={onConfirm} />
+      </ModalActions>
     </View>
   );
 }

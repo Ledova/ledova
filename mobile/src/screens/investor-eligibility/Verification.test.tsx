@@ -312,6 +312,10 @@ it('requires the complete accountant certificate and sends its fields with the e
   await fireEvent.changeText(view.getByLabelText('Accountant name'), 'Fictional Accountant');
   await fireEvent.changeText(view.getByLabelText('Membership number'), 'EXAMPLE-123');
   await fireEvent.press(view.getByText('CPA Australia'));
+  const body = view.getByRole('radio', { name: 'CPA Australia', checked: true });
+  expect(body).toHaveStyle({ alignSelf: 'flex-start' });
+  expect(body.props.style).not.toHaveProperty('backgroundColor');
+  expect(view.getByRole('radio', { name: 'Chartered Accountants ANZ', checked: false })).toBeTruthy();
   expect(view.getByRole('button', { name: 'Submit for review' })).toBeEnabled();
   post.mockResolvedValueOnce({ data: claim('new', 'submitted') });
   await fireEvent.press(view.getByText('Submit for review'));

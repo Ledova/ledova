@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode, useCurrency } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { Section, Row, Action, Lede } from '../../components/Ledger';
+import { Section, Row, Rows, Action, Lede } from '../../components/Ledger';
 import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
@@ -74,17 +74,19 @@ export function WalletsScreen() {
                       wallets.map((wallet, index) => (
                         <View key={wallet.uuid} style={[styles.item, index === wallets.length - 1 && styles.lastItem]}>
                           <Text style={styles.name}>{wallet.name || 'Unnamed wallet'}</Text>
-                          <Row label="Address">{wallet.address}</Row>
-                          <Row label="Balance">
-                            {walletBalance(wallet.nativeBalance)}{' '}
-                            {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
-                          </Row>
-                          <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
-                          <Row label="Verification">
-                            {wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED
-                              ? 'Address verified'
-                              : 'Pending'}
-                          </Row>
+                          <Rows>
+                            <Row label="Address">{wallet.address}</Row>
+                            <Row label="Balance">
+                              {walletBalance(wallet.nativeBalance)}{' '}
+                              {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+                            </Row>
+                            <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
+                            <Row label="Verification">
+                              {wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED
+                                ? 'Address verified'
+                                : 'Pending'}
+                            </Row>
+                          </Rows>
                           <Action
                             label="Open wallet"
                             accessibilityLabel={`Open wallet ${wallet.name || wallet.address}`}

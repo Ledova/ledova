@@ -1,15 +1,17 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { DESIGN_TOKENS } from '@ledova/shared';
 
 const THEME = {
   ...DESIGN_TOKENS,
+  spacing: { ...DESIGN_TOKENS.spacing, smd: 12 },
   fontFamily: {
     display: 'Newsreader_500Medium',
     regular: 'InstrumentSans_400Regular',
     medium: 'InstrumentSans_500Medium',
     semibold: 'InstrumentSans_600SemiBold',
     bold: 'InstrumentSans_700Bold',
+    mono: Platform.select({ ios: 'ui-monospace', default: 'monospace' }),
   },
 } as const;
 

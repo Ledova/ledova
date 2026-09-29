@@ -12,7 +12,7 @@ import {
   REGISTER_COPY,
 } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import { Section, Row, Action, Lede } from '../../components/Ledger';
+import { Section, Row, Rows, Action, Lede } from '../../components/Ledger';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { ClassRegister } from '../company-register/ClassRegister';
 import { useCompanyStyles } from '../company-register/styles';
@@ -206,7 +206,7 @@ function ShareClass({ uuid }: { uuid: string }) {
           {token.companyName} · {token.symbol}
         </Lede>
         <Section title="Class details">
-          <View>
+          <Rows>
             <Row label="Class state">{token.statusDisplay}</Row>
             <Row label="Share type">{token.tokenTypeDisplay}</Row>
             <Row label="Authorised shares">{formatShareCount(token.totalSupply)}</Row>
@@ -223,7 +223,7 @@ function ShareClass({ uuid }: { uuid: string }) {
             <Row label="Divisible">{token.isDivisible ? 'Yes' : 'No'}</Row>
             <Row label="Decimals">{token.decimals}</Row>
             {token.deployedAt && <Row label="Deployed">{formatDate(token.deployedAt)}</Row>}
-          </View>
+          </Rows>
           {token.contractAddress && (
             <>
               <Text selectable style={styles.text}>

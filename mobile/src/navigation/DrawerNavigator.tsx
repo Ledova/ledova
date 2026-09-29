@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, ScrollView, Pressable } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HouseIcon,
   WalletIcon,
   UserIcon,
   GearIcon,
-  QuestionIcon,
-  SignOutIcon,
   LinkIcon,
   CertificateIcon,
   BuildingsIcon,
@@ -35,6 +34,7 @@ import { SettingsScreen } from '../screens/settings';
 import { DrawerProvider, useDrawer } from './DrawerContext';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
+import { useUserProfile } from '../screens/user-profile/useUserProfile';
 import type { ComponentType } from 'react';
 
 export type DrawerParamList = {
@@ -49,7 +49,7 @@ interface MenuItem {
   label: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon: ComponentType<any>;
-  action: 'tab' | 'screen' | 'logout';
+  action: 'tab' | 'screen';
   target?: string;
 }
 
@@ -81,8 +81,6 @@ const SECONDARY_ITEMS: MenuItem[] = [
   { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
   { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
   { label: 'Settings', icon: GearIcon, action: 'screen', target: 'Settings' },
-  { label: 'Help & Support', icon: QuestionIcon, action: 'screen', target: 'Help' },
-  { label: 'Logout', icon: SignOutIcon, action: 'logout' },
 ];
 
 function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
@@ -92,6 +90,41 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       flex: 1,
       paddingTop: 50,
       backgroundColor: theme.colors.surface.base,
+    },
+    destinations: {
+      flex: 1,
+    },
+    help: {
+      alignSelf: 'flex-start',
+      marginTop: 12,
+      marginHorizontal: 28,
+      paddingVertical: 10,
+    },
+    helpText: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.sm,
+      color: theme.colors.text.muted,
+    },
+    foot: {
+      gap: 2,
+      paddingHorizontal: 28,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.default,
+    },
+    person: {
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.primary,
+    },
+    signOut: {
+      alignSelf: 'flex-start',
+      paddingVertical: 10,
+    },
+    signOutText: {
+      fontFamily: theme.fontFamily.medium,
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.secondary,
     },
     drawerHeader: {
       flexDirection: 'row',
@@ -152,12 +185,13 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading } = useRole();
+  const { userProfile } = useUserProfile();
+  const person = userProfile?.fullName?.trim() || userProfile?.email;
+  const insets = useSafeAreaInsets();
 
   const handleAction = (item: MenuItem) => {
     closeDrawer();
-    if (item.action === 'logout') {
-      onSignOut();
-    } else if (item.action === 'tab') {
+    if (item.action === 'tab') {
       let params;
       if (item.target === 'Home') {
         params = { screen: 'Home', params: { screen: 'HomeMain' } };
@@ -210,24 +244,49 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   ];
 
   return (
-    <ScrollView style={styles.drawerContent} contentContainerStyle={{ paddingBottom: 60 }}>
-      <View style={styles.drawerHeader}>
-        {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
-        <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.drawerTitle}>Ledova</Text>
+    <View style={styles.drawerContent}>
+      <ScrollView style={styles.destinations} contentContainerStyle={{ paddingBottom: 16 }}>
+        <View style={styles.drawerHeader}>
+          {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
+          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.drawerTitle}>Ledova</Text>
+        </View>
+        {!isLoading &&
+          groups.map((group) => (
+            <View key={group.label} style={styles.group}>
+              <Text accessibilityRole="header" style={styles.groupLabel}>
+                {group.label}
+              </Text>
+              {group.items.map(renderItem)}
+            </View>
+          ))}
+        <View style={styles.divider} />
+        {SECONDARY_ITEMS.map(renderItem)}
+        <Pressable
+          accessibilityRole="link"
+          style={styles.help}
+          onPress={() => {
+            closeDrawer();
+            navigation.navigate('MainApp', { screen: 'Help' } as never);
+          }}
+        >
+          <Text style={styles.helpText}>Help & Support</Text>
+        </Pressable>
+      </ScrollView>
+      <View testID="drawer-foot" style={[styles.foot, { paddingBottom: 12 + insets.bottom }]}>
+        {person ? <Text style={styles.person}>{person}</Text> : null}
+        <Pressable
+          accessibilityRole="button"
+          style={styles.signOut}
+          onPress={() => {
+            closeDrawer();
+            onSignOut();
+          }}
+        >
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
       </View>
-      {!isLoading &&
-        groups.map((group) => (
-          <View key={group.label} style={styles.group}>
-            <Text accessibilityRole="header" style={styles.groupLabel}>
-              {group.label}
-            </Text>
-            {group.items.map(renderItem)}
-          </View>
-        ))}
-      <View style={styles.divider} />
-      {SECONDARY_ITEMS.map(renderItem)}
-    </ScrollView>
+    </View>
   );
 }
 

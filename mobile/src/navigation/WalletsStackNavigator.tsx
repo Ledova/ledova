@@ -72,7 +72,7 @@ export function WalletsStackNavigator() {
         name="TransferDetails"
         component={TransferFormScreen}
         options={() => ({
-          title: 'Send',
+          title: '',
           headerLeft: undefined,
           headerBackVisible: true,
           headerRight: () => null,
@@ -82,7 +82,7 @@ export function WalletsStackNavigator() {
         name="WalletVerification"
         component={WalletVerificationScreen}
         options={() => ({
-          title: 'Verify Wallet',
+          title: '',
           headerLeft: undefined,
           headerBackVisible: true,
           headerRight: () => null,
@@ -92,7 +92,7 @@ export function WalletsStackNavigator() {
         name="SeedPhraseBackup"
         component={SeedPhraseBackupScreen}
         options={() => ({
-          title: 'Recovery Phrase',
+          title: '',
           headerLeft: undefined,
           headerBackVisible: true,
           headerRight: () => null,

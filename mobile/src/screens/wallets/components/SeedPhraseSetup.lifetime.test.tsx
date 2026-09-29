@@ -4,9 +4,11 @@ import { SeedPhraseSetup } from './SeedPhraseSetup';
 import { invalidateSessionScope } from '../../../services/sessionScope';
 
 let mockModalClose: () => void;
+let mockFooter: boolean | undefined;
 jest.mock('../../../components/modal', () => {
   const { Pressable, Text, View } = jest.requireActual('react-native');
   return {
+    ...jest.requireActual('../../../components/modal'),
     CustomModal: ({
       children,
       onClose,
@@ -21,6 +23,7 @@ jest.mock('../../../components/modal', () => {
       showFooter?: boolean;
     }) => {
       mockModalClose = onClose;
+      mockFooter = showFooter;
       return (
         <View>
           {children}
@@ -125,6 +128,36 @@ async function prepared(onComplete: React.ComponentProps<typeof SeedPhraseSetup>
   await fireEvent.press(view.getByText('Verify'));
   return view;
 }
+
+it('leaves the account step to its own Back and Create Wallet row', async () => {
+  const view = await render(
+    <SeedPhraseSetup
+      visible
+      onComplete={jest.fn()}
+      onClose={jest.fn()}
+      onCancel={jest.fn()}
+      readBlocked={false}
+      notice={null}
+    />,
+  );
+  expect(mockFooter).toBe(true);
+  await fireEvent.press(view.getByText('Continue'));
+  await fireEvent.press(view.getByText('Complete fictional confirmation'));
+  await fireEvent.press(view.getByText('Verify'));
+  expect(view.getByText('Create Wallet')).toBeTruthy();
+  expect(mockFooter).toBe(false);
+});
+
+it('keeps the securing line at its earlier 16pt size', async () => {
+  const write = deferred<void>();
+  const view = await prepared(jest.fn().mockReturnValue(write.promise));
+  await fireEvent.press(view.getByText('Create Wallet'));
+  await waitFor(() => expect(view.getByText('Securing your wallet...')).toHaveStyle({ fontSize: 16 }));
+  await act(async () => {
+    write.resolve();
+    await write.promise;
+  });
+});
 
 it('awaits wallet registration and keeps account selection when it is refused', async () => {
   const write = deferred<void>();

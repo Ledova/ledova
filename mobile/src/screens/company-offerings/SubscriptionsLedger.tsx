@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { useCompanyStyles } from '../company-register/styles';
 import { useOfferingSubscriptions } from './useOfferings';
 import { OfferingReadNotice } from './OfferingReadNotice';
@@ -47,20 +47,22 @@ export function SubscriptionsLedger({
           {read.data.map((row) => (
             <View key={row.uuid} style={styles.entry}>
               <Text style={styles.heading}>{row.investorName || row.walletAddress}</Text>
-              <Row label="Status">{row.statusDisplay}</Row>
-              <Row label="Requested shares">{formatShareCount(String(row.quantity))}</Row>
-              <Row label="Allotted shares">
-                {row.allottedQuantity === null ? '—' : formatShareCount(String(row.allottedQuantity))}
-              </Row>
-              <Row label="Due">{formatMoney(row.amountDue, offering.priceCurrency)}</Row>
-              <Row label="Received">
-                {row.amountReceived === null ? '—' : formatMoney(row.amountReceived, offering.priceCurrency)}
-              </Row>
-              <Row label="Payment method">{row.settlementRailDisplay}</Row>
-              {!!row.reference && <Row label="Reference">{row.reference}</Row>}
-              {!!row.paymentDueAt && <Row label="Payment due">{formatDate(row.paymentDueAt)}</Row>}
-              {!!row.paymentConfirmedAt && <Row label="Payment confirmed">{formatDate(row.paymentConfirmedAt)}</Row>}
-              <Row label="Allotment">{row.allotmentState}</Row>
+              <Rows>
+                <Row label="Status">{row.statusDisplay}</Row>
+                <Row label="Requested shares">{formatShareCount(String(row.quantity))}</Row>
+                <Row label="Allotted shares">
+                  {row.allottedQuantity === null ? '—' : formatShareCount(String(row.allottedQuantity))}
+                </Row>
+                <Row label="Due">{formatMoney(row.amountDue, offering.priceCurrency)}</Row>
+                <Row label="Received">
+                  {row.amountReceived === null ? '—' : formatMoney(row.amountReceived, offering.priceCurrency)}
+                </Row>
+                <Row label="Payment method">{row.settlementRailDisplay}</Row>
+                {!!row.reference && <Row label="Reference">{row.reference}</Row>}
+                {!!row.paymentDueAt && <Row label="Payment due">{formatDate(row.paymentDueAt)}</Row>}
+                {!!row.paymentConfirmedAt && <Row label="Payment confirmed">{formatDate(row.paymentConfirmedAt)}</Row>}
+                <Row label="Allotment">{row.allotmentState}</Row>
+              </Rows>
             </View>
           ))}
         </>

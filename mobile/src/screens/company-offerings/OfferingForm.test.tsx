@@ -58,6 +58,15 @@ it.each(['1.5', '1e3', '0', '-1', '2147483648', '9007199254740993'])(
   },
 );
 
+it('offers the share class and exemption as choices with the edited ones selected', async () => {
+  const view = await render(<OfferingForm {...props} />);
+  expect(view.getByRole('button', { name: 'Ordinary shares (EXA)', selected: true })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Professional investor (s708(11))', selected: true })).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Wholesale client (s761G)' }));
+  expect(view.getByRole('button', { name: 'Wholesale client (s761G)', selected: true })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Professional investor (s708(11))', selected: false })).toBeTruthy();
+});
+
 it.each(['0', '0.00', '-1', '1e3', '1.234', '10000000000000000.00'])(
   'rejects invalid price %s without rounding a valid maximum',
   async (value) => {

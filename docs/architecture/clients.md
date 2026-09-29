@@ -52,7 +52,7 @@ offers only pages the role can open, in groups:
   Company page, rather than as a menu item.
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
-- then Wallets, Profile, Settings and Help.
+- then Wallets, Profile and Settings.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Activity keeps the `/transactions`
@@ -266,8 +266,9 @@ a retry without hiding history or clearing draft filters. History loads further
 pages on request, marks failed later reads as incomplete, and suppresses stale
 rows and details after a failed refresh. Filters use only supported API fields,
 with date bounds covering the whole selected days in the person's local time.
-Details preserve full wallet, address and transaction identities and can open the
-existing explorer; Activity adds no buying, sending or signing action.
+Each entry opens in place to its detail, which preserves full wallet, address and
+transaction identities and links to the existing explorer; Activity adds no
+buying, sending or signing action.
 
 Mobile Company Offerings reads every offering and share-class page, filters to
 classes of the selected owned company, and reads every page of the selected
@@ -400,7 +401,11 @@ Published to your members opens from Company at `/company/publications`, under
 company and dual-role guards. It reads every publication page with the selected
 owned company's UUID as `issuer`, separately from the personal Notices cache.
 It shows stored documents, frozen company/class names, resolution windows and
-exact share/member tallies, and dividend rates and dates. It has no personal
+exact share/member tallies, and dividend rates and dates, in one Publications
+card whose title carries the complete count, with each publication set off by a
+rule; with none, the same card says that nothing has been published yet. On
+mobile the count is still a line of its own before the records, and the empty
+list has no card. It has no personal
 ballot or entitlement controls, including when the owner is also a member.
 Loading and failed company/publication reads block document actions; retry never
 presents a partial list as complete. Document delivery failures remain visible.
@@ -411,12 +416,26 @@ Inside the frame, every signed-in page renders in `Page`
 (`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
 and failure states, so each shows its page's title.
 `routes/every-page-titled.test.tsx` renders every real page with empty data and
-checks its title. The title and the page's actions share one row on the
-content's own edge, above the content or its loading state; on a phone too
-narrow for both, the actions wrap under the title. The frame holds only the
+checks its title. Each page opens with one title block on the content's own
+edge, above the content or its loading state: the title row, 64 px high, where
+the title and the page's actions share one row (on a phone too narrow for both,
+the actions wrap under the title), and the page's lede directly under that row
+when it has one. The first section follows the title block at the page's one
+gap, the same gap as between sections (16 px on a phone, 20 px from 640 px and
+24 px from 768 px), whether or not the page has a lede. The frame holds only the
 sidebar, with the notification bell beside the logo, and on a phone a top bar
 with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
+
+The sidebar's list holds its destinations and ends with Help & Support, a
+footer-style link to the contact page that opens in a new tab. The list scrolls
+on its own, so one too tall for the screen is cut at the rule above the foot. A
+group label wraps rather than being cut short, so a long company name is shown
+whole. The foot is one block: the person's full name, or the email when the
+profile has no name, above Sign out, which keeps its icon and red hover and is
+the public layout's `SignOutButton` in its sidebar variant. Mobile's drawer
+follows the same rule: its list ends with Help & Support, which opens the Help
+screen, and a foot pinned below the list names the person above Sign out.
 
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
@@ -431,6 +450,17 @@ Pages rebuilt in the paper layout use the ledger blocks in
 - `LinkRow`: a row that opens another page, named after its destination, with
   optional detail lines, an optional aside such as a status or a price, and a
   trailing chevron; the whole row is the link.
+- `SwitchRow`: a row that turns a setting on or off, with its label, an
+  optional muted sentence under it, and an On or Off pill at its end that is
+  the switch itself (`role="switch"`), named by the label and described by the
+  sentence.
+- `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
+  leading caret that turns when open, controlling the detail directly under it,
+  which it holds only while open. The detail is a landmark (`region`, labelled
+  by the button) only when asked, as Activity's filter is; entries are not,
+  since any number of them can be open. The page keeps whether it is open, so
+  it can close it when what it shows changes; a list keeps its open rows with
+  `useOpenRows`, as Activity, Holdings and the Register do.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 
@@ -447,7 +477,7 @@ same rule.
 
 Actions use one language. `PageAction` is the button for whatever a page or a
 section does, and it keeps its content width wherever it sits: in the title row
-for the page as a whole (Edit company, Filter, Refresh, and the way back to the
+for the page as a whole (Edit company, Wallets' Filter, Refresh, and the way back to the
 parent page such as Back to Register, Back to Company, Back to Directory or Back
 to Applications) and inside a section for what that section does (Create share
 class, Edit phone, Change password beside its sentence). A page reaches each of
@@ -465,10 +495,43 @@ repeated in a title row. An underlined link is part of a sentence ("open
 Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
 
+A list on a page is read and filtered in place rather than in a dialog. An entry opens
+under its own row as a `Disclosure`, and the list's filter is a `Disclosure` at
+the top of the list's card, above the entries or the empty sentence; closed, it
+names the filters it applies. Opening an entry leaves any other open entry as it
+is, so the row stays where it was pressed and two entries can be compared.
+Applying or clearing the filter closes it and every open entry and returns focus
+to the filter's button. Activity's Transfers works this way, so its title row has
+no Filter action. Holdings and the Register have no filter, and their rows open
+the same way, each a `Disclosure`: a holding to its shares by network and wallet,
+a share class to its Share class row and stored register. Every row starts
+closed. A dialog is kept for work that sets the page aside: a
+form that creates or changes something, a signing step or a confirmation. One
+web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
+dialog that only reorders the list in memory, and it moves in place when Wallets
+is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
+On mobile, Activity's filter and entry detail, Market's order details and the
+Wallets sort still open in a dialog. The bell's notifications belong to the frame
+rather than a page, on both clients.
+
+A setting that takes effect as soon as it changes has one control, a
+`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
+investors on Offerings. Its `aria-checked` is the saved value; it is disabled
+while a change is saving, keeps the saved value when the change is refused, and
+the refusal is an alert in the same card. On the web a choice that is saved
+with a form stays a checkbox, as the payment choices in the offering editor and
+the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+the end of the same row, named by the label with the sentence as its hint, for
+biometric sign-in, App lock and Transaction alerts on Settings and Show this
+company to eligible investors on Offerings. The mobile offering editor's
+payment choices are not in that row yet: each is still a bare native switch
+under its own line of text.
+
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
 Published to your members, the company of a Directory share class). `Page` sets
-its `lede` under the title row as the heading's description; a page whose titles
+its `lede` in the title block, directly under the title row, as the heading's
+description; a page whose titles
 already say it, such as Directory, Applications, Verification or Notices, has
 none. Other explanations stay in the section they explain, after the content
 they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
@@ -487,14 +550,20 @@ saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
 unpause requests on a share class and the steps of a signing dialog are
 ([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
 their dialogs a field is white with a hairline border (`rounded-lg border
-border-border bg-surface-raised`), a warning is its icon and warning-coloured
-text and an error is error-coloured text, none of them a tinted box. The one box
-a card keeps is a dashed upload area, the payslip upload on Profile and the
-evidence file in a claim, because its outline marks where a file goes.
+border-border bg-surface-raised`), and warnings and errors are text rather than
+tinted boxes: a warning is warning-coloured, usually beside its icon, and an
+error is either error-coloured or in the plain or muted text around it. The one
+exception is the extraction status beside each saved payslip on Profile, a small
+tinted pill (Queued, Extracting, Extracted, or an error-tinted Failed) that labels
+the file rather than holding a message. The one box a card keeps is a dashed
+upload area, the payslip upload on Profile and the evidence file in a claim,
+because its outline marks where a file goes.
 Sign-in and the sign-up steps hold their forms in the same card on the public
-layout, but only that card and its headings follow the signed-in pages: their
-fields are still tinted, and their alerts and identity-check outcomes still sit
-in tinted boxes.
+layout, under the same Newsreader titles, and sign-up lists its password rules
+as marked lines under the field rather than in a box. The rest of those forms
+keeps its earlier look: their fields are tinted, the message at the top of a
+form and the identity check's outcomes sit in tinted boxes, and a field's own
+error is error-coloured text under it.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
@@ -513,6 +582,34 @@ clients bundle Newsreader for display text and Instrument Sans for everything
 else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change
 the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
+
+On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
+card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over
+the dimmed screen and inside the safe area. Its Newsreader title is the card's
+first element, marked as a header, and the card is marked
+`accessibilityViewIsModal` for VoiceOver; React Native has no way to make the
+title the dialog's accessible name as the web's `DialogTitle` does. Its body
+scrolls inside the card, and its actions end the card as one right-aligned row
+of content-width `Action`s (`ModalActions`), a plain Cancel, Close or Back before
+the one primary action, wrapping onto another line rather than stretching. The
+backdrop is a button that closes the dialog, and a busy dialog holds the
+backdrop, Android Back and Cancel. The iOS date sheet in `DatePickerField` and
+the Send, Transfer, Verify Wallet and Recovery Phrase screens (`Panel` in
+`mobile/src/components/panel`) use the same card and action row; their stack
+header has no title, so the card's title is the screen's only one. Inside them
+nothing is boxed, as on the web: `Rows` draws a rule only between items and
+`Row` and `LinkRow` draw none of their own, steps are numbered lines, fields
+are white with a hairline border (`useDialogStyles`), a choice is an outlined
+`Choice` marked selected rather than a second filled button, and warnings and
+errors are text rather than tinted boxes: a warning is warning-coloured,
+usually beside its icon, and an error is either error-coloured or in the plain
+or muted text around it. Values set in monospace (the send review's addresses,
+the signing summaries' values, a sent transaction's hash and the addresses in
+the wallet dialogs) use the theme's `fontFamily.mono`, the system monospaced
+face on iOS, as the web's `font-mono` does. The profile's identity dialog shows
+the check's outcome as plain lines; the sign-up screens keep their tinted fields
+and boxed outcomes, as on the web. Mobile's theme adds one spacing step, `smd`
+(12), for the web's 12px spacing the shared scale lacks.
 
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution
