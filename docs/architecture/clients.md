@@ -52,7 +52,7 @@ offers only pages the role can open, in groups:
   Company page, rather than as a menu item.
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
-- then Wallets, Profile, Settings and Help.
+- then Wallets, Profile and Settings.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Activity keeps the `/transactions`
@@ -411,12 +411,25 @@ Inside the frame, every signed-in page renders in `Page`
 (`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
 and failure states, so each shows its page's title.
 `routes/every-page-titled.test.tsx` renders every real page with empty data and
-checks its title. The title and the page's actions share one row on the
-content's own edge, above the content or its loading state; on a phone too
-narrow for both, the actions wrap under the title. The frame holds only the
+checks its title. Each page opens with one title block on the content's own
+edge, above the content or its loading state: the title row, 64 px high, where
+the title and the page's actions share one row (on a phone too narrow for both,
+the actions wrap under the title), and the page's lede directly under that row
+when it has one. The first section follows the title block at the page's one
+gap, the same gap as between sections (16 px on a phone, 20 px from 640 px and
+24 px from 768 px), whether or not the page has a lede. The frame holds only the
 sidebar, with the notification bell beside the logo, and on a phone a top bar
 with the menu, the logo and the bell. It has no header bar and no footer; only
 the public layout has a footer.
+
+The sidebar lists destinations only. A group label wraps rather than being cut
+short, so a long company name is shown whole. Help & Support sits below the
+destinations as a footer-style link to the contact page, opening in a new tab,
+and the sidebar's foot is one block: the person's full name, or the email when
+the profile has no name, above Sign out, the same `SignOutButton` the public
+layout's header shows. Mobile's drawer follows the same rule: Help & Support is
+a footer-style link after its destinations that opens the Help screen, and a
+foot pinned below them names the person above Sign out.
 
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
@@ -468,7 +481,8 @@ document. Mobile's `LinkRow` and `Action` follow the same rule.
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
 Published to your members, the company of a Directory share class). `Page` sets
-its `lede` under the title row as the heading's description; a page whose titles
+its `lede` in the title block, directly under the title row, as the heading's
+description; a page whose titles
 already say it, such as Directory, Applications, Verification or Notices, has
 none. Other explanations stay in the section they explain, after the content
 they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
@@ -487,14 +501,17 @@ saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
 unpause requests on a share class and the steps of a signing dialog are
 ([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
 their dialogs a field is white with a hairline border (`rounded-lg border
-border-border bg-surface-raised`), a warning is its icon and warning-coloured
-text and an error is error-coloured text, none of them a tinted box. The one box
-a card keeps is a dashed upload area, the payslip upload on Profile and the
+border-border bg-surface-raised`), and warnings and errors are text rather than
+tinted boxes: a warning is warning-coloured, usually beside its icon, and an
+error is either error-coloured or in the plain or muted text around it. The one
+box a card keeps is a dashed upload area, the payslip upload on Profile and the
 evidence file in a claim, because its outline marks where a file goes.
 Sign-in and the sign-up steps hold their forms in the same card on the public
-layout, but only that card and its headings follow the signed-in pages: their
-fields are still tinted, and their alerts and identity-check outcomes still sit
-in tinted boxes.
+layout, under the same Newsreader titles, and sign-up lists its password rules
+as marked lines under the field rather than in a box. The rest of those forms
+keeps its earlier look: their fields are tinted, the message at the top of a
+form and the identity check's outcomes sit in tinted boxes, and a field's own
+error is error-coloured text under it.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
