@@ -5,12 +5,27 @@ import { apiClient } from '../../../services/apiClient';
 import { SendFormScreen } from './SendFormScreen';
 
 const mockNavigate = jest.fn();
+type Preferences = {
+  preferences?: object;
+  userAccount: { uuid: string } | null;
+  isError: boolean;
+  isFetching: boolean;
+  refetch: () => Promise<unknown>;
+};
+const ready = (): Preferences => ({
+  preferences: {},
+  userAccount: { uuid: 'owner' },
+  isError: false,
+  isFetching: false,
+  refetch: jest.fn(),
+});
+let mockPreferences = ready();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('../../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
+  useUserPreferences: () => mockPreferences,
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `AUD ${value}` }),
 }));
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
@@ -31,6 +46,7 @@ const get = apiClient.get as jest.Mock;
 let client: QueryClient;
 
 beforeEach(() => {
+  mockPreferences = ready();
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) =>
     url.endsWith('/holdings/')
@@ -55,13 +71,15 @@ afterEach(async () => {
   onlineManager.setOnline(true);
 });
 
-function show({ onDone = jest.fn(), only }: { onDone?: () => void; only?: ReturnType<typeof wallet> } = {}) {
-  return render(
+function tree({ onDone = jest.fn(), only }: { onDone?: () => void; only?: ReturnType<typeof wallet> } = {}) {
+  return (
     <QueryClientProvider client={client}>
       <SendFormScreen onDone={onDone} wallet={only as Wallet | undefined} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
+
+const show = (options?: Parameters<typeof tree>[0]) => render(tree(options));
 
 const LOAD_FAILED = 'Your wallets could not be loaded. Try again before continuing.';
 
@@ -213,4 +231,50 @@ it('says there are none when the only verified wallet is on a network Wallets do
 
   expect(await view.findByText('No verified wallets found')).toBeTruthy();
   expect(view.queryByText('Polygon wallet')).toBeNull();
+});
+
+it.each([
+  ['cannot be read', { isError: true }],
+  ['name no account', { preferences: {} }],
+])(
+  "says the wallets could not be loaded when the account's preferences %s, rather than loading for ever",
+  async (_, state) => {
+    mockPreferences = { ...ready(), userAccount: null, preferences: undefined, ...state };
+    const view = await show();
+
+    expect(await view.findByRole('alert')).toHaveTextContent(LOAD_FAILED);
+    expect(view.queryByText('Loading wallets...')).toBeNull();
+    expect(get).not.toHaveBeenCalled();
+  },
+);
+
+it("tries the account's preferences again before the wallets, holding Try again while they are read", async () => {
+  const failed: Preferences = { ...ready(), preferences: undefined, userAccount: null, isError: true };
+  const retry = jest.fn(async () => {
+    mockPreferences = { ...failed, isFetching: true };
+  });
+  mockPreferences = { ...failed, refetch: retry };
+  const view = await show();
+  await view.findByRole('alert');
+
+  await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
+  expect(retry).toHaveBeenCalledTimes(1);
+  await view.rerender(tree());
+  expect(view.getByRole('button', { name: 'Try again' })).toBeDisabled();
+  expect(get).not.toHaveBeenCalled();
+
+  mockPreferences = ready();
+  await view.rerender(tree());
+  expect(await view.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(view.queryByRole('alert')).toBeNull();
+});
+
+it("waits while the account's preferences are read, rather than saying the wallets could not be loaded", async () => {
+  mockPreferences = { ...ready(), preferences: undefined, userAccount: null, isFetching: true };
+  const view = await show();
+  await act(async () => {});
+
+  expect(view.getByText('Loading wallets...')).toBeTruthy();
+  expect(view.queryByRole('alert')).toBeNull();
+  expect(get).not.toHaveBeenCalled();
 });

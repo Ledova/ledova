@@ -95,7 +95,8 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
 export function useTransfers(initialWallet: Wallet | null = null) {
   const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
-  const { userAccount } = useUserPreferences();
+  const account = useUserPreferences();
+  const { userAccount } = account;
   const [state, setState] = useState<TransferState>(() =>
     initialWallet ? { ...INITIAL_STATE, step: 'enter-details', wallet: initialWallet } : INITIAL_STATE,
   );
@@ -329,6 +330,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     setPendingBroadcast(false);
   }, []);
 
+  const preferencesFailed = account.isError || (!!account.preferences && !userAccount?.uuid);
   const allWallets = USE_MOCK_DATA ? generateMockWalletsData() : (walletsQuery.data ?? []);
   const wallets = allWallets.filter(
     (w: Wallet) => getChainConfig(w.chain)?.isActive && w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
@@ -345,9 +347,9 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     txHash: state.txHash,
     wallets,
     isLoading: USE_MOCK_DATA ? false : walletsQuery.isPending,
-    walletsFailed: !USE_MOCK_DATA && walletsQuery.isError,
-    isRetryingWallets: !USE_MOCK_DATA && walletsQuery.isFetching,
-    retryWallets: () => void walletsQuery.refetch(),
+    walletsFailed: !USE_MOCK_DATA && (walletsQuery.isError || preferencesFailed),
+    isRetryingWallets: !USE_MOCK_DATA && (walletsQuery.isFetching || account.isFetching),
+    retryWallets: () => void (preferencesFailed ? account.refetch() : walletsQuery.refetch()),
     isLoadingHoldings: USE_MOCK_DATA ? false : holdingsQuery.isLoading,
     isPreparing: USE_MOCK_DATA ? false : prepareTransferMutation.isPending,
     isBroadcasting: USE_MOCK_DATA ? false : broadcastTransferMutation.isPending,
