@@ -459,7 +459,8 @@ Pages rebuilt in the paper layout use the ledger blocks in
   which it holds only while open. The detail is a landmark (`region`, labelled
   by the button) only when asked, as Activity's filter is; entries are not,
   since any number of them can be open. The page keeps whether it is open, so
-  it can close it when what it shows changes.
+  it can close it when what it shows changes; a list keeps its open rows with
+  `useOpenRows`, as Activity, Holdings and the Register do.
 - `Status`: a status in words with a small mark for waiting, moving, done or closed.
 - `Timeline`: each event with its date.
 

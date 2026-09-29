@@ -1,19 +1,12 @@
-import { useState } from 'react';
 import { formatShareCount, getChainConfig, useShareHoldings } from '@ledova/shared';
 import { Disclosure, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { useOpenRows } from '@hooks/useOpenRows';
 import { HoldingWork } from './components/HoldingWork';
 
 export function HomePage() {
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
-  const [openAssets, setOpenAssets] = useState<ReadonlySet<string>>(() => new Set());
-  const toggleAsset = (assetUuid: string) =>
-    setOpenAssets((current) => {
-      const next = new Set(current);
-      if (next.has(assetUuid)) next.delete(assetUuid);
-      else next.add(assetUuid);
-      return next;
-    });
+  const rows = useOpenRows();
 
   return (
     <Page>
@@ -37,8 +30,8 @@ export function HomePage() {
             {holdings.map((holding) => (
               <li key={holding.assetUuid}>
                 <Disclosure
-                  open={openAssets.has(holding.assetUuid)}
-                  onToggle={() => toggleAsset(holding.assetUuid)}
+                  open={rows.isOpen(holding.assetUuid)}
+                  onToggle={() => rows.toggle(holding.assetUuid)}
                   summary={
                     <span className="flex flex-wrap items-start justify-between gap-3">
                       <span className="min-w-0 flex-1 basis-40 break-words">

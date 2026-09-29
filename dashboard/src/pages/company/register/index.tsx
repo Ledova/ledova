@@ -1,20 +1,13 @@
-import { useState } from 'react';
 import { DESTINATIONS } from '@ledova/shared';
 import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { useOpenRows } from '@hooks/useOpenRows';
 import { useCompanyRegister } from './useCompanyRegister';
 import { ClassRegister } from './ClassRegister';
 
 export default function CompanyRegisterPage() {
   const { data: classes = [], isPending, isError, isFetching, refetch } = useCompanyRegister();
-  const [openClasses, setOpenClasses] = useState<ReadonlySet<string>>(() => new Set());
-  const toggleClass = (uuid: string) =>
-    setOpenClasses((current) => {
-      const next = new Set(current);
-      if (next.has(uuid)) next.delete(uuid);
-      else next.add(uuid);
-      return next;
-    });
+  const rows = useOpenRows();
 
   return (
     <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
@@ -35,8 +28,8 @@ export default function CompanyRegisterPage() {
             {classes.map(({ companyName, register }) => (
               <li key={register.token.uuid}>
                 <Disclosure
-                  open={openClasses.has(register.token.uuid)}
-                  onToggle={() => toggleClass(register.token.uuid)}
+                  open={rows.isOpen(register.token.uuid)}
+                  onToggle={() => rows.toggle(register.token.uuid)}
                   summary={
                     <span className="flex flex-wrap items-start justify-between gap-3">
                       <span className="min-w-0 flex-1 basis-40 break-words">
