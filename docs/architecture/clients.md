@@ -475,12 +475,26 @@ they serve: Market's Saved work follows Trades awaiting signatures, and Offering
 leads with Your offerings. Mobile's `Lede` follows the title and its actions.
 
 Every section is its own card, including forms and things to act on such as a
-payment instruction. A group inside a section is set off by a rule or a small
-heading rather than a card of its own, as the For sale and Wanted lists on
-Market, the saved payslips on Profile and a vote's confirmation on Notices are
-([decision](../decisions.md#the-signed-in-app)). The saved pause and unpause
-requests on a share class are the exception: each still sits in a bordered box
-inside the class's card. Dialogs keep their own panel over the page.
+payment instruction, and a dialog (`Modal` in `dashboard/src/components/Modal`)
+is the same card over the dimmed page: its Newsreader title sits inside at the
+top and labels it, its body scrolls inside the card when the screen is too short,
+and its actions end the card as one right-aligned row of content-width
+`PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
+action. On a narrow phone the row wraps onto another line rather than
+stretching. A group inside a card is set off by a rule or a small heading
+rather than a card of its own, as the For sale and Wanted lists on Market, the
+saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
+unpause requests on a share class and the steps of a signing dialog are
+([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
+their dialogs a field is white with a hairline border (`rounded-lg border
+border-border bg-surface-raised`), a warning is its icon and warning-coloured
+text and an error is error-coloured text, none of them a tinted box. The one box
+a card keeps is a dashed upload area, the payslip upload on Profile and the
+evidence file in a claim, because its outline marks where a file goes.
+Sign-in and the sign-up steps hold their forms in the same card on the public
+layout, but only that card and its headings follow the signed-in pages: their
+fields are still tinted, and their alerts and identity-check outcomes still sit
+in tinted boxes.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

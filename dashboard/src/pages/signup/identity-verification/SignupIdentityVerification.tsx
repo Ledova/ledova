@@ -67,8 +67,8 @@ export function SignupIdentityVerification() {
         </p>
       </div>
 
-      <div className="bg-surface-raised rounded-lg border border-border">
-        <div className="p-6">
+      <div className="rounded-xl border border-border bg-surface-raised">
+        <div className="p-4 sm:p-5">
           {(isLoadingStatus || isLaunching) && (
             <div className="flex flex-col items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>

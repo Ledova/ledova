@@ -12,7 +12,10 @@ import { SwapSettlementFlow } from './components/SwapSettlementFlow';
 import fixture from '../../../../packages/shared/tests/fixtures/swap-settlement-api.json';
 import { memoryStorage, response, userUuid } from '../../../../packages/shared/tests/fixtures/order-submissions';
 
-vi.mock('@components/Modal', () => ({ Modal: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
+vi.mock('@components/Modal', () => ({
+  Modal: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ModalActions: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
 const scans = vi.hoisted(() => [] as { success: (text: string) => void; stopped: boolean }[]);
 vi.mock('html5-qrcode', () => ({

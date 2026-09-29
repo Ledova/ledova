@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  FunnelIcon,
   ListBulletsIcon,
   ShieldCheckIcon,
   SortAscendingIcon,
@@ -14,7 +13,6 @@ import { Modal } from '@components/Modal';
 import type { WalletSortOption } from '../hooks/useWalletSort';
 
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 interface WalletSortModalProps {
   isOpen: boolean;
@@ -80,36 +78,26 @@ export function WalletSortModal({ isOpen, selectedSort, onClose, onApply }: Wall
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      title="Sort Wallets"
       showFooter
       cancelLabel="Close"
       confirmLabel="Apply"
       onConfirm={handleApply}
       size="sm"
     >
-      <div className="flex flex-col items-center pb-3">
-        <FunnelIcon size={ICON_LG} className="text-brand-mid mb-1" />
-        <h3 className="text-lg font-semibold text-text-primary">Sort Wallets</h3>
-      </div>
-
-      <p className="text-xs font-medium text-text-subtle uppercase tracking-wide mb-2">Sort By</p>
-      <div className="space-y-1.5">
+      <div className="divide-y divide-border-subtle">
         {sortOptions.map((option) => {
           const isSelected = localSort === option.id;
           return (
             <button
               key={option.id}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => setLocalSort(option.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border-2 transition-colors ${
-                isSelected
-                  ? 'border-brand-mid bg-surface-disabled'
-                  : 'border-transparent bg-surface-tertiary hover:bg-surface-disabled'
-              }`}
+              className="flex w-full items-center justify-between gap-3 py-2.5"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center flex-shrink-0">
-                  {option.icon}
-                </div>
+                <span className="flex-shrink-0">{option.icon}</span>
                 <div className="text-left">
                   <p className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
                     {option.label}
