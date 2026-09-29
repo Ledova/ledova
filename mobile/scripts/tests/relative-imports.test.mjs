@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { borrowedModule } from '../relative-imports.mjs';
@@ -6,6 +9,11 @@ import { borrowedModule } from '../relative-imports.mjs';
 const mobile = path.resolve(import.meta.dirname, '../..');
 const repo = path.dirname(mobile);
 const signer = path.join(mobile, 'src/utils/softwareWallet/localSigner.ts');
+const check = path.join(mobile, 'scripts/check-resolution.mjs');
+
+function checkResolution(args = []) {
+  return spawnSync(process.execPath, [check, ...args], { encoding: 'utf8' });
+}
 
 test('refuses a relative import that climbs out of mobile into the root node_modules', () => {
   assert.equal(
@@ -54,4 +62,38 @@ test('judges only the part of the path an import climbs, not where the repositor
   const app = path.join(nested, 'src/App.tsx');
   assert.equal(borrowedModule(nested, app, '../../packages/shared/src/index.ts'), null);
   assert.equal(borrowedModule(nested, app, '../../node_modules/ethers'), path.join(nested, '../node_modules/ethers'));
+});
+
+test('the whole check passes the actual mobile tree', () => {
+  const run = checkResolution();
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^Mobile resolution clean: /m);
+});
+
+test('the whole check fails a tree whose relative import climbs out of mobile into the root ethers', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'ledova-resolution-'));
+  try {
+    const files = {
+      'node_modules/ethers/index.js': 'module.exports = {};',
+      'mobile/node_modules/ethers/index.js': 'module.exports = {};',
+      'mobile/package.json': '{}',
+      'mobile/jest.config.js': "module.exports = { testMatch: ['<rootDir>/src/**/*.test.ts'] };",
+      'mobile/metro.config.js': 'module.exports = {};',
+      'mobile/src/App.tsx':
+        "import { Wallet } from '../../node_modules/ethers';\nimport { Local } from '../node_modules/ethers';\n",
+      'packages/shared/src/index.ts': 'export {};',
+    };
+    for (const [name, text] of Object.entries(files)) {
+      await mkdir(path.dirname(path.join(root, name)), { recursive: true });
+      await writeFile(path.join(root, name), text);
+    }
+    const run = checkResolution([path.join(root, 'mobile')]);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(
+      run.stderr,
+      /cannot satisfy \(1\):\n\n {2}mobile\/src\/App\.tsx:1: '\.\.\/\.\.\/node_modules\/ethers' climbs out of mobile\/ into node_modules\/ethers;/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
