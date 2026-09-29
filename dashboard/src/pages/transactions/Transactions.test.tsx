@@ -250,6 +250,24 @@ it.each([
   expect(filterToggle().textContent).toContain(summary);
 });
 
+it('names an applied wallet that is no longer listed as the selected wallet', async () => {
+  wallets = async () => page([wallet, secondWallet]);
+  show();
+  await screen.findByText('Pending');
+  const filter = openFilter();
+  await within(filter).findByRole('option', { name: /Reserve wallet/ });
+  fireEvent.change(within(filter).getByLabelText('Wallet'), { target: { value: 'wallet-two' } });
+  fireEvent.click(within(filter).getByRole('button', { name: 'Apply' }));
+  expect(filterToggle().textContent).toContain('Reserve wallet');
+  wallets = async () => page([wallet]);
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['wallets', 'activity-filter'] });
+  });
+  await waitFor(() => expect(filterToggle().textContent).toContain('Selected wallet'));
+  expect(filterToggle().textContent).not.toContain('Reserve wallet');
+  expect(filterToggle().textContent).not.toContain(secondWallet.uuid);
+});
+
 it('distinguishes a pending read from an empty history', async () => {
   let finish!: (response: ReturnType<typeof page>) => void;
   activity = () =>
