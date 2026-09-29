@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signout } from '@ledova/shared';
 import { notificationsService } from '../services/notificationsService';
@@ -61,7 +61,7 @@ beforeEach(() => {
   mockTradingEnabled = false;
   mockProfile = null;
   mockCompanies.mockReset().mockReturnValue(new Promise(() => {}));
-  client = new QueryClient();
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(account, { email: 'synthetic@example.test' });
   events = [];
   jest.mocked(notificationsService.unregisterToken).mockImplementation(async () => {
@@ -302,17 +302,30 @@ it("puts a company's own group first, named after the company, and still gives i
   expect([at('Register'), at('Offerings'), at('Company')]).toEqual([0, 1, 2]);
 });
 
+const groupLabels = (view: Awaited<ReturnType<typeof drawer>>) =>
+  view.getAllByRole('header').map((header) => header.props.children);
+
+it("names the company group Company while the company's name is being read", async () => {
+  mockRole = { isCompany: true, isInvestor: false, isLoading: false };
+  mockCompanies.mockReturnValue(new Promise(() => {}));
+  const view = await drawer();
+
+  await waitFor(() => expect(mockCompanies).toHaveBeenCalledTimes(1));
+  expect(groupLabels(view)).toEqual(['Company', 'Your shares']);
+});
+
 it.each([
-  ['is still being read', () => new Promise(() => {})],
+  ['cannot be read', () => Promise.reject(new Error('Synthetic company read failure'))],
   ['holds no company', () => Promise.resolve(companyList([]))],
   ['holds a company with a blank name', () => Promise.resolve(companyList([{ uuid: 'company', name: '' }]))],
-])('names the company group Company while the list %s', async (_, read) => {
+])('names the company group Company once the company list %s', async (_, read) => {
   mockRole = { isCompany: true, isInvestor: false, isLoading: false };
   mockCompanies.mockImplementation(read);
   const view = await drawer();
 
-  await waitFor(() => expect(mockCompanies).toHaveBeenCalledTimes(1));
-  expect(view.getAllByRole('header').map((header) => header.props.children)).toEqual(['Company', 'Your shares']);
+  await waitFor(() => expect(client.getQueryState(['companies'])?.status).toMatch(/^(success|error)$/));
+  await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+  expect(groupLabels(view)).toEqual(['Company', 'Your shares']);
 });
 
 it('asks for the company only for an account with a company role', async () => {
