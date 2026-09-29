@@ -38,6 +38,13 @@ class InsufficientBalanceException(APIException):
     default_code = "insufficient_balance"
 
 
+class StablecoinApprovalRequiredException(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "The sending wallet and the recipient both need a current approval with a company."
+    default_code = "stablecoin_approval_required"
+    expose_code = True
+
+
 class NativeAssetUnavailableException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "Native asset configuration for this network is unavailable. Contact support before retrying."

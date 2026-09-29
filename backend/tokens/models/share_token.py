@@ -100,17 +100,6 @@ class ShareToken(BaseModel):
     def is_on_chain(self) -> bool:
         return bool(self.contract_address)
 
-    def mark_deploying(self, tx_hash: str = None, transaction: BlockchainTransaction = None) -> None:
-        self.status = ShareTokenStatus.DEPLOYING
-        update_fields = ["status", "updated_at"]
-        if tx_hash:
-            self.deployment_tx_hash = tx_hash
-            update_fields.append("deployment_tx_hash")
-        if transaction:
-            self.deployment_transaction = transaction
-            update_fields.append("deployment_transaction")
-        self.save(update_fields=update_fields)
-
     def bind_deployment_transaction(
         self, tx_hash: str, transaction: BlockchainTransaction, *, previous_hash: str | None = None
     ) -> bool:

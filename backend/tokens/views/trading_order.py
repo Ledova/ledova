@@ -74,7 +74,6 @@ from tokens.services.order_actions import (
     order_action_context,
     recover_order_action,
 )
-from tokens.services.order_modification_service import get_modification_history
 from tokens.services.trading_order_access import (
     require_pending_settlement,
     resolve_exact_swap_context,
@@ -465,8 +464,3 @@ class TradingOrderViewSet(AuthenticatedReadOnlyViewSet):
     @action(detail=True, methods=["post"], url_path="modify")
     def modify(self, request, uuid=None):
         return self._execute_action(request, uuid, OrderActionPurpose.MODIFY)
-
-    @action(detail=True, methods=["get"], url_path="modifications")
-    def modifications(self, request, uuid=None):
-        order = self.get_object()
-        return Response(get_modification_history(order))

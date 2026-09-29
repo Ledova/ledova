@@ -16,6 +16,7 @@ from wallets.services.transaction_confirmation import NOT_TRANSFERABLE
 
 FROM = "0x" + "a" * 40
 TO = "0x" + "b" * 40
+BITCOIN_TO = "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn"
 SIGNED = "0x02f8" + "0" * 60
 QUARANTINED = "0x" + "bad" + "0" * 37
 SHARE_TOKEN = "0x" + "5e" * 20
@@ -48,7 +49,7 @@ class TransferRoutingTest(SimpleTestCase):
             symbol="USDC",
             is_active=True,
             is_verified=True,
-            asset_type="stablecoin",
+            asset_type="erc20_token",
             get_deployment_for_chain=Mock(return_value=SimpleNamespace(contract_address=TO, decimals=6)),
         )
         holdings.filter.return_value.first.return_value = None
@@ -88,7 +89,9 @@ class TransferRoutingTest(SimpleTestCase):
     ):
         wallet = _wallet("bitcoin")
 
-        self.assertEqual(transfers.prepare_transfer(wallet, to_address=TO, amount_btc="0.1"), {"network": "BTC"})
+        self.assertEqual(
+            transfers.prepare_transfer(wallet, to_address=BITCOIN_TO, amount_btc="0.1"), {"network": "BTC"}
+        )
         with self.assertRaisesRegex(InvalidTransactionException, "requires its requesting user"):
             transfers.broadcast_transfer(wallet, SIGNED, principal_id=None)
 

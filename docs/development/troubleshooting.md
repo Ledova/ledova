@@ -19,7 +19,9 @@ application code. These are current remedies distilled from prior failures.
 | A test hangs in JSON rendering | A mock probably returned another mock. Supply a concrete response value and inspect a faulthandler dump. |
 | All assertions pass but test process fails | Inspect exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish. |
 | Migration test selects a nonexistent column | Query historical state through the migration executor; restore all migrations before current services run. |
-| Upload returns 503 | Check Redis and ClamAV readiness/signature loading; there is no scanner bypass. |
+| Upload returns 503 | Check Redis and ClamAV readiness/signature loading; there is no scanner bypass. Check that `UPLOAD_PROCESS_MEMORY_BYTES` and `UPLOAD_PROCESS_CPU_SECONDS` are at least 1: lower values refuse every upload. |
+| Backend logs `Upload workers run without RLIMIT_AS` | Expected on macOS, whose kernel refuses that limit; uploads still run under the others and the wall deadline. Linux applies every limit, so there the warning is a fault to investigate. See [upload limits](../operations/uploads.md#upload-validation-and-resource-limits). |
+| `--parallel` aborts with `MaybeEncodingError` naming an unpicklable `Mock` | A subtest failed in a test that keeps mocks on `self`. Django pickles the finished test case to send the failure back, and a mock cannot be pickled. Rerun that module without `--parallel` to read the failure. |
 | LLM or local chain on host times out from container | Check bridge-to-host reachability. Prefer a service on the Compose network and use the documented hostname allowlist for extraction. |
 
 For PostgreSQL authentication on an existing volume, see

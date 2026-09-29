@@ -523,7 +523,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertContains(page, DECLARATION["board_resolution_reference"])
         self.client.logout()
         self.client.force_authenticate(self.owner)
-        for path in (self.api_url, f"{self.api_url}application-status/", "/api/v1/companies/"):
+        for path in (self.api_url, "/api/v1/companies/"):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertNotIn(DECLARATION["declarant_name"], str(response.data))

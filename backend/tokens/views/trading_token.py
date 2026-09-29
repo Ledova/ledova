@@ -5,11 +5,8 @@ from rest_framework.response import Response
 
 from shared.views import AuthenticatedReadOnlyViewSet
 from tokens.serializers import ShareTokenListSerializer
-from tokens.serializers.trading_responses import (
-    MarketDataSerializer,
-    OrderBookSerializer,
-)
-from tokens.services import TradingOrderService, market_data_service
+from tokens.serializers.trading_responses import OrderBookSerializer
+from tokens.services import TradingOrderService
 from tokens.services.market_data_service import list_market_tokens
 
 
@@ -26,13 +23,6 @@ class TradingTokenViewSet(AuthenticatedReadOnlyViewSet):
 
     def get_queryset(self):
         return list_market_tokens(self.request.user)
-
-    @extend_schema(responses=MarketDataSerializer)
-    @action(detail=True, methods=["get"], url_path="market-data")
-    def market_data(self, request, uuid=None):
-        token = self.get_object()
-        market_data = market_data_service.get_market_data(token)
-        return Response(market_data, status=status.HTTP_200_OK)
 
     @extend_schema(responses=OrderBookSerializer)
     @action(detail=True, methods=["get"], url_path="order-book")

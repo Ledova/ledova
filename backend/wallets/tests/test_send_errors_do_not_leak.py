@@ -7,8 +7,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from shared.api.exceptions import custom_exception_handler
 from wallets.exceptions import BlockchainAPIError
 from wallets.services.transfers import (
-    broadcast_bitcoin_transaction,
-    broadcast_ethereum_transaction,
     prepare_bitcoin_transaction,
     prepare_erc20_transaction,
     prepare_ethereum_transaction,
@@ -39,16 +37,6 @@ SEND_PATHS = (
         ),
         "Failed to prepare the ERC-20 transaction.",
     ),
-    (
-        "broadcast_ethereum_transaction",
-        lambda: broadcast_ethereum_transaction("base", "0xdeadbeef"),
-        "Failed to broadcast the Ethereum transaction.",
-    ),
-    (
-        "broadcast_bitcoin_transaction",
-        lambda: broadcast_bitcoin_transaction("0xdeadbeef"),
-        "Failed to broadcast the Bitcoin transaction.",
-    ),
 )
 
 
@@ -75,24 +63,9 @@ class TheNodeKeyNeverReachesASendResponseTest(SimpleTestCase):
     def test_the_caller_still_learns_the_preparation_failed(self):
         self.assertIn("Failed to prepare the transaction", _rendered(self._prepare_against_an_unreachable_node()))
 
-    @patch("wallets.services.transfers.get_blockchain_client")
-    def test_a_failed_broadcast_does_not_serve_the_key(self, chain_client):
-        chain_client.return_value.broadcast_transaction.side_effect = RequestsConnectionError(PROVIDER_TEXT)
-
-        with self.assertRaises(Exception) as caught:
-            broadcast_ethereum_transaction("base", "0xdeadbeef")
-
-        rendered = _rendered(caught.exception)
-        self.assertNotIn(KEY, rendered)
-        self.assertIn("Failed to broadcast the Ethereum transaction", rendered)
-
     @patch("wallets.services.transfers.logger")
-    @patch("wallets.services.transfers.get_blockchain_client")
-    def test_the_operator_still_gets_the_diagnostic(self, chain_client, logger):
-        chain_client.return_value.broadcast_transaction.side_effect = RequestsConnectionError(PROVIDER_TEXT)
-
-        with self.assertRaises(Exception):
-            broadcast_ethereum_transaction("base", "0xdeadbeef")
+    def test_the_operator_still_gets_the_diagnostic(self, logger):
+        self._prepare_against_an_unreachable_node()
 
         self.assertIn(KEY, " ".join(str(call) for call in logger.error.call_args_list))
 

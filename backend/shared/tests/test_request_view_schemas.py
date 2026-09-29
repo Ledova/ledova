@@ -14,13 +14,10 @@ from integrations.sumsub.client import SumSubService
 from integrations.transak.client import TransakClient
 from shared.constants import get_native_asset_symbol
 from shared.tests.tenants import make_tenant
-from tokens.tests.test_signed_transactions import SIGNER, sign_legacy
 from users.models import UserProfile
-from wallets.models import Wallet
 
 FIAT = "/api/fiat-purchases/transak-widget-url/"
 IDENTITY = "/api/users/identity-verification/"
-TRANSFERS = "/api/v1/trading/transfers/"
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS="0x" + "8" * 40)
@@ -260,59 +257,10 @@ class RequestViewSchemaTest(APITestCase):
         provider.get_applicant_data.assert_not_called()
         self.assert_nullable_response(IDENTITY + "status/", response.json(), ["status", "applicantId"], "get")
 
-    def test_trading_prepare_request_describes_the_fields_the_real_route_validates(self):
-        payload = {
-            "token": str(self.owner.deployed_token.uuid),
-            "fromAddress": self.owner.wallet.address,
-            "toAddress": "0x" + "7" * 40,
-            "amount": 12,
-        }
-        with patch("tokens.views.trading_transfer.token_transfer_service") as service:
-            service.contract_address.return_value = self.owner.deployed_token.contract_address
-            service.prepare_transfer.return_value = {}
-            response = self.client.post(TRANSFERS + "prepare/", payload, format="json")
-        self.assertEqual(response.status_code, 200, response.content)
-        service.prepare_transfer.assert_called_once_with(
-            token=self.owner.deployed_token,
-            from_address=self.owner.wallet.address,
-            to_address=payload["toAddress"],
-            amount=payload["amount"],
-        )
-        schema = self.request_schema(TRANSFERS + "prepare/")
-        self.assertEqual(set(schema["properties"]), set(payload))
-        self.assertEqual(set(schema["required"]), set(payload))
-        self.assertEqual(schema["properties"]["token"]["format"], "uuid")
-        self.assertEqual(schema["properties"]["amount"]["minimum"], 1)
-        with patch("tokens.views.trading_transfer.token_transfer_service") as refused:
-            response = self.client.post(TRANSFERS + "prepare/", {**payload, "amount": 0}, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(set(response.json()), {"amount"})
-        self.assertEqual(refused.mock_calls, [])
-
-    def test_trading_broadcast_request_keeps_its_own_fields_and_the_wallet_contract(self):
-        Wallet.objects.create(
-            user_account=self.owner.account, address=SIGNER.address, chain="base", verification_status="VERIFIED"
-        )
-        signed = sign_legacy(to="0x" + "8" * 40)
-        with patch("tokens.views.trading_transfer.token_transfer_service") as service:
-            service.broadcast_transfer.return_value = ("0x" + "f" * 64, {"blockNumber": 7})
-            response = self.client.post(TRANSFERS + "broadcast/", {"signedTransaction": signed}, format="json")
-        self.assertEqual(response.status_code, 200, response.content)
-        service.broadcast_transfer.assert_called_once_with(signed)
-        schema = self.request_schema(TRANSFERS + "broadcast/")
-        self.assertEqual(set(schema["properties"]), {"signedTransaction"})
-        self.assertEqual(schema["required"], ["signedTransaction"])
-        wallet = self.request_schema("/api/wallets/{uuid}/broadcast-transfer/")
-        self.assertEqual(
-            set(wallet["properties"]),
-            {"signedTransaction", "toAddress", "amount", "transactionFee", "tokenContract"},
-        )
-        self.assertEqual(wallet["required"], ["signedTransaction"])
-
     def test_declared_views_no_longer_need_a_guessed_serializer(self):
         errors = [line.split(": Error ", 1)[1] for line in self.diagnostics.splitlines() if ": Error " in line]
-        for name in ("FiatPurchaseViewSet", "IdentityVerificationViewSet", "TradingTransferViewSet"):
+        for name in ("FiatPurchaseViewSet", "IdentityVerificationViewSet"):
             with self.subTest(view=name):
                 self.assertFalse(any(line.startswith(f"[{name}]") for line in errors), errors)
-        for path in (FIAT, IDENTITY + "token/", TRANSFERS + "prepare/", TRANSFERS + "broadcast/"):
+        for path in (FIAT, IDENTITY + "token/"):
             self.assertIn("properties", self.response_schema(path))
