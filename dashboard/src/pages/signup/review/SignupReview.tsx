@@ -11,6 +11,7 @@ import {
 } from '@ledova/shared';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
+import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '../company-registration/constants';
 import { MARKETING_URL } from '@utils/marketingUrl';
 
@@ -86,171 +87,154 @@ export function SignupReview() {
       </div>
 
       <div className="space-y-4">
-        <div className="bg-surface-raised rounded-lg border border-border overflow-hidden">
-          <div className="px-5 py-4 border-b border-border-subtle">
-            <h3 className="text-base font-semibold text-text-primary">Personal Information</h3>
-          </div>
-          <div className="px-5 py-4">
-            {userProfile ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Full Name:</span>
-                  <span className="text-sm text-text-primary font-medium">{userProfile.fullName}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Phone:</span>
-                  <span className="text-sm text-text-primary font-medium">
-                    {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
-                  </span>
-                </div>
-                {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">{line.label}</span>
-                    <span className="text-sm text-text-primary font-medium">{line.value}</span>
-                  </div>
-                ))}
+        <Section title="Personal Information">
+          {userProfile ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Full Name:</span>
+                <span className="text-sm text-text-primary font-medium">{userProfile.fullName}</span>
               </div>
-            ) : (
-              <p className="text-sm text-error-light">No personal information found.</p>
-            )}
-          </div>
-        </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-text-muted">Phone:</span>
+                <span className="text-sm text-text-primary font-medium">
+                  {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
+                </span>
+              </div>
+              {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-sm text-text-muted">{line.label}</span>
+                  <span className="text-sm text-text-primary font-medium">{line.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-error-light">No personal information found.</p>
+          )}
+        </Section>
 
         {isCompany ? (
-          <div className="bg-surface-raised rounded-lg border border-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-border-subtle">
-              <h3 className="text-base font-semibold text-text-primary">Company Information</h3>
-            </div>
-            <div className="px-5 py-4">
-              {company ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Company Name:</span>
-                    <span className="text-sm text-text-primary font-medium">{company.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">ACN:</span>
-                    <span className="text-sm text-text-primary font-medium">{company.acn}</span>
-                  </div>
-                  {company.abn && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-text-muted">ABN:</span>
-                      <span className="text-sm text-text-primary font-medium">{company.abn}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Type:</span>
-                    <span className="text-sm text-text-primary font-medium">
-                      {displayCompanyType(company.companyType)}
-                    </span>
-                  </div>
+          <Section title="Company Information">
+            {company ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-muted">Company Name:</span>
+                  <span className="text-sm text-text-primary font-medium">{company.name}</span>
                 </div>
-              ) : (
-                <p className="text-sm text-error-light">No company information found.</p>
-              )}
-            </div>
-          </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-muted">ACN:</span>
+                  <span className="text-sm text-text-primary font-medium">{company.acn}</span>
+                </div>
+                {company.abn && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-muted">ABN:</span>
+                    <span className="text-sm text-text-primary font-medium">{company.abn}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-muted">Type:</span>
+                  <span className="text-sm text-text-primary font-medium">
+                    {displayCompanyType(company.companyType)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-error-light">No company information found.</p>
+            )}
+          </Section>
         ) : (
-          <div className="bg-surface-raised rounded-lg border border-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-border-subtle">
-              <h3 className="text-base font-semibold text-text-primary">Financial Profile</h3>
-            </div>
-            <div className="px-5 py-4">
-              {financialProfile ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Source of Funds:</span>
-                    <span className="text-sm text-text-primary font-medium">
-                      {formatSourceOfFunds(financialProfile.sourceOfFunds)}
+          <Section title="Financial Profile">
+            {financialProfile ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-text-muted">Source of Funds:</span>
+                  <span className="text-sm text-text-primary font-medium">
+                    {formatSourceOfFunds(financialProfile.sourceOfFunds)}
+                  </span>
+                </div>
+                {financialProfile.sourceOfFundsOtherText && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-text-muted">Source (Other):</span>
+                    <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
+                      {financialProfile.sourceOfFundsOtherText}
                     </span>
                   </div>
-                  {financialProfile.sourceOfFundsOtherText && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-text-muted">Source (Other):</span>
-                      <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
-                        {financialProfile.sourceOfFundsOtherText}
-                      </span>
-                    </div>
-                  )}
-                  {financialProfile.intendedUse && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-text-muted">Intended Use:</span>
-                      <span className="text-sm text-text-primary font-medium">
-                        {formatIntendedUse(financialProfile.intendedUse)}
-                      </span>
-                    </div>
-                  )}
-                  {financialProfile.intendedUseOtherText && (
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm text-text-muted">Intended Use (Other):</span>
-                      <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
-                        {financialProfile.intendedUseOtherText}
-                      </span>
-                    </div>
-                  )}
-                  {financialProfile.occupation && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-text-muted">Occupation:</span>
-                      <span className="text-sm text-text-primary font-medium">{financialProfile.occupation}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-error-light">No financial profile found.</p>
-              )}
-            </div>
-          </div>
+                )}
+                {financialProfile.intendedUse && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-muted">Intended Use:</span>
+                    <span className="text-sm text-text-primary font-medium">
+                      {formatIntendedUse(financialProfile.intendedUse)}
+                    </span>
+                  </div>
+                )}
+                {financialProfile.intendedUseOtherText && (
+                  <div className="flex justify-between items-start">
+                    <span className="text-sm text-text-muted">Intended Use (Other):</span>
+                    <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
+                      {financialProfile.intendedUseOtherText}
+                    </span>
+                  </div>
+                )}
+                {financialProfile.occupation && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text-muted">Occupation:</span>
+                    <span className="text-sm text-text-primary font-medium">{financialProfile.occupation}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-error-light">No financial profile found.</p>
+            )}
+          </Section>
         )}
 
-        <div className="bg-surface-raised rounded-lg border border-border overflow-hidden">
-          <div className="px-5 py-4">
-            <p className="text-sm text-text-body leading-relaxed mb-4">
-              By completing signup, you accept the{' '}
-              <a
-                href={`${MARKETING_URL}/terms-of-service`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand-light hover:text-brand-subtle underline"
-              >
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a
-                href={`${MARKETING_URL}/privacy-policy`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand-light hover:text-brand-subtle underline"
-              >
-                Privacy Policy
-              </a>
-              .
-            </p>
-            {!canCompleteSignup && (
-              <p className="text-sm text-error-light text-center mb-4">
-                Please ensure all information is complete to proceed.
-              </p>
-            )}
-            {completionError && (
-              <p role="alert" className="text-sm text-error-light text-center mb-4">
-                {completionError}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={completeSignup}
-              disabled={!canCompleteSignup || isSubmitting}
-              className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
+        <div className="rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
+          <p className="text-sm text-text-body leading-relaxed mb-4">
+            By completing signup, you accept the{' '}
+            <a
+              href={`${MARKETING_URL}/terms-of-service`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-light hover:text-brand-subtle underline"
             >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                  <span>Completing...</span>
-                </div>
-              ) : (
-                'Complete Signup'
-              )}
-            </button>
-          </div>
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a
+              href={`${MARKETING_URL}/privacy-policy`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-light hover:text-brand-subtle underline"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+          {!canCompleteSignup && (
+            <p className="text-sm text-error-light text-center mb-4">
+              Please ensure all information is complete to proceed.
+            </p>
+          )}
+          {completionError && (
+            <p role="alert" className="text-sm text-error-light text-center mb-4">
+              {completionError}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={completeSignup}
+            disabled={!canCompleteSignup || isSubmitting}
+            className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
+          >
+            {isSubmitting ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                <span>Completing...</span>
+              </div>
+            ) : (
+              'Complete Signup'
+            )}
+          </button>
         </div>
       </div>
 
