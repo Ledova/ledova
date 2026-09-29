@@ -120,15 +120,3 @@ def check_all_pending_transactions(timestamp: int) -> Dict[str, Any]:
         logger.info(f"Queued {queued}/{total} pending transactions for confirmation")
 
     return {"total": total, "queued": queued}
-
-
-@app.task
-def cleanup_stale_pending_transactions(timestamp: int) -> Dict[str, Any]:
-    stale_cutoff = timezone.now() - timedelta(hours=24)
-    overdue = Transaction.objects.filter(
-        status=TRANSACTION_STATUS_PENDING,
-        created_at__lt=stale_cutoff,
-    ).count()
-
-    logger.info("Retained %s overdue wallet transactions for receipt recovery", overdue)
-    return {"total": overdue, "failed": 0}
