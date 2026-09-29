@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
 import { Action, Section, SwitchRow } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useAppLock } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
@@ -106,10 +107,7 @@ export function SettingsScreen() {
   };
   return (
     <>
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-        <Text accessibilityRole="header" style={styles.title}>
-          Settings
-        </Text>
+      <Page title="Settings">
         <Section title="Security">
           <SwitchRow
             label={`${lock.biometricType} sign in`}
@@ -187,7 +185,7 @@ export function SettingsScreen() {
             </Text>
           )}
         </Section>
-      </ScrollView>
+      </Page>
       <CustomModal
         visible={modal === 'password'}
         title="Change password"

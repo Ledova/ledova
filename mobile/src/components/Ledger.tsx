@@ -29,13 +29,6 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-export function Lede({ children }: { children: ReactNode }) {
-  const styles = useThemedStyles((theme) => ({
-    lede: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
-  }));
-  return <Text style={styles.lede}>{children}</Text>;
-}
-
 function items(children: ReactNode, prefix = ''): { key: string; node: ReactElement }[] {
   return Children.toArray(children).flatMap((child, index) => {
     if (!isValidElement<{ children?: ReactNode }>(child)) return [];

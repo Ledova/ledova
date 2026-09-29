@@ -41,13 +41,13 @@ export function ApplicationDetailScreen() {
   return (
     <ApplicationsPage
       title="Application"
+      actions={<Action label="Back to Applications" onPress={() => navigation.navigate('ApplicationsMain')} />}
       loading={isLoading}
       refreshing={isRefreshing}
       refresh={() => {
         if (!submit.isPending && !withdraw.isPending) void retry();
       }}
     >
-      <Action label="Back to Applications" onPress={() => navigation.navigate('ApplicationsMain')} />
       {hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.message}>
