@@ -14,6 +14,53 @@ The `expo-system-ui` plugin applies the paper-only light appearance to Android
 native dialogs, including when the device uses dark mode. Generated-project
 checks verify the Android light resource and both iOS light appearance settings.
 
+iOS 27 stops an app built with the iOS 27 SDK at launch, in
+`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`, unless it uses the
+UIKit scene life cycle
+([TN3187](https://developer.apple.com/documentation/technotes/tn3187-migrating-to-the-uikit-scene-based-life-cycle)).
+Expo 54 and React Native 0.81.5 generate an app-delegate app with no scene delegate;
+Expo adds one in SDK 58, and in 57.0.23 behind `ios.enableSceneSupport`. Until the
+upgrade, `plugins/withSceneLifecycle.cjs` declares a `UIApplicationSceneManifest` in
+both Info.plists and adds `LedovaSceneDelegate`, so every iOS version the app
+supports runs the scene life cycle.
+
+`LedovaSceneDelegate` moves the window that `AppDelegate` still creates at launch
+into the connecting window scene. `AppDelegate` keeps creating it because Expo 54's
+dev launcher needs a window in `didFinishLaunching`, and expo-system-ui and React
+Native read `AppDelegate.window`. UIKit no longer calls the app delegate's URL,
+user-activity, foreground and background methods, so the scene delegate forwards
+those events to `AppDelegate`, which hands them to Expo's subscribers and
+`RCTLinkingManager` as before. UIKit still posts the application notifications that
+`AppState`, the app lock, the camera and WebViews observe. A window that becomes
+visible without a scene, such as Expo's developer menu, is moved into the app's
+scene. Generated-project checks verify the manifest and the delegate. The plugin
+refuses an `AppDelegate` that no longer creates the window, or another scene
+manifest, so an Expo upgrade that brings its own scene delegate stops at prebuild
+until this plugin is removed. It also
+refuses one whose window Objective-C cannot read, because the scene delegate
+asks for it by selector and would otherwise get nil and a black screen: the
+class must subclass `ExpoAppDelegate` and store `var window: UIWindow?`. Swift
+still exposes a private or implicitly unwrapped `window` there; `@nonobjc`,
+`static`, `let` or a computed property hides it, and a `weak` one is released as
+soon as it is assigned, which leaves the same black screen.
+
+A link that opens the app from closed does not reach JavaScript. UIKit delivers
+it with the connecting scene, after `AppDelegate` has started React Native with
+launch options that no longer carry it, so `Linking.getInitialURL()` returns null,
+and the `url` event the scene delegate sends fires before any JavaScript listens.
+On iOS 27.0 and 26.5 simulators the launch options React Native keeps for
+`getInitialURL` were empty after a link started the Release build; on iOS 26.5,
+which can launch the same build without the scene manifest, they held the link. A link that arrives while the
+app runs, such as an OAuth redirect back to it, still reaches `Linking`'s `url`
+event. Nothing depends on this today: the app reads no incoming links, and
+`mobile/scripts/tests/ios-scene-lifecycle.test.mjs` fails if `App.tsx`, `index.ts`
+or code under `mobile/src` starts to. A feature that needs a link to open the
+closed app, such as an emailed confirmation link, must first move to Expo SDK 58,
+or 57.0.23 or later with `ios.enableSceneSupport`, whose scene delegate starts
+React Native with the link in its launch options
+([expo/expo#47628](https://github.com/expo/expo/pull/47628)). That upgrade
+replaces this plugin, which refuses the new `AppDelegate` at prebuild.
+
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
 The locked packages declaring install scripts are watcher, fsevents,
