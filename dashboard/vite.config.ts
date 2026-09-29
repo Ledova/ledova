@@ -17,14 +17,11 @@ const browserPolyfills: Record<string, string> = {
   stream: resolvePolyfillRoot('stream-browserify'),
 };
 
-export function nodePolyfills(modules: string[]): Plugin {
+export function nodePolyfills(): Plugin {
   const alias: Record<string, string> = {};
-  for (const mod of modules) {
-    const resolved = browserPolyfills[mod];
-    if (resolved) {
-      alias[mod] = resolved;
-      alias[`node:${mod}`] = resolved;
-    }
+  for (const [mod, resolved] of Object.entries(browserPolyfills)) {
+    alias[mod] = resolved;
+    alias[`node:${mod}`] = resolved;
   }
 
   const inject: Record<string, string | [string, string]> = {
@@ -61,11 +58,7 @@ function nodeBuiltins(modules: string[]): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    plugins: [
-      process.env.VITEST ? nodeBuiltins(['buffer']) : nodePolyfills(['buffer', 'process', 'util', 'events', 'stream']),
-      react(),
-      tailwindcss(),
-    ],
+    plugins: [process.env.VITEST ? nodeBuiltins(['buffer']) : nodePolyfills(), react(), tailwindcss()],
     resolve: {
       tsconfigPaths: true,
     },
