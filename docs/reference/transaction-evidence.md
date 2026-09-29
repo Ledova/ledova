@@ -118,10 +118,8 @@ are excluded both from selection and from the fresh receipt-write check. Their
 [dedicated recovery and legacy hold](swap-settlement.md#legacy-history-hold)
 retain outcomes that cannot be attributed to the original settlement context.
 
-A deployment that still has `blockchain.tasks.cleanup_failed_transactions` or
-`wallets.tasks.confirmation.cleanup_stale_pending_transactions` jobs queued must
-drain them with a release that has those tasks before upgrading
-([upgrade note](../operations/upgrades.md#retired-transaction-cleanup-tasks)).
+The two retired cleanup tasks and how to clear jobs queued under them are in the
+[upgrade note](../operations/upgrades.md#retired-transaction-cleanup-tasks).
 
 Operator transactions without a hash remain unresolved. Recovering their
 identity, reviewing rows already failed by historical cleanup, and per-chain

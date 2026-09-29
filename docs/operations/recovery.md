@@ -161,9 +161,8 @@ Use the recorded journal and the matching [EVM](../reference/evm-transfers.md) o
 balance reconciliation are separate; a five-minute sweep requeues durable balance
 repair even after a transaction's status changes. See [wallet reconciliation](../reference/wallet-reconciliation.md).
 
-A deployment that still has `cleanup_failed_transactions` or
-`cleanup_stale_pending_transactions` jobs queued must drain them with a release
-that has those tasks before upgrading ([upgrade note](upgrades.md#retired-transaction-cleanup-tasks)).
+The two retired cleanup tasks and how to clear jobs queued under them are in the
+[upgrade note](upgrades.md#retired-transaction-cleanup-tasks).
 Reviewing historically failed rows and hashless operator submissions remains
 separate work; do not infer compensation from timeouts.
 [Transaction evidence](../reference/transaction-evidence.md) explains receipt,
