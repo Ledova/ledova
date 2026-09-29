@@ -108,9 +108,9 @@ export function Resolution({
       )}
 
       {castError && (
-        <div role="alert" className="mt-3 rounded-lg bg-error/10 px-3 py-2 text-sm text-error">
+        <p role="alert" className="mt-3 text-sm text-error-light">
           {castError}
-        </div>
+        </p>
       )}
 
       {status === 'closed' &&

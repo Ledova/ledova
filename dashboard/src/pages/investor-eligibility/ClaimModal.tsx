@@ -125,6 +125,7 @@ export function ClaimModal({
     <Modal
       isOpen={isOpen}
       onClose={() => {
+        if (isSubmitting) return;
         reset();
         onClose();
       }}
@@ -246,7 +247,7 @@ export function ClaimModal({
             className={`flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
               isDragging
                 ? 'border-brand-light bg-brand-mid/10'
-                : 'border-border hover:border-brand-subtle hover:bg-surface-hover'
+                : 'border-border hover:border-brand-subtle hover:bg-surface-tertiary'
             }`}
           >
             <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />

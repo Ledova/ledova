@@ -239,7 +239,10 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         )}
 
       {extraction?.status === 'failed' && extraction.error && (
-        <div className="mt-3 text-xs text-error-light bg-error/10 rounded p-2">{extraction.error}</div>
+        <p className="mt-3 flex items-start gap-2 text-xs text-error-light">
+          <XCircleIcon size={ICON_SM} weight="fill" className="mt-0.5 flex-shrink-0" />
+          <span>{extraction.error}</span>
+        </p>
       )}
     </div>
   );

@@ -481,14 +481,20 @@ top and labels it, its body scrolls inside the card when the screen is too short
 and its actions end the card as one right-aligned row of content-width
 `PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
 action. On a narrow phone the row wraps onto another line rather than
-stretching. Sign-in and the sign-up steps hold their forms in the same card on
-the public layout. A group inside a card is set off by a rule or a small heading
+stretching. A group inside a card is set off by a rule or a small heading
 rather than a card of its own, as the For sale and Wanted lists on Market, the
 saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
 unpause requests on a share class and the steps of a signing dialog are
-([decision](../decisions.md#the-signed-in-app)). A field in a card is white with
-a hairline border (`rounded-lg border border-border bg-surface-raised`), and a
-warning is its icon and warning-coloured text rather than a tinted box.
+([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
+their dialogs a field is white with a hairline border (`rounded-lg border
+border-border bg-surface-raised`), a warning is its icon and warning-coloured
+text and an error is error-coloured text, none of them a tinted box. The one box
+a card keeps is a dashed upload area, the payslip upload on Profile and the
+evidence file in a claim, because its outline marks where a file goes.
+Sign-in and the sign-up steps hold their forms in the same card on the public
+layout, but only that card and its headings follow the signed-in pages: their
+fields are still tinted, and their alerts and identity-check outcomes still sit
+in tinted boxes.
 
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with

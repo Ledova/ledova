@@ -127,7 +127,7 @@ export function SignupUser() {
                 </button>
               </div>
 
-              <div className="bg-surface-tertiary rounded-md p-3 border border-border">
+              <div>
                 <p className="text-xs font-medium text-text-body mb-2">Password must:</p>
                 <ul className="space-y-1">
                   <li className="flex items-center space-x-2 text-xs">

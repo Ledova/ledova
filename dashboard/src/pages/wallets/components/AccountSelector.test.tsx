@@ -72,6 +72,8 @@ it('lists accounts as pressed rows under rules and ends with Cancel then Import'
   await view.findByText('1 ETH');
   const row = view.getByRole('button', { pressed: true });
   expect(row.parentElement!.className).toContain('divide-y');
+  expect(row.parentElement!.className).toContain('max-h-[300px]');
+  expect(row.parentElement!.className).toContain('overflow-y-auto');
   fireEvent.click(row);
   expect(row.getAttribute('aria-pressed')).toBe('false');
   const cancel = view.getByRole('button', { name: 'Cancel' });

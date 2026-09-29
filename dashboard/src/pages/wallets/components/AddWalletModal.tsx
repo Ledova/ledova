@@ -286,7 +286,7 @@ function ImportAccounts({
 
   return (
     <>
-      <div className="divide-y divide-border-subtle">
+      <div className="max-h-[300px] divide-y divide-border-subtle overflow-y-auto">
         {addresses.map((derivedAddress) => {
           const isSelected = selectedAddresses.has(importAddressKey(derivedAddress));
           const balance = balances.get(importAddressKey(derivedAddress)) || 'Loading...';
