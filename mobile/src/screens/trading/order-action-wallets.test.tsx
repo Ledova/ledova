@@ -48,5 +48,5 @@ it('retains unverified EVM action wallets and the existing verified-only create 
   await waitFor(() => expect(view.result.current.actionWallets).toEqual([verified, unverified]));
   expect(view.result.current.wallets).toEqual([verified]);
   expect(view.result.current.walletAddresses).toEqual([verified.address]);
-  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, undefined]]);
+  expect(calls).toEqual([['get', WALLET_ENDPOINTS.BASE, { page: 1 }]]);
 });

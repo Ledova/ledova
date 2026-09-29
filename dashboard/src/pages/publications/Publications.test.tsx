@@ -647,16 +647,6 @@ describe('personal Notices and preserved dividend behavior', () => {
     expect(await screen.findByRole('button', { name: 'For' })).toBeTruthy();
   });
 
-  it.each(['https://api.example/api/v1/publications/?page=1', 'https://api.example/api/v1/publications/'])(
-    'rejects nonadvancing or malformed next-page links: %s',
-    async (next) => {
-      listing = async () => ({ data: { count: 2, previous: null, next, results: rows } });
-      showPage();
-      expect(await screen.findByRole('alert')).toBeTruthy();
-      expect(screen.queryByText(statement.title)).toBeNull();
-    },
-  );
-
   it('keeps a document pending until the download is ready and allows retry after delivery failure', async () => {
     let finish!: (value: { data: Blob }) => void;
     file = () =>

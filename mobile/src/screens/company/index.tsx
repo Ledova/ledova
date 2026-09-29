@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Text, View, ScrollView, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCompanyTokens, formatShareCount, type Company } from '@ledova/shared';
+import { getCompanyTokens, formatShareCount, readEveryPage, type Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { apiClient } from '../../services/apiClient';
-import { everyCompanyPage } from '../company-register/useCompanyRegister';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyReadNotice } from './CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
@@ -25,7 +24,7 @@ export function CompanyScreen() {
     queryKey: ['company-tokens', 'company', company?.uuid],
     enabled: data.access.allowed && !!company && !data.error,
     queryFn: async () =>
-      (await everyCompanyPage((page) => getCompanyTokens(apiClient, { page }))).filter(
+      (await readEveryPage((page) => getCompanyTokens(apiClient, { page }))).filter(
         (token) => token.companyUuid === company!.uuid,
       ),
   });

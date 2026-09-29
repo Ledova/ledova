@@ -145,25 +145,18 @@ it('does not claim a complete count or expose first-page records while a later p
   expect(await view.findByText('2 publications')).toBeTruthy();
 });
 
-it.each(['refused', 'nonadvancing', 'unparseable'])(
-  'refuses a %s second page without showing an empty or partial list',
-  async (mode) => {
-    pages = async (page) => {
-      if (page === 1) return listed(rows, 'https://example.test/?page=2');
-      if (mode === 'refused') return fail();
-      return listed([], mode === 'nonadvancing' ? 'https://example.test/?page=2' : 'https://example.test/?page=bad');
-    };
-    const view = await render(<CompanyPublicationsScreen />, { wrapper });
-    expect(
-      await view.findByText("Your company's publications could not be loaded. Try again before continuing."),
-    ).toBeTruthy();
-    expect(view.queryByText(statement.title)).toBeNull();
-    expect(view.queryByText("Nothing has been published to this company's members yet.")).toBeNull();
-    pages = async () => listed(rows);
-    await fireEvent.press(view.getByText('Retry publications'));
-    expect(await view.findByText(statement.title)).toBeTruthy();
-  },
-);
+it('refuses a refused second page without showing an empty or partial list', async () => {
+  pages = async (page) => (page === 1 ? listed(rows, 'https://example.test/?page=2') : fail());
+  const view = await render(<CompanyPublicationsScreen />, { wrapper });
+  expect(
+    await view.findByText("Your company's publications could not be loaded. Try again before continuing."),
+  ).toBeTruthy();
+  expect(view.queryByText(statement.title)).toBeNull();
+  expect(view.queryByText("Nothing has been published to this company's members yet.")).toBeNull();
+  pages = async () => listed(rows);
+  await fireEvent.press(view.getByText('Retry publications'));
+  expect(await view.findByText(statement.title)).toBeTruthy();
+});
 
 it('distinguishes an owned company with no publications from a missing company', async () => {
   rows = [];

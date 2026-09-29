@@ -24,6 +24,14 @@ Every client import is `from '@ledova/shared'`. `packages/shared/src/services`
 holds the API call functions both clients share; each takes the caller's axios
 instance as its first argument, so each client keeps its own interceptors.
 
+Wherever this page says a list reads every page, it does so through
+`readEveryPage` (`packages/shared/src/utils/pagination.ts`): it asks for page 1,
+follows each `next` link by the page number the link names, and returns the rows
+in page order. A read fails whole when a page fails or when a `next` link names
+no later page, so a stalled or malformed link is never presented as the end of
+the list. Lists that load further pages on request check each page's link the
+same way with `assertNextPageAdvances`.
+
 The dashboard's signed-in pages are listed once, in `DESTINATIONS`
 (`packages/shared/src/constants/ui/destinations.ts`), each with its address,
 title and audience. The dashboard builds its signed-in routes from a map keyed

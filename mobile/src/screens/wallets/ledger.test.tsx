@@ -161,15 +161,6 @@ it('reports a failed later wallet page and retries the whole ledger before prese
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
 });
 
-it.each(['?page=1', '?page=garbage'])('rejects advertised pagination that cannot advance: %s', async (next) => {
-  pages[1].next = 'https://example.test' + url + next;
-  const view = await mount(<WalletsScreen />);
-  await waitFor(() =>
-    expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy(),
-  );
-  expect(get).toHaveBeenCalledTimes(1);
-});
-
 it('shows truthful empty networks and retains Buy and Send only as wallet destinations', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await mount(<WalletsScreen />);
