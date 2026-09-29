@@ -15,7 +15,8 @@ import {
   HandCoinsIcon,
   BookOpenIcon,
 } from '@phosphor-icons/react';
-import { DESIGN_TOKENS, DESTINATIONS, getCompanies, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, getCompanies, type DestinationKey } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import apiClient from '@services/apiClient';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { useRole } from '@hooks/useRole';
@@ -24,8 +25,6 @@ import { MARKETING_URL } from '@utils/marketingUrl';
 import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
 import { SignOutButton } from '@components/SignOutButton';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 

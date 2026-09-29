@@ -3,12 +3,11 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { XIcon } from 'phosphor-react-native';
-import { formatDateTime, PUBLICATION_NOTICE } from '@ledova/shared';
+import { formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Rows } from '../Ledger';
 import { CustomModal, useDialogStyles } from '../modal';
-import { useNotifications } from '@ledova/shared';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 interface NotificationsModalProps {

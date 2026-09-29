@@ -1,7 +1,8 @@
 import { useEffect, useCallback, useState } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
 import { QRCodeSVG } from 'qrcode.react';
-import { DESIGN_TOKENS, getWalletVerificationEvmChainId } from '@ledova/shared';
+import { getWalletVerificationEvmChainId } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -9,8 +10,6 @@ import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import { useWalletVerification } from '../hooks/useWalletVerification';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 interface WalletVerificationModalProps {
   isOpen: boolean;

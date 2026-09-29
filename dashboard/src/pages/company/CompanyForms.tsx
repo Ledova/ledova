@@ -12,10 +12,8 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { CompanyReadNotice, type CompanyRead } from './CompanyState';
+import { FIELD_CLASS } from '@components/fieldClass';
 
-const FIELD_CLASS =
-  'mt-1 block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 const EDIT_FIELDS = [
   ['name', 'Company name'],
   ['tradingName', 'Trading name'],

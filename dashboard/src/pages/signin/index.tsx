@@ -3,10 +3,9 @@ import { useSignIn } from './useSignIn';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS, getUserAccount, landingFor } from '@ledova/shared';
+import { getUserAccount, landingFor } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import apiClient from '@services/apiClient';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 export function SignInPage() {
   const navigate = useNavigate();

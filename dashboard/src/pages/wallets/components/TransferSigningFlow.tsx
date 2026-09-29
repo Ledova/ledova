@@ -1,21 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { CheckCircleIcon, WarningCircleIcon, SpinnerGapIcon, ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import {
-  formatWalletAddressMedium,
-  BLOCKCHAIN,
-  DESIGN_TOKENS,
-  getBlockExplorerTxUrl,
-  getNativeAssetSymbol,
-} from '@ledova/shared';
+import { formatWalletAddressMedium, BLOCKCHAIN, getBlockExplorerTxUrl, getNativeAssetSymbol } from '@ledova/shared';
+import { ICON_XS, ICON_MD, ICON_XL } from '@components/iconSizes';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import { Row, Rows } from '@components/Ledger';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_XL = DESIGN_TOKENS.icon.sizes.xl;
 import type { Wallet, WalletTokenBalance, PreparedWalletTransfer } from '@ledova/shared';
 import { encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { decodeKeystoneSignedTransaction } from '@utils/keystone/urDecoder';
