@@ -58,7 +58,7 @@ function nodeBuiltins(modules: string[]): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    plugins: [process.env.VITEST ? nodeBuiltins(['buffer']) : nodePolyfills(), react(), tailwindcss()],
+    plugins: [process.env.VITEST === 'true' ? nodeBuiltins(['buffer']) : nodePolyfills(), react(), tailwindcss()],
     resolve: {
       tsconfigPaths: true,
     },
