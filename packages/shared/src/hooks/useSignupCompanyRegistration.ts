@@ -1,15 +1,11 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  getUserProfiles,
-  registerCompany,
-  getCompanies,
-  getCompany,
-  updateCompany,
-  CACHE_TIMING,
-} from '@ledova/shared';
-import type { CompanyRegistration, CompanyType } from '@ledova/shared';
-import { apiClient } from '../../../services/apiClient';
+
+import { getCompanies, getCompany, registerCompany, updateCompany } from '../services/companies';
+import { getUserProfiles } from '../services/users';
+import type { CompanyRegistration, CompanyType } from '../types';
+import { readApiError } from '../utils/errors';
+import { useApiClient } from './useApiClient';
 
 interface CompanyFormData {
   name: string;
@@ -21,6 +17,8 @@ interface CompanyFormData {
 
 type FormErrors = Record<string, string[]>;
 
+const COULD_NOT_SAVE = 'We could not save your company details. Please try again.';
+
 const initialFormData: CompanyFormData = {
   name: '',
   tradingName: '',
@@ -29,7 +27,7 @@ const initialFormData: CompanyFormData = {
   abn: '',
 };
 
-const DISPLAYED_FIELDS = Object.keys(initialFormData) as (keyof CompanyFormData)[];
+export const COMPANY_REGISTRATION_FIELDS = Object.keys(initialFormData) as (keyof CompanyFormData)[];
 
 interface FormOwner {
   uuid: string | null | undefined;
@@ -59,12 +57,12 @@ const initialState = (owner: FormOwner): FormState => ({
   hydrated: owner.uuid === null,
 });
 
-export function useCompanyRegistration() {
+export function useSignupCompanyRegistration() {
+  const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const profilesQuery = useQuery({
     queryKey: ['userProfiles'],
     queryFn: () => getUserProfiles(apiClient),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
   const companiesQuery = useQuery({
     queryKey: ['signup', 'company'],
@@ -130,16 +128,14 @@ export function useCompanyRegistration() {
     };
     updateState((previous) => {
       const values = { ...previous.form };
-      for (const field of DISPLAYED_FIELDS) if (!previous.dirty.has(field)) values[field] = saved[field];
-      if (previous.hydrated && DISPLAYED_FIELDS.every((field) => values[field] === previous.form[field]))
+      for (const field of COMPANY_REGISTRATION_FIELDS) if (!previous.dirty.has(field)) values[field] = saved[field];
+      if (previous.hydrated && COMPANY_REGISTRATION_FIELDS.every((field) => values[field] === previous.form[field]))
         return previous;
       return { ...previous, form: values, hydrated: true };
     });
   }, [detail, updateState]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const responseData = profilesQuery.data?.data as any;
-  const userProfile = responseData?.results?.[0] || responseData?.[0] || null;
+  const userProfile = profilesQuery.data?.data.results?.[0] ?? null;
   const loadError =
     profilesQuery.error?.message ||
     companiesQuery.error?.message ||
@@ -231,7 +227,9 @@ export function useCompanyRegistration() {
     const fullName = userProfile?.fullName || '';
     const nameParts = fullName.trim().split(/\s+/);
     if (nameParts.length < 2 || !nameParts[1]) {
-      setGeneralError('Please ensure your full name is set in your profile before registering a company.');
+      setGeneralError(
+        'Please ensure your full name (first and last) is set in your profile before registering a company.',
+      );
       return false;
     }
 
@@ -284,18 +282,9 @@ export function useCompanyRegistration() {
       } catch (err: unknown) {
         if (!isCurrentSubmission(attempt)) return;
 
-        const error = err as { response?: { data?: Record<string, unknown> } };
-        const data = error?.response?.data;
-        if (data) {
-          const detail = (data.detail as string) || (data.error as string) || (data.message as string);
-          if (detail) {
-            setGeneralError(detail);
-          } else {
-            setGeneralError('An error occurred. Please try again.');
-          }
-        } else {
-          setGeneralError('An error occurred. Please try again.');
-        }
+        const reading = readApiError(err, { fallback: COULD_NOT_SAVE, displayedFields: COMPANY_REGISTRATION_FIELDS });
+        setGeneralError(reading.generalError ?? '');
+        setErrors(reading.fieldErrors ?? {});
       } finally {
         if (submission.current === attempt) submission.current = null;
       }

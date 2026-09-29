@@ -4,7 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CompanyRegistrationForm } from './CompanyRegistrationForm';
-import { DISPLAYED_FIELDS } from '../useSignupCompanyRegistration';
+import { COMPANY_REGISTRATION_FIELDS } from '@ledova/shared';
 
 const A_MESSAGE: Record<string, string> = {
   name: 'Enter the registered name.',
@@ -29,10 +29,10 @@ function formWith(errors: Record<string, string[]>, generalError = '') {
   );
 }
 
-describe('every field DISPLAYED_FIELDS names is one this form actually renders', () => {
+describe('every field COMPANY_REGISTRATION_FIELDS names is one this form actually renders', () => {
   afterEach(cleanup);
 
-  it.each(DISPLAYED_FIELDS)('renders the error it is handed for %s', (field) => {
+  it.each(COMPANY_REGISTRATION_FIELDS)('renders the error it is handed for %s', (field) => {
     render(formWith({ [field]: [A_MESSAGE[field]] }));
 
     expect(screen.getByText(A_MESSAGE[field])).toBeDefined();

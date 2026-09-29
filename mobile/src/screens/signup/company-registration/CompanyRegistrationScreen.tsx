@@ -17,7 +17,7 @@ import { PrimaryButton } from '../../../components/buttons';
 import { ScreenHeader } from '../../../components/header';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { useCompanyRegistration } from './useCompanyRegistration';
+import { useSignupCompanyRegistration } from '@ledova/shared';
 import { BuildingsIcon, WarningCircleIcon, CaretDownIcon, CheckIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../../contexts';
@@ -246,7 +246,7 @@ export function CompanyRegistrationScreen() {
     setFieldValue,
     handleSubmit,
     retryLoad,
-  } = useCompanyRegistration();
+  } = useSignupCompanyRegistration();
   const [showTypePicker, setShowTypePicker] = useState(false);
 
   const selectedType = COMPANY_TYPES.find((t) => t.value === form.companyType);
@@ -339,13 +339,13 @@ export function CompanyRegistrationScreen() {
                     editable={!isSubmitting}
                   />
                 </View>
-                {errors.name && <Text style={styles.fieldError}>{errors.name[0]}</Text>}
+                {errors.name && <Text style={styles.fieldError}>{errors.name.join(' ')}</Text>}
               </View>
 
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Trading Name (optional)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errors.tradingName && styles.inputError]}
                   value={form.tradingName}
                   onChangeText={(value) => setFieldValue('tradingName', value)}
                   placeholder="Trading as..."
@@ -353,12 +353,13 @@ export function CompanyRegistrationScreen() {
                   autoCapitalize="words"
                   editable={!isSubmitting}
                 />
+                {errors.tradingName && <Text style={styles.fieldError}>{errors.tradingName.join(' ')}</Text>}
               </View>
 
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Company Type *</Text>
                 <TouchableOpacity
-                  style={styles.selectTrigger}
+                  style={[styles.selectTrigger, errors.companyType && styles.inputError]}
                   onPress={() => setShowTypePicker(true)}
                   disabled={isSubmitting}
                 >
@@ -367,6 +368,7 @@ export function CompanyRegistrationScreen() {
                   </Text>
                   <CaretDownIcon size={16} color={theme.colors.text.muted} weight="bold" />
                 </TouchableOpacity>
+                {errors.companyType && <Text style={styles.fieldError}>{errors.companyType.join(' ')}</Text>}
               </View>
 
               <View style={styles.row}>
@@ -382,7 +384,7 @@ export function CompanyRegistrationScreen() {
                     maxLength={11}
                     editable={!isSubmitting}
                   />
-                  {errors.acn && <Text style={styles.fieldError}>{errors.acn[0]}</Text>}
+                  {errors.acn && <Text style={styles.fieldError}>{errors.acn.join(' ')}</Text>}
                 </View>
 
                 <View style={[styles.fieldContainer, styles.flex1]}>
@@ -397,7 +399,7 @@ export function CompanyRegistrationScreen() {
                     maxLength={14}
                     editable={!isSubmitting}
                   />
-                  {errors.abn && <Text style={styles.fieldError}>{errors.abn[0]}</Text>}
+                  {errors.abn && <Text style={styles.fieldError}>{errors.abn.join(' ')}</Text>}
                 </View>
               </View>
 
