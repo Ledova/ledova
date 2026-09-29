@@ -2,9 +2,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS, useSignupUser } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { useSignupUser } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 
 function emailRefusal(sentence: string) {
   if (!/already registered/i.test(sentence)) return sentence;

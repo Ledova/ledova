@@ -12,7 +12,6 @@ import {
 import {
   getChainShortCode,
   BLOCKCHAIN,
-  DESIGN_TOKENS,
   getAddressPlaceholder,
   getBlockchainDisplayName,
   getEstimatedFee,
@@ -21,15 +20,12 @@ import {
   parseFiatValue,
   useCurrency,
 } from '@ledova/shared';
+import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from '../hooks/useTransferFlow';
 
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 const FIELD_CLASS =
   'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
@@ -46,7 +42,7 @@ interface SendFormModalProps {
   isCheckingRecipientWhitelist: boolean;
   senderWhitelistStatus?: WhitelistStatus;
   recipientWhitelistStatus?: WhitelistStatus;
-  onBack: () => void;
+  onBack?: () => void;
   onTransfer: (asset: UnifiedAsset, toAddress: string, amount: string) => void;
   onAssetChange?: (asset: UnifiedAsset | null) => void;
   onAddressChange?: (address: string) => void;
@@ -193,8 +189,8 @@ export function SendFormModal({
       size="md"
       showFooter
       showCancelButton
-      cancelLabel="Back"
-      onCancel={onBack}
+      cancelLabel={onBack ? 'Back' : 'Cancel'}
+      onCancel={onBack ?? onClose}
       confirmLabel="Continue"
       confirmDisabled={!canTransfer}
       onConfirm={handleConfirm}
@@ -250,7 +246,9 @@ export function SendFormModal({
                     <span className="flex items-center gap-1.5">
                       {asset.type === 'crypto' && (
                         <>
-                          <span className="text-xs text-text-muted">{asset.displayBalance}</span>
+                          <span className="text-xs text-text-muted">
+                            {asset.displayBalance} {asset.symbol}
+                          </span>
                           <span className="text-xs text-text-subtle">&middot;</span>
                         </>
                       )}

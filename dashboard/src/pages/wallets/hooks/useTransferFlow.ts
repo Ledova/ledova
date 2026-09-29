@@ -88,7 +88,7 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
       symbol: nativeSymbol,
       name: isEvmWallet ? 'Ether' : getBlockchainDisplayName(chainShortCode),
       balance: selectedWallet.nativeBalance,
-      displayBalance: formatCryptoBalance(selectedWallet.nativeBalance, nativeSymbol),
+      displayBalance: formatCryptoBalance(selectedWallet.nativeBalance, '').trimEnd(),
       marketValue: selectedWallet.nativeMarketValue,
       decimals: isEvmWallet ? 18 : 8,
     });

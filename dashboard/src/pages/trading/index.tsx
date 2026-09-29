@@ -2,13 +2,8 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
-import {
-  DESIGN_TOKENS,
-  selectSwapSettlement,
-  useOrderSubmissions,
-  useOrderActions,
-  useSwapSettlements,
-} from '@ledova/shared';
+import { selectSwapSettlement, useOrderSubmissions, useOrderActions, useSwapSettlements } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 import { orderSubmissionStore } from '@services/orderSubmissions';
 import { settlementWalletKey, swapSettlementCrypto, swapSettlementStore } from '@services/swapSettlements';
 import { Modal } from '@components/Modal';
@@ -32,8 +27,6 @@ import { useInvestorEligibilityQuery } from './useTrading';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
 import { marketAmount, marketQuantity } from './marketData';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 function OrderSuccessModal({
   isOpen,

@@ -4,9 +4,8 @@ import LoadingState from '@components/signup/LoadingState';
 import ErrorState from '@components/signup/ErrorState';
 import { CompanyRegistrationForm } from './components/CompanyRegistrationForm';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS, useSignupCompanyRegistration } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { useSignupCompanyRegistration } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
 
 export function SignupCompanyRegistration() {
   const navigate = useNavigate();

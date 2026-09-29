@@ -66,7 +66,7 @@ describe('dashboard token deployment selection', () => {
     });
     expect(result.current.assets.find((row) => row.id === 'native-base')).toMatchObject({
       symbol: 'ETH',
-      displayBalance: '1 ETH',
+      displayBalance: '1',
     });
   });
   it('does not offer the other networks contract when this deployment is disabled', async () => {

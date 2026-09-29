@@ -1,5 +1,6 @@
 import type { OrderActionPurpose } from '../types';
 import type { OrderSubmissionOwner, OrderSubmissionStorage } from './order-submission-storage';
+import { isUuid } from './validation';
 
 export interface SavedOrderAction extends OrderSubmissionOwner {
   version: 1;
@@ -9,16 +10,14 @@ export interface SavedOrderAction extends OrderSubmissionOwner {
 }
 
 const PREFIX = 'ledova.order-actions.v1.';
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function scopePrefix(owner: OrderSubmissionOwner): string {
-  if (!UUID.test(owner.userUuid) || !UUID.test(owner.ownerAccountUuid))
-    throw new Error('The order account is unavailable.');
+  if (!isUuid(owner.userUuid) || !isUuid(owner.ownerAccountUuid)) throw new Error('The order account is unavailable.');
   return `${PREFIX}${owner.userUuid}.${owner.ownerAccountUuid}.`;
 }
 
 function storageKey(record: SavedOrderAction): string {
-  if (!UUID.test(record.orderUuid) || !UUID.test(record.actionId) || !['cancel', 'modify'].includes(record.purpose))
+  if (!isUuid(record.orderUuid) || !isUuid(record.actionId) || !['cancel', 'modify'].includes(record.purpose))
     throw new Error('The order action identity is unavailable.');
   return `${scopePrefix(record)}${record.orderUuid}.${record.purpose}.${record.actionId}`;
 }

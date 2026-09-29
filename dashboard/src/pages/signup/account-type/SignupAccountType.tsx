@@ -1,10 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
-import { DESIGN_TOKENS, useSignupAccountType } from '@ledova/shared';
+import { useSignupAccountType } from '@ledova/shared';
+import { ICON_LG, ICON_MD } from '@components/iconSizes';
 import { AuthLayout } from '@components/AuthLayout';
-
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 
 type AccountRole = 'investor' | 'company';
 

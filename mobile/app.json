@@ -56,7 +56,8 @@
           }
         }
       ],
-      "./plugins/withMobileSecurity.cjs"
+      "./plugins/withMobileSecurity.cjs",
+      "./plugins/withSceneLifecycle.cjs"
     ],
     "experiments": {
       "typedRoutes": true
