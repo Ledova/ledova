@@ -141,31 +141,32 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         {withNotifications && <NotificationBell align="start" />}
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-        {groups.map((group) => (
-          <div key={group.id} className="space-y-1">
-            {group.label && <GroupLabel>{group.label}</GroupLabel>}
-            {group.items.map((item) => (
-              <NavButton
-                key={item.destination}
-                item={item}
-                active={DESTINATIONS[item.destination].path === activePath}
-                onSelect={handleNav}
-              />
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      <a
-        href={`${MARKETING_URL}/contact`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => onNavigate?.()}
-        className="mx-6 mb-3 w-fit text-sm text-text-muted transition-colors hover:text-text-primary"
-      >
-        Help & Support
-      </a>
+      <div className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="space-y-6">
+          {groups.map((group) => (
+            <div key={group.id} className="space-y-1">
+              {group.label && <GroupLabel>{group.label}</GroupLabel>}
+              {group.items.map((item) => (
+                <NavButton
+                  key={item.destination}
+                  item={item}
+                  active={DESTINATIONS[item.destination].path === activePath}
+                  onSelect={handleNav}
+                />
+              ))}
+            </div>
+          ))}
+        </nav>
+        <a
+          href={`${MARKETING_URL}/contact`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onNavigate?.()}
+          className="mx-3 mt-6 block w-fit text-sm text-text-muted transition-colors hover:text-text-primary"
+        >
+          Help & Support
+        </a>
+      </div>
 
       <div className="border-t border-border-subtle px-6 py-4">
         {person && <p className="mb-1 break-words text-sm font-medium text-text-primary">{person}</p>}

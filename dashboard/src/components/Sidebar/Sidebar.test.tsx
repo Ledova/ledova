@@ -272,13 +272,18 @@ describe('the foot of the sidebar', () => {
     expect(footText()).toEqual(['Sign out']);
   });
 
-  it('puts Help & Support below the navigation, as a link to the contact page rather than a destination', () => {
+  it('ends the scrolling list with Help & Support, a footer-style link to the contact page, just above the ruled foot', () => {
     show('investor');
 
     const help = screen.getByRole('link', { name: 'Help & Support' });
+    const list = help.parentElement!;
     expect(help.getAttribute('href')).toBe(`${MARKETING_URL}/contact`);
     expect(help.getAttribute('target')).toBe('_blank');
+    expect(help.getAttribute('rel')).toBe('noopener noreferrer');
     expect(screen.getByRole('navigation').contains(help)).toBe(false);
-    expect(help.nextElementSibling).toBe(foot());
+    expect(list.contains(screen.getByRole('navigation'))).toBe(true);
+    expect(list.lastElementChild).toBe(help);
+    expect(list.nextElementSibling).toBe(foot());
+    expect(foot().className.split(' ')).toContain('border-t');
   });
 });
