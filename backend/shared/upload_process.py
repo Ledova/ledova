@@ -1,3 +1,5 @@
+import functools
+import logging
 import os
 import subprocess
 import sys
@@ -5,10 +7,18 @@ import tempfile
 from pathlib import Path
 
 from shared.upload_errors import UploadUnavailable
+from shared.upload_worker_limits import ADDRESS_SPACE_REFUSED
+
+logger = logging.getLogger(__name__)
 
 
 class UploadProcessTimeout(Exception):
     pass
+
+
+@functools.cache
+def report_refused_address_space():
+    logger.warning("Upload workers run without RLIMIT_AS, which this platform refuses to set")
 
 
 def run_upload_worker(worker, arguments, raw, seconds, output_limit):
@@ -26,6 +36,8 @@ def run_upload_worker(worker, arguments, raw, seconds, output_limit):
                     timeout=seconds,
                     check=False,
                 )
+            if (Path(directory) / ADDRESS_SPACE_REFUSED).exists():
+                report_refused_address_space()
             with output.open("rb") as stream:
                 return result.returncode, stream.read(output_limit + 1)
         except subprocess.TimeoutExpired:
