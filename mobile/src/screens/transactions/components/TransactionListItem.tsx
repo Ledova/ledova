@@ -1,14 +1,8 @@
 import { Text, View } from 'react-native';
-import {
-  formatDate,
-  getBlockchainDisplayName,
-  getChainShortCode,
-  getTransactionStatus,
-  type Transaction,
-} from '@ledova/shared';
+import { formatDate, getBlockchainDisplayName, getChainShortCode, type Transaction } from '@ledova/shared';
 import { Disclosure } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection } from '../presentation';
+import { activityAmount, activityDirection, activityState } from '../presentation';
 import { TransactionDetail } from './TransactionDetail';
 
 export function TransactionListItem({
@@ -31,21 +25,21 @@ export function TransactionListItem({
   const heading = `${activityDirection(transaction)} · ${asset}`;
   const network = getBlockchainDisplayName(getChainShortCode(transaction.chain));
   const context = `${network} · ${formatDate(transaction.blockTimestamp ?? transaction.createdAt)}`;
-  const status = getTransactionStatus(transaction.status).label;
+  const status = activityState(transaction);
   const amount = activityAmount(transaction.amount, transaction.assetSymbol);
   return (
     <View style={styles.row}>
       <Disclosure
         open={open}
         onToggle={() => onToggle(transaction)}
-        accessibilityLabel={[heading, context, status.replace(/^[✓✗] /, ''), amount].join(', ')}
+        accessibilityLabel={[heading, context, status.label, amount].join(', ')}
         summary={
           <View style={styles.summary}>
             <Text style={styles.title}>{heading}</Text>
             <View>
               <Text style={styles.detail}>{context}</Text>
             </View>
-            <Text style={styles.detail}>{status}</Text>
+            <Text style={styles.detail}>{status.text}</Text>
             <Text style={styles.amount}>{amount}</Text>
           </View>
         }

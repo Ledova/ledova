@@ -148,11 +148,14 @@ const MARKS: Record<Tone, string> = {
   closed: 'bg-text-muted',
 };
 
-export function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
+export function Status({ tone, mark, children }: { tone: Tone; mark?: string; children: ReactNode }) {
   return (
     <span className="inline-flex items-center gap-2">
       <span aria-hidden="true" className={`h-2 w-2 flex-shrink-0 rounded-full ${MARKS[tone]}`} />
-      <span>{children}</span>
+      <span>
+        {mark && <span aria-hidden="true">{`${mark} `}</span>}
+        {children}
+      </span>
     </span>
   );
 }

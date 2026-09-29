@@ -2,14 +2,15 @@ import type { Transaction } from '../../types/domain/transaction';
 
 interface TransactionStatusDisplay {
   label: string;
+  mark?: '✓' | '✗';
   tone: 'success' | 'error' | 'warning' | 'info';
 }
 
 const transactionStatuses = new Map<string, TransactionStatusDisplay>(
   Object.entries({
-    confirmed: { label: '✓ Confirmed', tone: 'success' },
+    confirmed: { label: 'Confirmed', mark: '✓', tone: 'success' },
     pending: { label: 'Pending', tone: 'warning' },
-    failed: { label: '✗ Failed', tone: 'error' },
+    failed: { label: 'Failed', mark: '✗', tone: 'error' },
     replaced: { label: 'Replaced', tone: 'info' },
     reorged: { label: 'Confirmation reversed', tone: 'warning' },
   } satisfies Record<Transaction['status'], TransactionStatusDisplay>),

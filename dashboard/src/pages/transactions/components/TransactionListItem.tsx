@@ -28,7 +28,9 @@ export function TransactionListItem({ transaction, open, onToggle }: Transaction
               {formatDate(transaction.blockTimestamp ?? transaction.createdAt)}
             </span>
             <span className="mt-1 block text-sm text-text-muted">
-              <Status tone={state.tone}>{state.label}</Status>
+              <Status tone={state.tone} mark={state.mark}>
+                {state.label}
+              </Status>
             </span>
           </span>
           <span className="max-w-full break-all text-sm tabular-nums text-text-primary">

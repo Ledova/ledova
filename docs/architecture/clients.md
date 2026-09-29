@@ -308,7 +308,9 @@ wallet verification or signing authority, and QR parsing, key derivation,
 verification, Buy and Send keep their existing boundaries.
 
 Activity presents recorded wallet transfers in a read-only ledger, with exact
-decimal amounts, native network fees and the current recorded status. Its history
+decimal amounts, native network fees and the current recorded status. A
+confirmed or failed status shows a ✓ or ✗ before its word, which screen readers
+skip, in the entry's name and in its detail. Its history
 read does not depend on the wallet filter read succeeding. The wallet selector
 loads every page in its own cache; a failed page disables that selector and offers
 a retry without hiding history or clearing draft filters. History loads further
@@ -536,7 +538,8 @@ Pages rebuilt in the paper layout use the ledger blocks in
   since any number of them can be open. The page keeps whether it is open, so
   it can close it when what it shows changes; a list keeps its open rows with
   `useOpenRows` from `@ledova/shared`, as Activity, Holdings and the Register do.
-- `Status`: a status in words with a small mark for waiting, moving, done or closed.
+- `Status`: a status in words after a small mark for waiting, moving, done or
+  closed and, when it has one, a ✓ or ✗; screen readers read only the words.
 - `Timeline`: each event with its date.
 
 An empty section keeps its real title; the state is one muted sentence under
@@ -602,15 +605,14 @@ the detail after it. Activity's Filter is the first row of the Transfers card,
 closed at first and naming the filters it applies, so Activity has no screen
 action, and its loading and failure states sit in the same card under the
 filter, which stays at hand when a filtered read fails. Each entry is named by
-its summary, with its status's word but not the ✓ or ✗ before it, and opens its
-detail under its row, independently of the others; applying or clearing the
-filter closes it and every open entry and moves the screen reader's focus back
-to Filter. On Market, each of Your orders keeps its rows and opens the rest of
-its details, from Total quantity to Order ID, under them with Details, while
-changing or cancelling an order, signing and settling stay dialogs. An order's
-Details, Modify and Cancel order name it by side, class, shares remaining and
-price, as its row shows them, never by its id. Both keep their open rows with
-the same `useOpenRows` as the web's lists.
+its summary and opens its detail under its row, independently of the others;
+applying or clearing the filter closes it and every open entry and moves the
+screen reader's focus back to Filter. On Market, each of Your orders keeps its
+rows and opens the rest of its details, from Total quantity to Order ID, under
+them with Details, while changing or cancelling an order, signing and settling
+stay dialogs. An order's Details, Modify and Cancel order name it by side,
+class, shares remaining and price, as its row shows them, never by its id. Both
+keep their open rows with the same `useOpenRows` as the web's lists.
 
 A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible

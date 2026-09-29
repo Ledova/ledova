@@ -5,13 +5,12 @@ import {
   formatTime,
   getChainShortCode,
   getBlockchainDisplayName,
-  getTransactionStatus,
   getBlockExplorerTxUrl,
   type Transaction,
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
-import { activityAmount, activityDirection, feeUnit } from '../presentation';
+import { activityAmount, activityDirection, activityState, feeUnit } from '../presentation';
 
 export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const [failedHash, setFailedHash] = useState<string | null>(null);
@@ -19,6 +18,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
     detail: { gap: theme.spacing.md },
     error: { fontFamily: theme.fontFamily.regular, fontSize: theme.fontSize.sm, color: theme.colors.status.error.text },
   }));
+  const status = activityState(transaction);
   const url = transaction.txHash ? getBlockExplorerTxUrl(transaction.chain, transaction.txHash) : '';
   const openExplorer = async () => {
     setFailedHash(null);
@@ -32,7 +32,9 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
     <View style={styles.detail}>
       <Rows>
         <Row label="Direction">{activityDirection(transaction)}</Row>
-        <Row label="Status">{getTransactionStatus(transaction.status).label}</Row>
+        <Row label="Status" accessibilityLabel={status.label}>
+          {status.text}
+        </Row>
         <Row label="Asset">{transaction.assetName || transaction.assetSymbol || 'Unavailable'}</Row>
         <Row label="Amount">{activityAmount(transaction.amount, transaction.assetSymbol)}</Row>
         <Row label="Network">{getBlockchainDisplayName(getChainShortCode(transaction.chain))}</Row>

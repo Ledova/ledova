@@ -17,7 +17,9 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
       <Rows>
         <Row label="Direction">{activityDirection(transaction)}</Row>
         <Row label="Status">
-          <Status tone={state.tone}>{state.label}</Status>
+          <Status tone={state.tone} mark={state.mark}>
+            {state.label}
+          </Status>
         </Row>
         <Row label="Asset">
           <span className="break-words">{transaction.assetName || transaction.assetSymbol || 'Unavailable'}</span>

@@ -1,4 +1,4 @@
-import { formatShareCount } from '@ledova/shared';
+import { formatShareCount, getTransactionStatus } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 
 export function activityAmount(amount: string | null, symbol: string) {
@@ -23,6 +23,11 @@ export function activityDirection(transaction: Transaction) {
   if (incoming) return 'Incoming';
   if (outgoing) return 'Outgoing';
   return 'Direction unavailable';
+}
+
+export function activityState(transaction: Transaction) {
+  const { label, mark } = getTransactionStatus(transaction.status);
+  return { label, text: mark ? `${mark} ${label}` : label };
 }
 
 export function feeUnit(chain: Transaction['chain']) {

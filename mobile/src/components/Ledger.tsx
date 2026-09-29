@@ -55,7 +55,17 @@ export function Rows({ children }: { children: ReactNode }) {
   );
 }
 
-export function Row({ label, mono = false, children }: { label: string; mono?: boolean; children: ReactNode }) {
+export function Row({
+  label,
+  mono = false,
+  accessibilityLabel,
+  children,
+}: {
+  label: string;
+  mono?: boolean;
+  accessibilityLabel?: string;
+  children: ReactNode;
+}) {
   const styles = useThemedStyles((theme) => ({
     row: {
       flexDirection: 'row' as const,
@@ -77,7 +87,9 @@ export function Row({ label, mono = false, children }: { label: string; mono?: b
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, mono && styles.mono]}>{children}</Text>
+      <Text style={[styles.value, mono && styles.mono]} accessibilityLabel={accessibilityLabel}>
+        {children}
+      </Text>
     </View>
   );
 }

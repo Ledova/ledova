@@ -47,17 +47,33 @@ it('shows no detail while closed and hands the entry to its toggle', () => {
 });
 
 it.each([
-  ['confirmed', '✓ Confirmed'],
+  ['confirmed', 'Confirmed'],
   ['pending', 'Pending'],
-  ['failed', '✗ Failed'],
+  ['failed', 'Failed'],
   ['replaced', 'Replaced'],
   ['reorged', 'Confirmation reversed'],
   ['constructor', 'Unknown'],
 ] as const)('displays a %s transaction as %s in its opened detail', (status, label) => {
   const detail = detailOf(Object.assign({ ...transaction }, { status }));
   expect(within(detail).getByText(label)).toBeTruthy();
-  if (status !== 'failed') expect(within(detail).queryByText('✗ Failed')).toBeNull();
+  if (status !== 'failed') expect(within(detail).queryByText('Failed')).toBeNull();
 });
+
+it.each([
+  ['confirmed', '✓', 'Confirmed'],
+  ['failed', '✗', 'Failed'],
+] as const)(
+  'shows a %s entry’s %s before %s, hidden from screen readers in its name and detail',
+  (status, mark, word) => {
+    const detail = detailOf({ ...transaction, status });
+    const row = screen.getByRole('button', { name: new RegExp(word) });
+    for (const place of [row, detail]) {
+      expect(place.textContent).toContain(`${mark} ${word}`);
+      expect(within(place).getByText(mark).getAttribute('aria-hidden')).toBe('true');
+    }
+    expect(screen.queryByRole('button', { name: /[✓✗]/ })).toBeNull();
+  },
+);
 
 it.each([
   ['base', '0xAbC', '0xabc', '0xdef', 'Outgoing'],

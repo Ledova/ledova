@@ -79,6 +79,15 @@ it.each([
   if (status !== 'failed') expect(within(detail).queryByText('✗ Failed')).toBeNull();
 });
 
+it.each([
+  ['confirmed', '✓ Confirmed', 'Confirmed'],
+  ['failed', '✗ Failed', 'Failed'],
+] as const)('shows %s as %s in the opened detail but reads it as the word alone', async (status, label, word) => {
+  const { detail } = await opened({ ...transaction, status });
+  expect(within(detail).getByText(label)).toHaveAccessibleName(word);
+  expect(within(detail).getByText('Status')).toHaveAccessibleName('Status');
+});
+
 it('updates an open pending import when its receipt confirms', async () => {
   const { view, detail } = await opened({ ...transaction, status: 'pending' });
   expect(within(detail).getByText('Pending')).toBeTruthy();
