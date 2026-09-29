@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { createFinancialProfile, getFinancialProfiles, updateFinancialProfile } from '../services/financialProfile';
 import { getUserProfiles } from '../services/users';
 import type { CreateFinancialProfile, FinancialProfileFormState, FormErrors } from '../types';
@@ -161,16 +162,13 @@ export function useSignupFinancialProfile() {
       onSuccess();
     } catch (error: unknown) {
       console.error(`Financial profile update failed: ${describeFailure(error)}`);
-      if ((error as { response?: unknown })?.response) {
-        const reading = readApiError(error, {
-          fallback: 'Failed to save profile. Please try again.',
-          displayedFields: fieldsShown(form),
-        });
-        setGeneralError(reading.generalError ?? '');
-        setErrors(reading.fieldErrors ?? {});
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      const reading = readApiError(error, {
+        fallback: 'Failed to save profile. Please try again.',
+        displayedFields: fieldsShown(form),
+        unanswered: SIGNUP_NETWORK_ERROR,
+      });
+      setGeneralError(reading.generalError ?? '');
+      setErrors(reading.fieldErrors ?? {});
     } finally {
       setIsSubmitting(false);
     }

@@ -2,10 +2,14 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { QueryClient } from '@tanstack/react-query';
 
-import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '../../src/constants/business/signup';
+import {
+  SIGNUP_COMPLETION_FAILED,
+  SIGNUP_LOAD_FAILED,
+  SIGNUP_NETWORK_ERROR,
+} from '../../src/constants/business/signup';
 import { useSignupReview } from '../../src/hooks/useSignupReview';
 import type { AccountRole } from '../../src/types';
-import { answerless, axiosFailure, deferred, providers, queryClient, refusal, signupApi } from '../fixtures/signup';
+import { axiosFailure, deferred, providers, queryClient, refusal, signupApi, unanswered } from '../fixtures/signup';
 
 const api = signupApi();
 
@@ -157,7 +161,7 @@ it('refreshes the preferences the new role changes before handing over to the cl
 
 it('says sign-up could not be finished when the client cannot finish it, and allows another try', async () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
-  onComplete.mockRejectedValue(new Error('Session check failed'));
+  onComplete.mockRejectedValue(refusal(401, { detail: 'Session expired.' }));
   const { result } = review('investor');
   await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
@@ -166,24 +170,39 @@ it('says sign-up could not be finished when the client cannot finish it, and all
   await waitFor(() => expect(result.current.completionError).toBe(SIGNUP_COMPLETION_FAILED));
   expect(result.current.isSubmitting).toBe(false);
   expect(result.current.canCompleteSignup).toBe(true);
-  expect(console.error).toHaveBeenCalledWith('Signup completion failed: Error: Session check failed');
+  expect(console.error).toHaveBeenCalledWith('Signup completion failed: status=401');
 });
 
-it.each([
-  ['a 404 that gives no reason', axiosFailure(404)],
-  ['a failure the app met with no answer', answerless('Unable to connect to our servers.')],
-])('says the details could not be loaded, not what axios said, after %s, and retries them', async (_, failure) => {
-  financialRows = () => Promise.reject(failure);
+it.each(unanswered(SIGNUP_NETWORK_ERROR))('says why sign-up was not finished after %s', async (_, failure, shown) => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue(failure);
   const { result } = review('investor');
-  await waitFor(() => expect(result.current.error).toBe(SIGNUP_LOAD_FAILED));
-  expect(result.current.canCompleteSignup).toBe(false);
-
-  financialRows = () => Promise.resolve(financial);
-  await act(() => result.current.retryLoad());
-
   await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
-  expect(result.current.error).toBeNull();
+
+  await act(() => result.current.completeSignup());
+
+  await waitFor(() => expect(result.current.completionError).toBe(shown));
+  expect(onComplete).not.toHaveBeenCalled();
 });
+
+it.each<[string, unknown, string]>([
+  ['a 404 that gives no reason', axiosFailure(404), SIGNUP_LOAD_FAILED],
+  ...unanswered(SIGNUP_LOAD_FAILED),
+])(
+  'says why the details could not be loaded, not what axios said, after %s, and retries them',
+  async (_, failure, shown) => {
+    financialRows = () => Promise.reject(failure);
+    const { result } = review('investor');
+    await waitFor(() => expect(result.current.error).toBe(shown));
+    expect(result.current.canCompleteSignup).toBe(false);
+
+    financialRows = () => Promise.resolve(financial);
+    await act(() => result.current.retryLoad());
+
+    await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
+    expect(result.current.error).toBeNull();
+  },
+);
 
 it('shows the reason a load was refused and retries the company', async () => {
   companyA = () => Promise.reject(refusal(503, { detail: 'Company details are being updated.' }));

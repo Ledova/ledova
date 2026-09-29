@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { SIGNUP_LOAD_FAILED } from '../constants/business/signup';
+import { SIGNUP_LOAD_FAILED, SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { getCompanies, getCompany, registerCompany, updateCompany } from '../services/companies';
 import { getUserProfiles } from '../services/users';
 import type { CompanyRegistration, CompanyType } from '../types';
@@ -139,7 +139,7 @@ export function useSignupCompanyRegistration() {
   const userProfile = profilesQuery.data?.data.results?.[0] ?? null;
   const loadFailure = profilesQuery.error ?? companiesQuery.error ?? (selectedUuid ? detailQuery.error : null);
   const loadError = loadFailure
-    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED)
+    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED, SIGNUP_LOAD_FAILED)
     : selectedUuid && detailQuery.isSuccess && !detail
       ? 'Company details did not match the selected company. Please try again.'
       : null;
@@ -279,7 +279,11 @@ export function useSignupCompanyRegistration() {
       } catch (err: unknown) {
         if (!isCurrentSubmission(attempt)) return;
 
-        const reading = readApiError(err, { fallback: COULD_NOT_SAVE, displayedFields: COMPANY_REGISTRATION_FIELDS });
+        const reading = readApiError(err, {
+          fallback: COULD_NOT_SAVE,
+          displayedFields: COMPANY_REGISTRATION_FIELDS,
+          unanswered: SIGNUP_NETWORK_ERROR,
+        });
         setGeneralError(reading.generalError ?? '');
         setErrors(reading.fieldErrors ?? {});
       } finally {

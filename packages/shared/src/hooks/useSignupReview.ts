@@ -2,12 +2,12 @@ import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
-import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '../constants/business/signup';
+import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED, SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { canOpen } from '../constants/ui/destinations';
 import { getCompanies, getCompany } from '../services/companies';
 import { getUserProfiles, updateUserProfileCompletion } from '../services/users';
 import type { AccountRole, ReviewData } from '../types';
-import { apiErrorSentence, describeFailure } from '../utils/errors';
+import { apiErrorSentence, describeFailure, unansweredSentence } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import { useFinancialProfile } from './useFinancialProfile';
 
@@ -57,7 +57,7 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
   const loadFailure =
     userProfileQuery.error ?? (isCompany ? (companyQuery.error ?? detailQuery.error) : financialProfileError);
   const error = loadFailure
-    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED)
+    ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED, SIGNUP_LOAD_FAILED)
     : isCompany && selectedUuid && detailQuery.isSuccess && !company
       ? 'Company details did not match the selected company. Please try again.'
       : null;
@@ -108,7 +108,9 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
     isCompany,
     isLoading,
     error,
-    completionError: completeSignupMutation.isError ? SIGNUP_COMPLETION_FAILED : null,
+    completionError: completeSignupMutation.isError
+      ? (unansweredSentence(completeSignupMutation.error, SIGNUP_NETWORK_ERROR) ?? SIGNUP_COMPLETION_FAILED)
+      : null,
     completeSignup,
     isSubmitting: completeSignupMutation.isPending,
     canCompleteSignup,

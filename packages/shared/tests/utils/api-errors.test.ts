@@ -1,4 +1,4 @@
-import { readApiError, apiErrorSentence } from '../../src/utils/errors';
+import { apiErrorSentence, createUserFriendlyError, readApiError, unansweredSentence } from '../../src/utils/errors';
 
 function refusal(status: number, data: unknown) {
   return { response: { status, data }, message: `Request failed with status code ${status}` };
@@ -126,5 +126,41 @@ describe('the flattened sentence, for a banner with no field to mark', () => {
 
   it('falls back when the response says nothing at all', () => {
     expect(apiErrorSentence(new Error('network down'), FALLBACK)).toBe(FALLBACK);
+  });
+});
+
+describe('a request that got no answer, when the caller says what to say then', () => {
+  const NO_ANSWER = 'Network error. Please check your connection.';
+  const EXPLAINED = 'Unable to connect to our servers. Please check your internet connection and try again.';
+
+  it('keeps the sentence the app already gave the failure', () => {
+    const failure = createUserFriendlyError(EXPLAINED, new Error('Network Error'));
+
+    expect(readApiError(failure, { fallback: FALLBACK, unanswered: NO_ANSWER })).toEqual({ generalError: EXPLAINED });
+    expect(apiErrorSentence(failure, FALLBACK, NO_ANSWER)).toBe(EXPLAINED);
+    expect(unansweredSentence(failure, NO_ANSWER)).toBe(EXPLAINED);
+  });
+
+  it('says what the caller chose when the failure carries no sentence of its own', () => {
+    const failure = Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' });
+
+    expect(readApiError(failure, { fallback: FALLBACK, unanswered: NO_ANSWER })).toEqual({ generalError: NO_ANSWER });
+    expect(apiErrorSentence(failure, FALLBACK, NO_ANSWER)).toBe(NO_ANSWER);
+  });
+
+  it('still reads an answer as before', () => {
+    expect(unansweredSentence(refusal(400, { detail: 'Not allowed.' }), NO_ANSWER)).toBeNull();
+    expect(
+      readApiError(refusal(400, { detail: 'Not allowed.' }), { fallback: FALLBACK, unanswered: NO_ANSWER }),
+    ).toEqual({
+      generalError: 'Not allowed.',
+    });
+  });
+
+  it('changes nothing for a caller that does not ask', () => {
+    const failure = createUserFriendlyError(EXPLAINED, new Error('Network Error'));
+
+    expect(readApiError(failure, { fallback: FALLBACK })).toEqual({ generalError: FALLBACK });
+    expect(apiErrorSentence(failure, FALLBACK)).toBe(FALLBACK);
   });
 });

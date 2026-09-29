@@ -105,10 +105,21 @@ function announcementOf(value: unknown): string[] | null {
 export interface ReadApiErrorOptions {
   fallback: string;
   displayedFields?: readonly string[];
+  unanswered?: string;
+}
+
+export function unansweredSentence(error: unknown, otherwise: string): string | null {
+  const failure = error as (Partial<UserFriendlyError> & { response?: unknown }) | null | undefined;
+  if (failure?.response) return null;
+  return failure?.isUserFriendly === true && typeof failure.message === 'string' && failure.message.trim()
+    ? failure.message
+    : otherwise;
 }
 
 export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiErrorReading {
-  const { fallback, displayedFields } = options;
+  const { fallback, displayedFields, unanswered } = options;
+  const unansweredReading = unanswered === undefined ? null : unansweredSentence(error, unanswered);
+  if (unansweredReading !== null) return { generalError: unansweredReading };
   const response = (error as { response?: { status?: number; data?: unknown } })?.response;
   if (!response || !('data' in response)) return { generalError: fallback };
 
@@ -141,8 +152,8 @@ export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiE
   return reading;
 }
 
-export function apiErrorSentence(error: unknown, fallback: string): string {
-  const reading = readApiError(error, { fallback });
+export function apiErrorSentence(error: unknown, fallback: string, unanswered?: string): string {
+  const reading = readApiError(error, { fallback, unanswered });
   const everythingItSaid: string[] = [];
   if (reading.generalError) everythingItSaid.push(reading.generalError);
   if (reading.fieldErrors)

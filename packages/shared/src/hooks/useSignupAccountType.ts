@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { getUserAccount, setAccountRole } from '../services/userAccount';
 import type { AccountRole } from '../types';
 import { apiErrorSentence, describeFailure } from '../utils/errors';
@@ -42,9 +43,7 @@ export function useSignupAccountType() {
     } catch (failure) {
       console.error(`Failed to update account role: ${describeFailure(failure)}`);
       setError(
-        (failure as { response?: unknown })?.response
-          ? apiErrorSentence(failure, 'We could not save your account type. Please try again.')
-          : 'Network error. Please check your connection.',
+        apiErrorSentence(failure, 'We could not save your account type. Please try again.', SIGNUP_NETWORK_ERROR),
       );
       setIsSubmitting(false);
     }

@@ -4,7 +4,13 @@ import type { PropsWithChildren } from 'react';
 import type { AxiosInstance } from 'axios';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApiClientProvider, AUTH_QUERY_KEY, SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  createUserFriendlyError,
+  SIGNUP_COMPLETION_FAILED,
+  SIGNUP_LOAD_FAILED,
+} from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -142,15 +148,25 @@ describe('the last click of signup', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('says so on the review when the session cannot be checked again, so the person can retry', async () => {
+  it.each([
+    ['refused', { response: { status: 401, data: { detail: 'Session expired.' } } }, SIGNUP_COMPLETION_FAILED],
+    [
+      'unreachable',
+      createUserFriendlyError(
+        'Unable to connect to our servers. Please check your internet connection and try again.',
+        new Error('Network Error'),
+      ),
+      'Unable to connect to our servers. Please check your internet connection and try again.',
+    ],
+  ])('says so on the review when the session check is %s, so the person can retry', async (_, failure, shown) => {
     const { client, wrapper } = harness();
-    vi.spyOn(client, 'refetchQueries').mockRejectedValue(new Error('Network unavailable'));
+    vi.spyOn(client, 'refetchQueries').mockRejectedValue(failure);
     const { result } = renderHook(() => useReview(), { wrapper });
     await waitFor(() => expect(result.current.canCompleteSignup).toBe(true));
 
     act(() => result.current.completeSignup());
 
-    await waitFor(() => expect(result.current.completionError).toBe(SIGNUP_COMPLETION_FAILED));
+    await waitFor(() => expect(result.current.completionError).toBe(shown));
     expect(result.current.isSubmitting).toBe(false);
     expect(result.current.canCompleteSignup).toBe(true);
     expect(navigate).not.toHaveBeenCalled();

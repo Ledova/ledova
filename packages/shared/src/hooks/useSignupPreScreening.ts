@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { UpdateUserProfile } from '../types';
 import { apiErrorSentence, describeFailure } from '../utils/errors';
@@ -89,11 +90,7 @@ export function useSignupPreScreening() {
       onSuccess();
     } catch (error: unknown) {
       console.error(`Pre-screening update failed: ${describeFailure(error)}`);
-      if ((error as { response?: unknown })?.response) {
-        setGeneralError(apiErrorSentence(error, 'Failed to save pre-screening. Please try again.'));
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      setGeneralError(apiErrorSentence(error, 'Failed to save pre-screening. Please try again.', SIGNUP_NETWORK_ERROR));
     } finally {
       setIsSubmitting(false);
     }

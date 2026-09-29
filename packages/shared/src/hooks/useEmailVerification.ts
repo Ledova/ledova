@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { EMAIL_CONFIRMATION_VALIDATION } from '../constants/utilities';
 import { resendVerificationCode, verifyEmail } from '../services/auth';
 import type { FormErrors } from '../types';
@@ -45,16 +46,13 @@ export function useEmailVerification(email: string, onVerified: (verification: V
       onSuccess();
     } catch (error: unknown) {
       console.error(`Email verification failed: ${describeFailure(error)}`);
-      if ((error as { response?: unknown })?.response) {
-        const reading = readApiError(error, {
-          fallback: 'We could not check your code. Please try again.',
-          displayedFields: EMAIL_VERIFICATION_FIELDS,
-        });
-        setGeneralError(reading.generalError ?? '');
-        setErrors(reading.fieldErrors ?? {});
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      const reading = readApiError(error, {
+        fallback: 'We could not check your code. Please try again.',
+        displayedFields: EMAIL_VERIFICATION_FIELDS,
+        unanswered: SIGNUP_NETWORK_ERROR,
+      });
+      setGeneralError(reading.generalError ?? '');
+      setErrors(reading.fieldErrors ?? {});
     } finally {
       setIsLoading(false);
     }

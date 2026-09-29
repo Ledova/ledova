@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { PASSWORD_VALIDATION } from '../constants/utilities';
 import { signup } from '../services/auth';
 import type { FormErrors, SignupRequest } from '../types';
@@ -84,16 +85,13 @@ export function useSignupUser(rememberEmail: (email: string) => Promise<void> | 
       onSuccess();
     } catch (error: unknown) {
       console.error(`Account creation failed: ${describeFailure(error)}`);
-      if ((error as { response?: unknown })?.response) {
-        const reading = readApiError(error, {
-          fallback: 'Failed to create account. Please try again.',
-          displayedFields: SIGNUP_USER_FIELDS,
-        });
-        setGeneralError(reading.generalError ?? '');
-        setErrors(reading.fieldErrors ?? {});
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      const reading = readApiError(error, {
+        fallback: 'Failed to create account. Please try again.',
+        displayedFields: SIGNUP_USER_FIELDS,
+        unanswered: SIGNUP_NETWORK_ERROR,
+      });
+      setGeneralError(reading.generalError ?? '');
+      setErrors(reading.fieldErrors ?? {});
     } finally {
       setIsLoading(false);
     }

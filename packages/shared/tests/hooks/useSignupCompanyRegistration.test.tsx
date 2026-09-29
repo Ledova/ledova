@@ -3,8 +3,8 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { useSignupCompanyRegistration } from '../../src/hooks/useSignupCompanyRegistration';
-import { SIGNUP_LOAD_FAILED } from '../../src/constants/business/signup';
-import { answerless, axiosFailure, deferred, providers, queryClient, refusal, signupApi } from '../fixtures/signup';
+import { SIGNUP_LOAD_FAILED, SIGNUP_NETWORK_ERROR } from '../../src/constants/business/signup';
+import { axiosFailure, deferred, providers, queryClient, refusal, signupApi, unanswered } from '../fixtures/signup';
 
 const api = signupApi();
 
@@ -176,18 +176,21 @@ it('keeps a failed detail unresolved and recovers through the real retry path', 
   expect(result.current.loadError).toBeNull();
 });
 
-it.each([
-  ['a 404 that gives no reason', axiosFailure(404)],
-  ['a failure the app met with no answer', answerless('Our servers are temporarily unavailable.')],
-])('says the details could not be loaded, not what axios said, after %s, and still retries', async (_, failure) => {
-  profileRows = () => Promise.reject(failure);
-  const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
-  await waitFor(() => expect(result.current.loadError).toBe(SIGNUP_LOAD_FAILED));
-  profileRows = () => Promise.resolve(profiles('Synthetic Person'));
-  await act(() => result.current.retryLoad());
-  await waitFor(() => expect(result.current.loadError).toBeNull());
-  await waitFor(() => expect(result.current.form.abn).toBe(detailA.abn));
-});
+it.each<[string, unknown, string]>([
+  ['a 404 that gives no reason', axiosFailure(404), SIGNUP_LOAD_FAILED],
+  ...unanswered(SIGNUP_LOAD_FAILED),
+])(
+  'says why the details could not be loaded, not what axios said, after %s, and still retries',
+  async (_, failure, shown) => {
+    profileRows = () => Promise.reject(failure);
+    const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
+    await waitFor(() => expect(result.current.loadError).toBe(shown));
+    profileRows = () => Promise.resolve(profiles('Synthetic Person'));
+    await act(() => result.current.retryLoad());
+    await waitFor(() => expect(result.current.loadError).toBeNull());
+    await waitFor(() => expect(result.current.form.abn).toBe(detailA.abn));
+  },
+);
 
 it('preserves dirty input after a background failure and explicit retry', async () => {
   const { result } = await loaded();
@@ -382,11 +385,22 @@ it('marks a refusal under the field it names and says what no field shows', asyn
 
 it('says the company details could not be saved when a refusal gives no reason', async () => {
   const { result } = await loaded();
-  api.patch.mockRejectedValue(new Error('Network Error'));
+  api.patch.mockRejectedValue(refusal(404, ''));
   await act(() => result.current.handleSubmit(jest.fn()));
   expect(result.current.generalError).toBe('We could not save your company details. Please try again.');
   expect(result.current.errors).toEqual({});
 });
+
+it.each(unanswered(SIGNUP_NETWORK_ERROR))(
+  'says why the company details were not saved after %s',
+  async (_, failure, shown) => {
+    const { result } = await loaded();
+    api.patch.mockRejectedValue(failure);
+    await act(() => result.current.handleSubmit(jest.fn()));
+    expect(result.current.generalError).toBe(shown);
+    expect(result.current.errors).toEqual({});
+  },
+);
 
 it('asks for a first and last name in the profile before registering a company', async () => {
   companyList = () => Promise.resolve(list([]));

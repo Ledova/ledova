@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
+import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { COUNTRIES, type CountryData } from '../constants/countries';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { FormErrors, UserProfileFormData, UserProfileFormValidation } from '../types';
@@ -206,16 +207,13 @@ export function useSignupUserProfile() {
       onSuccess();
     } catch (error: unknown) {
       console.error(`User profile update failed: ${describeFailure(error)}`);
-      if ((error as { response?: unknown })?.response) {
-        const reading = readApiError(error, {
-          fallback: 'Failed to save profile. Please try again.',
-          displayedFields: USER_PROFILE_FIELDS,
-        });
-        setGeneralError(reading.generalError ?? '');
-        setErrors(reading.fieldErrors ?? {});
-      } else {
-        setGeneralError('Network error. Please check your connection.');
-      }
+      const reading = readApiError(error, {
+        fallback: 'Failed to save profile. Please try again.',
+        displayedFields: USER_PROFILE_FIELDS,
+        unanswered: SIGNUP_NETWORK_ERROR,
+      });
+      setGeneralError(reading.generalError ?? '');
+      setErrors(reading.fieldErrors ?? {});
     } finally {
       setIsSubmitting(false);
     }
