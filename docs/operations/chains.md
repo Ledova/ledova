@@ -79,14 +79,24 @@ deployment-wide whitelist: the factory creates each company's
 `backend/.env` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337` and the
 Hardhat account #0 key as `BLOCKCHAIN_OPERATOR_KEY`.
 
-A swap on the local chain stays `executing` after its receipt, because
-`evm:31337` has no approved finality policy. To let the local stack settle swaps,
+Only the public testnets have approved finality policies, in
+`backend/ledova_backend/chain_safety.py`: the finalized head on Base Sepolia
+(84532) and Ethereum Sepolia (11155111), and six confirmations on the Bitcoin
+test network. [Transaction evidence](../reference/transaction-evidence.md#wallet-chain-observations)
+says how they are applied. `evm:31337` has none, so a swap on the local chain
+stays `executing` after its receipt. To let the local stack settle swaps,
 set `LOCAL_CHAIN_FINALITY_DEPTH` (for example `3`) in `backend/.env`; the swap
 completes once that many blocks, counted inclusively from the receipt's block,
 sit on a stable tip. Hardhat mines one block per transaction, so the depth is
 reached only as further transactions or `evm_mine` calls land. The setting is
 refused when `BLOCKCHAIN_CHAIN_ID` names a public testnet, whose policies stay
-the approved ones in `backend/ledova_backend/chain_safety.py`.
+the approved ones.
+
+The backend test settings ignore `BLOCKCHAIN_CHAIN_ID` and
+`LOCAL_CHAIN_FINALITY_DEPTH`: the suites run on 84532 with the approved policies
+whatever `backend/.env` names, as in CI, and the real-chain modules below set
+31337 for themselves. [Backend verification](../development/testing.md#backend-verification)
+says what else the suites read from the environment.
 
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and

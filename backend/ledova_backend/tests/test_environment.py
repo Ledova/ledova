@@ -1,3 +1,6 @@
+import json
+import os
+import subprocess
 import sys
 from importlib.util import find_spec
 from pathlib import Path
@@ -80,6 +83,26 @@ class EnvironmentParsingTests(SimpleTestCase):
         for value, chain_id in (("3", 84532), ("3", 11155111), ("0", 31337), ("-1", 31337), ("three", 31337)):
             with self.subTest(value=value, chain_id=chain_id), self.assertRaises(ImproperlyConfigured):
                 local_finality_policies(value, chain_id)
+
+    def test_the_suites_run_on_base_sepolia_whatever_chain_the_environment_names(self):
+        probe = (
+            "import json; from django.conf import settings; from ledova_backend.settings import blockchain; "
+            "print(json.dumps([[blockchain.BLOCKCHAIN_CHAIN_ID, blockchain.WALLET_CHAIN_FINALITY_POLICIES], "
+            "[settings.BLOCKCHAIN_CHAIN_ID, settings.WALLET_CHAIN_FINALITY_POLICIES]]))"
+        )
+        local_stack = {"BLOCKCHAIN_CHAIN_ID": "31337", "LOCAL_CHAIN_FINALITY_DEPTH": "3"}
+        result = subprocess.run(
+            [sys.executable, "-c", probe],
+            cwd=settings.BASE_DIR,
+            env={**os.environ, **local_stack},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        configured, tested = json.loads(result.stdout)
+        local_policy = {"evm:31337": {"mode": "depth", "depth": 3}}
+        self.assertEqual(configured, [31337, {**APPROVED_FINALITY_POLICIES, **local_policy}])
+        self.assertEqual(tested, [84532, APPROVED_FINALITY_POLICIES])
 
 
 class AuthorizationConfigurationTests(SimpleTestCase):

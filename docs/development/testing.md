@@ -72,6 +72,18 @@ An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
 explains how the ordinary and scoped suites differ.
 
+The suites read the environment as the backend does. CI gives them only
+`SECRET_KEY`, `STORAGE_BACKEND` and the `POSTGRES_*` connection; locally these
+usually come from loading `backend/.env`, whose other values then reach the
+suites too. The test settings pin the chain whatever that file names:
+`BLOCKCHAIN_CHAIN_ID` is 84532, Base Sepolia, and `WALLET_CHAIN_FINALITY_POLICIES`
+holds only the [approved policies](../operations/chains.md#chain-configuration),
+as in CI, so the local stack's `BLOCKCHAIN_CHAIN_ID=31337` and any
+`LOCAL_CHAIN_FINALITY_DEPTH` can stay in the file. Every other value in it still
+applies. The template's values give the same results as CI's environment, but
+one changed from the template can change a result: rerun a local failure with
+only CI's variables before reading it as a regression.
+
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
