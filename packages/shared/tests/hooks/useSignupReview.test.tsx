@@ -104,7 +104,9 @@ it('does not show a late A detail after first-list selection moves to B', async 
 it('rejects mismatched detail and keeps completion unavailable', async () => {
   companyA = () => Promise.resolve({ data: detailB });
   const { result } = review();
-  await waitFor(() => expect(result.current.error).toBeTruthy());
+  await waitFor(() =>
+    expect(result.current.error).toBe('Company details did not match the selected company. Please try again.'),
+  );
   expect(result.current.company).toBeNull();
   expect(result.current.canCompleteSignup).toBe(false);
   await act(() => result.current.completeSignup());

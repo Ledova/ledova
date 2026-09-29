@@ -152,6 +152,20 @@ it.each<[string, string[], string, Record<string, string[]>]>([
   expect(result.current.errors).toEqual(marked);
 });
 
+it.each<[string, string, string, Record<string, string[]>]>([
+  ['is marked under it while it shows', 'other', '', { intendedUseOtherText: ['Too long.'] }],
+  ['is said at the top once it is hidden', 'savings', 'Too long.', {}],
+])('a refusal for the intended-use details %s', async (_, intendedUse, shown, marked) => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue({ response: { status: 400, data: { intendedUseOtherText: ['Too long.'] } } });
+  const { result } = await savedProfile({ intendedUse, intendedUseOtherText: 'Kept from before' });
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe(shown);
+  expect(result.current.errors).toEqual(marked);
+});
+
 it('still says to check the connection when no answer came back', async () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.patch.mockRejectedValue(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));

@@ -14,28 +14,49 @@ const A_MESSAGE: Record<string, string> = {
   occupation: 'Ensure this field has no more than 200 characters.',
 };
 
-describe('every field FINANCIAL_PROFILE_FIELDS names is one this form actually renders', () => {
+const REFUSABLE = [
+  'userProfileId',
+  'occupation',
+  'sourceOfFunds',
+  'sourceOfFundsOtherText',
+  'intendedUse',
+  'intendedUseOtherText',
+  'nonFieldErrors',
+];
+
+function formWith(errors: Record<string, string[]>) {
+  return (
+    <FinancialProfileForm
+      form={{
+        userProfileId: 'profile-1',
+        occupation: 'Engineer',
+        sourceOfFunds: ['savings', 'other'],
+        sourceOfFundsOtherText: 'Consulting',
+        intendedUse: 'other',
+        intendedUseOtherText: 'Research',
+      }}
+      errors={errors}
+      generalError=""
+      isSubmitting={false}
+      setFieldValue={vi.fn()}
+      onSubmit={vi.fn()}
+    />
+  );
+}
+
+describe('FINANCIAL_PROFILE_FIELDS names the fields this form renders a refusal under', () => {
   afterEach(cleanup);
 
   it.each(FINANCIAL_PROFILE_FIELDS)('renders the error it is handed for %s', (field) => {
-    render(
-      <FinancialProfileForm
-        form={{
-          userProfileId: 'profile-1',
-          occupation: 'Engineer',
-          sourceOfFunds: ['savings', 'other'],
-          sourceOfFundsOtherText: 'Consulting',
-          intendedUse: 'other',
-          intendedUseOtherText: 'Research',
-        }}
-        errors={{ [field]: [A_MESSAGE[field]] }}
-        generalError=""
-        isSubmitting={false}
-        setFieldValue={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
+    render(formWith({ [field]: [A_MESSAGE[field]] }));
 
     expect(screen.getByText(A_MESSAGE[field])).toBeDefined();
+  });
+
+  it('names every field the form renders one under while both "other" details show, and nothing else', () => {
+    render(formWith(Object.fromEntries(REFUSABLE.map((key) => [key, [`Refused ${key}.`]]))));
+
+    const rendered = REFUSABLE.filter((key) => screen.queryByText(`Refused ${key}.`));
+    expect(new Set(rendered)).toEqual(new Set(FINANCIAL_PROFILE_FIELDS));
   });
 });

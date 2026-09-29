@@ -157,7 +157,9 @@ it('retires A immediately and ignores its late detail after the first list selec
 it('does not hydrate a different UUID returned from the selected detail endpoint', async () => {
   companyA = () => Promise.resolve({ data: detailB });
   const { result } = renderHook(() => useSignupCompanyRegistration(), { wrapper });
-  await waitFor(() => expect(result.current.loadError).toBeTruthy());
+  await waitFor(() =>
+    expect(result.current.loadError).toBe('Company details did not match the selected company. Please try again.'),
+  );
   expect(result.current.form.abn).toBe('');
   await act(() => result.current.handleSubmit(jest.fn()));
   expect(api.patch).not.toHaveBeenCalled();

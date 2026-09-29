@@ -74,6 +74,29 @@ const A_MESSAGE: Record<string, string> = {
   password: 'This password is too common.',
 };
 
+it('SIGNUP_USER_FIELDS names every field this page renders a refusal under, and nothing else', () => {
+  const refusable = ['email', 'password', 'passwordConfirm', 'nonFieldErrors'];
+  hook.state = {
+    form: { email: 'synthetic@example.test', password: 'long enough', passwordConfirm: 'long enough' },
+    errors: Object.fromEntries(refusable.map((key) => [key, [`Refused ${key}.`]])),
+    generalError: '',
+    isLoading: false,
+    showPassword: false,
+    passwordValidation: { isValid: true, lengthValid: true, notNumeric: true },
+    setFieldValue: vi.fn(),
+    togglePassword: vi.fn(),
+    handleSubmit: vi.fn(),
+  };
+  render(
+    <MemoryRouter>
+      <SignupUser />
+    </MemoryRouter>,
+  );
+
+  const rendered = refusable.filter((key) => screen.queryByText(`Refused ${key}.`));
+  expect(new Set(rendered)).toEqual(new Set(SIGNUP_USER_FIELDS));
+});
+
 describe('every field SIGNUP_USER_FIELDS names is one this page actually renders', () => {
   it.each(SIGNUP_USER_FIELDS)('renders the error it is handed for %s', (field) => {
     hook.state = {

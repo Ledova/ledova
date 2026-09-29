@@ -43,4 +43,12 @@ describe('every field COMPANY_REGISTRATION_FIELDS names is one this form actuall
 
     expect(screen.getByText('Company with this acn already exists. Try another.')).toBeDefined();
   });
+
+  it('names every field the form renders one under, and nothing else', () => {
+    const refusable = ['name', 'tradingName', 'companyType', 'acn', 'abn', 'primaryContact', 'nonFieldErrors'];
+    render(formWith(Object.fromEntries(refusable.map((key) => [key, [`Refused ${key}.`]]))));
+
+    const rendered = refusable.filter((key) => screen.queryByText(`Refused ${key}.`));
+    expect(new Set(rendered)).toEqual(new Set(COMPANY_REGISTRATION_FIELDS));
+  });
 });

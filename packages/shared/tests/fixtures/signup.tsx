@@ -44,6 +44,7 @@ export function unanswered(otherwise: string): [string, unknown, string][] {
       createUserFriendlyError(SERVERS_UNAVAILABLE, { response: { status: 502, data: '' } }),
       SERVERS_UNAVAILABLE,
     ],
+    ['a failure the app explained with no words', createUserFriendlyError('', original), otherwise],
     ['a failure with no answer and no explanation', original, otherwise],
   ];
 }

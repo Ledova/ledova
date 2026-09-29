@@ -47,7 +47,8 @@ it('saves the role, refreshes the account and preferences, then moves on', async
   expect(result.current.error).toBe('');
 });
 
-it('saves nothing until the account is known', async () => {
+it('saves nothing, says nothing and logs nothing until the account is known', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
   api.get.mockReturnValue(new Promise(() => {}));
   const moveOn = jest.fn();
   const { result } = renderHook(() => useSignupAccountType(), { wrapper });
@@ -56,6 +57,18 @@ it('saves nothing until the account is known', async () => {
 
   expect(api.patch).not.toHaveBeenCalled();
   expect(moveOn).not.toHaveBeenCalled();
+  expect(result.current.error).toBe('');
+  expect(result.current.isSubmitting).toBe(false);
+  expect(console.error).not.toHaveBeenCalled();
+});
+
+it('reads the account once and keeps it fresh for the whole step', async () => {
+  const first = await ready();
+  const second = renderHook(() => useSignupAccountType(), { wrapper });
+  await waitFor(() => expect(second.result.current.account).not.toBeNull());
+
+  expect(api.get).toHaveBeenCalledTimes(1);
+  expect(second.result.current.account).toEqual(first.result.current.account);
 });
 
 it.each<[string, number, unknown, string]>([

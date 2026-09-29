@@ -157,6 +157,13 @@ describe('a request that got no answer, when the caller says what to say then', 
     });
   });
 
+  it('says what the caller chose when the app explained the failure with no words', () => {
+    const wordless = createUserFriendlyError('', new Error('Network Error'));
+
+    expect(unansweredSentence(wordless, NO_ANSWER)).toBe(NO_ANSWER);
+    expect(apiErrorSentence(wordless, FALLBACK, NO_ANSWER)).toBe(NO_ANSWER);
+  });
+
   it('changes nothing for a caller that does not ask', () => {
     const failure = createUserFriendlyError(EXPLAINED, new Error('Network Error'));
 

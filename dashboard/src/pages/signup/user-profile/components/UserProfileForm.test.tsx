@@ -13,28 +13,48 @@ const A_MESSAGE: Record<string, string> = {
   phoneNumber: 'Enter a valid phone number.',
 };
 
+const REFUSABLE = [
+  'fullName',
+  'dateOfBirth',
+  'residentialAddress',
+  'phoneCountryCode',
+  'phoneNumber',
+  'nonFieldErrors',
+];
+
 const valid = { isValid: true, isEmpty: false };
 
-describe('every field USER_PROFILE_FIELDS names is one this form actually renders', () => {
+function formWith(errors: Record<string, string[]>) {
+  return (
+    <UserProfileForm
+      form={{ fullName: '', dateOfBirth: '', residentialAddress: '', phoneCountryCode: '+61', phoneNumber: '' }}
+      errors={errors}
+      generalError=""
+      isSubmitting={false}
+      formValidation={{ fullName: valid, residentialAddress: valid, phoneNumber: valid, isFormValid: true }}
+      selectedCountry={COUNTRIES[0]}
+      countries={COUNTRIES}
+      setFieldValue={vi.fn()}
+      onCountryChange={vi.fn()}
+      onSubmit={vi.fn()}
+      onBack={vi.fn()}
+    />
+  );
+}
+
+describe('USER_PROFILE_FIELDS names the fields this form renders a refusal under', () => {
   afterEach(cleanup);
 
   it.each(USER_PROFILE_FIELDS)('renders the error it is handed for %s', (field) => {
-    render(
-      <UserProfileForm
-        form={{ fullName: '', dateOfBirth: '', residentialAddress: '', phoneCountryCode: '+61', phoneNumber: '' }}
-        errors={{ [field]: [A_MESSAGE[field]] }}
-        generalError=""
-        isSubmitting={false}
-        formValidation={{ fullName: valid, residentialAddress: valid, phoneNumber: valid, isFormValid: true }}
-        selectedCountry={COUNTRIES[0]}
-        countries={COUNTRIES}
-        setFieldValue={vi.fn()}
-        onCountryChange={vi.fn()}
-        onSubmit={vi.fn()}
-        onBack={vi.fn()}
-      />,
-    );
+    render(formWith({ [field]: [A_MESSAGE[field]] }));
 
     expect(screen.getByText(A_MESSAGE[field])).toBeDefined();
+  });
+
+  it('names every field the form renders one under, and nothing else', () => {
+    render(formWith(Object.fromEntries(REFUSABLE.map((key) => [key, [`Refused ${key}.`]]))));
+
+    const rendered = REFUSABLE.filter((key) => screen.queryByText(`Refused ${key}.`));
+    expect(new Set(rendered)).toEqual(new Set(USER_PROFILE_FIELDS));
   });
 });

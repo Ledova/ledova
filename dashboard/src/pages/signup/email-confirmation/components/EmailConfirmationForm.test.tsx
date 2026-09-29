@@ -8,25 +8,38 @@ import { EmailConfirmationForm } from './EmailConfirmationForm';
 
 const A_MESSAGE: Record<string, string> = { token: 'Invalid email or verification code.' };
 
-describe('every field EMAIL_VERIFICATION_FIELDS names is one this form actually renders', () => {
+const REFUSABLE = ['token', 'email', 'nonFieldErrors'];
+
+function formWith(errors: Record<string, string[]>) {
+  return (
+    <EmailConfirmationForm
+      verificationCode="123456"
+      errors={errors}
+      generalError=""
+      successMessage=""
+      isLoading={false}
+      isResending={false}
+      setVerificationCode={vi.fn()}
+      onSubmit={vi.fn()}
+      onResendCode={vi.fn()}
+      onBack={vi.fn()}
+    />
+  );
+}
+
+describe('EMAIL_VERIFICATION_FIELDS names the fields this form renders a refusal under', () => {
   afterEach(cleanup);
 
   it.each(EMAIL_VERIFICATION_FIELDS)('renders the error it is handed for %s', (field) => {
-    render(
-      <EmailConfirmationForm
-        verificationCode="123456"
-        errors={{ [field]: [A_MESSAGE[field]] }}
-        generalError=""
-        successMessage=""
-        isLoading={false}
-        isResending={false}
-        setVerificationCode={vi.fn()}
-        onSubmit={vi.fn()}
-        onResendCode={vi.fn()}
-        onBack={vi.fn()}
-      />,
-    );
+    render(formWith({ [field]: [A_MESSAGE[field]] }));
 
     expect(screen.getByText(A_MESSAGE[field])).toBeDefined();
+  });
+
+  it('names every field the form renders one under, and nothing else', () => {
+    render(formWith(Object.fromEntries(REFUSABLE.map((key) => [key, [`Refused ${key}.`]]))));
+
+    const rendered = REFUSABLE.filter((key) => screen.queryByText(`Refused ${key}.`));
+    expect(new Set(rendered)).toEqual(new Set(EMAIL_VERIFICATION_FIELDS));
   });
 });
