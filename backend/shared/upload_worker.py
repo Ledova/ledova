@@ -4,10 +4,28 @@ import math
 import resource
 import sys
 import warnings
+from pathlib import Path
 
 
 class InvalidContent(Exception):
     pass
+
+
+def apply_limits(limits):
+    for name, value in (
+        ("RLIMIT_CORE", 0),
+        ("RLIMIT_AS", limits["memory_bytes"]),
+        ("RLIMIT_CPU", limits["cpu_seconds"]),
+        ("RLIMIT_FSIZE", limits["output_bytes"]),
+    ):
+        limit = getattr(resource, name)
+        try:
+            resource.setrlimit(limit, (value, value))
+        except ValueError:
+            hard = resource.getrlimit(limit)[1]
+            if hard != resource.RLIM_INFINITY and value > hard:
+                raise
+            Path(name).touch()
 
 
 def check_dimensions(width, height, limits):
@@ -73,10 +91,7 @@ def process_image(raw, limits, render):
 def main():
     mode = sys.argv[1]
     limits = json.loads(sys.argv[2])
-    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    resource.setrlimit(resource.RLIMIT_AS, (limits["memory_bytes"], limits["memory_bytes"]))
-    resource.setrlimit(resource.RLIMIT_CPU, (limits["cpu_seconds"], limits["cpu_seconds"]))
-    resource.setrlimit(resource.RLIMIT_FSIZE, (limits["output_bytes"], limits["output_bytes"]))
+    apply_limits(limits)
     raw = sys.stdin.buffer.read(limits["input_bytes"] + 1)
     if not raw or len(raw) > limits["input_bytes"]:
         return 2

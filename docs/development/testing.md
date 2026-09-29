@@ -72,6 +72,15 @@ An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
 explains how the ordinary and scoped suites differ.
 
+On macOS the suites run the real upload decoder and scanner client, but the
+kernel refuses their address-space limit (see
+[upload limits](../operations/uploads.md#upload-validation-and-resource-limits)).
+The ordinary suite then skips
+`test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget` with
+that reason, and each test process logs the warning once. The CPU-limit and
+wall-deadline tests still run there. Only a Linux run, such as CI, proves the
+address-space cap.
+
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).

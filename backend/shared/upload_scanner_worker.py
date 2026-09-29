@@ -4,17 +4,29 @@ import socket
 import struct
 import sys
 import time
+from pathlib import Path
+
+
+def apply_limits(parameters):
+    for name, value in (
+        ("RLIMIT_CORE", 0),
+        ("RLIMIT_AS", parameters["memory_bytes"]),
+        ("RLIMIT_CPU", parameters["cpu_seconds"]),
+        ("RLIMIT_FSIZE", parameters["reply_bytes"]),
+    ):
+        limit = getattr(resource, name)
+        try:
+            resource.setrlimit(limit, (value, value))
+        except ValueError:
+            hard = resource.getrlimit(limit)[1]
+            if hard != resource.RLIM_INFINITY and value > hard:
+                raise
+            Path(name).touch()
 
 
 def run():
     parameters = json.loads(sys.argv[1])
-    for limit, value in (
-        (resource.RLIMIT_CORE, 0),
-        (resource.RLIMIT_AS, parameters["memory_bytes"]),
-        (resource.RLIMIT_CPU, parameters["cpu_seconds"]),
-        (resource.RLIMIT_FSIZE, parameters["reply_bytes"]),
-    ):
-        resource.setrlimit(limit, (value, value))
+    apply_limits(parameters)
     raw = sys.stdin.buffer.read(parameters["input_bytes"] + 1)
     if not raw or len(raw) > parameters["input_bytes"]:
         return 2

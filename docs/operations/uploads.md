@@ -90,6 +90,20 @@ The decoder uses Linux resource limits; clean synthetic PDF/PNG/JPEG controls ru
 under the default 512 MiB address-space cap in CI. Resource limits contain work;
 they are not a security sandbox or an aggregate concurrency limit.
 
+Each child sets its core-dump, address-space, CPU and file-size limits before it
+reads the upload. Linux accepts all four, so production and CI apply every limit.
+A limit the kernel refuses to lower is skipped instead of failing every upload,
+and the parent logs one warning per process naming it, such as
+`Upload workers run without RLIMIT_AS, which this platform refuses to set`. A
+refusal to raise a hard limit still fails the upload. macOS refuses any
+address-space limit below what a process has already mapped, which is hundreds
+of GiB on Apple silicon, so on macOS the decoder and the scanner client run
+without the `UPLOAD_PROCESS_MEMORY_BYTES` cap. macOS enforces the CPU limit on
+computation, but in testing on macOS 27 it did not stop a child that spent its
+time in back-to-back system calls, such as reading its own CPU clock. The
+parent's wall deadline applies on every platform: it bounds how long such a
+child runs, not how much memory it takes.
+
 | Variable | Default | Bound |
 | --- | --- | --- |
 | `UPLOAD_MAX_BYTES` | `10485760` | Actual bytes per file (10 MiB) |
