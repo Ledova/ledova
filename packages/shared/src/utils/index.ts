@@ -8,6 +8,7 @@ export {
   isValidFullName,
   isValidPhoneFormat,
   formatPhoneNumber,
+  isUuid,
 } from './validation';
 export {
   validateWalletAddress,

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Text, View, ScrollView, RefreshControl } from 'react-native';
+import { Text, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCompanyTokens, formatShareCount, readEveryPage, type Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
@@ -46,26 +47,26 @@ export function CompanyScreen() {
     : '';
   if (!data.access.allowed)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title="Company">
         <Text style={styles.muted}>
           {data.access.isLoading
             ? 'Loading your company access…'
             : 'Verify your company access before opening Company.'}
         </Text>
         {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </View>
+      </Page>
     );
   return (
     <>
-      <ScrollView
+      <Page
         testID="company-screen"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Company"
+        actions={
+          !data.error &&
+          company && <Action label="Edit company" onPress={() => setEditing(company)} disabled={data.isRefreshing} />
+        }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void refresh()} />}
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Company
-        </Text>
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -89,7 +90,6 @@ export function CompanyScreen() {
                 <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
                 <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
               </Rows>
-              <Action label="Edit company" onPress={() => setEditing(company)} disabled={data.isRefreshing} />
             </Section>
             <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
               {classes.isPending ? (
@@ -129,7 +129,7 @@ export function CompanyScreen() {
             </Section>
           </>
         )}
-      </ScrollView>
+      </Page>
       {editing && (
         <EditCompanyForm
           target={editing}

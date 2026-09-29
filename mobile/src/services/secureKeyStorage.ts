@@ -1,9 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { entropyToMnemonic, validateMnemonic as _validateMnemonic } from 'ethereum-cryptography/bip39';
+import {
+  entropyToMnemonic,
+  mnemonicToSeedSync,
+  validateMnemonic as _validateMnemonic,
+} from 'ethereum-cryptography/bip39';
 import { wordlist } from 'ethereum-cryptography/bip39/wordlists/english';
 import { HDKey } from 'ethereum-cryptography/hdkey';
-import { mnemonicToSeedSync } from 'ethereum-cryptography/bip39';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from 'ethereum-cryptography/utils';
 import { getRandomValues } from 'expo-crypto';

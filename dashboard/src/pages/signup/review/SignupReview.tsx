@@ -7,15 +7,13 @@ import {
   parseAddress,
   formatSourceOfFunds,
   formatIntendedUse,
-  DESIGN_TOKENS,
 } from '@ledova/shared';
+import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '../company-registration/constants';
 import { MARKETING_URL } from '@utils/marketingUrl';
-
-const ICON_LG = DESIGN_TOKENS.icon.sizes.lg;
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';

@@ -6,9 +6,7 @@ import { UserProfileForm } from './components/UserProfileForm';
 import { useSignupUserProfile } from './useSignupUserProfile';
 import { useRole } from '@hooks/useRole';
 import { AuthLayout } from '@components/AuthLayout';
-import { DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
+import { ICON_MD } from '@components/iconSizes';
 
 function SignupUserProfile() {
   const navigate = useNavigate();

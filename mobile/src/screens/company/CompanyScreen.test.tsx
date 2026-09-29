@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -96,6 +96,33 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');
+});
+
+it('offers Edit company under the page title rather than inside the company card', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  const card = (await view.findByRole('header', { name: 'Fictional Company' })).parent!;
+  const title = view.getByRole('header', { name: 'Company' });
+  const edit = view.getByRole('button', { name: 'Edit company' });
+  expect(title.parent!.children).toEqual([title, edit.parent]);
+  expect(within(card).queryByRole('button', { name: 'Edit company' })).toBeNull();
+});
+
+it('keeps the Company title over the access state, with nothing to act on', async () => {
+  mockRole = 'member';
+  const view = await render(<CompanyScreen />, { wrapper });
+  const title = view.getByRole('header', { name: 'Company' });
+  expect(title.parent!.children).toEqual([title]);
+  expect(title.parent!.parent!.children[1]).toBe(view.getByText('Verify your company access before opening Company.'));
+});
+
+it('takes Edit company out of the title when a refresh fails, even with the company still cached', async () => {
+  const view = await render(<CompanyScreen />, { wrapper });
+  expect(await view.findByRole('button', { name: 'Edit company' })).toBeTruthy();
+  failure = DETAIL;
+  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
+  expect(await view.findByText('Company information could not be loaded. Try again before continuing.')).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Company' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Edit company' })).toBeNull();
 });
 
 it('keeps an edit draft after failed refresh and save refusal; submits changed fields only', async () => {

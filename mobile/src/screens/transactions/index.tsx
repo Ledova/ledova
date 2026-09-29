@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { GradientBackground } from '../../components/GradientBackground';
-import { Action, Lede, Section } from '../../components/Ledger';
+import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { Action, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useTransactions } from './useTransactions';
 import { TransactionFiltersModal } from './components/filters/TransactionFiltersModal';
@@ -11,8 +11,6 @@ import { TransactionDetailModal } from './components/TransactionDetailModal';
 export function TransactionsScreen() {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
-    content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 36, gap: 24 },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     state: { gap: 14, paddingVertical: 12 },
   }));
@@ -50,9 +48,13 @@ export function TransactionsScreen() {
     closeFilters();
   };
   return (
-    <GradientBackground>
-      <ScrollView
-        contentContainerStyle={styles.content}
+    <>
+      <Page
+        title="Activity"
+        lede="Select an entry for its status and details."
+        actions={
+          <Action label={hasActiveFilters ? 'Filter (active)' : 'Filter'} onPress={() => setShowFilters(true)} />
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing && !isLoading && !isLoadingMore}
@@ -61,11 +63,6 @@ export function TransactionsScreen() {
           />
         }
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Activity
-        </Text>
-        <Action label={hasActiveFilters ? 'Filter (active)' : 'Filter'} onPress={() => setShowFilters(true)} />
-        <Lede>Select an entry for its status and details.</Lede>
         {isLoading ? (
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.brand.default} />
@@ -119,7 +116,7 @@ export function TransactionsScreen() {
             )}
           </Section>
         )}
-      </ScrollView>
+      </Page>
       <TransactionFiltersModal
         isOpen={showFilters}
         filters={filters}
@@ -141,6 +138,6 @@ export function TransactionsScreen() {
         transaction={selected}
         onClose={() => setSelectedUuid(null)}
       />
-    </GradientBackground>
+    </>
   );
 }

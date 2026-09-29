@@ -14,14 +14,8 @@ import {
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
-
-const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
-};
 
 const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 

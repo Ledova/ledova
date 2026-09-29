@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Text, View, ScrollView, RefreshControl, Linking, Alert } from 'react-native';
+import { Text, View, RefreshControl, Linking, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -12,7 +12,8 @@ import {
   REGISTER_COPY,
 } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import { Section, Row, Rows, Action, Lede } from '../../components/Ledger';
+import { Section, Row, Rows, Action } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { ClassRegister } from '../company-register/ClassRegister';
 import { useCompanyStyles } from '../company-register/styles';
@@ -156,25 +157,25 @@ function ShareClass({ uuid }: { uuid: string }) {
   };
   if (!data.access.allowed)
     return (
-      <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+      <Page title="Share class">
         <Text style={styles.muted}>
           {data.access.isLoading
             ? 'Loading your company access…'
             : 'Verify your company access before opening a share class.'}
         </Text>
         {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </ScrollView>
+      </Page>
     );
   if (data.token.isPending)
     return (
-      <View style={[styles.page, styles.content]}>
+      <Page title="Share class">
         <Text style={styles.muted}>Loading share class…</Text>
-      </View>
+      </Page>
     );
   if (data.token.isError || !token)
     return (
       <>
-        <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+        <Page title="Share class">
           <Text accessibilityRole="alert" style={styles.error}>
             We couldn’t load this share class.
           </Text>
@@ -183,7 +184,7 @@ function ShareClass({ uuid }: { uuid: string }) {
             disabled={data.token.isFetching}
             onPress={() => void data.token.refetch()}
           />
-        </ScrollView>
+        </Page>
         {forms}
       </>
     );
@@ -193,18 +194,12 @@ function ShareClass({ uuid }: { uuid: string }) {
     token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
   return (
     <>
-      <ScrollView
+      <Page
         testID="share-class-screen"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title={token.name}
+        lede={`${token.companyName} · ${token.symbol}`}
         refreshControl={<RefreshControl refreshing={data.token.isFetching} onRefresh={() => void data.refresh()} />}
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          {token.name}
-        </Text>
-        <Lede>
-          {token.companyName} · {token.symbol}
-        </Lede>
         <Section title="Class details">
           <Rows>
             <Row label="Class state">{token.statusDisplay}</Row>
@@ -383,7 +378,7 @@ function ShareClass({ uuid }: { uuid: string }) {
             )}
           </ReadResult>
         </Section>
-      </ScrollView>
+      </Page>
       {forms}
     </>
   );

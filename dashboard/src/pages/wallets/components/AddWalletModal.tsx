@@ -6,13 +6,10 @@ import {
   getActiveChains,
   importAddressKey,
   importOnEvmNetwork,
-  DESIGN_TOKENS,
   fetchImportBalances,
   describeFailure,
 } from '@ledova/shared';
-
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { ICON_XS, ICON_SM } from '@components/iconSizes';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Page } from '../../components/Page';
 import { useUserProfile } from './useUserProfile';
 import { VerificationModal } from './components/VerificationModal';
 import { useAccountStyles } from '../account/styles';
@@ -16,10 +17,9 @@ export function UserProfileScreen() {
   const verification = getUserVerificationStatus(userProfile);
   return (
     <>
-      <ScrollView
+      <Page
         testID="profile-scroll"
-        style={styles.page}
-        contentContainerStyle={styles.content}
+        title="Profile"
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -28,9 +28,6 @@ export function UserProfileScreen() {
           />
         }
       >
-        <Text accessibilityRole="header" style={styles.title}>
-          Profile
-        </Text>
         {profile.isLoading ? (
           <ActivityIndicator accessibilityLabel="Loading profile" />
         ) : profile.isError ? (
@@ -123,7 +120,7 @@ export function UserProfileScreen() {
             />
           </Section>
         )}
-      </ScrollView>
+      </Page>
       <VerificationModal
         visible={verificationOpen}
         onClose={() => setVerificationOpen(false)}
