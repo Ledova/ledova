@@ -184,8 +184,10 @@ test.describe('the built dashboard encodes Keystone QR codes', () => {
   test('a wallet verification challenge renders as a Keystone sign request', async ({ page }) => {
     const errors = recordErrors(page);
     await page.goto('/wallets');
-    await page.getByRole('button', { name: /Keystone awaiting verification/ }).click();
-    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await page
+      .getByRole('group', { name: 'Keystone awaiting verification' })
+      .getByRole('button', { name: 'Verify', exact: true })
+      .click();
 
     const verify = page.getByRole('dialog', { name: 'Verify Wallet' });
     await verify.getByRole('button', { name: 'Continue' }).click();

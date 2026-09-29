@@ -250,8 +250,14 @@ after the server confirms success. Identity checks and supporting payslips retai
 their existing provider and deployment boundaries.
 
 Wallets reads every wallet page into a separate ledger cache. A failed read hides
-incomplete or stale rows and offers retry. Chain sections keep wallet verification,
-signing preference and sync feedback separate. Add, edit, derive and delete forms
+incomplete or stale rows and offers retry. Each chain's card lists its wallets,
+and each row shows the wallet's verification and signing preference, its balance
+in the chain's native unit and its value in AUD, each with its label, and its own
+actions: Edit, Sync and Delete, with Verify while the wallet awaits verification
+and Derive address where the next hardware address can be derived. Nothing is
+selected first. A failed sync is reported in the row of the wallet it belongs to,
+and every Sync waits while one is running. Add wallet is a title action, since
+the add form chooses the network. Add, edit, derive and delete forms
 preserve refused input and stay open until success; background read failures keep
 the draft but block further submission until recovery. Hardware imports run one
 address at a time and remember confirmed additions for retry within the same import.
@@ -476,10 +482,13 @@ same rule.
 
 Actions use one language. `PageAction` is the button for whatever a page or a
 section does, and it keeps its content width wherever it sits: in the title row
-for the page as a whole (Edit company, Wallets' Filter, Refresh, and the way back to the
+for the page as a whole (Edit company, Add wallet, Refresh, and the way back to the
 parent page such as Back to Register, Back to Company, Back to Directory or Back
-to Applications) and inside a section for what that section does (Create share
-class, Edit phone, Change password beside its sentence). A page reaches each of
+to Applications), inside a section for what that section does (Create share
+class, Edit phone, Change password beside its sentence), and in a row for what is
+done to that row's record alone (each wallet's Edit, Sync and Delete on Wallets,
+a submitted claim's Withdraw claim on Verification), so nothing is selected
+before acting and no toolbar waits under a list. A page reaches each of
 its own sub-pages, and each neighbour a section points to, from one place, a
 `LinkRow` in that section, never also from a title action or an underlined
 link: Company lists Application and Published to your members under its details
@@ -503,12 +512,14 @@ Applying or clearing the filter closes it and every open entry and returns focus
 to the filter's button. Activity's Transfers works this way, so its title row has
 no Filter action. Holdings and the Register also open their rows in place, with a
 native `details` element. A dialog is kept for work that sets the page aside: a
-form that creates or changes something, a signing step or a confirmation. One
-web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
-dialog that only reorders the list in memory, and it moves in place when Wallets
-is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
-On mobile, Activity's filter and entry detail, Market's order details and the
-Wallets sort still open in a dialog. The bell's notifications belong to the frame
+form that creates or changes something, a signing step or a confirmation.
+Wallets sorts each chain's list in place as Activity filters: a Sort
+`Disclosure` at the top of a chain's card, shown once the chain holds two or
+more wallets, names the order it applies, and choosing an order applies it at
+once, closes it and returns focus to its button; each chain keeps its own order,
+so its title row has no Filter action either. On mobile,
+Activity's filter and entry detail, Market's order details and the Wallets sort
+still open in a dialog. The bell's notifications belong to the frame
 rather than a page, on both clients.
 
 A setting that takes effect as soon as it changes has one control, a

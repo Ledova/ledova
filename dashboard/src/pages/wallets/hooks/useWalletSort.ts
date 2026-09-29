@@ -1,10 +1,19 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 
 export type WalletSortOption = 'default' | 'verified' | 'name' | 'namedFirst' | 'highestValue' | 'highestBalance';
 
-function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
+export const WALLET_SORTS: ReadonlyArray<{ id: WalletSortOption; label: string }> = [
+  { id: 'default', label: 'Hardware first' },
+  { id: 'verified', label: 'Verified first' },
+  { id: 'name', label: 'Name, A to Z' },
+  { id: 'namedFirst', label: 'Named first' },
+  { id: 'highestValue', label: 'Highest value' },
+  { id: 'highestBalance', label: 'Highest balance' },
+];
+
+export function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
   if (option === 'default') {
     return [...wallets].sort((a, b) => {
       const aIsHardware = a.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
@@ -47,24 +56,28 @@ function sortWallets(wallets: Wallet[], option: WalletSortOption): Wallet[] {
   });
 }
 
-export function useWalletSort(wallets: Wallet[]) {
-  const [sortOption, setSortOption] = useState<WalletSortOption>('default');
-  const [showSortModal, setShowSortModal] = useState(false);
+export function useWalletSort() {
+  const [sorts, setSorts] = useState<Partial<Record<string, WalletSortOption>>>({});
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
 
-  const sortedWallets = useMemo(() => sortWallets(wallets, sortOption), [wallets, sortOption]);
+  const sortOf = (chain: string): WalletSortOption => sorts[chain] ?? 'default';
 
-  const isFiltered = sortOption !== 'default';
+  const toggle = (chain: string) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(chain)) next.delete(chain);
+      else next.add(chain);
+      return next;
+    });
 
-  const handleApply = (sort: WalletSortOption) => {
-    setSortOption(sort);
+  const choose = (chain: string, option: WalletSortOption) => {
+    setSorts((current) => ({ ...current, [chain]: option }));
+    setOpen((current) => {
+      const next = new Set(current);
+      next.delete(chain);
+      return next;
+    });
   };
 
-  return {
-    sortedWallets,
-    sortOption,
-    isFiltered,
-    showSortModal,
-    setShowSortModal,
-    handleApply,
-  };
+  return { sortOf, isOpen: (chain: string) => open.has(chain), toggle, choose };
 }

@@ -1,16 +1,13 @@
-import { useCallback, useState } from 'react';
-import { FunnelIcon } from '@phosphor-icons/react';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, DESIGN_TOKENS } from '@ledova/shared';
-
-const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
+import { useState } from 'react';
+import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { WalletList } from '@components/Wallet';
+import { WalletItem } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
-import { useWalletSort } from './hooks/useWalletSort';
-import { WalletActionBar } from './components/WalletActionBar';
-import { WalletSortModal } from './components/WalletSortModal';
+import { sortWallets, useWalletSort } from './hooks/useWalletSort';
+import { WalletActions } from './components/WalletActions';
+import { WalletSort } from './components/WalletSort';
 import { EditWalletModal } from './components/EditWalletModal';
 import { DeleteWalletModal } from './components/DeleteWalletModal';
 import { WalletVerificationModal } from './components/WalletVerificationModal';
@@ -18,7 +15,12 @@ import { DeriveAddressModal } from './components/DeriveAddressModal';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 
-const LEDE = 'Select a wallet to edit, verify, derive an address or sync its balances.';
+const LEDE = 'Verify a wallet to send from it or buy crypto into it.';
+const CHAINS = [
+  { chain: BLOCKCHAIN.ETHEREUM, title: 'Ethereum' },
+  { chain: BLOCKCHAIN.BITCOIN, title: 'Bitcoin' },
+  { chain: BLOCKCHAIN.BASE, title: 'Base' },
+];
 
 export function WalletsPage() {
   const {
@@ -48,23 +50,14 @@ export function WalletsPage() {
     isUpdating,
     isSyncing,
     syncError,
-    syncErrorWalletUuid,
+    syncWalletUuid,
   } = useWallets();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingWallet, setEditingWallet] = useState<WalletType | null>(null);
   const [deletingWallet, setDeletingWallet] = useState<WalletType | null>(null);
   const [verifyingWallet, setVerifyingWallet] = useState<WalletType | null>(null);
-  const [selectedWalletUuid, setSelectedWalletUuid] = useState<string | null>(null);
-
-  const { sortedWallets, sortOption, isFiltered, showSortModal, setShowSortModal, handleApply } =
-    useWalletSort(wallets);
-
-  const ethWallets = sortedWallets.filter((w) => w.chain === BLOCKCHAIN.ETHEREUM);
-  const btcWallets = sortedWallets.filter((w) => w.chain === BLOCKCHAIN.BITCOIN);
-  const baseWallets = sortedWallets.filter((w) => w.chain === BLOCKCHAIN.BASE);
-
-  const selectedWallet = wallets.find((w) => w.uuid === selectedWalletUuid) ?? null;
+  const sort = useWalletSort();
 
   const readBlocked = hasError || isRefreshing;
   const readNotice = readBlocked ? (
@@ -90,10 +83,6 @@ export function WalletsPage() {
     setDeletingWallet(wallet);
   };
 
-  const handleSelectWallet = useCallback((wallet: WalletType) => {
-    setSelectedWalletUuid((prev) => (prev === wallet.uuid ? null : wallet.uuid));
-  }, []);
-
   const handleAddWalletSubmit = (data: Parameters<typeof handleCreateWallet>[0]) => {
     if (!readBlocked && !isCreating) handleCreateWallet(data, () => setShowAddModal(false));
   };
@@ -108,59 +97,57 @@ export function WalletsPage() {
 
   const handleConfirmDelete = () => {
     if (deletingWallet && !readBlocked && !isDeleting) {
-      handleDeleteWallet(deletingWallet.uuid, () => {
-        if (selectedWalletUuid === deletingWallet.uuid) setSelectedWalletUuid(null);
-        setDeletingWallet(null);
-      });
+      handleDeleteWallet(deletingWallet.uuid, () => setDeletingWallet(null));
     }
   };
 
-  const buildActionBarProps = (chain: string) => {
-    const walletForChain = selectedWallet?.chain === chain ? selectedWallet : null;
-    const isPending = walletForChain
-      ? walletForChain.verificationStatus !== WALLET_VERIFICATION_STATUS.VERIFIED
-      : false;
-    const canDerive = walletForChain ? canDeriveAddress(walletForChain) : false;
-
-    return {
-      selectedWallet: walletForChain,
-      canVerify: isPending,
-      canDerive,
-      isSyncing,
-      onAdd: openAdd,
-      onEdit: () => walletForChain && openEdit(walletForChain),
-      onVerify: () => walletForChain && setVerifyingWallet(walletForChain),
-      onDerive: () => walletForChain && openDeriveModal(walletForChain),
-      onSync: () => walletForChain && handleSyncWallet(walletForChain.uuid),
-      onDelete: () => walletForChain && openDelete(walletForChain),
-    };
-  };
-
-  const renderChain = (chain: string, title: string, chainWallets: WalletType[]) => (
-    <Section title={title}>
-      {chainWallets.length === 0 ? (
-        <>
-          <p className="py-3 text-sm text-text-muted">No {title} wallets yet.</p>
-          <PageAction label="Add wallet" onClick={openAdd} />
-        </>
-      ) : (
-        <>
-          <WalletList
-            wallets={chainWallets}
-            selectedWalletUuid={selectedWalletUuid}
-            onSelectWallet={handleSelectWallet}
-            onEditWallet={openEdit}
-          />
-          <WalletActionBar {...buildActionBarProps(chain)} />
-          {syncError && syncErrorWalletUuid === selectedWalletUuid && selectedWallet?.chain === chain && (
-            <p role="alert" className="mt-3 text-sm text-error-light">
-              {syncError}
-            </p>
-          )}
-        </>
-      )}
-    </Section>
+  const renderWallet = (wallet: WalletType) => (
+    <li key={wallet.uuid}>
+      <WalletItem wallet={wallet}>
+        <WalletActions
+          label={wallet.name || wallet.address}
+          canVerify={wallet.verificationStatus !== WALLET_VERIFICATION_STATUS.VERIFIED}
+          canDerive={canDeriveAddress(wallet)}
+          syncing={isSyncing && syncWalletUuid === wallet.uuid}
+          syncDisabled={isSyncing}
+          onEdit={() => openEdit(wallet)}
+          onVerify={() => setVerifyingWallet(wallet)}
+          onDerive={() => openDeriveModal(wallet)}
+          onSync={() => handleSyncWallet(wallet.uuid)}
+          onDelete={() => openDelete(wallet)}
+        />
+        {syncError && syncWalletUuid === wallet.uuid && (
+          <p role="alert" className="text-sm text-error-light">
+            {syncError}
+          </p>
+        )}
+      </WalletItem>
+    </li>
   );
+
+  const renderChain = (chain: string, title: string) => {
+    const chainWallets = sortWallets(
+      wallets.filter((wallet) => wallet.chain === chain),
+      sort.sortOf(chain),
+    );
+    return (
+      <Section key={chain} title={title}>
+        {chainWallets.length > 1 && (
+          <WalletSort
+            open={sort.isOpen(chain)}
+            sort={sort.sortOf(chain)}
+            onToggle={() => sort.toggle(chain)}
+            onSort={(option) => sort.choose(chain, option)}
+          />
+        )}
+        {chainWallets.length === 0 ? (
+          <p className="py-3 text-sm text-text-muted">No {title} wallets yet.</p>
+        ) : (
+          <ul className="divide-y divide-border-subtle">{chainWallets.map(renderWallet)}</ul>
+        )}
+      </Section>
+    );
+  };
 
   if (isLoading) {
     return <Page loading lede={LEDE} />;
@@ -171,12 +158,7 @@ export function WalletsPage() {
       lede={LEDE}
       actions={
         <>
-          <PageAction
-            icon={<FunnelIcon size={ICON_SM} weight={isFiltered ? 'fill' : 'regular'} />}
-            label="Filter"
-            onClick={() => setShowSortModal(true)}
-            active={isFiltered}
-          />
+          {!hasError && <PageAction label="Add wallet" onClick={openAdd} />}
           <CryptoActions />
         </>
       }
@@ -187,11 +169,7 @@ export function WalletsPage() {
           <PageAction label="Try again" disabled={isRefreshing} onClick={() => void retry()} />
         </div>
       ) : (
-        <>
-          {renderChain(BLOCKCHAIN.ETHEREUM, 'Ethereum', ethWallets)}
-          {renderChain(BLOCKCHAIN.BITCOIN, 'Bitcoin', btcWallets)}
-          {renderChain(BLOCKCHAIN.BASE, 'Base', baseWallets)}
-        </>
+        CHAINS.map(({ chain, title }) => renderChain(chain, title))
       )}
 
       <AddWalletModal
@@ -249,13 +227,6 @@ export function WalletsPage() {
         requestError={createError}
         readBlocked={readBlocked || (!!derivingWallet && !canDeriveAddress(derivingWallet))}
         notice={readNotice}
-      />
-
-      <WalletSortModal
-        isOpen={showSortModal}
-        selectedSort={sortOption}
-        onClose={() => setShowSortModal(false)}
-        onApply={handleApply}
       />
     </Page>
   );

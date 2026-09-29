@@ -36,6 +36,9 @@ function wrapper({ children }: { children: ReactNode }) {
 function show() {
   return render(<WalletsPage />, { wrapper });
 }
+function actOn(wallet: string, action: string) {
+  fireEvent.click(within(screen.getByRole('group', { name: wallet })).getByRole('button', { name: action }));
+}
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -85,6 +88,7 @@ it.each(['failed second page', 'malformed next', 'stale refresh'])(
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByText('Primary wallet')).toBeNull();
     expect(screen.queryByText('No Base wallets yet.')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add wallet' })).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Reserve wallet')).toBeTruthy();
@@ -100,7 +104,8 @@ it('retains an edit while a delayed write rejects, then closes only after succes
       }),
   );
   show();
-  fireEvent.doubleClick(await screen.findByText('Primary wallet'));
+  await screen.findByText('Primary wallet');
+  actOn('Primary wallet', 'Edit');
   const dialog = screen.getByRole('dialog', { name: 'Edit Wallet' });
   expect(within(dialog).getByText('Address').tagName).toBe('DT');
   fireEvent.change(within(dialog).getByLabelText('Wallet name'), { target: { value: 'Retained name' } });
@@ -119,7 +124,8 @@ it('retains an edit while a delayed write rejects, then closes only after succes
 
 it('keeps a prepared edit through failed background reads and withholds saving until recovery', async () => {
   show();
-  fireEvent.doubleClick(await screen.findByText('Primary wallet'));
+  await screen.findByText('Primary wallet');
+  actOn('Primary wallet', 'Edit');
   const dialog = screen.getByRole('dialog');
   fireEvent.change(within(dialog).getByLabelText('Wallet name'), { target: { value: 'Kept draft' } });
   api.get.mockRejectedValue(Error('Unavailable'));
@@ -139,9 +145,10 @@ it('keeps a prepared edit through failed background reads and withholds saving u
 it('keeps a refused delete confirmation open and requires a successful retry', async () => {
   api.delete.mockRejectedValueOnce(Error('Cannot delete'));
   show();
-  fireEvent.click(await screen.findByText('Primary wallet'));
-  fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-  const dialog = screen.getByRole('dialog');
+  await screen.findByText('Primary wallet');
+  actOn('Primary wallet', 'Delete');
+  const dialog = screen.getByRole('dialog', { name: 'Delete Wallet' });
+  expect(within(dialog).getByText('Primary wallet')).toBeTruthy();
   fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
   expect(await within(dialog).findByRole('alert')).toBeTruthy();
   fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
@@ -149,14 +156,17 @@ it('keeps a refused delete confirmation open and requires a successful retry', a
   expect(api.delete).toHaveBeenCalledTimes(2);
 });
 
-it('offers one Add wallet action under each empty chain and opens the add form from it', async () => {
+it('states each empty chain in one sentence under its title and offers Add wallet once, in the title row', async () => {
   api.get.mockResolvedValue(page([]));
   show();
-  expect(await screen.findByText('No Ethereum wallets yet.')).toBeTruthy();
-  expect(screen.getByText('No Bitcoin wallets yet.')).toBeTruthy();
-  expect(screen.getByText('No Base wallets yet.')).toBeTruthy();
-  expect(screen.getAllByRole('button', { name: 'Add wallet' })).toHaveLength(3);
-  fireEvent.click(screen.getAllByRole('button', { name: 'Add wallet' })[1]);
+  for (const chain of ['Ethereum', 'Bitcoin', 'Base']) {
+    const section = (await screen.findByRole('heading', { level: 2, name: chain })).closest('section')!;
+    expect(within(section).getByText(`No ${chain} wallets yet.`).tagName).toBe('P');
+    expect(within(section).queryAllByRole('button')).toHaveLength(0);
+  }
+  const add = screen.getByRole('button', { name: 'Add wallet' });
+  expect(add.closest('header')).toBeTruthy();
+  fireEvent.click(add);
   expect(within(screen.getByRole('dialog', { name: 'Add wallet' })).getByLabelText('Wallet address')).toBeTruthy();
 });
 
@@ -164,7 +174,7 @@ it('retains a refused new wallet and closes only on successful creation', async 
   api.post.mockRejectedValueOnce(Error('Cannot add'));
   show();
   await screen.findByText('Primary wallet');
-  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add wallet' }));
   const dialog = screen.getByRole('dialog');
   fireEvent.change(within(dialog).getByLabelText('Wallet address'), { target: { value: second.address } });
   fireEvent.change(within(dialog).getByLabelText('Wallet name'), { target: { value: 'New name' } });
