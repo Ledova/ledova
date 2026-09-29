@@ -472,7 +472,7 @@ repeated in a title row. An underlined link is part of a sentence ("open
 Notices") or opens an external resource such as a block explorer or a stored
 document. Mobile's `LinkRow` and `Action` follow the same rule.
 
-A list is read and filtered in place rather than in a dialog. An entry opens
+A list on a page is read and filtered in place rather than in a dialog. An entry opens
 under its own row as a `Disclosure`, and the list's filter is a `Disclosure` at
 the top of the list's card, above the entries or the empty sentence; closed, it
 names the filters it applies. Opening an entry leaves any other open entry as it
@@ -485,8 +485,9 @@ form that creates or changes something, a signing step or a confirmation. One
 web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
 dialog that only reorders the list in memory, and it moves in place when Wallets
 is reworked under item 5 of [#791](https://github.com/Ledova/ledova/issues/791).
-On mobile, Activity's filter and entry detail and the Wallets sort still open in
-a dialog.
+On mobile, Activity's filter and entry detail, Market's order details and the
+Wallets sort still open in a dialog. The bell's notifications belong to the frame
+rather than a page, on both clients.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
