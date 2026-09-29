@@ -600,7 +600,8 @@ opens: as on the web, screen readers read the button's expanded state and then
 the detail after it. Activity's Filter is the first row of the Transfers card,
 closed at first and naming the filters it applies, so Activity has no screen
 action, and its loading and failure states sit in the same card under the
-filter, which stays at hand when a filtered read fails. Each entry opens its
+filter, which stays at hand when a filtered read fails. Each entry is named by
+its summary, with its status's word but not the ✓ or ✗ before it, and opens its
 detail under its row, independently of the others; applying or clearing the
 filter closes it and every open entry and moves the screen reader's focus back
 to Filter. On Market, each of Your orders keeps its rows and opens the rest of

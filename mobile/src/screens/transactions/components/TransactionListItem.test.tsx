@@ -32,8 +32,22 @@ async function opened(entry: Transaction) {
 
 it('names its button by the summary a screen reader reads, never by the record id', async () => {
   const view = await render(<TransactionListItem transaction={transaction} open={false} onToggle={() => {}} />);
-  expect(view.getByRole('button', { name: /^Outgoing · Ethereum Base · .+ Pending 2 ETH$/ })).toBeCollapsed();
+  expect(view.getByRole('button', { name: /^Outgoing · Ethereum, Base · .+, Pending, 2 ETH$/ })).toBeCollapsed();
   expect(view.queryByRole('button', { name: /synthetic-transaction/ })).toBeNull();
+});
+
+it.each([
+  ['confirmed', '✓ Confirmed', 'Confirmed'],
+  ['failed', '✗ Failed', 'Failed'],
+] as const)('shows %s as %s but names the entry by the word alone', async (status, label, word) => {
+  const view = await render(
+    <TransactionListItem transaction={{ ...transaction, status }} open={false} onToggle={() => {}} />,
+  );
+  expect(view.getByText(label)).toBeTruthy();
+  expect(
+    view.getByRole('button', { name: new RegExp(`^Outgoing · Ethereum, Base · .+, ${word}, 2 ETH$`) }),
+  ).toBeTruthy();
+  expect(view.queryByRole('button', { name: /[✓✗]/ })).toBeNull();
 });
 
 it('shows no detail while closed and hands the entry to its toggle', async () => {
