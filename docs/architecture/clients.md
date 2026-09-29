@@ -501,8 +501,10 @@ names the filters it applies. Opening an entry leaves any other open entry as it
 is, so the row stays where it was pressed and two entries can be compared.
 Applying or clearing the filter closes it and every open entry and returns focus
 to the filter's button. Activity's Transfers works this way, so its title row has
-no Filter action. Holdings and the Register also open their rows in place, with a
-native `details` element. A dialog is kept for work that sets the page aside: a
+no Filter action. Holdings and the Register have no filter, and their rows open
+the same way, each a `Disclosure`: a holding to its shares by network and wallet,
+a share class to its Share class row and stored register. Every row starts
+closed. A dialog is kept for work that sets the page aside: a
 form that creates or changes something, a signing step or a confirmation. One
 web page still breaks the rule: Wallets' Filter title action opens a Sort Wallets
 dialog that only reorders the list in memory, and it moves in place when Wallets
