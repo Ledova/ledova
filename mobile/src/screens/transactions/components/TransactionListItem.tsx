@@ -32,7 +32,6 @@ export function TransactionListItem({
       <Disclosure
         open={open}
         onToggle={() => onToggle(transaction)}
-        accessibilityLabel={`Open activity ${transaction.uuid}`}
         summary={
           <View style={styles.summary}>
             <Text style={styles.title}>

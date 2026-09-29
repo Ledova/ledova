@@ -25,15 +25,21 @@ const transaction: Transaction = {
 
 async function opened(entry: Transaction) {
   const view = await render(<TransactionListItem transaction={entry} open onToggle={() => {}} />);
-  const row = view.getByRole('button', { name: `Open activity ${entry.uuid}` });
+  const row = view.getByRole('button', { expanded: true });
   expect(row).toBeExpanded();
   return { view, detail: (row.parent!.children as (typeof row)[])[1] };
 }
 
+it('names its button by the summary a screen reader reads, never by the record id', async () => {
+  const view = await render(<TransactionListItem transaction={transaction} open={false} onToggle={() => {}} />);
+  expect(view.getByRole('button', { name: /^Outgoing · Ethereum Base · .+ Pending 2 ETH$/ })).toBeCollapsed();
+  expect(view.queryByRole('button', { name: /synthetic-transaction/ })).toBeNull();
+});
+
 it('shows no detail while closed and hands the entry to its toggle', async () => {
   const toggle = jest.fn();
   const view = await render(<TransactionListItem transaction={transaction} open={false} onToggle={toggle} />);
-  const row = view.getByRole('button', { name: 'Open activity synthetic-transaction' });
+  const row = view.getByRole('button');
   expect(row).toBeCollapsed();
   expect(view.getByText('Outgoing · Ethereum')).toBeTruthy();
   expect(view.queryByText('Recorded')).toBeNull();

@@ -63,6 +63,7 @@ const transaction: Transaction = {
   transactionFee: '0.000000000000000001',
   transactionFeeEstimated: null,
 };
+const entryName = /^Outgoing · Example settlement asset/;
 function page<T>(results: T[], next: string | null = null) {
   return { data: { results, next, previous: null, count: results.length } };
 }
@@ -255,7 +256,7 @@ it.each([
 });
 it('applies and clears from the open filter, closing it and every open entry and returning focus to Filter', async () => {
   const view = await show();
-  const entry = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const entry = await view.findByRole('button', { name: entryName });
   await fireEvent.press(entry);
   expect(entry).toBeExpanded();
   await openFilter(view);
@@ -267,7 +268,7 @@ it('applies and clears from the open filter, closing it and every open entry and
   expect(view.queryByRole('radio', { name: 'Direction: Incoming' })).toBeNull();
   expect(focusMoves(view)).toEqual([['Filter', 'focus']]);
   await waitFor(() => expect((reads().at(-1)?.[1]?.params as Record<string, unknown>)?.direction).toBe('incoming'));
-  const filtered = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const filtered = await view.findByRole('button', { name: entryName });
   expect(filtered).toBeCollapsed();
   expect(view.queryByText('Recorded')).toBeNull();
 
@@ -281,7 +282,7 @@ it('applies and clears from the open filter, closing it and every open entry and
     ['Filter', 'focus'],
   ]);
   expect(within(filterToggle(view)).getByText('All transfers')).toBeTruthy();
-  const cleared = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const cleared = await view.findByRole('button', { name: entryName });
   expect(cleared).toBeCollapsed();
   expect(view.queryByText('Recorded')).toBeNull();
 });
@@ -377,7 +378,7 @@ it('rejects a non-advancing history link', async () => {
 });
 it('refreshes actual records and hides a stale open detail on failure, then restores current status', async () => {
   const view = await show();
-  const entry = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const entry = await view.findByRole('button', { name: entryName });
   await fireEvent.press(entry);
   expect(within(detailOf(entry)).getByText('Recorded')).toBeTruthy();
   activity = async () => {
@@ -388,18 +389,17 @@ it('refreshes actual records and hides a stale open detail on failure, then rest
   });
   expect(await view.findByText('Your activity could not be loaded. Try again before continuing.')).toBeTruthy();
   expect(view.queryByText('Recorded')).toBeNull();
-  expect(view.queryByRole('button', { name: 'Open activity entry-one' })).toBeNull();
+  expect(view.queryByRole('button', { name: entryName })).toBeNull();
   activity = async () => page([{ ...transaction, status: 'reorged' }]);
   await fireEvent.press(view.getByText('Try again'));
-  const recovered = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const recovered = await view.findByRole('button', { name: entryName });
   expect(recovered).toBeExpanded();
   expect(within(detailOf(recovered)).getByText('Confirmation reversed')).toBeTruthy();
 });
 it('opens entries in place under their own rows, each on its own', async () => {
   activity = async () => page([transaction, { ...transaction, uuid: 'entry-two', status: 'confirmed' }]);
   const view = await show();
-  const first = await view.findByRole('button', { name: 'Open activity entry-one' });
-  const second = view.getByRole('button', { name: 'Open activity entry-two' });
+  const [first, second] = await view.findAllByRole('button', { name: entryName });
   expect(first).toBeCollapsed();
   expect(second).toBeCollapsed();
   expect(view.queryByText('Recorded')).toBeNull();
@@ -426,7 +426,7 @@ it('opens entries in place under their own rows, each on its own', async () => {
 it('shows exact details and native-unit fees, opens the real explorer URL and reports a refused open', async () => {
   const open = jest.spyOn(Linking, 'openURL').mockRejectedValueOnce(Error('refused')).mockResolvedValue(undefined);
   const view = await show();
-  const entry = await view.findByRole('button', { name: 'Open activity entry-one' });
+  const entry = await view.findByRole('button', { name: entryName });
   await fireEvent.press(entry);
   const detail = detailOf(entry);
   expect(within(detail).getByText('0.000000000000000001 ETH')).toBeTruthy();
@@ -456,7 +456,7 @@ it('keeps zero amounts exact and omits explorer actions when there is no transac
   activity = async () =>
     page([{ ...transaction, amount: '0.000', txHash: '', transactionFee: '0.000', status: 'failed' }]);
   const view = await show();
-  await fireEvent.press(await view.findByRole('button', { name: 'Open activity entry-one' }));
+  await fireEvent.press(await view.findByRole('button', { name: entryName }));
   expect(view.getAllByText('0 AUDX').length).toBeGreaterThan(0);
   expect(view.getByText('0 ETH')).toBeTruthy();
   expect(view.queryByText('View on Explorer')).toBeNull();
