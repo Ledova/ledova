@@ -354,3 +354,24 @@ describe('Buy crypto acts only on a finished read', () => {
     expect(post).not.toHaveBeenCalled();
   });
 });
+
+it('holds every wallet while the chosen one opens the purchase, and marks only that one busy', async () => {
+  answer(async () => page([wallet('1', 'First wallet'), wallet('2', 'Second wallet')]));
+  post.mockReturnValue(new Promise(() => {}));
+  const view = await render(<Reopenable navigate={jest.fn()} />);
+  await chooseEthereum(view);
+  await fireEvent.press(await view.findByRole('button', { name: /Second wallet/ }));
+
+  await waitFor(() => expect(view.getByRole('button', { name: /Second wallet/ })).toBeBusy());
+  const chosen = view.getByRole('button', { name: /Second wallet/ });
+  const other = view.getByRole('button', { name: /First wallet/ });
+  const spinners = (choice: typeof chosen) =>
+    choice.children.filter((child) => typeof child !== 'string' && child.type === 'ActivityIndicator');
+  expect(spinners(chosen)).toHaveLength(1);
+  expect(other).not.toBeBusy();
+  expect(spinners(other)).toHaveLength(0);
+  expect(chosen).toBeDisabled();
+  expect(other).toBeDisabled();
+  await fireEvent.press(other);
+  expect(post).toHaveBeenCalledTimes(1);
+});

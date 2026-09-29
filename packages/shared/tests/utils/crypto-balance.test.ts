@@ -8,6 +8,7 @@ describe('formatCryptoBalance', () => {
     ['0.001', 'BTC', '0.001 BTC'],
     ['0.000000004', 'BTC', '0 BTC'],
     ['-1.50', 'ETH', '-1.5 ETH'],
+    ['-0.000000004', 'BTC', '0 BTC'],
   ])('shows the balance %s in %s as %s, to at most eight places', (balance, symbol, shown) => {
     expect(formatCryptoBalance(balance, symbol)).toBe(shown);
   });
