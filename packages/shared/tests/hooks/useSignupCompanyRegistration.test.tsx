@@ -241,6 +241,17 @@ it('retains new registration, empty-ABN omission and its ordinary invalidations'
   expect(invalidate).toHaveBeenCalledWith({ queryKey: listKey });
 });
 
+it('refreshes the company list and the saved detail after an update', async () => {
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const { result } = await loaded();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(api.patch).toHaveBeenCalledTimes(1);
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: listKey });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: detailKey('company-a') });
+});
+
 it.each(['success', 'failure'])('ignores a late A save %s after B is selected', async (outcome) => {
   const pending = deferred<{ data: { name: string } }>();
   api.patch.mockReturnValue(pending.promise);

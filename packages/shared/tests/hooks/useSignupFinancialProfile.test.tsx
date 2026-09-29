@@ -53,6 +53,27 @@ it.each<{ funds: JsonValue; choices: string[] }>([
   expect(saved).toHaveBeenCalledTimes(1);
 });
 
+it('creates the financial profile when none is saved, sending blank answers as null', async () => {
+  api.get.mockResolvedValueOnce({ data: { count: 1, results: [{ uuid: 'profile-1' }] } });
+  api.get.mockResolvedValueOnce({ data: { count: 0, results: [] } });
+  api.post.mockResolvedValue({ data: {} });
+  const saved = jest.fn();
+  const { result } = renderHook(() => useSignupFinancialProfile(), { wrapper });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+  await act(() => result.current.handleSubmit(saved));
+
+  expect(api.post).toHaveBeenCalledWith('/api/financial-profiles/', {
+    occupation: null,
+    sourceOfFunds: [],
+    sourceOfFundsOtherText: null,
+    intendedUse: null,
+    intendedUseOtherText: null,
+  });
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(saved).toHaveBeenCalledTimes(1);
+});
+
 it('retries a failed load from a fresh loading state', async () => {
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.get.mockRejectedValueOnce(new Error('offline'));

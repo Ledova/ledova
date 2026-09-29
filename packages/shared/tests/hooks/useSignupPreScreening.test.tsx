@@ -38,6 +38,21 @@ async function confirmedEverything(results: object[] = [profile]) {
   return view;
 }
 
+it('saves all three confirmations to the profile, then moves on', async () => {
+  api.patch.mockResolvedValue({ data: {} });
+  const saved = jest.fn();
+  const { result } = await confirmedEverything();
+
+  await act(() => result.current.handleSubmit(saved));
+
+  expect(api.patch).toHaveBeenCalledWith('/api/user-profiles/profile-1/', {
+    confirmedOver18: true,
+    confirmedAustralianResident: true,
+    confirmedIndividualAccount: true,
+  });
+  expect(saved).toHaveBeenCalledTimes(1);
+});
+
 it('says the profile is missing, and sends nothing, when there is no profile to update', async () => {
   const { result } = await confirmedEverything([]);
   const moveOn = jest.fn();

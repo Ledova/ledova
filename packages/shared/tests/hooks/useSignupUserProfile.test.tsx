@@ -47,6 +47,27 @@ async function filledIn(results: object[] = [profile]) {
   return view;
 }
 
+it('saves the details trimmed, with the phone number as digits and the chosen country code', async () => {
+  const australian = { ...profile, fullName: ' Synthetic Person ', phoneCountryCode: '+61', phoneNumber: '491570156' };
+  api.get.mockResolvedValue({ data: { count: 1, results: [australian] } });
+  api.patch.mockResolvedValue({ data: {} });
+  const saved = jest.fn();
+  const { result } = renderHook(() => useSignupUserProfile(), { wrapper });
+  await waitFor(() => expect(result.current.isLoading).toBe(false));
+  expect(result.current.form.phoneNumber).toBe('491 570 156');
+
+  await act(() => result.current.handleSubmit(saved));
+
+  expect(api.patch).toHaveBeenCalledWith('/api/user-profiles/profile-1/', {
+    fullName: 'Synthetic Person',
+    dateOfBirth: '1990-01-01',
+    phoneCountryCode: '+61',
+    phoneNumber: '491570156',
+    residentialAddress: '1 Synthetic Street, Sydney',
+  });
+  expect(saved).toHaveBeenCalledTimes(1);
+});
+
 it('says the profile is missing, and sends nothing, when there is no profile to update', async () => {
   const { result } = await filledIn([]);
   const moveOn = jest.fn();
