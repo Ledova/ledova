@@ -161,11 +161,10 @@ Use the recorded journal and the matching [EVM](../reference/evm-transfers.md) o
 balance reconciliation are separate; a five-minute sweep requeues durable balance
 repair even after a transaction's status changes. See [wallet reconciliation](../reference/wallet-reconciliation.md).
 
-Legacy `cleanup_failed_transactions` and `cleanup_stale_pending_transactions`
-handlers only report overdue unresolved counts. They do not fail transactions,
-release reservations or refund balances, and are no longer periodic. Restart old
-workers to load that behavior. Reviewing historically failed rows and hashless
-operator submissions remains separate work; do not infer compensation from timeouts.
+The two retired cleanup tasks and how to clear jobs queued under them are in the
+[upgrade note](upgrades.md#retired-transaction-cleanup-tasks).
+Reviewing historically failed rows and hashless operator submissions remains
+separate work; do not infer compensation from timeouts.
 [Transaction evidence](../reference/transaction-evidence.md) explains receipt,
 canonicality and finality limits. Evidence collection does not settle balances.
 

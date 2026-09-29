@@ -29,6 +29,3 @@ class BlockchainTransactionQuerySet(QuerySet):
 
     def with_tx_hash(self):
         return self.filter(tx_hash__isnull=False)
-
-    def stale(self, cutoff_datetime):
-        return self.pending().filter(created_at__lt=cutoff_datetime)
