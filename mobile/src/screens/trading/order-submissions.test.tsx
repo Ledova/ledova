@@ -56,11 +56,22 @@ jest.mock('../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }
 jest.mock('../../utils/softwareWallet/localSigner', () => ({ signEthereumTypedData: jest.fn() }));
 jest.mock('../../components/qr', () => ({ QRDisplay: jest.fn(() => null), QRScanner: jest.fn(() => null) }));
 const mockDialogLifecycle: string[] = [];
+const dialogEvents = (event: string) => mockDialogLifecycle.filter((entry) => entry === event).length;
 jest.mock('../../components/modal', () => {
   const { useEffect } = jest.requireActual('react');
   const { View, Text, Pressable } = jest.requireActual('react-native');
+  function MockDialogContent({ children }: { children: React.ReactNode }) {
+    useEffect(() => {
+      mockDialogLifecycle.push('content mounted');
+      return () => {
+        mockDialogLifecycle.push('content unmounted');
+      };
+    }, []);
+    return <View>{children}</View>;
+  }
   function MockCustomModal({
     visible,
+    contentKey,
     children,
     onClose,
     onConfirm,
@@ -68,6 +79,7 @@ jest.mock('../../components/modal', () => {
     confirmDisabled,
   }: {
     visible: boolean;
+    contentKey?: React.Key;
     children: React.ReactNode;
     onClose: () => void;
     onConfirm?: () => void;
@@ -75,14 +87,14 @@ jest.mock('../../components/modal', () => {
     confirmDisabled?: boolean;
   }) {
     useEffect(() => {
-      mockDialogLifecycle.push('mounted');
+      mockDialogLifecycle.push('modal mounted');
       return () => {
-        mockDialogLifecycle.push('unmounted');
+        mockDialogLifecycle.push('modal unmounted');
       };
     }, []);
     return visible ? (
       <View>
-        {children}
+        <MockDialogContent key={contentKey}>{children}</MockDialogContent>
         <Pressable onPress={onClose}>
           <Text>Dismiss window</Text>
         </Pressable>
@@ -230,7 +242,9 @@ it('keeps one mounted signing dialog while the order is prepared, signed and cre
   );
   await release();
   await waitFor(() => expect(view.getByText('Order created')).toBeTruthy());
-  expect(mockDialogLifecycle).toEqual(['mounted']);
+  expect(dialogEvents('modal mounted')).toBe(1);
+  expect(dialogEvents('modal unmounted')).toBe(0);
+  expect(dialogEvents('content mounted')).toBe(3);
   expect(jest.mocked(CustomModal).mock.calls.every(([props]) => props.visible)).toBe(true);
 });
 
