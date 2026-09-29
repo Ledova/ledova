@@ -13,7 +13,13 @@ export type BuyStackParamList = {
 
 const Stack = createNativeStackNavigator<BuyStackParamList>();
 
-export function BuyStackNavigator() {
+export function BuyStackNavigator({
+  onNotifications,
+  unreadCount,
+}: {
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
   const theme = useAppTheme();
   return (
     <Stack.Navigator
@@ -23,7 +29,7 @@ export function BuyStackNavigator() {
           backgroundColor: theme.colors.surface.base,
         },
         ...getMainHeaderStyle(theme),
-        ...MainHeader({ theme, onNotifications: () => {} }),
+        ...MainHeader({ theme, onNotifications, unreadCount }),
       })}
     >
       <Stack.Screen

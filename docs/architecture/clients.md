@@ -466,8 +466,9 @@ render in the same frame under the same title; a company's share class is titled
 Share class until the class is read, and then by the class. Each screen keeps its
 own pull to refresh and keyboard handling, which `Page` hands to its scroll view.
 The stack header above the page carries no title of its own, only the menu or
-back button and, on a top-level screen, the bell. Help & Support, reached from
-the drawer's foot, keeps its stack title and contact cards, and the flow screens
+back button and, on a top-level screen, the bell, which in every stack opens the
+notifications and shows the unread count. Help & Support, reached from the
+drawer's foot, keeps its stack title and contact cards, and the flow screens
 titled inside their card (`Panel`) keep that card.
 
 The sidebar's list holds its destinations and ends with Help & Support, a
