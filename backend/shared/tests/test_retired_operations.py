@@ -7,7 +7,7 @@ from companies.models import Company
 from feature_flags.models import FeatureFlag
 from shared.api.routes import registered_routes, schema_routes
 from shared.tests.tenants import an_acn, make_tenant, route_context, snapshot
-from tokens.models import ShareIssuanceRequest, ShareToken
+from tokens.models import ShareIssuanceRequest
 
 RETIRED = (
     ("get", "/api/v1/companies/{company}/api-key/", 404),
@@ -89,18 +89,19 @@ class RetiredOperationsTest(APITestCase):
     def setUp(self):
         self.owner = make_tenant("retired-owner")
         self.staff = make_tenant("retired-staff", staff=True)
-        self.empty_company = Company.objects.create(
-            owner=self.owner.user, name="Retired empty Pty Ltd", acn=an_acn(82000001)
-        )
         self.feature_flag = FeatureFlag.objects.create(name="retired_probe", enabled=True)
-        self.owner.issuance_request = ShareIssuanceRequest.objects.create(
-            token=self.owner.deployed_token,
-            recipient_address="0x" + "c" * 40,
-            amount=10,
-            reason="Founder allocation",
-            issuance_type="additional",
-            submitted_by=self.owner.user,
-        )
+        for number, tenant in enumerate((self.owner, self.staff), start=82000001):
+            tenant.empty_company = Company.objects.create(
+                owner=tenant.user, name=f"{tenant.label} empty Pty Ltd", acn=an_acn(number)
+            )
+            tenant.issuance_request = ShareIssuanceRequest.objects.create(
+                token=tenant.deployed_token,
+                recipient_address="0x" + "c" * 40,
+                amount=10,
+                reason="Founder allocation",
+                issuance_type="additional",
+                submitted_by=tenant.user,
+            )
 
     def test_no_retired_operation_is_registered_or_in_the_schema(self):
         registered = registered_routes()
@@ -114,18 +115,13 @@ class RetiredOperationsTest(APITestCase):
         self.assertEqual(retained - documented, set())
 
     def test_every_retired_operation_is_refused_for_owner_and_staff_and_changes_nothing(self):
-        before = snapshot(self.owner)
-        context = {
-            **route_context(self.owner),
-            "empty_company": str(self.empty_company.pk),
-            "feature_flag": str(self.feature_flag.pk),
-        }
-        for actor in (self.owner, self.staff):
+        actors = (self.owner, self.staff)
+        before = [snapshot(actor) for actor in actors]
+        for actor in actors:
+            context = {**route_context(actor), "feature_flag": str(self.feature_flag.pk)}
             self.client.force_authenticate(actor.user)
             for method, path, expected in RETIRED:
                 with self.subTest(actor=actor.label, method=method, path=path):
                     response = getattr(self.client, method)(path.format_map(context), {}, format="json")
                     self.assertEqual(response.status_code, expected, response.content)
-        self.assertEqual(snapshot(self.owner), before)
-        self.assertTrue(Company.objects.filter(pk=self.empty_company.pk).exists())
-        self.assertTrue(ShareToken.objects.filter(pk=self.owner.token.pk).exists())
+        self.assertEqual([snapshot(actor) for actor in actors], before)

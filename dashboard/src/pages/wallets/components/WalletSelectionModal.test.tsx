@@ -121,6 +121,16 @@ it('offers every verified wallet when they fill more than one page', async () =>
   expect(chosen).toHaveBeenCalledExactlyOnceWith(everyday);
 });
 
+it('says there are no wallets when every verified wallet is on a network Send does not offer', async () => {
+  const polygon = wallet('d', 'polygon', 'Polygon savings', '3', '3');
+  api.get.mockResolvedValue({ data: { results: [polygon], count: 1, next: null, previous: null } });
+  show();
+  const dialog = await screen.findByRole('dialog', { name: 'Select your wallet' });
+
+  expect(await within(dialog).findByText('No verified wallets found')).toBeTruthy();
+  expect(within(dialog).queryByRole('button', { name: /Polygon savings/ })).toBeNull();
+});
+
 it('says the wallets could not be loaded when the read fails, rather than that there are none, and tries again', async () => {
   api.get.mockRejectedValueOnce(new Error('Request failed with status code 500'));
   show();

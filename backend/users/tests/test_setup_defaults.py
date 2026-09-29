@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -45,13 +47,14 @@ class EnsureDefaultsTest(TestCase):
         preferences.refresh_from_db()
         self.assertFalse(preferences.transaction_alerts)
 
-    def test_an_account_that_has_portfolios_gets_no_new_one(self):
+    def test_an_account_that_has_portfolios_gets_its_oldest_and_no_new_one(self):
         profile = UserProfile.objects.create(user=self.user)
         account = UserAccount.objects.create(account_number="EXISTING", user_profile=profile)
-        first_portfolio = Portfolio.objects.create(user_account=account, name="First")
-        second_portfolio = Portfolio.objects.create(user_account=account, name="Second")
+        newer = Portfolio.objects.create(user_account=account, name="Newer")
+        older = Portfolio.objects.create(user_account=account, name="Older")
+        Portfolio.objects.filter(pk=older.pk).update(created_at=newer.created_at - timedelta(days=1))
 
         _, _, portfolio, _ = ensure_defaults(self.user)
 
-        self.assertIn(portfolio, (first_portfolio, second_portfolio))
+        self.assertEqual(portfolio, older)
         self.assertEqual(account.portfolios.count(), 2)

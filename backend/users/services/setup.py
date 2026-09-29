@@ -18,7 +18,7 @@ def ensure_defaults(user):
         RiskAssessmentService.create_pending_assessment(user_account=account)
         logger.info(f"Created account {account.uuid} for user {user.pk}")
 
-    portfolio = account.portfolios.first()
+    portfolio = account.portfolios.order_by("created_at", "uuid").first()
     if portfolio is None:
         portfolio = Portfolio.objects.create(user_account=account, name="My Portfolio")
         logger.info(f"Created portfolio {portfolio.uuid} for user {user.pk}")
