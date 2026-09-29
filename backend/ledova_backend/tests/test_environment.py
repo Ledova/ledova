@@ -1,3 +1,6 @@
+import json
+import os
+import subprocess
 import sys
 from importlib.util import find_spec
 from pathlib import Path
@@ -21,6 +24,13 @@ from ledova_backend.environment import (
     resolve_storage_backend,
 )
 from wallets.services.bitcoin_intent import GENESIS_HASHES
+
+CHAIN_VARIABLES = ("BLOCKCHAIN_CHAIN_ID", "LOCAL_CHAIN_FINALITY_DEPTH")
+CHAIN_PROBE = (
+    "import json; from django.conf import settings; from ledova_backend.settings import blockchain; "
+    "print(json.dumps([[blockchain.BLOCKCHAIN_CHAIN_ID, blockchain.WALLET_CHAIN_FINALITY_POLICIES], "
+    "[settings.BLOCKCHAIN_CHAIN_ID, settings.WALLET_CHAIN_FINALITY_POLICIES]]))"
+)
 
 
 class EnvironmentParsingTests(SimpleTestCase):
@@ -71,7 +81,6 @@ class EnvironmentParsingTests(SimpleTestCase):
         for synthetic in (f"bitcoin:{GENESIS_HASHES['regtest']}", "evm:1337", "evm:31337"):
             with self.subTest(network=synthetic):
                 self.assertNotIn(synthetic, APPROVED_FINALITY_POLICIES)
-        self.assertEqual(settings.WALLET_CHAIN_FINALITY_POLICIES, APPROVED_FINALITY_POLICIES)
 
     def test_the_local_finality_depth_override_reaches_only_a_local_chain(self):
         self.assertEqual(local_finality_policies("", 31337), {})
@@ -80,6 +89,28 @@ class EnvironmentParsingTests(SimpleTestCase):
         for value, chain_id in (("3", 84532), ("3", 11155111), ("0", 31337), ("-1", 31337), ("three", 31337)):
             with self.subTest(value=value, chain_id=chain_id), self.assertRaises(ImproperlyConfigured):
                 local_finality_policies(value, chain_id)
+
+    def chain_settings_under(self, **variables):
+        environment = {name: value for name, value in os.environ.items() if name not in CHAIN_VARIABLES}
+        result = subprocess.run(
+            [sys.executable, "-c", CHAIN_PROBE],
+            cwd=settings.BASE_DIR,
+            env={**environment, **variables},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_the_backend_and_the_suites_default_to_base_sepolia_under_the_approved_policies(self):
+        base_sepolia = [84532, APPROVED_FINALITY_POLICIES]
+        self.assertEqual(self.chain_settings_under(), [base_sepolia, base_sepolia])
+
+    def test_the_test_settings_override_the_local_stacks_chain_and_depth(self):
+        configured, tested = self.chain_settings_under(BLOCKCHAIN_CHAIN_ID="31337", LOCAL_CHAIN_FINALITY_DEPTH="3")
+        local_policy = {"evm:31337": {"mode": "depth", "depth": 3}}
+        self.assertEqual(configured, [31337, {**APPROVED_FINALITY_POLICIES, **local_policy}])
+        self.assertEqual(tested, [84532, APPROVED_FINALITY_POLICIES])
 
 
 class AuthorizationConfigurationTests(SimpleTestCase):
