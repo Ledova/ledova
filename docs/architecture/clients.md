@@ -605,8 +605,10 @@ detail under its row, independently of the others; applying or clearing the
 filter closes it and every open entry and moves the screen reader's focus back
 to Filter. On Market, each of Your orders keeps its rows and opens the rest of
 its details, from Total quantity to Order ID, under them with Details, while
-changing or cancelling an order, signing and settling stay dialogs. Both keep
-their open rows with the same `useOpenRows` as the web's lists.
+changing or cancelling an order, signing and settling stay dialogs. An order's
+Details, Modify and Cancel order name it by side, class, shares remaining and
+price, as its row shows them, never by its id. Both keep their open rows with
+the same `useOpenRows` as the web's lists.
 
 A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible

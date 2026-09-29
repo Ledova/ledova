@@ -15,6 +15,14 @@ import { Action, Disclosure, Row, Rows, Section } from '../../../components/Ledg
 import { marketAmount, marketQuantity } from '../marketData';
 import { useMarketStyles } from '../styles';
 
+function orderName(order: TransferOrder) {
+  return [
+    order.orderType === 'buy' ? 'Wanted' : 'For sale',
+    order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable',
+    `${marketQuantity(order.remainingQuantity ?? order.quantity)} at ${marketAmount(order.pricePerShare)} per share`,
+  ].join(', ');
+}
+
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   const styles = useMarketStyles();
   return (
@@ -146,7 +154,7 @@ export function OrdersCard({
                   <Disclosure
                     open={details.isOpen(order.uuid)}
                     onToggle={() => details.toggle(order.uuid)}
-                    accessibilityLabel={`Details for order ${order.uuid}`}
+                    accessibilityLabel={`Details, ${orderName(order)}`}
                     summary={<Text style={styles.label}>Details</Text>}
                   >
                     <Rows>
@@ -182,13 +190,13 @@ export function OrdersCard({
                       <>
                         <Action
                           label="Modify"
-                          accessibilityLabel={`Modify order ${order.uuid}`}
+                          accessibilityLabel={`Modify, ${orderName(order)}`}
                           disabled={ordersBlocked}
                           onPress={() => onEditOrder(order)}
                         />
                         <Action
                           label="Cancel order"
-                          accessibilityLabel={`Cancel order ${order.uuid}`}
+                          accessibilityLabel={`Cancel order, ${orderName(order)}`}
                           disabled={ordersBlocked}
                           onPress={() => setConfirming(order.uuid)}
                         />

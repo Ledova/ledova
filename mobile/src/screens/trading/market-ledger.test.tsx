@@ -43,6 +43,7 @@ const page = <T,>(results: T[], next: string | null = null) => ({
   previous: null,
 });
 const order: TransferOrder = { ...submittedOrder({ status: 'open' }), tokenName: null, tokenSymbol: null };
+const ORDER = 'Wanted, Share class unavailable, 7 at AUD\u00a014.00 per share';
 function wrapper({ children }: PropsWithChildren) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
@@ -398,12 +399,14 @@ it('opens each order’s details in place under its row, closed at first and eac
     status: 'completed',
   };
   const view = await render(<OrdersCard {...ordersProps([order, done])} />);
-  const first = view.getByRole('button', { name: `Details for order ${order.uuid}` });
-  const second = view.getByRole('button', { name: `Details for order ${done.uuid}` });
+  const first = view.getByRole('button', { name: `Details, ${ORDER}` });
+  const second = view.getByRole('button', {
+    name: 'Details, Wanted, Share class unavailable, 5 at AUD\u00a014.00 per share',
+  });
   expect(first).toBeCollapsed();
   expect(second).toBeCollapsed();
   expect(view.queryByText('Order ID')).toBeNull();
-  expect(view.getAllByRole('button', { name: /^Modify order/ })).toHaveLength(1);
+  expect(view.getAllByRole('button', { name: /^Modify, / })).toHaveLength(1);
 
   await fireEvent.press(first);
   expect(first).toBeExpanded();
@@ -437,17 +440,44 @@ it('gives a finished order no action row, and an open one its Modify and Cancel 
   const [open, finished] = view.getAllByText('Share class unavailable').map((name) => name.parent!);
   const [, openRows, actions] = open.children as Found[];
   expect(open.children).toHaveLength(3);
-  expect(within(actions).getByRole('button', { name: `Modify order ${order.uuid}` })).toBeTruthy();
-  expect(within(actions).getByRole('button', { name: `Cancel order ${order.uuid}` })).toBeTruthy();
-  expect(within(openRows).getByRole('button', { name: `Details for order ${order.uuid}` })).toBeTruthy();
+  expect(within(actions).getByRole('button', { name: `Modify, ${ORDER}` })).toBeTruthy();
+  expect(within(actions).getByRole('button', { name: `Cancel order, ${ORDER}` })).toBeTruthy();
+  expect(within(openRows).getByRole('button', { name: `Details, ${ORDER}` })).toBeTruthy();
   expect(finished.children).toHaveLength(2);
-  expect(within(finished).getByRole('button', { name: `Details for order ${done.uuid}` })).toBeTruthy();
-  expect(within(finished).queryByRole('button', { name: /^(Modify|Cancel) order/ })).toBeNull();
+  expect(within(finished).getByRole('button', { name: `Details, ${ORDER}` })).toBeTruthy();
+  expect(within(finished).queryByRole('button', { name: /^(Modify|Cancel order), / })).toBeNull();
+});
+it('names each order’s buttons from what its row shows, and never by the order’s id', async () => {
+  const sold: TransferOrder = {
+    ...order,
+    uuid: '60000000-0000-4000-8000-000000000003',
+    orderType: 'sell',
+    tokenSymbol: 'ORD',
+    quantity: 3,
+    remainingQuantity: 2,
+    pricePerShare: '1.50',
+  };
+  const SOLD = 'For sale, ORD, 2 at AUD\u00a01.50 per share';
+  const view = await render(<OrdersCard {...ordersProps([order, sold])} />);
+  const namedById = () =>
+    [order.uuid, sold.uuid].flatMap((id) => view.queryAllByRole('button', { name: new RegExp(id) }));
+
+  for (const summary of [ORDER, SOLD]) {
+    for (const action of ['Details', 'Modify', 'Cancel order']) {
+      expect(view.getByRole('button', { name: `${action}, ${summary}` })).toBeTruthy();
+    }
+  }
+  expect(namedById()).toHaveLength(0);
+  await fireEvent.press(view.getByRole('button', { name: `Details, ${SOLD}` }));
+  await fireEvent.press(view.getByRole('button', { name: `Cancel order, ${SOLD}` }));
+  expect(view.getByText(sold.uuid)).toBeTruthy();
+  expect(view.getByText('Cancel this order?')).toBeTruthy();
+  expect(namedById()).toHaveLength(0);
 });
 it('reads an order’s details while its actions wait for current orders and wallets', async () => {
   const view = await render(<OrdersCard {...ordersProps([order])} ordersBlocked />);
-  expect(view.getByRole('button', { name: `Modify order ${order.uuid}` })).toBeDisabled();
-  const toggle = view.getByRole('button', { name: `Details for order ${order.uuid}` });
+  expect(view.getByRole('button', { name: `Modify, ${ORDER}` })).toBeDisabled();
+  const toggle = view.getByRole('button', { name: `Details, ${ORDER}` });
   expect(toggle).toBeEnabled();
   await fireEvent.press(toggle);
   expect(toggle).toBeExpanded();
@@ -456,16 +486,18 @@ it('reads an order’s details while its actions wait for current orders and wal
 it('keeps open details on the current order and drops them with it', async () => {
   const props = ordersProps([order]);
   const view = await render(<OrdersCard {...props} />);
-  await fireEvent.press(view.getByRole('button', { name: `Details for order ${order.uuid}` }));
+  await fireEvent.press(view.getByRole('button', { name: `Details, ${ORDER}` }));
   await view.rerender(
     <OrdersCard {...props} userOrders={[{ ...order, filledQuantity: 3, remainingQuantity: 4, status: 'cancelled' }]} />,
   );
-  const toggle = view.getByRole('button', { name: `Details for order ${order.uuid}` });
+  const toggle = view.getByRole('button', {
+    name: 'Details, Wanted, Share class unavailable, 4 at AUD\u00a014.00 per share',
+  });
   expect(toggle).toBeExpanded();
   expect(valueOf(detailsOf(toggle), 'Filled')).toHaveTextContent('3');
-  expect(view.queryByRole('button', { name: `Modify order ${order.uuid}` })).toBeNull();
+  expect(view.queryByRole('button', { name: /^Modify, / })).toBeNull();
   await view.rerender(<OrdersCard {...props} userOrders={[]} />);
-  expect(view.queryByRole('button', { name: `Details for order ${order.uuid}` })).toBeNull();
+  expect(view.queryByRole('button', { name: /^Details, / })).toBeNull();
   expect(view.queryByText('Order ID')).toBeNull();
   expect(view.getByText('No recorded orders.')).toBeTruthy();
 });
