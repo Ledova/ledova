@@ -514,6 +514,25 @@ else. Mobile also uses fixed paper and bundles these fonts with a finite
 loading/error/retry gate; saved local and account theme choices do not change
 the palette. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
 
+On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
+card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over
+the dimmed screen and inside the safe area. Its Newsreader title labels it, its
+body scrolls inside the card, and its actions end the card as one right-aligned
+row of content-width `Action`s (`ModalActions`), a plain Cancel, Close or Back
+before the one primary action, wrapping onto another line rather than
+stretching. The backdrop is a button that closes the dialog, and a busy dialog
+holds the backdrop, Android Back and Cancel. The iOS date sheet in
+`DatePickerField` and the Send, Transfer, Verify Wallet and Recovery Phrase
+flows (`Panel` in `mobile/src/components/panel`) use the same card and action
+row. Inside them nothing is boxed, as on the web: `Rows` draws a rule only
+between items and `Row` and `LinkRow` draw none of their own, steps are
+numbered lines, warnings and errors are an icon and coloured text, fields are
+white with a hairline border (`useDialogStyles`), and a choice is an outlined
+`Choice` marked selected rather than a second filled button. The profile's
+identity dialog shows the check's outcome as plain lines; the sign-up screens
+keep their tinted fields and boxed outcomes, as on the web. Mobile's theme adds
+one spacing step, `smd` (12), for the web's 12px spacing the shared scale lacks.
+
 Mobile resolves the package through its Metro configuration and local workspace
 link. Run `npm --prefix mobile run check:resolution` after dependency/resolution
 changes. Internal shared imports are relative; `make check-self-imports` refuses
