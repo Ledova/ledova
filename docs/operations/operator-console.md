@@ -98,6 +98,25 @@ The password comes from `--password`, `LEDOVA_DEMO_PASSWORD`, or a generated val
 printed by the command. A rerun applies the resolved password. It requires DEBUG;
 `--force` is only for a throwaway database deliberately running without DEBUG.
 
+The investor and founder are `investor@ledova.io` and `founder@ledova.io`; the
+superuser is `admin@demo.ledova.test`. The command adopts any existing account at
+those addresses: it resets its password, active flag, email verification, profile,
+role and status, adds a verified wallet, and gives the investor a verified
+classification and a whitelist entry. Check that nobody uses the two `ledova.io`
+addresses on an environment before seeding it. A database seeded before the two
+addresses moved from `demo.ledova.test` still has its demo company owned by
+`founder@demo.ledova.test`, and the command refuses; rename the two accounts
+first, then rerun it:
+
+```bash
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+User.objects.filter(email='founder@demo.ledova.test').update(email='founder@ledova.io')
+User.objects.filter(email='investor@demo.ledova.test').update(email='investor@ledova.io')
+"
+```
+
 It writes no chain transactions. The investor's whitelist entry is an identity
 row with no company approval; [chain setup](chains.md), deploying the class and
 approving the wallet for the company are still needed.
