@@ -9,6 +9,7 @@ import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { setTimeout, clearTimeout } from 'node:timers';
 import { createAndroidTestPackages } from './android-test-packages.mjs';
+import { waitForContent } from './screen-content.mjs';
 
 const mobile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [platform, output] = process.argv.slice(2);
@@ -479,8 +480,9 @@ try {
     assert.match(fs.readFileSync(provider, 'utf8'), /LedovaHTTPRequestHandler/);
   }
   await launch('ordinary');
-  await delay(3000);
-  await screenshot('ordinary');
+  await delay(10000);
+  const launchScreen = await waitForContent(() => screenshot('ordinary'), path.join(directory, 'ordinary.png'));
+  fs.writeFileSync(path.join(directory, 'ordinary-screen.json'), JSON.stringify(launchScreen, null, 2));
   if (platform === 'android') {
     await command(
       './gradlew',
