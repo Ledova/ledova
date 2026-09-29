@@ -45,7 +45,13 @@ Use an Xcode release accepted by App Store Connect. Since April 28, 2026,
 This requirement is separate from the app's minimum supported iOS version and
 the simulator CI toolchain. Xcode 27 also refuses pod targets below iOS 15.0;
 the config plugin's post-install step raises them to the Podfile platform, as
-[mobile builds](mobile-builds.md) describes.
+[mobile builds](mobile-builds.md) describes. An app built with the iOS 27 SDK
+must also adopt the UIKit scene life cycle or iOS 27 stops it at launch;
+`plugins/withSceneLifecycle.cjs` adds the scene manifest and delegate at
+prebuild, and `check-native-projects.mjs` refuses a generated project without
+them. Launch the archived app on an iOS 27 device or simulator before uploading
+it. A link that opens the closed app does not reach JavaScript under the scene
+life cycle, as [mobile builds](mobile-builds.md) explains.
 
 After installing the locked dependencies described in [mobile builds](mobile-builds.md),
 run from `mobile/` with the release environment already set:
