@@ -16,6 +16,8 @@ const profile = {
   phoneCountryCode: '+44',
   phoneNumber: '7700900123',
 };
+const PROXY_PAGE =
+  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -31,6 +33,64 @@ async function settle() {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
+
+async function filledIn(results: object[] = [profile]) {
+  api.get.mockResolvedValue({ data: { count: results.length, results } });
+  const view = renderHook(() => useSignupUserProfile(), { wrapper });
+  await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+  act(() => {
+    view.result.current.setFieldValue('fullName', profile.fullName);
+    view.result.current.setFieldValue('dateOfBirth', profile.dateOfBirth);
+    view.result.current.setFieldValue('residentialAddress', profile.residentialAddress);
+    view.result.current.setFieldValue('phoneNumber', profile.phoneNumber);
+  });
+  return view;
+}
+
+it('says the profile is missing, and sends nothing, when there is no profile to update', async () => {
+  const { result } = await filledIn([]);
+  const moveOn = jest.fn();
+
+  await act(() => result.current.handleSubmit(moveOn));
+
+  expect(result.current.generalError).toBe('User profile not found. Please contact support.');
+  expect(result.current.errors).toEqual({});
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(moveOn).not.toHaveBeenCalled();
+});
+
+it.each<[string, number, unknown, string, Record<string, string[]>]>([
+  ['a sentence', 409, 'Profile changes are paused.', 'Profile changes are paused.', {}],
+  [
+    'refusals for a field the form shows and one it does not',
+    400,
+    { phoneNumber: ['Enter a valid phone number.'], phoneCountryCode: ['Choose a supported country.'] },
+    'Choose a supported country.',
+    { phoneNumber: ['Enter a valid phone number.'] },
+  ],
+  ['a proxy error page', 502, PROXY_PAGE, 'Failed to save profile. Please try again.', {}],
+  ['an empty answer', 503, '', 'Failed to save profile. Please try again.', {}],
+])('shows what a person can read when the server answers with %s', async (_, status, data, shown, marked) => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue({ response: { status, data } });
+  const { result } = await filledIn();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe(shown);
+  expect(result.current.errors).toEqual(marked);
+});
+
+it('still says to check the connection when no answer came back', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+  const { result } = await filledIn();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe('Network error. Please check your connection.');
+  expect(result.current.errors).toEqual({});
+});
 
 it('loads the saved profile once and keeps edits and the chosen country after a country change', async () => {
   api.get.mockResolvedValue({ data: { count: 1, results: [profile] } });

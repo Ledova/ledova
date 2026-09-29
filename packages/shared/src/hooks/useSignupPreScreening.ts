@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { UpdateUserProfile } from '../types';
-import { describeFailure } from '../utils/errors';
+import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 
 export function useSignupPreScreening() {
@@ -75,27 +75,22 @@ export function useSignupPreScreening() {
       return;
     }
 
+    if (!existingProfileUuid) {
+      setGeneralError('User profile not found. Please contact support.');
+      return;
+    }
+
     setIsSubmitting(true);
     setGeneralError('');
 
     try {
-      if (!existingProfileUuid) {
-        throw new Error('User profile not found. Please contact support.');
-      }
-
       await updateUserProfile(apiClient, existingProfileUuid, form);
 
       onSuccess();
     } catch (error: unknown) {
       console.error(`Pre-screening update failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Failed to save pre-screening. Please try again.');
-        }
+      if ((error as { response?: unknown })?.response) {
+        setGeneralError(apiErrorSentence(error, 'Failed to save pre-screening. Please try again.'));
       } else {
         setGeneralError('Network error. Please check your connection.');
       }

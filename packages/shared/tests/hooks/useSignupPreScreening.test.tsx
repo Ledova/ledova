@@ -13,6 +13,8 @@ const profile = {
   confirmedAustralianResident: true,
   confirmedIndividualAccount: false,
 };
+const PROXY_PAGE =
+  '<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body><h1>502 Bad Gateway</h1></body></html>';
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -21,6 +23,60 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
+});
+
+async function confirmedEverything(results: object[] = [profile]) {
+  api.get.mockResolvedValue({ data: { count: results.length, results } });
+  const view = renderHook(() => useSignupPreScreening(), { wrapper });
+  await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+  act(() => {
+    view.result.current.setFieldValue('confirmedOver18', true);
+    view.result.current.setFieldValue('confirmedAustralianResident', true);
+    view.result.current.setFieldValue('confirmedIndividualAccount', true);
+    view.result.current.toggleWholesaleOnly();
+  });
+  return view;
+}
+
+it('says the profile is missing, and sends nothing, when there is no profile to update', async () => {
+  const { result } = await confirmedEverything([]);
+  const moveOn = jest.fn();
+
+  await act(() => result.current.handleSubmit(moveOn));
+
+  expect(result.current.generalError).toBe('User profile not found. Please contact support.');
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(moveOn).not.toHaveBeenCalled();
+});
+
+it.each<[string, number, unknown, string]>([
+  ['a sentence', 409, 'Pre-screening is closed for this account.', 'Pre-screening is closed for this account.'],
+  [
+    'a refusal for a declaration',
+    400,
+    { confirmedOver18: ['You must be 18 or older to continue.'] },
+    'You must be 18 or older to continue.',
+  ],
+  ['a proxy error page', 502, PROXY_PAGE, 'Failed to save pre-screening. Please try again.'],
+  ['an empty answer', 503, '', 'Failed to save pre-screening. Please try again.'],
+])('shows what a person can read when the server answers with %s', async (_, status, data, shown) => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue({ response: { status, data } });
+  const { result } = await confirmedEverything();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe(shown);
+});
+
+it('still says to check the connection when no answer came back', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  api.patch.mockRejectedValue(Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' }));
+  const { result } = await confirmedEverything();
+
+  await act(() => result.current.handleSubmit(jest.fn()));
+
+  expect(result.current.generalError).toBe('Network error. Please check your connection.');
 });
 
 it('loads the saved confirmations on mount', async () => {

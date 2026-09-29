@@ -3,13 +3,20 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { COUNTRIES, type CountryData } from '../constants/countries';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { FormErrors, UserProfileFormData, UserProfileFormValidation } from '../types';
-import { describeFailure } from '../utils/errors';
+import { describeFailure, readApiError } from '../utils/errors';
 import { cleanPhoneNumber, formatPhoneForDisplay } from '../utils/phoneFormatting';
 import { validateUserProfileField } from '../utils/user-validation';
 import { isValidFullName, isValidPhoneFormat } from '../utils/validation';
 import { useApiClient } from './useApiClient';
 
 const DEFAULT_COUNTRY = COUNTRIES[0]!;
+
+export const USER_PROFILE_FIELDS: readonly (keyof UserProfileFormData)[] = [
+  'fullName',
+  'dateOfBirth',
+  'residentialAddress',
+  'phoneNumber',
+];
 
 const validateUserProfile = (form: UserProfileFormData): UserProfileFormValidation => {
   const fullNameValidation = validateUserProfileField.fullName(form.fullName);
@@ -177,14 +184,15 @@ export function useSignupUserProfile() {
       return;
     }
 
+    if (!existingProfileUuid) {
+      setGeneralError('User profile not found. Please contact support.');
+      return;
+    }
+
     setIsSubmitting(true);
     setGeneralError('');
 
     try {
-      if (!existingProfileUuid) {
-        throw new Error('User profile not found. Please contact support.');
-      }
-
       const formattedData = {
         fullName: form.fullName.trim(),
         dateOfBirth: form.dateOfBirth.trim(),
@@ -198,21 +206,13 @@ export function useSignupUserProfile() {
       onSuccess();
     } catch (error: unknown) {
       console.error(`User profile update failed: ${describeFailure(error)}`);
-      const axiosError = error as { response?: { data?: unknown } };
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data;
-        if (typeof errorData === 'object' && !Array.isArray(errorData)) {
-          setErrors(errorData as FormErrors);
-
-          const firstError = Object.values(errorData).flat()[0];
-          if (firstError) {
-            setGeneralError(firstError as string);
-          }
-        } else if (typeof errorData === 'string') {
-          setGeneralError(errorData);
-        } else {
-          setGeneralError('Failed to save profile. Please try again.');
-        }
+      if ((error as { response?: unknown })?.response) {
+        const reading = readApiError(error, {
+          fallback: 'Failed to save profile. Please try again.',
+          displayedFields: USER_PROFILE_FIELDS,
+        });
+        setGeneralError(reading.generalError ?? '');
+        setErrors(reading.fieldErrors ?? {});
       } else {
         setGeneralError('Network error. Please check your connection.');
       }
