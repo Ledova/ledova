@@ -163,9 +163,7 @@ export function Disclosure({
         </View>
         <View style={styles.summary}>{summary}</View>
       </Pressable>
-      <View accessibilityLiveRegion="polite" style={open ? styles.detail : undefined}>
-        {open && children}
-      </View>
+      <View style={open ? styles.detail : undefined}>{open && children}</View>
     </View>
   );
 }

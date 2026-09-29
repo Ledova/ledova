@@ -35,11 +35,10 @@ it('is a button marked collapsed that holds its detail only while open, directly
   expect(view.queryByText('Synthetic entry detail')).toBeNull();
 });
 
-it('announces its detail as it opens, with the caret on the first line and the detail indented past it', async () => {
+it('puts its caret on the first line of the summary and indents the open detail past it', async () => {
   const view = await render(<Harness opened />);
   const toggle = view.getByRole('button', { name: 'Synthetic entry' });
   const [, detail] = toggle.parent!.children as (typeof toggle)[];
-  expect(detail.props.accessibilityLiveRegion).toBe('polite');
   expect(toggle).toHaveStyle({ flexDirection: 'row', alignItems: 'flex-start', gap: 12 });
   const [caret, summary] = toggle.children as (typeof toggle)[];
   expect(summary).toBe(view.getByText('Synthetic entry').parent);

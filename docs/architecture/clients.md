@@ -579,9 +579,9 @@ rather than a page, on both clients.
 Mobile's Activity and Market follow the same rule with the `Disclosure` in
 `mobile/src/components/Ledger.tsx`: a button marked expanded or collapsed, with
 its caret on the summary's first line and its detail directly under it, indented
-past the caret and held only while open. The detail is a polite live region, so
-TalkBack announces it as it opens; VoiceOver reads the button as expanded and
-the detail next. Activity's Filter is the first row of the Transfers card,
+past the caret and held only while open. The detail is not announced when it
+opens: as on the web, screen readers read the button's expanded state and then
+the detail after it. Activity's Filter is the first row of the Transfers card,
 closed at first and naming the filters it applies, so Activity has no screen
 action, and its loading and failure states sit in the same card under the
 filter, which stays at hand when a filtered read fails. Each entry opens its
