@@ -1,34 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  CurrencyEthIcon,
-  CurrencyBtcIcon,
-  CurrencyCircleDollarIcon,
-  HardDriveIcon,
-  CloudIcon,
-  ClockIcon,
-  SpinnerGapIcon,
-} from '@phosphor-icons/react';
+import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import {
   BUYABLE_ASSETS,
   CACHE_TIMING,
-  WALLET_SIGNING_PREFERENCE,
-  getWalletSigningPreferenceLabel,
   DESIGN_TOKENS,
   getAssets,
   getWallets,
   getOnRampWidgetUrl,
-  formatWalletAddressShort,
-  formatCryptoBalance,
-  formatSyncAge,
   useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { WalletBadge } from '@components/Wallet';
+import { PageAction } from '@components/Page';
+import { WalletChoice } from '@components/Wallet';
 import apiClient from '@services/apiClient';
 
-const ICON_XS = DESIGN_TOKENS.icon.sizes.xs;
 const ICON_MD = DESIGN_TOKENS.icon.sizes.md;
 const ICON_SM = DESIGN_TOKENS.icon.sizes.sm;
 
@@ -78,8 +65,10 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
     enabled: !!userAccountUuid && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data?.data.results || [];
-  const isLoadingWallets = walletsQuery.isLoading;
+  const walletsFailed = walletsQuery.isError;
+  const matchingWallets = walletsFailed ? [] : walletsQuery.data?.data.results || [];
+  const isLoadingWallets = walletsQuery.isPending;
+  const walletsSettled = walletsQuery.fetchStatus === 'idle';
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;
 
   const widgetMutation = useMutation({
@@ -95,12 +84,12 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
   });
 
   useEffect(() => {
-    if (!selectedAsset || isLoadingWallets) return;
+    if (!selectedAsset || !walletsSettled) return;
 
     if (matchingWallets.length === 1 && widgetMutation.isIdle) {
       widgetMutation.mutate(matchingWallets[0]);
     }
-  }, [selectedAsset, isLoadingWallets, matchingWallets, widgetMutation]);
+  }, [selectedAsset, walletsSettled, matchingWallets, widgetMutation]);
 
   const resetAndClose = useCallback(() => {
     setSelectedAsset(null);
@@ -167,7 +156,18 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
         </>
       )}
 
-      {!isOnAssetStep && matchingWallets.length === 0 && (
+      {!isOnAssetStep && walletsFailed && (
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
+          <PageAction
+            label="Try again"
+            disabled={walletsQuery.isFetching}
+            onClick={() => void walletsQuery.refetch()}
+          />
+        </div>
+      )}
+
+      {!isOnAssetStep && !walletsFailed && matchingWallets.length === 0 && (
         <p className="text-sm text-text-muted">No verified wallets for {selectedAsset!.name}. Create one in Wallets.</p>
       )}
 
@@ -175,67 +175,24 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
         <>
           <p className="text-sm text-text-muted">Choose a wallet to receive {selectedAsset!.name}</p>
 
-          <div className="mt-2 space-y-1">
-            {matchingWallets.map((wallet) => {
-              const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
-              const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
-              const TypeIcon = isHardware ? HardDriveIcon : CloudIcon;
-              const marketValue = parseFloat(wallet.marketValue) || 0;
-              const syncAge = formatSyncAge(wallet.lastSyncedAt);
-              const isSelected = isLoading && widgetMutation.variables?.uuid === wallet.uuid;
-
-              return (
-                <button
-                  key={wallet.uuid}
-                  type="button"
-                  className="w-full flex items-center gap-3 py-2.5 rounded-lg hover:bg-surface-tertiary transition-colors text-left disabled:opacity-50"
-                  onClick={() => handleSelectWallet(wallet)}
-                  disabled={isLoading}
-                >
-                  <WalletBadge verificationStatus={wallet.verificationStatus} />
-                  <span className="text-xs text-text-muted truncate">{walletLabel}</span>
-                  {wallet.signingPreference && (
-                    <span
-                      title={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-                      aria-label={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-                      className="inline-flex items-center justify-center p-1"
-                    >
-                      <TypeIcon size={ICON_XS} weight="bold" className="text-text-secondary" />
-                    </span>
-                  )}
-                  <div className="flex-1" />
-                  {isSelected ? (
-                    <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />
-                  ) : (
-                    <>
-                      {syncAge && (
-                        <span className="inline-flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0">
-                          <ClockIcon size={ICON_XS} />
-                          {syncAge}
-                        </span>
-                      )}
-                      <span className="text-xs text-text-muted flex-shrink-0">
-                        {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
-                      </span>
-                      <span className="text-xs text-text-muted flex-shrink-0">
-                        {formatDisplayCurrency(marketValue)}
-                      </span>
-                    </>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <ul className="mt-2 divide-y divide-border-subtle">
+            {matchingWallets.map((wallet) => (
+              <li key={wallet.uuid}>
+                <WalletChoice
+                  wallet={wallet}
+                  onChoose={() => handleSelectWallet(wallet)}
+                  disabled={isLoading || !walletsSettled}
+                  busy={isLoading && widgetMutation.variables?.uuid === wallet.uuid}
+                />
+              </li>
+            ))}
+          </ul>
         </>
       )}
 
-      {(widgetMutation.isError || walletsQuery.isError) && (
+      {widgetMutation.isError && (
         <p className="mt-4 text-sm text-error-light">
-          {widgetMutation.error instanceof Error
-            ? widgetMutation.error.message
-            : walletsQuery.error instanceof Error
-              ? walletsQuery.error.message
-              : 'Something went wrong'}
+          {widgetMutation.error instanceof Error ? widgetMutation.error.message : 'Something went wrong'}
         </p>
       )}
     </Modal>

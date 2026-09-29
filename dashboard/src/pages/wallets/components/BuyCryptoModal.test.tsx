@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { useState } from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ASSET_ENDPOINTS, WALLET_ENDPOINTS } from '@ledova/shared';
 
@@ -43,6 +43,53 @@ function Provider({ onNavigateToWidget }: { onNavigateToWidget: (url: string) =>
       userAccountUuid="synthetic-account"
     />
   );
+}
+
+function Reopenable({ onNavigateToWidget }: { onNavigateToWidget: (url: string) => void }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        Buy again
+      </button>
+      <BuyCryptoModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onNavigateToWidget={(url) => {
+          setOpen(false);
+          onNavigateToWidget(url);
+        }}
+        userAccountUuid="synthetic-account"
+      />
+    </>
+  );
+}
+
+async function boughtOnceThenAgain(navigate: (url: string) => void, next: () => Promise<unknown>) {
+  answer([wallet('wallet-1', 'First wallet')]);
+  render(
+    <QueryClientProvider client={client}>
+      <Reopenable onNavigateToWidget={navigate} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByText('Ethereum'));
+  await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  const prices = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE ? next() : prices(url, config),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Buy again' }));
+  fireEvent.click(await screen.findByText('Ethereum'));
+  await waitFor(() => expect(walletCalls()).toHaveLength(2));
+}
+
+function pending<T>() {
+  let settle!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    settle = resolve;
+  });
+  return { promise, settle: (value: T) => act(async () => settle(value)) };
 }
 
 function show(props: { onNavigateToWidget?: (url: string) => void }) {
@@ -99,6 +146,7 @@ afterEach(() => {
   cleanup();
   client.clear();
   vi.resetAllMocks();
+  onlineManager.setOnline(true);
 });
 
 it("shows each asset's current price in AUD, and none for an asset without a price", async () => {
@@ -156,6 +204,220 @@ it('asks which wallet receives the chosen asset when several match', async () =>
   fireEvent.click(await screen.findByText('Second wallet'));
   await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
   expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
+});
+
+it("labels each wallet's balance and value in the chooser as a Wallets row does", async () => {
+  answer([wallet('wallet-1', 'First wallet'), { ...wallet('wallet-2', 'Second wallet'), nativeBalance: '0.42' }]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  const second = await screen.findByRole('button', { name: /Second wallet/ });
+  const figuresOf = (choice: HTMLElement) =>
+    Array.from(within(choice).getByText('Balance').parentElement!.children).map((cell) => cell.textContent);
+  expect(figuresOf(second)).toEqual(['Balance', '0.42 ETH', 'Value', 'A$2']);
+  expect(figuresOf(screen.getByRole('button', { name: /First wallet/ }))).toEqual(['Balance', '1 ETH', 'Value', 'A$2']);
+});
+
+it('holds every wallet while the chosen one opens the purchase, and marks the chosen one', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  api.post.mockReturnValue(new Promise(() => {}));
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  fireEvent.click(await screen.findByRole('button', { name: /Second wallet/ }));
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', true));
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: /Second wallet/ }).getAttribute('aria-busy')).toBe('true');
+  expect(screen.getByRole('button', { name: /First wallet/ }).hasAttribute('aria-busy')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: /First wallet/ }));
+  expect(api.post).toHaveBeenCalledOnce();
+});
+
+it('says the wallets could not be loaded when the read fails, rather than that there are none, and tries again', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE
+      ? Promise.reject(new Error('Request failed with status code 500'))
+      : read(url, config),
+  );
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toContain('Your wallets could not be loaded. Try again before continuing.');
+  expect(screen.queryByText(/No verified wallets for/)).toBeNull();
+  expect(screen.queryByText('Request failed with status code 500')).toBeNull();
+  expect(screen.queryByText('Something went wrong')).toBeNull();
+
+  api.get.mockImplementation(read);
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('hides the wallets it listed when a refresh fails, rather than buying into one it can no longer vouch for', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const read = api.get.getMockImplementation()!;
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  api.get.mockImplementation(() => Promise.reject(new Error('Request failed with status code 500')));
+
+  await act(async () => client.invalidateQueries({ queryKey: ['wallets'] }));
+
+  const alert = await screen.findByRole('alert');
+  expect(screen.queryByRole('button', { name: /Second wallet/ })).toBeNull();
+  let settle!: () => void;
+  api.get.mockImplementation(
+    (url: string, config?: { params?: Record<string, unknown> }) =>
+      new Promise((resolve) => {
+        settle = () => resolve(read(url, config));
+      }),
+  );
+  fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+
+  await waitFor(() =>
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toHaveProperty('disabled', true),
+  );
+  await act(async () => settle());
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('waits for a fresh read before buying into the one wallet it read before, and then goes straight to the widget', async () => {
+  const navigate = vi.fn();
+  const read = pending<ReturnType<typeof page>>();
+  await boughtOnceThenAgain(navigate, () => read.promise);
+
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(api.post).toHaveBeenCalledOnce();
+
+  await read.settle(page([wallet('wallet-1', 'First wallet')]));
+
+  await waitFor(() => expect(navigate).toHaveBeenCalledTimes(2));
+  expect(api.post).toHaveBeenCalledTimes(2);
+});
+
+it('asks which wallet receives the asset when the fresh read finds two, rather than buying into the one it read before', async () => {
+  const navigate = vi.fn();
+  const read = pending<ReturnType<typeof page>>();
+  await boughtOnceThenAgain(navigate, () => read.promise);
+
+  await read.settle(page([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', false);
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('says the wallets could not be loaded when the fresh read fails, rather than buying into the one it read before', async () => {
+  const navigate = vi.fn();
+  await boughtOnceThenAgain(navigate, () => Promise.reject(new Error('Request failed with status code 500')));
+
+  expect((await screen.findByRole('alert')).textContent).toContain(
+    'Your wallets could not be loaded. Try again before continuing.',
+  );
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('opens nothing for the one wallet it read before while offline, and asks when the read after reconnecting finds two', async () => {
+  const navigate = vi.fn();
+  answer([wallet('wallet-1', 'First wallet')]);
+  render(
+    <QueryClientProvider client={client}>
+      <Reopenable onNavigateToWidget={navigate} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByText('Ethereum'));
+  await waitFor(() => expect(navigate).toHaveBeenCalledOnce());
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  act(() => onlineManager.setOnline(false));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Buy again' }));
+  fireEvent.click(await screen.findByText('Ethereum'));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(walletCalls()).toHaveLength(1);
+
+  act(() => onlineManager.setOnline(true));
+
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+});
+
+it('lets no wallet it read before be chosen while offline', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  act(() => onlineManager.setOnline(false));
+
+  fireEvent.click(await screen.findByText('Ethereum'));
+
+  const stale = await screen.findByRole('button', { name: /Second wallet/ });
+  expect(stale).toHaveProperty('disabled', true);
+  expect(screen.getByRole('button', { name: /First wallet/ })).toHaveProperty('disabled', true);
+
+  act(() => onlineManager.setOnline(true));
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', false));
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('holds the wallets it listed before while it reads them again', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  show({});
+  fireEvent.click(screen.getByText('Ethereum'));
+  await screen.findByRole('button', { name: /Second wallet/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  const read = pending<ReturnType<typeof page>>();
+  const prices = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) =>
+    url === WALLET_ENDPOINTS.BASE ? read.promise : prices(url, config),
+  );
+
+  fireEvent.click(await screen.findByText('Ethereum'));
+
+  const stale = await screen.findByRole('button', { name: /Second wallet/ });
+  expect(stale).toHaveProperty('disabled', true);
+  fireEvent.click(stale);
+  expect(api.post).not.toHaveBeenCalled();
+  await read.settle(page([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]));
+  await waitFor(() => expect(screen.getByRole('button', { name: /Second wallet/ })).toHaveProperty('disabled', false));
+  fireEvent.click(screen.getByRole('button', { name: /Second wallet/ }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  expect(api.post.mock.calls[0][1]).toMatchObject({ wallet_uuid: 'wallet-2' });
+});
+
+it('waits for the account before reading its wallets, rather than saying it has none', async () => {
+  answer([wallet('wallet-1', 'First wallet'), wallet('wallet-2', 'Second wallet')]);
+  const opened = (account?: string) => (
+    <QueryClientProvider client={client}>
+      <BuyCryptoModal isOpen onClose={() => {}} onNavigateToWidget={() => {}} userAccountUuid={account} />
+    </QueryClientProvider>
+  );
+  const view = render(opened(undefined));
+  fireEvent.click(screen.getByText('Ethereum'));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  expect(screen.queryByText(/No verified wallets for/)).toBeNull();
+  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(walletCalls()).toHaveLength(0);
+
+  view.rerender(opened('synthetic-account'));
+  expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
 });
 
 it('explains a missing wallet and goes back to the asset list', async () => {
