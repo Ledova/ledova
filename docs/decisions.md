@@ -534,9 +534,10 @@ The owner answered three more layout questions on 29 September 2026, accepting
 each recommendation
 ([#791](https://github.com/Ledova/ledova/issues/791#issuecomment-5887891398)):
 
-- **Wallet actions on each row.** Each wallet row carries its own action
-  buttons, as merged in #825, rather than a per-row menu; nothing waits for a
-  wallet to be selected first.
+- **Wallet actions on each row.** On the web each wallet row carries its own
+  action buttons, as merged in #825, rather than a per-row menu; on mobile a row
+  opens the wallet's own screen. Nothing waits for a wallet to be selected
+  first.
 - **The bell's panel opens over the sidebar**, as it does now.
 - **The drawer names the company.** On mobile the drawer's company group takes
   the company's name, as the web sidebar does, and falls back to "Company"
