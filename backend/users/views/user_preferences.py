@@ -9,15 +9,8 @@ from users.serializers.user_preferences import UserPreferencesSerializer
 from users.services import upsert_user_preferences
 
 
-class UserPreferencesViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    AuthenticatedGenericViewSet,
-):
+class UserPreferencesViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, AuthenticatedGenericViewSet):
     serializer_class = UserPreferencesSerializer
-    lookup_field = "uuid"
     ordering = ["-created_at"]
     ordering_fields = ["created_at"]
 

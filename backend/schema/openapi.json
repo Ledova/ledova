@@ -966,10 +966,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "canBeEdited": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "canBeSubmitted": {
             "readOnly": true,
             "type": "boolean"
@@ -1105,7 +1101,6 @@
         "required": [
           "additionalShares",
           "boardResolutionReference",
-          "canBeEdited",
           "canBeSubmitted",
           "createdAt",
           "dilutionPercentage",
@@ -1244,82 +1239,6 @@
         "required": [
           "message",
           "request"
-        ],
-        "type": "object"
-      },
-      "CapitalIncreaseUpdate": {
-        "properties": {
-          "additionalShares": {
-            "description": "Number of additional shares to authorize; execution does not mint shares",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "boardResolutionReference": {
-            "description": "Reference to board resolution authorizing this increase",
-            "maxLength": 255,
-            "type": "string"
-          },
-          "newAuthorizedTotal": {
-            "description": "New total authorized shares after increase",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "purpose": {
-            "description": "Purpose or justification for this capital increase",
-            "type": "string"
-          },
-          "shareholderApprovalReference": {
-            "description": "Reference to shareholder approval (if required)",
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": [
-          "additionalShares",
-          "boardResolutionReference",
-          "newAuthorizedTotal",
-          "purpose"
-        ],
-        "type": "object"
-      },
-      "CapitalIncreaseUpdateRequest": {
-        "properties": {
-          "additionalShares": {
-            "description": "Number of additional shares to authorize; execution does not mint shares",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "boardResolutionReference": {
-            "description": "Reference to board resolution authorizing this increase",
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "newAuthorizedTotal": {
-            "description": "New total authorized shares after increase",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "purpose": {
-            "description": "Purpose or justification for this capital increase",
-            "minLength": 1,
-            "type": "string"
-          },
-          "shareholderApprovalReference": {
-            "description": "Reference to shareholder approval (if required)",
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": [
-          "additionalShares",
-          "boardResolutionReference",
-          "newAuthorizedTotal",
-          "purpose"
         ],
         "type": "object"
       },
@@ -5504,37 +5423,6 @@
         ],
         "type": "object"
       },
-      "PaginatedCompanyDocumentList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/CompanyDocument"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
       "PaginatedCompanyListList": {
         "properties": {
           "count": {
@@ -6341,39 +6229,6 @@
         ],
         "type": "object"
       },
-      "PatchedCapitalIncreaseUpdateRequest": {
-        "properties": {
-          "additionalShares": {
-            "description": "Number of additional shares to authorize; execution does not mint shares",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "boardResolutionReference": {
-            "description": "Reference to board resolution authorizing this increase",
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "newAuthorizedTotal": {
-            "description": "New total authorized shares after increase",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "purpose": {
-            "description": "Purpose or justification for this capital increase",
-            "minLength": 1,
-            "type": "string"
-          },
-          "shareholderApprovalReference": {
-            "description": "Reference to shareholder approval (if required)",
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "PatchedCompanyUpdateRequest": {
         "properties": {
           "abn": {
@@ -6589,15 +6444,6 @@
           },
           "role": {
             "$ref": "#/components/schemas/RoleEnum"
-          }
-        },
-        "type": "object"
-      },
-      "PatchedUserPreferencesRequest": {
-        "properties": {
-          "transactionAlerts": {
-            "description": "Notifications for transaction status changes",
-            "type": "boolean"
           }
         },
         "type": "object"
@@ -14970,159 +14816,6 @@
         ]
       }
     },
-    "/api/user-preferences/{uuid}/": {
-      "delete": {
-        "operationId": "api_user_preferences_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "patch": {
-        "operationId": "api_user_preferences_partial_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedUserPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedUserPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedUserPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_user_preferences_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserPreferencesRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/UserPreferencesRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/UserPreferencesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPreferences"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/user-profiles/": {
       "get": {
         "operationId": "api_user_profiles_list",
@@ -15500,83 +15193,6 @@
       }
     },
     "/api/v1/companies/{company_uuid}/documents/": {
-      "get": {
-        "operationId": "api_v1_companies_documents_list",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "company_uuid",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "document_type",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "is_verified",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedCompanyDocumentList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
       "post": {
         "operationId": "api_v1_companies_documents_create",
         "parameters": [
@@ -17465,160 +17081,6 @@
         ]
       }
     },
-    "/api/v1/tokens/capital-increases/{uuid}/": {
-      "delete": {
-        "operationId": "api_v1_tokens_capital_increases_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "patch": {
-        "operationId": "api_v1_tokens_capital_increases_partial_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedCapitalIncreaseUpdateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedCapitalIncreaseUpdateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/PatchedCapitalIncreaseUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapitalIncreaseUpdate"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_v1_tokens_capital_increases_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseUpdateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseUpdateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapitalIncreaseUpdate"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/tokens/capital-increases/{uuid}/submit/": {
       "post": {
         "operationId": "api_v1_tokens_capital_increases_submit_create",
@@ -18650,86 +18112,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "patch": {
-        "operationId": "api_v1_tokens_partial_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareTokenDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "put": {
-        "operationId": "api_v1_tokens_update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareTokenDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

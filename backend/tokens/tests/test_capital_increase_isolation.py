@@ -121,7 +121,7 @@ class CapitalIncreaseIsolationTest(APITestCase):
         self.assertEqual(draft.submitted_by, owner)
         self.assertIsNotNone(draft.submitted_at)
 
-    def test_create_and_edit_rules_answer_with_detail_or_field_errors(self):
+    def test_create_and_submit_rules_answer_with_detail_or_field_errors(self):
         owner = self._make_user("rules-owner")
         company = self._make_company(owner, "Rules")
         token = self._make_token(company, "RUL")
@@ -156,29 +156,13 @@ class CapitalIncreaseIsolationTest(APITestCase):
         self.assertEqual(missing.status_code, 400)
         self.assertIn("token", missing.json())
 
-        draft = self._make_request(token, "EDIT")
-        detail_url = f"/api/v1/tokens/capital-increases/{draft.uuid}/"
-        edited = self.client.patch(detail_url, {"purpose": "Changed"}, format="json")
-        self.assertEqual(edited.status_code, 200)
-        self.assertEqual(edited.json()["uuid"], str(draft.uuid))
-        self.assertEqual(edited.json()["purpose"], "Changed")
-        self.assertTrue(edited.json()["canBeEdited"])
-        self.assertEqual(edited.json()["status"], RequestStatus.DRAFT)
-
-        self.assertEqual(self.client.post(f"{detail_url}submit/").status_code, 200)
-        resubmitted = self.client.post(f"{detail_url}submit/")
+        draft = self._make_request(token, "SUBMIT")
+        submit_url = f"/api/v1/tokens/capital-increases/{draft.uuid}/submit/"
+        submitted = self.client.post(submit_url)
+        self.assertEqual(submitted.status_code, 200)
+        self.assertEqual(submitted.json()["request"]["uuid"], str(draft.uuid))
+        self.assertEqual(submitted.json()["request"]["status"], RequestStatus.SUBMITTED)
+        resubmitted = self.client.post(submit_url)
         self.assertEqual(resubmitted.status_code, 400)
         self.assertTrue(resubmitted.json()["detail"].startswith("Cannot submit request with status"))
-
-        locked = self.client.patch(detail_url, {"purpose": "Again"}, format="json")
-        self.assertEqual(locked.status_code, 400)
-        self.assertEqual(locked.json()["detail"], "Only draft requests can be edited.")
-
-        kept = self.client.delete(detail_url)
-        self.assertEqual(kept.status_code, 400)
-        self.assertEqual(kept.json()["detail"], "Only draft requests can be deleted.")
         self.assertTrue(CapitalIncreaseRequest.objects.filter(pk=draft.pk).exists())
-
-        deletable = self._make_request(token, "DELETE")
-        self.assertEqual(self.client.delete(f"/api/v1/tokens/capital-increases/{deletable.uuid}/").status_code, 204)
-        self.assertFalse(CapitalIncreaseRequest.objects.filter(pk=deletable.pk).exists())

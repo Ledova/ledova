@@ -527,22 +527,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/user-preferences/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put: ApiOperations['api_user_preferences_update'];
-    post?: never;
-    delete: ApiOperations['api_user_preferences_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_user_preferences_partial_update'];
-    trace?: never;
-  };
   '/api/user-profiles/': {
     parameters: {
       query?: never;
@@ -662,7 +646,7 @@ export interface ApiPaths {
       path?: never;
       cookie?: never;
     };
-    get: ApiOperations['api_v1_companies_documents_list'];
+    get?: never;
     put?: never;
     post: ApiOperations['api_v1_companies_documents_create'];
     delete?: never;
@@ -1095,12 +1079,12 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_retrieve'];
-    put: ApiOperations['api_v1_tokens_update'];
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch: ApiOperations['api_v1_tokens_partial_update'];
+    patch?: never;
     trace?: never;
   };
   '/api/v1/tokens/{uuid}/deploy/': {
@@ -1261,22 +1245,6 @@ export interface ApiPaths {
     options?: never;
     head?: never;
     patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/capital-increases/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put: ApiOperations['api_v1_tokens_capital_increases_update'];
-    post?: never;
-    delete: ApiOperations['api_v1_tokens_capital_increases_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_v1_tokens_capital_increases_partial_update'];
     trace?: never;
   };
   '/api/v1/tokens/capital-increases/{uuid}/submit/': {
@@ -2374,7 +2342,6 @@ export interface ApiComponents {
     CapitalIncreaseDetail: {
       additionalShares: number;
       boardResolutionReference: string;
-      canBeEdited: boolean;
       canBeSubmitted: boolean;
       createdAt: string;
       dilutionPercentage: string | null;
@@ -2418,20 +2385,6 @@ export interface ApiComponents {
     CapitalIncreaseSubmitted: {
       message: string;
       request: ApiComponents['schemas']['CapitalIncreaseDetail'];
-    };
-    CapitalIncreaseUpdate: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      shareholderApprovalReference?: string;
-    };
-    CapitalIncreaseUpdateRequest: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      shareholderApprovalReference?: string;
     };
     CapitalRequestStatusEnum:
       | 'draft'
@@ -3271,12 +3224,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CapitalIncreaseList'][];
     };
-    PaginatedCompanyDocumentList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['CompanyDocument'][];
-    };
     PaginatedCompanyListList: {
       count: number;
       next?: string | null;
@@ -3433,13 +3380,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['WhitelistEntry'][];
     };
-    PatchedCapitalIncreaseUpdateRequest: {
-      additionalShares?: number;
-      boardResolutionReference?: string;
-      newAuthorizedTotal?: number;
-      purpose?: string;
-      shareholderApprovalReference?: string;
-    };
     PatchedCompanyUpdateRequest: {
       abn?: string;
       acn?: string;
@@ -3497,9 +3437,6 @@ export interface ApiComponents {
     PatchedUserAccountRequest: {
       accountType?: ApiComponents['schemas']['AccountTypeEnum'];
       role?: ApiComponents['schemas']['RoleEnum'];
-    };
-    PatchedUserPreferencesRequest: {
-      transactionAlerts?: boolean;
     };
     PatchedUserProfileRequest: {
       citizenshipCountry?: string;
@@ -5710,79 +5647,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_user_preferences_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['UserPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['UserPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['UserPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserPreferences'];
-        };
-      };
-    };
-  };
-  api_user_preferences_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_user_preferences_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedUserPreferencesRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['UserPreferences'];
-        };
-      };
-    };
-  };
   api_user_profiles_list: {
     parameters: {
       query?: {
@@ -5962,33 +5826,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyRegistered'];
-        };
-      };
-    };
-  };
-  api_v1_companies_documents_list: {
-    parameters: {
-      query?: {
-        company_uuid?: string;
-        document_type?: string;
-        is_verified?: boolean;
-        ordering?: string;
-        page?: number;
-      };
-      header?: never;
-      path: {
-        company_uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedCompanyDocumentList'];
         };
       };
     };
@@ -6835,48 +6672,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareTokenDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareTokenDetail'];
-        };
-      };
-    };
-  };
   api_v1_tokens_deploy_create: {
     parameters: {
       query?: never;
@@ -7159,79 +6954,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CapitalIncreaseDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CapitalIncreaseUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseUpdate'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedCapitalIncreaseUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseUpdate'];
         };
       };
     };

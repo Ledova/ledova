@@ -66,30 +66,37 @@ no client changed it. No client is affected.
 
 The routes below keep the methods the clients use and lose the ones nothing
 called: `PUT` where the clients send `PATCH`, deletion of companies and share
-classes, reads of single rows that the clients take from a list, a profile
-create that sign-up never used, and the cancel-message `GET` that only refused
-old clients. A path that keeps another method answers 405 to a retired one; a
-path left with none answers 404. No database migration is needed.
+classes, editing share classes (every field of the class detail was read-only,
+so a `PUT` or `PATCH` changed nothing), editing and deleting capital increase
+drafts, the user preferences detail, reads of single rows and the company
+documents list that the clients take from a list or a detail, a profile create
+that sign-up never used, and the cancel-message `GET` that only refused old
+clients. A path that keeps another method answers 405 to a retired one; a path
+left with none answers 404. No database migration is needed.
 
 | Answers 405 | Keeps |
 | --- | --- |
 | `GET` and `PUT /api/financial-profiles/{uuid}/` | `PATCH` |
 | `GET` and `PUT /api/user-profiles/{uuid}/`, `POST /api/user-profiles/` | `PATCH`, the list, `delete-account/`, `export-data/` |
 | `GET /api/user-accounts/{uuid}/` | `PATCH` |
-| `GET /api/user-preferences/{uuid}/` | `PUT`, `PATCH` and `DELETE`; the clients read the list and save with `POST` |
 | `GET /api/notifications/{uuid}/` | `PATCH` |
 | `GET /api/investor-classifications/{uuid}/` | `DELETE` |
 | `GET` and `PUT /api/wallets/{uuid}/` | `PATCH`, `DELETE` and the wallet actions |
 | `PUT` and `DELETE /api/v1/companies/{uuid}/` | `GET`, `PATCH` and the application actions |
-| `GET /api/v1/companies/{uuid}/documents/{uuid}/` | `DELETE` and `file/`; the company detail lists the documents |
+| `GET /api/v1/companies/{uuid}/documents/` | `POST`; the company detail lists the documents |
+| `GET /api/v1/companies/{uuid}/documents/{uuid}/` | `DELETE` and `file/` |
 | `PUT /api/v1/offerings/{uuid}/` | `GET`, `PATCH`, `DELETE` |
-| `GET /api/v1/tokens/capital-increases/{uuid}/` | `PUT`, `PATCH`, `DELETE`, `submit/` |
-| `DELETE /api/v1/tokens/{uuid}/` | `GET`, `PUT`, `PATCH` and the class actions |
+| `PUT`, `PATCH` and `DELETE /api/v1/tokens/{uuid}/` | `GET` and the class actions |
 | `GET /api/v1/trading/orders/{uuid}/cancel/message/` | `POST`, which issues the cancel challenge |
 
 `GET /api/feature-flags/{uuid}/`, `/api/transactions/{uuid}/`,
 `/api/v1/tokens/issuance-requests/{uuid}/` and `/api/v1/trading/orders/{uuid}/`
-answer 404; their lists stay. The company and share-class deletion refusals,
+answer 404; their lists stay. `/api/user-preferences/{uuid}/` answers 404 to
+every method; the clients read the list and save with `POST`, which stay.
+`/api/v1/tokens/capital-increases/{uuid}/` answers 404 to every method; the list,
+the create and `submit/` stay, and the detail a create or submit answers no longer
+carries `canBeEdited`, which only described the retired edit; `canBeSubmitted`
+stays. The company and share-class deletion refusals,
 `company_holds_a_register`, `company_holds_share_classes` and
 `deployed_share_class`, are gone with the routes: the API deletes neither, so
 [the register's deletion protection](../architecture/register.md#deletion-protection)

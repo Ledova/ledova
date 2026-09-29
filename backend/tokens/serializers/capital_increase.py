@@ -40,7 +40,6 @@ class CapitalIncreaseDetailSerializer(serializers.ModelSerializer):
     submitted_by_email = serializers.EmailField(source="submitted_by.email", read_only=True, allow_null=True)
     reviewed_by_email = serializers.EmailField(source="reviewed_by.email", read_only=True, allow_null=True)
 
-    can_be_edited = serializers.BooleanField(read_only=True)
     can_be_submitted = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -68,7 +67,6 @@ class CapitalIncreaseDetailSerializer(serializers.ModelSerializer):
             "rejection_reason",
             "executed_issuance",
             "executed_at",
-            "can_be_edited",
             "can_be_submitted",
             "created_at",
             "updated_at",
@@ -123,39 +121,3 @@ class CapitalIncreaseCreateRequestSerializer(CapitalIncreaseCreateSerializer):
 
     class Meta(CapitalIncreaseCreateSerializer.Meta):
         fields = ["token", *CapitalIncreaseCreateSerializer.Meta.fields]
-
-
-class CapitalIncreaseUpdateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = CapitalIncreaseRequest
-        fields = [
-            "additional_shares",
-            "new_authorized_total",
-            "purpose",
-            "board_resolution_reference",
-            "shareholder_approval_reference",
-        ]
-
-    def validate_additional_shares(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Additional shares must be greater than zero")
-        return value
-
-    def validate_new_authorized_total(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("New authorized total must be greater than zero")
-        return value
-
-    def validate(self, attrs):
-        if not self.instance.can_be_edited:
-            raise InvalidTokenStateException("Only draft requests can be edited.")
-
-        additional = attrs.get("additional_shares", self.instance.additional_shares)
-        new_total = attrs.get("new_authorized_total", self.instance.new_authorized_total)
-        if new_total < additional:
-            raise serializers.ValidationError("New authorized total must be at least equal to additional shares")
-        return attrs
-
-    def to_representation(self, instance):
-        return CapitalIncreaseDetailSerializer(instance, context=self.context).data

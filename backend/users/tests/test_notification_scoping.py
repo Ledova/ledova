@@ -85,16 +85,12 @@ class NotificationScopingTest(APITestCase):
         self.assertEqual(own_post.json()["uuid"], str(own.uuid))
         self.assertFalse(own.transaction_alerts)
         self.assertEqual(UserPreferences.objects.count(), 2)
-
-        foreign_patch = self.client.patch(
-            f"{PREFERENCES}{self.bob_preferences.uuid}/", {"transactionAlerts": False}, format="json"
-        )
-        self.assertEqual(foreign_patch.status_code, 404)
         self.bob_preferences.refresh_from_db()
         self.assertTrue(self.bob_preferences.transaction_alerts)
 
-        own_patch = self.client.patch(f"{PREFERENCES}{own.uuid}/", {"transactionAlerts": True}, format="json")
-        self.assertEqual(own_patch.status_code, 200)
+        own_upsert = self.client.post(PREFERENCES, {"transactionAlerts": True}, format="json")
+        self.assertEqual(own_upsert.status_code, 200)
+        self.assertEqual(own_upsert.json()["uuid"], str(own.uuid))
         own.refresh_from_db()
         self.assertTrue(own.transaction_alerts)
         self.assertIs(self.client.get(PREFERENCES).json()["transactionAlerts"], True)
