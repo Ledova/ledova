@@ -82,6 +82,22 @@ describe('what it refuses to say', () => {
     );
   });
 
+  it('drops markup inside a field refusal and keeps the plain sentences beside it', () => {
+    expect(readApiError(refusal(400, { acn: ['<b>x</b>'] }), { fallback: FALLBACK })).toEqual({
+      generalError: FALLBACK,
+    });
+    expect(readApiError(refusal(400, { acn: ['<b>x</b>', 'Enter nine digits.'] }), { fallback: FALLBACK })).toEqual({
+      fieldErrors: { acn: ['Enter nine digits.'] },
+    });
+  });
+
+  it('reads a megabyte body that opens tags it never closes, in one pass', () => {
+    const unclosed = '<a'.repeat(512 * 1024);
+
+    expect(readApiError(refusal(400, unclosed), { fallback: FALLBACK }).generalError).toBe(unclosed);
+    expect(readApiError(refusal(400, `${unclosed}<b>`), { fallback: FALLBACK }).generalError).toBe(FALLBACK);
+  });
+
   it('announces once when a body carries both a label and a sentence', () => {
     const reading = readApiError(refusal(503, { error: 'Database error', detail: 'A database error occurred.' }), {
       fallback: FALLBACK,
