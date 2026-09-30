@@ -60,6 +60,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
     toAddress,
     amount,
     transactionData,
+    preparedAsset,
     txHash,
     isLoadingHoldings,
     isPreparing,
@@ -89,8 +90,8 @@ export function TransferFormScreen({ route, navigation }: Props) {
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
   const review = useMemo(
-    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
-    [transactionData, isEvm, selectedAsset],
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
+    [transactionData, isEvm, preparedAsset],
   );
   const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
 
@@ -217,7 +218,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
           <ReviewTransaction
             transactionData={transactionData}
             chainShortName={chainShortName}
-            tokenSymbol={selectedAsset?.symbol}
+            tokenSymbol={preparedAsset?.symbol}
           />
         );
 
@@ -239,8 +240,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
-              tokenDecimals={selectedAsset?.decimals}
-              tokenSymbol={selectedAsset?.symbol}
+              asset={preparedAsset ?? undefined}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />

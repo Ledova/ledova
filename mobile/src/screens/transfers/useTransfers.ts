@@ -48,6 +48,7 @@ const INITIAL_STATE: TransferState = {
   toAddress: '',
   amount: '',
   transactionData: null,
+  preparedAsset: null,
   signedTransaction: '',
   txHash: '',
 };
@@ -132,6 +133,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       const assets = buildTransferableAssets(state.wallet, holdingsQuery.data.data);
       setTransferableAssets(assets);
       if (assets.length > 0) {
+        setPrepareRefusal(null);
         setState((prev) => ({ ...prev, selectedAsset: assets[0] }));
       }
     } else if (state.wallet) {
@@ -155,24 +157,25 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     mutationFn: async ({
       uuid,
       data,
-      decimals,
+      asset,
     }: {
       uuid: string;
       data: PrepareTransferRequest | PrepareBitcoinTransferRequest;
-      decimals: number;
+      asset: TransferableAsset;
     }): Promise<AxiosResponse<PrepareTransferResponse | PrepareBitcoinTransferResponse>> => {
       if ('amountBtc' in data) return prepareBitcoinTransfer(apiClient, uuid, data);
       const response = await prepareTransfer(apiClient, uuid, data);
-      validatePreparedTransfer(response.data, data, decimals);
+      validatePreparedTransfer(response.data, data, asset.decimals);
       return response;
     },
     onMutate: () => setPrepareRefusal(null),
     onError: (error) => setPrepareRefusal(getErrorMessage(error)),
-    onSuccess: (response) => {
+    onSuccess: (response, { asset }) => {
       setState((prev) => ({
         ...prev,
         step: 'review',
         transactionData: response.data as unknown as TransactionData,
+        preparedAsset: asset,
       }));
     },
   });
@@ -215,7 +218,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
           toAddress: state.toAddress,
           amount: state.amount,
           transactionFee: fee,
-          tokenContract: state.selectedAsset?.isNative ? undefined : state.selectedAsset?.contractAddress,
+          tokenContract: state.preparedAsset?.isNative ? undefined : state.preparedAsset?.contractAddress,
         },
       });
     }
@@ -291,6 +294,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
         ...prev,
         step: 'review',
         transactionData: mockTransactionData,
+        preparedAsset: prev.selectedAsset,
       }));
       return;
     }
@@ -313,7 +317,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     prepareTransferMutation.mutate({
       uuid: state.wallet.uuid,
       data,
-      decimals: state.selectedAsset.decimals,
+      asset: state.selectedAsset,
     });
   }, [state.wallet, state.selectedAsset, state.toAddress, state.amount, prepareTransferMutation, USE_MOCK_DATA]);
 
@@ -331,10 +335,12 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, []);
 
   const cancel = useCallback(() => {
+    setPrepareRefusal(null);
     setState(INITIAL_STATE);
   }, []);
 
   const reset = useCallback(() => {
+    setPrepareRefusal(null);
     setState(INITIAL_STATE);
     setPendingBroadcast(false);
   }, []);
@@ -353,6 +359,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     toAddress: state.toAddress,
     amount: state.amount,
     transactionData: state.transactionData,
+    preparedAsset: state.preparedAsset,
     txHash: state.txHash,
     wallets,
     isLoading: USE_MOCK_DATA ? false : walletsQuery.isPending,

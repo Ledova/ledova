@@ -24,9 +24,9 @@ jest.mock('../../../components/qr', () => ({
   },
   QRDisplay: () => null,
 }));
-const mockSoftware: { tokenDecimals?: number; tokenSymbol?: string }[] = [];
+const mockSoftware: { asset?: object }[] = [];
 jest.mock('./SoftwareSignTransaction', () => ({
-  SoftwareSignTransaction: (props: { tokenDecimals?: number; tokenSymbol?: string }) => {
+  SoftwareSignTransaction: (props: { asset?: object }) => {
     mockSoftware.push(props);
     return null;
   },
@@ -57,15 +57,22 @@ const NATIVE = { isNative: true, decimals: 18, symbol: 'ETH' };
 const TOKEN = { isNative: false, decimals: 2, symbol: 'AUDY', contractAddress: fixture.token.tokenContract };
 const tokenAnsweredIn6 = { ...fixture.token, tokenDecimals: 6 };
 
-async function signing(transactionData: TransactionData, selectedAsset: object = NATIVE, signer: object = wallet) {
-  return showing('sign', transactionData, selectedAsset, signer);
+async function signing(transactionData: TransactionData, preparedAsset: object = NATIVE, signer: object = wallet) {
+  return showing('sign', transactionData, preparedAsset, signer);
 }
 
-async function showing(step: string, transactionData: TransactionData, selectedAsset: object, signer: object = wallet) {
+async function showing(
+  step: string,
+  transactionData: TransactionData,
+  preparedAsset: object,
+  signer: object = wallet,
+  selectedAsset: object = preparedAsset,
+) {
   jest.mocked(useTransfers).mockReturnValue({
     wallet: signer,
     step,
     transactionData,
+    preparedAsset,
     selectedAsset,
     selectWallet: jest.fn(),
     reset: jest.fn(),
@@ -111,7 +118,7 @@ it('shows why it refuses a scanned signature, which it checks against the wallet
   );
 });
 
-it("encodes a token transfer checked in the selected asset's decimals, not the response's", async () => {
+it("encodes a token transfer checked in the decimals of the asset it was prepared for, not the response's", async () => {
   await signing(tokenAnsweredIn6, TOKEN);
   expect(encodeEthereumTransaction).toHaveBeenCalledWith(
     wallet.address,
@@ -121,16 +128,39 @@ it("encodes a token transfer checked in the selected asset's decimals, not the r
   );
 });
 
-it("hands the software signer the selected asset's decimals and symbol, not the response's", async () => {
+it('hands the software signer the asset the transfer was prepared for, not the response', async () => {
   await signing(tokenAnsweredIn6, TOKEN, { ...wallet, signingPreference: 'software' });
-  expect(mockSoftware.at(-1)).toMatchObject({ tokenDecimals: 2, tokenSymbol: 'AUDY' });
+  expect(mockSoftware.at(-1)?.asset).toBe(TOKEN);
 });
 
 it.each([
   ['token', fixture.token, TOKEN, '1.5 AUDY'],
   ['native', base, NATIVE, '0.1 ETH'],
-])("reviews a %s amount in the selected asset's symbol", async (_, transactionData, selectedAsset, shown) => {
-  const view = await showing('review', transactionData, selectedAsset);
+])('reviews a %s amount in the symbol of the asset it was prepared for', async (_, transactionData, asset, shown) => {
+  const view = await showing('review', transactionData, asset);
   expect(view.getByText(shown)).toBeTruthy();
   expect(view.queryByText(/R779/)).toBeNull();
+});
+
+it('keeps reviewing, encoding and signing the prepared token after the holdings reset the chosen asset to ETH', async () => {
+  const view = await showing('review', fixture.token, TOKEN, wallet, NATIVE);
+  expect(view.getByText('1.5 AUDY')).toBeTruthy();
+  expect(view.queryByText('1.5 ETH')).toBeNull();
+  await showing('sign', fixture.token, TOKEN, wallet, NATIVE);
+  expect(encodeEthereumTransaction).toHaveBeenCalledWith(
+    wallet.address,
+    preparedTransferTransaction(fixture.token.transaction),
+    wallet.derivationPath,
+    wallet.masterFingerprint,
+  );
+  await showing('sign', fixture.token, TOKEN, { ...wallet, signingPreference: 'software' }, NATIVE);
+  expect(mockSoftware.at(-1)?.asset).toBe(TOKEN);
+});
+
+it('shows why it refuses a token transfer prepared for another asset, and never builds its code', async () => {
+  const view = await signing(fixture.token, { ...TOKEN, contractAddress: `0x${'5'.repeat(40)}` });
+  expect(
+    view.getByText('This transaction does not match your review: it calls a different token contract.'),
+  ).toBeTruthy();
+  expect(encodeEthereumTransaction).not.toHaveBeenCalled();
 });

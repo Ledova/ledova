@@ -55,16 +55,16 @@ it('sets every value of the software signing summary in monospace', async () => 
 });
 
 it.each([
-  ['a token', { amountToken: '1.5', tokenSymbol: 'R779' }, 'AUDY', '1.5 AUDY'],
+  ['a token', { amountToken: '1.5', tokenSymbol: 'R779' }, { symbol: 'AUDY', decimals: 2 }, '1.5 AUDY'],
   ['a native', { amountEth: '1' }, undefined, '1 ETH'],
-])("shows %s send's amount in the software signing summary", async (_, amount, tokenSymbol, shown) => {
+])("shows %s send's amount in the software signing summary", async (_, amount, asset, shown) => {
   const family = await mono();
   const data = { fromAddress, toAddress, gasCostEth: '0.01', ...amount } as TransactionData;
   const view = await render(
     <SoftwareSignTransaction
       wallet={{ uuid: 'wallet' } as Wallet}
       transactionData={data}
-      tokenSymbol={tokenSymbol}
+      asset={asset}
       onSignComplete={jest.fn()}
     />,
   );

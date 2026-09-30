@@ -60,6 +60,7 @@ export interface TransferState {
   toAddress: string;
   amount: string;
   transactionData: TransactionData | null;
+  preparedAsset: TransferableAsset | null;
   signedTransaction: string;
   txHash: string;
 }

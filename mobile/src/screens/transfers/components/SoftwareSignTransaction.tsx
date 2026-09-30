@@ -7,14 +7,13 @@ import { useDialogStyles } from '../../../components/modal';
 import type { Wallet, TransactionData } from '@ledova/shared';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTransaction } from '../../../utils/softwareWallet';
-import { reviewedTransferTransaction } from '../../../utils/preparedTransfer';
+import { reviewedTransferTransaction, type ReviewedAsset } from '../../../utils/preparedTransfer';
 import { formatWalletAddressShort } from '@ledova/shared';
 
 interface SoftwareSignTransactionProps {
   wallet: Wallet;
   transactionData: TransactionData;
-  tokenDecimals?: number;
-  tokenSymbol?: string;
+  asset?: ReviewedAsset;
   onSignComplete: (signedTxHex: string) => void;
   signTrigger?: number;
 }
@@ -24,8 +23,7 @@ type SigningState = 'ready' | 'authenticating' | 'signing' | 'success' | 'error'
 export function SoftwareSignTransaction({
   wallet,
   transactionData,
-  tokenDecimals,
-  tokenSymbol,
+  asset,
   onSignComplete,
   signTrigger = 0,
 }: SoftwareSignTransactionProps) {
@@ -63,7 +61,7 @@ export function SoftwareSignTransaction({
     }
 
     try {
-      const unsignedTx = reviewedTransferTransaction(transactionData, tokenDecimals);
+      const unsignedTx = reviewedTransferTransaction(transactionData, asset);
 
       setSigningState('authenticating');
       setError(null);
@@ -88,7 +86,7 @@ export function SoftwareSignTransaction({
       setError(err instanceof Error ? err.message : 'Failed to sign transaction');
       setSigningState('error');
     }
-  }, [wallet, transactionData, tokenDecimals, onSignComplete]);
+  }, [wallet, transactionData, asset, onSignComplete]);
 
   useEffect(() => {
     if (signTrigger > 0) {
@@ -122,7 +120,7 @@ export function SoftwareSignTransaction({
           )}
           {transactionData.amountToken && (
             <Row label="Amount" mono>
-              {transactionData.amountToken} {tokenSymbol}
+              {transactionData.amountToken} {asset?.symbol}
             </Row>
           )}
           {transactionData.gasCostEth && (

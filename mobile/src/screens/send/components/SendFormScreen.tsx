@@ -69,6 +69,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
     toAddress,
     amount,
     transactionData,
+    preparedAsset,
     txHash,
     isLoadingHoldings,
     isPreparing,
@@ -107,8 +108,8 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
   const review = useMemo(
-    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
-    [transactionData, isEvm, selectedAsset],
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
+    [transactionData, isEvm, preparedAsset],
   );
   const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
 
@@ -233,7 +234,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
           <ReviewTransaction
             transactionData={transactionData}
             chainShortName={chainShortName}
-            tokenSymbol={selectedAsset?.symbol}
+            tokenSymbol={preparedAsset?.symbol}
           />
         );
 
@@ -244,8 +245,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
-              tokenDecimals={selectedAsset?.decimals}
-              tokenSymbol={selectedAsset?.symbol}
+              asset={preparedAsset ?? undefined}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />

@@ -4,7 +4,7 @@ import type { TransactionData, Wallet } from '@ledova/shared';
 import fixture from '../../../../../packages/shared/tests/fixtures/prepared-transfer-api.json';
 import { getSeedPhrase } from '../../../services/secureKeyStorage';
 import { signEthereumTransaction } from '../../../utils/softwareWallet';
-import { preparedTransferTransaction } from '../../../utils/preparedTransfer';
+import { preparedTransferTransaction, type ReviewedAsset } from '../../../utils/preparedTransfer';
 import { SoftwareSignTransaction } from './SoftwareSignTransaction';
 
 jest.mock('../../../services/secureKeyStorage', () => ({ getSeedPhrase: jest.fn() }));
@@ -19,19 +19,20 @@ const wallet = {
 } as Wallet;
 const erc20 = new Interface(['function transfer(address to, uint256 amount)']);
 const stranger = `0x${'5'.repeat(40)}`;
+const tokenAsset = { symbol: fixture.token.tokenSymbol, decimals: 2, contractAddress: fixture.token.tokenContract };
 
 function differing(prepared: TransactionData, change: Record<string, unknown>) {
   return { ...prepared, transaction: { ...prepared.transaction, ...change } } as TransactionData;
 }
 
-async function signWith(transactionData: TransactionData, tokenDecimals?: number) {
+async function signWith(transactionData: TransactionData, asset?: ReviewedAsset) {
   jest.mocked(getSeedPhrase).mockResolvedValue(mnemonic);
   const onSignComplete = jest.fn();
   const view = await render(
     <SoftwareSignTransaction
       wallet={wallet}
       transactionData={transactionData}
-      tokenDecimals={tokenDecimals}
+      asset={asset}
       onSignComplete={onSignComplete}
       signTrigger={1}
     />,
@@ -42,12 +43,12 @@ async function signWith(transactionData: TransactionData, tokenDecimals?: number
 it.each([
   ['native', fixture.native, undefined],
   [
-    'token, checked in the decimals the screen holds rather than the response',
+    'token, checked in the decimals of the asset it was prepared for rather than the response',
     { ...fixture.token, tokenDecimals: 6 },
-    2,
+    tokenAsset,
   ],
-] as const)('signs the %s transfer the backend sent, gas limit included', async (_, prepared, decimals) => {
-  const { onSignComplete } = await signWith(prepared, decimals);
+] as const)('signs the %s transfer the backend sent, gas limit included', async (_, prepared, asset) => {
+  const { onSignComplete } = await signWith(prepared, asset);
   await waitFor(() => expect(onSignComplete).toHaveBeenCalledTimes(1), { timeout: 5000 });
   const signed = onSignComplete.mock.calls[0][0];
   expect(Transaction.from(signed).gasLimit).toBe(BigInt(prepared.gasLimit));
@@ -60,6 +61,15 @@ it('signs 9.99999999 ETH to the wei', async () => {
   const { onSignComplete } = await signWith(fixture.nativeBeyondDouble);
   await waitFor(() => expect(onSignComplete).toHaveBeenCalledTimes(1), { timeout: 5000 });
   expect(Transaction.from(onSignComplete.mock.calls[0][0]).value).toBe(parseEther('9.99999999'));
+});
+
+it('refuses a token transfer prepared for another asset than the one reviewed, before reading the seed', async () => {
+  const { view, onSignComplete } = await signWith(fixture.token, { ...tokenAsset, contractAddress: stranger });
+  expect(
+    await view.findByText('This transaction does not match your review: it calls a different token contract.'),
+  ).toBeTruthy();
+  expect(getSeedPhrase).not.toHaveBeenCalled();
+  expect(onSignComplete).not.toHaveBeenCalled();
 });
 
 it('refuses a prepared transaction without a gas limit before reading the seed', async () => {
@@ -83,7 +93,7 @@ it.each([
   ],
   ['another recipient', differing(fixture.native, { to: stranger }), 'the recipient is different'],
 ])('refuses %s before reading the seed', async (_, prepared, reason) => {
-  const { view, onSignComplete } = await signWith(prepared, 2);
+  const { view, onSignComplete } = await signWith(prepared, tokenAsset);
   expect(await view.findByText(`This transaction does not match your review: ${reason}.`)).toBeTruthy();
   expect(getSeedPhrase).not.toHaveBeenCalled();
   expect(onSignComplete).not.toHaveBeenCalled();

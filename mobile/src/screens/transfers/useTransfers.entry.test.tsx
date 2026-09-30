@@ -171,6 +171,11 @@ function refused() {
   });
 }
 
+function changeHoldings() {
+  holdings = [tokenHolding('999', 2)];
+  return client.invalidateQueries({ queryKey: ['wallet-holdings'] });
+}
+
 async function refusedTokenSend() {
   (apiClient.post as jest.Mock).mockRejectedValue(refused());
   const { view, transfer } = await choose('token');
@@ -190,7 +195,6 @@ it.each([
   ['the recipient changes', (transfer: Transfer) => transfer.setToAddress(`0x${'5'.repeat(40)}`)],
   ['the amount changes', (transfer: Transfer) => transfer.setAmount('2')],
   ['Use Max fills the amount', (transfer: Transfer) => transfer.useMaxAmount()],
-  ['another wallet is chosen', (transfer: Transfer) => transfer.selectWallet({ ...wallet, uuid: 'wallet-other' })],
 ])("clears a refused prepare's message when %s", async (_, change) => {
   const { view, transfer } = await refusedTokenSend();
   await act(async () => {
@@ -199,6 +203,75 @@ it.each([
   await view.findByText('Destination Address');
   expect(view.queryByText(REFUSAL)).toBeNull();
   expect(transfer().prepareError).toBeNull();
+});
+
+it("clears a refused prepare's message as soon as another wallet is chosen, before its assets load", async () => {
+  const { transfer } = await refusedTokenSend();
+  const answer = jest.mocked(apiClient.get).getMockImplementation()!;
+  jest
+    .mocked(apiClient.get)
+    .mockImplementation((url: string) => (url.includes('wallet-other') ? new Promise(() => {}) : answer(url)));
+  await act(async () => {
+    transfer().selectWallet({ ...wallet, uuid: 'wallet-other' });
+  });
+  expect(transfer().isLoadingHoldings).toBe(true);
+  expect(transfer().prepareError).toBeNull();
+});
+
+it("clears a refused prepare's message when a holdings update changes the asset", async () => {
+  const { view, transfer } = await refusedTokenSend();
+  await act(async () => {
+    await changeHoldings();
+  });
+  await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  expect(transfer().prepareError).toBeNull();
+  expect(view.queryByText(REFUSAL)).toBeNull();
+});
+
+it.each([
+  ['reset', (transfer: Transfer) => transfer.reset()],
+  ['cancelled', (transfer: Transfer) => transfer.cancel()],
+])("clears a refused prepare's message when the transfer is %s", async (_, end) => {
+  const { transfer } = await refusedTokenSend();
+  await act(async () => {
+    end(transfer());
+  });
+  expect(transfer().prepareError).toBeNull();
+});
+
+it('keeps the asset a transfer was prepared for when the holdings change under its review', async () => {
+  const { transfer } = await prepare('token', '1.5', fixture.token);
+  await waitFor(() => expect(transfer().step).toBe('review'));
+  await act(async () => {
+    await changeHoldings();
+  });
+  await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  expect(transfer().preparedAsset).toMatchObject({
+    symbol: fixture.token.tokenSymbol,
+    decimals: 2,
+    contractAddress: fixture.token.tokenContract,
+  });
+});
+
+it('declares the prepared token when it broadcasts, although the holdings reset the chosen asset', async () => {
+  const { transfer } = await prepare('token', '1.5', fixture.token);
+  await waitFor(() => expect(transfer().step).toBe('review'));
+  await act(async () => {
+    await changeHoldings();
+  });
+  await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: { txHash: `0x${'a'.repeat(64)}`, status: 'pending' } });
+  await act(async () => {
+    transfer().proceedToSign();
+  });
+  await act(async () => {
+    transfer().handleSignature('0xsigned');
+  });
+  await waitFor(() => expect(transfer().step).toBe('success'));
+  expect(apiClient.post).toHaveBeenLastCalledWith(
+    `/api/wallets/${wallet.uuid}/broadcast-transfer/`,
+    expect.objectContaining({ tokenContract: fixture.token.tokenContract, amount: '1.5' }),
+  );
 });
 
 it('shows the refusal again when the same inputs are retried, and not while the retry is prepared', async () => {
