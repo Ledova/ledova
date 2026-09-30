@@ -55,9 +55,10 @@ function holdingsAnswer(deferred: boolean) {
   });
 }
 
-function screen(chosen: Wallet = wallet) {
-  const route = { key: 'transfer', name: 'TransferDetails', params: { wallet: chosen } } as Props['route'];
-  const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
+const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
+
+function screen(routeWallet: Wallet = wallet, chosen = false) {
+  const route = { key: 'transfer', name: 'TransferDetails', params: { wallet: routeWallet, chosen } } as Props['route'];
   return (
     <QueryClientProvider client={client}>
       <TransferFormScreen route={route} navigation={navigation} />
@@ -110,7 +111,7 @@ it('sends bitcoin through the review, the pasted signed transaction and the broa
   );
 });
 
-it('returns from the review to the form for the same wallet', async () => {
+it('returns from the review to an empty form for the same wallet, as Wallets > Send (SendFormScreen) does', async () => {
   const view = await render(screen());
   await view.findByText('Destination Address');
   await typeTransfer(view);
@@ -120,15 +121,37 @@ it('returns from the review to the form for the same wallet', async () => {
   await fireEvent.press(view.getByRole('button', { name: 'Back' }));
   expect(await view.findByText('Destination Address')).toBeTruthy();
   expect(view.getByText('Cold storage')).toBeTruthy();
+  expect(view.getByPlaceholderText(getAddressPlaceholder('BTC')).props.value).toBe('');
+  expect(view.getByPlaceholderText('0.0').props.value).toBe('');
 });
 
-it('refuses a wallet on another network, which only Bitcoin wallets should reach', async () => {
-  const evm = { ...wallet, uuid: 'base-wallet', chain: 'base', address: `0x${'1'.repeat(40)}` } as Wallet;
-  const view = await render(screen(evm));
-  expect(view.getByText('This form sends Bitcoin only.')).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Continue' })).toBeNull();
-  expect(view.getByRole('button', { name: 'Cancel' })).toBeTruthy();
-  expect(apiClient.get).not.toHaveBeenCalledWith(`/api/wallets/${evm.uuid}/holdings/`);
+it.each([
+  ['Cancel', false],
+  ['Back', true],
+])(
+  'refuses a wallet on another network, which only Bitcoin wallets should reach, and leaves with %s',
+  async (label, chosen) => {
+    const evm = { ...wallet, uuid: 'base-wallet', chain: 'base', address: `0x${'1'.repeat(40)}` } as Wallet;
+    const view = await render(screen(evm, chosen));
+    expect(view.getByText('This form sends Bitcoin only.')).toBeTruthy();
+    expect(view.queryByRole('button', { name: 'Continue' })).toBeNull();
+    await fireEvent.press(view.getByRole('button', { name: label }));
+    expect(navigation.goBack).toHaveBeenCalledTimes(1);
+    expect(apiClient.get).not.toHaveBeenCalledWith(`/api/wallets/${evm.uuid}/holdings/`);
+  },
+);
+
+it('offers the fields of a funded wallet whose holdings cannot be read', async () => {
+  jest
+    .mocked(apiClient.get)
+    .mockImplementation((url: string) =>
+      url.includes('/holdings/')
+        ? Promise.reject(new Error('Network Error'))
+        : Promise.resolve({ data: { results: [], count: 0, next: null, previous: null } }),
+    );
+  const view = await render(screen());
+  expect(await view.findByText('Destination Address')).toBeTruthy();
+  expect(view.queryByText(NOTHING)).toBeNull();
 });
 
 describe('a wallet with nothing to send', () => {
