@@ -30,9 +30,9 @@ loading signatures before uploads work. See [upload setup](operations/uploads.md
 | Marketing | <http://localhost:5173> |
 | API and admin | <http://localhost:8000> |
 
-Stop with `docker compose down` or `make dev-down`. Rebuild changed services:
-the dashboard is a built image with no source volume, so restarting alone does
-not pick up edited code. Keep API and worker builds consistent.
+Rebuild changed services: the dashboard is a built image with no source volume,
+so restarting alone does not pick up edited code. Keep API and worker builds
+consistent. To stop or reset the stack, see [stop and clean up](#stop-and-clean-up).
 
 ## First sign-in
 
@@ -42,7 +42,7 @@ ten minutes and five attempts, or request another. Dashboard cookie-authenticate
 writes require its origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; the template includes
 `http://localhost:5174`.
 
-For a prepared local demo, run:
+For a prepared local demo, run `make dev-seed`, which runs:
 
 ```bash
 docker compose exec backend python manage.py seed_demo
@@ -57,6 +57,14 @@ See [demo details](operations/operator-console.md#demo-data).
 For issuance, continue with [local chain setup](operations/chains.md). Then open
 the [operator console](operations/operator-console.md), configure the contract
 addresses/payment rail, and exercise the [issuance flow](architecture/contracts-and-issuance.md).
+
+## Stop and clean up
+
+| Command | Effect |
+| --- | --- |
+| `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, uploads and virus signatures stay in their volumes for the next start. |
+| `make dev-clean` | Also deletes those volumes and the images the stack built, so the next start begins with an empty database; run `make dev-seed` again for the demo. |
+| `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses, and the build cache. Docker says what each step removes and asks first. |
 
 ## Run individual components
 
