@@ -28,6 +28,7 @@ from wallets.services.chain import token_deployment_decimals
 logger = logging.getLogger(__name__)
 
 INVALID_RECIPIENT = "The recipient is not a valid address for this wallet's network."
+BITCOIN_DECIMAL_PLACES = "Bitcoin amounts can have at most 8 decimal places."
 
 
 def prepare_transfer(
@@ -289,8 +290,12 @@ def prepare_bitcoin_transaction(
         if not from_address or not to_address:
             raise InvalidTransactionException("Invalid sender or recipient address")
 
-        if amount_btc <= 0:
+        if not amount_btc.is_finite() or amount_btc <= 0:
             raise InvalidTransactionException("Transfer amount must be greater than zero")
+
+        _, digits, exponent = amount_btc.as_tuple()
+        if exponent < -8 and any(digits[exponent + 8 :]):
+            raise InvalidTransactionException(BITCOIN_DECIMAL_PLACES)
 
         client = get_blockchain_client("BTC")
         fee_per_byte = client.get_gas_price()
@@ -319,7 +324,7 @@ def prepare_bitcoin_transaction(
         return {
             "from_address": from_address,
             "to_address": to_address,
-            "amount_btc": str(amount_btc),
+            "amount_btc": format(amount_btc.normalize(), "f"),
             "amount_satoshis": amount_satoshis,
             "fee_per_byte": str(fee_per_byte),
             "estimated_tx_size": estimated_tx_size,
