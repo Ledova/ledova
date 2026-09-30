@@ -334,7 +334,13 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
       <View style={styles.container}>
         <Panel
           title={step === 'select-wallet' ? 'Select your wallet' : 'Send'}
-          notice={prepareError ? <Text style={text.error}>{prepareError}</Text> : null}
+          notice={
+            prepareError ? (
+              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
+                {prepareError}
+              </Text>
+            ) : null
+          }
           actions={renderActions()}
         >
           {renderContent()}

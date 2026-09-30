@@ -336,7 +336,13 @@ export function TransferFormScreen({ route, navigation }: Props) {
       <View style={styles.container}>
         <Panel
           title="Send"
-          notice={prepareError ? <Text style={text.error}>{prepareError}</Text> : null}
+          notice={
+            prepareError ? (
+              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
+                {prepareError}
+              </Text>
+            ) : null
+          }
           actions={renderActions()}
         >
           {renderContent()}
