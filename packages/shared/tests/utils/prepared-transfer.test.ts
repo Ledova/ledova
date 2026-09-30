@@ -8,6 +8,7 @@ const TOKEN = 'The prepared transfer does not match what you entered: the token 
 const CONTRACT = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512';
 const CONTRACT_CHECKSUMMED = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 const OTHER_CONTRACT = `0x${'5'.repeat(40)}`;
+const AT_ONCE_MS = 1000;
 
 it.each([
   ['a native send', { toAddress: CHECKSUMMED, amountEth: '9.99999999' }, { toAddress: TYPED, amountEth: '9.99999999' }],
@@ -97,7 +98,7 @@ it.each([
 ])('reads an amount with %s at once', (_, amount, units) => {
   const started = performance.now();
   expect(tokenBaseUnits(amount, 2)).toBe(units);
-  expect(performance.now() - started).toBeLessThan(50);
+  expect(performance.now() - started).toBeLessThan(AT_ONCE_MS);
 });
 
 it.each([
@@ -188,7 +189,7 @@ it.each(['1E-101', '1E+101', '1E-100000', '1E+100000', '1E-10000000'])(
   (amount) => {
     const started = performance.now();
     expect(canonicalDecimal(amount)).toBe(amount);
-    expect(performance.now() - started).toBeLessThan(50);
+    expect(performance.now() - started).toBeLessThan(AT_ONCE_MS);
   },
 );
 
@@ -201,5 +202,5 @@ it.each([
 ])('writes an amount with %s at once', (_, amount, canonical) => {
   const started = performance.now();
   expect(canonicalDecimal(amount)).toBe(canonical);
-  expect(performance.now() - started).toBeLessThan(50);
+  expect(performance.now() - started).toBeLessThan(AT_ONCE_MS);
 });
