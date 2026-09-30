@@ -393,6 +393,52 @@ it.each([
   },
 );
 
+it('keeps the prepared asset, recipient and amount when the form changes while the transfer is prepared', async () => {
+  let answer!: (response: unknown) => void;
+  (apiClient.post as jest.Mock).mockReturnValue(
+    new Promise((resolve) => {
+      answer = resolve;
+    }),
+  );
+  const { transfer } = await choose('token');
+  await act(async () => {
+    transfer().setToAddress(fixture.native.toAddress);
+    transfer().setAmount('1.5');
+  });
+  await act(async () => {
+    transfer().submitTransfer();
+  });
+  await act(async () => {
+    transfer().selectAsset(transfer().transferableAssets[0]);
+    transfer().setToAddress(`0x${'5'.repeat(40)}`);
+  });
+  await act(async () => {
+    answer({ data: fixture.token });
+  });
+  await waitFor(() => expect(transfer().step).toBe('review'));
+  expect(transfer().selectedAsset?.isNative).toBe(true);
+  expect(transfer().preparedAsset).toMatchObject({
+    symbol: fixture.token.tokenSymbol,
+    contractAddress: fixture.token.tokenContract,
+  });
+  (apiClient.post as jest.Mock).mockResolvedValue({ data: { txHash: `0x${'a'.repeat(64)}`, status: 'pending' } });
+  await act(async () => {
+    transfer().proceedToSign();
+  });
+  await act(async () => {
+    transfer().handleSignature('0xsigned');
+  });
+  await waitFor(() => expect(transfer().step).toBe('success'));
+  expect(apiClient.post).toHaveBeenLastCalledWith(
+    `/api/wallets/${wallet.uuid}/broadcast-transfer/`,
+    expect.objectContaining({
+      tokenContract: fixture.token.tokenContract,
+      toAddress: fixture.token.toAddress,
+      amount: '1.5',
+    }),
+  );
+});
+
 it('shows the refusal again when the same inputs are retried, and not while the retry is prepared', async () => {
   const { view, transfer } = await refusedTokenSend();
   let refuse!: (error: unknown) => void;
