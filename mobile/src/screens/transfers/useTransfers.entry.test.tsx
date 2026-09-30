@@ -451,6 +451,29 @@ it('keeps the prepared asset, recipient and amount when the form changes while t
   );
 });
 
+it.each([
+  ['ETH', 'native', '0.2500000000000000000000', { ...fixture.native, amountEth: '0.2500000000000000000000' }, '0.25'],
+  ['a two-decimal token', 'token', '1.5000', { ...fixture.token, amountToken: '1.5000' }, '1.5'],
+] as const)(
+  'declares %s in canonical form when it broadcasts, although the zeros typed past the decimals were prepared',
+  async (_, kind, typed, answer, declared) => {
+    const { transfer } = await prepare(kind, typed, answer);
+    await waitFor(() => expect(transfer().step).toBe('review'));
+    (apiClient.post as jest.Mock).mockResolvedValue({ data: { txHash: `0x${'a'.repeat(64)}`, status: 'pending' } });
+    await act(async () => {
+      transfer().proceedToSign();
+    });
+    await act(async () => {
+      transfer().handleSignature('0xsigned');
+    });
+    await waitFor(() => expect(transfer().step).toBe('success'));
+    expect(apiClient.post).toHaveBeenLastCalledWith(
+      `/api/wallets/${wallet.uuid}/broadcast-transfer/`,
+      expect.objectContaining({ amount: declared }),
+    );
+  },
+);
+
 it('shows the refusal again when the same inputs are retried, and not while the retry is prepared', async () => {
   const { view, transfer } = await refusedTokenSend();
   let refuse!: (error: unknown) => void;

@@ -18,6 +18,7 @@ import {
   getChainConfig,
   WALLET_VERIFICATION_STATUS,
   formatPlainDecimal,
+  canonicalDecimal,
   getErrorMessage,
   getHoldingTokenDeployment,
   readEveryPage,
@@ -52,6 +53,11 @@ const INITIAL_STATE: SendState = {
   txHash: '',
   prepareRefusal: null,
 };
+
+function canonicalAmount(prepared: TransactionData | null) {
+  const amount = prepared?.amountToken ?? prepared?.amountEth ?? prepared?.amountBtc;
+  return amount === undefined ? undefined : canonicalDecimal(amount);
+}
 
 function assetKey(asset: TransferableAsset) {
   return asset.contractAddress?.toLowerCase() ?? '';
@@ -195,7 +201,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
         data: {
           signedTransaction: state.signedTransaction,
           toAddress: prepared?.toAddress,
-          amount: prepared?.amountToken ?? prepared?.amountEth ?? prepared?.amountBtc,
+          amount: canonicalAmount(prepared),
           transactionFee: fee,
           tokenContract: state.preparedAsset?.isNative ? undefined : state.preparedAsset?.contractAddress,
         },

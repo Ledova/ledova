@@ -1,4 +1,4 @@
-import { tokenBaseUnits, validatePreparedTransfer } from '../../src/utils/prepared-transfer';
+import { canonicalDecimal, tokenBaseUnits, validatePreparedTransfer } from '../../src/utils/prepared-transfer';
 
 const TYPED = '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf';
 const CHECKSUMMED = '0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf';
@@ -130,4 +130,29 @@ it.each([
   ],
 ])('refuses %s', (_, prepared, entered, message) => {
   expect(() => validatePreparedTransfer(prepared, entered, 2)).toThrow(message);
+});
+
+it.each([
+  ['0.2500000000000000000000', '0.25'],
+  ['1.5000', '1.5'],
+  ['100.000', '100'],
+  ['100', '100'],
+  ['1.', '1'],
+  ['.5', '0.5'],
+  ['0.0000001', '0.0000001'],
+  ['1E-7', '0.0000001'],
+  ['2.50000000000000000000E-7', '0.00000025'],
+  ['1.5e3', '1500'],
+  [' 1_000.50\u00a0', '1000.5'],
+  ['+007.10', '7.1'],
+  ['-0.50', '-0.5'],
+])(
+  'writes %p in canonical form as %p, the same number as a plain decimal without trailing zeros',
+  (amount, canonical) => {
+    expect(canonicalDecimal(amount)).toBe(canonical);
+  },
+);
+
+it.each(['', '.', '1.2.3', 'e5', 'ten'])('leaves %p, which is no amount, as it is', (amount) => {
+  expect(canonicalDecimal(amount)).toBe(amount);
 });
