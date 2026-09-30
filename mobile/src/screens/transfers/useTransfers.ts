@@ -38,7 +38,9 @@ import type {
   WalletHolding,
 } from '@ledova/shared';
 
-const INITIAL_STATE: TransferState = {
+type SendState = TransferState & { prepareRefusal: string | null };
+
+const INITIAL_STATE: SendState = {
   step: 'select-wallet',
   wallet: null,
   selectedAsset: null,
@@ -48,7 +50,12 @@ const INITIAL_STATE: TransferState = {
   preparedAsset: null,
   signedTransaction: '',
   txHash: '',
+  prepareRefusal: null,
 };
+
+function assetKey(asset: TransferableAsset) {
+  return asset.contractAddress?.toLowerCase() ?? '';
+}
 
 function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): TransferableAsset[] {
   const chain = wallet.chain;
@@ -96,11 +103,10 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const queryClient = useQueryClient();
   const account = useUserPreferences();
   const { userAccount } = account;
-  const [state, setState] = useState<TransferState>(() =>
+  const [state, setState] = useState<SendState>(() =>
     initialWallet ? { ...INITIAL_STATE, step: 'enter-details', wallet: initialWallet } : INITIAL_STATE,
   );
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
-  const [prepareRefusal, setPrepareRefusal] = useState<string | null>(null);
   const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
   const walletsQuery = useQuery({
@@ -122,10 +128,12 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     if (state.wallet && holdingsQuery.data?.data) {
       const assets = buildTransferableAssets(state.wallet, holdingsQuery.data.data);
       setTransferableAssets(assets);
-      if (assets.length > 0) {
-        setPrepareRefusal(null);
-        setState((prev) => ({ ...prev, selectedAsset: assets[0] }));
-      }
+      setState((prev) => {
+        const selected = prev.selectedAsset;
+        const kept = selected ? assets.find((asset) => assetKey(asset) === assetKey(selected)) : undefined;
+        if (kept) return { ...prev, selectedAsset: kept };
+        return { ...prev, selectedAsset: assets[0] ?? null, amount: '', prepareRefusal: null };
+      });
     } else if (state.wallet) {
       const chainShortCode = getChainShortCode(state.wallet.chain);
       const nativeAsset: TransferableAsset = {
@@ -158,8 +166,8 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       validatePreparedTransfer(response.data, data, asset.decimals);
       return response;
     },
-    onMutate: () => setPrepareRefusal(null),
-    onError: (error) => setPrepareRefusal(getErrorMessage(error)),
+    onMutate: () => setState((prev) => ({ ...prev, prepareRefusal: null })),
+    onError: (error) => setState((prev) => ({ ...prev, prepareRefusal: getErrorMessage(error) })),
     onSuccess: (response, { asset }) => {
       setState((prev) => ({
         ...prev,
@@ -188,14 +196,15 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       setPendingBroadcast(false);
 
       const chain = getChainShortCode(state.wallet.chain);
-      const fee = isBitcoinChain(chain) ? state.transactionData?.feeBtc : state.transactionData?.gasCostEth;
+      const prepared = state.transactionData;
+      const fee = isBitcoinChain(chain) ? prepared?.feeBtc : prepared?.gasCostEth;
 
       broadcastTransferMutation.mutate({
         uuid: state.wallet.uuid,
         data: {
           signedTransaction: state.signedTransaction,
-          toAddress: state.toAddress,
-          amount: state.amount,
+          toAddress: prepared?.toAddress,
+          amount: prepared?.amountToken ?? prepared?.amountEth ?? prepared?.amountBtc,
           transactionFee: fee,
           tokenContract: state.preparedAsset?.isNative ? undefined : state.preparedAsset?.contractAddress,
         },
@@ -204,24 +213,27 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, [pendingBroadcast, state.signedTransaction, state.wallet, state.step, broadcastTransferMutation]);
 
   const selectWallet = useCallback((wallet: Wallet) => {
-    setPrepareRefusal(null);
-    setState((prev) => ({ ...prev, step: 'enter-details', wallet, selectedAsset: null, amount: '' }));
+    setState((prev) => ({
+      ...prev,
+      step: 'enter-details',
+      wallet,
+      selectedAsset: null,
+      amount: '',
+      prepareRefusal: null,
+    }));
     setTransferableAssets([]);
   }, []);
 
   const selectAsset = useCallback((asset: TransferableAsset) => {
-    setPrepareRefusal(null);
-    setState((prev) => ({ ...prev, selectedAsset: asset, amount: '' }));
+    setState((prev) => ({ ...prev, selectedAsset: asset, amount: '', prepareRefusal: null }));
   }, []);
 
   const setToAddress = useCallback((toAddress: string) => {
-    setPrepareRefusal(null);
-    setState((prev) => ({ ...prev, toAddress }));
+    setState((prev) => ({ ...prev, toAddress, prepareRefusal: null }));
   }, []);
 
   const setAmount = useCallback((amount: string) => {
-    setPrepareRefusal(null);
-    setState((prev) => ({ ...prev, amount }));
+    setState((prev) => ({ ...prev, amount, prepareRefusal: null }));
   }, []);
 
   const useMaxAmount = useCallback(() => {
@@ -297,12 +309,10 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, []);
 
   const cancel = useCallback(() => {
-    setPrepareRefusal(null);
     setState(INITIAL_STATE);
   }, []);
 
   const reset = useCallback(() => {
-    setPrepareRefusal(null);
     setState(INITIAL_STATE);
     setPendingBroadcast(false);
   }, []);
@@ -330,7 +340,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     isLoadingHoldings: holdingsQuery.isLoading,
     isPreparing: prepareTransferMutation.isPending,
     isBroadcasting: broadcastTransferMutation.isPending,
-    prepareError: prepareRefusal,
+    prepareError: state.prepareRefusal,
     broadcastError: getErrorMessage(broadcastTransferMutation.error),
     selectWallet,
     selectAsset,

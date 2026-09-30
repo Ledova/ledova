@@ -66,7 +66,7 @@ afterEach(async () => {
   client.clear();
 });
 
-it("keeps reviewing a prepared token in its own symbol after the holdings change the form's asset", async () => {
+it('keeps reviewing a prepared token in its own symbol after it leaves the holdings', async () => {
   const view = await render(
     <QueryClientProvider client={client}>
       <SendFormScreen onDone={jest.fn()} wallet={wallet} />
@@ -78,7 +78,7 @@ it("keeps reviewing a prepared token in its own symbol after the holdings change
   await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
   expect(await view.findByText(`1.5 ${fixture.token.tokenSymbol}`)).toBeTruthy();
 
-  holdings = [tokenHolding('999')];
+  holdings = [tokenHolding('0')];
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['wallet-holdings'] });
   });

@@ -29,7 +29,7 @@ type Transfer = ReturnType<typeof useTransfers>;
 let client: QueryClient;
 let holdings: object[];
 
-function tokenHolding(quantity: string, decimals: number) {
+function tokenHolding(quantity: string, decimals: number, contract: string = fixture.token.tokenContract) {
   return {
     uuid: 'token-holding',
     walletUuid: wallet.uuid,
@@ -42,8 +42,8 @@ function tokenHolding(quantity: string, decimals: number) {
       isActive: true,
       assetType: 'erc20_token',
       decimals,
-      contractAddress: fixture.token.tokenContract,
-      chainDeployments: [{ chain: 'base', contractAddress: fixture.token.tokenContract, decimals, isActive: true }],
+      contractAddress: contract,
+      chainDeployments: [{ chain: 'base', contractAddress: contract, decimals, isActive: true }],
     },
   };
 }
@@ -179,17 +179,17 @@ function refused() {
   });
 }
 
-function changeHoldings() {
-  holdings = [tokenHolding('999', 2)];
+function updateHoldings(tokenQuantity: string, contract?: string) {
+  holdings = [tokenHolding(tokenQuantity, 2, contract)];
   return client.invalidateQueries({ queryKey: ['wallet-holdings'] });
 }
 
-async function refusedTokenSend() {
+async function refusedTokenSend(kind: 'native' | 'token' = 'token', amount = '1.5') {
   (apiClient.post as jest.Mock).mockRejectedValue(refused());
-  const { view, transfer } = await choose('token');
+  const { view, transfer } = await choose(kind);
   await act(async () => {
     transfer().setToAddress(fixture.native.toAddress);
-    transfer().setAmount('1.5');
+    transfer().setAmount(amount);
   });
   await act(async () => {
     transfer().submitTransfer();
@@ -226,12 +226,38 @@ it("clears a refused prepare's message as soon as another wallet is chosen, befo
   expect(transfer().prepareError).toBeNull();
 });
 
-it("clears a refused prepare's message when a holdings update changes the asset", async () => {
-  const { view, transfer } = await refusedTokenSend();
+it.each([
+  ['ETH', 'native', undefined, wallet.nativeBalance],
+  ['token', 'token', undefined, '999'],
+  ['token, its contract now written in lower case,', 'token', fixture.token.tokenContract.toLowerCase(), '999'],
+] as const)(
+  "keeps a refused %s send's asset, amount and message when a holdings update still lists its asset",
+  async (_, kind, contract, balance) => {
+    const { view, transfer } = await refusedTokenSend(kind, '100');
+    const chosen = transfer().selectedAsset;
+    await act(async () => {
+      await updateHoldings('999', contract);
+    });
+    await waitFor(() => expect(transfer().transferableAssets.find((asset) => !asset.isNative)?.balance).toBe('999'));
+    expect(transfer().selectedAsset?.isNative).toBe(chosen?.isNative);
+    expect(transfer().selectedAsset?.contractAddress?.toLowerCase()).toBe(chosen?.contractAddress?.toLowerCase());
+    expect(transfer().selectedAsset?.balance).toBe(balance);
+    expect(transfer().amount).toBe('100');
+    expect(transfer().prepareError).toBe(REFUSAL);
+    expect(view.getByText(REFUSAL)).toBeTruthy();
+  },
+);
+
+it.each([
+  ['the token leaves the holdings', '0', undefined],
+  ['a holdings update lists the same symbol at another contract', '999', `0x${'7'.repeat(40)}`],
+])("clears a refused token send's amount and message when %s", async (_, quantity, contract) => {
+  const { view, transfer } = await refusedTokenSend('token', '100');
   await act(async () => {
-    await changeHoldings();
+    await updateHoldings(quantity, contract);
   });
   await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  expect(transfer().amount).toBe('');
   expect(transfer().prepareError).toBeNull();
   expect(view.queryByText(REFUSAL)).toBeNull();
 });
@@ -247,11 +273,11 @@ it.each([
   expect(transfer().prepareError).toBeNull();
 });
 
-it('keeps the asset a transfer was prepared for when the holdings change under its review', async () => {
+it('keeps the asset a transfer was prepared for when the token leaves the holdings under its review', async () => {
   const { transfer } = await prepare('token', '1.5', fixture.token);
   await waitFor(() => expect(transfer().step).toBe('review'));
   await act(async () => {
-    await changeHoldings();
+    await updateHoldings('0');
   });
   await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
   expect(transfer().preparedAsset).toMatchObject({
@@ -261,13 +287,14 @@ it('keeps the asset a transfer was prepared for when the holdings change under i
   });
 });
 
-it('declares the prepared token when it broadcasts, although the holdings reset the chosen asset', async () => {
+it('declares the prepared transfer when it broadcasts, although the token left the holdings', async () => {
   const { transfer } = await prepare('token', '1.5', fixture.token);
   await waitFor(() => expect(transfer().step).toBe('review'));
   await act(async () => {
-    await changeHoldings();
+    await updateHoldings('0');
   });
   await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  expect(transfer().amount).toBe('');
   (apiClient.post as jest.Mock).mockResolvedValue({ data: { txHash: `0x${'a'.repeat(64)}`, status: 'pending' } });
   await act(async () => {
     transfer().proceedToSign();
@@ -278,9 +305,93 @@ it('declares the prepared token when it broadcasts, although the holdings reset 
   await waitFor(() => expect(transfer().step).toBe('success'));
   expect(apiClient.post).toHaveBeenLastCalledWith(
     `/api/wallets/${wallet.uuid}/broadcast-transfer/`,
-    expect.objectContaining({ tokenContract: fixture.token.tokenContract, amount: '1.5' }),
+    expect.objectContaining({
+      tokenContract: fixture.token.tokenContract,
+      toAddress: fixture.token.toAddress,
+      amount: '1.5',
+    }),
   );
 });
+
+const BITCOIN_RECIPIENT = `tb1q${'4'.repeat(38)}`;
+
+it.each([
+  [
+    'ETH',
+    wallet,
+    fixture.native.toAddress,
+    '0.1',
+    { ...fixture.native },
+    { toAddress: fixture.native.toAddress, amount: '0.1' },
+  ],
+  [
+    'Bitcoin',
+    { ...wallet, uuid: 'wallet-btc', chain: 'bitcoin', address: `tb1q${'3'.repeat(38)}`, nativeBalance: '0.5' },
+    BITCOIN_RECIPIENT,
+    '0.01',
+    {
+      fromAddress: `tb1q${'3'.repeat(38)}`,
+      toAddress: BITCOIN_RECIPIENT,
+      amountBtc: '0.01',
+      feeBtc: '0.000005',
+      totalCostBtc: '0.010005',
+      feePerByte: '2',
+      estimatedTxSize: 250,
+    },
+    { toAddress: BITCOIN_RECIPIENT, amount: '0.01' },
+  ],
+] as const)(
+  'declares the prepared %s transfer when it broadcasts, not an amount typed while it was prepared',
+  async (_, chosen, recipient, amount, answer, declared) => {
+    let prepared!: (response: unknown) => void;
+    (apiClient.post as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        prepared = resolve;
+      }),
+    );
+    let transfer!: Transfer;
+    await render(
+      <QueryClientProvider client={client}>
+        <Sending
+          expose={(value) => {
+            transfer = value;
+          }}
+        />
+      </QueryClientProvider>,
+    );
+    await act(async () => {
+      transfer.selectWallet(chosen as Wallet);
+    });
+    await waitFor(() => expect(transfer.selectedAsset?.isNative).toBe(true));
+    await act(async () => {
+      transfer.setToAddress(recipient);
+      transfer.setAmount(amount);
+    });
+    await act(async () => {
+      transfer.submitTransfer();
+    });
+    await act(async () => {
+      transfer.setAmount('7');
+    });
+    await act(async () => {
+      prepared({ data: answer });
+    });
+    await waitFor(() => expect(transfer.step).toBe('review'));
+    (apiClient.post as jest.Mock).mockResolvedValue({ data: { txHash: `0x${'a'.repeat(64)}`, status: 'pending' } });
+    await act(async () => {
+      transfer.proceedToSign();
+    });
+    await act(async () => {
+      transfer.handleSignature('0xsigned');
+    });
+    await waitFor(() => expect(transfer.step).toBe('success'));
+    expect(transfer.amount).toBe('7');
+    expect(apiClient.post).toHaveBeenLastCalledWith(
+      `/api/wallets/${chosen.uuid}/broadcast-transfer/`,
+      expect.objectContaining(declared),
+    );
+  },
+);
 
 it('shows the refusal again when the same inputs are retried, and not while the retry is prepared', async () => {
   const { view, transfer } = await refusedTokenSend();
