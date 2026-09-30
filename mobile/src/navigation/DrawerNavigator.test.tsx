@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signout } from '@ledova/shared';
 import { notificationsService } from '../services/notificationsService';
@@ -12,6 +12,7 @@ const mockNavigate = jest.fn();
 let mockRole = { isCompany: false, isInvestor: true, isLoading: false };
 let mockTradingEnabled = false;
 let mockProfile: { fullName?: string | null; email: string } | null = null;
+const mockCompanies = jest.fn();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: mockNavigate }) }));
 jest.mock('@react-navigation/native-stack', () => ({
   createNativeStackNavigator: () => ({ Navigator: () => null, Screen: () => null }),
@@ -19,6 +20,7 @@ jest.mock('@react-navigation/native-stack', () => ({
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   signout: jest.fn(),
+  getCompanies: () => mockCompanies(),
   useNotifications: () => ({ unreadCount: 0 }),
 }));
 jest.mock('./DrawerContext', () => ({
@@ -58,7 +60,8 @@ beforeEach(() => {
   mockRole = { isCompany: false, isInvestor: true, isLoading: false };
   mockTradingEnabled = false;
   mockProfile = null;
-  client = new QueryClient();
+  mockCompanies.mockReset().mockReturnValue(new Promise(() => {}));
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(account, { email: 'synthetic@example.test' });
   events = [];
   jest.mocked(notificationsService.unregisterToken).mockImplementation(async () => {
@@ -268,4 +271,67 @@ it('offers Help & Support as a footer link to the Help screen rather than a menu
   expect(view.queryByRole('button', { name: 'Help & Support' })).toBeNull();
   await fireEvent.press(view.getByRole('link', { name: 'Help & Support' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', { screen: 'Help' });
+});
+
+const companyList = (results: { uuid: string; name: string }[]) => ({
+  data: { results, count: results.length, next: null, previous: null },
+});
+
+function drawer() {
+  return render(
+    <QueryClientProvider client={client}>
+      <DrawerNavigator />
+    </QueryClientProvider>,
+  );
+}
+
+it("puts a company's own group first, named after the company, and still gives it Your shares", async () => {
+  mockRole = { isCompany: true, isInvestor: false, isLoading: false };
+  mockCompanies.mockResolvedValue(companyList([{ uuid: 'company', name: 'Harbour Robotics Pty Ltd' }]));
+  const view = await drawer();
+
+  const group = await view.findByRole('header', { name: 'Harbour Robotics Pty Ltd' });
+  expect(view.getAllByRole('header').map((header) => header.props.children)).toEqual([
+    'Harbour Robotics Pty Ltd',
+    'Your shares',
+  ]);
+  expect(group.props.numberOfLines).toBeUndefined();
+  expect(view.queryByRole('header', { name: 'Company' })).toBeNull();
+  const buttons = view.getAllByRole('button');
+  const at = (name: string) => buttons.indexOf(view.getByRole('button', { name }));
+  expect([at('Register'), at('Offerings'), at('Company')]).toEqual([0, 1, 2]);
+});
+
+const groupLabels = (view: Awaited<ReturnType<typeof drawer>>) =>
+  view.getAllByRole('header').map((header) => header.props.children);
+
+it("names the company group Company while the company's name is being read", async () => {
+  mockRole = { isCompany: true, isInvestor: false, isLoading: false };
+  mockCompanies.mockReturnValue(new Promise(() => {}));
+  const view = await drawer();
+
+  await waitFor(() => expect(mockCompanies).toHaveBeenCalledTimes(1));
+  expect(groupLabels(view)).toEqual(['Company', 'Your shares']);
+});
+
+it.each([
+  ['cannot be read', () => Promise.reject(new Error('Synthetic company read failure'))],
+  ['holds no company', () => Promise.resolve(companyList([]))],
+  ['holds a company with a blank name', () => Promise.resolve(companyList([{ uuid: 'company', name: '' }]))],
+])('names the company group Company once the company list %s', async (_, read) => {
+  mockRole = { isCompany: true, isInvestor: false, isLoading: false };
+  mockCompanies.mockImplementation(read);
+  const view = await drawer();
+
+  await waitFor(() => expect(client.getQueryState(['companies'])?.status).toMatch(/^(success|error)$/));
+  await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+  expect(groupLabels(view)).toEqual(['Company', 'Your shares']);
+});
+
+it('asks for the company only for an account with a company role', async () => {
+  mockCompanies.mockResolvedValue(companyList([{ uuid: 'company', name: 'Harbour Robotics Pty Ltd' }]));
+  const view = await drawer();
+
+  expect(view.getByRole('header', { name: 'Invest' })).toBeTruthy();
+  expect(mockCompanies).not.toHaveBeenCalled();
 });

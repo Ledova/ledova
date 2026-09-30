@@ -347,6 +347,39 @@ test('an already present action ID cannot be adopted by a new reservation after 
   await expect(store.persist(original, true)).resolves.toBeUndefined();
 });
 
+const reasonless: ((config: InternalAxiosRequestConfig) => never)[] = [
+  (config) => fail(config, '<html><body><h1>502 Bad Gateway</h1></body></html>', 502),
+  (config) => fail(config, 'Internal Server Error', 500),
+  (config) => {
+    throw new AxiosError('Network Error', AxiosError.ERR_NETWORK, config);
+  },
+  (config) => {
+    throw new AxiosError('timeout of 30000ms exceeded', AxiosError.ECONNABORTED, config);
+  },
+];
+
+test.each([
+  ['modify', 'The order could not be changed. Try again.'],
+  ['cancel', 'The order could not be cancelled. Try again.'],
+] as const)(
+  'a %s request that fails with no sentence from the server says "%s", never the request’s own error',
+  async (purpose, sentence) => {
+    for (const failure of reasonless) {
+      const f = setup(purpose);
+      f.handler(async (config) => failure(config));
+      await f.action.load();
+      expect(f.action.getSnapshot()).toMatchObject({ phase: 'error', error: sentence });
+    }
+  },
+);
+
+test('a request refused with a sentence still shows the sentence', async () => {
+  const f = setup('cancel');
+  f.handler(async (config) => fail(config, { detail: 'This order is already being settled.' }, 400));
+  await f.action.load();
+  expect(f.action.getSnapshot()).toMatchObject({ phase: 'error', error: 'This order is already being settled.' });
+});
+
 test('field validation details remain visible without becoming a stored refusal', async () => {
   const f = setup();
   await prepare(f);

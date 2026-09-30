@@ -24,6 +24,7 @@ export type WalletsStackParamList = {
   };
   TransferDetails: {
     wallet: Wallet;
+    chosen?: boolean;
   };
   WalletVerification: {
     wallet: Wallet;

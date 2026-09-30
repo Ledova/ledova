@@ -1,5 +1,5 @@
 import type { Transaction } from '../../src/types';
-import { activityAmount, activityDirection, feeUnit } from '../../src/utils/activity';
+import { activityAmount, activityDirection, activityStatus, feeUnit } from '../../src/utils/activity';
 
 const transaction: Transaction = {
   uuid: 'synthetic-transaction',
@@ -63,6 +63,16 @@ it.each([
     expect(activityDirection({ ...transaction, chain, walletAddress, fromAddress, toAddress })).toBe(direction);
   },
 );
+
+it.each([
+  ['confirmed', 'Confirmed', '✓ Confirmed'],
+  ['failed', 'Failed', '✗ Failed'],
+  ['pending', 'Pending', 'Pending'],
+  ['reorged', 'Confirmation reversed', 'Confirmation reversed'],
+  ['unrecognized', 'Unknown', 'Unknown'],
+] as const)('reads a %s status as %j and shows it as %j', (status, label, text) => {
+  expect(activityStatus(Object.assign({ ...transaction }, { status }))).toEqual({ label, text });
+});
 
 it.each([
   ['base', 'ETH'],

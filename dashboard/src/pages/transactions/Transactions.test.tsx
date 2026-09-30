@@ -351,7 +351,7 @@ it('keeps a failed later page visible as incomplete and retries it', async () =>
   expect(screen.getByText('Pending')).toBeTruthy();
   broken = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try more activity again' }));
-  expect(await screen.findByText('✓ Confirmed')).toBeTruthy();
+  expect(await screen.findByText('Confirmed')).toBeTruthy();
   expect(activityReads().at(-1)?.[1].params.page).toBe(2);
 });
 
@@ -378,7 +378,7 @@ it('holds Load more while the history is read again, then offers the next page',
     finish(page([{ ...transaction, status: 'confirmed' }], later));
     await refreshing;
   });
-  expect(await screen.findByText('✓ Confirmed')).toBeTruthy();
+  expect(await screen.findByText('Confirmed')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
 });
 
@@ -410,7 +410,7 @@ it('keeps entries and the later-page failure on screen while the history is read
     finish(page([{ ...transaction, status: 'confirmed' }], later));
     await refreshing;
   });
-  expect(await screen.findByText('✓ Confirmed')).toBeTruthy();
+  expect(await screen.findByText('Confirmed')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Load more activity' })).toHaveProperty('disabled', false);
 });
 
@@ -442,7 +442,7 @@ it('suppresses stale activity detail after a failed refresh and recovers the cur
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   const recovered = await screen.findByRole('button', { name: entryName });
   expect(recovered.getAttribute('aria-expanded')).toBe('true');
-  expect(within(detailOf(recovered)).getByText('✓ Confirmed')).toBeTruthy();
+  expect(within(detailOf(recovered)).getByText('Confirmed')).toBeTruthy();
 });
 
 it('refuses a nonadvancing history page', async () => {

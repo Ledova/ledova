@@ -76,6 +76,29 @@ describe('what it refuses to say', () => {
     expect(apiErrorSentence(refusal(502, page), FALLBACK)).toBe(FALLBACK);
   });
 
+  it.each([
+    [500, 'Internal Server Error'],
+    [502, 'Bad Gateway'],
+    [502, '502 Bad Gateway'],
+    [503, 'upstream connect error or disconnect/reset before headers. reset reason: connection failure'],
+    [503, ['Service Unavailable']],
+  ])('does not repeat the bare body of a %s, which names a failure rather than a reason', (status, body) => {
+    expect(readApiError(refusal(status, body), { fallback: FALLBACK })).toEqual({ generalError: FALLBACK });
+    expect(apiErrorSentence(refusal(status, body), FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('still reads the reason a failing server gives in its body, and a refusal’s bare sentence', () => {
+    expect(readApiError(refusal(500, { detail: 'An unexpected error occurred' }), { fallback: FALLBACK })).toEqual({
+      generalError: 'An unexpected error occurred',
+    });
+    expect(readApiError(refusal(400, 'The code has expired.'), { fallback: FALLBACK })).toEqual({
+      generalError: 'The code has expired.',
+    });
+    expect(readApiError(refusal(499, ['The code has expired.']), { fallback: FALLBACK })).toEqual({
+      generalError: 'The code has expired.',
+    });
+  });
+
   it('still reads a plain sentence that happens to compare numbers', () => {
     expect(readApiError(refusal(400, 'Amount must be < 5 and > 1.'), { fallback: FALLBACK }).generalError).toBe(
       'Amount must be < 5 and > 1.',

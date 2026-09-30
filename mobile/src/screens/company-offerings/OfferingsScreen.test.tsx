@@ -370,7 +370,7 @@ it('uses issuer action contracts, refuses duplicate pending actions and retains 
   );
   expect(post).toHaveBeenCalledTimes(1);
   await act(() => pending.reject(new Error('Refused')));
-  expect(await view.findByText('The request was refused. Please try again.')).toBeTruthy();
+  expect(await view.findByText('The request could not be completed. Try again.')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Delete Ordinary shares offering' }));
   await waitFor(() => expect(remove).toHaveBeenCalledWith(OFFERING, { ledovaSessionEpoch: getSessionEpoch() }));
 });

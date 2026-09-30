@@ -1,13 +1,12 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, renderHook, waitFor, within } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import type { Wallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { WalletsScreen } from './index';
 import { WalletActionScreen } from './components/WalletActionScreen';
 import { useWalletsCrud } from './useWalletsCrud';
 import { useWallets } from './useWallets';
-import { useWalletSort } from '../../components/wallet-list/useWalletSort';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
@@ -149,17 +148,40 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  onlineManager.setOnline(true);
 });
 
-it('reads every wallet page and renders full addresses and exact balances without mock totals', async () => {
+it('reads every wallet page and renders full addresses and exact balances, to eight places, without mock totals', async () => {
+  pages[2].results[0].nativeBalance = '9007199254740993.123456789';
   const view = await mount(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
-  expect(view.getByText('9,007,199,254,740,993.000000000000000001 ETH')).toBeTruthy();
-  expect(view.getByText('0.000000000000000001 ETH')).toBeTruthy();
+  expect(view.getByText('9007199254740993.12345679 ETH')).toBeTruthy();
+  expect(view.getByText('0 ETH')).toBeTruthy();
+  expect(view.queryByText(/0\.000000000000000001/)).toBeNull();
   expect(view.getByText(wallet('b').address)).toBeTruthy();
   expect(get).toHaveBeenCalledWith(url, { params: { page: 2 }, ledovaSessionEpoch: getSessionEpoch() });
   await fireEvent.press(view.getByRole('button', { name: 'Open wallet Fictional b' }));
   expect(mockNavigate).toHaveBeenCalledWith('WalletAction', { wallet: pages[2].results[0] });
+});
+
+it("names each row's status and signing preference, and labels its sync age and figures, as the choosers do", async () => {
+  pages[1].results[0] = {
+    ...pages[1].results[0],
+    verificationStatus: 'PENDING',
+    lastSyncedAt: new Date().toISOString(),
+  };
+  const view = await mount(<WalletsScreen />);
+  await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
+
+  const row = within(view.getByRole('button', { name: 'Open wallet Fictional a' }).parent!);
+  expect(row.getAllByRole('img').map((image) => image.props.accessibilityLabel)).toEqual([
+    'Wallet address verification pending',
+    'Hardware (self-declared)',
+  ]);
+  expect(row.getByText('just now')).toBeTruthy();
+  expect(row.getByText(wallet('a').address).parent).toBe(row.getByText('Address').parent);
+  expect(row.getByText('0 ETH').parent).toBe(row.getByText('Balance').parent);
+  expect(row.getByText('AUD 42.00').parent).toBe(row.getByText('Estimated value').parent);
 });
 
 it('reports a failed later wallet page and retries the whole ledger before presenting any complete list', async () => {
@@ -207,12 +229,112 @@ it('shows truthful empty networks and retains Buy and Send only as wallet destin
   expect(mockNavigate).toHaveBeenCalledWith('Send', { screen: 'SendMain' });
 });
 
+describe('Send from Wallets', () => {
+  const pending: Wallet = { ...wallet('p'), verificationStatus: 'PENDING' };
+  const bitcoin: Wallet = { ...wallet('c'), chain: 'bitcoin', address: `tb1q${'c'.repeat(38)}` };
+  const polygon = { ...wallet('d'), chain: 'polygon' } as unknown as Wallet;
+
+  async function pressSend(results: Wallet[]) {
+    pages = { 1: { results, next: null } };
+    const view = await mount(<WalletsScreen />);
+    await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).not.toBeDisabled());
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    return view;
+  }
+
+  it('opens the form for the only verified wallet, beside a pending one and one on a network Wallets does not list', async () => {
+    await pressSend([wallet('a'), pending, polygon]);
+    expect(mockNavigate.mock.calls).toEqual([
+      [
+        'Send',
+        {
+          screen: 'SendMain',
+          params: { wallet: pages[1].results[0] },
+        },
+      ],
+    ]);
+  });
+
+  it("opens a Bitcoin wallet's own send form when it is the only verified wallet", async () => {
+    await pressSend([bitcoin, pending]);
+    expect(mockNavigate.mock.calls).toEqual([['TransferDetails', { wallet: pages[1].results[0] }]]);
+  });
+
+  it.each([
+    ['several are verified', [wallet('a'), bitcoin]],
+    ['none is verified', [pending]],
+    ['the only verified wallet is on a network Wallets does not list', [polygon, pending]],
+  ])('asks which wallet to send from when %s', async (_, results) => {
+    await pressSend(results);
+    expect(mockNavigate.mock.calls).toEqual([['Send', { screen: 'SendMain' }]]);
+  });
+
+  it('asks which wallet to send from when a refresh fails after reading one', async () => {
+    const view = await pressSend([wallet('a')]);
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+    failedPage = 1;
+    await refresh();
+    await waitFor(() =>
+      expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy(),
+    );
+
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+  });
+
+  it('asks which wallet to send from while a refresh has not finished, and opens the form once it has', async () => {
+    const view = await pressSend([wallet('a')]);
+    const read = deferred<unknown>();
+    get.mockImplementationOnce(() => read.promise as ReturnType<typeof apiClient.get>);
+    let refreshed!: Promise<void>;
+    try {
+      await act(async () => {
+        refreshed = client.invalidateQueries({ queryKey: ['wallets'] });
+      });
+      await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).toBeDisabled());
+
+      await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+      expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+    } finally {
+      await act(async () => read.resolve({ data: pages[1] }));
+    }
+    await act(() => refreshed);
+    await waitFor(() => expect(view.getByRole('button', { name: 'Sync balances' })).not.toBeDisabled());
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+  });
+
+  it('asks which wallet to send from while a refresh waits for the connection, and opens the form once it has read', async () => {
+    const view = await pressSend([wallet('a')]);
+    const ledger = () => client.getQueryCache().findAll({ queryKey: ['wallets', 'ledger'] })[0]!;
+    const rendered = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+    await act(async () => onlineManager.setOnline(false));
+    let refreshed!: Promise<void>;
+    await act(async () => {
+      refreshed = client.invalidateQueries({ queryKey: ['wallets'] });
+    });
+    await waitFor(() => expect(ledger().state.fetchStatus).toBe('paused'));
+    await rendered();
+
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain' });
+
+    await act(async () => onlineManager.setOnline(true));
+    await act(() => refreshed);
+    await waitFor(() => expect(ledger().state.fetchStatus).toBe('idle'));
+    await rendered();
+    await fireEvent.press(view.getByRole('button', { name: 'Send' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('Send', { screen: 'SendMain', params: { wallet: wallet('a') } });
+  });
+});
+
 it('heads Wallets with its lede and then every screen action in one row, before the first network card', async () => {
   const view = await mount(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
   const title = view.getByRole('header', { name: 'Wallets' });
   const lede = view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.');
-  const actions = ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'].map((name) =>
+  const actions = ['Buy crypto', 'Send', 'Add wallet', 'Sync balances'].map((name) =>
     view.getByRole('button', { name }),
   );
   const row = actions[0].parent!;
@@ -232,24 +354,12 @@ it('holds back the Wallets actions while the wallets are read, under the title a
       title,
       view.getByText('Open a wallet to verify, rename, derive another address or sync its balances.'),
     ]);
-    for (const name of ['Buy crypto', 'Send', 'Add wallet', 'Filter', 'Sync balances'])
+    for (const name of ['Buy crypto', 'Send', 'Add wallet', 'Sync balances'])
       expect(view.queryByRole('button', { name })).toBeNull();
   } finally {
     await act(async () => first.resolve({ data: pages[1] }));
   }
   expect(await view.findByRole('button', { name: 'Add wallet' })).toBeTruthy();
-});
-
-it('sorts complete balances exactly across unsafe integers and subunit fractions', async () => {
-  const values = [
-    wallet('a', '9007199254740992.1'),
-    wallet('b', '9007199254740992.2'),
-    wallet('c', '0.000000000000000002'),
-    wallet('d', '0.000000000000000001'),
-  ];
-  const hook = await renderHook(() => useWalletSort(values));
-  await act(() => hook.result.current!.handleApply('all', 'highestBalance'));
-  expect(hook.result.current!.sortedWallets.map((item) => item.uuid)).toEqual(['b', 'a', 'c', 'd']);
 });
 
 it('keeps the real add form through a failed background read and write refusal, blocking duplicate and close while pending', async () => {
@@ -318,6 +428,13 @@ it('keeps name changes through refresh failures and refused saves, then displays
   await waitFor(() => expect(view.getByText('Kept name')).toBeTruthy());
   expect(patch).toHaveBeenLastCalledWith(url + 'a/', { name: 'Kept name' }, { ledovaSessionEpoch: getSessionEpoch() });
   expect(mockBack).not.toHaveBeenCalled();
+});
+
+it("states the wallet's balance in its network's unit, to eight places, as the Wallets row does", async () => {
+  pages[1].results[0] = { ...pages[1].results[0], chain: 'bitcoin', nativeBalance: '0.012500000000000000' };
+  const view = await mount(<WalletActionScreen />);
+  await waitFor(() => expect(view.getByText('0.0125 BTC')).toBeTruthy());
+  expect(view.queryByText(/0\.0125000/)).toBeNull();
 });
 
 it('uses the complete current ledger rather than a stale route wallet after removal', async () => {

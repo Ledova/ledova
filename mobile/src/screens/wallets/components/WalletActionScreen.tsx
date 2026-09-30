@@ -11,8 +11,10 @@ import {
   canDeriveNextWalletAddress,
   getChainShortCode,
   getBlockchainDisplayName,
+  formatCryptoBalance,
   formatDate,
   getErrorMessage,
+  getNativeAssetSymbol,
   useCurrency,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
@@ -21,7 +23,6 @@ import { DeleteWalletModal } from './DeleteWalletModal';
 import { DeriveAddressModal } from './DeriveAddressModal';
 import { useWalletsCrud } from '../useWalletsCrud';
 import { WalletsPage, useWalletStyles } from '../WalletsPage';
-import { walletBalance } from '../presentation';
 import { assertSessionEpoch, getSessionEpoch } from '../../../services/sessionScope';
 
 export function WalletActionScreen() {
@@ -133,7 +134,7 @@ function WalletDetails({ uuid }: { uuid: string }) {
               )}
               <Rows>
                 <Row label="Balance">
-                  {walletBalance(wallet.nativeBalance)} {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
+                  {formatCryptoBalance(wallet.nativeBalance, getNativeAssetSymbol(wallet.chain))}
                 </Row>
                 <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
                 <Row label="Signing preference">{getWalletSigningPreferenceLabel(wallet.signingPreference)}</Row>

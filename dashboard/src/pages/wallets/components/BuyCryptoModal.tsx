@@ -7,6 +7,7 @@ import {
   getAssets,
   getWallets,
   getOnRampWidgetUrl,
+  readApiError,
   readEveryPage,
   useCurrency,
 } from '@ledova/shared';
@@ -193,7 +194,12 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
 
       {widgetMutation.isError && (
         <p className="mt-4 text-sm text-error-light">
-          {widgetMutation.error instanceof Error ? widgetMutation.error.message : 'Something went wrong'}
+          {
+            readApiError(widgetMutation.error, {
+              fallback: 'The purchase page could not be opened. Try again.',
+              displayedFields: [],
+            }).generalError
+          }
         </p>
       )}
     </Modal>

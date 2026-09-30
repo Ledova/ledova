@@ -1,3 +1,5 @@
-export { WalletSortModal } from './WalletSortModal';
-export { useWalletSort } from './useWalletSort';
-export type { WalletChainFilter, WalletSortOption } from './WalletSortModal';
+export { WalletChoice } from './WalletChoice';
+export { WalletSort } from './WalletSort';
+export { WalletSummary } from './WalletSummary';
+export { WALLET_SORTS, sortWallets, useWalletSort } from './useWalletSort';
+export type { WalletSortOption } from './useWalletSort';

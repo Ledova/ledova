@@ -148,7 +148,7 @@ export function OfferingsScreen() {
       else await actions[action].mutateAsync({ uuid, epoch });
     } catch (error) {
       if (epoch !== getSessionEpoch()) return;
-      setActionError({ uuid, message: apiErrorSentence(error, 'The request was refused. Please try again.') });
+      setActionError({ uuid, message: apiErrorSentence(error, 'The request could not be completed. Try again.') });
     }
   };
   const refresh = () =>

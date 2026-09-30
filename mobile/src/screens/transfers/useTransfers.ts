@@ -15,6 +15,7 @@ import {
   getEstimatedFee,
   isBitcoinChain,
   isSupportedEvmChain,
+  getChainConfig,
   WALLET_VERIFICATION_STATUS,
   getErrorMessage,
   getHoldingTokenDeployment,
@@ -92,11 +93,14 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
   return assets;
 }
 
-export function useTransfers() {
+export function useTransfers(initialWallet: Wallet | null = null) {
   const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
-  const { userAccount } = useUserPreferences();
-  const [state, setState] = useState<TransferState>(INITIAL_STATE);
+  const account = useUserPreferences();
+  const { userAccount } = account;
+  const [state, setState] = useState<TransferState>(() =>
+    initialWallet ? { ...INITIAL_STATE, step: 'enter-details', wallet: initialWallet } : INITIAL_STATE,
+  );
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
   const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
@@ -334,8 +338,11 @@ export function useTransfers() {
     setPendingBroadcast(false);
   }, []);
 
+  const preferencesFailed = account.isError || (!!account.preferences && !userAccount?.uuid);
   const allWallets = USE_MOCK_DATA ? generateMockWalletsData() : (walletsQuery.data ?? []);
-  const wallets = allWallets.filter((w: Wallet) => w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED);
+  const wallets = allWallets.filter(
+    (w: Wallet) => getChainConfig(w.chain)?.isActive && w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
+  );
 
   return {
     step: state.step,
@@ -347,7 +354,10 @@ export function useTransfers() {
     transactionData: state.transactionData,
     txHash: state.txHash,
     wallets,
-    isLoading: USE_MOCK_DATA ? false : walletsQuery.isLoading,
+    isLoading: USE_MOCK_DATA ? false : walletsQuery.isPending,
+    walletsFailed: !USE_MOCK_DATA && (walletsQuery.isError || preferencesFailed),
+    isRetryingWallets: !USE_MOCK_DATA && (walletsQuery.isFetching || account.isFetching),
+    retryWallets: () => void (preferencesFailed ? account.refetch() : walletsQuery.refetch()),
     isLoadingHoldings: USE_MOCK_DATA ? false : holdingsQuery.isLoading,
     isPreparing: USE_MOCK_DATA ? false : prepareTransferMutation.isPending,
     isBroadcasting: USE_MOCK_DATA ? false : broadcastTransferMutation.isPending,

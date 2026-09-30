@@ -1,31 +1,38 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { WalletIcon, CheckCircleIcon, ClockIcon, CurrencyEthIcon, CurrencyBtcIcon } from 'phosphor-react-native';
-import {
-  BLOCKCHAIN,
-  WALLET_VERIFICATION_STATUS,
-  formatWalletAddressShort,
-  formatCryptoBalance,
-  formatSyncAge,
-  useCurrency,
-} from '@ledova/shared';
+import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
+import { CurrencyEthIcon, CurrencyBtcIcon } from 'phosphor-react-native';
+import { BLOCKCHAIN, getActiveChains } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useDialogStyles } from '../../../components/modal';
+import { Action, Rows } from '../../../components/Ledger';
+import { WalletChoice } from '../../../components/wallet-list';
 
 interface WalletSelectionStepProps {
   wallets: Wallet[];
   isLoading: boolean;
+  failed: boolean;
+  retrying: boolean;
+  onRetry: () => void;
   onSelectWallet: (wallet: Wallet) => void;
 }
 
-export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: WalletSelectionStepProps) {
+export function WalletSelectionStep({
+  wallets,
+  isLoading,
+  failed,
+  retrying,
+  onRetry,
+  onSelectWallet,
+}: WalletSelectionStepProps) {
   const theme = useAppTheme();
-  const { formatDisplayCurrency } = useCurrency();
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       gap: theme.spacing.md,
+    },
+    failure: {
+      gap: theme.spacing.smd,
     },
     loading: {
       flexDirection: 'row',
@@ -54,52 +61,18 @@ export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: Wall
       fontWeight: theme.fontWeight.semibold,
       color: theme.colors.text.primary,
     },
-    walletRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: theme.spacing.sm,
-      gap: theme.spacing.sm,
-    },
-    iconContainer: {
-      position: 'relative',
-    },
-    verificationDot: {
-      position: 'absolute',
-      bottom: -2,
-      right: -2,
-    },
-    walletName: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      flexShrink: 1,
-    },
-    spacer: {
-      flex: 1,
-    },
-    valuesContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      flexShrink: 0,
-    },
-    syncAge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-    },
-    syncAgeText: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-    },
-    balance: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-    marketValue: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
   }));
+
+  if (failed) {
+    return (
+      <View style={styles.failure}>
+        <Text accessibilityRole="alert" style={text.muted}>
+          Your wallets could not be loaded. Try again before continuing.
+        </Text>
+        <Action label="Try again" onPress={onRetry} disabled={retrying} />
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -119,88 +92,30 @@ export function WalletSelectionStep({ wallets, isLoading, onSelectWallet }: Wall
     );
   }
 
-  const ethWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.ETHEREUM);
-  const baseWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.BASE);
-  const btcWallets = wallets.filter((w) => w.chain === BLOCKCHAIN.BITCOIN);
-
-  const renderWallet = (wallet: Wallet) => {
-    const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
-    const isVerified = wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED;
-    const marketValue = parseFloat(wallet.marketValue) || 0;
-    const syncAge = formatSyncAge(wallet.lastSyncedAt);
-
-    return (
-      <TouchableOpacity
-        key={wallet.uuid}
-        style={styles.walletRow}
-        onPress={() => onSelectWallet(wallet)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.iconContainer}>
-          <WalletIcon
-            size={theme.icon.sizes.md}
-            color={isVerified ? theme.colors.status.success.icon : theme.colors.text.muted}
-            weight={theme.icon.weights.regular}
-          />
-          {isVerified ? (
-            <CheckCircleIcon
-              size={theme.icon.sizes.xs}
-              color={theme.colors.status.success.icon}
-              weight="fill"
-              style={styles.verificationDot}
-            />
-          ) : (
-            <ClockIcon
-              size={theme.icon.sizes.xs}
-              color={theme.colors.status.warning.icon}
-              weight="fill"
-              style={styles.verificationDot}
-            />
-          )}
-        </View>
-
-        <Text style={styles.walletName} numberOfLines={1}>
-          {walletLabel}
-        </Text>
-
-        <View style={styles.spacer} />
-
-        <View style={styles.valuesContainer}>
-          {syncAge && (
-            <View style={styles.syncAge}>
-              <ClockIcon size={theme.icon.sizes.xs} color={theme.colors.text.subtle} weight="regular" />
-              <Text style={styles.syncAgeText}>{syncAge}</Text>
-            </View>
-          )}
-          <Text style={styles.balance} numberOfLines={1}>
-            {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
-          </Text>
-          <Text style={styles.marketValue}>{formatDisplayCurrency(marketValue)}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      {[
-        { key: 'ethereum', label: 'Ethereum', icon: CurrencyEthIcon, wallets: ethWallets },
-        { key: 'base', label: 'Base', icon: CurrencyEthIcon, wallets: baseWallets },
-        { key: 'bitcoin', label: 'Bitcoin', icon: CurrencyBtcIcon, wallets: btcWallets },
-      ]
+    <ScrollView contentContainerStyle={styles.container}>
+      {getActiveChains()
+        .map(({ code, name }) => ({ code, name, wallets: wallets.filter((wallet) => wallet.chain === code) }))
         .filter((group) => group.wallets.length > 0)
-        .map((group, index) => (
-          <React.Fragment key={group.key}>
-            {index > 0 && <View style={styles.divider} />}
-            <View style={styles.chainGroup}>
-              <View style={styles.chainHeaderRow}>
-                <group.icon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight="bold" />
-                <Text style={styles.chainHeader}>{group.label}</Text>
+        .map((group, index) => {
+          const ChainIcon = group.code === BLOCKCHAIN.BITCOIN ? CurrencyBtcIcon : CurrencyEthIcon;
+          return (
+            <React.Fragment key={group.code}>
+              {index > 0 && <View style={styles.divider} />}
+              <View style={styles.chainGroup}>
+                <View style={styles.chainHeaderRow}>
+                  <ChainIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight="bold" />
+                  <Text style={styles.chainHeader}>{group.name}</Text>
+                </View>
+                <Rows>
+                  {group.wallets.map((wallet) => (
+                    <WalletChoice key={wallet.uuid} wallet={wallet} onChoose={() => onSelectWallet(wallet)} />
+                  ))}
+                </Rows>
               </View>
-              {group.wallets.map(renderWallet)}
-            </View>
-          </React.Fragment>
-        ))}
-    </View>
+            </React.Fragment>
+          );
+        })}
+    </ScrollView>
   );
 }

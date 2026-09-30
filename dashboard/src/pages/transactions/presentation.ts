@@ -10,5 +10,5 @@ export function activityState(transaction: Transaction) {
     warning: 'moving',
     info: 'waiting',
   };
-  return { label: state.label, tone: tones[state.tone] };
+  return { label: state.label, mark: state.mark, tone: tones[state.tone] };
 }

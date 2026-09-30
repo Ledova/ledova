@@ -2,26 +2,23 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BLOCKCHAIN, WALLET_VERIFICATION_STATUS, getChainShortCode, useCurrency } from '@ledova/shared';
+import { getActiveChains } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
-import { Section, Row, Rows, Action } from '../../components/Ledger';
-import { WalletSortModal, useWalletSort } from '../../components/wallet-list';
+import { Section, Action } from '../../components/Ledger';
+import { WalletSort, WalletSummary, sortWallets, useWalletSort } from '../../components/wallet-list';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';
 import { useWallets } from './useWallets';
 import { useWalletsCrud } from './useWalletsCrud';
 import { WalletsPage, useWalletStyles } from './WalletsPage';
-import { walletBalance } from './presentation';
 
 export function WalletsScreen() {
   const styles = useWalletStyles();
   const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
   const crud = useWalletsCrud();
   const form = useWallets(crud);
-  const { formatDisplayCurrency } = useCurrency();
   const [syncingAll, setSyncingAll] = useState(false);
-  const { sortedWallets, chainFilter, sortOption, isFiltered, showSortModal, setShowSortModal, handleApply } =
-    useWalletSort(crud.wallets);
+  const sort = useWalletSort();
   const blocked = crud.isLoading || crud.hasError || crud.isRefreshing;
   const notice = crud.hasError
     ? 'Wallets could not be refreshed. Your draft is kept; retry before continuing.'
@@ -44,9 +41,8 @@ export function WalletsScreen() {
         actions={
           !crud.isLoading && (
             <>
-              <CryptoActions />
+              <CryptoActions wallets={crud.hasError || !crud.isSettled ? null : crud.wallets} />
               <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
-              <Action label={isFiltered ? 'Filter (active)' : 'Filter'} onPress={() => setShowSortModal(true)} />
               <Action
                 label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
                 onPress={() => void syncAll()}
@@ -67,58 +63,41 @@ export function WalletsScreen() {
             <Action label="Try again" onPress={() => void crud.refetch()} disabled={crud.isRefreshing} />
           </View>
         ) : (
-          <>
-            {[
-              [BLOCKCHAIN.ETHEREUM, 'Ethereum', 'eth'],
-              [BLOCKCHAIN.BITCOIN, 'Bitcoin', 'btc'],
-              [BLOCKCHAIN.BASE, 'Base', 'base'],
-            ]
-              .filter(([, , filter]) => chainFilter === 'all' || chainFilter === filter)
-              .map(([chain, name]) => {
-                const wallets = sortedWallets.filter((wallet) => wallet.chain === chain);
-                return (
-                  <Section key={chain} title={name}>
-                    {wallets.length ? (
-                      wallets.map((wallet, index) => (
-                        <View key={wallet.uuid} style={[styles.item, index === wallets.length - 1 && styles.lastItem]}>
-                          <Text style={styles.name}>{wallet.name || 'Unnamed wallet'}</Text>
-                          <Rows>
-                            <Row label="Address">{wallet.address}</Row>
-                            <Row label="Balance">
-                              {walletBalance(wallet.nativeBalance)}{' '}
-                              {getChainShortCode(wallet.chain) === 'BTC' ? 'BTC' : 'ETH'}
-                            </Row>
-                            <Row label="Estimated value">{formatDisplayCurrency(Number(wallet.marketValue))}</Row>
-                            <Row label="Verification">
-                              {wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED
-                                ? 'Address verified'
-                                : 'Pending'}
-                            </Row>
-                          </Rows>
-                          <Action
-                            label="Open wallet"
-                            accessibilityLabel={`Open wallet ${wallet.name || wallet.address}`}
-                            onPress={() => navigation.navigate('WalletAction', { wallet })}
-                            disabled={blocked}
-                          />
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={styles.help}>No {name} wallets yet.</Text>
-                    )}
-                  </Section>
-                );
-              })}
-          </>
+          getActiveChains().map(({ code, name }) => {
+            const wallets = sortWallets(
+              crud.wallets.filter((wallet) => wallet.chain === code),
+              sort.sortOf(code),
+            );
+            return (
+              <Section key={code} title={name}>
+                {wallets.length > 1 && (
+                  <WalletSort
+                    open={sort.isOpen(code)}
+                    sort={sort.sortOf(code)}
+                    onToggle={() => sort.toggle(code)}
+                    onSort={(option) => sort.choose(code, option)}
+                  />
+                )}
+                {wallets.length ? (
+                  wallets.map((wallet, index) => (
+                    <View key={wallet.uuid} style={[styles.item, index === wallets.length - 1 && styles.lastItem]}>
+                      <WalletSummary wallet={wallet} />
+                      <Action
+                        label="Open wallet"
+                        accessibilityLabel={`Open wallet ${wallet.name || wallet.address}`}
+                        onPress={() => navigation.navigate('WalletAction', { wallet })}
+                        disabled={blocked}
+                      />
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.help}>No {name} wallets yet.</Text>
+                )}
+              </Section>
+            );
+          })
         )}
       </WalletsPage>
-      <WalletSortModal
-        visible={showSortModal}
-        selectedChain={chainFilter}
-        selectedSort={sortOption}
-        onClose={() => setShowSortModal(false)}
-        onApply={handleApply}
-      />
       <AddWalletModal
         visible={form.showAddModal}
         isLoading={form.isCreating}

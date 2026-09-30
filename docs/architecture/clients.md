@@ -141,23 +141,32 @@ Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
 account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites. On the
-web, Send opens its form directly when Wallets has read exactly one verified
+not menu items, and the dashboard has no coin-price page or favourites. On both
+clients, Send opens its form directly when Wallets has read exactly one verified
 wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
 which wallet to send from: when several are verified, when none is, and when
-Wallets could not read them. Buy crypto goes straight to the widget only when a
-read that has finished finds exactly one verified wallet on the chosen asset's
-network, and asks which one receives it when there are several; while a read is
-running, or waiting for the connection to come back, it opens nothing by itself
-and its chooser's wallets cannot be chosen. Both web choosers read every page of
-verified wallets, so a wallet on a later page is offered and counted, and list
-each as a Wallets row reads, by its name or short address, with its balance and
-value labelled; neither says there are none before a read has answered, even
-offline, and one that cannot read the wallets says so and offers Try again,
-hiding any it listed before. Mobile follows later: its Send always starts at the
-wallet choice, and its Buy crypto can still go straight to the widget for, or
-offer, the wallets it read before, and says there are none when a read fails.
-Both mobile choosers also read every page of wallets.
+Wallets could not read them. A form opened directly, mobile's Bitcoin form
+included, offers Cancel where Back would return to a choice never made. The web
+counts the wallets Wallets last read, even while it reads them again; mobile
+asks until that read has finished, and while it waits for the connection, and
+opens a lone Bitcoin wallet in the Bitcoin send form, as choosing one does.
+Buy crypto goes straight to the widget only when a read that has finished finds
+exactly one verified wallet on the chosen asset's network, and asks which one
+receives it when there are several; while a read is running, or waiting for the
+connection to come back, it opens nothing by itself and its chooser's wallets
+cannot be chosen. When the purchase page cannot be opened, Buy crypto gives the
+server's reason for refusing it (`readApiError` in
+`packages/shared/src/utils/errors.ts`) and otherwise says "The purchase page
+could not be opened. Try again.", never a proxy's error page or a bare status
+line. Every chooser, on both clients, reads every page, so a
+verified wallet on a later page is offered and counted, lists and counts only
+the networks Wallets lists, and shows each wallet as a Wallets row reads:
+its name or short address, its verification and signing preference named for
+screen readers, its sync age, and its balance and value labelled. None says
+there are none before a read has answered, even offline, and one that cannot
+read the wallets says so and offers Try again, hiding any it listed before,
+without the request's error text. Mobile's Send chooser says the same when the
+account's preferences cannot be read, and its Try again reads them first.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.
@@ -167,17 +176,6 @@ and the favourites table, holding snapshots and value-series service behind them
 are [dropped](../operations/upgrades.md#database-migrations). Portfolio CRUD and
 the add/remove-wallet operator actions remain; the selected-portfolio preference
 is [dropped](../operations/upgrades.md#theme-and-selected-portfolio-preferences).
-Native Wallets reads every page into an account- and session-scoped ledger. A
-failed page suppresses partial balances and stale actions until retry succeeds.
-Balances and numeric sorting retain decimal strings; converted fiat values remain
-labelled estimates. Wallet detail requires a current owned row rather than its
-navigation snapshot. Add, rename, delete and derive failures retain entered state,
-and pending modal operations cannot be dismissed or submitted twice. Imported
-addresses are registered in sequence; retries skip only previously confirmed
-requests in that import. Wallet reads and writes use the captured session epoch,
-and software registration waits for the server after the existing authenticated
-local seed storage. QR parsing, key derivation, verification, Buy and Send keep
-their existing boundaries.
 Holdings reads every page of the person's wallets and lists their tokenized
 security holdings by company and class, with one row per asset across chains.
 It uses the API's current class and company names when available and the asset's
@@ -275,26 +273,44 @@ dialog, states which records are retained, and clears the tab's account data
 after the server confirms success. Identity checks and supporting payslips retain
 their existing provider and deployment boundaries.
 
-On the web, Wallets reads every wallet page into a separate ledger cache. A
-failed read hides incomplete or stale rows and offers retry. Each chain's card
-lists its wallets, and each row shows the wallet's verification and signing
-preference, its balance in the chain's native unit and its value in AUD, each
-with its label, and its own actions: Edit, Sync and Delete, with Verify while the
-wallet awaits verification and Derive address where the next hardware address
-can be derived. Nothing is selected first. A failed sync is reported in the row
-of the wallet it belongs to, and every Sync waits while one is running. Add
-wallet is a title action, since the add form chooses the network. Add, edit,
-derive and delete forms preserve refused input and stay open until success;
-background read failures keep the draft but block further submission until
-recovery. Hardware imports run one address at a time and remember confirmed
-additions for retry within the same import. A partial failure explains the
-number added and leaves the remaining selection available. These controls do not
-change wallet verification or signing authority. Mobile's Wallets still gives
-each row a single Open wallet action, to the wallet's own screen, and syncs every
-balance with one Sync balances action.
+On both clients Wallets reads every wallet page into a ledger cache of its
+own, and a failed read hides incomplete or stale rows and offers retry. Mobile's
+ledger is scoped to the account and the session: wallet reads and writes carry
+the captured session epoch, and a wallet's own screen shows the ledger's current
+row rather than the one it was opened with. Each chain's card lists its wallets,
+and each row shows the wallet's verification and self-declared signing
+preference, named for screen readers, its sync age, its balance in the chain's
+native unit and its value in AUD, each labelled (the value is Value on the web
+and Estimated value on mobile). Verification and signing preference are icons,
+as on the web: a mobile row no longer spells out Verification in a line of
+text, so sighted people read the status from the badge's check or clock, and a
+wallet's own screen still states both in words. A balance shows at most eight
+decimal places, rounded from its decimal string rather than through a float
+(`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`), and mobile's
+value and balance orders compare the decimal strings. The clients differ in where
+a wallet's actions sit. On the web each row carries its own: Edit, Sync and
+Delete, with Verify while the wallet awaits verification and Derive address
+where the next hardware address can be derived. Nothing is selected first. A
+failed sync is reported in the row of the wallet it belongs to, and every Sync
+waits while one is running. Add wallet is a title action, since the add form
+chooses the network. On mobile each row has one Open wallet action, to the
+wallet's own screen, which holds its name and its actions: Verify address, Sync
+balances for that wallet alone, Derive address and Delete wallet; Wallets'
+title row adds Sync balances for every wallet. Add, edit, derive and delete keep
+refused input and stay open until success, and on mobile a pending one cannot be
+dismissed or submitted twice; background read failures keep the draft but block
+further submission until recovery. Imports run one address at a time and
+remember confirmed additions for retry within the same import; a partial failure
+leaves the remaining selection available, and on the web explains the number
+added. Mobile's software registration waits for the server after the existing
+authenticated local seed storage. These controls do not change
+wallet verification or signing authority, and QR parsing, key derivation,
+verification, Buy and Send keep their existing boundaries.
 
 Activity presents recorded wallet transfers in a read-only ledger, with exact
-decimal amounts, native network fees and the current recorded status. Its history
+decimal amounts, native network fees and the current recorded status. A
+confirmed or failed status shows a ✓ or ✗ before its word, which screen readers
+skip, in the entry's name and in its detail. Its history
 read does not depend on the wallet filter read succeeding. The wallet selector
 loads every page in its own cache; a failed page disables that selector and offers
 a retry without hiding history or clearing draft filters. History loads further
@@ -469,7 +485,7 @@ screen's header, then its lede directly under the title when it has one, then
 its screen actions as one wrapping row of content-width `Action`s: a way back
 such as Back to Directory, Back to Applications or Back to Company, Refresh on
 Published to your members, New offering, Edit company, and
-Wallets' Buy crypto, Send, Add wallet, Filter and Sync balances. Where the web
+Wallets' Buy crypto, Send, Add wallet and Sync balances. Where the web
 keeps the title and actions on one row, a phone's large title leaves no room, so
 mobile keeps the lede with the title it describes and puts the actions after it.
 The side padding is 24 (`spacing.lg`), and the first card follows the header
@@ -493,8 +509,10 @@ group label wraps rather than being cut short, so a long company name is shown
 whole. The foot is one block: the person's full name, or the email when the
 profile has no name, above Sign out, which keeps its icon and red hover and is
 the public layout's `SignOutButton` in its sidebar variant. Mobile's drawer
-follows the same rule: its list ends with Help & Support, which opens the Help
-screen, and a foot pinned below the list names the person above Sign out.
+follows the same rule: a company's group takes the company's name, wrapping
+rather than cut short, and keeps Company until the name is read; its list ends
+with Help & Support, which opens the Help screen, and a foot pinned below the
+list names the person above Sign out.
 
 Pages rebuilt in the paper layout use the ledger blocks in
 `dashboard/src/components/Ledger.tsx`:
@@ -520,7 +538,8 @@ Pages rebuilt in the paper layout use the ledger blocks in
   since any number of them can be open. The page keeps whether it is open, so
   it can close it when what it shows changes; a list keeps its open rows with
   `useOpenRows` from `@ledova/shared`, as Activity, Holdings and the Register do.
-- `Status`: a status in words with a small mark for waiting, moving, done or closed.
+- `Status`: a status in words after a small mark for waiting, moving, done or
+  closed and, when it has one, a ✓ or ✗; screen readers read only the words.
 - `Timeline`: each event with its date.
 
 An empty section keeps its real title; the state is one muted sentence under
@@ -569,13 +588,13 @@ the same way, each a `Disclosure`: a holding to its shares by network and wallet
 a share class to its Share class row and stored register. Every row starts
 closed. A dialog is kept for work that sets the page aside: a
 form that creates or changes something, a signing step or a confirmation.
-Wallets sorts each chain's list in place as Activity filters: a Sort
-`Disclosure` at the top of a chain's card, shown once the chain holds two or
-more wallets, names the order it applies, and choosing an order applies it at
-once, closes it and returns focus to its button; each chain keeps its own order,
-so its title row has no Filter action either. On mobile, the Wallets sort
-still opens in a dialog. The bell's notifications belong to the frame
-rather than a page, on both clients.
+Wallets sorts each chain's list in place as Activity filters, on both clients:
+a Sort `Disclosure` at the top of a chain's card, shown once the chain holds two
+or more wallets, names the order it applies, and choosing one of its six orders
+applies it at once, closes it and returns focus to its button, screen-reader
+focus on mobile; each chain keeps its own order, so its title row has no Filter
+action either. The bell's notifications belong to the frame rather than a page,
+on both clients.
 
 Mobile's Activity and Market follow the same rule with the `Disclosure` in
 `mobile/src/components/Ledger.tsx`: a button marked expanded or collapsed, with
@@ -585,13 +604,16 @@ opens: as on the web, screen readers read the button's expanded state and then
 the detail after it. Activity's Filter is the first row of the Transfers card,
 closed at first and naming the filters it applies, so Activity has no screen
 action, and its loading and failure states sit in the same card under the
-filter, which stays at hand when a filtered read fails. Each entry opens its
-detail under its row, independently of the others; applying or clearing the
-filter closes it and every open entry and moves the screen reader's focus back
-to Filter. On Market, each of Your orders keeps its rows and opens the rest of
-its details, from Total quantity to Order ID, under them with Details, while
-changing or cancelling an order, signing and settling stay dialogs. Both keep
-their open rows with the same `useOpenRows` as the web's lists.
+filter, which stays at hand when a filtered read fails. Each entry is named by
+its summary and opens its detail under its row, independently of the others;
+applying or clearing the filter closes it and every open entry and moves the
+screen reader's focus back to Filter. On Market, each of Your orders keeps its
+rows and opens the rest of its details, from Total quantity to Order ID, under
+them with Details, while changing or cancelling an order, signing and settling
+stay dialogs. An order's Details, Modify and Cancel order name it as its row
+shows it, by side, class, status, shares remaining (the order's own once none
+remain) and price, never by its id. Both keep their open rows with the same
+`useOpenRows` as the web's lists.
 
 A setting that takes effect as soon as it changes has one control, a
 `SwitchRow`: Transaction alerts on Settings and Show this company to eligible

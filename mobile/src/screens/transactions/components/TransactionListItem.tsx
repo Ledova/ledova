@@ -2,10 +2,10 @@ import { Text, View } from 'react-native';
 import {
   activityAmount,
   activityDirection,
+  activityStatus,
   formatDate,
   getBlockchainDisplayName,
   getChainShortCode,
-  getTransactionStatus,
   type Transaction,
 } from '@ledova/shared';
 import { Disclosure } from '../../../components/Ledger';
@@ -28,25 +28,26 @@ export function TransactionListItem({
     detail: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     amount: { fontFamily: theme.fontFamily.medium, fontSize: 18, color: theme.colors.text.primary },
   }));
+  const asset = transaction.assetName || transaction.assetSymbol || 'Asset unavailable';
+  const heading = `${activityDirection(transaction)} · ${asset}`;
+  const network = getBlockchainDisplayName(getChainShortCode(transaction.chain));
+  const context = `${network} · ${formatDate(transaction.blockTimestamp ?? transaction.createdAt)}`;
+  const status = activityStatus(transaction);
+  const amount = activityAmount(transaction.amount, transaction.assetSymbol);
   return (
     <View style={styles.row}>
       <Disclosure
         open={open}
         onToggle={() => onToggle(transaction)}
+        accessibilityLabel={[heading, context, status.label, amount].join(', ')}
         summary={
           <View style={styles.summary}>
-            <Text style={styles.title}>
-              {activityDirection(transaction)} ·{' '}
-              {transaction.assetName || transaction.assetSymbol || 'Asset unavailable'}
-            </Text>
+            <Text style={styles.title}>{heading}</Text>
             <View>
-              <Text style={styles.detail}>
-                {getBlockchainDisplayName(getChainShortCode(transaction.chain))} ·{' '}
-                {formatDate(transaction.blockTimestamp ?? transaction.createdAt)}
-              </Text>
+              <Text style={styles.detail}>{context}</Text>
             </View>
-            <Text style={styles.detail}>{getTransactionStatus(transaction.status).label}</Text>
-            <Text style={styles.amount}>{activityAmount(transaction.amount, transaction.assetSymbol)}</Text>
+            <Text style={styles.detail}>{status.text}</Text>
+            <Text style={styles.amount}>{amount}</Text>
           </View>
         }
       >

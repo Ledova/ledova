@@ -455,3 +455,35 @@ it('explains a missing wallet and goes back to the asset list', async () => {
   expect(screen.getByText('Select an asset to purchase')).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
 });
+
+it.each([
+  [
+    'a refusal that gives its reason',
+    { status: 400, data: { detail: 'Purchases are paused for this account.' } },
+    'Purchases are paused for this account.',
+  ],
+  [
+    'a refusal of one field',
+    { status: 400, data: { walletUuid: ['This wallet cannot receive purchases.'] } },
+    'This wallet cannot receive purchases.',
+  ],
+  [
+    "a proxy's error page",
+    { status: 502, data: '<html><body><h1>502 Bad Gateway</h1></body></html>' },
+    'The purchase page could not be opened. Try again.',
+  ],
+] as const)(
+  'says why the purchase page could not be opened after %s, and never the raw response',
+  async (_, response, shown) => {
+    answer([wallet('wallet-1', 'First wallet')]);
+    api.post.mockRejectedValue(
+      Object.assign(new Error(`Request failed with status code ${response.status}`), { response }),
+    );
+    show({});
+    fireEvent.click(screen.getByText('Ethereum'));
+
+    expect(await screen.findByText(shown)).toBeTruthy();
+    expect(screen.queryByText(/Request failed with status code/)).toBeNull();
+    expect(screen.queryByText(/Bad Gateway/)).toBeNull();
+  },
+);

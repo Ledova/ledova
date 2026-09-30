@@ -47,7 +47,6 @@ export const useWalletStyles = () =>
   useThemedStyles((theme) => ({
     message: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
-    name: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
     group: { gap: theme.spacing.smd },
     actions: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.smd },
     item: {

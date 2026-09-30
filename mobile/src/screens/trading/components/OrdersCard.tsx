@@ -16,6 +16,19 @@ import {
 import { Action, Disclosure, Row, Rows, Section } from '../../../components/Ledger';
 import { useMarketStyles } from '../styles';
 
+function orderStatus(order: TransferOrder) {
+  return order.statusDisplay ?? order.status.replace(/_/g, ' ');
+}
+
+function orderName(order: TransferOrder) {
+  return [
+    order.orderType === 'buy' ? 'Wanted' : 'For sale',
+    order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable',
+    orderStatus(order),
+    `${marketQuantity(order.remainingQuantity || order.quantity)} at ${marketAmount(order.pricePerShare)} per share`,
+  ].join(', ');
+}
+
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   const styles = useMarketStyles();
   return (
@@ -136,7 +149,7 @@ export function OrdersCard({
                 <Text style={styles.text}>{order.tokenName ?? order.tokenSymbol ?? 'Share class unavailable'}</Text>
                 <Rows>
                   <Row label="Order">{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</Row>
-                  <Row label="Status">{order.statusDisplay ?? order.status.replace(/_/g, ' ')}</Row>
+                  <Row label="Status">{orderStatus(order)}</Row>
                   <Row label="Shares remaining">{marketQuantity(order.remainingQuantity ?? order.quantity)}</Row>
                   <Row label="Price per share">{marketAmount(order.pricePerShare)}</Row>
                   <Row label="Remaining value">
@@ -147,7 +160,7 @@ export function OrdersCard({
                   <Disclosure
                     open={details.isOpen(order.uuid)}
                     onToggle={() => details.toggle(order.uuid)}
-                    accessibilityLabel={`Details for order ${order.uuid}`}
+                    accessibilityLabel={`Details, ${orderName(order)}`}
                     summary={<Text style={styles.label}>Details</Text>}
                   >
                     <Rows>
@@ -183,13 +196,13 @@ export function OrdersCard({
                       <>
                         <Action
                           label="Modify"
-                          accessibilityLabel={`Modify order ${order.uuid}`}
+                          accessibilityLabel={`Modify, ${orderName(order)}`}
                           disabled={ordersBlocked}
                           onPress={() => onEditOrder(order)}
                         />
                         <Action
                           label="Cancel order"
-                          accessibilityLabel={`Cancel order ${order.uuid}`}
+                          accessibilityLabel={`Cancel order, ${orderName(order)}`}
                           disabled={ordersBlocked}
                           onPress={() => setConfirming(order.uuid)}
                         />

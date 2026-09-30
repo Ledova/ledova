@@ -1,11 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { Wallet } from '@ledova/shared';
 import { SendScreen } from '../screens/send';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
 export type SendStackParamList = {
-  SendMain: undefined;
+  SendMain: { wallet?: Wallet } | undefined;
 };
 
 const Stack = createNativeStackNavigator<SendStackParamList>();

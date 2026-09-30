@@ -27,6 +27,7 @@ import { useTransfers } from '../../transfers/useTransfers';
 
 interface SendFormScreenProps {
   onDone: () => void;
+  wallet?: Wallet;
 }
 
 type SendNavigation = CompositeNavigationProp<
@@ -34,7 +35,7 @@ type SendNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<BottomTabParamList>
 >;
 
-export function SendFormScreen({ onDone }: SendFormScreenProps) {
+export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenProps) {
   const theme = useAppTheme();
   const navigation = useNavigation<SendNavigation>();
   const text = useDialogStyles();
@@ -60,6 +61,9 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
     wallet,
     wallets,
     isLoading,
+    walletsFailed,
+    isRetryingWallets,
+    retryWallets,
     selectedAsset,
     transferableAssets,
     toAddress,
@@ -80,7 +84,7 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
     handleSignature,
     backToReview,
     reset,
-  } = useTransfers();
+  } = useTransfers(onlyWallet ?? null);
 
   const isSoftwareWallet = wallet?.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE;
   const chainShortName = wallet ? getChainShortCode(wallet.chain) : 'ETH';
@@ -92,7 +96,7 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
         navigation.navigate('Wallets', {
           screen: 'TransferDetails',
           initial: false,
-          params: { wallet: selected },
+          params: { wallet: selected, chosen: true },
         });
         return;
       }
@@ -181,7 +185,16 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
 
   const renderContent = () => {
     if (step === 'select-wallet') {
-      return <WalletSelectionStep wallets={wallets} isLoading={isLoading} onSelectWallet={handleSelectWallet} />;
+      return (
+        <WalletSelectionStep
+          wallets={wallets}
+          isLoading={isLoading}
+          failed={walletsFailed}
+          retrying={isRetryingWallets}
+          onRetry={retryWallets}
+          onSelectWallet={handleSelectWallet}
+        />
+      );
     }
 
     if (!wallet) {
@@ -274,7 +287,7 @@ export function SendFormScreen({ onDone }: SendFormScreenProps) {
     if (step === 'enter-details') {
       return (
         <>
-          <Action label="Back" onPress={handleBack} />
+          {onlyWallet ? <Action label="Cancel" onPress={onDone} /> : <Action label="Back" onPress={handleBack} />}
           <Action
             label={isPreparing ? 'Loading...' : 'Continue'}
             primary

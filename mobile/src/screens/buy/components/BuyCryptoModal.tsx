@@ -12,33 +12,23 @@ import {
   CurrencyCircleDollarIcon,
   CurrencyEthIcon,
   CurrencyBtcIcon,
-  WalletIcon,
-  HardDrivesIcon,
-  CloudIcon,
-  CheckCircleIcon,
-  ClockIcon,
   WarningCircleIcon,
   ArrowRightIcon,
 } from 'phosphor-react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   BUYABLE_ASSETS,
-  WALLET_SIGNING_PREFERENCE,
-  getWalletSigningPreferenceLabel,
-  WALLET_VERIFICATION_STATUS,
   CACHE_TIMING,
   getWallets,
   getOnRampWidgetUrl,
   getUserProfiles,
-  formatWalletAddressShort,
-  formatCryptoBalance,
-  formatSyncAge,
   getUserVerificationStatus,
+  readApiError,
   readEveryPage,
-  useCurrency,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
-import { Rows } from '../../../components/Ledger';
+import { Action, Rows } from '../../../components/Ledger';
+import { WalletChoice } from '../../../components/wallet-list';
 import { CustomModal, useDialogStyles } from '../../../components/modal';
 import { apiClient } from '../../../services/apiClient';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -102,7 +92,6 @@ export function BuyCryptoModal({
   initialAsset,
 }: BuyCryptoModalProps) {
   const theme = useAppTheme();
-  const { formatDisplayCurrency } = useCurrency();
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     warningLine: {
@@ -140,65 +129,8 @@ export function BuyCryptoModal({
     optionLabelDisabled: {
       color: theme.colors.text.muted,
     },
-    walletRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: theme.spacing.smd,
-      gap: theme.spacing.sm,
-    },
-    walletIconContainer: {
-      position: 'relative',
-    },
-    walletVerificationDot: {
-      position: 'absolute',
-      bottom: -2,
-      right: -2,
-    },
-    walletNameContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-      flexShrink: 1,
-    },
-    walletName: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      flexShrink: 1,
-    },
-    walletBadge: {
-      padding: theme.spacing.xs,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    walletSpacer: {
-      flex: 1,
-    },
-    walletValuesContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      flexShrink: 0,
-    },
-    walletSyncAge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-    },
-    walletSyncAgeText: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-    },
-    walletBalance: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-    },
-    walletMarketValue: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
+    failure: {
+      gap: theme.spacing.smd,
     },
   }));
   const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
@@ -259,8 +191,10 @@ export function BuyCryptoModal({
     enabled: visible && !!selectedAsset,
   });
 
-  const matchingWallets = walletsQuery.data ?? [];
-  const isLoadingWallets = walletsQuery.isLoading;
+  const walletsFailed = walletsQuery.isError;
+  const matchingWallets = walletsFailed ? [] : (walletsQuery.data ?? []);
+  const isLoadingWallets = walletsQuery.isPending;
+  const walletsSettled = walletsQuery.fetchStatus === 'idle';
 
   const widgetMutation = useMutation({
     mutationFn: async (wallet: Wallet) => {
@@ -299,12 +233,12 @@ export function BuyCryptoModal({
   useEffect(() => {
     if (!isRequestActive(requestScope) || !selectedAsset || isLoadingWallets) return;
 
-    if (matchingWallets.length === 1 && widgetMutation.isIdle) {
-      widgetMutation.mutate(matchingWallets[0]);
-    } else if (matchingWallets.length !== 1) {
+    if (matchingWallets.length !== 1) {
       setShowWalletStep(true);
+    } else if (walletsSettled && widgetMutation.isIdle) {
+      widgetMutation.mutate(matchingWallets[0]);
     }
-  }, [requestScope, isRequestActive, selectedAsset, isLoadingWallets, matchingWallets, widgetMutation]);
+  }, [requestScope, isRequestActive, selectedAsset, isLoadingWallets, walletsSettled, matchingWallets, widgetMutation]);
 
   const resetAndClose = () => {
     requestScope.lifetime.retire();
@@ -394,104 +328,45 @@ export function BuyCryptoModal({
         </>
       )}
 
-      {!isOnAssetStep && matchingWallets.length === 0 && (
+      {!isOnAssetStep && walletsFailed && (
+        <View style={styles.failure}>
+          <Text accessibilityRole="alert" style={text.muted}>
+            Your wallets could not be loaded. Try again before continuing.
+          </Text>
+          <Action label="Try again" onPress={() => void walletsQuery.refetch()} disabled={walletsQuery.isFetching} />
+        </View>
+      )}
+
+      {!isOnAssetStep && !walletsFailed && matchingWallets.length === 0 && (
         <Text style={text.muted}>No verified wallets for {selectedAsset!.name}. Create one in Wallets.</Text>
       )}
 
-      {!isOnAssetStep && matchingWallets.length > 1 && (
+      {!isOnAssetStep && matchingWallets.length > 0 && (
         <>
           <Text style={text.muted}>Choose a wallet to receive {selectedAsset!.name}</Text>
 
           <Rows>
-            {matchingWallets.map((wallet: Wallet) => {
-              const walletLabel = wallet.name || formatWalletAddressShort(wallet.address);
-              const isVerified = wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED;
-              const isHardware = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.HARDWARE;
-              const marketValue = parseFloat(wallet.marketValue) || 0;
-              const syncAge = formatSyncAge(wallet.lastSyncedAt);
-              const isSelected = isLoading && widgetMutation.variables?.uuid === wallet.uuid;
-
-              return (
-                <TouchableOpacity
-                  key={wallet.uuid}
-                  style={styles.walletRow}
-                  onPress={() => handleSelectWallet(wallet)}
-                  activeOpacity={0.7}
-                  disabled={isLoading}
-                >
-                  <View style={styles.walletIconContainer}>
-                    <WalletIcon
-                      size={theme.icon.sizes.md}
-                      color={isVerified ? theme.colors.status.success.icon : theme.colors.text.muted}
-                      weight={theme.icon.weights.regular}
-                    />
-                    {isVerified ? (
-                      <CheckCircleIcon
-                        size={theme.icon.sizes.xs}
-                        color={theme.colors.status.success.icon}
-                        weight="fill"
-                        style={styles.walletVerificationDot}
-                      />
-                    ) : (
-                      <ClockIcon
-                        size={theme.icon.sizes.xs}
-                        color={theme.colors.status.warning.icon}
-                        weight="fill"
-                        style={styles.walletVerificationDot}
-                      />
-                    )}
-                  </View>
-
-                  <View style={styles.walletNameContainer}>
-                    <Text style={styles.walletName} numberOfLines={1}>
-                      {walletLabel}
-                    </Text>
-                    {wallet.signingPreference && (
-                      <View
-                        style={styles.walletBadge}
-                        accessibilityLabel={getWalletSigningPreferenceLabel(wallet.signingPreference)}
-                      >
-                        {isHardware ? (
-                          <HardDrivesIcon size={theme.icon.sizes.xs} color={theme.colors.text.muted} weight="bold" />
-                        ) : (
-                          <CloudIcon size={theme.icon.sizes.xs} color={theme.colors.text.muted} weight="bold" />
-                        )}
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.walletSpacer} />
-
-                  {isSelected ? (
-                    <ActivityIndicator size="small" color={theme.colors.interactive.active} />
-                  ) : (
-                    <View style={styles.walletValuesContainer}>
-                      {syncAge && (
-                        <View style={styles.walletSyncAge}>
-                          <ClockIcon size={theme.icon.sizes.xs} color={theme.colors.text.subtle} weight="regular" />
-                          <Text style={styles.walletSyncAgeText}>{syncAge}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.walletBalance} numberOfLines={1}>
-                        {formatCryptoBalance(wallet.nativeBalance, '').trimEnd()}
-                      </Text>
-                      <Text style={styles.walletMarketValue}>{formatDisplayCurrency(marketValue)}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+            {matchingWallets.map((wallet: Wallet) => (
+              <WalletChoice
+                key={wallet.uuid}
+                wallet={wallet}
+                onChoose={() => handleSelectWallet(wallet)}
+                disabled={isLoading || !walletsSettled}
+                busy={isLoading && widgetMutation.variables?.uuid === wallet.uuid}
+              />
+            ))}
           </Rows>
         </>
       )}
 
-      {(widgetMutation.isError || walletsQuery.isError) && (
+      {widgetMutation.isError && (
         <Text style={text.error}>
-          {widgetMutation.error instanceof Error
-            ? widgetMutation.error.message
-            : walletsQuery.error instanceof Error
-              ? walletsQuery.error.message
-              : 'Something went wrong'}
+          {
+            readApiError(widgetMutation.error, {
+              fallback: 'The purchase page could not be opened. Try again.',
+              displayedFields: [],
+            }).generalError
+          }
         </Text>
       )}
     </CustomModal>
