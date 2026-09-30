@@ -147,6 +147,13 @@ it.each([
 it.each([
   ['a token balance below a millionth', 'token', wallet, tokenHolding('0.0000005', 18), '0.0000005'],
   [
+    'an 18-decimal token balance of 0.1 without the float noise of eighteen places',
+    'token',
+    wallet,
+    tokenHolding('0.1', 18),
+    '0.1',
+  ],
+  [
     'an ETH balance a millionth above the fee estimate',
     'native',
     { ...wallet, nativeBalance: '0.0000205' },

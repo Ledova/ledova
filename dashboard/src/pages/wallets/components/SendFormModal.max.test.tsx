@@ -15,23 +15,25 @@ afterEach(() => {
   cleanup();
 });
 
-const ether = {
-  id: 'native-base',
-  type: 'crypto' as const,
-  symbol: 'ETH',
-  name: 'Ether',
-  balance: '0.0000205',
-  displayBalance: '0.0000205',
-  marketValue: '0',
-  decimals: 18,
-};
-
-it('writes a maximum a millionth above the fee estimate as a plain decimal', () => {
+it.each([
+  ['a millionth above the fee estimate', '0.0000205', '0.0000005'],
+  ['3.3 ETH, without the float noise of eighteen places', '3.3', '3.29998'],
+])('writes the maximum of %s as a plain decimal', (_, balance, maximum) => {
+  const ether = {
+    id: 'native-base',
+    type: 'crypto' as const,
+    symbol: 'ETH',
+    name: 'Ether',
+    balance,
+    displayBalance: balance,
+    marketValue: '0',
+    decimals: 18,
+  };
   const wallet = {
     uuid: 'wallet-1',
     address: `0x${'1'.repeat(40)}`,
     chain: 'base',
-    nativeBalance: '0.0000205',
+    nativeBalance: balance,
     nativeMarketValue: '0',
   } as unknown as Wallet;
   render(
@@ -50,5 +52,5 @@ it('writes a maximum a millionth above the fee estimate as a plain decimal', () 
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: 'Use Max' }));
-  expect(screen.getByDisplayValue('0.0000005')).toBeTruthy();
+  expect(screen.getByDisplayValue(maximum)).toBeTruthy();
 });
