@@ -51,6 +51,9 @@ export function TransferFormScreen({ route, navigation }: Props) {
     transactionData,
     txHash,
     isLoadingHoldings,
+    holdingsError,
+    isRetryingHoldings,
+    retryHoldings,
     isPreparing,
     prepareError,
     broadcastError,
@@ -70,7 +73,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
     if (isBitcoin) selectWallet(routeWallet);
   }, [isBitcoin, routeWallet, selectWallet]);
 
-  const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
+  const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing && !holdingsError;
 
   const handleOpenAddressScanner = useCallback(() => {
     setShowAddressScanner(true);
@@ -139,6 +142,9 @@ export function TransferFormScreen({ route, navigation }: Props) {
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
+            holdingsError={holdingsError}
+            isRetryingHoldings={isRetryingHoldings}
+            retryHoldings={retryHoldings}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}

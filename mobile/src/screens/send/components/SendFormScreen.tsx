@@ -73,6 +73,9 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
     preparedAsset,
     txHash,
     isLoadingHoldings,
+    holdingsError,
+    isRetryingHoldings,
+    retryHoldings,
     isPreparing,
     prepareError,
     broadcastError,
@@ -106,7 +109,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
     },
     [navigation, selectWallet],
   );
-  const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
+  const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing && !holdingsError;
 
   const review = useMemo(
     () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
@@ -220,6 +223,9 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
+            holdingsError={holdingsError}
+            isRetryingHoldings={isRetryingHoldings}
+            retryHoldings={retryHoldings}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}

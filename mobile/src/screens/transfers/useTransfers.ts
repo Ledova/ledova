@@ -19,6 +19,7 @@ import {
   WALLET_VERIFICATION_STATUS,
   formatPlainDecimal,
   canonicalDecimal,
+  apiErrorSentence,
   getErrorMessage,
   getHoldingTokenDeployment,
   readEveryPage,
@@ -40,6 +41,8 @@ import type {
 } from '@ledova/shared';
 
 type SendState = TransferState & { prepareRefusal: string | null };
+
+const BALANCES_FAILED = "This wallet's balances could not be loaded. Try again before continuing.";
 
 const INITIAL_STATE: SendState = {
   step: 'select-wallet',
@@ -134,7 +137,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const holdings = holdingsQuery.data?.data;
   const transferableAssets = useMemo(() => {
     if (!state.wallet) return [];
-    return holdings ? buildTransferableAssets(state.wallet, holdings) : [nativeTransferableAsset(state.wallet)];
+    return holdings ? buildTransferableAssets(state.wallet, holdings) : [];
   }, [state.wallet, holdings]);
 
   useEffect(() => {
@@ -333,7 +336,10 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     walletsFailed: walletsQuery.isError || preferencesFailed,
     isRetryingWallets: walletsQuery.isFetching || account.isFetching,
     retryWallets: () => void (preferencesFailed ? account.refetch() : walletsQuery.refetch()),
-    isLoadingHoldings: holdingsQuery.isLoading,
+    isLoadingHoldings: holdingsQuery.isPending,
+    holdingsError: holdingsQuery.isError ? apiErrorSentence(holdingsQuery.error, BALANCES_FAILED) : null,
+    isRetryingHoldings: holdingsQuery.isFetching,
+    retryHoldings: () => void holdingsQuery.refetch(),
     isPreparing: prepareTransferMutation.isPending,
     isBroadcasting: broadcastTransferMutation.isPending,
     prepareError: state.prepareRefusal,

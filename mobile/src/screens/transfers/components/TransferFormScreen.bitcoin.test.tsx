@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { getAddressPlaceholder, type Wallet } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
 import { TransferFormScreen } from './TransferFormScreen';
@@ -20,6 +20,7 @@ type Props = ComponentProps<typeof TransferFormScreen>;
 
 const RECIPIENT = `tb1q${'4'.repeat(38)}`;
 const NOTHING = 'This wallet has nothing to send.';
+const BALANCES_FAILED = "This wallet's balances could not be loaded. Try again before continuing.";
 const wallet = {
   uuid: 'cold-storage',
   chain: 'bitcoin',
@@ -55,6 +56,16 @@ function holdingsAnswer(deferred: boolean) {
   });
 }
 
+function holdingsFail() {
+  jest
+    .mocked(apiClient.get)
+    .mockImplementation((url: string) =>
+      url.includes('/holdings/')
+        ? Promise.reject(new Error('Network Error'))
+        : Promise.resolve({ data: { results: [], count: 0, next: null, previous: null } }),
+    );
+}
+
 const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
 
 function screen(routeWallet: Wallet = wallet, chosen = false) {
@@ -76,6 +87,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  onlineManager.setOnline(true);
 });
 
 async function typeTransfer(view: Awaited<ReturnType<typeof render>>) {
@@ -141,17 +153,60 @@ it.each([
   },
 );
 
-it('offers the fields of a funded wallet whose holdings cannot be read', async () => {
-  jest
-    .mocked(apiClient.get)
-    .mockImplementation((url: string) =>
-      url.includes('/holdings/')
-        ? Promise.reject(new Error('Network Error'))
-        : Promise.resolve({ data: { results: [], count: 0, next: null, previous: null } }),
-    );
+describe('balances it cannot read', () => {
+  it('says so instead of offering the fields, and offers them once Try again reads them', async () => {
+    holdingsFail();
+    const view = await render(screen());
+    expect(await view.findByRole('alert')).toHaveTextContent(BALANCES_FAILED);
+    expect(view.queryByText('Destination Address')).toBeNull();
+    expect(view.queryByText(NOTHING)).toBeNull();
+    expect(view.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+    holdingsAnswer(true);
+    await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
+    expect(await view.findByText('Loading assets...')).toBeTruthy();
+    await act(async () => settleHoldings!());
+
+    expect(await view.findByText('Destination Address')).toBeTruthy();
+    expect(view.queryByRole('alert')).toBeNull();
+  });
+
+  it('keeps Continue unavailable after a failed refresh, holds Try again while it reads them again, and keeps what was typed', async () => {
+    const view = await render(screen());
+    await view.findByText('Destination Address');
+    await typeTransfer(view);
+    expect(view.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+    holdingsFail();
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['wallet-holdings'] });
+    });
+    expect(await view.findByRole('alert')).toHaveTextContent(BALANCES_FAILED);
+    expect(view.queryByText('Destination Address')).toBeNull();
+    expect(view.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+    holdingsAnswer(true);
+    await fireEvent.press(view.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(view.getByRole('button', { name: 'Try again' })).toBeDisabled());
+    expect(view.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await act(async () => settleHoldings!());
+    expect(await view.findByText('Destination Address')).toBeTruthy();
+    expect(view.getByPlaceholderText(getAddressPlaceholder('BTC')).props.value).toBe(RECIPIENT);
+    expect(view.getByPlaceholderText('0.0').props.value).toBe('0.01');
+    expect(view.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+});
+
+it('waits for the balances while offline, rather than saying the wallet has nothing to send', async () => {
+  onlineManager.setOnline(false);
   const view = await render(screen());
-  expect(await view.findByText('Destination Address')).toBeTruthy();
+  await act(async () => {});
+  expect(view.getByText('Loading assets...')).toBeTruthy();
   expect(view.queryByText(NOTHING)).toBeNull();
+  expect(view.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+  await act(async () => onlineManager.setOnline(true));
+  expect(await view.findByText('Destination Address')).toBeTruthy();
 });
 
 describe('a wallet with nothing to send', () => {
