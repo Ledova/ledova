@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getAddressPlaceholder, type Wallet } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
@@ -169,4 +169,39 @@ describe('a wallet with nothing to send', () => {
     expect(await view.findByText('Destination Address')).toBeTruthy();
     expect(view.queryByText(NOTHING)).toBeNull();
   });
+});
+
+it('prepares the address the field shows, typed quickly while the screen settles and re-renders', async () => {
+  holdingsAnswer(true);
+  const view = await render(screen());
+  await act(async () => settleHoldings!());
+  await view.findByText('Destination Address');
+  holdingsAnswer(false);
+  const typeUpTo = async (from: number, to: number) => {
+    await act(async () => {
+      for (let length = from; length <= to; length += 1) {
+        view.getByPlaceholderText(getAddressPlaceholder('BTC')).props.onChangeText(RECIPIENT.slice(0, length));
+      }
+    });
+  };
+  await typeUpTo(1, 2);
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['wallet-holdings'] });
+  });
+  await typeUpTo(3, 20);
+  await view.rerender(screen({ ...wallet }));
+  await view.findByText('Destination Address');
+  await typeUpTo(21, RECIPIENT.length);
+  await view.rerender(screen({ ...wallet }));
+  await view.findByText('Destination Address');
+  await fireEvent.changeText(view.getByPlaceholderText('0.0'), '0.01');
+  expect(view.getByPlaceholderText(getAddressPlaceholder('BTC')).props.value).toBe(RECIPIENT);
+  jest.mocked(apiClient.post).mockResolvedValueOnce({ data: prepared });
+  await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
+  await waitFor(() =>
+    expect(apiClient.post).toHaveBeenLastCalledWith(`/api/wallets/${wallet.uuid}/prepare-transfer/`, {
+      toAddress: RECIPIENT,
+      amountBtc: '0.01',
+    }),
+  );
 });
