@@ -82,6 +82,25 @@ it.each([
 });
 
 it.each([
+  [`1${'0'.repeat(100)}e-100`, 18, 10n ** 18n],
+  [`0.${'0'.repeat(99)}1e+100`, 0, 1n],
+  [`1${'0'.repeat(101)}e-101`, 18, null],
+  [`0.${'0'.repeat(100)}1e+101`, 0, null],
+])('reads an exponent up to 100, which covers every asset, and refuses one beyond it', (amount, decimals, units) => {
+  expect(tokenBaseUnits(amount, decimals)).toBe(units);
+});
+
+it.each([
+  ['100000 spaces inside it', `1${' '.repeat(100000)}2`, null],
+  ['100000 spaces around it', `${' '.repeat(100000)}1.5${' '.repeat(100000)}`, 150n],
+  ['a fraction of 100000 digits', `0.${'0'.repeat(99999)}1`, null],
+])('reads an amount with %s at once', (_, amount, units) => {
+  const started = performance.now();
+  expect(tokenBaseUnits(amount, 2)).toBe(units);
+  expect(performance.now() - started).toBeLessThan(50);
+});
+
+it.each([
   [
     'another recipient',
     { toAddress: `0x${'5'.repeat(40)}`, amountEth: '0.1' },
@@ -155,4 +174,32 @@ it.each([
 
 it.each(['', '.', '1.2.3', 'e5', 'ten'])('leaves %p, which is no amount, as it is', (amount) => {
   expect(canonicalDecimal(amount)).toBe(amount);
+});
+
+it.each([
+  ['1E-100', `0.${'0'.repeat(99)}1`],
+  ['1E+100', `1${'0'.repeat(100)}`],
+])('writes %p, at the largest exponent any asset can use, in canonical form', (amount, canonical) => {
+  expect(canonicalDecimal(amount)).toBe(canonical);
+});
+
+it.each(['1E-101', '1E+101', '1E-100000', '1E+100000', '1E-10000000'])(
+  'leaves %p, whose exponent no asset can use, as it is, at once',
+  (amount) => {
+    const started = performance.now();
+    expect(canonicalDecimal(amount)).toBe(amount);
+    expect(performance.now() - started).toBeLessThan(50);
+  },
+);
+
+it.each([
+  ['a fraction of 100000 digits', `0.${'0'.repeat(99999)}1`, `0.${'0'.repeat(99999)}1`],
+  ['100000 zeros after its digits', `1.5${'0'.repeat(100000)}`, '1.5'],
+  ['100000 zeros before its digits', `${'0'.repeat(100000)}1.5`, '1.5'],
+  ['100000 spaces inside it', `1${' '.repeat(100000)}2`, `1${' '.repeat(100000)}2`],
+  ['100000 spaces around it', `${' '.repeat(100000)}1.50${' '.repeat(100000)}`, '1.5'],
+])('writes an amount with %s at once', (_, amount, canonical) => {
+  const started = performance.now();
+  expect(canonicalDecimal(amount)).toBe(canonical);
+  expect(performance.now() - started).toBeLessThan(50);
 });
