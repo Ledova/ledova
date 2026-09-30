@@ -69,8 +69,11 @@ application routes remain available; uploads return 503 until scanning succeeds.
 The health probe uses `clamdscan --ping=1 --config-file=/etc/clamav/clamd.conf`.
 Freshclam updates the dedicated `clamav_data` volume. The checked-in clamd config
 rejects over-budget/encrypted content, caps scan time at 5 seconds and refuses
-startup with databases older than seven days. Monitor health and Freshclam update
-failures; startup freshness is not a continuous freshness guarantee.
+startup with databases older than seven days. A new volume is filled from the
+image's own signatures, which can already be older than that, so local Compose
+runs one Freshclam update before starting the daemon; offline, it starts without
+one. Monitor health and Freshclam update failures; startup freshness is not a
+continuous freshness guarantee.
 
 ClamAV's [INSTREAM protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html)
 has no authentication or transport encryption. Keep it on a trusted private

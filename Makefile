@@ -219,8 +219,8 @@ dev-clean:
 
 # docker-prune is the one target that reaches past this project. Each step removes only what nothing
 # uses or names: dangling images, unnamed volumes no container mounts (named volumes have been spared
-# by default since Docker 23) and build cache. No step passes -f, so Docker says what it is about to
-# remove and asks first; declining one step still runs the next.
+# by default since Docker 23) and build cache. No step passes -f, so Docker describes each step
+# and asks first; declining one step still runs the next.
 docker-prune:
 	docker image prune
 	docker volume prune
