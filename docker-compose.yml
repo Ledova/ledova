@@ -15,7 +15,7 @@ services:
     # /init starts clamd and the Freshclam daemon together, and clamd refuses signatures older than the
     # seven days FailIfCvdOlderThan allows. A new volume is filled from the image's own signatures, so
     # update once first; offline, this falls through to the image's normal start.
-    entrypoint: ["/bin/sh", "-c", "freshclam --foreground --stdout --user=clamav || true; exec /init"]
+    entrypoint: ["/bin/sh", "-c", "freshclam --foreground --stdout --user=clamav || true; exec /init \"$$@\"", "sh"]
     mem_limit: 4g
     cpus: 2
     pids_limit: 128

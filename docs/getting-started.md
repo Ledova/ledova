@@ -63,7 +63,7 @@ addresses/payment rail, and exercise the [issuance flow](architecture/contracts-
 | Command | Effect |
 | --- | --- |
 | `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, Redis data, uploads and virus signatures stay in their volumes for the next start. |
-| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The next start migrates a new database and refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
+| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The next start migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
 | `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it. |
 
 ## Run individual components
