@@ -262,6 +262,18 @@ it.each([
   expect(view.queryByText(REFUSAL)).toBeNull();
 });
 
+it('chooses an asset again when a reviewed transfer goes back to the form of the same wallet', async () => {
+  const { view, transfer } = await prepare('native', '0.1', fixture.native);
+  await waitFor(() => expect(transfer().step).toBe('review'));
+  await act(async () => {
+    transfer().reset();
+    transfer().selectWallet(wallet);
+  });
+  await waitFor(() => expect(transfer().selectedAsset?.isNative).toBe(true));
+  expect(transfer().step).toBe('enter-details');
+  expect(view.getByText('Destination Address')).toBeTruthy();
+});
+
 it.each([
   ['reset', (transfer: Transfer) => transfer.reset()],
   ['cancelled', (transfer: Transfer) => transfer.cancel()],

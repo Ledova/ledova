@@ -188,6 +188,8 @@ export function SendForm({
         <Text style={styles.walletName}>{walletName || formatWalletAddressMedium(walletAddress)}</Text>
       </View>
 
+      {transferableAssets.length === 0 ? <Text style={text.muted}>This wallet has nothing to send.</Text> : null}
+
       {transferableAssets.length > 1 ? (
         <Rows>
           {transferableAssets.map((asset: TransferableAsset) => {
