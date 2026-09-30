@@ -7,7 +7,7 @@ import { WalletsScreen } from '../screens/wallets';
 import { WalletActionScreen } from '../screens/wallets/components/WalletActionScreen';
 import { WalletVerificationScreen } from '../screens/wallets/components/WalletVerificationScreen';
 import { SeedPhraseBackupScreen } from '../screens/wallets/components/SeedPhraseBackupScreen';
-import { TransferFormScreen } from '../screens/transfers/components/TransferFormScreen';
+import { BitcoinSendScreen } from '../screens/transfers/components/BitcoinSendScreen';
 import { OnRampWebViewScreen } from '../screens/wallets/components/OnRampWebViewScreen';
 import type { OnRampWebViewParams } from '../screens/wallets/components/OnRampWebViewScreen';
 import { useAppTheme } from '../contexts';
@@ -22,7 +22,7 @@ export type WalletsStackParamList = {
   WalletAction: {
     wallet: Wallet;
   };
-  TransferDetails: {
+  BitcoinSend: {
     wallet: Wallet;
     chosen?: boolean;
   };
@@ -80,8 +80,8 @@ export function WalletsStackNavigator({
         })}
       />
       <Stack.Screen
-        name="TransferDetails"
-        component={TransferFormScreen}
+        name="BitcoinSend"
+        component={BitcoinSendScreen}
         options={() => ({
           title: '',
           headerLeft: undefined,

@@ -20,7 +20,7 @@ jest.mock('../screens/wallets', () => ({ WalletsScreen: () => null }));
 jest.mock('../screens/wallets/components/WalletActionScreen', () => ({ WalletActionScreen: () => null }));
 jest.mock('../screens/wallets/components/WalletVerificationScreen', () => ({ WalletVerificationScreen: () => null }));
 jest.mock('../screens/wallets/components/SeedPhraseBackupScreen', () => ({ SeedPhraseBackupScreen: () => null }));
-jest.mock('../screens/transfers/components/TransferFormScreen', () => ({ TransferFormScreen: () => null }));
+jest.mock('../screens/transfers/components/BitcoinSendScreen', () => ({ BitcoinSendScreen: () => null }));
 jest.mock('../screens/wallets/components/OnRampWebViewScreen', () => ({ OnRampWebViewScreen: () => null }));
 jest.mock('../screens/send', () => ({ SendScreen: () => null }));
 
@@ -37,7 +37,7 @@ afterEach(async () => {
 
 it('leaves the stack header untitled above the flow screens whose card carries the title', async () => {
   await render(<WalletsStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
-  expect(titleOf('TransferDetails')).toBe('');
+  expect(titleOf('BitcoinSend')).toBe('');
   expect(titleOf('WalletVerification')).toBe('');
   expect(titleOf('SeedPhraseBackup')).toBe('');
   await render(<SendStackNavigator onNotifications={jest.fn()} unreadCount={0} />);

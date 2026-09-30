@@ -288,6 +288,6 @@ it('opens a Bitcoin wallet chosen from the choice in its own send form, marked a
   await fireEvent.press(await view.findByRole('button', { name: /Cold storage/ }));
 
   expect(mockNavigate.mock.calls).toEqual([
-    ['Wallets', { screen: 'TransferDetails', initial: false, params: { wallet: cold, chosen: true } }],
+    ['Wallets', { screen: 'BitcoinSend', initial: false, params: { wallet: cold, chosen: true } }],
   ]);
 });

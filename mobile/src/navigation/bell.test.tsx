@@ -34,7 +34,7 @@ jest.mock('../screens/wallets', () => ({ WalletsScreen: () => null }));
 jest.mock('../screens/wallets/components/WalletActionScreen', () => ({ WalletActionScreen: () => null }));
 jest.mock('../screens/wallets/components/WalletVerificationScreen', () => ({ WalletVerificationScreen: () => null }));
 jest.mock('../screens/wallets/components/SeedPhraseBackupScreen', () => ({ SeedPhraseBackupScreen: () => null }));
-jest.mock('../screens/transfers/components/TransferFormScreen', () => ({ TransferFormScreen: () => null }));
+jest.mock('../screens/transfers/components/BitcoinSendScreen', () => ({ BitcoinSendScreen: () => null }));
 jest.mock('../screens/wallets/components/OnRampWebViewScreen', () => ({ OnRampWebViewScreen: () => null }));
 jest.mock('../screens/buy', () => ({ BuyScreen: () => null }));
 jest.mock('../screens/send', () => ({ SendScreen: () => null }));

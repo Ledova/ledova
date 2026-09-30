@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { getAddressPlaceholder, type Wallet } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
-import { TransferFormScreen } from './TransferFormScreen';
+import { BitcoinSendScreen } from './BitcoinSendScreen';
 
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('@ledova/shared', () => ({
@@ -16,7 +16,7 @@ jest.mock('../../../components/GradientBackground', () => ({
 }));
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
 
-type Props = ComponentProps<typeof TransferFormScreen>;
+type Props = ComponentProps<typeof BitcoinSendScreen>;
 
 const RECIPIENT = `tb1q${'4'.repeat(38)}`;
 const NOTHING = 'This wallet has nothing to send.';
@@ -69,10 +69,10 @@ function holdingsFail() {
 const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
 
 function screen(routeWallet: Wallet = wallet, chosen = false) {
-  const route = { key: 'transfer', name: 'TransferDetails', params: { wallet: routeWallet, chosen } } as Props['route'];
+  const route = { key: 'transfer', name: 'BitcoinSend', params: { wallet: routeWallet, chosen } } as Props['route'];
   return (
     <QueryClientProvider client={client}>
-      <TransferFormScreen route={route} navigation={navigation} />
+      <BitcoinSendScreen route={route} navigation={navigation} />
     </QueryClientProvider>
   );
 }

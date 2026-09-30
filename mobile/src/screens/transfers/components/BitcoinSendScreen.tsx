@@ -16,9 +16,9 @@ import { SuccessModal } from './SuccessModal';
 import { RefusalNotice } from './RefusalNotice';
 import { useTransfers } from '../useTransfers';
 
-type Props = NativeStackScreenProps<WalletsStackParamList, 'TransferDetails'>;
+type Props = NativeStackScreenProps<WalletsStackParamList, 'BitcoinSend'>;
 
-export function TransferFormScreen({ route, navigation }: Props) {
+export function BitcoinSendScreen({ route, navigation }: Props) {
   const theme = useAppTheme();
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({

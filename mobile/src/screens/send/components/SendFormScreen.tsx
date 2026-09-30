@@ -99,7 +99,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
     (selected: Wallet) => {
       if (isBitcoinChain(getChainShortCode(selected.chain))) {
         navigation.navigate('Wallets', {
-          screen: 'TransferDetails',
+          screen: 'BitcoinSend',
           initial: false,
           params: { wallet: selected, chosen: true },
         });
