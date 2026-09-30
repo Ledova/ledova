@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-schema-responses check-test-shadowing check-docs check-ordinary-shards check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-ordinary-shards check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -65,8 +65,8 @@ help:
 	@echo "  make dev-down                 Stop the local Docker Compose stack"
 	@echo "  make dev-logs                 Follow local stack logs"
 	@echo "  make dev-seed                 Create or refresh the synthetic demo data in the running stack"
-	@echo "  make dev-clean                Stop the local stack and delete its volumes and built images"
-	@echo "  make docker-prune             Remove dangling images, unused unnamed volumes and build cache machine-wide"
+	@echo "  make dev-clean                Stop the local stack and delete its volumes and built images (asks first)"
+	@echo "  make docker-prune             Remove dangling images, unused unnamed volumes and build cache machine-wide (asks first)"
 	@echo "  make contracts-deploy-local   Deploy example contracts to a local Hardhat node"
 	@echo "  make contracts-deploy-testnet Deploy contracts to configured testnet only"
 	@echo "  make chain-test               Start a Hardhat node, deploy the core contracts, run the real-chain backend test"
@@ -214,7 +214,8 @@ dev-seed:
 	docker compose exec backend python manage.py seed_demo
 
 dev-clean:
-	docker compose down --volumes --rmi local --remove-orphans
+	@printf "Delete the local stack's containers, volumes and built images? [y/N] "; read answer; \
+	case "$$answer" in [yY]*) docker compose down --volumes --rmi local --remove-orphans ;; *) echo "Nothing deleted." ;; esac
 
 # docker-prune is the one target that reaches past this project. Each step removes only what nothing
 # uses or names: dangling images, unnamed volumes no container mounts (named volumes have been spared
