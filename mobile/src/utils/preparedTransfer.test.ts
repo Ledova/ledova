@@ -16,6 +16,7 @@ const erc20 = new Interface([
   'function approve(address spender, uint256 amount)',
 ]);
 const stranger = `0x${'5'.repeat(40)}`;
+const tokenAsset = { symbol: fixture.token.tokenSymbol, decimals: 2, contractAddress: fixture.token.tokenContract };
 
 function differing(prepared: TransactionData, change: Record<string, unknown>) {
   return { ...prepared, transaction: { ...prepared.transaction, ...change } } as TransactionData;
@@ -138,8 +139,10 @@ it('passes a native send below a millionth of an ETH, which the backend writes o
   expect(reviewedTransferTransaction(prepared).value).toBe(100000000000n);
 });
 
-it('passes the token send, which matches its review in the decimals the screen holds', () => {
-  expect(reviewedTransferTransaction(fixture.token, 2)).toEqual(preparedTransferTransaction(fixture.token.transaction));
+it('passes the token send, which matches its review in the decimals of the asset it was prepared for', () => {
+  expect(reviewedTransferTransaction(fixture.token, tokenAsset)).toEqual(
+    preparedTransferTransaction(fixture.token.transaction),
+  );
 });
 
 it.each([
@@ -177,18 +180,34 @@ it.each([
   ],
   ['a byte after the call', { data: `${fixture.token.transaction.data}00` }, 'it is not a token transfer'],
 ])('refuses a token send that differs from its review: %s', (_, change, reason) => {
-  expect(() => reviewedTransferTransaction(differing(fixture.token, change), 2)).toThrow(
+  expect(() => reviewedTransferTransaction(differing(fixture.token, change), tokenAsset)).toThrow(
     `This transaction does not match your review: ${reason}.`,
   );
 });
 
 it("refuses a token send whose amount, in the token's own decimals, is not the one reviewed", () => {
-  expect(() => reviewedTransferTransaction(fixture.token, 6)).toThrow(
+  expect(() => reviewedTransferTransaction(fixture.token, { ...tokenAsset, decimals: 6 })).toThrow(
     'This transaction does not match your review: the amount is different.',
   );
 });
 
-it('refuses a token send when the screen does not hold the token decimals', () => {
+it.each([
+  ['another asset', { ...tokenAsset, contractAddress: stranger }],
+  ['an asset without a contract', { ...tokenAsset, contractAddress: undefined }],
+])('refuses a token send prepared for %s than the one reviewed', (_, asset) => {
+  expect(() => reviewedTransferTransaction(fixture.token, asset)).toThrow(
+    'This transaction does not match your review: it calls a different token contract.',
+  );
+});
+
+it("passes a token send whose contract is written in another case than the asset's", () => {
+  const asset = { ...tokenAsset, contractAddress: fixture.token.tokenContract.toLowerCase() };
+  expect(reviewedTransferTransaction(fixture.token, asset)).toEqual(
+    preparedTransferTransaction(fixture.token.transaction),
+  );
+});
+
+it('refuses a token send when the asset it was prepared for is unknown', () => {
   expect(() => reviewedTransferTransaction(fixture.token)).toThrow(
     "The token's decimals are unknown, so this transfer cannot be checked against your review.",
   );

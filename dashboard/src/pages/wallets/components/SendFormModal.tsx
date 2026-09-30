@@ -15,6 +15,7 @@ import {
   getAddressPlaceholder,
   getBlockchainDisplayName,
   getEstimatedFee,
+  formatPlainDecimal,
   formatWalletAddressShort,
   validateWalletAddress,
   parseFiatValue,
@@ -140,7 +141,7 @@ export function SendFormModal({
       const balance = parseFloat(wallet.nativeBalance);
       const estimatedFee = getEstimatedFee(chainShortCode);
       const maxAmount = Math.max(0, balance - estimatedFee);
-      setAmount(maxAmount.toString());
+      setAmount(formatPlainDecimal(maxAmount, 8));
     } else {
       setAmount(selectedAsset.displayBalance.replace(/,/g, ''));
     }

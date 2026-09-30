@@ -23,6 +23,11 @@ export function formatCurrency(value?: number, options: FormatCurrencyOptions = 
   }).format(value);
 }
 
+export function formatPlainDecimal(value: number, maxDecimals: number): string {
+  const fixed = value.toFixed(maxDecimals);
+  return fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
+}
+
 const DECIMAL = /^(-?)(\d+)(?:\.(\d+))?$/;
 
 export function formatCryptoBalance(balance: string | number, symbol: string, decimals: number = 8): string {

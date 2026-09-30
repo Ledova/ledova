@@ -60,6 +60,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
     toAddress,
     amount,
     transactionData,
+    preparedAsset,
     txHash,
     isLoadingHoldings,
     isPreparing,
@@ -89,8 +90,8 @@ export function TransferFormScreen({ route, navigation }: Props) {
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
   const review = useMemo(
-    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
-    [transactionData, isEvm, selectedAsset],
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
+    [transactionData, isEvm, preparedAsset],
   );
   const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
 
@@ -202,7 +203,6 @@ export function TransferFormScreen({ route, navigation }: Props) {
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
-            prepareError={prepareError}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}
@@ -213,7 +213,13 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
       case 'review':
         if (!transactionData) return null;
-        return <ReviewTransaction transactionData={transactionData} chainShortName={chainShortName} />;
+        return (
+          <ReviewTransaction
+            transactionData={transactionData}
+            chainShortName={chainShortName}
+            tokenSymbol={preparedAsset?.symbol}
+          />
+        );
 
       case 'sign':
         if (isBitcoin) {
@@ -233,7 +239,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
-              tokenDecimals={selectedAsset?.decimals}
+              asset={preparedAsset ?? undefined}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />
@@ -328,7 +334,17 @@ export function TransferFormScreen({ route, navigation }: Props) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <Panel title="Send" actions={renderActions()}>
+        <Panel
+          title="Send"
+          notice={
+            prepareError ? (
+              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
+                {prepareError}
+              </Text>
+            ) : null
+          }
+          actions={renderActions()}
+        >
           {renderContent()}
         </Panel>
       </View>

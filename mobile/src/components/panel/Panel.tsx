@@ -7,10 +7,11 @@ import { ModalActions } from '../modal';
 interface PanelProps {
   title: string;
   actions?: ReactNode;
+  notice?: ReactNode;
   children: ReactNode;
 }
 
-export function Panel({ title, actions, children }: PanelProps) {
+export function Panel({ title, actions, notice, children }: PanelProps) {
   const card = useCardStyles();
   const styles = useThemedStyles((theme) => ({
     panel: {
@@ -27,6 +28,7 @@ export function Panel({ title, actions, children }: PanelProps) {
         {title}
       </Text>
       <View style={styles.body}>{children}</View>
+      {notice}
       {actions ? <ModalActions>{actions}</ModalActions> : null}
     </View>
   );

@@ -47,3 +47,15 @@ it('ends on its content when a step has no actions', async () => {
   expect(card.children).toHaveLength(2);
   expect(view.queryByRole('button')).toBeNull();
 });
+
+it('shows a notice between its content and its actions, where scrolling the content cannot hide it', async () => {
+  const view = await render(
+    <Panel title="Send" notice={<Text>Refused</Text>} actions={<Action label="Continue" primary onPress={jest.fn()} />}>
+      <Text>Destination Address</Text>
+    </Panel>,
+  );
+  const title = view.getByRole('header', { name: 'Send' });
+  const body = view.getByText('Destination Address').parent!;
+  const row = view.getByRole('button', { name: 'Continue' }).parent!;
+  expect(title.parent!.children).toEqual([title, body, view.getByText('Refused'), row]);
+});

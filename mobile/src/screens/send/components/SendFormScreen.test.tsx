@@ -24,9 +24,9 @@ jest.mock('../../../components/qr', () => ({
   QRDisplay: () => null,
 }));
 jest.mock('../../transfers/components/SendForm', () => ({ SendForm: () => null }));
-const mockSoftware: { tokenDecimals?: number }[] = [];
+const mockSoftware: { asset?: object }[] = [];
 jest.mock('../../transfers/components/SoftwareSignTransaction', () => ({
-  SoftwareSignTransaction: (props: { tokenDecimals?: number }) => {
+  SoftwareSignTransaction: (props: { asset?: object }) => {
     mockSoftware.push(props);
     return null;
   },
@@ -69,22 +69,36 @@ it.each([
   expect(view.getByRole('header', { name: title })).toBeTruthy();
 });
 
+const TOKEN = { isNative: false, decimals: 2, symbol: 'AUDY', contractAddress: fixture.token.tokenContract };
+const NATIVE = { isNative: true, decimals: 18, symbol: 'ETH' };
+
 function signing(transactionData: TransactionData, signingPreference = 'hardware') {
+  showing('sign', transactionData, signingPreference, TOKEN);
+}
+
+function showing(
+  step: string,
+  transactionData: TransactionData,
+  signingPreference: string,
+  preparedAsset: object,
+  selectedAsset: object = preparedAsset,
+) {
   jest.mocked(useTransfers).mockReturnValue({
-    step: 'sign',
+    step,
     wallet: { ...wallet, signingPreference, derivationPath: "m/44'/60'/0'/0/0", masterFingerprint: '12345678' },
     wallets: [],
     isLoading: false,
     transferableAssets: [],
     isPreparing: false,
     transactionData,
-    selectedAsset: { isNative: false, decimals: 2, contractAddress: fixture.token.tokenContract },
+    preparedAsset,
+    selectedAsset,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
 }
 
-it("hands the hardware encoder the token transfer checked in the selected asset's decimals", async () => {
+it('hands the hardware encoder the token transfer checked in the decimals of the asset it was prepared for', async () => {
   signing({ ...fixture.token, tokenDecimals: 6 });
   await render(<SendFormScreen onDone={jest.fn()} />);
   expect(encodeEthereumTransaction).toHaveBeenCalledWith(
@@ -124,8 +138,46 @@ it('shows why it refuses a scanned token-transfer signature, checked against the
   );
 });
 
-it("hands the software signer the selected asset's decimals, not the response's", async () => {
+it('hands the software signer the asset the transfer was prepared for, not the response', async () => {
   signing({ ...fixture.token, tokenDecimals: 6 }, 'software');
   await render(<SendFormScreen onDone={jest.fn()} />);
-  expect(mockSoftware.at(-1)?.tokenDecimals).toBe(2);
+  expect(mockSoftware.at(-1)?.asset).toBe(TOKEN);
+});
+
+it.each([
+  ['token', fixture.token, TOKEN, '1.5 AUDY'],
+  ['native', fixture.native, NATIVE, '0.1 ETH'],
+])('reviews a %s amount in the symbol of the asset it was prepared for', async (_, transactionData, asset, shown) => {
+  showing('review', transactionData as TransactionData, 'hardware', asset);
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(view.getByText(shown)).toBeTruthy();
+  expect(view.queryByText(/R779/)).toBeNull();
+});
+
+it('keeps reviewing, encoding and signing the prepared token after the holdings reset the chosen asset to ETH', async () => {
+  showing('review', fixture.token, 'hardware', TOKEN, NATIVE);
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(view.getByText('1.5 AUDY')).toBeTruthy();
+  expect(view.queryByText('1.5 ETH')).toBeNull();
+  jest.mocked(encodeEthereumTransaction).mockClear();
+  showing('sign', fixture.token, 'hardware', TOKEN, NATIVE);
+  await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(encodeEthereumTransaction).toHaveBeenCalledWith(
+    wallet.address,
+    preparedTransferTransaction(fixture.token.transaction),
+    "m/44'/60'/0'/0/0",
+    '12345678',
+  );
+  showing('sign', fixture.token, 'software', TOKEN, NATIVE);
+  await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(mockSoftware.at(-1)?.asset).toBe(TOKEN);
+});
+
+it('shows why it refuses a token transfer prepared for another asset, and never builds its code', async () => {
+  showing('sign', fixture.token, 'hardware', { ...TOKEN, contractAddress: `0x${'5'.repeat(40)}` });
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  expect(
+    view.getByText('This transaction does not match your review: it calls a different token contract.'),
+  ).toBeTruthy();
+  expect(encodeEthereumTransaction).not.toHaveBeenCalled();
 });

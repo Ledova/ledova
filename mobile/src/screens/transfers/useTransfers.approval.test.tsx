@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Text } from 'react-native';
 import { act, cleanup, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Wallet } from '@ledova/shared';
@@ -38,22 +39,24 @@ function Sending({ expose }: { expose: (transfer: Transfer) => void }) {
     expose(transfer);
   });
   return (
-    <SendForm
-      chainShortName="BASE"
-      walletName="Test wallet"
-      walletAddress={wallet.address}
-      selectedAsset={transfer.selectedAsset}
-      transferableAssets={transfer.transferableAssets}
-      toAddress={transfer.toAddress}
-      amount={transfer.amount}
-      isLoadingHoldings={transfer.isLoadingHoldings}
-      prepareError={transfer.prepareError}
-      selectAsset={transfer.selectAsset}
-      setToAddress={transfer.setToAddress}
-      setAmount={transfer.setAmount}
-      useMaxAmount={transfer.useMaxAmount}
-      onOpenAddressScanner={jest.fn()}
-    />
+    <>
+      <SendForm
+        chainShortName="BASE"
+        walletName="Test wallet"
+        walletAddress={wallet.address}
+        selectedAsset={transfer.selectedAsset}
+        transferableAssets={transfer.transferableAssets}
+        toAddress={transfer.toAddress}
+        amount={transfer.amount}
+        isLoadingHoldings={transfer.isLoadingHoldings}
+        selectAsset={transfer.selectAsset}
+        setToAddress={transfer.setToAddress}
+        setAmount={transfer.setAmount}
+        useMaxAmount={transfer.useMaxAmount}
+        onOpenAddressScanner={jest.fn()}
+      />
+      {transfer.prepareError ? <Text>{transfer.prepareError}</Text> : null}
+    </>
   );
 }
 

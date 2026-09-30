@@ -69,6 +69,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
     toAddress,
     amount,
     transactionData,
+    preparedAsset,
     txHash,
     isLoadingHoldings,
     isPreparing,
@@ -107,8 +108,8 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
 
   const review = useMemo(
-    () => (transactionData && isEvm ? reviewTransfer(transactionData, selectedAsset?.decimals) : null),
-    [transactionData, isEvm, selectedAsset],
+    () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
+    [transactionData, isEvm, preparedAsset],
   );
   const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
 
@@ -218,7 +219,6 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
-            prepareError={prepareError}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}
@@ -229,7 +229,13 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
 
       case 'review':
         if (!transactionData) return null;
-        return <ReviewTransaction transactionData={transactionData} chainShortName={chainShortName} />;
+        return (
+          <ReviewTransaction
+            transactionData={transactionData}
+            chainShortName={chainShortName}
+            tokenSymbol={preparedAsset?.symbol}
+          />
+        );
 
       case 'sign':
         if (wallet.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE) {
@@ -238,7 +244,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
             <SoftwareSignTransaction
               wallet={wallet}
               transactionData={transactionData}
-              tokenDecimals={selectedAsset?.decimals}
+              asset={preparedAsset ?? undefined}
               onSignComplete={handleSignature}
               signTrigger={softwareSignTrigger}
             />
@@ -326,7 +332,17 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <Panel title={step === 'select-wallet' ? 'Select your wallet' : 'Send'} actions={renderActions()}>
+        <Panel
+          title={step === 'select-wallet' ? 'Select your wallet' : 'Send'}
+          notice={
+            prepareError ? (
+              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
+                {prepareError}
+              </Text>
+            ) : null
+          }
+          actions={renderActions()}
+        >
           {renderContent()}
         </Panel>
       </View>

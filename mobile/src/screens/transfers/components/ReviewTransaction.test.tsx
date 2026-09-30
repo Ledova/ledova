@@ -20,3 +20,19 @@ it.each(['BASE', 'ETH'])('shows the ETH amount and gas details on %s', async (ch
   expect(view.getByText('21000')).toBeTruthy();
   expect(view.queryByText('1 BASE')).toBeNull();
 });
+
+it("shows a token's amount and total in the selected asset's symbol, not the response's", async () => {
+  const data: TransactionData = {
+    fromAddress: '0x1111',
+    toAddress: '0x2222',
+    amountToken: '1.5',
+    tokenSymbol: 'R779',
+    gasCostEth: '0.01',
+    gasPriceGwei: '2',
+    gasLimit: 61710,
+  };
+  const view = await render(<ReviewTransaction transactionData={data} chainShortName="BASE" tokenSymbol="AUDY" />);
+  expect(view.getByText('1.5 AUDY')).toBeTruthy();
+  expect(view.getByText(/^1\.5 AUDY\s+\+ 0\.01 ETH \(gas\)$/)).toBeTruthy();
+  expect(view.queryByText(/R779/)).toBeNull();
+});

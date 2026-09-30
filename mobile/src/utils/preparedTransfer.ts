@@ -1,5 +1,5 @@
 import { Interface, isAddress, isHexString, parseUnits } from 'ethers';
-import { readWei, type TransactionData } from '@ledova/shared';
+import { readWei, type TransactionData, type TransferableAsset } from '@ledova/shared';
 
 const erc20 = new Interface(['function transfer(address to, uint256 amount)']);
 
@@ -38,6 +38,8 @@ export function preparedTransferTransaction(transaction: unknown) {
 
 export type TransferTransaction = ReturnType<typeof preparedTransferTransaction>;
 
+export type ReviewedAsset = Pick<TransferableAsset, 'symbol' | 'decimals' | 'contractAddress'>;
+
 function sameAddress(address: string, reviewed: string | undefined) {
   return reviewed !== undefined && address.toLowerCase() === reviewed.toLowerCase();
 }
@@ -60,7 +62,7 @@ function tokenTransfer(data: string) {
   }
 }
 
-export function reviewedTransferTransaction(prepared: TransactionData, tokenDecimals?: number): TransferTransaction {
+export function reviewedTransferTransaction(prepared: TransactionData, asset?: ReviewedAsset): TransferTransaction {
   const transaction = preparedTransferTransaction(prepared.transaction);
   if (!prepared.amountToken) {
     if (!sameAddress(transaction.to, prepared.toAddress)) differs('the recipient is different');
@@ -68,20 +70,21 @@ export function reviewedTransferTransaction(prepared: TransactionData, tokenDeci
     if (transaction.value !== units(prepared.amountEth, 18)) differs('the amount is different');
     return transaction;
   }
-  if (tokenDecimals === undefined)
+  if (asset === undefined)
     throw new Error("The token's decimals are unknown, so this transfer cannot be checked against your review.");
   if (!sameAddress(transaction.to, prepared.tokenContract)) differs('it calls a different token contract');
+  if (!sameAddress(prepared.tokenContract ?? '', asset.contractAddress)) differs('it calls a different token contract');
   if (transaction.value !== 0n) differs('it also sends ETH');
   const call = tokenTransfer(transaction.data);
   if (!call) differs('it is not a token transfer');
   if (!sameAddress(call.recipient, prepared.toAddress)) differs('the recipient is different');
-  if (call.amount !== units(prepared.amountToken, tokenDecimals)) differs('the amount is different');
+  if (call.amount !== units(prepared.amountToken, asset.decimals)) differs('the amount is different');
   return transaction;
 }
 
-export function reviewTransfer(prepared: TransactionData, tokenDecimals?: number) {
+export function reviewTransfer(prepared: TransactionData, asset?: ReviewedAsset) {
   try {
-    return { transaction: reviewedTransferTransaction(prepared, tokenDecimals), error: null };
+    return { transaction: reviewedTransferTransaction(prepared, asset), error: null };
   } catch (error) {
     return { transaction: null, error: error instanceof Error ? error.message : 'This transaction cannot be signed.' };
   }
