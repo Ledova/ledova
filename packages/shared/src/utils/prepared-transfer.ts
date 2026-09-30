@@ -23,6 +23,20 @@ export function tokenBaseUnits(amount: string | undefined, decimals: number): bi
   return units < UINT256_LIMIT ? units : null;
 }
 
+export function canonicalDecimal(amount: string): string {
+  const match = DECIMAL.exec(amount.replace(SURROUNDING_SPACE, '').replace(/_/g, ''));
+  if (!match || !(match[2] || match[3])) return amount;
+  const [, sign, whole = '', fraction = '', exponent = '0'] = match;
+  const point = whole.length + Number(exponent);
+  const leading = '0'.repeat(Math.max(-point, 0));
+  const trailing = '0'.repeat(Math.max(point - whole.length - fraction.length, 0));
+  const digits = `${leading}${whole}${fraction}${trailing}`;
+  const split = Math.max(point, 0);
+  const integer = digits.slice(0, split).replace(/^0+/, '') || '0';
+  const decimals = digits.slice(split).replace(/0+$/, '');
+  return `${sign === '-' ? '-' : ''}${integer}${decimals ? `.${decimals}` : ''}`;
+}
+
 function mismatch(reason: string): never {
   throw new Error(`The prepared transfer does not match what you entered: ${reason}.`);
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { CurrencyBtcIcon, CurrencyEthIcon, CurrencyCircleDollarIcon, QrCodeIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { Rows } from '../../../components/Ledger';
+import { Action, Rows } from '../../../components/Ledger';
 import { useDialogStyles } from '../../../components/modal';
 import {
   formatCryptoBalance,
@@ -23,6 +23,9 @@ interface SendFormProps {
   toAddress: string;
   amount: string;
   isLoadingHoldings: boolean;
+  holdingsError: string | null;
+  isRetryingHoldings: boolean;
+  retryHoldings: () => void;
   selectAsset: (asset: TransferableAsset) => void;
   setToAddress: (address: string) => void;
   setAmount: (amount: string) => void;
@@ -39,6 +42,9 @@ export function SendForm({
   toAddress,
   amount,
   isLoadingHoldings,
+  holdingsError,
+  isRetryingHoldings,
+  retryHoldings,
   selectAsset,
   setToAddress,
   setAmount,
@@ -59,6 +65,9 @@ export function SendForm({
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
+    },
+    failure: {
+      gap: theme.spacing.smd,
     },
     wallet: {
       flexDirection: 'row',
@@ -177,6 +186,17 @@ export function SendForm({
     );
   }
 
+  if (holdingsError) {
+    return (
+      <View style={styles.failure}>
+        <Text accessibilityRole="alert" style={text.muted}>
+          {holdingsError}
+        </Text>
+        <Action label="Try again" onPress={retryHoldings} disabled={isRetryingHoldings} />
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.scrollContent}
@@ -187,6 +207,8 @@ export function SendForm({
         <ChainIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
         <Text style={styles.walletName}>{walletName || formatWalletAddressMedium(walletAddress)}</Text>
       </View>
+
+      {transferableAssets.length === 0 ? <Text style={text.muted}>This wallet has nothing to send.</Text> : null}
 
       {transferableAssets.length > 1 ? (
         <Rows>

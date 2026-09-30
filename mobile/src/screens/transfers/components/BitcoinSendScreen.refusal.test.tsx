@@ -1,7 +1,8 @@
 import type { ComponentProps } from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { cleanup, render } from '@testing-library/react-native';
 import type { TransferableAsset } from '@ledova/shared';
-import { TransferFormScreen } from './TransferFormScreen';
+import { BitcoinSendScreen } from './BitcoinSendScreen';
 import { useTransfers } from '../useTransfers';
 
 jest.mock('../useTransfers', () => ({ useTransfers: jest.fn() }));
@@ -16,7 +17,7 @@ jest.mock('../../../components/GradientBackground', () => ({
 }));
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
 
-type Props = ComponentProps<typeof TransferFormScreen>;
+type Props = ComponentProps<typeof BitcoinSendScreen>;
 
 const REFUSAL = 'Insufficient balance. Available: 0.001 BTC, Required: 0.01005 BTC (including 0.00005 BTC fee)';
 const wallet = {
@@ -52,7 +53,10 @@ afterEach(async () => {
   await cleanup();
 });
 
-it("announces a refused prepare's message on the Bitcoin form (TransferFormScreen), directly above Cancel and Continue, outside the form that scrolls", async () => {
+const route = { key: 'transfer', name: 'BitcoinSend', params: { wallet } } as Props['route'];
+const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
+
+function refusing(prepareError: string | null) {
   jest.mocked(useTransfers).mockReturnValue({
     wallet,
     step: 'enter-details',
@@ -62,13 +66,28 @@ it("announces a refused prepare's message on the Bitcoin form (TransferFormScree
     amount: '0.01',
     isLoadingHoldings: false,
     isPreparing: false,
-    prepareError: REFUSAL,
+    prepareError,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
-  const route = { key: 'transfer', name: 'TransferDetails', params: { wallet } } as Props['route'];
-  const navigation = { goBack: jest.fn() } as unknown as Props['navigation'];
-  const view = await render(<TransferFormScreen route={route} navigation={navigation} />);
+}
+
+it('on iOS announces each new refusal on the Bitcoin form (BitcoinSendScreen) once, not a re-render or a clear', async () => {
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+  refusing(REFUSAL);
+  const view = await render(<BitcoinSendScreen route={route} navigation={navigation} />);
+  await view.rerender(<BitcoinSendScreen route={route} navigation={navigation} />);
+  refusing(null);
+  await view.rerender(<BitcoinSendScreen route={route} navigation={navigation} />);
+  refusing(REFUSAL);
+  await view.rerender(<BitcoinSendScreen route={route} navigation={navigation} />);
+  expect(announce.mock.calls).toEqual([[REFUSAL], [REFUSAL]]);
+});
+
+it("announces a refused prepare's message on the Bitcoin form (BitcoinSendScreen), directly above Cancel and Continue, outside the form that scrolls", async () => {
+  refusing(REFUSAL);
+  const view = await render(<BitcoinSendScreen route={route} navigation={navigation} />);
 
   const message = view.getByRole('alert', { name: REFUSAL });
   expect(message.props.accessibilityLiveRegion).toBe('polite');

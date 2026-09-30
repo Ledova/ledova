@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { cleanup, fireEvent, render } from '@testing-library/react-native';
-import { TransferFormScreen } from './TransferFormScreen';
+import { BitcoinSendScreen } from './BitcoinSendScreen';
 import { useTransfers } from '../useTransfers';
 
 jest.mock('../useTransfers', () => ({ useTransfers: jest.fn() }));
@@ -12,7 +12,7 @@ jest.mock('../../../components/GradientBackground', () => ({
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
 jest.mock('./SendForm', () => ({ SendForm: () => null }));
 
-type Props = ComponentProps<typeof TransferFormScreen>;
+type Props = ComponentProps<typeof BitcoinSendScreen>;
 
 const wallet = {
   uuid: 'cold-storage',
@@ -36,9 +36,9 @@ async function openForm(params: Props['route']['params']) {
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
   const navigation = { goBack: jest.fn() };
-  const route = { key: 'transfer', name: 'TransferDetails', params } as Props['route'];
+  const route = { key: 'transfer', name: 'BitcoinSend', params } as Props['route'];
   const view = await render(
-    <TransferFormScreen route={route} navigation={navigation as unknown as Props['navigation']} />,
+    <BitcoinSendScreen route={route} navigation={navigation as unknown as Props['navigation']} />,
   );
   return { view, navigation };
 }

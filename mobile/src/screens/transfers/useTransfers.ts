@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AxiosResponse } from 'axios';
@@ -18,6 +18,8 @@ import {
   getChainConfig,
   WALLET_VERIFICATION_STATUS,
   formatPlainDecimal,
+  canonicalDecimal,
+  apiErrorSentence,
   getErrorMessage,
   getHoldingTokenDeployment,
   readEveryPage,
@@ -40,6 +42,8 @@ import type {
 
 type SendState = TransferState & { prepareRefusal: string | null };
 
+const BALANCES_FAILED = "This wallet's balances could not be loaded. Try again before continuing.";
+
 const INITIAL_STATE: SendState = {
   step: 'select-wallet',
   wallet: null,
@@ -53,28 +57,35 @@ const INITIAL_STATE: SendState = {
   prepareRefusal: null,
 };
 
+function canonicalAmount(prepared: TransactionData | null) {
+  const amount = prepared?.amountToken ?? prepared?.amountEth ?? prepared?.amountBtc;
+  return amount === undefined ? undefined : canonicalDecimal(amount);
+}
+
 function assetKey(asset: TransferableAsset) {
   return asset.contractAddress?.toLowerCase() ?? '';
 }
 
+function nativeTransferableAsset(wallet: Wallet): TransferableAsset {
+  const chainShortCode = getChainShortCode(wallet.chain);
+  return {
+    uuid: `native-${wallet.uuid}`,
+    symbol: getNativeAssetSymbol(wallet.chain),
+    name: isSupportedEvmChain(chainShortCode) ? 'Ether' : getBlockchainDisplayName(chainShortCode),
+    balance: wallet.nativeBalance,
+    marketValue: wallet.nativeMarketValue,
+    isNative: true,
+    decimals: isBitcoinChain(chainShortCode) ? 8 : 18,
+    chain: wallet.chain,
+  };
+}
+
 function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): TransferableAsset[] {
   const chain = wallet.chain;
-  const chainShortCode = getChainShortCode(chain);
   const assets: TransferableAsset[] = [];
 
   const nativeBalance = parseFloat(wallet.nativeBalance) || 0;
-  if (nativeBalance > 0) {
-    assets.push({
-      uuid: `native-${wallet.uuid}`,
-      symbol: getNativeAssetSymbol(chain),
-      name: isSupportedEvmChain(chainShortCode) ? 'Ether' : getBlockchainDisplayName(chainShortCode),
-      balance: wallet.nativeBalance,
-      marketValue: wallet.nativeMarketValue,
-      isNative: true,
-      decimals: isBitcoinChain(chainShortCode) ? 8 : 18,
-      chain,
-    });
-  }
+  if (nativeBalance > 0) assets.push(nativeTransferableAsset(wallet));
 
   if (isSupportedEvmChain(chain)) {
     for (const holding of holdings) {
@@ -107,7 +118,6 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     initialWallet ? { ...INITIAL_STATE, step: 'enter-details', wallet: initialWallet } : INITIAL_STATE,
   );
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
-  const [transferableAssets, setTransferableAssets] = useState<TransferableAsset[]>([]);
 
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid],
@@ -124,32 +134,22 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
+  const holdings = holdingsQuery.data?.data;
+  const transferableAssets = useMemo(() => {
+    if (!state.wallet) return [];
+    return holdings ? buildTransferableAssets(state.wallet, holdings) : [];
+  }, [state.wallet, holdings]);
+
   useEffect(() => {
-    if (state.wallet && holdingsQuery.data?.data) {
-      const assets = buildTransferableAssets(state.wallet, holdingsQuery.data.data);
-      setTransferableAssets(assets);
-      setState((prev) => {
-        const selected = prev.selectedAsset;
-        const kept = selected ? assets.find((asset) => assetKey(asset) === assetKey(selected)) : undefined;
-        if (kept) return { ...prev, selectedAsset: kept };
-        return { ...prev, selectedAsset: assets[0] ?? null, amount: '', prepareRefusal: null };
-      });
-    } else if (state.wallet) {
-      const chainShortCode = getChainShortCode(state.wallet.chain);
-      const nativeAsset: TransferableAsset = {
-        uuid: `native-${state.wallet.uuid}`,
-        symbol: getNativeAssetSymbol(state.wallet.chain),
-        name: isSupportedEvmChain(chainShortCode) ? 'Ether' : getBlockchainDisplayName(chainShortCode),
-        balance: state.wallet.nativeBalance,
-        marketValue: state.wallet.nativeMarketValue,
-        isNative: true,
-        decimals: isBitcoinChain(chainShortCode) ? 8 : 18,
-        chain: state.wallet.chain,
-      };
-      setTransferableAssets([nativeAsset]);
-      setState((prev) => ({ ...prev, selectedAsset: nativeAsset }));
-    }
-  }, [state.wallet, holdingsQuery.data]);
+    if (!state.wallet) return;
+    setState((prev) => {
+      const selected = prev.selectedAsset;
+      if (selected && transferableAssets.includes(selected)) return prev;
+      const kept = selected ? transferableAssets.find((asset) => assetKey(asset) === assetKey(selected)) : undefined;
+      if (kept) return { ...prev, selectedAsset: kept };
+      return { ...prev, selectedAsset: transferableAssets[0] ?? null, amount: '', prepareRefusal: null };
+    });
+  }, [state.wallet, state.selectedAsset, transferableAssets]);
 
   const prepareTransferMutation = useMutation({
     mutationFn: async ({
@@ -204,7 +204,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
         data: {
           signedTransaction: state.signedTransaction,
           toAddress: prepared?.toAddress,
-          amount: prepared?.amountToken ?? prepared?.amountEth ?? prepared?.amountBtc,
+          amount: canonicalAmount(prepared),
           transactionFee: fee,
           tokenContract: state.preparedAsset?.isNative ? undefined : state.preparedAsset?.contractAddress,
         },
@@ -221,7 +221,6 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       amount: '',
       prepareRefusal: null,
     }));
-    setTransferableAssets([]);
   }, []);
 
   const selectAsset = useCallback((asset: TransferableAsset) => {
@@ -337,7 +336,10 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     walletsFailed: walletsQuery.isError || preferencesFailed,
     isRetryingWallets: walletsQuery.isFetching || account.isFetching,
     retryWallets: () => void (preferencesFailed ? account.refetch() : walletsQuery.refetch()),
-    isLoadingHoldings: holdingsQuery.isLoading,
+    isLoadingHoldings: holdingsQuery.isPending,
+    holdingsError: holdingsQuery.isError ? apiErrorSentence(holdingsQuery.error, BALANCES_FAILED) : null,
+    isRetryingHoldings: holdingsQuery.isFetching,
+    retryHoldings: () => void holdingsQuery.refetch(),
     isPreparing: prepareTransferMutation.isPending,
     isBroadcasting: broadcastTransferMutation.isPending,
     prepareError: state.prepareRefusal,

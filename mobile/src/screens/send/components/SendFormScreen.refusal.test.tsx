@@ -1,3 +1,4 @@
+import { AccessibilityInfo, Platform } from 'react-native';
 import { cleanup, render } from '@testing-library/react-native';
 import type { TransferableAsset } from '@ledova/shared';
 import { useTransfers } from '../../transfers/useTransfers';
@@ -16,6 +17,9 @@ jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: (
 const REFUSAL =
   'This wallet has no current approval with any company, so it cannot send AUDY. ' +
   'Ask the operator to approve it, then try again.';
+const RECIPIENT_REFUSAL =
+  'The recipient has no current approval with any company, so it cannot receive AUDY. ' +
+  'Check the address, or ask the recipient to have their wallet approved.';
 const wallet = {
   uuid: 'base-wallet',
   chain: 'base',
@@ -50,7 +54,7 @@ afterEach(async () => {
   await cleanup();
 });
 
-it("announces a refused prepare's message on Wallets > Send (SendFormScreen), directly above Back and Continue, outside the form that scrolls", async () => {
+function refusing(prepareError: string | null) {
   jest.mocked(useTransfers).mockReturnValue({
     wallet,
     wallets: [],
@@ -62,10 +66,35 @@ it("announces a refused prepare's message on Wallets > Send (SendFormScreen), di
     isLoading: false,
     isLoadingHoldings: false,
     isPreparing: false,
-    prepareError: REFUSAL,
+    prepareError,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
+}
+
+it.each([
+  ['iOS', 'ios', [[REFUSAL], [RECIPIENT_REFUSAL], [REFUSAL]]],
+  ['Android, which announces its live region itself,', 'android', []],
+] as const)(
+  'on %s announces each new refusal on Wallets > Send (SendFormScreen) once, not a re-render or a clear',
+  async (_, os, announced) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    refusing(REFUSAL);
+    const view = await render(<SendFormScreen onDone={jest.fn()} />);
+    await view.rerender(<SendFormScreen onDone={jest.fn()} />);
+    refusing(RECIPIENT_REFUSAL);
+    await view.rerender(<SendFormScreen onDone={jest.fn()} />);
+    refusing(null);
+    await view.rerender(<SendFormScreen onDone={jest.fn()} />);
+    refusing(REFUSAL);
+    await view.rerender(<SendFormScreen onDone={jest.fn()} />);
+    expect(announce.mock.calls).toEqual(announced);
+  },
+);
+
+it("announces a refused prepare's message on Wallets > Send (SendFormScreen), directly above Back and Continue, outside the form that scrolls", async () => {
+  refusing(REFUSAL);
   const view = await render(<SendFormScreen onDone={jest.fn()} />);
 
   const message = view.getByRole('alert', { name: REFUSAL });

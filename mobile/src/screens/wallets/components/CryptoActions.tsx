@@ -20,7 +20,7 @@ export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   const send = () => {
     if (!onlyVerified) navigation.navigate('Send', { screen: 'SendMain' });
     else if (isBitcoinChain(getChainShortCode(onlyVerified.chain)))
-      navigation.navigate('TransferDetails', { wallet: onlyVerified });
+      navigation.navigate('BitcoinSend', { wallet: onlyVerified });
     else navigation.navigate('Send', { screen: 'SendMain', params: { wallet: onlyVerified } });
   };
   return (

@@ -5,6 +5,7 @@ import {
   prepareBitcoinTransfer,
   broadcastTransfer,
   BLOCKCHAIN,
+  canonicalDecimal,
   validatePreparedTransfer,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -73,7 +74,7 @@ export function useCryptoTransferSigning({
       const response = await broadcastTransfer(apiClient, wallet.uuid, {
         signedTransaction: signedTx,
         toAddress,
-        amount,
+        amount: canonicalDecimal(amount),
         transactionFee,
         tokenContract,
       });

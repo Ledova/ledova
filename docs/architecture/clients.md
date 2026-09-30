@@ -166,6 +166,10 @@ there are none before a read has answered, even offline, and one that cannot
 read the wallets says so and offers Try again, hiding any it listed before,
 without the request's error text. Mobile's Send chooser says the same when the
 account's preferences cannot be read, and its Try again reads them first.
+Both of mobile's Send forms then read the chosen wallet's balances the same
+way: each waits for them, even offline, and when they cannot be read it says
+so, with the server's reason when there is one, holds Try again while it reads
+them again, and keeps Continue unavailable until they have been read.
 The retired portfolio screen's chart, allocation and snapshot helpers are removed
 from both clients and the shared package. The asset list remains in use by Buy
 crypto for current prices, and Wallets and Send still use the AUD exchange rate.

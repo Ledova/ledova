@@ -257,7 +257,7 @@ describe('Send from Wallets', () => {
 
   it("opens a Bitcoin wallet's own send form when it is the only verified wallet", async () => {
     await pressSend([bitcoin, pending]);
-    expect(mockNavigate.mock.calls).toEqual([['TransferDetails', { wallet: pages[1].results[0] }]]);
+    expect(mockNavigate.mock.calls).toEqual([['BitcoinSend', { wallet: pages[1].results[0] }]]);
   });
 
   it.each([
