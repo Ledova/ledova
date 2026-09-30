@@ -13,6 +13,7 @@ import { SendForm } from './SendForm';
 import { ReviewTransaction } from './ReviewTransaction';
 import { BitcoinSignTransaction } from './BitcoinSignTransaction';
 import { SuccessModal } from './SuccessModal';
+import { RefusalNotice } from './RefusalNotice';
 import { useTransfers } from '../useTransfers';
 
 type Props = NativeStackScreenProps<WalletsStackParamList, 'TransferDetails'>;
@@ -240,13 +241,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
       <View style={styles.container}>
         <Panel
           title="Send"
-          notice={
-            prepareError ? (
-              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
-                {prepareError}
-              </Text>
-            ) : null
-          }
+          notice={prepareError ? <RefusalNotice message={prepareError} /> : null}
           actions={renderActions()}
         >
           {renderContent()}

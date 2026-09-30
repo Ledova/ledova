@@ -19,6 +19,7 @@ import { ReviewTransaction } from '../../transfers/components/ReviewTransaction'
 import { SignTransaction } from '../../transfers/components/SignTransaction';
 import { SoftwareSignTransaction } from '../../transfers/components/SoftwareSignTransaction';
 import { SuccessModal } from '../../transfers/components/SuccessModal';
+import { RefusalNotice } from '../../transfers/components/RefusalNotice';
 import { WalletSelectionStep } from './WalletSelectionStep';
 import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
@@ -334,13 +335,7 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
       <View style={styles.container}>
         <Panel
           title={step === 'select-wallet' ? 'Select your wallet' : 'Send'}
-          notice={
-            prepareError ? (
-              <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={text.error}>
-                {prepareError}
-              </Text>
-            ) : null
-          }
+          notice={prepareError ? <RefusalNotice message={prepareError} /> : null}
           actions={renderActions()}
         >
           {renderContent()}
