@@ -219,7 +219,6 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
-            prepareError={prepareError}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}
@@ -333,7 +332,11 @@ export function SendFormScreen({ onDone, wallet: onlyWallet }: SendFormScreenPro
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <Panel title={step === 'select-wallet' ? 'Select your wallet' : 'Send'} actions={renderActions()}>
+        <Panel
+          title={step === 'select-wallet' ? 'Select your wallet' : 'Send'}
+          notice={prepareError ? <Text style={text.error}>{prepareError}</Text> : null}
+          actions={renderActions()}
+        >
           {renderContent()}
         </Panel>
       </View>

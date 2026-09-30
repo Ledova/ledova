@@ -203,7 +203,6 @@ export function TransferFormScreen({ route, navigation }: Props) {
             toAddress={toAddress}
             amount={amount}
             isLoadingHoldings={isLoadingHoldings}
-            prepareError={prepareError}
             selectAsset={selectAsset}
             setToAddress={setToAddress}
             setAmount={setAmount}
@@ -335,7 +334,11 @@ export function TransferFormScreen({ route, navigation }: Props) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        <Panel title="Send" actions={renderActions()}>
+        <Panel
+          title="Send"
+          notice={prepareError ? <Text style={text.error}>{prepareError}</Text> : null}
+          actions={renderActions()}
+        >
           {renderContent()}
         </Panel>
       </View>

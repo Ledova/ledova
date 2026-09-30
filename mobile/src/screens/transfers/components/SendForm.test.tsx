@@ -42,7 +42,6 @@ function show(asset = share, amount = '2', assets = [native, asset], setAmount =
       toAddress=""
       amount={amount}
       isLoadingHoldings={false}
-      prepareError={null}
       selectAsset={jest.fn()}
       setToAddress={jest.fn()}
       setAmount={setAmount}

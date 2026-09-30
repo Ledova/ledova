@@ -42,7 +42,7 @@ const wallet = {
   signingPreference: 'hardware',
 };
 
-function transfers(step: string) {
+function transfers(step: string, prepareError: string | null = null) {
   jest.mocked(useTransfers).mockReturnValue({
     step,
     wallet: step === 'select-wallet' ? null : wallet,
@@ -50,6 +50,7 @@ function transfers(step: string) {
     isLoading: false,
     transferableAssets: [],
     isPreparing: false,
+    prepareError,
     selectWallet: jest.fn(),
     reset: jest.fn(),
   } as unknown as ReturnType<typeof useTransfers>);
@@ -71,6 +72,15 @@ it.each([
 
 const TOKEN = { isNative: false, decimals: 2, symbol: 'AUDY', contractAddress: fixture.token.tokenContract };
 const NATIVE = { isNative: true, decimals: 18, symbol: 'ETH' };
+
+it("keeps a refused prepare's message on screen, directly above Back and Continue", async () => {
+  const refusal = 'This wallet has no current approval with any company, so it cannot send AUDY.';
+  transfers('enter-details', refusal);
+  const view = await render(<SendFormScreen onDone={jest.fn()} />);
+  const message = view.getByText(refusal);
+  const actions = view.getByRole('button', { name: 'Continue' }).parent!;
+  expect(view.getByRole('header', { name: 'Send' }).parent!.children.slice(-2)).toEqual([message, actions]);
+});
 
 function signing(transactionData: TransactionData, signingPreference = 'hardware') {
   showing('sign', transactionData, signingPreference, TOKEN);

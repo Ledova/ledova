@@ -23,7 +23,6 @@ interface SendFormProps {
   toAddress: string;
   amount: string;
   isLoadingHoldings: boolean;
-  prepareError: string | null;
   selectAsset: (asset: TransferableAsset) => void;
   setToAddress: (address: string) => void;
   setAmount: (amount: string) => void;
@@ -40,7 +39,6 @@ export function SendForm({
   toAddress,
   amount,
   isLoadingHoldings,
-  prepareError,
   selectAsset,
   setToAddress,
   setAmount,
@@ -271,8 +269,6 @@ export function SendForm({
           </View>
         </>
       )}
-
-      {prepareError && <Text style={text.error}>{prepareError}</Text>}
     </ScrollView>
   );
 }
