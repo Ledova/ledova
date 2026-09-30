@@ -25,9 +25,6 @@ import {
   validatePreparedTransfer,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { mockDataEnabled } from '../../_mock/mockDataEnabled';
-import { generateMockTransferableAssets, generateMockTransactionData, generateMockTxHash } from './_mock/mock';
-import { generateMockWalletsData } from '../wallets/_mock/mock';
 import type {
   Wallet,
   PrepareTransferRequest,
@@ -96,7 +93,6 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
 }
 
 export function useTransfers(initialWallet: Wallet | null = null) {
-  const USE_MOCK_DATA = mockDataEnabled();
   const queryClient = useQueryClient();
   const account = useUserPreferences();
   const { userAccount } = account;
@@ -110,7 +106,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const walletsQuery = useQuery({
     queryKey: ['wallets', userAccount?.uuid],
     queryFn: () => readEveryPage((page) => getWallets(apiClient, { page })),
-    enabled: !USE_MOCK_DATA && !!userAccount?.uuid,
+    enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
@@ -118,18 +114,12 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const holdingsQuery = useQuery({
     queryKey: ['wallet-holdings', state.wallet?.uuid],
     queryFn: () => getWalletHoldings(apiClient, state.wallet!.uuid),
-    enabled: !USE_MOCK_DATA && !!state.wallet?.uuid,
+    enabled: !!state.wallet?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
   useEffect(() => {
-    if (USE_MOCK_DATA && state.wallet) {
-      const assets = generateMockTransferableAssets(state.wallet);
-      setTransferableAssets(assets);
-      if (assets.length > 0) {
-        setState((prev) => ({ ...prev, selectedAsset: assets[0] }));
-      }
-    } else if (state.wallet && holdingsQuery.data?.data) {
+    if (state.wallet && holdingsQuery.data?.data) {
       const assets = buildTransferableAssets(state.wallet, holdingsQuery.data.data);
       setTransferableAssets(assets);
       if (assets.length > 0) {
@@ -151,7 +141,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       setTransferableAssets([nativeAsset]);
       setState((prev) => ({ ...prev, selectedAsset: nativeAsset }));
     }
-  }, [state.wallet, holdingsQuery.data, USE_MOCK_DATA]);
+  }, [state.wallet, holdingsQuery.data]);
 
   const prepareTransferMutation = useMutation({
     mutationFn: async ({
@@ -197,17 +187,6 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     if (pendingBroadcast && state.signedTransaction && state.wallet && state.step === 'broadcast') {
       setPendingBroadcast(false);
 
-      if (USE_MOCK_DATA) {
-        const mockTxHash = generateMockTxHash(state.wallet.chain);
-
-        setState((prev) => ({
-          ...prev,
-          step: 'success',
-          txHash: mockTxHash,
-        }));
-        return;
-      }
-
       const chain = getChainShortCode(state.wallet.chain);
       const fee = isBitcoinChain(chain) ? state.transactionData?.feeBtc : state.transactionData?.gasCostEth;
 
@@ -222,7 +201,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
         },
       });
     }
-  }, [pendingBroadcast, state.signedTransaction, state.wallet, state.step, broadcastTransferMutation, USE_MOCK_DATA]);
+  }, [pendingBroadcast, state.signedTransaction, state.wallet, state.step, broadcastTransferMutation]);
 
   const selectWallet = useCallback((wallet: Wallet) => {
     setPrepareRefusal(null);
@@ -282,23 +261,6 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const submitTransfer = useCallback(() => {
     if (!state.wallet || !state.selectedAsset) return;
 
-    if (USE_MOCK_DATA) {
-      const mockTransactionData = generateMockTransactionData(
-        state.wallet,
-        state.toAddress,
-        state.amount,
-        state.selectedAsset.isNative,
-      );
-
-      setState((prev) => ({
-        ...prev,
-        step: 'review',
-        transactionData: mockTransactionData,
-        preparedAsset: prev.selectedAsset,
-      }));
-      return;
-    }
-
     const chain = getChainShortCode(state.wallet.chain);
     let data: PrepareTransferRequest | PrepareBitcoinTransferRequest;
 
@@ -319,7 +281,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
       data,
       asset: state.selectedAsset,
     });
-  }, [state.wallet, state.selectedAsset, state.toAddress, state.amount, prepareTransferMutation, USE_MOCK_DATA]);
+  }, [state.wallet, state.selectedAsset, state.toAddress, state.amount, prepareTransferMutation]);
 
   const proceedToSign = useCallback(() => {
     setState((prev) => ({ ...prev, step: 'sign' }));
@@ -346,8 +308,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   }, []);
 
   const preferencesFailed = account.isError || (!!account.preferences && !userAccount?.uuid);
-  const allWallets = USE_MOCK_DATA ? generateMockWalletsData() : (walletsQuery.data ?? []);
-  const wallets = allWallets.filter(
+  const wallets = (walletsQuery.data ?? []).filter(
     (w: Wallet) => getChainConfig(w.chain)?.isActive && w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
   );
 
@@ -362,15 +323,15 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     preparedAsset: state.preparedAsset,
     txHash: state.txHash,
     wallets,
-    isLoading: USE_MOCK_DATA ? false : walletsQuery.isPending,
-    walletsFailed: !USE_MOCK_DATA && (walletsQuery.isError || preferencesFailed),
-    isRetryingWallets: !USE_MOCK_DATA && (walletsQuery.isFetching || account.isFetching),
+    isLoading: walletsQuery.isPending,
+    walletsFailed: walletsQuery.isError || preferencesFailed,
+    isRetryingWallets: walletsQuery.isFetching || account.isFetching,
     retryWallets: () => void (preferencesFailed ? account.refetch() : walletsQuery.refetch()),
-    isLoadingHoldings: USE_MOCK_DATA ? false : holdingsQuery.isLoading,
-    isPreparing: USE_MOCK_DATA ? false : prepareTransferMutation.isPending,
-    isBroadcasting: USE_MOCK_DATA ? false : broadcastTransferMutation.isPending,
-    prepareError: USE_MOCK_DATA ? null : prepareRefusal,
-    broadcastError: USE_MOCK_DATA ? null : getErrorMessage(broadcastTransferMutation.error),
+    isLoadingHoldings: holdingsQuery.isLoading,
+    isPreparing: prepareTransferMutation.isPending,
+    isBroadcasting: broadcastTransferMutation.isPending,
+    prepareError: prepareRefusal,
+    broadcastError: getErrorMessage(broadcastTransferMutation.error),
     selectWallet,
     selectAsset,
     setToAddress,

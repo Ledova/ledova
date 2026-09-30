@@ -13,7 +13,6 @@ jest.mock('@ledova/shared', () => ({
   useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
-jest.mock('../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 
 const RECIPIENT = `0x${'b'.repeat(40)}`;
 const STABLECOIN = `0x${'5'.repeat(40)}`;

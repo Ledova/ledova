@@ -110,8 +110,7 @@ keeps recorded decimal amounts exact, distinguishes failed refreshes from empty
 history, and marks failed older pages as incomplete. Pull to refresh reads current
 records; an open detail follows its current row. Supported wallet, network,
 direction and local-day filters replace sorting only the loaded subset. Date
-filters use block time and exclude records without one. Activity has no generated
-mock-record mode; synthetic journeys use API fixtures.
+filters use block time and exclude records without one.
 
 Market presents For sale and Wanted lists with automatic matching. Buyers fund
 before placing an offer. Owned order history reads independently of listed share
@@ -286,8 +285,9 @@ as on the web: a mobile row no longer spells out Verification in a line of
 text, so sighted people read the status from the badge's check or clock, and a
 wallet's own screen still states both in words. A balance shows at most eight
 decimal places, rounded from its decimal string rather than through a float
-(`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`), and mobile's
-value and balance orders compare the decimal strings. The clients differ in where
+(`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`), and both
+clients' value and balance orders compare the decimal strings (`sortWallets`
+in `packages/shared/src/hooks/useWalletSort.ts`). The clients differ in where
 a wallet's actions sit. On the web each row carries its own: Edit, Sync and
 Delete, with Verify while the wallet awaits verification and Derive address
 where the next hardware address can be derived. Nothing is selected first. A

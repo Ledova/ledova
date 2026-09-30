@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { WALLET_VERIFICATION_STATUS, getActiveChains } from '@ledova/shared';
+import { WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
 import { WalletItem } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
-import { sortWallets, useWalletSort } from './hooks/useWalletSort';
 import { WalletActions } from './components/WalletActions';
 import { WalletSort } from './components/WalletSort';
 import { EditWalletModal } from './components/EditWalletModal';

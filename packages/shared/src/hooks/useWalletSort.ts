@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { WALLET_SIGNING_PREFERENCE } from '@ledova/shared';
-import type { Wallet } from '@ledova/shared';
+
+import { WALLET_SIGNING_PREFERENCE } from '../constants/business/wallets';
+import type { Wallet } from '../types';
 
 export type WalletSortOption = 'default' | 'verified' | 'name' | 'namedFirst' | 'highestValue' | 'highestBalance';
 

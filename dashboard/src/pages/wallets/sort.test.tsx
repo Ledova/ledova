@@ -126,3 +126,18 @@ it('keeps the order when the sort is closed without choosing one', async () => {
   expect(sortOf('Ethereum').textContent).toBe('SortHardware first');
   expect(rows('Ethereum')).toEqual(['alpha', 'Bravo', WALLETS[2].address]);
 });
+
+it('orders balances by their exact decimals, which floating point would tie', async () => {
+  const lower = { ...wallet('g', 'ethereum', 'Lower', '0'), nativeBalance: '9007199254740992.1' };
+  const higher = { ...wallet('h', 'ethereum', 'Higher', '0'), nativeBalance: '9007199254740992.2' };
+  expect(parseFloat(lower.nativeBalance)).toBe(parseFloat(higher.nativeBalance));
+  api.get.mockResolvedValue({ data: { results: [lower, higher], count: 2, next: null, previous: null } });
+  show();
+  await screen.findByText('Lower');
+  expect(rows('Ethereum')).toEqual(['Lower', 'Higher']);
+
+  fireEvent.click(sortOf('Ethereum'));
+  fireEvent.click(within(card('Ethereum')).getByRole('button', { name: 'Highest balance' }));
+
+  expect(rows('Ethereum')).toEqual(['Higher', 'Lower']);
+});

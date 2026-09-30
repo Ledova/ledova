@@ -71,7 +71,9 @@ export function QRScanner({ visible, onClose, onScan, title = 'Scan QR Code', su
         <ScannerPreview {...camera.preview} />
         {camera.message ? (
           <View style={styles.messageContainer}>
-            <Text style={styles.message}>{camera.message}</Text>
+            <Text style={styles.message} accessibilityLabel={camera.message.label}>
+              {camera.message.text}
+            </Text>
           </View>
         ) : (
           <>

@@ -22,7 +22,6 @@ const ready = (): Preferences => ({
 let mockPreferences = ready();
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
-jest.mock('../../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => mockPreferences,

@@ -8,7 +8,7 @@ import { borrowedModule } from './relative-imports.mjs';
 import { checkSharedPeers } from './shared-peer-resolution.mjs';
 import { sourceImports } from '../../scripts/source-imports.mjs';
 
-const MOBILE = path.resolve(import.meta.dirname, '..');
+const MOBILE = path.resolve(process.argv[2] ?? path.join(import.meta.dirname, '..'));
 const REPO = path.resolve(MOBILE, '..');
 const WORKSPACE = path.join(REPO, 'packages');
 const resolver = createRequire(path.join(MOBILE, 'index.ts'));

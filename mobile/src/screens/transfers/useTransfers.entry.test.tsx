@@ -14,7 +14,6 @@ jest.mock('@ledova/shared', () => ({
   useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
-jest.mock('../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 
 const wallet = {
   uuid: 'wallet-base',

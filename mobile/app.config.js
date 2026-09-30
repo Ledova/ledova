@@ -26,11 +26,10 @@ module.exports = ({ config }) => {
     }
   }
   if (
-    process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false' ||
     process.env.EXPO_PUBLIC_DEV_API_HOST ||
     Object.keys(process.env).some((name) => name.startsWith('EXPO_PUBLIC_NATIVE_PROBE_'))
   ) {
-    throw new Error('Disable mock data and unset development hosts and native probes for an iOS release.');
+    throw new Error('Unset development hosts and native probes for an iOS release.');
   }
   return {
     ...config,

@@ -12,7 +12,6 @@ jest.mock('@ledova/shared', () => ({
   useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value.toFixed(2)}` }),
 }));
-jest.mock('../../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
 jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 

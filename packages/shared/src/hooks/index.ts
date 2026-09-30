@@ -18,6 +18,8 @@ export { useSubmissionOwner } from './useSubmissionOwner';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
 export { useOpenRows } from './useOpenRows';
+export { WALLET_SORTS, sortWallets, useWalletSort } from './useWalletSort';
+export type { WalletSortOption } from './useWalletSort';
 export { useDirectoryToken, useDirectoryTokens } from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';

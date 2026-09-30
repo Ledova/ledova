@@ -10,7 +10,6 @@ jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
 }));
-jest.mock('../../_mock/mockDataEnabled', () => ({ mockDataEnabled: () => false }));
 
 let client: QueryClient;
 const post = apiClient.post as jest.Mock;
