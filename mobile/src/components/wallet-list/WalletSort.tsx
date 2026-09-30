@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 import { AccessibilityInfo, Text, View } from 'react-native';
+import { WALLET_SORTS, type WalletSortOption } from '@ledova/shared';
 import { Choice, Disclosure } from '../Ledger';
 import { useThemedStyles } from '../../contexts';
-import { WALLET_SORTS, type WalletSortOption } from './useWalletSort';
 
 export function WalletSort({
   open,

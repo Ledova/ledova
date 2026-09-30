@@ -16,7 +16,6 @@ const release = {
   LEDOVA_IOS_BUILD_NUMBER: '62',
   EXPO_PUBLIC_API_URL: 'https://api.example.test',
   EXPO_PUBLIC_MARKETING_URL: 'https://example.test',
-  EXPO_PUBLIC_USE_MOCK_DATA: 'false',
 };
 
 function resolve(overrides) {
@@ -96,9 +95,8 @@ test('release endpoints keep an ordinary HTTPS URL with a path', () => {
   assert.deepEqual(resolve({ ...release, EXPO_PUBLIC_API_URL: 'https://api.example.test/v1' }), resolve(release));
 });
 
-test('release builds refuse mock data and native diagnostic overrides', () => {
+test('release builds refuse development hosts and native diagnostic overrides', () => {
   for (const override of [
-    { EXPO_PUBLIC_USE_MOCK_DATA: 'true' },
     { EXPO_PUBLIC_DEV_API_HOST: '192.168.50.10' },
     { EXPO_PUBLIC_NATIVE_PROBE_TARGET: 'https://example.test' },
   ]) {

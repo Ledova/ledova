@@ -120,6 +120,16 @@ describe.each(placements)('$name scanner window', ({ element }) => {
     expect(onScan).toHaveBeenCalledWith('synthetic-qr');
   });
 
+  it('shows ✓ Scanned! once a code is read and reads it to screen readers as Scanned!', async () => {
+    const onScan = jest.fn();
+    const view = await render(element(onScan), { wrapper });
+    await act(() => windowEvent(view.getByTestId('native-scanner'), true, 1));
+    const scanner = view.getByTestId('native-scanner');
+    await act(() => barcode(scanner, 'synthetic-qr', 1, scanner.props.scanId));
+    expect(onScan).toHaveBeenCalledWith('synthetic-qr');
+    expect(view.getByText('✓ Scanned!')).toHaveAccessibleName('Scanned!');
+  });
+
   it('retires callbacks synchronously on window loss and requires fresh admission without another prompt', async () => {
     const onScan = jest.fn();
     const view = await render(element(onScan), { wrapper });

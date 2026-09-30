@@ -23,7 +23,6 @@ archive or export command:
 | `LEDOVA_IOS_BUILD_NUMBER`   | Unused positive integer, at most four digits |
 | `EXPO_PUBLIC_API_URL`       | Reachable HTTPS API base URL                 |
 | `EXPO_PUBLIC_MARKETING_URL` | Public HTTPS website base URL                |
-| `EXPO_PUBLIC_USE_MOCK_DATA` | `false`                                      |
 
 Unset `EXPO_PUBLIC_DEV_API_HOST` and every `EXPO_PUBLIC_NATIVE_PROBE_*` variable.
 Set `EXPO_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_APP_STORE_URL` when preparing the
@@ -31,8 +30,8 @@ shipped experience.
 `EXPO_PUBLIC_*` values are embedded in the app and must never contain secrets.
 The release config refuses a missing or malformed identity, the development
 placeholder, HTTP endpoints, URL credentials, a query or fragment (even an empty
-one), whitespace or backslashes inside a URL, mock data and native probe flags.
-Without `LEDOVA_IOS_RELEASE`, the development config is unchanged.
+one), whitespace or backslashes inside a URL, a development API host and native
+probe flags. Without `LEDOVA_IOS_RELEASE`, the development config is unchanged.
 
 Confirm the latest upload in App Store Connect before selecting a build number.
 Keep the existing bundle ID when continuing an existing app. A store name change

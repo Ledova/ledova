@@ -8,14 +8,21 @@ import { createScannerWindow } from './scannerWindow';
 type CameraStatus = 'inactive' | 'loading' | 'denied' | 'failed' | 'ready' | 'scanned';
 type BarcodeHandler = (result: { data: string }) => void;
 type CameraSnapshot = { status: CameraStatus; onBarcodeScanned?: BarcodeHandler; generation?: number; scanId?: number };
+export type CameraMessage = { text: string; label: string };
 
 const messages = {
   inactive: 'Camera paused.',
   loading: 'Requesting camera permission...',
   denied: 'Camera permission is required to scan QR codes. Please enable it in settings.',
   failed: 'Camera permission is unavailable. Close the scanner and try again.',
-  scanned: '✓ Scanned!',
+  scanned: 'Scanned!',
 };
+
+function cameraMessage(status: CameraStatus): CameraMessage | null {
+  if (status === 'ready') return null;
+  const label = messages[status];
+  return { label, text: status === 'scanned' ? `✓ ${label}` : label };
+}
 
 let pendingRequest: Promise<PermissionResponse> | null = null;
 let latestRequest: Promise<PermissionResponse> | null = null;
@@ -176,7 +183,7 @@ export function useCameraScanner(
   return {
     ...snapshot,
     status,
-    message: status === 'ready' ? null : messages[status],
+    message: cameraMessage(status),
     stop,
     preview: {
       active: status === 'ready',

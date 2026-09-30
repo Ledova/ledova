@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { ScannerPreview, type ScannerPreviewProps } from '../../../components/qr/ScannerPreview';
+import type { CameraMessage } from '../../../components/qr/useCameraScanner';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useDialogStyles } from '../../../components/modal';
 import { VerificationError, VerificationSuccess } from './VerificationInstructions';
 
 interface SignatureScanStepProps {
-  cameraMessage: string | null;
+  cameraMessage: CameraMessage | null;
   isVerifying: boolean;
   verificationSuccess: boolean;
   verificationError: string | null;
@@ -88,7 +89,9 @@ export function SignatureScanStep({
         <ScannerPreview {...preview} />
         {cameraMessage ? (
           <View style={styles.cameraMessage}>
-            <Text style={styles.cameraMessageText}>{cameraMessage}</Text>
+            <Text style={styles.cameraMessageText} accessibilityLabel={cameraMessage.label}>
+              {cameraMessage.text}
+            </Text>
           </View>
         ) : (
           <>

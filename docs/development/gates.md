@@ -45,7 +45,9 @@ and, in `make test`, `dashboard/scripts/check-react-singleton.mjs`,
 peer step of `check:resolution`, and
 `mobile/scripts/tests/relative-imports.test.mjs`, the control for its refusal
 of a relative import that climbs out of `mobile/` into a `node_modules`
-directory, such as the root copy of a package mobile also installs.
+directory, such as the root copy of a package mobile also installs. It tests
+the rule, then runs the whole check on a fixture tree holding such an import,
+by passing `check-resolution.mjs` the fixture's `mobile/` directory.
 
 ## The PR metadata gate
 

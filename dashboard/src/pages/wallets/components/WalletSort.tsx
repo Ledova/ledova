@@ -1,6 +1,6 @@
 import { useRef } from 'react';
+import { WALLET_SORTS, type WalletSortOption } from '@ledova/shared';
 import { Disclosure } from '@components/Ledger';
-import { WALLET_SORTS, type WalletSortOption } from '../hooks/useWalletSort';
 
 interface WalletSortProps {
   open: boolean;
