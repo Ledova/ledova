@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -7,23 +7,12 @@ import { Action } from '../../../components/Ledger';
 import { useDialogStyles } from '../../../components/modal';
 import { QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import {
-  getChainShortCode,
-  isBitcoinChain,
-  isSupportedEvmChain,
-  normalizeBitcoinRawTransactionHex,
-  WALLET_SIGNING_PREFERENCE,
-} from '@ledova/shared';
+import { getChainShortCode, isBitcoinChain, normalizeBitcoinRawTransactionHex } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
 import { SendForm } from './SendForm';
 import { ReviewTransaction } from './ReviewTransaction';
-import { SignTransaction } from './SignTransaction';
-import { SoftwareSignTransaction } from './SoftwareSignTransaction';
 import { BitcoinSignTransaction } from './BitcoinSignTransaction';
 import { SuccessModal } from './SuccessModal';
-import { encodeEthereumTransaction } from '../../../utils/keystone/urEncoder';
-import { decodeKeystoneSignature } from '../../../utils/keystone/urDecoder';
-import { reviewTransfer } from '../../../utils/preparedTransfer';
 import { useTransfers } from '../useTransfers';
 
 type Props = NativeStackScreenProps<WalletsStackParamList, 'TransferDetails'>;
@@ -46,11 +35,10 @@ export function TransferFormScreen({ route, navigation }: Props) {
   }));
   const { wallet: routeWallet, chosen = false } = route.params;
   const [showAddressScanner, setShowAddressScanner] = useState(false);
-  const [showSignatureScanner, setShowSignatureScanner] = useState(false);
-  const [softwareSignTrigger, setSoftwareSignTrigger] = useState(0);
   const [signedHexInput, setSignedHexInput] = useState('');
   const [signedHexError, setSignedHexError] = useState<string | null>(null);
-  const isSoftwareWallet = routeWallet?.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE;
+  const chainShortName = getChainShortCode(routeWallet.chain);
+  const isBitcoin = isBitcoinChain(chainShortName);
 
   const {
     step,
@@ -60,7 +48,6 @@ export function TransferFormScreen({ route, navigation }: Props) {
     toAddress,
     amount,
     transactionData,
-    preparedAsset,
     txHash,
     isLoadingHoldings,
     isPreparing,
@@ -79,37 +66,10 @@ export function TransferFormScreen({ route, navigation }: Props) {
   } = useTransfers();
 
   useEffect(() => {
-    if (routeWallet) {
-      selectWallet(routeWallet);
-    }
-  }, [routeWallet, selectWallet]);
+    if (isBitcoin) selectWallet(routeWallet);
+  }, [isBitcoin, routeWallet, selectWallet]);
 
-  const chainShortName = wallet ? getChainShortCode(wallet.chain) : 'ETH';
-  const isEvm = isSupportedEvmChain(chainShortName);
-  const isBitcoin = isBitcoinChain(chainShortName);
   const canSubmit = !!toAddress && !!amount && !!selectedAsset && !isPreparing;
-
-  const review = useMemo(
-    () => (transactionData && isEvm ? reviewTransfer(transactionData, preparedAsset ?? undefined) : null),
-    [transactionData, isEvm, preparedAsset],
-  );
-  const [refusedScan, setRefusedScan] = useState<{ review: typeof review; message: string } | null>(null);
-
-  const urEncodedTransaction = useMemo(() => {
-    if (!review?.transaction || !wallet) return null;
-
-    try {
-      const encoded = encodeEthereumTransaction(
-        wallet.address,
-        review.transaction,
-        wallet.derivationPath ?? undefined,
-        wallet.masterFingerprint ?? undefined,
-      );
-      return encoded?.urString || null;
-    } catch {
-      return null;
-    }
-  }, [review, wallet]);
 
   const handleOpenAddressScanner = useCallback(() => {
     setShowAddressScanner(true);
@@ -125,29 +85,6 @@ export function TransferFormScreen({ route, navigation }: Props) {
       setShowAddressScanner(false);
     },
     [setToAddress],
-  );
-
-  const handleOpenSignatureScanner = useCallback(() => {
-    setRefusedScan(null);
-    setShowSignatureScanner(true);
-  }, []);
-
-  const handleCloseSignatureScanner = useCallback(() => {
-    setShowSignatureScanner(false);
-  }, []);
-
-  const handleSignatureScan = useCallback(
-    (data: string) => {
-      if (!review?.transaction || !wallet) return;
-
-      setShowSignatureScanner(false);
-      try {
-        handleSignature(decodeKeystoneSignature(data, review.transaction, wallet.address));
-      } catch (error) {
-        setRefusedScan({ review, message: error instanceof Error ? error.message : 'The scanned code was refused.' });
-      }
-    },
-    [handleSignature, review, wallet],
   );
 
   const handleSignedHexChange = useCallback((value: string) => {
@@ -166,15 +103,9 @@ export function TransferFormScreen({ route, navigation }: Props) {
   }, [signedHexInput, handleSignature]);
 
   const handleBack = useCallback(() => {
-    if (step === 'review') {
-      reset();
-      if (routeWallet) selectWallet(routeWallet);
-    } else if (step === 'sign') {
-      backToReview();
-    } else {
-      navigation.goBack();
-    }
-  }, [step, reset, routeWallet, selectWallet, backToReview, navigation]);
+    reset();
+    selectWallet(routeWallet);
+  }, [reset, routeWallet, selectWallet]);
 
   const handleDone = useCallback(() => {
     reset();
@@ -182,6 +113,10 @@ export function TransferFormScreen({ route, navigation }: Props) {
   }, [reset, navigation]);
 
   const renderContent = () => {
+    if (!isBitcoin) {
+      return <Text style={text.error}>This form sends Bitcoin only.</Text>;
+    }
+
     if (!wallet || step === 'select-wallet') {
       return (
         <View style={styles.status}>
@@ -213,42 +148,16 @@ export function TransferFormScreen({ route, navigation }: Props) {
 
       case 'review':
         if (!transactionData) return null;
-        return (
-          <ReviewTransaction
-            transactionData={transactionData}
-            chainShortName={chainShortName}
-            tokenSymbol={preparedAsset?.symbol}
-          />
-        );
+        return <ReviewTransaction transactionData={transactionData} chainShortName={chainShortName} />;
 
       case 'sign':
-        if (isBitcoin) {
-          if (!transactionData) return null;
-          return (
-            <BitcoinSignTransaction
-              transactionData={transactionData}
-              signedHex={signedHexInput}
-              onChangeSignedHex={handleSignedHexChange}
-              error={signedHexError}
-            />
-          );
-        }
-        if (wallet.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE) {
-          if (!transactionData) return null;
-          return (
-            <SoftwareSignTransaction
-              wallet={wallet}
-              transactionData={transactionData}
-              asset={preparedAsset ?? undefined}
-              onSignComplete={handleSignature}
-              signTrigger={softwareSignTrigger}
-            />
-          );
-        }
+        if (!transactionData) return null;
         return (
-          <SignTransaction
-            urEncodedTransaction={urEncodedTransaction}
-            error={review?.error ?? (refusedScan?.review === review ? refusedScan.message : null)}
+          <BitcoinSignTransaction
+            transactionData={transactionData}
+            signedHex={signedHexInput}
+            onChangeSignedHex={handleSignedHexChange}
+            error={signedHexError}
           />
         );
 
@@ -277,6 +186,7 @@ export function TransferFormScreen({ route, navigation }: Props) {
   };
 
   const renderActions = () => {
+    if (!isBitcoin) return <Action label={chosen ? 'Back' : 'Cancel'} onPress={() => navigation.goBack()} />;
     if (step === 'success' || step === 'select-wallet') return null;
     if (!wallet) return null;
 
@@ -312,18 +222,12 @@ export function TransferFormScreen({ route, navigation }: Props) {
       return (
         <>
           <Action label="Back" onPress={backToReview} />
-          {isBitcoin ? (
-            <Action
-              label="Broadcast"
-              primary
-              disabled={signedHexInput.trim().length === 0}
-              onPress={handleBroadcastSignedHex}
-            />
-          ) : isSoftwareWallet ? (
-            <Action label="Sign & Send" primary onPress={() => setSoftwareSignTrigger((prev) => prev + 1)} />
-          ) : (
-            <Action label="Scan Signature" primary onPress={handleOpenSignatureScanner} />
-          )}
+          <Action
+            label="Broadcast"
+            primary
+            disabled={signedHexInput.trim().length === 0}
+            onPress={handleBroadcastSignedHex}
+          />
         </>
       );
     }
@@ -356,16 +260,6 @@ export function TransferFormScreen({ route, navigation }: Props) {
         title="Scan Destination Address"
         subtitle="Scan the QR code of the destination wallet address"
       />
-
-      {!isSoftwareWallet && !isBitcoin && (
-        <QRScanner
-          visible={showSignatureScanner}
-          onClose={handleCloseSignatureScanner}
-          onScan={handleSignatureScan}
-          title="Scan Signed Transaction"
-          subtitle="Scan the signature QR code from your hardware wallet"
-        />
-      )}
     </GradientBackground>
   );
 }

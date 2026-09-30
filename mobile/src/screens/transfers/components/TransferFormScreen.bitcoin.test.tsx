@@ -15,7 +15,6 @@ jest.mock('../../../components/GradientBackground', () => ({
   GradientBackground: ({ children }: { children: React.ReactNode }) => children,
 }));
 jest.mock('../../../components/qr', () => ({ QRScanner: () => null, QRDisplay: () => null }));
-jest.mock('uuid', () => ({ v4: () => '70000000-0000-4000-8000-000000000001' }));
 
 type Props = ComponentProps<typeof TransferFormScreen>;
 
@@ -83,6 +82,34 @@ async function typeTransfer(view: Awaited<ReturnType<typeof render>>) {
   await fireEvent.changeText(view.getByPlaceholderText('0.0'), '0.01');
 }
 
+it('sends bitcoin through the review, the pasted signed transaction and the broadcast', async () => {
+  const view = await render(screen());
+  await view.findByText('Destination Address');
+  await typeTransfer(view);
+  jest.mocked(apiClient.post).mockResolvedValueOnce({ data: prepared });
+  await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
+  expect(await view.findByText('0.01 BTC')).toBeTruthy();
+  expect(apiClient.post).toHaveBeenLastCalledWith(`/api/wallets/${wallet.uuid}/prepare-transfer/`, {
+    toAddress: RECIPIENT,
+    amountBtc: '0.01',
+  });
+
+  await fireEvent.press(view.getByRole('button', { name: 'Sign' }));
+  await fireEvent.changeText(view.getByPlaceholderText('02000000...'), '0x0200AA');
+  jest.mocked(apiClient.post).mockResolvedValueOnce({ data: { txHash: 'a'.repeat(64), status: 'pending' } });
+  await fireEvent.press(view.getByRole('button', { name: 'Broadcast' }));
+  expect(await view.findByText('Transaction Hash')).toBeTruthy();
+  expect(apiClient.post).toHaveBeenLastCalledWith(
+    `/api/wallets/${wallet.uuid}/broadcast-transfer/`,
+    expect.objectContaining({
+      signedTransaction: '0200aa',
+      toAddress: RECIPIENT,
+      amount: '0.01',
+      transactionFee: '0.000005',
+    }),
+  );
+});
+
 it('returns from the review to the form for the same wallet', async () => {
   const view = await render(screen());
   await view.findByText('Destination Address');
@@ -93,6 +120,15 @@ it('returns from the review to the form for the same wallet', async () => {
   await fireEvent.press(view.getByRole('button', { name: 'Back' }));
   expect(await view.findByText('Destination Address')).toBeTruthy();
   expect(view.getByText('Cold storage')).toBeTruthy();
+});
+
+it('refuses a wallet on another network, which only Bitcoin wallets should reach', async () => {
+  const evm = { ...wallet, uuid: 'base-wallet', chain: 'base', address: `0x${'1'.repeat(40)}` } as Wallet;
+  const view = await render(screen(evm));
+  expect(view.getByText('This form sends Bitcoin only.')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Continue' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+  expect(apiClient.get).not.toHaveBeenCalledWith(`/api/wallets/${evm.uuid}/holdings/`);
 });
 
 describe('a wallet with nothing to send', () => {
