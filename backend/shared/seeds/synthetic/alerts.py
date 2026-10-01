@@ -120,10 +120,11 @@ class AlertBook:
         )
 
     def _monitored(self, transfer):
-        return transfer.at + timedelta(seconds=self.story.rng.randint(40, 200))
+        return transfer.monitored_at - timedelta(seconds=1)
 
     def _batched(self, transfer):
-        return transfer.at + timedelta(minutes=self.story.rng.randint(8, 58))
+        hour = transfer.recorded_at.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        return hour + timedelta(seconds=self.story.rng.randint(5, 50))
 
     def _large(self, person, transfer, notes):
         data = {"amount": float(transfer.market_value), "threshold": 10000.0, "currency": "AUD"}
@@ -182,7 +183,9 @@ class AlertBook:
             return []
         transfers = self.recorded["high_volume"]
         last = self.labelled["volume-7"]
-        window = [item for item in transfers if timedelta(0) <= last.at - item.at <= timedelta(days=30)]
+        window = [
+            item for item in transfers if timedelta(0) <= last.recorded_at - item.recorded_at <= timedelta(days=30)
+        ]
         total = sum(item.market_value for item in window)
         created = self._batched(last)
         data = {
@@ -241,16 +244,16 @@ class AlertBook:
         if "dormant" not in self.subjects:
             return []
         transfer = self.labelled["dormant"]
-        earlier = [item for item in self.recorded["dormant"] if item.at < transfer.at]
-        previous = max(earlier, key=lambda item: item.at)
-        days = (transfer.at - previous.at).days
+        earlier = [item for item in self.recorded["dormant"] if item.recorded_at < transfer.recorded_at]
+        previous = max(earlier, key=lambda item: item.recorded_at)
+        days = (transfer.recorded_at - previous.recorded_at).days
         amount = float(transfer.market_value)
         data = {
             "days_inactive": days,
             "dormant_threshold": 90,
             "transaction_amount": amount,
             "min_amount": 5000.0,
-            "last_activity": previous.at.isoformat(),
+            "last_activity": previous.recorded_at.isoformat(),
             "reason": f"Dormant account reactivation after {days} days with ${amount:,.2f} transaction",
         }
         return [

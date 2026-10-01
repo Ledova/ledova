@@ -268,21 +268,12 @@ def _wallet(plan, account, seeded):
     return wallet
 
 
-def _offset(transfer, low, high):
-    return low + int(transfer.tx_hash[-6:], 16) % (high - low)
-
-
 def _transaction(transfer, wallet, seeded):
     app_sent = transfer.app_sent
-    if app_sent:
-        created = transfer.at - timedelta(seconds=_offset(transfer, 12, 70))
-        settled = transfer.at + timedelta(seconds=_offset(transfer, 40, 200))
-    else:
-        created = settled = transfer.at + timedelta(minutes=_offset(transfer, 6, 58))
     sender, receiver = (
         (transfer.counterparty, wallet.address) if transfer.incoming else (wallet.address, transfer.counterparty)
     )
-    with frozen(created):
+    with frozen(transfer.recorded_at):
         record = Transaction.objects.create(
             tx_hash=transfer.tx_hash,
             chain=transfer.chain,
@@ -297,15 +288,15 @@ def _transaction(transfer, wallet, seeded):
             nonce=transfer.nonce if app_sent else None,
             status=transfer.status,
             imported_from_history=not app_sent,
-            monitoring_completed_at=settled + timedelta(seconds=25),
+            monitoring_completed_at=transfer.monitored_at,
             transaction_fee_estimated=(transfer.fee * Decimal("1.15")).quantize(transfer.fee) if app_sent else None,
             transaction_fee=transfer.fee,
             deducted_amount=Decimal(0) if app_sent else None,
             deducted_fee=Decimal(0) if app_sent else None,
             wallet=wallet,
         )
-    if settled != created:
-        Transaction.objects.filter(pk=record.pk).update(updated_at=settled)
+    if transfer.settled_at != transfer.recorded_at:
+        Transaction.objects.filter(pk=record.pk).update(updated_at=transfer.settled_at)
     return record
 
 

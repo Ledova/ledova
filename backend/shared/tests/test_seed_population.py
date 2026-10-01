@@ -15,14 +15,19 @@ from django.utils import timezone
 from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITestCase
 
+from assets.models import AssetSnapshot
 from companies.identity import company_identity
 from companies.models import Company, CompanyStatus, DocumentType
 from companies.services.document_review import verified_document_snapshot
-from compliance.models import ComplianceAlert, CustomerRiskAssessment
+from compliance.models import (
+    ComplianceAlert,
+    CustomerRiskAssessment,
+    TransactionScreening,
+)
 from documents.models import Document
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic import keys
-from shared.seeds.synthetic.plan import MINIMUM_INVESTORS
+from shared.seeds.synthetic.plan import MINIMUM_INVESTORS, WINDOW_DAYS
 from shared.seeds.synthetic.story import build_plan
 from users.models import (
     DeviceToken,
@@ -257,6 +262,22 @@ class SyntheticPopulationTest(APITestCase):
         for transaction in Transaction.objects.select_related("wallet"):
             touched = {transaction.from_address.lower(), (transaction.to_address or "").lower()}
             self.assertIn(transaction.wallet.address.lower(), touched)
+
+    def test_alerts_follow_the_transactions_they_flag(self):
+        flagged = ComplianceAlert.objects.exclude(transaction=None).select_related("transaction")
+
+        self.assertTrue(flagged.exists())
+        for alert in flagged:
+            self.assertGreaterEqual(alert.created_at, alert.transaction.created_at)
+            self.assertLessEqual(alert.created_at, alert.transaction.monitoring_completed_at)
+        for screening in TransactionScreening.objects.select_related("transaction"):
+            self.assertGreaterEqual(screening.created_at, screening.transaction.created_at)
+
+    def test_every_priced_asset_has_six_months_of_daily_prices(self):
+        for symbol in ("BTC", "ETH", "USDC", "USDT"):
+            snapshots = AssetSnapshot.objects.filter(asset__symbol=symbol)
+            self.assertEqual(snapshots.filter(data_source="manual").count(), WINDOW_DAYS + 1)
+            self.assertEqual(snapshots.values("source_timestamp").distinct().count(), snapshots.count())
 
     def test_staff_hold_the_permissions_their_queues_need(self):
         compliance = User.objects.get(email="helena.marsh@demo.ledova.test")

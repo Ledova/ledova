@@ -68,6 +68,9 @@ class Transfer:
     block_hash: str
     at: datetime
     market_value: Decimal
+    recorded_at: datetime
+    settled_at: datetime
+    monitored_at: datetime
     fee: Decimal | None = None
     nonce: int | None = None
 

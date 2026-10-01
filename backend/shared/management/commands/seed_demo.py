@@ -102,11 +102,12 @@ class Command(BaseCommand):
             company, token = self._seed_testers(password)
 
         started = time.monotonic()
-        logging.disable(logging.INFO)
+        disabled = logging.root.manager.disable
+        logging.disable(max(disabled, logging.INFO))
         try:
             outcome = seed_population(timezone.now(), options["investors"])
         finally:
-            logging.disable(logging.NOTSET)
+            logging.disable(disabled)
         elapsed = time.monotonic() - started
         User.objects.filter(email__endswith=f"@{EMAIL_DOMAIN}").update(password=make_password(password))
 

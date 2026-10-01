@@ -211,10 +211,10 @@ dev-logs:
 	docker compose logs -f
 
 # The worker stops while the seed runs, so no periodic job acts on half-written rows, and it starts again
-# whether or not the seed succeeded; the recipe still exits with the seed's status.
+# whether or not the seed succeeded. The recipe fails when the seed fails or the worker does not start.
 dev-seed:
 	docker compose stop worker
-	docker compose exec backend python manage.py seed_demo; status=$$?; docker compose start worker; exit $$status
+	docker compose exec backend python manage.py seed_demo; status=$$?; docker compose start worker && exit $$status
 
 dev-clean:
 	@printf "Delete the local stack's containers, volumes and built images? [y/N] "; read answer; \

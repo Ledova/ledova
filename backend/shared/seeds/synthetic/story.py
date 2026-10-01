@@ -290,7 +290,7 @@ class Story:
         self.rng = random.Random(seed)
         self.calendar = Calendar(now)
         self.now = self.calendar.anchor
-        self.ceiling = (self.now - timedelta(minutes=150)).replace(microsecond=0)
+        self.ceiling = (self.now - timedelta(minutes=240)).replace(microsecond=0)
         self.window_start = self.now - timedelta(days=WINDOW_DAYS)
         self.investor_total = investors
         self.prices = self._price_series()
@@ -330,7 +330,7 @@ class Story:
         series = {}
         for symbol, current in CURRENT_PRICES.items():
             values = [current]
-            for _ in range(WINDOW_DAYS + 1):
+            for _ in range(WINDOW_DAYS):
                 previous = values[-1] / decimal(math.exp(self.rng.gauss(0, VOLATILITY[symbol])))
                 if symbol in STABLECOINS:
                     previous = 1 + (previous - 1) / 2
@@ -339,7 +339,7 @@ class Story:
         return series
 
     def price_on(self, symbol, moment):
-        return self.prices[symbol][min(max(self.calendar.days_before(moment), 0), WINDOW_DAYS + 1)]
+        return self.prices[symbol][min(max(self.calendar.days_before(moment), 0), WINDOW_DAYS)]
 
     def _name_pairs(self):
         pairs = [
@@ -1166,8 +1166,15 @@ class Ledger:
         nonce = None
         if not incoming and chain != "bitcoin":
             nonce, self.nonce = self.nonce, self.nonce + 1
+        tx_hash = keys.transaction_hash(chain, self.wallet.address, len(self.transfers))
+        spread = int(tx_hash[-6:], 16)
+        if app_sent:
+            recorded = at - timedelta(seconds=12 + spread % 58)
+            settled = at + timedelta(seconds=40 + spread % 160)
+        else:
+            recorded = settled = at + timedelta(minutes=6 + spread % 52)
         transfer = Transfer(
-            tx_hash=keys.transaction_hash(chain, self.wallet.address, len(self.transfers)),
+            tx_hash=tx_hash,
             chain=chain,
             symbol=symbol,
             incoming=incoming,
@@ -1179,6 +1186,9 @@ class Ledger:
             block_hash=keys.block_hash(chain, block),
             at=at,
             market_value=(amount * story.price_on(symbol, at)).quantize(CENT),
+            recorded_at=recorded,
+            settled_at=settled,
+            monitored_at=recorded + timedelta(seconds=5 + spread % 35),
             fee=fee,
             nonce=nonce,
         )
