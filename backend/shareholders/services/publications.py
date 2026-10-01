@@ -32,7 +32,7 @@ from shareholders.models import (
 from shareholders.services.distributions import distribution_terms, entitle
 from shareholders.services.roll import frozen_rows, roll_digest
 from tokens.constants import STATUTORY_CALENDAR
-from tokens.models import ShareRegister
+from tokens.models import ShareRegister, ShareTokenStatus
 from tokens.services.former_holders import retention_cutoff
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,8 @@ NO_AUTHORITY = (
     "The company's authority for this publication must be a verified company document with a recorded fingerprint."
 )
 REGISTER_NOT_OPENED = "This share class's stored register has not been opened, so it has no members to publish to."
+NOT_ON_CHAIN = "Only a share class on chain, deployed or paused, can be published to."
+ON_CHAIN = (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED)
 NO_MEMBERS = "The stored register lists no member holding shares on that record date."
 ONLY_A_RESOLUTION_VOTES = "Only a resolution carries a question and a voting window."
 NO_QUESTION = "State the question the members are asked to resolve."
@@ -165,6 +167,8 @@ def publish_to_members(
         register = ShareRegister.objects.select_for_update().filter(token=token).first()
         if register is None or register.sequence == 0:
             raise ValidationError(REGISTER_NOT_OPENED)
+        if token.status not in ON_CHAIN or not token.contract_address:
+            raise ValidationError(NOT_ON_CHAIN)
         rows = frozen_rows(token, register, record_date)
         if not rows:
             raise ValidationError(NO_MEMBERS)
