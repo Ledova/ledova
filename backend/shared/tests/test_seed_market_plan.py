@@ -3,7 +3,9 @@ from datetime import timedelta
 from decimal import Decimal
 from io import StringIO
 from unittest.mock import patch
+from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -11,13 +13,15 @@ from django.utils import timezone
 from assets.models import Asset, AssetChainDeployment
 from operators.models import Operator
 from operators.settlement import single_settlement_asset
-from shared.constants import BLOCKCHAIN_ETHEREUM
+from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL
 from shared.seeds.synthetic.chain import population as chain_population
 from shared.seeds.synthetic.chain.approvals import approved_addresses
+from shared.seeds.synthetic.chain.deferred import UnexpectedJob, captured
 from shared.seeds.synthetic.chain.story import TESTER_WALLETS, build_issuance
 from shared.seeds.synthetic.clock import AEST, Calendar
 from shared.seeds.synthetic.market import layer
+from shared.seeds.synthetic.market.context import Market
 from shared.seeds.synthetic.market.deposits import mint_id
 from shared.seeds.synthetic.market.plan import Holder, Listing, Trader, TraderWallet
 from shared.seeds.synthetic.market.story import (
@@ -34,10 +38,14 @@ from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from shared.seeds.synthetic.staff import PERMISSIONS
 from shareholders.services.distributions import entitlement
 from tokens.models import MintRequest, ShareToken
-from users.models import UserProfile
+from users.models import Notification, UserProfile
+from users.tasks.notifications import send_push_notification
+from wallets.tasks import sync_wallet
 
 PASSWORD = "pw-12345678"
+User = get_user_model()
 NODE = "web3.providers.rpc.HTTPProvider.make_request"
+RECORD = "shared.seeds.synthetic.market.deposits.record"
 TESTER = DEMO_INVESTOR_EMAIL
 NOW = "now"
 
@@ -442,13 +450,20 @@ class SmallMarketPlanTest(TestCase):
         self.assertFalse(rpc.called)
 
     def test_an_operator_settling_in_anything_but_audy_is_skipped_before_any_write(self):
-        Operator.get().supported_settlement_assets.set(Asset.objects.filter(symbol="USDC"))
+        usdc = Asset.objects.get(symbol="USDC")
+        AssetChainDeployment.objects.update_or_create(
+            asset=usdc,
+            chain=BLOCKCHAIN_BASE,
+            defaults={"contract_address": "0x" + "c3" * 20, "decimals": 6, "is_active": True},
+        )
+        Operator.get().supported_settlement_assets.set([usdc])
         present = "shared.seeds.synthetic.market.layer.chain_layer.issuance_state"
         with patch(present, return_value=layer.chain_layer.PRESENT), patch(
             "shared.seeds.synthetic.market.layer.chain_refusal", return_value=None
         ), patch(NODE) as rpc:
             outcome = layer.seed_market(timezone.now())
 
+        self.assertEqual(single_settlement_asset(), usdc)
         self.assertEqual((outcome.state, outcome.reason), (layer.SKIPPED, layer.NOT_AUDY))
         self.assertFalse(rpc.called)
         self.assertEqual(layer.market_state(), layer.ABSENT)
@@ -498,6 +513,30 @@ class SmallMarketPlanTest(TestCase):
 
         self.assertEqual(outcome.state, layer.SKIPPED)
         self.assertIn("ORD of Wattlefield", outcome.reason)
+
+    def recorded(self, deposit, market):
+        return self.deposit(deposit.key)
+
+    def test_a_job_queued_by_the_last_step_runs_before_the_market_seals_itself(self):
+        plan, _, _ = build(self.found, timezone.now())
+        investor = User.objects.get(email=TESTER)
+
+        with patch(RECORD, side_effect=self.recorded), captured() as deferrals:
+            send_push_notification.defer(user_id=investor.pk, title="Notices closed", body="Every vote is in.")
+            layer._seal(plan, Market(plan, self.found, deferrals))
+
+        self.assertEqual(layer.market_state(), layer.PRESENT)
+        self.assertTrue(Notification.objects.filter(user=investor, title="Notices closed").exists())
+
+    def test_a_job_the_market_cannot_run_stops_it_before_it_seals_itself(self):
+        plan, _, _ = build(self.found, timezone.now())
+
+        with self.assertRaisesMessage(UnexpectedJob, sync_wallet.name):
+            with patch(RECORD, side_effect=self.recorded), captured() as deferrals:
+                sync_wallet.defer(wallet_uuid=str(uuid4()), principal_id=None)
+                layer._seal(plan, Market(plan, self.found, deferrals))
+
+        self.assertEqual(layer.market_state(), layer.ABSENT)
 
     def test_the_operations_officer_can_mint_audy_and_publish_to_members(self):
         self.assertTrue(

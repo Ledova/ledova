@@ -231,10 +231,16 @@ def _apply(plan, market):
         if notice.window != CLOSED:
             notices.publish(notice)
     notices.close()
-    market.run()
     for deposit in plan.deposits:
-        if deposit.state != EXECUTED:
+        if deposit.state != EXECUTED and deposit.key != SEALING_DEPOSIT:
             deposits.record(deposit, market)
+    _seal(plan, market)
+
+
+def _seal(plan, market):
+    market.run()
+    market.deferrals.require_empty()
+    deposits.record(plan.deposit(SEALING_DEPOSIT), market)
 
 
 def _resolution_state(publication, closes, now):

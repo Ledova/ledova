@@ -35,6 +35,8 @@ from shared.seeds.synthetic.chain.guard import operator_address
 from shared.seeds.synthetic.chain.settlement import fund_wallets
 from shared.seeds.synthetic.chain.story import TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.market import layer as market_layer
+from shared.seeds.synthetic.market.deposits import mint_id
 from shared.seeds.synthetic.market.notices import Notices
 from shared.seeds.synthetic.market.story import MARKETS
 from shared.services.orphaned_files import orphaned_files
@@ -105,6 +107,8 @@ SAFE_ROWS = (
     "Share issuance requests needing attention",
     "Capital increase requests needing attention",
 )
+AUDY_DECIMALS = 2
+MARKET_SEED = "shared.seeds.synthetic.market.layer.seed_market"
 EXPO_TOKEN = "ExponentPushToken[seed-test-last-step]"
 LAST_STEPS = (
     ("shared.seeds.synthetic.chain.layer.fund_wallets", fund_wallets, "Queued by the chain layer's last step"),
@@ -125,6 +129,15 @@ def pushing_after(step, title):
         return result
 
     return last_step
+
+
+def recording(step, outcomes):
+    def recorded(*args, **kwargs):
+        outcome = step(*args, **kwargs)
+        outcomes.append(outcome)
+        return outcome
+
+    return recorded
 
 
 def listed(response):
@@ -190,9 +203,11 @@ class ChainLayerTest(APITransactionTestCase):
 
     def seed(self, *last_steps):
         output = StringIO()
+        self.markets = []
         with ExitStack() as stack:
             stubs = {target: stack.enter_context(patch(target)) for target in OUTSIDE_WORLD}
             stack.enter_context(self.only_local())
+            stack.enter_context(patch(MARKET_SEED, recording(market_layer.seed_market, self.markets)))
             for target, step, title in last_steps:
                 stack.enter_context(patch(target, pushing_after(step, title)))
             call_command("seed_demo", stdout=output, password=PASSWORD)
@@ -226,6 +241,7 @@ class ChainLayerTest(APITransactionTestCase):
         self.assertEqual(mail.outbox, [])
         self.assertEqual(ProcrastinateJob.objects.count(), jobs)
         self.check_last_steps()
+        self.check_mints()
         self.check_registers()
         self.check_console()
         self.check_investor_screens()
@@ -254,6 +270,15 @@ class ChainLayerTest(APITransactionTestCase):
             self.assertEqual(Notification.objects.filter(user=investor, title=title).count(), 1, title)
         device.delete()
 
+    def check_mints(self):
+        [market] = self.markets
+        audy = Asset.objects.get(symbol="AUDY").get_deployment_for_chain("base")
+        self.assertEqual(audy.decimals, AUDY_DECIMALS)
+        for deposit in market.plan.deposits:
+            request = MintRequest.objects.get(pk=mint_id(deposit.key))
+            planned = int(deposit.amount * 10**AUDY_DECIMALS)
+            self.assertEqual((request.status, request.amount), (deposit.state, planned), deposit.key)
+
     def check_registers(self):
         on_chain = ShareToken.objects.exclude(contract_address=None)
         self.assertEqual(sorted(on_chain.values_list("status", flat=True)), ["deployed"] * 4 + ["paused"])
@@ -275,6 +300,7 @@ class ChainLayerTest(APITransactionTestCase):
             bought = {swap.buyer_address.lower() for swap in settled}
             held = {holding.wallet.address.lower() for holding in shares.select_related("wallet")}
             self.assertTrue(wallets <= held <= wallets | bought, token.symbol)
+            self.assertLessEqual(bought, held, token.symbol)
             for holding in shares.select_related("wallet"):
                 balance = contract.functions.balanceOf(holding.wallet.address).call()
                 self.assertEqual(holding.quantity, Decimal(balance), holding.wallet.address)

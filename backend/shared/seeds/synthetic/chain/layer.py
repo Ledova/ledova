@@ -139,6 +139,7 @@ def _apply(plan, records):
 
 def seal(plan, records):
     records.run()
+    records.deferrals.require_empty()
     create_class(plan.share_class(SEALING_CLASS), records)
 
 

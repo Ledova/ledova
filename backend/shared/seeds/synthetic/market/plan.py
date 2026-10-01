@@ -133,6 +133,9 @@ class MarketPlan:
     def listing(self, key):
         return next(listing for listing in self.listings if listing.key == key)
 
+    def deposit(self, key):
+        return next(deposit for deposit in self.deposits if deposit.key == key)
+
     def today(self):
         return [fill for fill in self.fills if not fill.lapsed]
 

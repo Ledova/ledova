@@ -5,7 +5,6 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connections
-from django.utils import timezone
 
 from shared import uploads
 from shared.db import current_alias
@@ -87,13 +86,11 @@ class Notices:
 
     def _terms(self, notice, token, now):
         if notice.kind == RESOLUTION:
-            opens_at = notice.opens_at or now.replace(second=0, microsecond=0)
-            closes_at = notice.closes_at or now + CLOSING_WINDOW
             return {
                 "question": notice.question,
                 "resolution_kind": notice.resolution_kind,
-                "opens_at": opens_at,
-                "closes_at": closes_at,
+                "opens_at": notice.opens_at or now,
+                "closes_at": notice.closes_at or now + CLOSING_WINDOW,
             }
         if notice.kind == DISTRIBUTION:
             register = ShareRegister.objects.get(token=token)
@@ -122,7 +119,7 @@ class Notices:
                 *([f"Resolution: {notice.question}"] if notice.question else []),
             ],
         )
-        terms = self._terms(notice, token, timezone.now())
+        terms = self._terms(notice, token, database_now())
         with generated(self.contents):
             publication = publish_to_members(
                 token,
