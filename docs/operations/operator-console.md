@@ -75,8 +75,12 @@ python manage.py check_rls_roles
 python manage.py sync_monitoring_rules
 python manage.py sync_procedure_templates
 python manage.py asset_sync --seed-only
+python manage.py admit_local_signer
 ```
 
+The last command admits the operator signer for the local chain (31337) and
+refuses any other chain id; outside Docker, run it only when the backend points
+at a local chain. See [local chain admission](../architecture/outgoing-signing.md#local-chain-admission).
 The seed commands are idempotent. Missing monitoring seeds leave no rules to raise
 alerts; missing asset seeds leave supported native assets unverified/unpriced.
 `--seed-only` touches no network. The public compliance seed is not a deployment's
@@ -119,9 +123,11 @@ User.objects.filter(email='investor@demo.ledova.test').update(email='investor@le
 ```
 
 It writes no chain transactions. The investor's whitelist entry is an identity
-row with no company approval; [chain setup](chains.md), deploying the class and
-approving the wallet for the company are still needed.
-Its wallet addresses are Hardhat accounts 0 and 1.
+row with no company approval: deploying the class and approving the wallet for
+the company are still needed, and in the local stack each signs a transaction on
+[its chain](chains.md#the-local-stacks-chain).
+Its wallet addresses are development accounts 0 and 1 of the public test
+mnemonic; account 0 is also the operator's signer.
 
 ## Company and document review
 

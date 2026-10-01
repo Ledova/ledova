@@ -99,9 +99,13 @@ reuse; the operator alias retains the base lifetime. See [tenancy](../architectu
 Compose sets `POSTGRES_HOST` to `postgres`, `REDIS_URL` to
 `redis://redis:6379/0`, `STORAGE_BACKEND` to `local` and `DEBUG` to `true` for
 the `migrate`, `backend` and `worker` services, from one `x-backend-environment`
-anchor so the three cannot drift. These are `environment:` entries, so they win
-over `backend/.env`: a `STORAGE_BACKEND=s3`, a `DEBUG=false` or a custom
-`REDIS_URL` in that file is silently ignored inside the local stack. The local
+anchor so the three cannot drift. The same anchor points them at the stack's
+own chain: `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID`, `BLOCKCHAIN_OPERATOR_KEY`,
+the three contract addresses and `LOCAL_CHAIN_FINALITY_DEPTH`, described in
+[the local stack's chain](chains.md#the-local-stacks-chain). These are
+`environment:` entries, so they win over `backend/.env`: a `STORAGE_BACKEND=s3`,
+a `DEBUG=false`, a custom `REDIS_URL` or other chain settings in that file are
+silently ignored inside the local stack. The local
 stack explicitly selects debug mode; uploaded evidence uses private storage
 and authenticated routes in both debug modes.
 
