@@ -34,6 +34,7 @@ from shared.seeds.demo import (
 from shared.seeds.synthetic.chain import layer as chain_layer
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
+from shared.seeds.synthetic.market import layer as market_layer
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from shared.seeds.synthetic.story import STAFF
 from tokens.models import RegisterCorrectionStatus, ShareToken
@@ -62,7 +63,8 @@ class Command(BaseCommand):
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
         "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
         "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds offerings, applications and requests; without it, nothing is written to any chain."
+        "seeds offerings, applications and requests, then mints AUDY deposits, settles trades, leaves an order "
+        "book and publishes notices to members; without it, nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
@@ -112,6 +114,9 @@ class Command(BaseCommand):
             elapsed = time.monotonic() - started
             chain = chain_layer.seed_issuance(timezone.now()) if outcome.state == PRESENT else None
             chain_elapsed = time.monotonic() - started - elapsed
+            listed = chain is not None and chain.state == chain_layer.PRESENT
+            market = market_layer.seed_market(timezone.now()) if listed else None
+            market_elapsed = time.monotonic() - started - elapsed - chain_elapsed
         finally:
             logging.disable(disabled)
         User.objects.filter(email__endswith=f"@{EMAIL_DOMAIN}").update(password=make_password(password))
@@ -120,6 +125,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"Seed complete: {self.created} created."))
             self._report_population(outcome, elapsed)
             self._report_chain(chain, chain_elapsed)
+            self._report_market(market, market_elapsed)
             token.refresh_from_db()
             self._report(password, company, token)
 
@@ -329,6 +335,41 @@ class Command(BaseCommand):
             f"  offerings      {sum(counts['offerings'].values())} ({listed(counts['offerings'])})",
             f"  applications   {sum(counts['subscriptions'].values())} ({listed(counts['subscriptions'])})",
             f"  requests       issuance: {listed(counts['requests'])}; capital: {listed(counts['raises'])}",
+        ]
+        self.stdout.write("\n".join(lines))
+
+    def _report_market(self, outcome, elapsed):
+        if outcome is None:
+            return
+        if outcome.state == market_layer.SKIPPED:
+            self.stdout.write(f"Market layer skipped: {outcome.reason}")
+            return
+        if outcome.state == market_layer.PARTIAL:
+            self.stdout.write(
+                self.style.WARNING(
+                    "A previous run stopped part-way through the market layer, so nothing was added to it. "
+                    "Start over with make dev-clean, make dev-up and make dev-seed."
+                )
+            )
+            return
+        if outcome.plan is None:
+            self.stdout.write("Market layer already present; nothing added.")
+            return
+        counts = outcome.counts
+
+        def listed(values):
+            return ", ".join(f"{count} {status.replace('_', ' ')}" for status, count in sorted(values.items()))
+
+        prices = ", ".join(f"{label} {price}" for label, price in counts["prices"].items() if price)
+        lines = [
+            f"Market layer added in {elapsed:.1f}s, {counts['transactions']} operator and "
+            f"{counts['approvals_signed']} investor transactions on chain {settings.BLOCKCHAIN_CHAIN_ID}:",
+            f"  AUDY deposits  {sum(counts['deposits'].values())} ({listed(counts['deposits'])})",
+            f"  orders         {sum(counts['orders'].values())} ({listed(counts['orders'])}); "
+            f"matches {listed(counts['swaps'])}",
+            f"  last prices    {prices}",
+            f"  notices        {sum(counts['notices'].values())} ({listed(counts['notices'])}); resolutions "
+            f"{listed(counts['resolutions'])}; {counts['ballots']} ballots, {counts['payments']} dividend payments",
         ]
         self.stdout.write("\n".join(lines))
 

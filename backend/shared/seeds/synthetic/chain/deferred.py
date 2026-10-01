@@ -4,8 +4,8 @@ from procrastinate.testing import InMemoryConnector
 
 from ledova_backend.procrastinate_app import app
 
-UNEXPECTED = "The chain layer queued {names}, which it does not know how to run in place of the worker."
-LEFT_QUEUED = "{names} queued after the chain layer's last run and never ran; nothing it queues may be dropped."
+UNEXPECTED = "The seed queued {names}, which it does not know how to run in place of the worker."
+LEFT_QUEUED = "{names} queued after the seed's last run and never ran; nothing the seed queues may be dropped."
 
 
 class UnexpectedJob(RuntimeError):
@@ -32,6 +32,11 @@ class Deferrals:
                 raise UnexpectedJob(UNEXPECTED.format(names=", ".join(unknown)))
             results += [handlers[name](**arguments) for name, arguments in jobs]
 
+    def require_empty(self):
+        left = sorted({name for name, _ in self.drain()})
+        if left:
+            raise UnexpectedJob(LEFT_QUEUED.format(names=", ".join(left)))
+
 
 @contextmanager
 def captured():
@@ -39,6 +44,4 @@ def captured():
     with app.replace_connector(connector):
         deferrals = Deferrals(connector)
         yield deferrals
-        left = sorted({name for name, _ in deferrals.drain()})
-        if left:
-            raise UnexpectedJob(LEFT_QUEUED.format(names=", ".join(left)))
+        deferrals.require_empty()
