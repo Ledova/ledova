@@ -20,7 +20,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import connection, connections
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_typed_data
@@ -153,6 +153,8 @@ CHAIN_SETTINGS = {
     **{name: os.environ.get(name, "") for name in CHAIN_ENV[1:]},
 }
 CAP = 1000
+CLOCK_SLACK = 5
+SETTLEMENT_WINDOW = 15 * 60
 
 
 chain_available = skipUnless(
@@ -164,6 +166,22 @@ def reset_chain_client():
     get_base_chain_client.cache_clear()
     BaseChainClient._instance = None
     BaseChainClient._web3 = None
+
+
+def chain_clock_lead(w3):
+    return w3.eth.get_block("pending")["timestamp"] - time.time()
+
+
+def align_chain_clock(w3):
+    head = w3.eth.get_block("latest")["timestamp"]
+    w3.provider.make_request("evm_setNextBlockTimestamp", [max(int(time.time()), head + 1)])
+    w3.provider.make_request("evm_mine", [])
+
+
+def isolate_chain(test, w3):
+    align_chain_clock(w3)
+    snapshot = w3.provider.make_request("evm_snapshot", [])["result"]
+    test.addCleanup(w3.provider.make_request, "evm_revert", [snapshot])
 
 
 class ChainTestMixin:
@@ -183,8 +201,7 @@ class ChainTestMixin:
         self.service = share_token_service
         self.chain = get_base_chain_client()
         self.w3 = self.chain.w3
-        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
-        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        isolate_chain(self, self.w3)
         self.staff = make_tenant("chain-staff", staff=True).user
         self.staff.user_permissions.add(
             *Permission.objects.filter(
@@ -2066,8 +2083,7 @@ class MintRequestChainTest(APITransactionTestCase):
         BaseChainClient._web3 = None
         self.chain = get_base_chain_client()
         self.w3 = self.chain.w3
-        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
-        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        isolate_chain(self, self.w3)
         self.actor = get_user_model().objects.create_superuser(email="chain-mint@example.test", password="synthetic")
         self.request = mint_request(self.actor)
         AssetChainDeployment.objects.filter(asset=self.request.settlement_asset).update(
@@ -2520,8 +2536,7 @@ class NAVUpdateChainTest(APITransactionTestCase):
         BaseChainClient._web3 = None
         self.chain = get_base_chain_client()
         self.w3 = self.chain.w3
-        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
-        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        isolate_chain(self, self.w3)
         self.actor = get_user_model().objects.create_superuser(email="chain-nav@example.test", password="synthetic")
         self.signer = Account.from_key(CHAIN_SETTINGS["BLOCKCHAIN_OPERATOR_KEY"]).address
         artifacts = Path(settings.BASE_DIR).parent / "contracts/artifacts/contracts"
@@ -2742,3 +2757,21 @@ class NAVUpdateChainTest(APITransactionTestCase):
         self.assertEqual(list(SignedAttempt.objects.order_by("pk").values(*fields)), attempts)
         self.assertEqual(SigningAccount.objects.get(address=self.signer.lower()).next_nonce, nonce + 2)
         self.assertEqual(self.nonce(), nonce + 2)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class ChainClockTest(SimpleTestCase):
+    def setUp(self):
+        reset_chain_client()
+        self.w3 = get_base_chain_client().w3
+        isolate_chain(self, self.w3)
+
+    def test_each_chain_test_starts_on_the_wall_clock_however_far_ahead_earlier_tests_left_the_node(self):
+        self.assertLess(abs(chain_clock_lead(self.w3)), CLOCK_SLACK)
+        self.w3.provider.make_request("evm_increaseTime", [SETTLEMENT_WINDOW + 60])
+        self.assertGreater(chain_clock_lead(self.w3), SETTLEMENT_WINDOW)
+
+        isolate_chain(self, self.w3)
+
+        self.assertLess(abs(chain_clock_lead(self.w3)), CLOCK_SLACK)

@@ -225,6 +225,16 @@ and never touches the stack's chain.
 The chain test uses PostgreSQL. Set `POSTGRES_*` for an isolated database; the
 two-worker capital-increase case requires its real row locks.
 
+Each real-chain test isolates itself through `isolate_chain`
+(`backend/tokens/tests/test_chain_integration.py`): it mines one block at the
+wall-clock time, then takes the snapshot its cleanup reverts to. The Hardhat node
+moves its clock ahead on `evm_revert`, by the time since the snapshot, and by a
+second for every block mined within the same second as the one before it, so
+without that first block the clock would run ahead by about the suite's running
+time. A trade's settlement deadline, fifteen minutes after the match, is checked
+against block time, so the later modules' trades, the seed's among them, would
+start to expire on chain once the earlier tests ran longer than that.
+
 ## Fresh-start redeploy
 
 The per-company registries of [#648](https://github.com/Ledova/ledova/issues/648)
