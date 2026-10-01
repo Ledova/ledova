@@ -2,7 +2,9 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CompanyShareToken, OfferingInput, OperatorSettlementAsset } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY } from '@ledova/shared';
+import type { CompanyShareToken, Offering, OfferingInput, OperatorSettlementAsset } from '@ledova/shared';
+import { documentRecord } from '../testSupport';
 import { OfferingForm } from './OfferingForm';
 
 const TOKEN = { uuid: 'token-1', symbol: 'QAT', name: 'QA Token' } as unknown as CompanyShareToken;
@@ -206,4 +208,86 @@ it('preserves a draft while reads are blocked, and requires removing an unavaila
   fireEvent.click(screen.getByRole('button', { name: 'Remove unavailable settlement assets' }));
   fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
   expect(created(onCreate).settlementAssets).toEqual([]);
+});
+
+describe('OfferingForm documents for investors', () => {
+  afterEach(cleanup);
+
+  const MEMORANDUM = documentRecord('prospectus', 'memorandum');
+  const RISKS = documentRecord('risk_disclosure', 'risks');
+
+  it('offers the company documents and carries only the chosen ones', () => {
+    const onCreate = vi.fn();
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        documents={[MEMORANDUM, RISKS]}
+        operatorName="Example Operator"
+        onCreate={onCreate}
+      />,
+    );
+    fillTheRequiredFields();
+    expect(screen.getByText(OFFER_DOCUMENT_COPY.ATTACH_HELP)).toBeDefined();
+    fireEvent.click(screen.getByLabelText('Attach risks.pdf'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+
+    expect(created(onCreate).documents).toEqual(['risks']);
+  });
+
+  it('keeps the documents of an edited offering unless the issuer removes one', () => {
+    const onUpdate = vi.fn();
+    const editing = {
+      tokenUuid: TOKEN.uuid,
+      exemption: 's708_11_professional',
+      pricePerShare: '1.50',
+      minimumShares: 10,
+      targetShares: 100,
+      capShares: 200,
+      opensAt: '2026-10-01T09:00:00Z',
+      closesAt: null,
+      summary: '',
+      useOfProceeds: '',
+      acceptsBankTransfer: true,
+      settlementAssets: [],
+      documents: ['memorandum', 'risks'],
+      status: 'draft',
+    } as unknown as Offering;
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        documents={[MEMORANDUM, RISKS]}
+        operatorName="Example Operator"
+        onCreate={vi.fn()}
+        editing={editing}
+        onUpdate={onUpdate}
+      />,
+    );
+    expect((screen.getByLabelText('Attach memorandum.pdf') as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByLabelText('Attach memorandum.pdf'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect((onUpdate.mock.calls[0][0] as OfferingInput).documents).toEqual(['risks']);
+  });
+
+  it('says where documents come from when the company has none', () => {
+    const onCreate = vi.fn();
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        operatorName="Example Operator"
+        onCreate={onCreate}
+      />,
+    );
+    fillTheRequiredFields();
+    expect(screen.getByText(OFFER_DOCUMENT_COPY.ATTACH_NONE)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft offering' }));
+
+    expect(created(onCreate).documents).toEqual([]);
+  });
 });

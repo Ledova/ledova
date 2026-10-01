@@ -6,6 +6,8 @@ export type DirectoryOpenOffering = ApiSchema<'DirectoryOpenOfferingResponse'>;
 
 export type DirectoryToken = ApiResponse<'api_v1_directory_tokens_retrieve'>;
 
+export type DirectoryDocument = ApiSchema<'DirectoryDocument'>;
+
 export type Offering = ApiResponse<'api_v1_offerings_retrieve'>;
 
 export type OfferingListItem = ApiResponse<'api_v1_offerings_list'>['results'][number];

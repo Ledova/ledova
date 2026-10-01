@@ -1,3 +1,4 @@
+from offerings.services.documents import published_document, published_documents
 from offerings.services.offering import (
     submit_offering,
     transition_offering,
@@ -42,6 +43,8 @@ __all__ = [
     "normalize_reference",
     "offering_headroom",
     "payment_warnings",
+    "published_document",
+    "published_documents",
     "record_refund",
     "reject",
     "retry_allotment",

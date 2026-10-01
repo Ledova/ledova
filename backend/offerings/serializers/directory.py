@@ -1,7 +1,8 @@
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company
+from companies.models import Company, CompanyDocument
 from tokens.serializers import ShareTokenListSerializer
 
 DIRECTORY_COMPANY_FIELDS = ["display_name", "industry", "city", "state"]
@@ -45,3 +46,33 @@ class DirectoryTokenListSerializer(ShareTokenListSerializer):
         if obj.open_offering_uuid is None:
             return None
         return DirectoryOpenOfferingSerializer(obj).data
+
+
+class DirectoryDocumentSerializer(serializers.ModelSerializer):
+
+    document_type_display = serializers.CharField(source="get_document_type_display", read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CompanyDocument
+        fields = [
+            "uuid",
+            "name",
+            "document_type",
+            "document_type_display",
+            "file_size",
+            "mime_type",
+            "valid_from",
+            "valid_until",
+            "created_at",
+            "file_url",
+        ]
+        read_only_fields = fields
+
+    def get_file_url(self, obj) -> str:
+        url = reverse(
+            "directory:tokens-document-file",
+            kwargs={"uuid": self.context["token"].uuid, "document_uuid": obj.uuid},
+        )
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url

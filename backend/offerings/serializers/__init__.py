@@ -1,6 +1,7 @@
 from offerings.serializers.directory import (
     DIRECTORY_COMPANY_FIELDS,
     DirectoryCompanySerializer,
+    DirectoryDocumentSerializer,
     DirectoryTokenListSerializer,
 )
 from offerings.serializers.offering import (
@@ -20,6 +21,7 @@ from offerings.serializers.subscription import (
 __all__ = [
     "DIRECTORY_COMPANY_FIELDS",
     "DirectoryCompanySerializer",
+    "DirectoryDocumentSerializer",
     "DirectoryTokenListSerializer",
     "OfferingDetailSerializer",
     "OfferingListSerializer",

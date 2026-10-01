@@ -212,7 +212,11 @@ balance the node would not set included, says to start over. It adds:
   rejected and one withdrawn, all priced in AUD and made under section 708
   exemptions, except Wattlefield's, which are for wholesale clients under section
   761G. About 60 applications on both rails cover every application status, with
-  references from the operator's prefix and payment due dates still ahead.
+  references from the operator's prefix and payment due dates still ahead. Each
+  offering carries an information memorandum generated from its own terms,
+  verified by the document reviewer when the round was approved, and its
+  company's risk disclosure statement; eligible investors open those of the
+  approved and closed rounds from the Directory.
 - Issuance requests submitted, under review, approved, rejected and executed (a
   top-up of Demo Robotics' employee share trust after its register opened, which
   the register records under its instruction), and capital increases executed

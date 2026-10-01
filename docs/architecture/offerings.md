@@ -51,14 +51,38 @@ How an issuer publishes an offering and an operator approves its terms.
    submitted or under-review offering is invisible to investors and approval
    publishes the terms. The annotation carries no status, because only one
    status can ever reach it.
-8. A rejected offering can be withdrawn by its issuer. Withdrawal keeps the
+8. Approval also publishes the offering's documents, and this rule is wider
+   than the open offering: anyone the directory admits to a share class can
+   open the documents attached to its approved offerings, whether they are
+   upcoming, open or past their closing time, and to its closed ones
+   (`OfferingQuerySet.published()`). Drafts and submitted, under-review,
+   rejected and withdrawn offerings publish nothing, and neither does a company
+   document that is not attached to such an offering. `GET
+   /api/v1/directory/tokens/{uuid}/documents/` lists them, newest first, each
+   once however many offerings carry it, with the name, type, size, upload date
+   and any validity dates the issuer recorded; `GET
+   /api/v1/directory/tokens/{uuid}/documents/{document}/file/` streams one,
+   inline for a PDF or image. The class resolves through the directory's own
+   selector, so an ineligible investor, a class that has left the directory, a
+   document that is not published through that class and an unknown UUID all
+   answer 404, the same body for each class. Only a document stored as a file
+   of the class's own company is published: never an external link, and never
+   another company's document attached by mistake, which the offering
+   serializer also refuses. The company document policy stays owner-only, so
+   these routes read through one bounded operator query, catalogued in
+   [tenancy](tenancy.md#requests-and-jobs), and they record no read, as no read
+   of a company document is recorded ([uploaded files](files-and-retention.md)).
+   The issuer picks the documents in the offering form on the web and in the
+   app, from those uploaded under Application, while the offering is a draft
+   or after a rejection.
+9. A rejected offering can be withdrawn by its issuer. Withdrawal keeps the
    reviewer, the review time, the notes and the rejection reason; the row stays
    visible as a record and offers no further edit, resubmit or delete.
-9. `UniqueConstraint(token)` `WHERE status IN (submitted, under_review,
-   approved)` allows one live offering per share class. `submit_offering`
-   refuses the second submission by name before the write, so the ordinary
-   second-tranche path is a 400 naming the offering in flight; the constraint
-   is the backstop against a race. Two tranches at once needs the constraint
-   relaxed, which is a migration.
+10. `UniqueConstraint(token)` `WHERE status IN (submitted, under_review,
+    approved)` allows one live offering per share class. `submit_offering`
+    refuses the second submission by name before the write, so the ordinary
+    second-tranche path is a 400 naming the offering in flight; the constraint
+    is the backstop against a race. Two tranches at once needs the constraint
+    relaxed, which is a migration.
 
 Next: [subscriptions and allotment](subscriptions.md), [eligibility](companies-and-eligibility.md), and [operator worklists](../operations/operator-console.md).

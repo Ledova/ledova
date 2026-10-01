@@ -89,7 +89,7 @@ export {
 } from './investorClassifications';
 export { getFeatureFlags } from './featureFlags';
 export { getOperator } from './operator';
-export { getDirectoryTokens, getDirectoryToken } from './directory';
+export { getDirectoryTokens, getDirectoryToken, getDirectoryDocuments, downloadDirectoryDocument } from './directory';
 export {
   getOfferings,
   getOffering,

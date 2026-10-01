@@ -2,18 +2,12 @@ import { useCallback, useRef, useState } from 'react';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { getCompanies, getErrorMessage, submitInvestorClassification } from '@ledova/shared';
+import { formatFileSize, getCompanies, getErrorMessage, submitInvestorClassification } from '@ledova/shared';
 import type { CompanyListItem, InvestorCategory } from '@ledova/shared';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
 import { FIELD_CLASS } from '@components/fieldClass';
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 interface ClaimModalProps {
   isOpen: boolean;

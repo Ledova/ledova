@@ -33,7 +33,7 @@ from shared.seeds.demo import DEMO_ADMIN_EMAIL, DEMO_INVESTOR_EMAIL, DEMO_OWNER_
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import operator_address
 from shared.seeds.synthetic.chain.settlement import fund_wallets
-from shared.seeds.synthetic.chain.story import TESTER_WALLETS
+from shared.seeds.synthetic.chain.story import ROUND_SPECS, TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.market import layer as market_layer
 from shared.seeds.synthetic.market.deposits import mint_id
@@ -108,6 +108,7 @@ SAFE_ROWS = (
     "Capital increase requests needing attention",
 )
 AUDY_DECIMALS = 2
+MEMORANDUM = "-information-memorandum.pdf"
 MARKET_SEED = "shared.seeds.synthetic.market.layer.seed_market"
 EXPO_TOKEN = "ExponentPushToken[seed-test-last-step]"
 LAST_STEPS = (
@@ -348,6 +349,19 @@ class ChainLayerTest(APITransactionTestCase):
         directory = self.client.get("/api/v1/directory/tokens/")
         self.assertEqual(directory.status_code, 200, directory.content)
         self.assertTrue(directory.json())
+        offered = set()
+        for token in listed(directory):
+            documents = f"/api/v1/directory/tokens/{token['uuid']}/documents/"
+            for row in listed(self.client.get(documents)):
+                offered.add(row["name"])
+                opened = self.client.get(f"{documents}{row['uuid']}/file/")
+                self.assertEqual(opened.status_code, 200, row["name"])
+                self.assertTrue(b"".join(opened.streaming_content).startswith(b"%PDF"), row["name"])
+        published = {spec.key for spec in ROUND_SPECS if spec.status in ("approved", "closed")}
+        self.assertEqual(
+            {name for name in offered if name.endswith(MEMORANDUM)}, {f"{key}{MEMORANDUM}" for key in published}
+        )
+        self.assertTrue(any(name.endswith("-risk-disclosure-statement.pdf") for name in offered), offered)
 
     def check_founder_screens(self):
         founder = User.objects.get(email=DEMO_OWNER_EMAIL)

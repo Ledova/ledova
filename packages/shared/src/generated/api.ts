@@ -799,6 +799,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/directory/tokens/{uuid}/documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_directory_tokens_documents_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/directory/tokens/{uuid}/documents/{document_uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_directory_tokens_documents_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/documents/': {
     parameters: {
       query?: never;
@@ -2587,6 +2619,18 @@ export interface ApiComponents {
       displayName: string;
       industry: string;
       state: string;
+    };
+    DirectoryDocument: {
+      createdAt: string;
+      documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
+      documentTypeDisplay: string;
+      fileSize: number;
+      fileUrl: string;
+      mimeType: string;
+      name: string;
+      uuid: string;
+      validFrom: string | null;
+      validUntil: string | null;
     };
     DirectoryOpenOfferingResponse: {
       closesAt: string | null;
@@ -6088,6 +6132,49 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['DirectoryTokenList'];
+        };
+      };
+    };
+  };
+  api_v1_directory_tokens_documents_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['DirectoryDocument'][];
+        };
+      };
+    };
+  };
+  api_v1_directory_tokens_documents_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_uuid: string;
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

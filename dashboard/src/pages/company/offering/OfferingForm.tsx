@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
 import type {
+  CompanyDocument,
   CompanyShareTokenListItem,
   Offering,
   OfferingExemption,
@@ -17,6 +18,7 @@ interface OfferingFormProps {
   busy: boolean;
   blocked?: boolean;
   settlementAssets: OperatorSettlementAsset[];
+  documents?: CompanyDocument[];
   operatorName: string;
   onCreate: (input: OfferingInput) => void;
   editing?: Offering;
@@ -46,6 +48,7 @@ export function OfferingForm({
   busy,
   blocked = false,
   settlementAssets,
+  documents = [],
   operatorName,
   onCreate,
   editing,
@@ -64,6 +67,7 @@ export function OfferingForm({
   const [useOfProceeds, setUseOfProceeds] = useState(editing?.useOfProceeds ?? '');
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
+  const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
 
   const chosenToken = token;
   const hasARail = acceptsBankTransfer || chosenAssets.length > 0;
@@ -89,6 +93,10 @@ export function OfferingForm({
 
   const toggleAsset = (uuid: string) =>
     setChosenAssets((chosen) => (chosen.includes(uuid) ? chosen.filter((each) => each !== uuid) : [...chosen, uuid]));
+  const toggleDocument = (uuid: string) =>
+    setChosenDocuments((chosen) =>
+      chosen.includes(uuid) ? chosen.filter((each) => each !== uuid) : [...chosen, uuid],
+    );
 
   const handleSubmit = () => {
     if (!isComplete || busy || blocked) return;
@@ -105,6 +113,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
+      documents: chosenDocuments,
     };
     if (editing && onUpdate) {
       onUpdate(input);
@@ -261,6 +270,28 @@ export function OfferingForm({
           <p className="text-sm text-error-light">
             Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
           </p>
+        )}
+      </div>
+
+      <div className="sm:col-span-2 space-y-2">
+        <span className="text-sm font-medium text-text-primary">{OFFER_DOCUMENT_COPY.ATTACH_HEADING}</span>
+        <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.ATTACH_HELP}</p>
+        {documents.length === 0 ? (
+          <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.ATTACH_NONE}</p>
+        ) : (
+          documents.map((document) => (
+            <label key={document.uuid} className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                aria-label={`${OFFER_DOCUMENT_COPY.ATTACH} ${document.name}`}
+                checked={chosenDocuments.includes(document.uuid)}
+                onChange={() => toggleDocument(document.uuid)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="min-w-0 break-all text-sm text-text-primary">{document.name}</span>
+              <span className="text-sm text-text-muted">{document.documentTypeDisplay}</span>
+            </label>
+          ))
         )}
       </div>
 

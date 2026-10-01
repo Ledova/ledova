@@ -2,10 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { formatDate, formatMoney, formatShareCount, useDirectoryToken, useSubscribableWallets } from '@ledova/shared';
+import {
+  formatDate,
+  formatMoney,
+  formatShareCount,
+  useDirectoryDocuments,
+  useDirectoryToken,
+  useSubscribableWallets,
+} from '@ledova/shared';
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
+import { OfferDocuments } from './OfferDocuments';
 import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
 import { useCreateSubscription } from '../applications/useApplications';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -37,6 +45,7 @@ export function ShareClassScreen() {
     };
   }, []);
   const wallets = useSubscribableWallets(Boolean(offering) && !hasError && !notFound);
+  const documents = useDirectoryDocuments(params.uuid, Boolean(token) && !hasError && !notFound);
   const create = useCreateSubscription((uuid) => {
     if (mounted.current && navigation.isFocused())
       navigation.getParent()?.navigate('Applications', { screen: 'ApplicationDetail', params: { uuid } });
@@ -53,11 +62,12 @@ export function ShareClassScreen() {
         />
       }
       loading={isLoading}
-      refreshing={isRefreshing || wallets.isRefreshing}
+      refreshing={isRefreshing || wallets.isRefreshing || documents.isRefreshing}
       refresh={() => {
         if (!create.isPending) {
           void retry();
           if (offering) void wallets.retry();
+          if (token && !notFound && !hasError) void documents.retry();
         }
       }}
     >
@@ -106,6 +116,7 @@ export function ShareClassScreen() {
               </Text>
             )}
           </Section>
+          <OfferDocuments token={token.uuid} read={documents} />
           {offering &&
             (wallets.isLoading ? (
               <Text style={styles.help}>Loading your receiving wallets…</Text>

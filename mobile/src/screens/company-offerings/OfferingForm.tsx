@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
+  OFFER_DOCUMENT_COPY,
   OFFERING_EXEMPTION_LABELS,
   requestShares,
+  type CompanyDocument,
   type CompanyShareTokenListItem,
   type Offering,
   type OfferingExemption,
@@ -19,6 +21,7 @@ export function OfferingForm({
   busy,
   blocked,
   settlementAssets,
+  documents = [],
   operatorName,
   editing,
   onSubmit,
@@ -29,6 +32,7 @@ export function OfferingForm({
   busy: boolean;
   blocked: boolean;
   settlementAssets: OperatorSettlementAsset[];
+  documents?: CompanyDocument[];
   operatorName: string;
   editing?: Offering;
   onSubmit: (input: OfferingInput) => void;
@@ -48,6 +52,7 @@ export function OfferingForm({
   const [useOfProceeds, setUseOfProceeds] = useState(editing?.useOfProceeds ?? '');
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
+  const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
   const minimum = requestShares(minimumShares);
   const target = requestShares(targetShares);
   const cap = requestShares(capShares);
@@ -83,6 +88,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
+      documents: chosenDocuments,
     });
   };
   return (
@@ -185,6 +191,28 @@ export function OfferingForm({
         <Text accessibilityRole="alert" style={styles.error}>
           Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
         </Text>
+      )}
+      <Text style={styles.heading}>{OFFER_DOCUMENT_COPY.ATTACH_HEADING}</Text>
+      <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_HELP}</Text>
+      {documents.length === 0 ? (
+        <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_NONE}</Text>
+      ) : (
+        documents.map((document) => (
+          <View key={document.uuid} style={styles.group}>
+            <Text style={styles.text}>{document.name}</Text>
+            <Text style={styles.muted}>{document.documentTypeDisplay}</Text>
+            <Switch
+              accessibilityLabel={`${OFFER_DOCUMENT_COPY.ATTACH} ${document.name}`}
+              value={chosenDocuments.includes(document.uuid)}
+              disabled={busy}
+              onValueChange={(value) =>
+                setChosenDocuments((chosen) =>
+                  value ? [...chosen, document.uuid] : chosen.filter((uuid) => uuid !== document.uuid),
+                )
+              }
+            />
+          </View>
+        ))
       )}
       {unavailableAssets.length > 0 && (
         <View style={styles.group}>

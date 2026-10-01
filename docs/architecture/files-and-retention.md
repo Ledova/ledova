@@ -35,6 +35,13 @@ a personal document and classification evidence are read only through admin.
 The dashboard uses a top-level navigation with its session cookie. Mobile
 fetches with its bearer client and shares a temporary cached copy; see
 [mobile lifecycles](mobile-lifecycles.md).
+
+A company document attached to an approved or closed offering is also served to
+the investors the directory admits to that share class, through the directory's
+own route and `file_url` ([offerings](offerings.md)), under the same rules: the
+row resolves before streaming, and a document that is not published through
+that class answers the same 404 as a phantom. Only stored files are served there;
+a document held as an external link is not offered to investors.
 Admin downloads are attachments. Customer serving is inline only for the allowed
 PDF/PNG/JPEG MIME types; other or absent types become attachments.
 
@@ -72,6 +79,11 @@ A [publication to members](shareholder-publications.md#every-read-is-audited-and
 follows the same read-audit rule for a document a member reads rather than a
 reviewer, except that its read records are deleted with it when it is
 [purged](shareholder-publications.md#retention).
+
+Company documents carry no read audit: not for the owner, not for staff in
+admin, and not for an investor opening an offering's documents. Those are the
+offer information the issuer chose to give every eligible investor, rather than
+a personal record such as a payslip or a member's own statement.
 
 A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents

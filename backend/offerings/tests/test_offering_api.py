@@ -3,10 +3,12 @@ from unittest.mock import patch
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from companies.models import Company, CompanyStatus
+from companies.models import Company, CompanyStatus, CompanyType, DocumentType
 from offerings.models import Offering, OfferingStatus
+from offerings.serializers.offering import FOREIGN_DOCUMENT
 from offerings.services.offering import ALREADY_LIVE
-from shared.tests.tenants import make_tenant
+from offerings.tests.test_directory_documents import offer_document
+from shared.tests.tenants import an_acn, make_tenant
 
 BASE = "/api/v1/offerings/"
 STAFF_ACTIONS = ("approve", "reject", "close", "start-review", "start_review")
@@ -109,6 +111,25 @@ class OfferingApiTest(APITestCase):
         self.assertEqual(response.status_code, 404)
         self.other.offering.refresh_from_db()
         self.assertEqual(self.other.offering.status, OfferingStatus.REJECTED)
+
+    def test_an_offering_attaches_only_documents_of_the_company_that_issues_its_share_class(self):
+        own = offer_document(self.tenant.company)
+        sibling = Company.objects.create(
+            owner=self.tenant.user, name="Sibling Pty Ltd", company_type=CompanyType.PROPRIETARY, acn=an_acn(9_000_001)
+        )
+        stray = offer_document(sibling, name="Sibling memorandum", document_type=DocumentType.PROSPECTUS)
+        payload = {"token": str(self.tenant.token.uuid), **PAYLOAD}
+
+        refused = self.client.post(BASE, {**payload, "documents": [str(own.uuid), str(stray.uuid)]}, format="json")
+        created = self.client.post(BASE, {**payload, "documents": [str(own.uuid)]}, format="json")
+        edited = self.client.patch(f"{BASE}{created.json()['uuid']}/", {"documents": [str(stray.uuid)]}, format="json")
+
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(refused.json()["documents"], [FOREIGN_DOCUMENT])
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["documents"], [str(own.uuid)])
+        self.assertEqual(edited.status_code, 400, edited.content)
+        self.assertEqual(list(Offering.objects.get(uuid=created.json()["uuid"]).documents.all()), [own])
 
     def test_a_foreign_share_class_cannot_be_offered(self):
         response = self.client.post(BASE, {"token": str(self.other.deployed_token.uuid), **PAYLOAD}, format="json")

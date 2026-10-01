@@ -5,7 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Company, Offering } from '@ledova/shared';
 import OfferingPage from '.';
-import { companyRecord, renderCompanyPage } from '../testSupport';
+import { companyRecord, documentRecord, renderCompanyPage } from '../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -357,7 +357,25 @@ it('edits the rejected record with its current values, retaining unchanged docum
   expect(payload.summary).toBe('Corrected after review');
   expect(payload.pricePerShare).toBe('3.25');
   expect(payload).not.toHaveProperty('maximumShares');
-  expect(payload).not.toHaveProperty('documents');
+  expect(payload.documents).toEqual(['document-one']);
+});
+
+it('attaches the company documents the issuer chooses, from the company record', async () => {
+  company = companyRecord({
+    status: 'active',
+    statusDisplay: 'Active',
+    canIssueTokens: true,
+    documents: [documentRecord('prospectus', 'document-one'), documentRecord('risk_disclosure', 'document-two')],
+  });
+  show();
+  const dialog = await openEditor(true);
+  const kept = within(dialog).getByLabelText('Attach document-one.pdf') as HTMLInputElement;
+  const added = within(dialog).getByLabelText('Attach document-two.pdf') as HTMLInputElement;
+  expect([kept.checked, added.checked]).toEqual([true, false]);
+  fireEvent.click(added);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(api.patch.mock.calls[0][1].documents).toEqual(['document-one', 'document-two']);
 });
 
 it('keeps a failed edit read distinct from a new offering and retries the same record', async () => {

@@ -1,7 +1,8 @@
+import textwrap
 from datetime import timedelta
 
 from companies.models import CompanyDocument, DocumentType
-from offerings.models import Offering, SubscriptionStatus
+from offerings.models import Offering, OfferingExemption, SubscriptionStatus
 from offerings.services.offering import submit_offering, transition_offering
 from offerings.services.subscription import (
     EXPIRY_NOTE,
@@ -34,12 +35,19 @@ from shared.seeds.synthetic.chain.story import (
     WITHDRAWN,
 )
 from shared.seeds.synthetic.clock import AEST, frozen
-from shared.seeds.synthetic.paper import authority
+from shared.seeds.synthetic.paper import (
+    acn_text,
+    authority,
+    company_document,
+    pdf,
+    verified,
+)
 from tokens.models import ShareToken
 
 CLOSE_REASON = "Closed at the end of the offer period."
 ALLOTMENT_NOTE = "Allotted after the offer closed, under the directors' allotment resolution."
-OFFER_DOCUMENTS = (DocumentType.PROSPECTUS, DocumentType.RISK_DISCLOSURE)
+APPROVED_ROUNDS = ("approved", "closed")
+MEMORANDUM_WIDTH = 90
 SCALED_DIFFERENTLY = "The {key} scale-back allotted {actual} to a subscription the plan scales to {planned}."
 NOT_ALLOTTED = "The {key} allotment refused: {refusals}"
 UNFINISHED = "Subscription {reference} of {key} ended {status}, not allotted."
@@ -52,10 +60,41 @@ def _step(records, at, action):
         return result
 
 
+def _local_day(moment):
+    return f"{moment.astimezone(AEST):%d %B %Y}"
+
+
+def memorandum(item, token, records):
+    company = token.company
+    limit = f", and at most {item.maximum:,} for any one investor" if item.maximum else ""
+    content = pdf(
+        f"Information memorandum: {token.name}",
+        [
+            company.name,
+            acn_text(company.acn),
+            f"Offer of {token.name} ({token.symbol}) at AUD {item.price} per share.",
+            f"Minimum {item.minimum:,} shares, target {item.target:,} and cap {item.cap:,}{limit}.",
+            f"Applications open {_local_day(item.opens_at)} and close {_local_day(item.closes_at)}.",
+            f"Offered under: {OfferingExemption(item.exemption).label}.",
+            "",
+            *textwrap.wrap(item.summary, MEMORANDUM_WIDTH),
+            "",
+            "Use of proceeds",
+            *textwrap.wrap(item.use_of_proceeds, MEMORANDUM_WIDTH),
+        ],
+    )
+    name = f"{item.key}-information-memorandum.pdf"
+    document = company_document(company, DocumentType.PROSPECTUS, name, content, at=item.created_at)
+    if item.status in APPROVED_ROUNDS:
+        return verified(document, records.documents, at=item.decided_at)
+    return document
+
+
 def apply_round(item, records):
     token = ShareToken.objects.select_related("company").get(pk=records.classes[item.share_class].pk)
     founder = token.company.owner
     staff = records.operations
+    terms = memorandum(item, token, records)
     with atomic(), frozen(item.created_at):
         offering = Offering.objects.create(
             token=token,
@@ -73,15 +112,16 @@ def apply_round(item, records):
         )
         offering.settlement_assets.add(records.audy)
         offering.documents.add(
+            terms,
             *CompanyDocument.objects.filter(
-                company=token.company, document_type__in=OFFER_DOCUMENTS, is_verified=True
-            ).order_by("document_type")
+                company=token.company, document_type=DocumentType.RISK_DISCLOSURE, is_verified=True
+            ),
         )
     if item.submitted_at:
         _step(records, item.submitted_at, lambda: submit_offering(offering, founder))
     if item.review_at:
         _step(records, item.review_at, lambda: transition_offering(offering, "start_review", reviewed_by=staff))
-    if item.status in ("approved", "closed"):
+    if item.status in APPROVED_ROUNDS:
         _step(
             records,
             item.decided_at,

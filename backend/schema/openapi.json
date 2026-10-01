@@ -2094,6 +2094,74 @@
         ],
         "type": "object"
       },
+      "DirectoryDocument": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "documentType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyDocumentDocumentTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "documentTypeDisplay": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "fileSize": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "fileUrl": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "mimeType": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "validUntil": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "documentType",
+          "documentTypeDisplay",
+          "fileSize",
+          "fileUrl",
+          "mimeType",
+          "name",
+          "uuid",
+          "validFrom",
+          "validUntil"
+        ],
+        "type": "object"
+      },
       "DirectoryOpenOfferingResponse": {
         "properties": {
           "closesAt": {
@@ -15743,6 +15811,99 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DirectoryTokenList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/directory/tokens/{uuid}/documents/": {
+      "get": {
+        "operationId": "api_v1_directory_tokens_documents_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DirectoryDocument"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/directory/tokens/{uuid}/documents/{document_uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_directory_tokens_documents_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },
