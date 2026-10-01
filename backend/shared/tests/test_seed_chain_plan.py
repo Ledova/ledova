@@ -2,18 +2,23 @@ from collections import Counter, defaultdict
 from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from assets.models import Asset
 from blockchain.models import SigningAccount
 from offerings.models import OfferingStatus, SubscriptionStatus
+from operators.models import Operator
+from shared.constants import BLOCKCHAIN_ETHEREUM
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL
 from shared.seeds.synthetic.chain import population
+from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.guard import (
     GET_THE_CHAIN,
+    MALFORMED,
     NO_CODE,
     NO_FINALITY,
     NOT_ADMITTED,
@@ -29,6 +34,12 @@ from shared.seeds.synthetic.chain.layer import (
     SKIPPED,
     issuance_state,
     seed_issuance,
+)
+from shared.seeds.synthetic.chain.settlement import (
+    BALANCE_METHODS,
+    OTHER_SETTLEMENT,
+    fund_wallets,
+    settlement_refusal,
 )
 from shared.seeds.synthetic.chain.story import (
     ALLOTTED,
@@ -319,6 +330,43 @@ class IssuanceRunOnceTest(TestCase):
         self.assertIn("Chain layer already present; nothing added.", output)
         self.assertFalse(rpc.called)
 
+    def test_an_operator_settling_otherwise_is_left_alone_before_the_chain_is_touched(self):
+        assets = {asset.symbol: asset for asset in Asset.objects.filter(symbol__in=("AUDY", "AUSG", "USDC"))}
+        operator = Operator.get()
+        operator.receiving_wallet_address = "0x" + "d4" * 20
+        operator.issued_stablecoin = assets["AUDY"]
+        operator.save()
+        operator.supported_settlement_assets.set([assets["AUDY"]])
+        self.assertIsNone(settlement_refusal())
+
+        operator.issued_stablecoin = assets["AUSG"]
+        operator.receiving_wallet_chain = BLOCKCHAIN_ETHEREUM
+        operator.save()
+        operator.supported_settlement_assets.add(assets["USDC"])
+        with patch("shared.seeds.synthetic.chain.layer.chain_refusal", return_value=None), patch(NODE) as rpc:
+            outcome = seed_issuance(timezone.now())
+            output = seed(investors=MINIMUM_INVESTORS)
+
+        detail = "settlement assets AUDY, USDC; issued stablecoin AUSG; receiving wallet on ethereum"
+        self.assertEqual((outcome.state, outcome.reason), (SKIPPED, OTHER_SETTLEMENT.format(detail=detail)))
+        self.assertIn(f"Chain layer skipped: {outcome.reason}\n", output)
+        self.assertNotIn(GET_THE_CHAIN, output)
+        self.assertFalse(rpc.called)
+        self.assertEqual(issuance_state(self.found), ABSENT)
+        self.assertEqual(set(operator.supported_settlement_assets.values_list("symbol", flat=True)), {"AUDY", "USDC"})
+
+    @override_settings(**CHAIN)
+    def test_a_node_that_cannot_set_a_balance_fails_the_step(self):
+        client = Mock()
+        client.w3.provider.make_request.return_value = {"jsonrpc": "2.0", "id": 1, "error": {"code": -32601}}
+
+        with patch("shared.seeds.synthetic.chain.settlement.get_base_chain_client", return_value=client):
+            with self.assertRaisesMessage(ChainStepFailed, " nor ".join(BALANCE_METHODS)):
+                fund_wallets()
+
+        methods = [call.args[0] for call in client.w3.provider.make_request.call_args_list]
+        self.assertEqual(methods, list(BALANCE_METHODS))
+
 
 class ChainGuardTest(TestCase):
 
@@ -332,6 +380,12 @@ class ChainGuardTest(TestCase):
     @override_settings(**{**CHAIN, "STABLECOIN_CONTRACT_ADDRESS": "", "ATOMIC_SWAP_ADDRESS": ""})
     def test_missing_contract_settings_are_named(self):
         self.assertEqual(chain_refusal(), "STABLECOIN_CONTRACT_ADDRESS, ATOMIC_SWAP_ADDRESS are not set.")
+
+    @override_settings(**{**CHAIN, "ATOMIC_SWAP_ADDRESS": "0x" + "c3" * 19})
+    def test_a_malformed_contract_setting_is_named_before_the_network(self):
+        with patch(NODE) as rpc:
+            self.assertEqual(chain_refusal(), MALFORMED.format(names="ATOMIC_SWAP_ADDRESS"))
+        self.assertFalse(rpc.called)
 
     @override_settings(**{**CHAIN, "WALLET_CHAIN_FINALITY_POLICIES": {}})
     def test_a_chain_without_a_finality_depth_is_refused(self):
@@ -362,4 +416,4 @@ class ChainGuardTest(TestCase):
         with patch("shared.seeds.synthetic.chain.layer.chain_refusal", return_value="No node answers."):
             outcome = seed_issuance(timezone.now())
 
-        self.assertEqual((outcome.state, outcome.reason), (SKIPPED, "No node answers."))
+        self.assertEqual((outcome.state, outcome.reason), (SKIPPED, f"No node answers. {GET_THE_CHAIN}"))

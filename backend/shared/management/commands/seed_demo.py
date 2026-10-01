@@ -32,7 +32,6 @@ from shared.seeds.demo import (
     DEMO_TOKEN_SYMBOL,
 )
 from shared.seeds.synthetic.chain import layer as chain_layer
-from shared.seeds.synthetic.chain.guard import GET_THE_CHAIN
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
@@ -302,7 +301,7 @@ class Command(BaseCommand):
         if outcome is None:
             return
         if outcome.state == chain_layer.SKIPPED:
-            self.stdout.write(f"Chain layer skipped: {outcome.reason} {GET_THE_CHAIN}")
+            self.stdout.write(f"Chain layer skipped: {outcome.reason}")
             return
         if outcome.state == chain_layer.PARTIAL:
             self.stdout.write(

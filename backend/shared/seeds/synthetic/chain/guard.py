@@ -12,6 +12,7 @@ FINAL_MODES = ("depth", "finalized")
 PROBE_TIMEOUT = 5
 NOT_LOCAL = "BLOCKCHAIN_CHAIN_ID is {chain_id}, and the chain layer writes only to the local chain ({local})."
 UNSET = "{names} {verb} not set."
+MALFORMED = "{names}: not a valid contract address."
 NO_FINALITY = "LOCAL_CHAIN_FINALITY_DEPTH is not set, so no issuance on the local chain would ever complete."
 BAD_KEY = "BLOCKCHAIN_OPERATOR_KEY is not a valid private key."
 NOT_ADMITTED = "The operator signer is not admitted for chain {local}; python manage.py admit_local_signer admits it."
@@ -35,6 +36,9 @@ def _settings_refusal():
     missing = [name for name in ("BLOCKCHAIN_OPERATOR_KEY", *CONTRACT_SETTINGS) if not getattr(settings, name, "")]
     if missing:
         return UNSET.format(names=", ".join(missing), verb="is" if len(missing) == 1 else "are")
+    malformed = [name for name in CONTRACT_SETTINGS if not Web3.is_address(getattr(settings, name))]
+    if malformed:
+        return MALFORMED.format(names=", ".join(malformed))
     if finality_policy(f"evm:{LOCAL_SIGNER_CHAIN_ID}", BLOCKCHAIN_BASE)["mode"] not in FINAL_MODES:
         return NO_FINALITY
     try:

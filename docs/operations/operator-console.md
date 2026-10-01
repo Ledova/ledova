@@ -177,9 +177,11 @@ contracts deployed and the operator signer admitted, as in the stack
 signs and sends real transactions there, about 130 in under a minute, one at a
 time, and calls each service and the task the worker would have run, so the
 worker stays stopped and no job is queued. Without such a chain it writes
-nothing to any chain and prints why, and a later `make dev-seed` adds it. Like the
-population it runs once per database: a later run says it is present, and a run
-that stopped part-way says to start over. It adds:
+nothing to any chain and prints why, and a later `make dev-seed` adds it. It
+likewise leaves alone an operator already set to settle in anything but AUDY on
+Base, and names the fields to clear. Like the population it runs once per
+database: a later run says it is present, and a run that stopped part-way, a
+balance the node would not set included, says to start over. It adds:
 
 - Settlement: AUDY becomes the operator's settlement asset on Base, with a
   receiving wallet and its par price, so payment instructions show both rails and
@@ -201,8 +203,8 @@ that stopped part-way says to start over. It adds:
   Each class's register is then opened from the chain by its opening review,
   its particulars are imported with names, dates entered back to the founding,
   amounts paid and a few pre-platform former members, and it is reconciled with
-  the chain and folded. Every opened register has 10 to 16 members and no effect
-  waiting.
+  the chain and folded. Every opened register has at least ten members and no
+  effect waiting.
 - Offerings in every status: three closed and allotted, one of them scaled back
   with the excess refunded; one open and close to its cap; one approved to open in
   a few days; one submitted, one under review, one draft, one rejected and one

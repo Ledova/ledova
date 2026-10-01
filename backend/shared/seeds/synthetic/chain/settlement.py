@@ -9,6 +9,7 @@ from integrations.base_chain import get_base_chain_client
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic
+from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.guard import operator_address
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Holding
@@ -17,6 +18,26 @@ AUDY = "AUDY"
 WEI = Decimal(10) ** 18
 OPERATOR_GAS_FLOOR = Decimal("1")
 BALANCE_METHODS = ("hardhat_setBalance", "anvil_setBalance")
+NOT_FUNDED = "The node accepted neither {methods} for {address}, so the hourly wallet sync would replace its balance."
+OTHER_SETTLEMENT = (
+    "The operator already settles otherwise ({detail}), and the chain layer makes AUDY on Base its single "
+    "settlement asset. Clear those fields on the operator in the admin, then run make dev-seed again."
+)
+
+
+def settlement_refusal():
+    operator = Operator.get()
+    supported = sorted(operator.supported_settlement_assets.values_list("symbol", flat=True))
+    issued = operator.issued_stablecoin.symbol if operator.issued_stablecoin_id else AUDY
+    chain = operator.receiving_wallet_chain if operator.receiving_wallet_address else BLOCKCHAIN_BASE
+    detail = []
+    if supported not in ([], [AUDY]):
+        detail.append(f"settlement assets {', '.join(supported)}")
+    if issued != AUDY:
+        detail.append(f"issued stablecoin {issued}")
+    if chain != BLOCKCHAIN_BASE:
+        detail.append(f"receiving wallet on {chain}")
+    return OTHER_SETTLEMENT.format(detail="; ".join(detail)) if detail else None
 
 
 def configure_settlement(plan, records):
@@ -61,5 +82,7 @@ def fund_wallets():
         address = Web3.to_checksum_address(holding.wallet.address)
         if address.lower() == operator and holding.quantity < OPERATOR_GAS_FLOOR:
             continue
-        funded += _set_balance(provider, address, int(holding.quantity * WEI))
+        if not _set_balance(provider, address, int(holding.quantity * WEI)):
+            raise ChainStepFailed(NOT_FUNDED.format(methods=" nor ".join(BALANCE_METHODS), address=address))
+        funded += 1
     return funded

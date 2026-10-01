@@ -12,7 +12,7 @@ from shared.seeds.synthetic.chain.classes import (
     pause,
 )
 from shared.seeds.synthetic.chain.deferred import captured
-from shared.seeds.synthetic.chain.guard import chain_refusal
+from shared.seeds.synthetic.chain.guard import GET_THE_CHAIN, chain_refusal
 from shared.seeds.synthetic.chain.issues import apply_request, mint_positions
 from shared.seeds.synthetic.chain.offerings import allot_round, apply_round
 from shared.seeds.synthetic.chain.records import Records
@@ -21,7 +21,11 @@ from shared.seeds.synthetic.chain.registers import (
     open_register,
     settle,
 )
-from shared.seeds.synthetic.chain.settlement import configure_settlement, fund_wallets
+from shared.seeds.synthetic.chain.settlement import (
+    configure_settlement,
+    fund_wallets,
+    settlement_refusal,
+)
 from shared.seeds.synthetic.chain.story import DEMO, SALTBUSH, build_issuance
 from shared.seeds.synthetic.staff import PERMISSIONS, permissions
 from tokens.models import (
@@ -69,6 +73,9 @@ def seed_issuance(now):
     if state != ABSENT:
         return Outcome(state)
     refusal = chain_refusal()
+    if refusal:
+        return Outcome(SKIPPED, reason=f"{refusal} {GET_THE_CHAIN}")
+    refusal = settlement_refusal()
     if refusal:
         return Outcome(SKIPPED, reason=refusal)
     plan = build_issuance(now, population.firms(found), population.candidates(found))
