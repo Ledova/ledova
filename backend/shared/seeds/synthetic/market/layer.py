@@ -229,6 +229,7 @@ def _apply(plan, market):
     for deposit in plan.deposits:
         if deposit.state != EXECUTED:
             deposits.record(deposit, market)
+    market.run()
 
 
 def _resolution_state(publication, closes, now):

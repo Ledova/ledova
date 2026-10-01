@@ -254,6 +254,12 @@ class MarketPlanTest(TestCase):
             reference = Decimal(spec.reference)
             self.assertTrue(all(abs(price - reference) <= reference / 20 for price in prices), spec.listing)
 
+    def test_each_class_settles_at_least_every_take_its_spec_plans(self):
+        trades = Counter(fill.listing for fill in self.plan.today())
+        for spec in MARKETS:
+            planned = sum(len(takes) for takes in (*spec.asks, *spec.bids))
+            self.assertGreaterEqual(trades[spec.listing], planned, spec.listing)
+
     def test_orders_cover_every_status_a_market_shows_and_two_matches_lapse(self):
         self.assertEqual({order.fate for order in self.plan.orders}, {OPEN, PARTIAL, FILLED, CANCELLED})
         self.assertEqual(len(self.plan.lapses()), 2)

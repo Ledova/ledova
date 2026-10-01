@@ -29,7 +29,7 @@ from ledova_backend.procrastinate_app import app
 from offerings.models import Offering, OfferingStatus, SubscriptionStatus
 from operators.services import SEVERITY_DANGER, configuration_health, worklist
 from shared.db import use_operator
-from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
+from shared.seeds.demo import DEMO_ADMIN_EMAIL, DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import operator_address
 from shared.seeds.synthetic.chain.story import TESTER_WALLETS
@@ -88,6 +88,13 @@ BOOKKEEPING = {
     "former_holders_block",
 }
 APPENDED_BY_DESIGN = {"tokens.RegisterReconciliation", "assets.AssetSnapshot"}
+ADMIN_PAGES = (
+    "/admin/operators/operator/",
+    "/admin/tokens/mintrequest/",
+    "/admin/tokens/registerinstruction/",
+    "/admin/tokens/registerwalletlink/",
+    "/admin/shareholders/publication/",
+)
 SAFE_ROWS = (
     "Offerings awaiting review",
     "Subscriptions awaiting payment",
@@ -200,6 +207,7 @@ class ChainLayerTest(APITransactionTestCase):
         self.check_founder_screens()
         self.check_market()
         self.check_notices()
+        self.check_admin()
         self.check_quiet_jobs(timedelta(0))
         self.check_quiet_jobs(timedelta(minutes=20))
         self.check_quiet_jobs(timedelta(hours=26))
@@ -400,6 +408,13 @@ class ChainLayerTest(APITransactionTestCase):
         company = founder.owned_companies.first()
         published = self.client.get("/api/v1/publications/", {"issuer": str(company.uuid)}).json()
         self.assertGreaterEqual(published["count"], 10)
+
+    def check_admin(self):
+        self.client.force_login(User.objects.get(email=DEMO_ADMIN_EMAIL))
+        for page in ADMIN_PAGES:
+            response = self.client.get(page)
+            self.assertEqual(response.status_code, 200, page)
+        self.client.logout()
 
     def check_quiet_jobs(self, shift):
         operator = operator_address()

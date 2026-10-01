@@ -536,8 +536,6 @@ class MarketStory:
             last = position == len(makers) - 1
             remaining = maker.quantity
             planned = list(takes)
-            if not last and planned[-1] != REST:
-                planned.append(REST)
             number = 0
             while number < len(planned) and remaining > 0:
                 take = planned[number]
