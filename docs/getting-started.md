@@ -63,9 +63,12 @@ compliance alerts. With the stack's chain up, it then adds a chain layer, signin
 about 130 transactions there in under a minute: share classes deployed, wallets
 approved, each company's register issued, opened from the chain and imported,
 closed offerings allotted, and offerings, applications, issuance requests and
-capital increases in every state. Without a configured local chain it writes
-nothing to any chain and says why; a later `make dev-seed` adds the layer. Later
-runs leave both alone; `make dev-clean` starts over.
+capital increases in every state. A market layer follows on the same chain:
+AUDY deposits for the buyers, an order book in every deployed class, about 20
+settled trades entered in the registers, and 27 notices to members, among them
+dividends and resolutions open, upcoming and closed. Without a configured local
+chain it writes nothing to any chain and says why; a later `make dev-seed` adds
+both layers. Later runs leave them alone; `make dev-clean` starts over.
 See [demo details](operations/operator-console.md#demo-data).
 
 For issuance beyond the seed, the stack has already deployed the core

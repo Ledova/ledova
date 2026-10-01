@@ -229,6 +229,58 @@ seeded row other than the founder's Base ether below: the registry sync and
 refresh, reconciliation, fold, expiry and recovery jobs leave every seeded row
 as it is.
 
+Once the chain layer is present, the first run then adds a market layer on the
+same chain, likewise once per database with its own marker: a later run says it
+is present, and one that stopped part-way says to start over. It skips, and says
+why, when the chain is unreachable, when the operator settles in anything but
+AUDY, or when a deployed class has no code on the node. It signs about 40 more
+operator transactions and about 25 from the investors' own wallets, whose keys
+the seed derives as it derived their addresses, through the services and tasks
+the worker would run. It adds:
+
+- AUDY deposits: one for each buyer, recorded and minted by the operations
+  officer through the mint service to cover the buyer's bids, dated by the day
+  the bank deposit arrived; two more recorded and not yet minted, and two
+  rejected with their reason. Every AUDY holding matches the chain.
+- An order book in each deployed class (Demo Robotics' ordinary and seed
+  preference shares, Wattlefield's and Coralgum's ordinary shares): For sale and
+  Wanted orders at several prices around the class's offering price, each signed
+  by its wallet and dated over the eighteen days before the run. Some were
+  cancelled by a signed cancellation, and two were matched and left unsigned
+  until the match lapsed and its orders returned to the book.
+- About 20 trades settled on the day of the run, each a signed order against a
+  resting one, with the seller's and buyer's one-time approvals, both settlement
+  signatures, the relayed swap and its finality; each class then shows a last
+  price. One buyer is approved for the company first, and one buys an odd lot of
+  eight shares.
+- Registers: each company enters its first-time buyers' wallets as members under
+  a reviewed wallet link and records the day's transfers under one applied
+  transfer instruction per class, so every register reconciles matched with
+  nothing waiting. Buyers' holdings are written from the chain, since a settled
+  swap never creates one, and each investor's ether goes back to its seeded
+  balance after their approvals paid for gas.
+- Notices to members: 27 publications across the four classes, each with the
+  day of the run as its record date, because each register opened that day:
+  holding statements; meeting notices; three dividends in AUD, recorded as paid
+  to every member (each payment with generated evidence), to some, and to none
+  yet, the last leaving the odd-lot holder less than a cent; and resolutions not
+  yet open, open with and without ballots, and five circular resolutions put to
+  the morning's members with a short voting window that closes during the run,
+  two carried and three not. Members with an account get a notification, never a
+  push or an email. The seed's own generated documents are the only files that
+  skip the malware scan, so seeding does not wait for ClamAV.
+
+The investor tester has an order in each status the market's panels show (open,
+partially filled, filled and cancelled), sold Wattlefield shares, bought seed
+preference shares into the Trading wallet, which held none, voted on two
+resolutions with others waiting under Needs you, and has more than a page of
+notices. Three states are left out because production never holds them, or not
+for long: a trade awaiting signatures lapses fifteen minutes after its match
+(`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before anyone looked; nothing in
+the platform marks an order expired; and nothing approves a mint request. The
+periodic jobs leave the market as it is: no match lapses, no resolution closes,
+nothing is signed and the wallet sync reads the balances already recorded.
+
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded
 Base wallet's balance there to the ether its history leaves it, the investor
