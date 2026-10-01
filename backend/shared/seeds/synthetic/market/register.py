@@ -5,7 +5,6 @@ from uuid import uuid4
 from django.db.models.functions import Lower
 from web3 import Web3
 
-from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
@@ -13,7 +12,6 @@ from shared.seeds.synthetic.chain.registers import reference_prefix
 from shared.seeds.synthetic.chain.settlement import WEI
 from shared.seeds.synthetic.chain.story import CHAIRS
 from shared.seeds.synthetic.market import trading
-from shared.seeds.synthetic.market.population import share_holdings
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     RegisterMemberWallet,
@@ -177,31 +175,6 @@ def reconcile(market):
             raise ChainStepFailed(STILL_WAITING.format(count=waiting, symbol=token.symbol))
         records.append(record)
     return records
-
-
-def sync_parties(market, swaps):
-    touched = set()
-    for swap in swaps:
-        for wallet in (swap.seller_wallet, swap.buyer_wallet):
-            touched.add((wallet.pk, swap.share_token_id))
-    synced = []
-    for wallet_id, token_id in sorted(touched, key=str):
-        token = market.tokens_by_id[token_id]
-        holding = share_holdings(token).filter(wallet_id=wallet_id).first()
-        asset = holding.asset if holding else _share_asset(token)
-        wallet = next(
-            item for swap in swaps for item in (swap.seller_wallet, swap.buyer_wallet) if item.pk == wallet_id
-        )
-        if sync_holding(wallet, asset) is None:
-            raise ChainStepFailed(UNSYNCED.format(symbol=token.symbol, address=wallet.address))
-        synced.append((wallet.address, token.symbol))
-    return synced
-
-
-def _share_asset(token):
-    return Asset.objects.get(
-        chain_deployments__chain="base", chain_deployments__contract_address__iexact=token.contract_address
-    )
 
 
 def sync_settlement(market, wallets):

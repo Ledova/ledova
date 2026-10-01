@@ -8,7 +8,7 @@ from django.db import connections
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from assets.models import AssetChainDeployment
+from assets.models import Asset, AssetChainDeployment
 from compliance.constants import RULE_TYPE_THRESHOLD
 from compliance.models import ComplianceAlert, MonitoringRule
 from compliance.tasks import screen_transaction
@@ -21,7 +21,7 @@ from shared.db import (
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile, make_tenant
-from tokens.models import ShareToken
+from tokens.models import ShareToken, ShareTokenStatus
 from users.models import UserAccount
 from wallets.constants import (
     WALLET_VERIFICATION_STATUS_PENDING,
@@ -30,6 +30,7 @@ from wallets.constants import (
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services.verification import complete_wallet_verification
 from wallets.tasks.sync import sync_all_wallets, sync_wallet
+from whitelist.models import WhitelistApproval, WhitelistEntry
 
 TABLES = tuple(model._meta.db_table for model in (Wallet, Holding, Transaction, ShareToken, ComplianceAlert))
 
@@ -145,6 +146,41 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.assertEqual(name, screen_transaction.name)
         self.assertEqual(screen_transaction.func(**payload), {"status": "completed", "alerts": 1})
         self.assertEqual(self.state_of(self.owner)[-1], 1)
+
+    def test_the_user_principal_also_records_a_class_its_wallet_holds_without_a_holding(self):
+        with use_operator():
+            listed = ShareToken.objects.create(
+                company=self.other.company,
+                name="Listed shares",
+                symbol="LST",
+                total_supply="1000",
+                status=ShareTokenStatus.DEPLOYED,
+                contract_address="0x" + "1d" * 20,
+                chain="base",
+            )
+            asset = Asset.objects.create(
+                symbol="LST", name="Listed shares", asset_type="tokenized_security", decimals=0, is_verified=True
+            )
+            AssetChainDeployment.objects.create(
+                asset=asset, chain="base", contract_address=listed.contract_address, decimals=0
+            )
+            entry = WhitelistEntry.objects.create(wallet=self.owner.wallet)
+            WhitelistApproval.objects.create(
+                entry=entry, company=self.other.company, registry_address="0x" + "ab" * 20, status="active"
+            )
+        observed = []
+        with ExitStack() as stack:
+            for alias in (APP_ALIAS, OPERATOR_ALIAS):
+                stack.enter_context(connections[alias].execute_wrapper(self.recorder(observed)))
+            result = self.run_task(self.owner.wallet, self.owner.user.pk)
+
+        self.assertEqual(result, {"status": "success", "transactions": 1, "holdings": 2})
+        self.assertEqual({alias for alias, _, _ in observed}, {APP_ALIAS})
+        self.assertIn(("INSERT", Holding._meta.db_table), {(operation, table) for _, operation, table in observed})
+        self.balance.assert_any_call(listed.contract_address, self.owner.wallet.address)
+        with use_operator():
+            self.assertEqual(Holding.objects.get(wallet=self.owner.wallet, asset=asset).quantity, Decimal("9"))
+            self.assertFalse(Holding.objects.filter(wallet=self.other.wallet, asset=asset).exists())
 
     def test_a_foreign_wallet_is_refused_before_the_chain_and_its_owner_can_sync_it(self):
         before = self.state_of(self.other)

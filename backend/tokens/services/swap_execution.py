@@ -12,6 +12,7 @@ from eth_utils import event_abi_to_log_topic
 from rest_framework.exceptions import NotFound
 from web3 import Web3
 
+from assets.models import Asset
 from blockchain.models import (
     BlockchainTransaction,
     OutgoingOperation,
@@ -49,6 +50,7 @@ from tokens.services.settlement_context import (
     settlement_execution_arguments,
     settlement_execution_calldata,
 )
+from tokens.services.share_token_service import SHARE_ASSET_CHAIN
 from tokens.services.trading_locks import lock_orders, swap_terms
 from users.models import UserAccount, UserProfile
 from users.services.eligibility import require_account_eligibility
@@ -56,6 +58,7 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
+from wallets.services.holdings import sync_holding
 from wallets.services.nonce_evidence import (
     MAX_BLOCK_TRANSACTIONS,
     collect_nonce_evidence,
@@ -63,6 +66,8 @@ from wallets.services.nonce_evidence import (
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
+NO_SHARE_ASSET = "Swap {swap} settled shares of {address}, which has no asset; no share holding was written"
+UNRECORDED_HOLDING = "Swap {swap} settled, and the {symbol} holding of wallet {wallet} was not written ({error})"
 
 
 def require_autocommit():
@@ -661,4 +666,24 @@ def settle(transaction_id, *, client=None):
         else:
             swap.mark_failed(REVERTED_ON_CHAIN)
             publish_trading_event("swap_failed", str(swap.share_token_id))
-        return swap.status
+    if swap.status == SwapOrderStatus.COMPLETED:
+        _record_holdings(swap)
+    return swap.status
+
+
+def _record_holdings(swap):
+    share = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, swap.share_token.contract_address)
+    if share is None:
+        logger.warning(NO_SHARE_ASSET.format(swap=swap.pk, address=swap.share_token.contract_address))
+    for wallet in (swap.seller_wallet, swap.buyer_wallet):
+        for asset in (share, swap.payment_asset):
+            if asset is None:
+                continue
+            try:
+                sync_holding(wallet, asset, create_empty=False)
+            except Exception as exc:
+                logger.warning(
+                    UNRECORDED_HOLDING.format(
+                        swap=swap.pk, symbol=asset.symbol, wallet=wallet.pk, error=type(exc).__name__
+                    )
+                )

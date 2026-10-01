@@ -33,7 +33,7 @@ from shared.seeds.synthetic.market import deposits, population, register, tradin
 from shared.seeds.synthetic.market.context import Market
 from shared.seeds.synthetic.market.deposits import EXECUTED
 from shared.seeds.synthetic.market.notices import CLOSED, Notices
-from shared.seeds.synthetic.market.story import BUY, build_market
+from shared.seeds.synthetic.market.story import build_market
 from shared.seeds.synthetic.staff import PERMISSIONS, permissions
 from shareholders.models import Publication, PublicationEvent, PublicationEventKind
 from tokens.models import (
@@ -197,14 +197,8 @@ def _settle(plan, market, swaps):
     register.link_buyers(market, swaps)
     register.instruct_transfers(market, swaps)
     register.reconcile(market)
-    register.sync_parties(market, swaps)
-    payers = {(deposit.investor, deposit.address.lower()) for deposit in plan.deposits if deposit.state == EXECUTED}
-    for fill in plan.today():
-        for key in (fill.taker, fill.maker):
-            order = plan.order(key)
-            if order.side != BUY:
-                payers.add((order.investor, order.address.lower()))
-    register.sync_settlement(market, [market.wallet(investor, address) for investor, address in sorted(payers)])
+    depositors = {(deposit.investor, deposit.address.lower()) for deposit in plan.deposits if deposit.state == EXECUTED}
+    register.sync_settlement(market, [market.wallet(investor, address) for investor, address in sorted(depositors)])
     register.restore_ether(market)
 
 

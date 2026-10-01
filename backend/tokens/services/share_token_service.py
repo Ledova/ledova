@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from web3 import Web3
+from web3.exceptions import BadFunctionCallOutput, ContractLogicError
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
@@ -46,6 +47,11 @@ EXCEEDS_AUTHORIZED = "Amount exceeds authorized shares. Submit a capital increas
 TOKEN_PAUSED = "Token is paused. Unpause it before executing."
 SHARE_ASSET_CHAIN = BLOCKCHAIN_BASE
 NOT_ATTESTED = "{symbol} at {address} is not the address the factory holds for {identifier}; left unverified"
+UNANSWERED_BY_THE_CONTRACT = (BadFunctionCallOutput, ContractLogicError)
+UNREADABLE_CONTRACT = (
+    "{symbol} at {address} gave no balance ({error}): the node answered, the contract did not; "
+    "the wallet's other balances are returned without it"
+)
 
 
 def factory_address() -> str:
@@ -269,6 +275,19 @@ def get_token_balance(contract_address: str, holder: str) -> int:
         raise TokenBalanceRetrievalException() from e
 
 
+def _wallet_balance(contract_name: str, symbol: str, contract_address: str, holder: str) -> Optional[int]:
+    try:
+        return _get_balance(contract_name, contract_address, holder)
+    except UNANSWERED_BY_THE_CONTRACT as e:
+        logger.warning(UNREADABLE_CONTRACT.format(symbol=symbol, address=contract_address, error=type(e).__name__))
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get the balance of {symbol}: {e}")
+        raise WalletBalancesUnavailableException(
+            f"{WalletBalancesUnavailableException.default_detail} The balance of {symbol} could not be read."
+        ) from e
+
+
 def get_wallet_token_balances(wallet_address: str) -> dict:
     wallet_checksum = _validate_address(wallet_address)
 
@@ -276,48 +295,34 @@ def get_wallet_token_balances(wallet_address: str) -> dict:
 
     tokens = ShareToken.objects.deployed_with_contract()
     for token in tokens:
-        try:
-            balance = get_token_balance(token.contract_address, wallet_checksum)
-            if balance > 0:
-                balances.append(
-                    {
-                        "token": str(token.uuid),
-                        "symbol": token.symbol,
-                        "name": token.name,
-                        "balance": str(balance),
-                        "contractAddress": token.contract_address,
-                        "decimals": 0,
-                        "type": "share_token",
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Failed to get balance for {token.symbol}: {e}")
-            raise WalletBalancesUnavailableException(
-                f"{WalletBalancesUnavailableException.default_detail} The balance of {token.symbol} could "
-                f"not be read."
-            ) from e
+        balance = _wallet_balance("ShareToken", token.symbol, token.contract_address, wallet_checksum)
+        if balance:
+            balances.append(
+                {
+                    "token": str(token.uuid),
+                    "symbol": token.symbol,
+                    "name": token.name,
+                    "balance": str(balance),
+                    "contractAddress": token.contract_address,
+                    "decimals": 0,
+                    "type": "share_token",
+                }
+            )
 
     for deployment in settlement_deployments():
         asset = deployment.asset
-        try:
-            balance = _get_balance("AUDY", deployment.contract_address, wallet_checksum)
-            if balance > 0:
-                balances.append(
-                    {
-                        "token": str(asset.uuid),
-                        "symbol": asset.symbol,
-                        "name": asset.name,
-                        "balance": str(balance),
-                        "contractAddress": deployment.contract_address,
-                        "decimals": deployment.decimals,
-                        "type": "stablecoin",
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Failed to get settlement asset balance for {asset.symbol}: {e}")
-            raise WalletBalancesUnavailableException(
-                f"{WalletBalancesUnavailableException.default_detail} The balance of {asset.symbol} could "
-                f"not be read."
-            ) from e
+        balance = _wallet_balance("AUDY", asset.symbol, deployment.contract_address, wallet_checksum)
+        if balance:
+            balances.append(
+                {
+                    "token": str(asset.uuid),
+                    "symbol": asset.symbol,
+                    "name": asset.name,
+                    "balance": str(balance),
+                    "contractAddress": deployment.contract_address,
+                    "decimals": deployment.decimals,
+                    "type": "stablecoin",
+                }
+            )
 
     return {"walletAddress": wallet_checksum, "balances": balances}

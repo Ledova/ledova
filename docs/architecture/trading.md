@@ -70,7 +70,17 @@ pending for finality. The same sweep settles the swap once its network's approve
 finality policy is satisfied and the inclusion re-verifies: a successful swap
 completes and its parents keep their fill, a final revert releases the
 reservation once, and anything unknown, waiting or orphaned holds. Local chains
-hold until an explicit depth override is configured.
+hold until an explicit depth override is configured. Once a swap completes, both
+parties' share and settlement-asset holdings are written from the chain, as
+[wallets](wallets-and-valuations.md#a-share-holding-names-its-class) describes.
+
+Selling reads the chosen wallet's balance of every deployed class and of the
+settlement asset from the chain (`GET /api/v1/trading/wallets/balances/`). A
+contract that answers without a balance, because nothing is deployed at its
+address or the call reverts, is left out of the answer and logged with its
+symbol and address, so the wallet's other classes can still be sold. A node that
+cannot be reached, or any other failure, still answers 503 rather than a partial
+list that would say the wallet holds nothing.
 
 The expiry sweep releases only matches whose eligibility marker and recorded
 state prove they have no execution claim or competing reservation. Legacy,

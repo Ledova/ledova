@@ -14,7 +14,7 @@ from shared.constants import normalize_chain
 from shared.db import atomic
 from wallets.constants import TRANSACTION_STATUS_PENDING
 from wallets.models import Holding, Transaction, Wallet
-from wallets.services.holdings import sync_holding
+from wallets.services.holdings import discover_share_holdings, sync_holding
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,8 @@ def _resolve_asset(wallet: Wallet, tx_data: Dict) -> Asset:
 def _sync_holdings_from_blockchain(wallet: Wallet) -> tuple[int, int]:
     assets = [holding.asset for holding in wallet.holdings.select_related("asset").filter(asset__is_verified=True)]
     written = [asset for asset in assets if sync_holding(wallet, asset) is not None]
-    return len(written), len(assets) - len(written)
+    found = discover_share_holdings(wallet)
+    return len(written) + len(found), len(assets) - len(written)
 
 
 def _calculate_market_value(amount: Decimal, asset: Asset, timestamp: datetime) -> Optional[Decimal]:
