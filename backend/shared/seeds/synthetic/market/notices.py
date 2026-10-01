@@ -21,7 +21,7 @@ from tokens.models import ShareRegister
 
 User = get_user_model()
 PDF = "application/pdf"
-CLOSING_WINDOW = timedelta(seconds=20)
+CLOSING_WINDOW = timedelta(seconds=30)
 CLOSE_SLACK = 0.5
 RESOLUTION = "resolution"
 DISTRIBUTION = "distribution"
@@ -112,7 +112,6 @@ class Notices:
         token = market.tokens[notice.listing]
         company = token.company
         document = self._authority(notice, token)
-        terms = self._terms(notice, token, timezone.now())
         upload = self._upload(
             f"{notice.key}.pdf",
             notice.title,
@@ -124,6 +123,7 @@ class Notices:
                 *([f"Resolution: {notice.question}"] if notice.question else []),
             ],
         )
+        terms = self._terms(notice, token, timezone.now())
         with generated(self.contents):
             publication = publish_to_members(
                 token,
@@ -136,9 +136,9 @@ class Notices:
                 upload=upload,
                 **terms,
             )
-        market.run()
         for ballot in notice.ballots:
             cast_ballot(market.user(ballot.voter), publication.pk, ballot.choice)
+        market.run()
         if notice.kind == RESOLUTION and notice.window == CLOSED:
             self.closing.append((notice, publication))
         if notice.paid:
