@@ -31,8 +31,10 @@ from shared.seeds.demo import (
     DEMO_TOKEN_NAME,
     DEMO_TOKEN_SYMBOL,
 )
+from shared.seeds.synthetic.chain import layer as chain_layer
+from shared.seeds.synthetic.chain.guard import GET_THE_CHAIN
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
-from shared.seeds.synthetic.layer import PARTIAL, seed_population, summary
+from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from shared.seeds.synthetic.story import STAFF
 from tokens.models import ShareToken
@@ -59,7 +61,9 @@ class Command(BaseCommand):
         "Seed a browser-ready local demo: the operator row, a superuser, an active company with a draft "
         "share class and a verified issuer wallet, and an eligible investor whose wallet has a whitelist entry. "
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
-        "notifications and compliance work. Writes no transactions to any chain."
+        "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
+        "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
+        "seeds offerings, applications and requests; without it, nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
@@ -106,14 +110,18 @@ class Command(BaseCommand):
         logging.disable(max(disabled, logging.INFO))
         try:
             outcome = seed_population(timezone.now(), options["investors"])
+            elapsed = time.monotonic() - started
+            chain = chain_layer.seed_issuance(timezone.now()) if outcome.state == PRESENT else None
+            chain_elapsed = time.monotonic() - started - elapsed
         finally:
             logging.disable(disabled)
-        elapsed = time.monotonic() - started
         User.objects.filter(email__endswith=f"@{EMAIL_DOMAIN}").update(password=make_password(password))
 
         if options["verbosity"] >= 1:
             self.stdout.write(self.style.SUCCESS(f"Seed complete: {self.created} created."))
             self._report_population(outcome, elapsed)
+            self._report_chain(chain, chain_elapsed)
+            token.refresh_from_db()
             self._report(password, company, token)
 
     def _seed_testers(self, password):
@@ -290,6 +298,41 @@ class Command(BaseCommand):
         ]
         self.stdout.write("\n".join(lines))
 
+    def _report_chain(self, outcome, elapsed):
+        if outcome is None:
+            return
+        if outcome.state == chain_layer.SKIPPED:
+            self.stdout.write(f"Chain layer skipped: {outcome.reason} {GET_THE_CHAIN}")
+            return
+        if outcome.state == chain_layer.PARTIAL:
+            self.stdout.write(
+                self.style.WARNING(
+                    "A previous run stopped part-way through the chain layer, so nothing was added to the chain. "
+                    "Start over with make dev-clean, make dev-up and make dev-seed."
+                )
+            )
+            return
+        if outcome.plan is None:
+            self.stdout.write("Chain layer already present; nothing added.")
+            return
+        counts = outcome.counts
+
+        def listed(values):
+            return ", ".join(f"{count} {status.replace('_', ' ')}" for status, count in sorted(values.items()))
+
+        lines = [
+            f"Chain layer added in {elapsed:.1f}s, {counts['transactions']} transactions on chain "
+            f"{settings.BLOCKCHAIN_CHAIN_ID}:",
+            f"  share classes  {sum(counts['classes'].values())} ({listed(counts['classes'])}), "
+            f"{counts['approvals']} whitelist approvals",
+            f"  registers      {counts['registers']} opened from the chain and imported, {counts['members']} "
+            f"members, {counts['mints']} mints",
+            f"  offerings      {sum(counts['offerings'].values())} ({listed(counts['offerings'])})",
+            f"  applications   {sum(counts['subscriptions'].values())} ({listed(counts['subscriptions'])})",
+            f"  requests       issuance: {listed(counts['requests'])}; capital: {listed(counts['raises'])}",
+        ]
+        self.stdout.write("\n".join(lines))
+
     def _report(self, password, company, token):
         staff = ", ".join(
             f"{handle}@{EMAIL_DOMAIN} ({title.lower()})" for _, handle, title, _, left in STAFF if not left
@@ -309,10 +352,19 @@ class Command(BaseCommand):
             f"  issuer wallet    {DEMO_ISSUER_ADDRESS}  (development account #0)",
             f"  investor wallet  {DEMO_INVESTOR_ADDRESS}  (development account #1)",
             "",
-            f"  Share class {token.symbol} is {token.get_status_display().lower()}. Deploying it creates the",
-            "  company's whitelist registry; approve the investor's entry for the company in the admin",
-            "  before minting to them. Each of those steps signs and sends a real transaction on the",
-            f"  configured chain ({settings.BLOCKCHAIN_CHAIN_ID}); `make dev-up` serves chain 31337 at",
-            "  http://127.0.0.1:8545.",
         ]
+        if token.status == ShareTokenStatus.DRAFT:
+            lines += [
+                f"  Share class {token.symbol} is {token.get_status_display().lower()}. Deploying it creates the",
+                "  company's whitelist registry; approve the investor's entry for the company in the admin",
+                "  before minting to them. Each of those steps signs and sends a real transaction on the",
+                f"  configured chain ({settings.BLOCKCHAIN_CHAIN_ID}); `make dev-up` serves chain 31337 at",
+                "  http://127.0.0.1:8545.",
+            ]
+        else:
+            lines += [
+                f"  Share class {token.symbol} is {token.get_status_display().lower()} at {token.contract_address}",
+                f"  on chain {settings.BLOCKCHAIN_CHAIN_ID}, with its register opened. Every further deployment,",
+                "  approval, mint and pause signs and sends a real transaction there.",
+            ]
         self.stdout.write("\n".join(lines))
