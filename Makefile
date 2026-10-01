@@ -19,7 +19,8 @@ CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 # CHAIN_TEST_PORT is the single knob for the local chain: it moves the Hardhat node, the backend's
 # BLOCKCHAIN_RPC_URL and, through LOCALHOST_RPC_URL, the `localhost` network in contracts/hardhat.config.ts
 # that `deploy:local:core` connects to. Two worktrees can therefore run `make chain-test` at once on
-# different ports. The default stays 8545, which is what a bare `npx hardhat node` uses.
+# different ports. The default stays 8545, which is what a bare `npx hardhat node` uses; the local
+# stack's chain (`make dev-up`) publishes 8545 too, so pick another port while the stack is up.
 CHAIN_TEST_PORT ?= 8545
 CHAIN_TEST_RPC_URL ?= http://127.0.0.1:$(CHAIN_TEST_PORT)
 # Hardhat account #0: a public development key that only ever holds local test ether.

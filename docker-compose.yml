@@ -1,15 +1,74 @@
 name: ledova
 
+# The core contracts on the stack's own chain. Development account #0 creates them at its nonces
+# 0, 1 and 3 on a new chain, so these addresses never change; chain-deploy refuses a chain whose
+# contracts are not these.
+x-local-chain-contracts: &local-chain-contracts
+  SHARE_TOKEN_FACTORY_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  STABLECOIN_CONTRACT_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  ATOMIC_SWAP_ADDRESS: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+
 # Every service built from ./backend gets the same local development settings.
 # These environment entries override the optional ./backend/.env file.
 x-backend-environment: &backend-environment
+  <<: *local-chain-contracts
   POSTGRES_HOST: postgres
   REDIS_URL: redis://redis:6379/0
   UPLOAD_SCANNER_HOST: clamav
   STORAGE_BACKEND: local
   DEBUG: "true"
+  BLOCKCHAIN_RPC_URL: http://chain:8545
+  BLOCKCHAIN_CHAIN_ID: "31337"
+  # Development account #0 of the public test mnemonic (the same key as the Makefile's
+  # CHAIN_TEST_OPERATOR_KEY). It is public and must never hold anything of value.
+  BLOCKCHAIN_OPERATOR_KEY: &local-operator-key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+  # The receipt's own block counts as depth one, so a transaction is final once it is mined. This
+  # chain mines a block only when a transaction arrives and, as a single node, never reorganises:
+  # a greater depth would leave each issuance and swap waiting for the next transaction.
+  LOCAL_CHAIN_FINALITY_DEPTH: "1"
 
 services:
+  chain:
+    # Anvil from Foundry v1.8.3, pinned to the multi-platform image's digest.
+    image: ghcr.io/foundry-rs/foundry:v1.8.3@sha256:2e4287278639262de76db72477301d5d3212fa1b1cce710d7d148750a46ce9e7
+    # The image's own user cannot write the root-owned volume, and Anvil then keeps nothing
+    # without saying so.
+    user: root
+    # Anvil itself is PID 1, so the SIGTERM from `docker compose stop` or `down` reaches it and it
+    # writes its state before exiting. It also rewrites the whole state every five seconds, which
+    # bounds what a hard kill can lose.
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--chain-id", "31337", "--state", "/state/state.json", "--state-interval", "5"]
+    stop_grace_period: 30s
+    ports:
+      # For browser wallets and a backend run on the host. While the stack is up, give
+      # `make chain-test` another port: make chain-test CHAIN_TEST_PORT=8546.
+      - "127.0.0.1:8545:8545"
+    volumes:
+      - chain_data:/state
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$$(cast chain-id --rpc-url http://127.0.0.1:8545)\" = 31337"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
+
+  # Runs on every start, before anything that signs. On a new chain it deploys the core contracts
+  # with `npm run deploy:local:core`; on every chain it checks them and exits non-zero if what it
+  # finds differs. Anvil resumes its clock at the latest block's time after a restart, so this
+  # also sets the clock back to the present.
+  chain-deploy:
+    build:
+      context: ./contracts
+    environment:
+      <<: *local-chain-contracts
+      LOCALHOST_RPC_URL: http://chain:8545
+      DEPLOYER_PRIVATE_KEY: *local-operator-key
+    depends_on:
+      chain:
+        condition: service_healthy
+
   clamav:
     image: clamav/clamav:1.5.4
     # /init starts clamd and the Freshclam daemon together, and clamd refuses signatures older than the
@@ -72,7 +131,7 @@ services:
       - path: ./backend/.env
         required: false
     environment: *backend-environment
-    command: sh -c "python manage.py migrate --noinput && python manage.py check_rls_roles && python manage.py sync_monitoring_rules && python manage.py sync_procedure_templates && python manage.py asset_sync --seed-only"
+    command: sh -c "python manage.py migrate --noinput && python manage.py check_rls_roles && python manage.py sync_monitoring_rules && python manage.py sync_procedure_templates && python manage.py asset_sync --seed-only && python manage.py admit_local_signer"
     volumes:
       - media_data:/usr/src/app/media
       - private_media_data:/usr/src/app/private-media
@@ -81,6 +140,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      chain:
+        condition: service_healthy
+      chain-deploy:
+        condition: service_completed_successfully
 
   backend:
     build:
@@ -100,6 +163,10 @@ services:
     depends_on:
       clamav:
         condition: service_started
+      chain:
+        condition: service_healthy
+      chain-deploy:
+        condition: service_completed_successfully
       migrate:
         condition: service_completed_successfully
       redis:
@@ -121,6 +188,10 @@ services:
     depends_on:
       clamav:
         condition: service_started
+      chain:
+        condition: service_healthy
+      chain-deploy:
+        condition: service_completed_successfully
       migrate:
         condition: service_completed_successfully
       redis:
@@ -149,6 +220,7 @@ services:
       - "127.0.0.1:5173:5173"
 
 volumes:
+  chain_data:
   clamav_data:
   media_data:
   private_media_data:

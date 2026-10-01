@@ -75,8 +75,12 @@ python manage.py check_rls_roles
 python manage.py sync_monitoring_rules
 python manage.py sync_procedure_templates
 python manage.py asset_sync --seed-only
+python manage.py admit_local_signer
 ```
 
+The last command admits the operator signer for the local chain (31337) and
+refuses any other chain id; outside Docker, run it only when the backend points
+at a local chain. See [local chain admission](../architecture/outgoing-signing.md#local-chain-admission).
 The seed commands are idempotent. Missing monitoring seeds leave no rules to raise
 alerts; missing asset seeds leave supported native assets unverified/unpriced.
 `--seed-only` touches no network. The public compliance seed is not a deployment's
@@ -164,11 +168,23 @@ accounts. The seed sends nothing and queues no job: no email, push notification,
 identity check or ABR lookup.
 
 It writes no chain transactions. The investor's whitelist entry is an identity
-row with no company approval; [chain setup](chains.md), deploying the class and
-approving the wallet for the company are still needed.
-The testers' primary wallet addresses are Hardhat accounts 0 and 1. Once the
-configured chain answers, the worker's hourly wallet sync replaces the seeded
-Base balances with what the chain reports.
+row with no company approval: deploying the class and approving the wallet for
+the company are still needed, and in the local stack each signs a transaction on
+[its chain](chains.md#the-local-stacks-chain).
+The testers' first wallets are development accounts 0 and 1 of the public test
+mnemonic, and account 0 is also the operator's signer; the investor's other
+wallets use accounts 2 to 4 and two Bitcoin testnet addresses.
+
+Wallet balances follow the worker's hourly sync wherever it can read a chain.
+Base balances come from the local chain, so the seeded ones are replaced: a
+synthetic wallet reads zero there, a development account its test ether.
+Ethereum and Bitcoin wallets keep their seeded balances while `ALCHEMY_ETH_URL`
+and `ALCHEMY_BTC_URL` are empty, and the worker logs a warning for each of them
+every hour; with those set, the sync reads the public testnets and replaces the
+seeded balances with what the wallets hold there, normally nothing. Unattached
+payslips are purged 30 days after upload, as in production, so the seeded ones,
+uploaded up to 26 days before the run, disappear over the following weeks; a
+rerun does not bring them back.
 
 ## Company and document review
 

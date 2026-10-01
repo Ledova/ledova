@@ -31,7 +31,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(
         f"{args.variable}={args.port} is already in use on {args.host} ({reason}). "
-        f"Another Hardhat node, another worktree or another service is listening there. "
+        "Another Hardhat node, another worktree, the local stack's chain or another service is listening there. "
         f"Stop it, or pick a free port: make chain-test {args.variable}=<port>.",
         file=sys.stderr,
     )
