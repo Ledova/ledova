@@ -108,11 +108,10 @@ def _open_the_offering_to_the_actor(tenant):
     )
 
 
-def _publish_the_offering_documents(tenant):
+def _approve_the_offering(tenant):
     Offering.objects.filter(pk=tenant.offering.pk).update(
         status=OfferingStatus.APPROVED, opens_at=timezone.now() - timedelta(days=1)
     )
-    tenant.offering.documents.add(tenant.company_document)
 
 
 def _pause_change(token, user, submission_id, paused=True):
@@ -422,11 +421,11 @@ SINGLETON_ROUTES = (
 
 DIRECTORY_ROUTES = (
     Route("get", "/api/v1/directory/tokens/{deployed_token}/"),
-    Route("get", "/api/v1/directory/tokens/{deployed_token}/documents/", prepare=_publish_the_offering_documents),
+    Route("get", "/api/v1/directory/tokens/{deployed_token}/documents/", prepare=_approve_the_offering),
     Route(
         "get",
         "/api/v1/directory/tokens/{deployed_token}/documents/{company_document}/file/",
-        prepare=_publish_the_offering_documents,
+        prepare=_approve_the_offering,
     ),
 )
 
@@ -530,6 +529,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         for tenant in (*self.actors, self.other):
             tenant.issuance_request = _an_issuance_request(tenant)
             with self.as_an_operator_would():
+                tenant.offering.documents.add(tenant.company_document)
                 open_register(
                     token_id=tenant.deployed_token.pk,
                     operation_id=uuid4(),
