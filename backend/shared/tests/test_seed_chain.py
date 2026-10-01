@@ -32,8 +32,10 @@ from shared.db import use_operator
 from shared.seeds.demo import DEMO_ADMIN_EMAIL, DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import operator_address
+from shared.seeds.synthetic.chain.settlement import fund_wallets
 from shared.seeds.synthetic.chain.story import TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.market.notices import Notices
 from shared.seeds.synthetic.market.story import MARKETS
 from shared.services.orphaned_files import orphaned_files
 from shareholders.models import (
@@ -60,7 +62,8 @@ from tokens.tests.test_chain_integration import (
     chain_available,
     reset_chain_client,
 )
-from users.models import Notification
+from users.models import DeviceToken, Notification
+from users.tasks.notifications import send_push_notification
 from wallets.models import Holding, Wallet
 from whitelist.models import WhitelistApproval
 
@@ -102,7 +105,26 @@ SAFE_ROWS = (
     "Share issuance requests needing attention",
     "Capital increase requests needing attention",
 )
+EXPO_TOKEN = "ExponentPushToken[seed-test-last-step]"
+LAST_STEPS = (
+    ("shared.seeds.synthetic.chain.layer.fund_wallets", fund_wallets, "Queued by the chain layer's last step"),
+    ("shared.seeds.synthetic.market.layer.Notices.close", Notices.close, "Queued by the market layer's last step"),
+)
 real_connect = socket.socket.connect
+
+
+def pushing_after(step, title):
+    def last_step(*args, **kwargs):
+        result = step(*args, **kwargs)
+        investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
+        DeviceToken.objects.get_or_create(
+            push_token=EXPO_TOKEN,
+            defaults={"user": investor, "device_type": DeviceToken.DeviceType.IOS, "is_active": True},
+        )
+        send_push_notification.defer(user_id=investor.pk, title=title, body=title)
+        return result
+
+    return last_step
 
 
 def listed(response):
@@ -166,11 +188,13 @@ class ChainLayerTest(APITransactionTestCase):
 
         return patch.object(socket.socket, "connect", connect)
 
-    def seed(self):
+    def seed(self, *last_steps):
         output = StringIO()
         with ExitStack() as stack:
             stubs = {target: stack.enter_context(patch(target)) for target in OUTSIDE_WORLD}
             stack.enter_context(self.only_local())
+            for target, step, title in last_steps:
+                stack.enter_context(patch(target, pushing_after(step, title)))
             call_command("seed_demo", stdout=output, password=PASSWORD)
         for target, stub in stubs.items():
             self.assertFalse(stub.called, target)
@@ -193,7 +217,7 @@ class ChainLayerTest(APITransactionTestCase):
         jobs = ProcrastinateJob.objects.count()
         operator = operator_address()
         start, funds = self.w3.eth.block_number, self.w3.eth.get_balance(operator)
-        output = self.seed()
+        output = self.seed(*LAST_STEPS)
 
         self.assertIn("Chain layer added", output, output)
         self.assertIn("Market layer added", output, output)
@@ -201,6 +225,7 @@ class ChainLayerTest(APITransactionTestCase):
         self.assertEqual(self.outbound, [])
         self.assertEqual(mail.outbox, [])
         self.assertEqual(ProcrastinateJob.objects.count(), jobs)
+        self.check_last_steps()
         self.check_registers()
         self.check_console()
         self.check_investor_screens()
@@ -220,6 +245,14 @@ class ChainLayerTest(APITransactionTestCase):
         self.assertIn("Chain layer already present; nothing added.", second)
         self.assertIn("Market layer already present; nothing added.", second)
         self.assertEqual([model.objects.count() for model in counted], before)
+
+    def check_last_steps(self):
+        investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
+        device = DeviceToken.objects.get(push_token=EXPO_TOKEN)
+        self.assertEqual((device.user, device.is_active), (investor, True))
+        for _, _, title in LAST_STEPS:
+            self.assertEqual(Notification.objects.filter(user=investor, title=title).count(), 1, title)
+        device.delete()
 
     def check_registers(self):
         on_chain = ShareToken.objects.exclude(contract_address=None)

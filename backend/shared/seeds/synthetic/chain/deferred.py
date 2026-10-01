@@ -4,8 +4,8 @@ from procrastinate.testing import InMemoryConnector
 
 from ledova_backend.procrastinate_app import app
 
-UNEXPECTED = "The chain layer queued {names}, which it does not know how to run in place of the worker."
-LEFT_QUEUED = "{names} queued after the chain layer's last run and never ran; nothing it queues may be dropped."
+UNEXPECTED = "The seed queued {names}, which it does not know how to run in place of the worker."
+LEFT_QUEUED = "{names} queued after the seed's last run and never ran; nothing the seed queues may be dropped."
 
 
 class UnexpectedJob(RuntimeError):
