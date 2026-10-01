@@ -8,8 +8,10 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from assets.models import Asset
+from assets.models import Asset, AssetChainDeployment
 from operators.models import Operator
+from operators.settlement import single_settlement_asset
+from shared.constants import BLOCKCHAIN_ETHEREUM
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL
 from shared.seeds.synthetic.chain import population as chain_population
 from shared.seeds.synthetic.chain.approvals import approved_addresses
@@ -447,6 +449,29 @@ class SmallMarketPlanTest(TestCase):
         ), patch(NODE) as rpc:
             outcome = layer.seed_market(timezone.now())
 
+        self.assertEqual((outcome.state, outcome.reason), (layer.SKIPPED, layer.NOT_AUDY))
+        self.assertFalse(rpc.called)
+        self.assertEqual(layer.market_state(), layer.ABSENT)
+
+    def test_an_operator_receiving_on_another_chain_is_skipped_before_any_write(self):
+        audy = Asset.objects.get(symbol="AUDY")
+        AssetChainDeployment.objects.update_or_create(
+            asset=audy,
+            chain=BLOCKCHAIN_ETHEREUM,
+            defaults={"contract_address": "0x" + "a1" * 20, "decimals": 2, "is_active": True},
+        )
+        operator = Operator.get()
+        operator.supported_settlement_assets.set([audy])
+        Operator.objects.filter(pk=operator.pk).update(
+            receiving_wallet_address="0x" + "b2" * 20, receiving_wallet_chain=BLOCKCHAIN_ETHEREUM
+        )
+        present = "shared.seeds.synthetic.market.layer.chain_layer.issuance_state"
+        with patch(present, return_value=layer.chain_layer.PRESENT), patch(
+            "shared.seeds.synthetic.market.layer.chain_refusal", return_value=None
+        ), patch(NODE) as rpc:
+            outcome = layer.seed_market(timezone.now())
+
+        self.assertEqual(single_settlement_asset(), audy)
         self.assertEqual((outcome.state, outcome.reason), (layer.SKIPPED, layer.NOT_AUDY))
         self.assertFalse(rpc.called)
         self.assertEqual(layer.market_state(), layer.ABSENT)

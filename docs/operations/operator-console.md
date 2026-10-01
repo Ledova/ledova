@@ -236,10 +236,10 @@ Once the chain layer is present, the first run then adds a market layer on the
 same chain, likewise once per database with its own marker: a later run says it
 is present, and one that stopped part-way says to start over. It skips, and says
 why, when the chain is unreachable, when the operator settles in anything but
-AUDY, or when a deployed class has no code on the node. It signs about 40 more
-operator transactions and about 25 from the investors' own wallets, whose keys
-the seed derives as it derived their addresses, through the services and tasks
-the worker would run. It adds:
+AUDY on Base, or when a deployed class has no code on the node. It signs about
+40 more operator transactions and about 25 from the investors' own wallets,
+whose keys the seed derives as it derived their addresses, through the services
+and tasks the worker would run. It adds:
 
 - AUDY deposits: one for each buyer, recorded and minted by the operations
   officer through the mint service to cover the buyer's bids, dated by the day

@@ -9,7 +9,9 @@ from web3 import HTTPProvider, Web3
 
 from blockchain.models import SignedAttempt
 from integrations.base_chain import get_base_chain_client
+from operators.models import Operator
 from operators.settlement import single_settlement_asset
+from shared.constants import BLOCKCHAIN_BASE
 from shared.seeds.synthetic.chain import layer as chain_layer
 from shared.seeds.synthetic.chain import population as chain_population
 from shared.seeds.synthetic.chain.approvals import (
@@ -58,7 +60,10 @@ FIRST_DEPOSIT = "deposit-001"
 SEALING_DEPOSIT = "pending-2"
 GAS = Decimal("0.05")
 NO_CHAIN_LAYER = "The chain layer is not on this database, so there are no deployed classes to trade."
-NOT_AUDY = "The operator's single settlement asset is not AUDY on Base, so orders could not be placed."
+NOT_AUDY = (
+    "The operator does not settle in AUDY on Base alone, so orders could not be placed. Set its receiving wallet "
+    "on Base and AUDY as its only settlement asset in the admin, then run make dev-seed again."
+)
 NO_CLASS_CODE = (
     "{symbol} of {company} has no contract code on the node, so the database's share classes are not on this "
     "chain. Start over with make dev-clean, make dev-up and make dev-seed."
@@ -82,7 +87,7 @@ def market_state():
 
 def _settlement_refusal():
     asset = single_settlement_asset()
-    if asset is None or asset.symbol != AUDY:
+    if Operator.get().receiving_wallet_chain != BLOCKCHAIN_BASE or asset is None or asset.symbol != AUDY:
         return NOT_AUDY
     return None
 
