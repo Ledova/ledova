@@ -130,7 +130,12 @@ To use the chain from a browser wallet, add a network with the RPC URL
 accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Each of its
 first ten accounts holds 10,000 test ether: #0 is the operator, the backend's
-signer and the demo issuer wallet, and #1 is the demo investor's wallet. Avoid
+signer and the demo issuer wallet, and #1 is the demo investor's wallet. The
+[demo seed's chain layer](operator-console.md#demo-data) then gives accounts #1,
+#2 and #4, the demo investor's Base wallets, the ether their seeded history
+leaves them, between about 0.3 and 2 ETH, so the hourly wallet sync keeps their
+balances. It leaves account #0's test ether alone, since the operator pays its
+gas from it, and the sync then shows the founder that balance. Avoid
 sending from account #0 while the backend is signing, and never send anything
 of value to these addresses: their keys are public. Scripts on the host reach
 the chain at the same URL, and so can a backend run on the host; but only one
@@ -202,10 +207,12 @@ existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
-`.deployed-contracts.env` and runs the four real-chain modules,
+`.deployed-contracts.env` and runs the five real-chain modules,
 `tokens.tests.test_chain_integration`, `offerings.tests.test_chain_allotment`,
-`wallets.tests.test_submission_chain` and `tokens.tests.test_chain_journey`
-(the [demonstration journey](demonstration-journey.md)), then stops the node.
+`wallets.tests.test_submission_chain`, `tokens.tests.test_chain_journey`
+(the [demonstration journey](demonstration-journey.md)) and
+`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data)),
+then stops the node.
 `CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
 deploy connects to (through `LOCALHOST_RPC_URL`, which
 `contracts/hardhat.config.ts` reads) and the backend's `BLOCKCHAIN_RPC_URL` — so

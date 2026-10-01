@@ -32,7 +32,7 @@ dependencies. Workspace-only commands require the correct workspace installation
 mobile resolves from its own `node_modules`. `make help` lists entry points.
 Formatting checks remain local: CI has no general workspace format step.
 
-The four real-chain modules that `make chain-test` runs, listed in
+The five real-chain modules that `make chain-test` runs, listed in
 [chains and keys](../operations/chains.md#chain-configuration), are skipped by an
 ordinary backend suite without their chain environment. Use a free
 `CHAIN_TEST_PORT` per checkout, and one other than 8545 while the local stack is

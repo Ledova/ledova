@@ -55,20 +55,25 @@ docker compose exec backend python manage.py seed_demo
 
 and starts the worker again. The command prints generated credentials and
 refreshes a synthetic operator, superuser, issuer, investor, wallets,
-classification and draft share class; rerunning resolves and applies a password
+classification and share class; rerunning resolves and applies a password
 again. The first run on a fresh database also adds six months of synthetic
 history: staff, about sixty investors in every sign-up and verification state,
 four more companies, wallets and their transactions, notifications and
-compliance alerts. Later runs leave that history alone; `make dev-clean` starts
-over. It writes nothing to a chain. The seeded whitelist entry has no company approval, so the wallet is on no registry.
+compliance alerts. With the stack's chain up, it then adds a chain layer, signing
+about 130 transactions there in under a minute: share classes deployed, wallets
+approved, each company's register issued, opened from the chain and imported,
+closed offerings allotted, and offerings, applications, issuance requests and
+capital increases in every state. Without a configured local chain it writes
+nothing to any chain and says why; a later `make dev-seed` adds the layer. Later
+runs leave both alone; `make dev-clean` starts over.
 See [demo details](operations/operator-console.md#demo-data).
 
-For issuance, the stack has already deployed the core contracts, configured
-their addresses and admitted the signer. Open the
-[operator console](operations/operator-console.md), configure the payment rail,
-and exercise the [issuance flow](architecture/contracts-and-issuance.md):
-deploying the demo share class, approving the investor's wallet for the company
-and minting each sign a transaction on the local chain.
+For issuance beyond the seed, the stack has already deployed the core
+contracts, configured their addresses and admitted the signer. Open the
+[operator console](operations/operator-console.md) and exercise the
+[issuance flow](architecture/contracts-and-issuance.md): deploying a share
+class, approving a wallet for its company and minting each sign a transaction on
+the local chain.
 
 ## The local chain
 
@@ -79,7 +84,11 @@ currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
 the operator, which the backend signs with, and the demo issuer wallet;
 account #1 is the demo investor's wallet. Each starts with 10,000 test ether.
-Their keys are public, so never send anything of value to them.
+`make dev-seed` gives accounts #1, #2 and #4, the demo investor's Base wallets,
+the ether their seeded history leaves them, between about 0.3 and 2 ETH, which
+pays for gas there; account #0 keeps its test ether for the operator's gas, and
+the wallet sync shows the founder that balance. Their keys are public, so never
+send anything of value to them.
 
 The chain keeps its contracts, blocks and balances across `make dev-down`, and
 on every start the stack checks that the core contracts are still the ones it

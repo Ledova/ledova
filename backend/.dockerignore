@@ -12,6 +12,7 @@ __pycache__
 *.py[cod]
 *.log
 media
+private-media
 staticfiles
 coverage
 *.pem
