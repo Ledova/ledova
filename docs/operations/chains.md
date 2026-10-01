@@ -98,12 +98,16 @@ which puts them at the same three addresses every time:
 On every start it then checks them: the code at each address must be the
 current build of the contract (outside its immutable values), account #0 must
 own all three, mint AUDY and relay swaps, and AtomicSwap must accept AUDY. It
-exits non-zero, which stops the stack, when the chain holds only some of them,
-when account #0 has sent transactions without creating them, or when they were
-built from other sources, as after a change to `contracts/`. The message says
-to reset with `make dev-clean`. Anvil restarts its clock at the latest block's
-time, which would leave every later block behind the wall clock by the time the
-stack was down, so the same step then sets the chain's clock to the present.
+exits non-zero when the chain holds only some of them, when account #0 has sent
+transactions without creating them, or when they were built from other sources,
+as after a change to `contracts/`. Then `migrate`, `backend`, `worker` and
+`dashboard` never start, while `chain`, `postgres`, `redis`, `clamav` and
+`marketing` keep running, and the message says to reset with `make dev-clean`.
+Anvil restarts its clock at the latest block's time, which would leave every
+later block behind the wall clock by the time the stack was down, so the same
+step then moves the chain's clock forward to the present. It never moves the
+clock back: a chain whose latest block is already at or past the present keeps
+its time.
 
 `docker-compose.yml` gives the `migrate`, `backend` and `worker` services
 `BLOCKCHAIN_RPC_URL=http://chain:8545`, `BLOCKCHAIN_CHAIN_ID=31337`, account
@@ -428,7 +432,10 @@ and pausing the token is the incident lever.
 The stack's backend reaches its own chain as `http://chain:8545` on the
 Compose network, and the chain settings in `docker-compose.yml` override
 `backend/.env`, so pointing the stack at another node means changing them there
-or in a Compose override file. A node started on the host is not the backend
+or in a Compose override file. An override for any chain other than 31337 must
+also replace `migrate`'s command with one that leaves out its last step:
+`admit_local_signer` refuses every other chain, so `migrate` would exit 1 and
+`backend` and `worker` would never start. A node started on the host is not the backend
 container's `localhost`: point `BLOCKCHAIN_RPC_URL` at a host address reachable
 from the Compose network, or run the node inside that network and use its
 service/container name. Host firewall rules can block `host.docker.internal`;

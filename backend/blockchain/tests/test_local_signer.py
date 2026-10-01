@@ -118,6 +118,35 @@ class LocalSignerAdmissionTest(TransactionTestCase):
         self.mined(7)
         self.refuse("lost its latest blocks")
 
+    def test_a_reverted_attempt_does_not_count_as_waiting_once_its_operation_signs_again(self):
+        admit_local_signer()
+        first = claim_operation("synthetic:retried")
+        reverted = sign_claim(first)
+        self.assertTrue(
+            record_receipt(first, reverted.tx_hash, receipt(reverted, 0), client=chain_client(receipt(reverted, 0)))
+        )
+        retried = sign_claim(claim_operation("synthetic:retried"))
+        self.assertEqual((reverted.nonce, retried.nonce, retried.operation_id), (7, 8, reverted.operation_id))
+
+        self.mined(8)
+        self.assertTrue(admit_local_signer()["unchanged"])
+        self.mined(7)
+        self.refuse("lost its latest blocks")
+
+    def test_a_transaction_confirmed_while_the_chain_is_read_is_not_taken_for_a_lost_one(self):
+        admit_local_signer()
+        claim = claim_operation("synthetic:racing")
+        attempt = sign_claim(claim)
+
+        def mined_just_after_the_read(address, block):
+            self.assertTrue(
+                record_receipt(claim, attempt.tx_hash, receipt(attempt), client=chain_client(receipt(attempt)))
+            )
+            return attempt.nonce
+
+        self.chain.w3.eth.get_transaction_count.side_effect = mined_just_after_the_read
+        self.assertTrue(admit_local_signer()["unchanged"])
+
     def test_admission_refuses_the_app_role_and_any_enclosing_transaction(self):
         with patch("blockchain.services.local_signer.current_alias", return_value="app"):
             self.refuse("operator connection")

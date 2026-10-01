@@ -160,11 +160,12 @@ in force.
 the local development chain, chain id 31337, and on no other chain. The local
 Compose stack runs it as the last step of its `migrate` service, after
 `chain-deploy` has verified the core contracts; see
-[the local chain](../operations/chains.md#the-local-stacks-chain). It reads the
-provider's chain id and the signer's mined nonce outside any database
-transaction, then admits under the signer lock with the same boundary as the
-other entry points: an operator connection, autocommit and no enclosing
-transaction block.
+[the local chain](../operations/chains.md#the-local-stacks-chain). Outside any
+database transaction it reads what the database recorded for the signer first
+and the provider's chain id and mined nonce after, so a transaction mined and
+recorded between the two reads cannot look missing. It then admits under the
+signer lock with the same boundary as the other entry points: an operator
+connection, autocommit and no enclosing transaction block.
 
 The configured chain id must be the integer 31337, the operator key must be
 valid, and the provider must answer 31337; otherwise nothing is admitted. A
