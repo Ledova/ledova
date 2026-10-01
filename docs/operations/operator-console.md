@@ -354,5 +354,8 @@ from their identity check. Migration `users/0029` dated the active, suspended an
 terminated accounts that already existed from the earliest evidence of their
 activation: the first automated risk assessment, which the identity check
 completes as it activates the account, or the time the identity was verified.
-An account with neither, activated by staff without an identity check, is dated
-from its creation.
+It trusts that evidence only for a profile whose identity check is a completed
+GREEN result. Any other account is dated from its creation: one activated by
+staff without an identity check, one activated on a result that never completed
+(the KYCAID mapping once read any truthy `verified` as a pass), or one whose
+check was reviewed again since.

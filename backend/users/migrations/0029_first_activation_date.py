@@ -2,6 +2,7 @@ from django.db import migrations
 from django.db.models import F, OuterRef, Subquery
 
 ONCE_ACTIVE = ("active", "suspended", "terminated")
+COMPLETED_GREEN = {"user_profile__review_result": "GREEN", "user_profile__verification_status": "completed"}
 
 KEEP_FIRST_ACTIVATION = """
 CREATE FUNCTION users_keep_first_activation() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -31,8 +32,9 @@ def date_each_activation(apps, schema_editor):
         .values("valid_from")[:1]
     )
     undated = account._base_manager.using(alias).filter(activation_date__isnull=True, account_status__in=ONCE_ACTIVE)
+    checked = set(undated.filter(**COMPLETED_GREEN).values_list("pk", flat=True))
     for row in undated.annotate(assessed=Subquery(first_assessment), verified=F("user_profile__verified_at")):
-        evidence = [moment for moment in (row.assessed, row.verified) if moment is not None]
+        evidence = [moment for moment in (row.assessed, row.verified) if moment is not None and row.pk in checked]
         account._base_manager.using(alias).filter(pk=row.pk).update(
             activation_date=min(evidence) if evidence else row.created_at
         )

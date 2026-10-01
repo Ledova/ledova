@@ -19,6 +19,8 @@ JOINED = datetime(2025, 11, 3, 8, 0, tzinfo=dt_timezone.utc)
 VERIFIED = JOINED + timedelta(days=2)
 REVERIFIED = VERIFIED + timedelta(days=60)
 STAFF_DATED = VERIFIED + timedelta(days=9)
+COMPLETED_GREEN = ("GREEN", "completed")
+UNCHECKED = (None, "init")
 
 
 class ActivationDateBackfillTest(TransactionTestCase):
@@ -26,9 +28,16 @@ class ActivationDateBackfillTest(TransactionTestCase):
         restore_every_migration()
         super().tearDown()
 
-    def account(self, apps, label, status, verified_at=None, **fields):
+    def account(self, apps, label, status, verified_at=None, check=None, **fields):
+        result, verification = check or (COMPLETED_GREEN if verified_at else UNCHECKED)
         user = User.objects.create_user(email=f"{label}@backfill.example.test", password="pw-12345678")
-        profile = UserProfile.objects.create(user=user, verified_at=verified_at, is_id_verified=bool(verified_at))
+        profile = UserProfile.objects.create(
+            user=user,
+            verified_at=verified_at,
+            is_id_verified=bool(verified_at),
+            review_result=result,
+            verification_status=verification,
+        )
         accounts = apps.get_model("users", "UserAccount").objects
         row = accounts.create(
             user_profile_id=profile.pk, account_number=f"ACC-{label.upper()}"[:20], account_status=status, **fields
@@ -56,8 +65,10 @@ class ActivationDateBackfillTest(TransactionTestCase):
         reverified = self.account(before, "reverified", "active", verified_at=REVERIFIED)
         self.assessed(before, reverified, VERIFIED)
         self.assessed(before, reverified, REVERIFIED)
-        assessed_only = self.account(before, "assessed-only", "active")
-        self.assessed(before, assessed_only, VERIFIED)
+        incomplete = self.account(before, "incomplete", "active", verified_at=VERIFIED, check=("GREEN", "pending"))
+        self.assessed(before, incomplete, VERIFIED)
+        rereviewed = self.account(before, "rereviewed", "active", check=("RED", "completed"))
+        self.assessed(before, rereviewed, VERIFIED)
         suspended = self.account(before, "suspended", "suspended", verified_at=VERIFIED)
         terminated = self.account(before, "terminated", "terminated")
         manual = self.account(before, "manual", "active")
@@ -69,10 +80,8 @@ class ActivationDateBackfillTest(TransactionTestCase):
         dates = self.dates(migrate_to(AFTER))
         self.assertTrue(self.guarded())
 
-        self.assertEqual(
-            [dates[account] for account in (verified, reverified, assessed_only, suspended)], [VERIFIED] * 4
-        )
-        self.assertEqual([dates[account] for account in (terminated, manual)], [JOINED, JOINED])
+        self.assertEqual([dates[account] for account in (verified, reverified, suspended)], [VERIFIED] * 3)
+        self.assertEqual([dates[account] for account in (incomplete, rereviewed, terminated, manual)], [JOINED] * 4)
         self.assertEqual(dates[dated], STAFF_DATED)
         self.assertEqual([dates[pending], dates[rejected]], [None, None])
         self.assertEqual(self.dates(migrate_to(BEFORE)), dates)
