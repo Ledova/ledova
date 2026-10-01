@@ -29,6 +29,7 @@ from compliance.models import (
     TransactionScreening,
 )
 from documents.models import Document, DocumentExtraction
+from integrations.kyc.constants import VERIFICATION_STATUS_CHOICES
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic import identities, keys
 from shared.seeds.synthetic.plan import MINIMUM_INVESTORS, WINDOW_DAYS, stream
@@ -281,13 +282,25 @@ class SyntheticPopulationTest(APITestCase):
         alerts = ComplianceAlert.objects.all()
 
         self.assertEqual(statuses, {"active", "pending", "suspended", "terminated", "rejected"})
-        self.assertTrue({"GREEN", "RED", "YELLOW", ""} <= results)
+        self.assertTrue({"GREEN", "RED", "YELLOW"} <= results)
         self.assertEqual(set(alerts.values_list("status", flat=True)), {"new", "reviewing", "escalated", "closed"})
         self.assertEqual(alerts.filter(smr_required=True, smr_type="ml").count(), 1)
         self.assertFalse(alerts.exclude(status="new").filter(assigned_to__isnull=True).exists())
         self.assertFalse(alerts.filter(assigned_to__is_active=False).exists())
         self.assertTrue(Notification.objects.filter(is_read=False).exists())
         self.assertTrue(Notification.objects.filter(is_archived=True).exists())
+
+    def test_identity_checks_are_recorded_as_the_provider_mappings_record_them(self):
+        checked = UserProfile.objects.exclude(verification_status=None)
+        in_progress = checked.filter(verification_status__in=("pending", "queued", "onHold"))
+
+        self.assertTrue(in_progress.exists())
+        self.assertLessEqual(
+            set(checked.values_list("verification_status", flat=True)),
+            {value for value, _ in VERIFICATION_STATUS_CHOICES},
+        )
+        self.assertEqual(set(in_progress.values_list("review_result", flat=True)), {None})
+        self.assertFalse(UserProfile.objects.filter(review_result="").exists())
 
     def test_nothing_is_left_for_a_periodic_job_to_act_on(self):
         now = timezone.now()

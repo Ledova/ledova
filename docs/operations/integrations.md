@@ -54,6 +54,60 @@ provider error after it leave it unchanged. A provider that cannot screen, such
 as Sum&Sub today, fails every screening, and the address rule reports it as
 unverified.
 
+### Identity results
+
+Both providers write the same profile fields: `verification_status`, one of
+`init`, `pending`, `queued`, `prechecked`, `onHold` and `completed`;
+`review_result`, which is `GREEN`, `RED` or `YELLOW`, or null while there is no
+result (never an empty string); `rejection_labels`; and, for an approval, the PEP
+type the risk policy reads.
+
+| The provider reports | KYCAID | Sum&Sub |
+| --- | --- | --- |
+| Not started | `unused`, recorded as `init` | `init` |
+| In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold` |
+| Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
+| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, read as a webhook is |
+| Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
+| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | risk labels |
+
+A result counts only once the provider reports the check completed. Sum&Sub says
+so of `reviewAnswer`, so an answer reported beside another status, such as a
+provisional `GREEN` while `awaitingService`, is not recorded, and a status poll
+that brings no result writes nothing. KYCAID's `verified` is read as a JSON
+boolean or the string `true` or `false`; anything else is no result. A
+verification status KYCAID does not document is recorded as `pending` with no
+result, and a status-changed callback carrying one changes nothing; both are
+logged. Users migration `0029` rewrote rows stored before this mapping: an empty
+result became null and `unused` became `init`.
+
+KYCAID reports a PEP as a yes-or-no flag and names no category. Both providers'
+PEP evidence goes through one classifier, `integrations/kyc/pep.py`, which reads
+category words (family or relative, associate, international or intl_org,
+foreign, domestic) and counts any other PEP mention as foreign, so a KYCAID PEP is
+recorded as Sum&Sub's uncategorised `PEP` label always was. The risk policy is
+unchanged: foreign, international-organisation, family and associate PEPs are
+rejected, and a domestic PEP is accepted with a higher customer risk score, which
+only a provider that names the category can produce.
+
+A KYCAID approval whose callback does not carry the applicant is applied only
+after the applicant record, with its PEP flag, has been read. If that read fails
+the callback answers 500, KYCAID retries it, and the user's next status poll
+applies the result as well. KYCAID's `DATABASE_SCREENING` callback, which reports
+PEP and sanctions list matches found after approval, is not handled and is logged
+as an unhandled type.
+
+Sources, read on 2 October 2026: KYCAID's
+[Verification completed](https://docs.kycaid.com/callbacks/verification-completed),
+[Verification status changed](https://docs.kycaid.com/callbacks/verification-status-changed),
+[callbacks overview](https://docs.kycaid.com/callbacks/overview),
+[form integration](https://docs.kycaid.com/guides/form-integration),
+[decline reasons](https://docs.kycaid.com/decline-reasons) and the
+[legacy API reference](https://docs-v1.kycaid.com/) for the verification and
+applicant objects and database screening; Sum&Sub's
+[Get applicant review status](https://docs.sumsub.com/reference/get-applicant-review-status)
+and [applicant statuses](https://docs.sumsub.com/docs/applicant-statuses).
+
 ## Email
 
 | Variable | Default | Required |

@@ -540,7 +540,7 @@ class Story:
         if cohort == "kyc_pending":
             provider, status = PENDING_STATES[self.pending % len(PENDING_STATES)]
             self.pending += 1
-            return Kyc(provider, status, "", submitted, document_type, country), (), "pending", ""
+            return Kyc(provider, status, None, submitted, document_type, country), (), "pending", ""
         if cohort == "kyc_yellow":
             labels = self.rng.choice(YELLOW_LABELS)
             kyc = Kyc("sumsub", "completed", "YELLOW", self.after(submitted, 30, 1800), document_type, country, labels)
@@ -998,7 +998,7 @@ class Story:
         pending = spec.target == "submitted"
         submitted = self.after(joined, 6, 12)
         decided = submitted if pending else self.after(submitted, 5, 240)
-        result = "" if pending else "GREEN"
+        result = None if pending else "GREEN"
         kyc = Kyc("kycaid", "pending" if pending else "completed", result, decided, "DRIVERS_LICENSE", "AU")
         wallets = self._founder_wallet(spec, key, decided, tester)
         operator = wallets[0].address if wallets and spec.target == "active" else None
