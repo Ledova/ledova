@@ -30,9 +30,9 @@ loading signatures before uploads work. See [upload setup](operations/uploads.md
 | Marketing | <http://localhost:5173> |
 | API and admin | <http://localhost:8000> |
 
-Stop with `docker compose down` or `make dev-down`. Rebuild changed services:
-the dashboard is a built image with no source volume, so restarting alone does
-not pick up edited code. Keep API and worker builds consistent.
+Rebuild changed services: the dashboard is a built image with no source volume,
+so restarting alone does not pick up edited code. Keep API and worker builds
+consistent. To stop or reset the stack, see [stop and clean up](#stop-and-clean-up).
 
 ## First sign-in
 
@@ -42,7 +42,7 @@ ten minutes and five attempts, or request another. Dashboard cookie-authenticate
 writes require its origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; the template includes
 `http://localhost:5174`.
 
-For a prepared local demo, run:
+For a prepared local demo, run `make dev-seed`, which runs:
 
 ```bash
 docker compose exec backend python manage.py seed_demo
@@ -57,6 +57,14 @@ See [demo details](operations/operator-console.md#demo-data).
 For issuance, continue with [local chain setup](operations/chains.md). Then open
 the [operator console](operations/operator-console.md), configure the contract
 addresses/payment rail, and exercise the [issuance flow](architecture/contracts-and-issuance.md).
+
+## Stop and clean up
+
+| Command | Effect |
+| --- | --- |
+| `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, Redis data, uploads and virus signatures stay in their volumes for the next start. |
+| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The next start migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
+| `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it. |
 
 ## Run individual components
 
