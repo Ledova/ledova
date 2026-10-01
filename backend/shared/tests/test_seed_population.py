@@ -87,6 +87,13 @@ class SyntheticPopulationTest(APITestCase):
         self.assertEqual(first, build_plan(NOW, MINIMUM_INVESTORS))
         self.assertNotEqual(first.people, build_plan(NOW, MINIMUM_INVESTORS, seed=1).people)
 
+    def test_the_plan_depends_on_the_day_of_the_run_and_not_its_time(self):
+        morning = build_plan(NOW, MINIMUM_INVESTORS)
+
+        self.assertEqual(build_plan(NOW + timedelta(hours=9), MINIMUM_INVESTORS), morning)
+        self.assertTrue(all(person.joined_at < morning.now for person in morning.everyone()))
+        self.assertLessEqual(morning.now, NOW)
+
     def test_nothing_reaches_the_network_a_mailbox_or_the_job_queue(self):
         for target, stub in self.outside.items():
             self.assertFalse(stub.called, target)

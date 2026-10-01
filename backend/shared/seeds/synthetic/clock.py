@@ -25,8 +25,8 @@ def frozen(moment):
 
 class Calendar:
     def __init__(self, now):
-        self.now = utc(now)
-        self.today = self.now.astimezone(SYDNEY).date()
+        self.today = utc(now).astimezone(SYDNEY).date()
+        self.anchor = utc(datetime.combine(self.today, time.min, SYDNEY))
 
     def day(self, days_ago, hour=10, minute=0, second=0):
         if days_ago < 1:

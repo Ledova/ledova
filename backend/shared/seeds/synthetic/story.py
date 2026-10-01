@@ -289,7 +289,7 @@ class Story:
             raise ValueError(f"Seed at least {MINIMUM_INVESTORS} investors so that every state is represented.")
         self.rng = random.Random(seed)
         self.calendar = Calendar(now)
-        self.now = self.calendar.now
+        self.now = self.calendar.anchor
         self.ceiling = (self.now - timedelta(minutes=150)).replace(microsecond=0)
         self.window_start = self.now - timedelta(days=WINDOW_DAYS)
         self.investor_total = investors
