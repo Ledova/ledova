@@ -1,19 +1,16 @@
 from datetime import timedelta
 
-from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from companies.identity import officeholder_declaration
 from companies.models import (
     Company,
-    CompanyDocument,
     CompanyRegistryCheck,
     CompanyStatus,
     DocumentType,
     RegistryCheckPurpose,
 )
 from companies.services.company import register_company
-from companies.services.document_review import prepare_document_review, verify_document
 from companies.services.registry import (
     ABR_COMPANY_TYPES,
     begin_registry_check,
@@ -23,10 +20,9 @@ from integrations.abr.client import RegistryObservation
 from shared.db import atomic
 from shared.seeds.synthetic.clock import AEST, frozen
 from shared.seeds.synthetic.identities import spaced_abn
-from shared.seeds.synthetic.paper import pdf
+from shared.seeds.synthetic.paper import acn_text, company_document, pdf, verified
 from wallets.models import Wallet
 
-PDF = "application/pdf"
 ATTESTATION_FIELDS = (
     "declarant_name",
     "board_resolution_reference",
@@ -48,7 +44,7 @@ def apply_company(plan, seeded):
         if step:
             _transition(plan, step, records, seeded)
         else:
-            _verify(records[document.document_type], at, seeded.users["documents"])
+            verified(records[document.document_type], seeded.users["documents"], at=at)
     seeded.companies[plan.key] = Company.objects.get(pk=company.pk)
     return seeded.companies[plan.key]
 
@@ -95,29 +91,20 @@ def _upload(document, plan, company):
         label,
         [
             plan.name,
-            f"ACN {plan.acn[:3]} {plan.acn[3:6]} {plan.acn[6:]}",
+            acn_text(plan.acn),
             f"ABN {spaced_abn(plan.abn)}",
             f"Document: {label}",
             f"Prepared: {document.uploaded_at:%d %B %Y}",
         ],
     )
-    with frozen(document.uploaded_at):
-        record = CompanyDocument(
-            company=company,
-            document_type=document.document_type,
-            name=document.name,
-            file_size=len(content),
-            mime_type=PDF,
-            valid_from=document.valid_from,
-        )
-        record.file.save(document.name, ContentFile(content), save=True)
-    return record
-
-
-def _verify(record, at, reviewer):
-    with frozen(at):
-        _, confirmation = prepare_document_review(document_id=record.pk, reviewer=reviewer)
-        verify_document(document_id=record.pk, reviewer=reviewer, confirmation=confirmation)
+    return company_document(
+        company,
+        document.document_type,
+        document.name,
+        content,
+        at=document.uploaded_at,
+        valid_from=document.valid_from,
+    )
 
 
 def _observation(plan, at):

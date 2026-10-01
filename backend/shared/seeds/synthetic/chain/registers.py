@@ -2,17 +2,14 @@ from contextlib import nullcontext
 from decimal import Decimal
 from uuid import uuid4
 
-from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from companies.models import CompanyDocument, DocumentType
-from companies.services.document_review import prepare_document_review, verify_document
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
 from shared.seeds.synthetic.chain.story import ALLOTTED
 from shared.seeds.synthetic.clock import frozen
-from shared.seeds.synthetic.identities import slug
-from shared.seeds.synthetic.paper import pdf
+from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     IssuanceStatus,
     RegisterPosition,
@@ -40,28 +37,9 @@ from tokens.services.register_openings import (
 from tokens.services.register_reconciliation import reconcile_register
 from users.models import UserProfile
 
-PDF = "application/pdf"
-RESOLUTION = "Directors' resolution"
 UNMATCHED = "The {symbol} register is {status} with the chain: {detail}"
 STILL_WAITING = "{count} completed effects of {symbol} are still waiting to be recorded."
 HOLDING_DIFFERS = "{symbol}: the register holds {stored} for {holder}, the plan {planned}."
-
-
-def acn_text(acn):
-    return f"ACN {acn[:3]} {acn[3:6]} {acn[6:]}"
-
-
-def authority(company_key, purpose, title, lines, records, at=None):
-    company = records.companies[company_key]
-    content = pdf(f"{RESOLUTION}: {title}", [company.name, acn_text(company.acn), *lines])
-    name = f"{slug(company.trading_name or company.name)}-{purpose}.pdf"
-    with frozen(at) if at else nullcontext():
-        document = CompanyDocument(
-            company=company, document_type=DocumentType.OTHER, name=name, file_size=len(content), mime_type=PDF
-        )
-        document.file.save(name, ContentFile(content), save=True)
-        _, confirmation = prepare_document_review(document_id=document.pk, reviewer=records.documents)
-        return verify_document(document_id=document.pk, reviewer=records.documents, confirmation=confirmation)
 
 
 def request_item(request):
@@ -107,14 +85,14 @@ def open_register(share_class, records):
     )
     mapping = [{"address": address, "member": str(records.member(company_key, address))} for address in holders]
     document = authority(
-        company_key,
+        records.companies[company_key],
         f"register-{share_class.symbol.lower()}",
         f"the register of {share_class.name}",
         [
             f"The directors resolved to keep the register of {share_class.name} ({share_class.symbol}) on Ledova,",
             "opened from the share class's deployment, with the wallets of each member listed in the mapping.",
         ],
-        records,
+        records.documents,
     )
     proposal = submit_opening(
         actor=token.company.owner,

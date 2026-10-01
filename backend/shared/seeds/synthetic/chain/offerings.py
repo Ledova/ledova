@@ -20,7 +20,6 @@ from shared.db import atomic
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.registers import (
-    authority,
     instruct,
     reference_prefix,
     subscription_item,
@@ -35,6 +34,7 @@ from shared.seeds.synthetic.chain.story import (
     WITHDRAWN,
 )
 from shared.seeds.synthetic.clock import AEST, frozen
+from shared.seeds.synthetic.paper import authority
 from tokens.models import ShareToken
 
 CLOSE_REASON = "Closed at the end of the offer period."
@@ -190,14 +190,14 @@ def allot_round(item, records):
         subscriptions.append(subscription)
     company_key = item.share_class.split("/")[0]
     document = authority(
-        company_key,
+        records.companies[company_key],
         f"allotment-{item.key}",
         f"allotment of the {token.symbol} offer",
         [
             f"The directors resolved to allot {sum(application.allotted for application in allotted):,} {token.name}",
             f"to the {len(allotted)} applicants who paid by the close of the offer, on the terms listed.",
         ],
-        records,
+        records.documents,
     )
     instruct(
         token,

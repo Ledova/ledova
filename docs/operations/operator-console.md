@@ -191,11 +191,12 @@ balance the node would not set included, says to start over. It adds:
   deployed with their share assets, the last paused afterwards by its issuer; and
   two drafts, Demo Robotics' Series A preference shares and Saltbush's ordinary
   shares.
-- Approvals: each Base wallet that holds shares or has an accepted application is
-  approved for its company until the expiry the classification refresh would set,
-  that is the latest expiry of the holder's live claims, to the second, or none;
-  the founders' wallets and the employee share trusts' addresses never expire. No
-  suspended, terminated or rejected account is approved.
+- Approvals: each Base wallet that holds shares, or whose application reached a
+  payment instruction, is approved for its company until the expiry the
+  classification refresh would set, that is the latest expiry of the holder's
+  live claims, to the second, or none; the founders' wallets and the employee
+  share trusts' addresses never expire. No suspended, terminated or rejected
+  account is approved.
 - Registers: each company's existing register (founders, directors, an employee
   share trust held at a custodian address with no key behind it, and investors
   from earlier rounds) is issued on chain through issuance requests that one
@@ -206,11 +207,12 @@ balance the node would not set included, says to start over. It adds:
   the chain and folded. Every opened register has at least ten members and no
   effect waiting.
 - Offerings in every status: three closed and allotted, one of them scaled back
-  with the excess refunded; one open and close to its cap; one approved to open in
-  a few days; one submitted, one under review, one draft, one rejected and one
-  withdrawn, all priced in AUD under a section 708 exemption. About 60
-  applications on both rails cover every application status, with references
-  from the operator's prefix and payment due dates still ahead.
+  with the excess refunded; one open and close to its cap; one approved to open
+  twelve days after the run; one submitted, one under review, one draft, one
+  rejected and one withdrawn, all priced in AUD and made under section 708
+  exemptions, except Wattlefield's, which are for wholesale clients under section
+  761G. About 60 applications on both rails cover every application status, with
+  references from the operator's prefix and payment due dates still ahead.
 - Issuance requests submitted, under review, approved, rejected and executed (a
   top-up of Demo Robotics' employee share trust after its register opened, which
   the register records under its instruction), and capital increases executed
@@ -222,7 +224,8 @@ to allotments and register entries, carries the day of the run, so a register
 opens that day and shows each member's imported date entered. The investor
 tester holds four classes in three companies across development accounts 1, 2
 and 4, two of them through allotted applications, and has applications awaiting
-payment and paid; the founder's growth round has applications in every status.
+payment and paid; the founder's growth round, still open, has applications in
+every status but allotted, and the founder's offerings together cover all nine.
 The console's warning and information rows have work in them and its danger rows
 stay at zero. No periodic job signs or removes anything, and none changes a
 seeded row other than the founder's Base ether below: the registry sync and

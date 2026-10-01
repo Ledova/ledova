@@ -3,19 +3,23 @@ from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
 from io import StringIO
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from assets.models import Asset
 from blockchain.models import SigningAccount
+from ledova_backend.procrastinate_app import app
 from offerings.models import OfferingStatus, SubscriptionStatus
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_ETHEREUM
-from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_ISSUER_ADDRESS
+from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_ISSUER_ADDRESS, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic.chain import population
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
+from shared.seeds.synthetic.chain.deferred import UnexpectedJob, captured
 from shared.seeds.synthetic.chain.guard import (
     GET_THE_CHAIN,
     MALFORMED,
@@ -33,8 +37,10 @@ from shared.seeds.synthetic.chain.layer import (
     PRESENT,
     SKIPPED,
     issuance_state,
+    seal,
     seed_issuance,
 )
+from shared.seeds.synthetic.chain.records import Records
 from shared.seeds.synthetic.chain.settlement import (
     BALANCE_METHODS,
     OTHER_SETTLEMENT,
@@ -54,7 +60,10 @@ from shared.seeds.synthetic.clock import Calendar
 from shared.seeds.synthetic.keys import hardhat_keys
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from tokens.models import ShareToken
+from users.models import Notification
+from users.tasks.notifications import send_push_notification
 from wallets.models import Holding
+from wallets.tasks import sync_wallet
 from whitelist.models import WhitelistApproval
 
 PASSWORD = "pw-12345678"
@@ -392,6 +401,72 @@ class IssuanceRunOnceTest(TestCase):
             {address.lower(): Decimal(int(wei, 16)) / 10**18 for _, (address, wei) in calls},
             {address: quantity for address, quantity in seeded.items() if address != DEMO_ISSUER_ADDRESS.lower()},
         )
+
+    def plan(self):
+        return build_issuance(timezone.now(), population.firms(self.found), population.candidates(self.found))
+
+    def test_a_job_queued_by_the_last_step_runs_before_the_layer_seals_itself(self):
+        plan = self.plan()
+        founder = get_user_model().objects.get(email=DEMO_OWNER_EMAIL)
+
+        with captured() as deferrals:
+            records = Records(plan, self.found, deferrals)
+            send_push_notification.defer(user_id=str(founder.pk), title="Balances set", body="Every wallet is funded.")
+            seal(plan, records)
+
+        self.assertEqual(issuance_state(self.found), PRESENT)
+        self.assertTrue(Notification.objects.filter(user=founder, title="Balances set").exists())
+
+    def test_a_job_the_layer_cannot_run_stops_it_before_it_seals_itself(self):
+        plan = self.plan()
+
+        with self.assertRaisesMessage(UnexpectedJob, sync_wallet.name):
+            with captured() as deferrals:
+                records = Records(plan, self.found, deferrals)
+                sync_wallet.defer(wallet_uuid=str(uuid4()), principal_id=None)
+                seal(plan, records)
+
+        self.assertEqual(issuance_state(self.found), ABSENT)
+
+    def test_the_summary_says_a_register_is_opened_only_once_an_opening_was_applied(self):
+        address = "0x" + "e5" * 20
+        ShareToken.objects.filter(company=self.found["demo-robotics"], symbol="ORD").update(
+            status="deployed", contract_address=address
+        )
+
+        output = seed(investors=MINIMUM_INVESTORS)
+
+        self.assertIn(f"Share class ORD is deployed at {address}", output)
+        self.assertNotIn("register opened", output)
+
+
+class Interrupted(Exception):
+    pass
+
+
+class DeferralCaptureTest(SimpleTestCase):
+
+    def test_a_job_still_queued_when_the_capture_ends_is_an_error_and_not_dropped(self):
+        connector = app.connector
+
+        with self.assertRaisesMessage(UnexpectedJob, send_push_notification.name):
+            with captured():
+                send_push_notification.defer(user_id="1", title="Title", body="Body")
+
+        self.assertIs(app.connector, connector)
+
+    def test_an_error_inside_the_capture_propagates_and_restores_both_connectors(self):
+        connector, manager = app.connector, app.job_manager.connector
+
+        with self.assertRaises(Interrupted):
+            with captured():
+                send_push_notification.defer(user_id="1", title="Title", body="Body")
+                self.assertIsNot(app.connector, connector)
+                self.assertIsNot(app.job_manager.connector, manager)
+                raise Interrupted
+
+        self.assertIs(app.connector, connector)
+        self.assertIs(app.job_manager.connector, manager)
 
 
 class ChainGuardTest(TestCase):

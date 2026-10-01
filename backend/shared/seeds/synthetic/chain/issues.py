@@ -3,12 +3,12 @@ from datetime import timedelta
 from shared.db import atomic
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.registers import (
-    authority,
     instruct,
     reference_prefix,
     request_item,
 )
 from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.paper import authority
 from tokens.models import IssuanceType, RequestStatus, ShareToken
 from tokens.services import issuance_execution, share_token_service
 
@@ -51,14 +51,14 @@ def mint_positions(share_class, records):
     if not requests:
         return []
     document = authority(
-        share_class.company,
+        records.companies[share_class.company],
         f"issue-{share_class.symbol.lower()}",
         f"issue of the {share_class.symbol} shares already on the register",
         [
             f"The directors resolved to issue on chain the {share_class.name} the register already records,",
             "to each member's wallet, so that the register can be kept on the platform.",
         ],
-        records,
+        records.documents,
     )
     instruct(
         token,
@@ -86,11 +86,11 @@ def apply_request(item, records):
             request.reject(staff, item.decision)
     elif item.status in ("approved", "executed"):
         document = authority(
-            item.share_class.split("/")[0],
+            records.companies[item.share_class.split("/")[0]],
             f"issue-{item.key}",
             f"issue of {item.shares:,} {token.symbol} shares",
             [item.reason, f"The directors resolved to issue {item.shares:,} {token.name} to {item.address}."],
-            records,
+            records.documents,
             at=item.decided_at - timedelta(hours=3),
         )
         instruct(
