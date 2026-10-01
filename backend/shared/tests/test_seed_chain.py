@@ -19,6 +19,7 @@ from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
+from assets.models import Asset
 from blockchain.models import SignedAttempt
 from blockchain.services.local_signer import admit_local_signer
 from feature_flags.models import FeatureFlag
@@ -33,12 +34,24 @@ from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import operator_address
 from shared.seeds.synthetic.chain.story import TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.market.story import MARKETS
 from shared.services.orphaned_files import orphaned_files
+from shareholders.models import (
+    Publication,
+    PublicationEvent,
+    PublicationEventKind,
+    PublicationRecipient,
+)
+from shareholders.services.resolutions import verify_publication
 from tokens.models import (
+    MintRequest,
+    RegisterEntry,
     RegisterReconciliation,
     RegisterReconciliationStatus,
     ShareIssuance,
     ShareToken,
+    SwapOrder,
+    TransferOrder,
 )
 from tokens.services import share_token_service
 from tokens.services.register_inclusions import waiting_effects
@@ -47,6 +60,7 @@ from tokens.tests.test_chain_integration import (
     chain_available,
     reset_chain_client,
 )
+from users.models import Notification
 from wallets.models import Holding, Wallet
 from whitelist.models import WhitelistApproval
 
@@ -175,6 +189,7 @@ class ChainLayerTest(APITransactionTestCase):
         output = self.seed()
 
         self.assertIn("Chain layer added", output, output)
+        self.assertIn("Market layer added", output, output)
         self.assertEqual(self.w3.eth.get_balance(operator), funds - self.spent_by(operator, start))
         self.assertEqual(self.outbound, [])
         self.assertEqual(mail.outbox, [])
@@ -183,16 +198,20 @@ class ChainLayerTest(APITransactionTestCase):
         self.check_console()
         self.check_investor_screens()
         self.check_founder_screens()
+        self.check_market()
+        self.check_notices()
         self.check_quiet_jobs(timedelta(0))
+        self.check_quiet_jobs(timedelta(minutes=20))
         self.check_quiet_jobs(timedelta(hours=26))
         self.assertEqual(orphaned_files(moment=timezone.now() + timedelta(days=2)), [])
 
-        signed = SignedAttempt.objects.count()
-        tokens = ShareToken.objects.count()
+        counted = (SignedAttempt, ShareToken, MintRequest, TransferOrder, SwapOrder, Publication, PublicationEvent)
+        before = [model.objects.count() for model in counted]
         second = self.seed()
 
         self.assertIn("Chain layer already present; nothing added.", second)
-        self.assertEqual((SignedAttempt.objects.count(), ShareToken.objects.count()), (signed, tokens))
+        self.assertIn("Market layer already present; nothing added.", second)
+        self.assertEqual([model.objects.count() for model in counted], before)
 
     def check_registers(self):
         on_chain = ShareToken.objects.exclude(contract_address=None)
@@ -211,10 +230,17 @@ class ChainLayerTest(APITransactionTestCase):
                 address for address in holders if Wallet.objects.filter_by_address(address, chain="base").exists()
             }
             shares = Holding.objects.filter(asset__chain_deployments__contract_address__iexact=token.contract_address)
-            self.assertEqual(shares.count(), len(wallets), token.symbol)
+            settled = SwapOrder.objects.filter(share_token=token, status="completed")
+            bought = {swap.buyer_address.lower() for swap in settled}
+            held = {holding.wallet.address.lower() for holding in shares.select_related("wallet")}
+            self.assertTrue(wallets <= held <= wallets | bought, token.symbol)
             for holding in shares.select_related("wallet"):
                 balance = contract.functions.balanceOf(holding.wallet.address).call()
                 self.assertEqual(holding.quantity, Decimal(balance), holding.wallet.address)
+            transfers = RegisterEntry.objects.filter(register__token=token, kind="transfer")
+            self.assertEqual(
+                set(transfers.values_list("operation_id", flat=True)), set(settled.values_list("pk", flat=True))
+            )
         for approval in WhitelistApproval.objects.select_related("entry__wallet__user_account"):
             self.assertEqual(approval.status, "active")
             if approval.entry.wallet_id:
@@ -273,6 +299,107 @@ class ChainLayerTest(APITransactionTestCase):
         ledgers = [listed(self.client.get(f"/api/v1/offerings/{row['uuid']}/subscriptions/")) for row in offerings]
         statuses = {row["status"] for ledger in ledgers for row in ledger}
         self.assertEqual(statuses, set(SubscriptionStatus.values))
+
+    def check_market(self):
+        investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
+        mine = {
+            wallet.address.lower(): wallet
+            for wallet in Wallet.objects.filter(
+                user_account__user_profile__user=investor, chain="base", verification_status="VERIFIED"
+            )
+        }
+        swaps = SwapOrder.objects.all()
+        self.assertGreaterEqual(swaps.filter(status="completed").count(), 15)
+        self.assertEqual(swaps.filter(status="expired").count(), 2)
+        self.assertEqual(set(swaps.values_list("status", flat=True)), {"completed", "expired"})
+        self.client.force_authenticate(investor)
+        tokens = listed(self.client.get("/api/v1/trading/tokens/"))
+        self.assertEqual(len(tokens), len(MARKETS))
+        approved = set(
+            WhitelistApproval.objects.filter(entry__wallet__in=mine.values()).values_list(
+                "entry__wallet__address", "company__uuid"
+            )
+        )
+        for token in tokens:
+            self.assertIsNotNone(token["lastPrice"], token["symbol"])
+            self.assertLess(Decimal(token["bestBid"]), Decimal(token["bestAsk"]), token["symbol"])
+            book = self.client.get(f"/api/v1/trading/tokens/{token['uuid']}/order-book/").json()
+            self.assertGreaterEqual(min(len(book["sellOrders"]), len(book["buyOrders"])), 2, token["symbol"])
+            for wallet in mine.values():
+                status = self.client.get(
+                    f"/api/v1/trading/whitelist/{token['contractAddress']}/{wallet.address}/status/"
+                ).json()["status"]
+                whitelisted = (wallet.address, token["companyUuid"]) in {
+                    (address, str(company)) for address, company in approved
+                }
+                self.assertEqual(status, "whitelisted" if whitelisted else "not_whitelisted", token["symbol"])
+        orders = [
+            row for row in listed(self.client.get("/api/v1/trading/orders/")) if row["walletAddress"].lower() in mine
+        ]
+        self.assertEqual(
+            {row["status"] for row in orders}, {"open", "partially_filled", "completed", "cancelled"}, orders
+        )
+        for wallet in mine.values():
+            response = self.client.get("/api/v1/trading/swaps/", {"wallet_address": wallet.address})
+            self.assertEqual(response.status_code, 200, response.content)
+        held = defaultdict(set)
+        for wallet in mine.values():
+            for row in listed(self.client.get(f"/api/wallets/{wallet.uuid}/holdings/")):
+                if row.get("shareClass"):
+                    held[row["shareClass"]["uuid"]].add(wallet.address)
+        self.assertTrue(any(len(wallets) > 1 for wallets in held.values()), held)
+        audy = Asset.objects.get(symbol="AUDY").get_deployment_for_chain("base")
+        stablecoin = get_base_chain_client().load_contract("AUDY", audy.contract_address)
+        for holding in Holding.objects.filter(asset__symbol="AUDY").select_related("wallet"):
+            balance = stablecoin.functions.balanceOf(Web3.to_checksum_address(holding.wallet.address)).call()
+            self.assertEqual(holding.quantity, Decimal(balance) / 10**audy.decimals, holding.wallet.address)
+        traders = {address.lower() for swap in swaps for address in (swap.seller_address, swap.buyer_address)}
+        for address in traders:
+            ether = Holding.objects.filter(wallet__address__iexact=address, wallet__chain="base", asset__symbol="ETH")
+            seeded = ether.first().quantity if ether.exists() else Decimal(0)
+            on_chain = Web3.from_wei(self.w3.eth.get_balance(Web3.to_checksum_address(address)), "ether")
+            self.assertEqual(seeded, on_chain, address)
+        self.assertEqual(set(MintRequest.objects.values_list("status", flat=True)), {"executed", "pending", "rejected"})
+
+    def check_notices(self):
+        investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
+        self.client.force_authenticate(investor)
+        first = self.client.get("/api/v1/publications/", {"addressed": "me"}).json()
+        second = self.client.get("/api/v1/publications/", {"addressed": "me", "page": 2}).json()
+        self.assertGreater(first["count"], 25)
+        rows = first["results"] + second["results"]
+        self.assertEqual(len(rows), first["count"])
+        self.assertEqual(
+            {row["kind"] for row in rows}, {"holding_statement", "meeting_notice", "resolution", "distribution"}
+        )
+        self.assertTrue(any(row["myBallot"] for row in rows))
+        self.assertEqual({row["result"]["carried"] for row in rows if row["result"]}, {True, False})
+        summary = self.client.get("/api/v1/publications/summary/").json()
+        self.assertGreater(summary["openResolutions"], 0)
+        self.assertGreater(summary["dividendsWithoutRecord"], 0)
+        self.assertGreaterEqual(
+            Notification.objects.filter(user=investor, data__type="publication").count(), first["count"]
+        )
+        self.assertFalse(PublicationRecipient.objects.filter(identity_source="profile", user_id=None).exists())
+        for publication in Publication.objects.all():
+            verify_publication(publication.pk)
+        events = PublicationEvent.objects.all()
+        self.assertEqual(events.filter(kind=PublicationEventKind.CLOSE).count(), 5)
+        self.assertGreater(events.filter(kind=PublicationEventKind.PAYMENT).count(), 0)
+        recorded = {
+            publication.title: PublicationEvent.objects.filter(
+                publication=publication, kind=PublicationEventKind.PAYMENT
+            ).count()
+            for publication in Publication.objects.filter(kind="distribution")
+        }
+        self.assertEqual(sorted(count > 0 for count in recorded.values()), [False, True, True])
+        nothing = PublicationRecipient.objects.filter(publication__kind="distribution", entitlement=0)
+        self.assertTrue(nothing.exclude(user_id=None).exists())
+        founder = User.objects.get(email=DEMO_OWNER_EMAIL)
+        self.client.force_authenticate(founder)
+        company = founder.owned_companies.first()
+        published = self.client.get("/api/v1/publications/", {"issuer": str(company.uuid)}).json()
+        self.assertGreaterEqual(published["count"], 10)
 
     def check_quiet_jobs(self, shift):
         operator = operator_address()
