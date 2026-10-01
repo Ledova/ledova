@@ -20,6 +20,7 @@ from rest_framework.test import APITransactionTestCase
 
 from blockchain.models import SignedAttempt
 from blockchain.services.local_signer import admit_local_signer
+from feature_flags.models import FeatureFlag
 from integrations.base_chain import get_base_chain_client
 from integrations.blockchain import BlockchainClientFactory
 from ledova_backend.procrastinate_app import app
@@ -124,6 +125,7 @@ class ChainLayerTest(APITransactionTestCase):
         snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
         self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
         call_command("sync_monitoring_rules", stdout=StringIO())
+        FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         with use_operator():
             admit_local_signer()
         self.outbound = []

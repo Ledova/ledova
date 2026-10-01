@@ -12,19 +12,23 @@ from shared.seeds.synthetic.clock import frozen
 from tokens.models import IssuanceType, RequestStatus, ShareToken
 from tokens.services import issuance_execution, share_token_service
 
-NOT_EXECUTED = "Issuance request {request} for {shares} {symbol} ended {status}."
+NOT_EXECUTED = "Issuance request {request} for {shares} {symbol} ended {status}: {results}"
 
 
 def execute_request(request, records):
     staff = records.operations
     confirmed = issuance_execution.confirmation(request, staff)
     issuance_execution.admit(request, staff, confirmed=confirmed)
-    records.run()
+    results = records.run()
     request.refresh_from_db()
     if request.status != RequestStatus.EXECUTED:
         raise ChainStepFailed(
             NOT_EXECUTED.format(
-                request=request.pk, shares=request.amount, symbol=request.token.symbol, status=request.status
+                request=request.pk,
+                shares=request.amount,
+                symbol=request.token.symbol,
+                status=request.status,
+                results=results,
             )
         )
     return request

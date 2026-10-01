@@ -1997,10 +1997,11 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
 
         first = threading.Thread(target=worker, args=("first",))
         second = threading.Thread(target=worker, args=("second",))
-        first.start()
-        second.start()
-        first.join(timeout=60)
-        second.join(timeout=60)
+        with patch("tokens.tasks.execute_review_request_task.defer"):
+            first.start()
+            second.start()
+            first.join(timeout=60)
+            second.join(timeout=60)
 
         self.assertFalse(first.is_alive() or second.is_alive(), results)
         self.assertTrue(all(isinstance(value, dict) for value in results.values()), results)
