@@ -21,7 +21,7 @@ from companies.services.registry import (
 )
 from integrations.abr.client import RegistryObservation
 from shared.db import atomic
-from shared.seeds.synthetic.clock import SYDNEY, frozen
+from shared.seeds.synthetic.clock import AEST, frozen
 from shared.seeds.synthetic.identities import spaced_abn
 from shared.seeds.synthetic.paper import pdf
 from wallets.models import Wallet
@@ -128,7 +128,7 @@ def _observation(plan, at):
         entity_type=ABR_COMPANY_TYPES[plan.company_type],
         entity_status="Active",
         effective_from=plan.incorporated_on,
-        retrieved_at=at.astimezone(SYDNEY).isoformat(timespec="milliseconds"),
+        retrieved_at=at.astimezone(AEST).isoformat(timespec="milliseconds"),
         register_updated_at=(at - timedelta(days=1)).date(),
     )
 

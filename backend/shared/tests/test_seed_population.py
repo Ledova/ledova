@@ -94,6 +94,18 @@ class SyntheticPopulationTest(APITestCase):
         self.assertTrue(all(person.joined_at < morning.now for person in morning.everyone()))
         self.assertLessEqual(morning.now, NOW)
 
+    def test_a_later_day_seeds_the_same_people_and_keys_shifted_in_time(self):
+        today = build_plan(NOW, MINIMUM_INVESTORS)
+        later = build_plan(NOW + timedelta(days=100), MINIMUM_INVESTORS)
+
+        def identities(plan):
+            return [
+                (person.email, person.joined_at - plan.now, [(wallet.address, wallet.key) for wallet in person.wallets])
+                for person in plan.everyone()
+            ]
+
+        self.assertEqual(identities(later), identities(today))
+
     def test_nothing_reaches_the_network_a_mailbox_or_the_job_queue(self):
         for target, stub in self.outside.items():
             self.assertFalse(stub.called, target)
