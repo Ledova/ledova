@@ -147,19 +147,24 @@ policy. Class and company renames appear on the next read without rewriting
 the asset's combined name. See
 [the decision](../decisions.md#the-signed-in-app).
 
-A share holding is written from the chain (`balanceOf`) wherever the platform
-moves shares: the recipient's when an issuance completes, and the buyer's and
-the seller's, with their settlement-asset holdings, when a trade settles. The
-trade's write runs after its settlement commits, so a node that fails at that
-moment leaves the trade settled and the holding unwritten, and a holding is
-never created for a balance of zero. The wallet sync (hourly, and Sync balances)
-refreshes every verified holding and then looks for share classes the wallet
-holds without one. A share contract credits only an address on its company's
+A holding is written from the chain (`balanceOf`) wherever the platform moves
+shares or its settlement asset: the recipient's share holding when an issuance
+completes, the recipient's AUDY holding when a deposit's mint executes (each
+verified Base wallet registered at that address), and the buyer's and the
+seller's share and AUDY holdings when a trade settles. Each write runs after the
+work that moved the tokens has committed, so a node that fails at that moment
+leaves the issuance, mint or trade complete and the holding unwritten, and a
+holding is never created for a balance of zero. The wallet sync (hourly, and
+Sync balances) refreshes every verified holding and then looks for what the
+wallet holds without one: the share classes it can hold and the operator's
+settlement asset. A share contract credits only an address on its company's
 registry, so it reads the deployed classes of the companies that have approved
-the wallet, whether or not that approval is still live, and writes each positive
-balance it finds. That recovers a holding a settlement or an issuance could not
-write, and shares sent between approved wallets outside the platform. A class it
-cannot read is skipped without failing the sync.
+the wallet, whether or not that approval is still live; the settlement asset,
+which anyone can hold, it reads when the operator settles in exactly one asset
+and that asset is verified and deployed on the wallet's chain. It writes each
+positive balance it finds. That recovers a holding a write above could not
+make, and tokens sent to the wallet outside the platform. A balance it cannot
+read is skipped without failing the sync.
 
 ## Valuation sources
 

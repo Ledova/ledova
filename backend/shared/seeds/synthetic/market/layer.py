@@ -193,12 +193,10 @@ def _trade(plan, market):
     return register.completed(market)
 
 
-def _settle(plan, market, swaps):
+def _settle(market, swaps):
     register.link_buyers(market, swaps)
     register.instruct_transfers(market, swaps)
     register.reconcile(market)
-    depositors = {(deposit.investor, deposit.address.lower()) for deposit in plan.deposits if deposit.state == EXECUTED}
-    register.sync_settlement(market, [market.wallet(investor, address) for investor, address in sorted(depositors)])
     register.restore_ether(market)
 
 
@@ -220,7 +218,7 @@ def _apply(plan, market):
         if notice.window == CLOSED:
             notices.publish(notice)
     _replay(plan, market)
-    _settle(plan, market, _trade(plan, market))
+    _settle(market, _trade(plan, market))
     for notice in plan.notices:
         if notice.window != CLOSED:
             notices.publish(notice)

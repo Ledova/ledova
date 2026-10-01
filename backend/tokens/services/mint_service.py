@@ -25,10 +25,16 @@ from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.constants import MINT_CHAIN
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
 from tokens.models import MintRequest, MintRequestStatus
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
+from wallets.models import Wallet
+from wallets.services.holdings import sync_holding
 
 logger = logging.getLogger(__name__)
 INTENT_FIELDS = ("chain_id", "sender", "to", "value", "data")
 REQUEST_FIELDS = ("recipient_address", "recipient_name", "amount", "deposit_reference", "deposit_date")
+UNRECORDED_HOLDING = (
+    "Mint request {request} executed, and the {symbol} holding of wallet {wallet} was not written ({error})"
+)
 
 
 def _boundary():
@@ -305,6 +311,7 @@ def execute(mint_request, user, notes="", *, permission="tokens.change_mintreque
     mint_request.refresh_from_db()
     if current.status == MintRequestStatus.FAILED:
         raise MintRequestConflict(current.error_message)
+    _record_holding(current)
     return (current.transaction.tx_hash if current.transaction_id else ""), current.transaction
 
 
@@ -314,11 +321,31 @@ def recover(request_id):
     if request is None or request.dispatch_id is None or request.status == MintRequestStatus.REJECTED:
         return "not_admitted"
     try:
-        return _process(request).status
+        current = _process(request)
     except Exception:
         logger.exception("Mint request %s remains unresolved", request.pk)
         MintRequest.objects.filter(pk=request.pk).update(updated_at=timezone.now())
         return "unresolved"
+    _record_holding(current)
+    return current.status
+
+
+def _record_holding(request):
+    if request.status != MintRequestStatus.EXECUTED or request.settlement_asset_id is None:
+        return
+    asset = request.settlement_asset
+    recipients = Wallet.objects.filter_by_address(request.recipient_address, chain=MINT_CHAIN).filter(
+        verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
+    )
+    for wallet in recipients:
+        try:
+            sync_holding(wallet, asset, create_empty=False)
+        except Exception as exc:
+            logger.warning(
+                UNRECORDED_HOLDING.format(
+                    request=request.pk, symbol=asset.symbol, wallet=wallet.pk, error=type(exc).__name__
+                )
+            )
 
 
 def reject(mint_request, user, reason):

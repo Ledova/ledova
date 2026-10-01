@@ -12,6 +12,7 @@ from assets.models import Asset, AssetChainDeployment
 from compliance.constants import RULE_TYPE_THRESHOLD
 from compliance.models import ComplianceAlert, MonitoringRule
 from compliance.tasks import screen_transaction
+from operators.models import Operator
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -181,6 +182,26 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
         with use_operator():
             self.assertEqual(Holding.objects.get(wallet=self.owner.wallet, asset=asset).quantity, Decimal("9"))
             self.assertFalse(Holding.objects.filter(wallet=self.other.wallet, asset=asset).exists())
+
+    def test_the_user_principal_also_records_the_settlement_asset_its_wallet_holds_without_a_holding(self):
+        stablecoin = self.owner.refs.stablecoin
+        with use_operator():
+            Operator.get().supported_settlement_assets.set([stablecoin])
+        reader = patch("wallets.services.chain.get_blockchain_client")
+        self.addCleanup(reader.stop)
+        reader.start().return_value.get_token_balance.return_value = Decimal("7.25")
+        observed = []
+        with ExitStack() as stack:
+            for alias in (APP_ALIAS, OPERATOR_ALIAS):
+                stack.enter_context(connections[alias].execute_wrapper(self.recorder(observed)))
+            result = self.run_task(self.owner.wallet, self.owner.user.pk)
+
+        self.assertEqual(result, {"status": "success", "transactions": 1, "holdings": 2})
+        self.assertEqual({alias for alias, _, _ in observed}, {APP_ALIAS})
+        self.assertIn(("INSERT", Holding._meta.db_table), {(operation, table) for _, operation, table in observed})
+        with use_operator():
+            self.assertEqual(Holding.objects.get(wallet=self.owner.wallet, asset=stablecoin).quantity, Decimal("7.25"))
+            self.assertFalse(Holding.objects.filter(wallet=self.other.wallet, asset=stablecoin).exists())
 
     def test_a_foreign_wallet_is_refused_before_the_chain_and_its_owner_can_sync_it(self):
         before = self.state_of(self.other)

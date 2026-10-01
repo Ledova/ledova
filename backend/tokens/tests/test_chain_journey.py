@@ -627,18 +627,26 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             [(row["shareClass"]["uuid"], row["quantity"]) for row in rows if row["shareClass"]],
         )
 
-    def test_the_wallet_sync_finds_a_bought_class_whose_holding_the_settlement_could_not_write(self):
+    def test_a_deposit_gives_its_recipient_an_audy_holding_equal_to_the_chain(self):
+        self.assertEqual(self.held(self.buyer), (None, None))
+
+        self.record_deposit()
+
+        self.assertEqual(self.balances()[3], DEPOSIT)
+        self.assertEqual(self.held(self.buyer), (None, Decimal(DEPOSIT) / 100))
+
+    def test_the_wallet_sync_finds_the_holdings_a_settlement_could_not_write(self):
         with patch.object(swap_execution, "sync_holding", side_effect=ConnectionError("node lost")):
             self.trade()
-        self.assertEqual(self.held(self.buyer), (None, None))
+        self.assertIsNone(self.held(self.buyer)[0])
         self.assertEqual(self.held(self.seller), (Decimal(20), None))
 
         for party in (self.seller, self.buyer):
             synced = sync_wallet(wallet_uuid=str(self.party_wallets[party.address].pk), principal_id=None)
             self.assertEqual(synced["status"], "success", synced)
 
-        self.assertEqual(self.held(self.buyer), (Decimal(10), None))
-        self.assertEqual(self.held(self.seller), (Decimal(10), None))
+        self.assertEqual(self.held(self.buyer), (Decimal(10), Decimal(35)))
+        self.assertEqual(self.held(self.seller), (Decimal(10), Decimal(15)))
 
     def test_one_class_without_code_leaves_the_other_balances_readable_while_a_lost_node_still_refuses(self):
         missing = ShareToken.objects.deployed_with_contract().exclude(pk=self.token.pk)

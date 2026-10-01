@@ -32,12 +32,10 @@ from tokens.services.register_openings import (
 )
 from tokens.services.register_reconciliation import reconcile_register
 from wallets.models import Holding
-from wallets.services.holdings import sync_holding
 
 UNMATCHED = "The {symbol} register is {status} with the chain after the trades: {detail}"
 STILL_WAITING = "{count} trades of {symbol} are still waiting to be entered in its register."
 NOT_APPLIED = "The {kind} for {name} ended {status}."
-UNSYNCED = "The {symbol} holding of {address} could not be read from the chain."
 
 
 def _prefix(company):
@@ -175,15 +173,6 @@ def reconcile(market):
             raise ChainStepFailed(STILL_WAITING.format(count=waiting, symbol=token.symbol))
         records.append(record)
     return records
-
-
-def sync_settlement(market, wallets):
-    synced = []
-    for wallet in sorted(wallets, key=lambda item: item.address.lower()):
-        if sync_holding(wallet, market.audy) is None:
-            raise ChainStepFailed(UNSYNCED.format(symbol=market.audy.symbol, address=wallet.address))
-        synced.append(wallet.address)
-    return synced
 
 
 def seeded_ether(address):

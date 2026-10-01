@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from assets.models import Asset
 from assets.services.identity import recorded_native_asset_for_chain
+from operators.settlement import deployment_on_chain, single_settlement_asset
 from shared.db import atomic
 from tokens.models import ShareToken
 from wallets.models import Holding, Transaction, Wallet
@@ -66,10 +67,17 @@ def approved_share_assets(wallet) -> list[Asset]:
     return [asset for asset in assets if asset is not None and asset.is_verified]
 
 
-def discover_share_holdings(wallet) -> list[Holding]:
+def settlement_asset_on(wallet) -> list[Asset]:
+    asset = single_settlement_asset()
+    if asset is None or not asset.is_verified or deployment_on_chain(asset, wallet.chain) is None:
+        return []
+    return [asset]
+
+
+def discover_holdings(wallet) -> list[Holding]:
     recorded = set(Holding.objects.filter(wallet_id=wallet.pk).values_list("asset_id", flat=True))
     found = []
-    for asset in approved_share_assets(wallet):
+    for asset in approved_share_assets(wallet) + settlement_asset_on(wallet):
         if asset.pk in recorded:
             continue
         holding = sync_holding(wallet, asset, create_empty=False)
