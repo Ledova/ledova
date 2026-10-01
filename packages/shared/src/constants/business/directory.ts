@@ -25,8 +25,11 @@ export const OFFER_DOCUMENT_COPY = {
   OPENING: 'Opening…',
   OPEN_FAILED: 'This document could not be opened. Refresh the page and try again.',
   ATTACH_HEADING: 'Documents for investors',
-  ATTACH_HELP: 'Eligible investors can open the documents you attach once the operator approves the offering.',
-  ATTACH_NONE: 'Upload documents in Application to attach them here.',
+  ATTACH_HELP:
+    'Eligible investors can open the documents you attach once the operator approves the offering. Offer ' +
+    'documents are listed: prospectus, risk disclosure, business plan, financial statements, auditor report, ' +
+    'constitution and shareholder agreement.',
+  ATTACH_NONE: 'Upload offer documents in Application to attach them here.',
   ATTACH: 'Attach',
 } as const;
 

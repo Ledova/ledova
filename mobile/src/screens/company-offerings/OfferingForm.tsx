@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
   OFFER_DOCUMENT_COPY,
+  OFFER_DOCUMENT_TYPES,
   OFFERING_EXEMPTION_LABELS,
   requestShares,
   type CompanyDocument,
@@ -53,6 +54,10 @@ export function OfferingForm({
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
   const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
+  const attachable = documents.filter(
+    (document) =>
+      OFFER_DOCUMENT_TYPES.includes(document.documentType) || (editing?.documents ?? []).includes(document.uuid),
+  );
   const minimum = requestShares(minimumShares);
   const target = requestShares(targetShares);
   const cap = requestShares(capShares);
@@ -194,10 +199,10 @@ export function OfferingForm({
       )}
       <Text style={styles.heading}>{OFFER_DOCUMENT_COPY.ATTACH_HEADING}</Text>
       <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_HELP}</Text>
-      {documents.length === 0 ? (
+      {attachable.length === 0 ? (
         <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_NONE}</Text>
       ) : (
-        documents.map((document) => (
+        attachable.map((document) => (
           <View key={document.uuid} style={styles.group}>
             <Text style={styles.text}>{document.name}</Text>
             <Text style={styles.muted}>{document.documentTypeDisplay}</Text>

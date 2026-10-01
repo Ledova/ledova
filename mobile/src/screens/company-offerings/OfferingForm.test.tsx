@@ -142,11 +142,14 @@ it('uses native date/time selections and rejects closing before opening while su
   expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ closesAt: null }));
 });
 
-const document = (uuid: string, documentTypeDisplay: string) =>
-  ({ uuid, name: `${uuid}.pdf`, documentTypeDisplay }) as CompanyDocument;
+const document = (uuid: string, documentType: CompanyDocument['documentType'], documentTypeDisplay: string) =>
+  ({ uuid, name: `${uuid}.pdf`, documentType, documentTypeDisplay }) as CompanyDocument;
 
 it('attaches the chosen company documents and keeps those already attached', async () => {
-  const documents = [document('memorandum', 'Prospectus or Information Memorandum'), document('risks', 'Risk')];
+  const documents = [
+    document('memorandum', 'prospectus', 'Prospectus or Information Memorandum'),
+    document('risks', 'risk_disclosure', 'Risk Disclosure Statement'),
+  ];
   const view = await render(
     <OfferingForm {...props} editing={{ ...editing, documents: ['memorandum'] }} documents={documents} />,
   );
@@ -166,4 +169,21 @@ it('says where documents come from when the company has none', async () => {
   expect(view.getByText(OFFER_DOCUMENT_COPY.ATTACH_NONE)).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
   expect(submit).toHaveBeenCalledWith(expect.objectContaining({ documents: [] }));
+});
+
+it('lists offer documents, and any document already attached, but never personal records', async () => {
+  const documents = [
+    document('memorandum', 'prospectus', 'Prospectus or Information Memorandum'),
+    document('register', 'share_register', 'Current Share Register'),
+    document('authority', 'other', 'Other'),
+  ];
+  const view = await render(
+    <OfferingForm {...props} editing={{ ...editing, documents: ['authority'] }} documents={documents} />,
+  );
+  expect(view.getByLabelText('Attach memorandum.pdf')).toBeTruthy();
+  expect(view.getByLabelText('Attach authority.pdf').props.value).toBe(true);
+  expect(view.queryByLabelText('Attach register.pdf')).toBeNull();
+  await fireEvent(view.getByLabelText('Attach authority.pdf'), 'valueChange', false);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: [] }));
 });
