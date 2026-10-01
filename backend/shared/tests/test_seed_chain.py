@@ -17,6 +17,7 @@ from django.test import override_settings
 from django.utils import timezone
 from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITransactionTestCase
+from web3 import Web3
 
 from blockchain.models import SignedAttempt
 from blockchain.services.local_signer import admit_local_signer
@@ -101,11 +102,11 @@ def changes(before, after):
     found = {}
     for label, now in after.items():
         then = before.get(label, {})
-        fields = defaultdict(int)
+        fields = defaultdict(set)
         for key in set(then) & set(now):
             for field, value in now[key].items():
                 if then[key].get(field) != value:
-                    fields[field] += 1
+                    fields[field].add(key)
         created, deleted = set(now) - set(then), set(then) - set(now)
         if created or deleted or fields:
             found[label] = {"created": created, "deleted": deleted, "fields": dict(fields)}
@@ -154,11 +155,27 @@ class ChainLayerTest(APITransactionTestCase):
             self.assertFalse(stub.called, target)
         return output.getvalue()
 
+    def spent_by(self, address, start):
+        spent = 0
+        for number in range(start + 1, self.w3.eth.block_number + 1):
+            for tx in self.w3.eth.get_block(number, full_transactions=True).transactions:
+                if tx["from"] == address:
+                    receipt = self.w3.eth.get_transaction_receipt(tx["hash"])
+                    spent += tx["value"] + receipt["gasUsed"] * receipt["effectiveGasPrice"]
+        return spent
+
+    def operator_ether(self):
+        wallet = Wallet.objects.filter_by_address(operator_address(), chain="base").get()
+        return Holding.objects.get(wallet=wallet, asset__symbol="ETH")
+
     def test_a_fresh_database_gets_a_coherent_chain_layer_that_the_periodic_jobs_leave_alone(self):
         jobs = ProcrastinateJob.objects.count()
+        operator = operator_address()
+        start, funds = self.w3.eth.block_number, self.w3.eth.get_balance(operator)
         output = self.seed()
 
         self.assertIn("Chain layer added", output, output)
+        self.assertEqual(self.w3.eth.get_balance(operator), funds - self.spent_by(operator, start))
         self.assertEqual(self.outbound, [])
         self.assertEqual(mail.outbox, [])
         self.assertEqual(ProcrastinateJob.objects.count(), jobs)
@@ -259,6 +276,7 @@ class ChainLayerTest(APITransactionTestCase):
 
     def check_quiet_jobs(self, shift):
         operator = operator_address()
+        ether = self.operator_ether()
         nonce = self.w3.eth.get_transaction_count(operator)
         signed = SignedAttempt.objects.count()
         app.perform_import_paths()
@@ -284,10 +302,14 @@ class ChainLayerTest(APITransactionTestCase):
         found = changes(before, rows())
 
         self.assertEqual((self.w3.eth.get_transaction_count(operator), SignedAttempt.objects.count()), (nonce, signed))
+        self.assertEqual(self.operator_ether().quantity, Web3.from_wei(self.w3.eth.get_balance(operator), "ether"))
         for label, change in found.items():
             self.assertFalse(change["deleted"], label)
             if change["created"]:
                 self.assertIn(label, APPENDED_BY_DESIGN, (shift, label, change))
-            self.assertLessEqual(set(change["fields"]), BOOKKEEPING, (shift, label, change))
+            fields = set(change["fields"])
+            if label == "wallets.Holding" and change["fields"].get("quantity") == {ether.pk}:
+                fields.remove("quantity")
+            self.assertLessEqual(fields, BOOKKEEPING, (shift, label, change))
         latest = RegisterReconciliation.objects.order_by("-created_at")[:5]
         self.assertEqual({record.status for record in latest}, {RegisterReconciliationStatus.MATCHED})

@@ -222,18 +222,22 @@ to allotments and register entries, carries the day of the run, so a register
 opens that day and shows each member's imported date entered. The investor
 tester holds four classes in three companies across development accounts 1, 2
 and 4, two of them through allotted applications, and has applications awaiting
-payment and paid; the founder's growth round has applications in every status. The console's warning
-and information rows have work in them and its danger rows stay at zero. No
-periodic job finds anything to change, sign or remove: the registry sync and
+payment and paid; the founder's growth round has applications in every status.
+The console's warning and information rows have work in them and its danger rows
+stay at zero. No periodic job signs or removes anything, and none changes a
+seeded row other than the founder's Base ether below: the registry sync and
 refresh, reconciliation, fold, expiry and recovery jobs leave every seeded row
 as it is.
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded
-Base wallet's balance there to the ether its history leaves it, the testers'
-development accounts 0, 1, 2 and 4 included, and the sync keeps them; without the
-chain layer a synthetic wallet reads zero there and a development account its
-test ether. Account 0 keeps at least 1 ETH for the operator's gas.
+Base wallet's balance there to the ether its history leaves it, the investor
+tester's development accounts 1, 2 and 4 included, and the sync keeps them.
+Development account 0, the founder's wallet, is also the operator's signer, so
+the layer leaves its test ether for the operator's gas, and the first sync
+replaces the founder's seeded Base ether with that balance. Without the chain
+layer a synthetic wallet reads zero there and a development account its test
+ether.
 Ethereum and Bitcoin wallets keep their seeded balances while `ALCHEMY_ETH_URL`
 and `ALCHEMY_BTC_URL` are empty, and the worker logs a warning for each of them
 every hour; with those set, the sync reads the public testnets and replaces the

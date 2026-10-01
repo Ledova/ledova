@@ -16,7 +16,6 @@ from wallets.models import Holding
 
 AUDY = "AUDY"
 WEI = Decimal(10) ** 18
-OPERATOR_GAS_FLOOR = Decimal("1")
 BALANCE_METHODS = ("hardhat_setBalance", "anvil_setBalance")
 NOT_FUNDED = "The node accepted neither {methods} for {address}, so the hourly wallet sync would replace its balance."
 OTHER_SETTLEMENT = (
@@ -80,7 +79,7 @@ def fund_wallets():
     ).select_related("wallet")
     for holding in holdings.order_by("wallet__address"):
         address = Web3.to_checksum_address(holding.wallet.address)
-        if address.lower() == operator and holding.quantity < OPERATOR_GAS_FLOOR:
+        if address.lower() == operator:
             continue
         if not _set_balance(provider, address, int(holding.quantity * WEI)):
             raise ChainStepFailed(NOT_FUNDED.format(methods=" nor ".join(BALANCE_METHODS), address=address))

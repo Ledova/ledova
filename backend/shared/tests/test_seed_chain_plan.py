@@ -13,7 +13,7 @@ from blockchain.models import SigningAccount
 from offerings.models import OfferingStatus, SubscriptionStatus
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_ETHEREUM
-from shared.seeds.demo import DEMO_INVESTOR_EMAIL
+from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_ISSUER_ADDRESS
 from shared.seeds.synthetic.chain import population
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.guard import (
@@ -51,8 +51,10 @@ from shared.seeds.synthetic.chain.story import (
     build_issuance,
 )
 from shared.seeds.synthetic.clock import Calendar
+from shared.seeds.synthetic.keys import hardhat_keys
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from tokens.models import ShareToken
+from wallets.models import Holding
 from whitelist.models import WhitelistApproval
 
 PASSWORD = "pw-12345678"
@@ -366,6 +368,30 @@ class IssuanceRunOnceTest(TestCase):
 
         methods = [call.args[0] for call in client.w3.provider.make_request.call_args_list]
         self.assertEqual(methods, list(BALANCE_METHODS))
+
+    def test_every_seeded_base_wallet_gets_its_ether_but_the_operators_own(self):
+        key = "0x" + hardhat_keys([0])[0].key.hex()
+        client = Mock()
+        client.w3.provider.make_request.return_value = {"jsonrpc": "2.0", "id": 1, "result": True}
+        ether = Holding.objects.filter(
+            wallet__chain="base", wallet__verification_status="VERIFIED", asset__symbol="ETH"
+        ).select_related("wallet")
+        seeded = {holding.wallet.address.lower(): holding.quantity for holding in ether}
+
+        with override_settings(**{**CHAIN, "BLOCKCHAIN_OPERATOR_KEY": key}), patch(
+            "shared.seeds.synthetic.chain.settlement.get_base_chain_client", return_value=client
+        ):
+            self.assertEqual(operator_address(), DEMO_ISSUER_ADDRESS)
+            funded = fund_wallets()
+
+        calls = [call.args for call in client.w3.provider.make_request.call_args_list]
+        self.assertIn(DEMO_ISSUER_ADDRESS.lower(), seeded)
+        self.assertEqual(funded, len(seeded) - 1)
+        self.assertEqual({method for method, _ in calls}, {BALANCE_METHODS[0]})
+        self.assertEqual(
+            {address.lower(): Decimal(int(wei, 16)) / 10**18 for _, (address, wei) in calls},
+            {address: quantity for address, quantity in seeded.items() if address != DEMO_ISSUER_ADDRESS.lower()},
+        )
 
 
 class ChainGuardTest(TestCase):
