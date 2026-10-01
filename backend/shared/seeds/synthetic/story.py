@@ -344,6 +344,9 @@ class Story:
         days = (self.price_origin - nearest_midnight(moment)).days
         return self.prices[symbol][min(max(days, 0), WINDOW_DAYS)]
 
+    def aud_price_on(self, symbol, moment):
+        return self.price_on(symbol, moment) * USD_AUD
+
     def _name_pairs(self):
         pairs = [
             (first, last)
@@ -677,7 +680,7 @@ class Story:
 
     def _random_event(self, chain, balances):
         native = NATIVE[chain]
-        if balances.get(native, Decimal(0)) * self.price_on(native, self.now) < 25:
+        if balances.get(native, Decimal(0)) * self.aud_price_on(native, self.now) < 25:
             return native, True, None, False, None
         symbols = ("ETH", "USDC", "USDT") if chain == "ethereum" else (native,)
         if self.rng.random() < 0.45:
@@ -1130,13 +1133,13 @@ class Ledger:
         fee_ceiling = FEES[self.wallet.chain][1]
         native = self.balances.get(self.native, Decimal(0))
         held = self.balances.get(symbol, Decimal(0))
-        if native <= fee_ceiling * 2 or held * self.story.price_on(symbol, at) < DUST:
+        if native <= fee_ceiling * 2 or held * self.story.aud_price_on(symbol, at) < DUST:
             return False
         reserve = fee_ceiling if symbol == self.native else 0
-        return value is None or decimal(value) / self.story.price_on(symbol, at) <= held - reserve
+        return value is None or decimal(value) / self.story.aud_price_on(symbol, at) <= held - reserve
 
     def receive(self, symbol, value, at):
-        price = self.story.price_on(symbol, at)
+        price = self.story.aud_price_on(symbol, at)
         worth = decimal(value) if value is not None else decimal(self.story.rng.uniform(150, 4200))
         amount = quantized(worth / price, AMOUNT_PLACES[symbol])
         self.balances[symbol] = self.balances.get(symbol, Decimal(0)) + amount
@@ -1149,10 +1152,10 @@ class Ledger:
         spare = self.balances[symbol] - (fee if symbol == self.native else 0)
         if value is None:
             share = spare * decimal(story.rng.uniform(0.1, 0.55))
-            cap = SEND_CEILING / story.price_on(symbol, at)
+            cap = SEND_CEILING / story.aud_price_on(symbol, at)
             amount = quantized(min(share, cap), AMOUNT_PLACES[symbol])
         else:
-            amount = quantized(min(decimal(value) / story.price_on(symbol, at), spare), AMOUNT_PLACES[symbol])
+            amount = quantized(min(decimal(value) / story.aud_price_on(symbol, at), spare), AMOUNT_PLACES[symbol])
         app_sent = story.rng.random() < self.app_share if app_sent is None else app_sent
         failed = app_sent and chain != "bitcoin" and not forced and story.rng.random() < 0.06
         self.balances[self.native] = self.balances.get(self.native, Decimal(0)) - fee
@@ -1187,6 +1190,7 @@ class Ledger:
             block_hash=keys.block_hash(chain, block),
             at=at,
             market_value=(amount * story.price_on(symbol, at)).quantize(CENT),
+            market_value_aud=(amount * story.aud_price_on(symbol, at)).quantize(CENT),
             recorded_at=recorded,
             settled_at=settled,
             monitored_at=recorded + timedelta(seconds=5 + spread % 35),

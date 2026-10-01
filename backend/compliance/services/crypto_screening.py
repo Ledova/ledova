@@ -80,6 +80,7 @@ class CryptoScreeningService:
                 return screening
             screening.status = SCREENING_STATUS_PENDING
             screening.error_message = None
+            screening.provider = self.provider_name
             screening.save()
         return self._submit(screening)
 

@@ -54,6 +54,14 @@ provider error after it leave it unchanged. A provider that cannot screen, such
 as Sum&Sub today, fails every screening, and the address rule reports it as
 unverified.
 
+A screening names the provider that screens it. One recorded while
+`KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere and fails with
+"Crypto monitoring is disabled"; it names the configured `KYC_PROVIDER`, or
+`disabled` when that is blank. Retrying it from the screening admin once
+screening is on sends it to the configured provider and records that provider,
+which is the one the KYCAID callback looks it up by. What the monitoring rules
+compare is under [transaction monitoring](operator-console.md#transaction-monitoring).
+
 ## Email
 
 | Variable | Default | Required |

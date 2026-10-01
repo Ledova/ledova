@@ -13,6 +13,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "asset",
         "amount",
         "market_value_display",
+        "market_value_aud_display",
         "transaction_fee",
         "status",
         "block_timestamp",
@@ -30,7 +31,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "asset",
         "status",
     )
-    readonly_fields = ("uuid", "created_at", "updated_at")
+    readonly_fields = ("uuid", "market_value_aud", "created_at", "updated_at")
     list_select_related = ("asset", "wallet")
 
     @admin.display(description="TX Hash")
@@ -49,4 +50,10 @@ class TransactionAdmin(admin.ModelAdmin):
     def market_value_display(self, obj):
         if obj.market_value is not None:
             return f"${obj.market_value:,.2f}"
+        return "-"
+
+    @admin.display(description="AUD Value")
+    def market_value_aud_display(self, obj):
+        if obj.market_value_aud is not None:
+            return f"A${obj.market_value_aud:,.2f}"
         return "-"

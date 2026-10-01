@@ -54,7 +54,7 @@ class RuleDispatchTest(TestCase):
             to_address="0x" + "b" * 40,
             asset=Asset.objects.create(symbol="ETH", name="Ether"),
             amount=Decimal("1"),
-            market_value=Decimal("12000"),
+            market_value_aud=Decimal("12000"),
             wallet=wallet,
         )
 

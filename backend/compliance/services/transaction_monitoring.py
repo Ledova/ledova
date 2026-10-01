@@ -82,8 +82,8 @@ def is_new_customer(user_account, days: int = NEW_CUSTOMER_DAYS) -> bool:
     return user_account.activation_date > timezone.now() - timedelta(days=days)
 
 
-def _market_value(transaction) -> Decimal:
-    return transaction.market_value or Decimal("0")
+def _aud_value(transaction) -> Decimal:
+    return transaction.market_value_aud or Decimal("0")
 
 
 def _latest_complete_assessment(user_account) -> Optional[CustomerRiskAssessment]:
@@ -103,7 +103,7 @@ def _check_threshold(rule, transaction, user_account) -> RuleResult:
     if transaction is None:
         return False, {}
     threshold = Decimal(str(rule.parameters.get("amount", ALERT_THRESHOLD_AUD)))
-    amount = _market_value(transaction)
+    amount = _aud_value(transaction)
     if amount < threshold:
         return False, {}
     return True, {
@@ -139,8 +139,8 @@ def _check_structuring_pattern(rule, transaction, user_account) -> RuleResult:
     count = Transaction.objects.filter(
         wallet__user_account=user_account,
         created_at__gte=timezone.now() - timedelta(hours=period_hours),
-        market_value__gte=min_each,
-        market_value__lte=max_each,
+        market_value_aud__gte=min_each,
+        market_value_aud__lte=max_each,
     ).count()
     if count < min_transactions:
         return False, {}
@@ -157,7 +157,7 @@ def _screening_trigger(transaction, user_account) -> Optional[str]:
     assessment = _latest_complete_assessment(user_account)
     if assessment and assessment.overall_risk_rating in HIGH_RISK_RATINGS:
         return "high_risk_customer"
-    if _market_value(transaction) >= SCREENING_THRESHOLD_AUD:
+    if _aud_value(transaction) >= SCREENING_THRESHOLD_AUD:
         return "large_transaction"
     if is_new_customer(user_account):
         return "new_customer"
@@ -199,7 +199,7 @@ def _check_sof_required(rule, transaction, user_account) -> RuleResult:
         return False, {}
     threshold = Decimal(str(rule.parameters.get("amount", ALERT_THRESHOLD_AUD)))
     customer_age_days = rule.parameters.get("customer_age_days", 30)
-    amount = _market_value(transaction)
+    amount = _aud_value(transaction)
     if not is_new_customer(user_account, days=customer_age_days) or amount < threshold:
         return False, {}
     if _has_sof_documentation(user_account):
@@ -219,8 +219,8 @@ def _check_aggregate_volume(rule, transaction, user_account) -> RuleResult:
     period_days = rule.parameters.get("period_days", AGGREGATE_VOLUME_PERIOD_DAYS)
     period_start = timezone.now() - timedelta(days=period_days)
     total_volume = Transaction.objects.filter(
-        wallet__user_account=user_account, created_at__gte=period_start, market_value__isnull=False
-    ).aggregate(total=Sum("market_value"))["total"] or Decimal("0")
+        wallet__user_account=user_account, created_at__gte=period_start, market_value_aud__isnull=False
+    ).aggregate(total=Sum("market_value_aud"))["total"] or Decimal("0")
     if total_volume < threshold:
         return False, {}
     return True, {
@@ -236,7 +236,7 @@ def _check_dormant_reactivation(rule, transaction, user_account) -> RuleResult:
         return False, {}
     dormant_days = rule.parameters.get("dormant_days", DORMANT_ACCOUNT_DAYS)
     min_amount = Decimal(str(rule.parameters.get("min_amount", SCREENING_THRESHOLD_AUD)))
-    amount = _market_value(transaction)
+    amount = _aud_value(transaction)
     if amount < min_amount:
         return False, {}
     previous = (
@@ -265,19 +265,19 @@ def _check_pattern_deviation(rule, transaction, user_account) -> RuleResult:
     multiplier = rule.parameters.get("multiplier", PATTERN_DEVIATION_MULTIPLIER)
     min_history = rule.parameters.get("min_history", PATTERN_DEVIATION_MIN_HISTORY)
     baseline_days = rule.parameters.get("baseline_days", PATTERN_DEVIATION_BASELINE_DAYS)
-    amount = _market_value(transaction)
+    amount = _aud_value(transaction)
     if amount <= 0:
         return False, {}
     history = Transaction.objects.filter(
         wallet__user_account=user_account,
         created_at__gte=timezone.now() - timedelta(days=baseline_days),
-        market_value__isnull=False,
-        market_value__gt=0,
+        market_value_aud__isnull=False,
+        market_value_aud__gt=0,
     ).exclude(uuid=transaction.uuid)
     history_count = history.count()
     if history_count < min_history:
         return False, {}
-    average = history.aggregate(avg=Avg("market_value"))["avg"] or Decimal("0")
+    average = history.aggregate(avg=Avg("market_value_aud"))["avg"] or Decimal("0")
     if average <= 0 or amount < average * multiplier:
         return False, {}
     return True, {
@@ -302,10 +302,10 @@ def _check_round_amounts(rule, transaction, user_account) -> RuleResult:
     recent = Transaction.objects.filter(
         wallet__user_account=user_account,
         created_at__gte=timezone.now() - timedelta(days=period_days),
-        market_value__isnull=False,
-        market_value__gte=min_amount,
+        market_value_aud__isnull=False,
+        market_value_aud__gte=min_amount,
     )
-    round_amounts = [float(tx.market_value) for tx in recent if tx.market_value % divisor == 0]
+    round_amounts = [float(tx.market_value_aud) for tx in recent if tx.market_value_aud % divisor == 0]
     if len(round_amounts) < count_threshold:
         return False, {}
     return True, {
@@ -330,7 +330,7 @@ def _check_extreme_risk(rule, transaction, user_account) -> RuleResult:
     return True, {
         "risk_rating": assessment.overall_risk_rating,
         "risk_score": assessment.total_risk_score,
-        "transaction_amount": float(_market_value(transaction)),
+        "transaction_amount": float(_aud_value(transaction)),
         "assessment_date": assessment.created_at.isoformat(),
         "reason": (
             f"Transaction by EXTREME risk customer (score: {assessment.total_risk_score}) "

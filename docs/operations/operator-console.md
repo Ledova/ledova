@@ -153,7 +153,9 @@ people, companies and amounts, dated relative to the day of the run:
   observation; one more company with information requested and one submitted for
   review.
 - Compliance work: alerts in every status and several types, most closed with an
-  outcome, one with a suspicious matter report.
+  outcome, one with a suspicious matter report. Their amounts are the AUD values
+  the rules compare, and each account that was ever active is dated from its
+  identity check, so only customers in their first 30 days count as new.
 
 The testers get the richest data. The founder's wallet is development account 0
 of the public test mnemonic, which is also the operator's signer, and the
@@ -311,3 +313,38 @@ review; it grants view permissions, not classification approval or editing.
 Company owners and accounts with company roles cannot use cross-customer document
 review even with document permissions. Attached payslips supplement human review;
 extraction never verifies a claim.
+
+## Transaction monitoring
+
+The rules `sync_monitoring_rules` seeds state their amounts in AUD, and each is
+compared with a transaction's AUD value: MON-001 at AUD 10,000; MON-003 for three
+transactions of AUD 8,000 to 9,999 within 168 hours; MON-006 at AUD 10,000 for a
+new customer without source-of-funds documents; MON-007 at AUD 50,000 within 30
+days; MON-008 at AUD 5,000 after 90 days without activity; MON-009 against the
+customer's 90-day average; and MON-010 for three multiples of AUD 5,000 within
+30 days. The address rules, MON-004 and MON-005, screen a transaction of AUD
+5,000 or more, and any transaction by a high-risk or new customer.
+
+A transaction's AUD value is fixed when it is recorded, next to its USD value:
+the amount at the asset's USD price at the block time, converted at the USD/AUD
+rate stored at that moment. `sync_exchange_rates` refreshes that rate every 10
+minutes, and the per-transaction rules check only transactions whose block time
+is less than an hour old, so for them it is the rate in effect when they
+happened. No USD/AUD history is kept. History imported later, such as a newly
+verified wallet's past transfers, is converted at the rate stored when it is
+imported, and migration `wallets/0023` converted the transactions already
+recorded at the rate stored when it ran. An asset with an AUD par, AUDY, is
+valued at par: 5,000 AUDY is AUD 5,000 whatever rate its USD price was taken at.
+Any other transaction with no USD price, or recorded while no rate was stored,
+has no AUD value, and no amount rule counts it.
+
+A customer is new for 30 days after their account first became active. The
+account records that moment once, whichever path activates it: the identity
+check passing, staff changing its status in the admin, or the demo seed.
+Suspending and reactivating it keeps the first date, and the admin shows the
+date read-only. Migration `users/0029` dated the active, suspended and
+terminated accounts that already existed from the earliest evidence of their
+activation: the first automated risk assessment, which the identity check
+completes as it activates the account, or the time the identity was verified.
+An account with neither, activated by staff without an identity check, is dated
+from its creation.

@@ -66,7 +66,7 @@ def a_transaction(wallet):
         to_address="0x" + "b" * 40,
         asset=Asset.objects.get_or_create(symbol="ETH", defaults={"name": "Ether"})[0],
         amount=Decimal("1"),
-        market_value=Decimal("12000"),
+        market_value_aud=Decimal("12000"),
         wallet=wallet,
     )
 
@@ -190,20 +190,45 @@ class ProviderWithoutScreeningTest(TestCase):
         )
 
 
+def kycaid_callback(client, payload):
+    body = json.dumps(payload).encode()
+    signature = hmac.new(TOKEN.encode(), base64.b64encode(body), hashlib.sha512).hexdigest()
+    return client.post(
+        reverse("kycaid-crypto-webhook"),
+        data=body,
+        content_type="application/json",
+        HTTP_X_DATA_INTEGRITY=signature,
+    )
+
+
+@override_settings(KYCAID_API_TOKEN=TOKEN)
+class RetriedScreeningProviderTest(APITestCase):
+    def test_a_retry_records_the_provider_it_was_sent_to_and_its_result_arrives(self):
+        wallet = a_wallet("retried-provider")
+        with override_settings(KYC_PROVIDER="", KYCAID_CRYPTO_MONITORING_ENABLED=False):
+            screening = CryptoScreeningService().screen_transaction(a_transaction(wallet), wallet.user_account)
+        self.assertEqual((screening.provider, screening.status), ("disabled", SCREENING_STATUS_FAILED))
+
+        with override_settings(**SCREENING_ON), patch(
+            "compliance.services.crypto_screening.get_kyc_provider", return_value=a_provider()
+        ):
+            CryptoScreeningService().retry_failed_screening(screening)
+            screening.refresh_from_db()
+            self.assertEqual((screening.provider, screening.status), (PROVIDER_KYCAID, SCREENING_STATUS_PENDING))
+            payload = {"request_id": screening.provider_transaction_id, "result": {"risk_score": 0.9}}
+            self.assertEqual(kycaid_callback(self.client, payload).status_code, 200)
+
+        screening.refresh_from_db()
+        self.assertEqual((screening.status, screening.result), (SCREENING_STATUS_COMPLETED, SCREENING_RESULT_REJECTED))
+
+
 @override_settings(KYCAID_API_TOKEN=TOKEN, **SCREENING_ON)
 class CryptoWebhookResultTest(APITestCase):
     def setUp(self):
         self.screening = a_screening(a_wallet("crypto-webhook"))
 
     def deliver(self, payload):
-        body = json.dumps(payload).encode()
-        signature = hmac.new(TOKEN.encode(), base64.b64encode(body), hashlib.sha512).hexdigest()
-        return self.client.post(
-            reverse("kycaid-crypto-webhook"),
-            data=body,
-            content_type="application/json",
-            HTTP_X_DATA_INTEGRITY=signature,
-        )
+        return kycaid_callback(self.client, payload)
 
     def result(self, result):
         return {"request_id": self.screening.provider_transaction_id, "result": result}

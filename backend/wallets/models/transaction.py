@@ -26,6 +26,17 @@ class Transaction(DerivesAccountFromWallet, BaseModel):
         blank=True,
         help_text="USD value at transaction time (amount × asset price at block_timestamp)",
     )
+    market_value_aud = models.DecimalField(
+        max_digits=30,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=(
+            "AUD value at transaction time, which transaction monitoring compares with its AUD thresholds: "
+            "the USD value at the USD/AUD rate stored when the transaction was recorded, or amount × par "
+            "for an asset with an AUD par"
+        ),
+    )
     block_timestamp = models.DateTimeField(db_index=True, null=True, blank=True)
     block_number = models.BigIntegerField(null=True, blank=True)
     block_hash = models.CharField(
