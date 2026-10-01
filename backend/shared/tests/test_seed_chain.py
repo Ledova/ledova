@@ -33,7 +33,7 @@ from shared.seeds.demo import DEMO_ADMIN_EMAIL, DEMO_INVESTOR_EMAIL, DEMO_OWNER_
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import operator_address
 from shared.seeds.synthetic.chain.settlement import fund_wallets
-from shared.seeds.synthetic.chain.story import ROUND_SPECS, TESTER_WALLETS
+from shared.seeds.synthetic.chain.story import CLASS_SPECS, ROUND_SPECS, TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.market import layer as market_layer
 from shared.seeds.synthetic.market.deposits import mint_id
@@ -357,7 +357,11 @@ class ChainLayerTest(APITransactionTestCase):
                 opened = self.client.get(f"{documents}{row['uuid']}/file/")
                 self.assertEqual(opened.status_code, 200, row["name"])
                 self.assertTrue(b"".join(opened.streaming_content).startswith(b"%PDF"), row["name"])
-        published = {spec.key for spec in ROUND_SPECS if spec.status in ("approved", "closed")}
+        deployed = {f"{spec.company}/{spec.symbol}" for spec in CLASS_SPECS if spec.target == "deployed"}
+        published = {
+            spec.key for spec in ROUND_SPECS if spec.status in ("approved", "closed") and spec.share_class in deployed
+        }
+        self.assertEqual(len(published), 4)
         self.assertEqual(
             {name for name in offered if name.endswith(MEMORANDUM)}, {f"{key}{MEMORANDUM}" for key in published}
         )
