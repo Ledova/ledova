@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TransactionTestCase
 
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -13,7 +14,7 @@ BEFORE = [
     ("users", "0028_remove_theme_and_selected_portfolio"),
     ("compliance", "0005_remove_fiat_transaction_and_high_risk_country"),
 ]
-AFTER = [("users", "0029_backfill_activation_date")]
+AFTER = [("users", "0029_first_activation_date")]
 JOINED = datetime(2025, 11, 3, 8, 0, tzinfo=dt_timezone.utc)
 VERIFIED = JOINED + timedelta(days=2)
 REVERIFIED = VERIFIED + timedelta(days=60)
@@ -43,6 +44,11 @@ class ActivationDateBackfillTest(TransactionTestCase):
     def dates(self, apps):
         return dict(apps.get_model("users", "UserAccount").objects.values_list("pk", "activation_date"))
 
+    def guarded(self):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT count(*) FROM pg_trigger WHERE tgname = 'users_keep_first_activation'")
+            return cursor.fetchone()[0] == 1
+
     def test_each_account_that_was_ever_active_is_dated_from_the_best_evidence_it_has(self):
         before = migrate_to(BEFORE)
         verified = self.account(before, "verified", "active", verified_at=VERIFIED)
@@ -61,6 +67,7 @@ class ActivationDateBackfillTest(TransactionTestCase):
         rejected = self.account(before, "rejected", "rejected", verified_at=VERIFIED)
 
         dates = self.dates(migrate_to(AFTER))
+        self.assertTrue(self.guarded())
 
         self.assertEqual(
             [dates[account] for account in (verified, reverified, assessed_only, suspended)], [VERIFIED] * 4
@@ -69,3 +76,4 @@ class ActivationDateBackfillTest(TransactionTestCase):
         self.assertEqual(dates[dated], STAFF_DATED)
         self.assertEqual([dates[pending], dates[rejected]], [None, None])
         self.assertEqual(self.dates(migrate_to(BEFORE)), dates)
+        self.assertFalse(self.guarded())

@@ -1,9 +1,13 @@
+import threading
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
+from queue import Queue
+from time import monotonic, sleep
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.db import close_old_connections, connection, transaction
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from integrations.kyc.base import NormalizedVerificationResult
@@ -22,6 +26,9 @@ PUSH_TASK = "users.tasks.notifications.send_push_notification"
 REFRESH = "users.admin.user_account.enqueue_for_account"
 FIRST = datetime(2026, 3, 2, 9, 30, tzinfo=dt_timezone.utc)
 LATER = FIRST + timedelta(days=40)
+EARLIER = FIRST - timedelta(days=3)
+BLOCKED_TIMEOUT = 5.0
+JOIN_TIMEOUT = 30.0
 
 
 def at(moment):
@@ -123,6 +130,30 @@ class ActivationOnSaveTest(TestCase):
         stale.refresh_from_db()
         self.assertEqual(stale.activation_date, FIRST)
 
+    def test_a_stale_copy_saved_with_another_status_keeps_the_date(self):
+        account = an_account("stale-suspension")
+        stale = UserAccount.objects.get(pk=account.pk)
+
+        account.account_status = ACCOUNT_STATUS_ACTIVE
+        with at(FIRST):
+            account.save()
+        stale.account_status = ACCOUNT_STATUS_SUSPENDED
+        stale.save()
+
+        stale.refresh_from_db()
+        self.assertEqual((stale.account_status, stale.activation_date), (ACCOUNT_STATUS_SUSPENDED, FIRST))
+
+    def test_a_recorded_date_is_never_cleared_or_moved_later_but_can_move_earlier(self):
+        with at(FIRST):
+            account = an_account("guarded", account_status=ACCOUNT_STATUS_ACTIVE)
+        rows = UserAccount.objects.filter(pk=account.pk)
+
+        for attempt in (None, LATER):
+            rows.update(activation_date=attempt)
+            self.assertEqual(rows.get().activation_date, FIRST)
+        rows.update(activation_date=EARLIER)
+        self.assertEqual(rows.get().activation_date, EARLIER)
+
     def test_pending_and_rejected_accounts_stay_undated(self):
         account = an_account("never-active")
 
@@ -179,3 +210,49 @@ class StaffActivationTest(TestCase):
         self.assertEqual((cleared.status_code, moved.status_code), (302, 302))
         account.refresh_from_db()
         self.assertEqual((account.account_status, account.activation_date), (ACCOUNT_STATUS_ACTIVE, FIRST))
+
+
+class ConcurrentActivationTest(TransactionTestCase):
+    def blocked(self, backend_pid):
+        deadline = monotonic() + BLOCKED_TIMEOUT
+        while monotonic() < deadline:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_blocking_pids(%s)", [backend_pid])
+                if cursor.fetchone()[0]:
+                    return True
+            sleep(0.01)
+        return False
+
+    def test_two_first_activations_at_once_keep_the_earlier_date(self):
+        account = an_account("concurrent")
+        started, stamped = Queue(), Queue()
+
+        def second_activation():
+            close_old_connections()
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    started.put(cursor.fetchone()[0])
+                copy = UserAccount.objects.get(pk=account.pk)
+                copy.account_status = ACCOUNT_STATUS_ACTIVE
+                copy.save()
+                stamped.put(copy.activation_date)
+            except BaseException as error:
+                stamped.put(error)
+            finally:
+                connection.close()
+
+        worker = threading.Thread(target=second_activation, name="second-activation")
+        with transaction.atomic():
+            first = UserAccount.objects.get(pk=account.pk)
+            first.account_status = ACCOUNT_STATUS_ACTIVE
+            first.save()
+            worker.start()
+            waited = self.blocked(started.get(timeout=BLOCKED_TIMEOUT))
+        worker.join(timeout=JOIN_TIMEOUT)
+
+        self.assertTrue(waited)
+        self.assertFalse(worker.is_alive())
+        self.assertGreater(stamped.get(timeout=BLOCKED_TIMEOUT), first.activation_date)
+        account.refresh_from_db()
+        self.assertEqual(account.activation_date, first.activation_date)

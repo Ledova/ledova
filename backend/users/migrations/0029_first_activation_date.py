@@ -3,6 +3,17 @@ from django.db.models import F, OuterRef, Subquery
 
 ONCE_ACTIVE = ("active", "suspended", "terminated")
 
+KEEP_FIRST_ACTIVATION = """
+CREATE FUNCTION users_keep_first_activation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.activation_date := LEAST(OLD.activation_date, NEW.activation_date);
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER users_keep_first_activation BEFORE UPDATE OF activation_date ON customer_accounts_account
+FOR EACH ROW EXECUTE FUNCTION users_keep_first_activation();
+"""
+
 
 def date_each_activation(apps, schema_editor):
     account = apps.get_model("users", "UserAccount")
@@ -27,10 +38,28 @@ def date_each_activation(apps, schema_editor):
         )
 
 
+def keep_the_first_activation(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(KEEP_FIRST_ACTIVATION)
+
+
+def let_it_move_again(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("DROP TRIGGER users_keep_first_activation ON customer_accounts_account")
+        cursor.execute("DROP FUNCTION users_keep_first_activation()")
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("users", "0028_remove_theme_and_selected_portfolio"),
         ("compliance", "0005_remove_fiat_transaction_and_high_risk_country"),
     ]
 
-    operations = [migrations.RunPython(date_each_activation, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(date_each_activation, migrations.RunPython.noop),
+        migrations.RunPython(keep_the_first_activation, let_it_move_again),
+    ]

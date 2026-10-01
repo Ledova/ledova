@@ -325,24 +325,32 @@ customer's 90-day average; and MON-010 for three multiples of AUD 5,000 within
 30 days. The address rules, MON-004 and MON-005, screen a transaction of AUD
 5,000 or more, and any transaction by a high-risk or new customer.
 
-A transaction's AUD value is fixed when it is recorded, next to its USD value:
-the amount at the asset's USD price at the block time, converted at the USD/AUD
-rate stored at that moment. `sync_exchange_rates` refreshes that rate every 10
-minutes, and the per-transaction rules check only transactions whose block time
-is less than an hour old, so for them it is the rate in effect when they
-happened. No USD/AUD history is kept. History imported later, such as a newly
-verified wallet's past transfers, is converted at the rate stored when it is
-imported, and migration `wallets/0023` converted the transactions already
-recorded at the rate stored when it ran. An asset with an AUD par, AUDY, is
-valued at par: 5,000 AUDY is AUD 5,000 whatever rate its USD price was taken at.
-Any other transaction with no USD price, or recorded while no rate was stored,
-has no AUD value, and no amount rule counts it.
+Wallet sync values each transaction it imports as it records it: the USD value
+is the amount at the asset's USD price at the block time, and the AUD value is
+that converted at the USD/AUD rate stored at that moment. `sync_exchange_rates`
+refreshes that rate every 10 minutes, and the per-transaction rules check only
+transactions whose block time is less than an hour old, so for them it is the
+rate in effect when they happened. No USD/AUD history is kept. History imported
+later, such as a newly verified wallet's past transfers, is converted at the
+rate stored when it is imported, and migration `wallets/0023` converted the
+transactions already recorded at the rate stored when it ran. An asset with an
+AUD par, AUDY, is valued at par: 5,000 AUDY is AUD 5,000 whatever rate its USD
+price was taken at. Any other transaction with no USD price, or recorded while
+no rate was stored, has no AUD value, and no amount rule counts it.
+
+A transfer sent from the app is recorded before it is mined, without either
+value, and wallet sync later skips it as a transaction it already has. So the
+amount rules never see it; only the count-based rule, MON-002, does. That is a
+known gap.
 
 A customer is new for 30 days after their account first became active. The
 account records that moment once, whichever path activates it: the identity
 check passing, staff changing its status in the admin, or the demo seed.
 Suspending and reactivating it keeps the first date, and the admin shows the
-date read-only. Migration `users/0029` dated the active, suspended and
+date read-only. The database enforces it: an update can never clear the date or
+move it later, so of two activations at the same moment the earlier stamp
+stands. It can still move earlier, which is how the demo seed dates its testers
+from their identity check. Migration `users/0029` dated the active, suspended and
 terminated accounts that already existed from the earliest evidence of their
 activation: the first automated risk assessment, which the identity check
 completes as it activates the account, or the time the identity was verified.
