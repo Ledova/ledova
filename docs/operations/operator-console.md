@@ -133,7 +133,7 @@ people, companies and amounts, dated relative to the day of the run:
 - Reference data: the countries in use; the operator's legal name, ABN and contact
   email where they are blank (the ABN is eleven zeros, obviously not real); daily
   prices for BTC, ETH, USDC and USDT over the six months; and a USD to AUD rate. The
-  settlement asset is left unconfigured.
+  settlement asset is left to the chain layer below.
 - Staff: a compliance officer, a document reviewer in the "Document operations"
   group and an operations officer, each with the model permissions their queues
   need, and a deactivated former staff member.
@@ -155,30 +155,83 @@ people, companies and amounts, dated relative to the day of the run:
 - Compliance work: alerts in every status and several types, most closed with an
   outcome, one with a suspicious matter report.
 
-The testers get the richest data. The investor has seven wallets on the three
-networks (Hardhat development accounts 1 to 4 and two Bitcoin testnet wallets), a
+The testers get the richest data. The founder's wallet is development account 0
+of the public test mnemonic, which is also the operator's signer, and the
+investor has seven wallets on the three networks: development accounts 1 to 4 of
+the same mnemonic and two Bitcoin testnet addresses. The investor has a
 classification history, payslips, and more than a page of notifications and
-wallet activity. The founder has a full profile and Demo Robotics' review history.
+wallet activity; the founder has a full profile and Demo Robotics' review history.
 
 A later run finds the population, adds nothing and says so. To start over, run
 `make dev-clean`, then `make dev-up` and `make dev-seed`. Synthetic people use
 `@demo.ledova.test` addresses, ACMA fictional phone numbers and made-up addresses;
 the companies use ACNs in the unissued 9xx range with matching ABNs; wallet keys
-come from a namespaced hash, except the testers' public Hardhat development
-accounts. The seed sends nothing and queues no job: no email, push notification,
-identity check or ABR lookup.
+come from a namespaced hash, except the testers' development accounts of the
+public test mnemonic. The seed sends nothing and queues no job: no email, push
+notification, identity check or ABR lookup.
 
-It writes no chain transactions. The investor's whitelist entry is an identity
-row with no company approval: deploying the class and approving the wallet for
-the company are still needed, and in the local stack each signs a transaction on
-[its chain](chains.md#the-local-stacks-chain).
-The testers' first wallets are development accounts 0 and 1 of the public test
-mnemonic, and account 0 is also the operator's signer; the investor's other
-wallets use accounts 2 to 4 and two Bitcoin testnet addresses.
+When the local chain is configured, the first run on a database then adds a
+chain layer: chain id 31337 answering at `BLOCKCHAIN_RPC_URL` with the core
+contracts deployed and the operator signer admitted, as in the stack
+`make dev-up` starts ([its chain](chains.md#the-local-stacks-chain)). The layer
+signs and sends real transactions there, about 130 in under a minute, one at a
+time, and calls each service and the task the worker would have run, so the
+worker stays stopped and no job is queued. Without such a chain it writes
+nothing to any chain and prints why, and a later `make dev-seed` adds it. Like the
+population it runs once per database: a later run says it is present, and a run
+that stopped part-way says to start over. It adds:
+
+- Settlement: AUDY becomes the operator's settlement asset on Base, with a
+  receiving wallet and its par price, so payment instructions show both rails and
+  every health check above passes.
+- Share classes: Demo Robotics' ordinary and seed preference shares, Wattlefield's
+  and Coralgum's ordinary shares and Coralgum's convertible preference shares,
+  deployed with their share assets, the last paused afterwards by its issuer; and
+  two drafts, Demo Robotics' Series A preference shares and Saltbush's ordinary
+  shares.
+- Approvals: each Base wallet that holds shares or has an accepted application is
+  approved for its company until the expiry the classification refresh would set,
+  that is the latest expiry of the holder's live claims, to the second, or none;
+  the founders' wallets and the employee share trusts' addresses never expire. No
+  suspended, terminated or rejected account is approved.
+- Registers: each company's existing register (founders, directors, an employee
+  share trust held at a custodian address with no key behind it, and investors
+  from earlier rounds) is issued on chain through issuance requests that one
+  applied register instruction approves, and each closed offering is allotted.
+  Each class's register is then opened from the chain by its opening review,
+  its particulars are imported with names, dates entered back to the founding,
+  amounts paid and a few pre-platform former members, and it is reconciled with
+  the chain and folded. Every opened register has 10 to 16 members and no effect
+  waiting.
+- Offerings in every status: three closed and allotted, one of them scaled back
+  with the excess refunded; one open and close to its cap; one approved to open in
+  a few days; one submitted, one under review, one draft, one rejected and one
+  withdrawn, all priced in AUD under a section 708 exemption. About 60
+  applications on both rails cover every application status, with references
+  from the operator's prefix and payment due dates still ahead.
+- Issuance requests submitted, under review, approved, rejected and executed (a
+  top-up of Demo Robotics' employee share trust after its register opened, which
+  the register records under its instruction), and capital increases executed
+  (raising Demo Robotics' authorised shares), submitted, rejected and draft.
+
+Database-only steps (offerings, applications up to payment, reviews) are dated
+over the six months. Everything a chain transaction completes, from deployments
+to allotments and register entries, carries the day of the run, so a register
+opens that day and shows each member's imported date entered. The investor
+tester holds four classes in three companies across development accounts 1, 2
+and 4, two of them through allotted applications, and has applications awaiting
+payment and paid; the founder's growth round has applications in every status. The console's warning
+and information rows have work in them and its danger rows stay at zero. No
+periodic job finds anything to change, sign or remove: the registry sync and
+refresh, reconciliation, fold, expiry and recovery jobs leave every seeded row
+as it is.
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
-Base balances come from the local chain, so the seeded ones are replaced: a
-synthetic wallet reads zero there, a development account its test ether.
+Base balances come from the local chain, so the chain layer sets each seeded
+Base wallet's balance there to the ether its history leaves it, accounts 0 to 4
+included, and the sync keeps them; without the chain layer a synthetic wallet
+reads zero there and a development account its test ether. Account 0 keeps at
+least 1 ETH for the operator's gas.
 Ethereum and Bitcoin wallets keep their seeded balances while `ALCHEMY_ETH_URL`
 and `ALCHEMY_BTC_URL` are empty, and the worker logs a warning for each of them
 every hour; with those set, the sync reads the public testnets and replaces the

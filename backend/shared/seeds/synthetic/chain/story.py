@@ -170,7 +170,10 @@ EARLY_ROUNDS = {
     ),
 }
 CONVERTED_NOTES = (f"{CORALGUM}/CPS", f"{CORALGUM}/ORD", "Converted 2025 notes", Decimal("2.50"), 3, (15_000, 25_000))
-TESTER_EARLY = (f"{DEMO}/ORD", 12_500, date(2024, 6, 20), Decimal("0.80"))
+TESTER_EARLY = {
+    f"{DEMO}/ORD": (1, 12_500, date(2024, 6, 20), Decimal("0.80"), "Pre-seed round"),
+    f"{CORALGUM}/ORD": (4, 8_000, date(2025, 4, 14), Decimal("2.10"), "Bridge round"),
+}
 FORMER_SPECS = {
     f"{DEMO}/ORD": (2, (8_000, 20_000), (420, 900)),
     f"{WATTLEFIELD}/ORD": (2, (10_000, 30_000), (500, 1400)),
@@ -339,7 +342,7 @@ ROUND_SPECS = (
         {"created": 48, "submitted": 46, "review": 45, "decided": 43, "opens": 41, "closes": 15, "closed": 14},
         "Convertible preference shares that convert into ordinary shares at the next priced round.",
         "Clinical trial sites in Queensland and Western Australia.",
-        mix=((ALLOTTED, 7), (LAPSED, 1), (WITHDRAWN, 1)),
+        mix=((ALLOTTED, 8), (LAPSED, 1), (WITHDRAWN, 1)),
         notes="Professional investors only; conversion terms checked against the constitution.",
         fill=0.84,
     ),
@@ -347,7 +350,6 @@ ROUND_SPECS = (
 TESTER_APPLICATIONS = (
     TesterApplication("demo-seed-preference", 1, ALLOTTED, 12_000, BANK, 40),
     TesterApplication("wattlefield-community-1", 2, ALLOTTED, 20_000, STABLECOIN, 35),
-    TesterApplication("coralgum-convertible", 4, ALLOTTED, 6_000, BANK, 30),
     TesterApplication("demo-growth", 1, PAID, 5_000, BANK, 14),
     TesterApplication("demo-growth", 4, AWAITING, 2_500, STABLECOIN, 2),
 )
@@ -618,11 +620,9 @@ class IssuanceStory:
                         early.label,
                     )
                 )
-        if key == TESTER_EARLY[0] and TESTER in self.candidates:
-            _, shares, entered, price = TESTER_EARLY
-            positions.append(
-                Position(TESTER, TESTER_WALLETS[1], shares, entered, money(shares * price), "Pre-seed round")
-            )
+        if key in TESTER_EARLY and TESTER in self.candidates:
+            wallet, shares, entered, price, label = TESTER_EARLY[key]
+            positions.append(Position(TESTER, TESTER_WALLETS[wallet], shares, entered, money(shares * price), label))
         if key == CONVERTED_NOTES[0]:
             positions += self._converted_notes()
         self.chosen[key] = [position.holder for position in positions]
