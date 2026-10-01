@@ -90,7 +90,7 @@ what to do when a check refuses. While the stack is up the chain holds port
 | Command | Effect |
 | --- | --- |
 | `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, the chain, Redis data, uploads and virus signatures stay in their volumes for the next start. |
-| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
+| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. Compose names the project `ledova` (the file's `name:`), so from any checkout or worktree this deletes that one local stack's data; a `COMPOSE_PROJECT_NAME` set in the environment overrides the name and points the deletion at that project instead. |
 | `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it. |
 
 ## Run individual components
