@@ -134,6 +134,11 @@ def _apply(plan, records):
     for share_class in deployed:
         settle(share_class, records)
     fund_wallets()
+    seal(plan, records)
+
+
+def seal(plan, records):
+    records.run()
     create_class(plan.share_class(SEALING_CLASS), records)
 
 

@@ -1,6 +1,5 @@
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from types import SimpleNamespace
 from uuid import uuid4
 
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
@@ -14,6 +13,7 @@ from shared.seeds.synthetic.chain.story import (
 from whitelist.constants import WHITELIST_NO_EXPIRY
 from whitelist.models import (
     WhitelistAction,
+    WhitelistApproval,
     WhitelistAuthority,
     WhitelistChangeStatus,
     WhitelistEntry,
@@ -69,7 +69,7 @@ def entry_for(address, records, company):
 
 
 def expiry_for(entry, company):
-    wanted = wanted_expiry(SimpleNamespace(entry=entry, company=company))
+    wanted = wanted_expiry(WhitelistApproval(entry=entry, company=company))
     if wanted is STAFF_ENTERED or wanted == WHITELIST_NO_EXPIRY:
         return None
     if wanted == 0:

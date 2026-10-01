@@ -36,7 +36,7 @@ from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
 from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from shared.seeds.synthetic.story import STAFF
-from tokens.models import ShareToken
+from tokens.models import RegisterCorrectionStatus, ShareToken
 from tokens.models.choices import ShareTokenStatus
 from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.models import (
@@ -372,9 +372,11 @@ class Command(BaseCommand):
                 "  http://127.0.0.1:8545.",
             ]
         else:
+            opened = token.register_openings.filter(status=RegisterCorrectionStatus.APPLIED).exists()
+            register = ", with its register opened" if opened else ""
             lines += [
                 f"  Share class {token.symbol} is {token.get_status_display().lower()} at {token.contract_address}",
-                f"  on chain {settings.BLOCKCHAIN_CHAIN_ID}, with its register opened. Every further deployment,",
-                "  approval, mint and pause signs and sends a real transaction there.",
+                f"  on chain {settings.BLOCKCHAIN_CHAIN_ID}{register}. Every further deployment, approval, mint",
+                "  and pause signs and sends a real transaction there.",
             ]
         self.stdout.write("\n".join(lines))
