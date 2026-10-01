@@ -20,7 +20,11 @@ and generates development secrets without printing them. It does not overwrite
 existing files. `make init-local` and `make dev-up` perform the same steps.
 
 Compose runs migrations, checks database roles and reconciles the compliance,
-procedure and asset seeds before serving the application. PostgreSQL runs the
+procedure and asset seeds before serving the application. Before any of that it
+starts a local chain and deploys the core contracts on it (on later starts it
+checks them instead), and the migration step ends by admitting the operator's
+signer for that chain, so staff actions such as deploying a share class sign
+real transactions; see [the local chain](#the-local-chain). PostgreSQL runs the
 job queue; Redis handles request quotas and trading events. ClamAV must finish
 loading signatures before uploads work. See [upload setup](operations/uploads.md).
 
@@ -29,6 +33,7 @@ loading signatures before uploads work. See [upload setup](operations/uploads.md
 | Dashboard | <http://localhost:5174> |
 | Marketing | <http://localhost:5173> |
 | API and admin | <http://localhost:8000> |
+| Local chain (JSON-RPC, chain id 31337) | <http://127.0.0.1:8545> |
 
 Rebuild changed services: the dashboard is a built image with no source volume,
 so restarting alone does not pick up edited code. Keep API and worker builds
@@ -54,16 +59,38 @@ It is idempotent; rerunning resolves and applies a password again. It writes
 nothing to a chain. The seeded whitelist entry has no company approval, so the wallet is on no registry.
 See [demo details](operations/operator-console.md#demo-data).
 
-For issuance, continue with [local chain setup](operations/chains.md). Then open
-the [operator console](operations/operator-console.md), configure the contract
-addresses/payment rail, and exercise the [issuance flow](architecture/contracts-and-issuance.md).
+For issuance, the stack has already deployed the core contracts, configured
+their addresses and admitted the signer. Open the
+[operator console](operations/operator-console.md), configure the payment rail,
+and exercise the [issuance flow](architecture/contracts-and-issuance.md):
+deploying the demo share class, approving the investor's wallet for the company
+and minting each sign a transaction on the local chain.
+
+## The local chain
+
+The stack's chain is Anvil on chain id 31337, published at
+<http://127.0.0.1:8545> for browser wallets and scripts on the host. To use it
+from a browser wallet, add a network with that RPC URL, chain id `31337` and
+currency `ETH`, then import accounts from the public test mnemonic
+`test test test test test test test test test test test junk`. Account #0 is
+the operator, which the backend signs with, and the demo issuer wallet;
+account #1 is the demo investor's wallet. Each starts with 10,000 test ether.
+Their keys are public, so never send anything of value to them.
+
+The chain keeps its contracts, blocks and balances across `make dev-down`, and
+on every start the stack checks that the core contracts are still the ones it
+deployed. [The local stack's chain](operations/chains.md#the-local-stacks-chain)
+says what it checks, why transactions are final as soon as they are mined, and
+what to do when a check refuses. While the stack is up the chain holds port
+8545, so give the real-chain tests another one:
+`make chain-test CHAIN_TEST_PORT=8546`.
 
 ## Stop and clean up
 
 | Command | Effect |
 | --- | --- |
-| `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, Redis data, uploads and virus signatures stay in their volumes for the next start. |
-| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The next start migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
+| `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, the chain, Redis data, uploads and virus signatures stay in their volumes for the next start. |
+| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. The Compose project name is fixed, so this deletes the one local stack's data whichever checkout or worktree it runs from. |
 | `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it. |
 
 ## Run individual components

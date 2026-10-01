@@ -237,11 +237,13 @@ class Command(BaseCommand):
             f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, with a whitelist entry",
             f"  password    {password}",
             "",
-            f"  issuer wallet    {DEMO_ISSUER_ADDRESS}  (Hardhat account #0)",
-            f"  investor wallet  {DEMO_INVESTOR_ADDRESS}  (Hardhat account #1)",
+            f"  issuer wallet    {DEMO_ISSUER_ADDRESS}  (development account #0)",
+            f"  investor wallet  {DEMO_INVESTOR_ADDRESS}  (development account #1)",
             "",
             f"  Share class {token.symbol} is {token.get_status_display().lower()}. Deploying it creates the",
             "  company's whitelist registry; approve the investor's entry for the company in the admin",
-            "  before minting to them. Each of those steps writes a real transaction.",
+            "  before minting to them. Each of those steps signs and sends a real transaction on the",
+            f"  configured chain ({settings.BLOCKCHAIN_CHAIN_ID}); `make dev-up` serves chain 31337 at",
+            "  http://127.0.0.1:8545.",
         ]
         self.stdout.write("\n".join(lines))

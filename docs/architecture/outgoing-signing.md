@@ -12,7 +12,8 @@ leaves the deployment pending for attribution.
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
-The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission) is the only first-admission command. It cannot reopen a signer or authorize legacy cutover, and there is no admin edit surface. Admitted synthetic test
+The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission) is the only first-admission command for a public testnet, and
+[local chain admission](#local-chain-admission) the only one for the local development chain. Neither can reopen a signer or authorize legacy cutover, and there is no admin edit surface. Admitted synthetic test
 fixtures establish a test precondition only. Participant-signed approvals are the
 one settlement writer outside this foundation, because the backend never holds
 the participant's key: their delivery is journaled and replayed as exact bytes
@@ -152,6 +153,32 @@ while that same signer remains admitted at generation one; it preserves an
 advanced nonce. Closure, any earlier admission, or a different manifest cannot
 be undone through this command. The existing close and generation fences remain
 in force.
+
+## Local chain admission
+
+`admit_local_signer` admits the configured `BLOCKCHAIN_OPERATOR_KEY` address on
+the local development chain, chain id 31337, and on no other chain. The local
+Compose stack runs it as the last step of its `migrate` service, after
+`chain-deploy` has verified the core contracts; see
+[the local chain](../operations/chains.md#the-local-stacks-chain). It reads the
+provider's chain id and the signer's mined nonce outside any database
+transaction, then admits under the signer lock with the same boundary as the
+other entry points: an operator connection, autocommit and no enclosing
+transaction block.
+
+The configured chain id must be the integer 31337, the operator key must be
+valid, and the provider must answer 31337; otherwise nothing is admitted. A
+missing signer, or a closed one that was never admitted (generation zero),
+enters generation one with its nonce counter unchanged; an admitted signer is
+returned unchanged, so the command is idempotent. A signer closed after
+admission stays closed: as with the fresh bootstrap, this command cannot undo a
+closure. Every run also refuses a chain that no longer holds what the database
+recorded. Each nonce from the chain's mined count up to the signer's next
+nonce must belong to a signed transaction still awaiting its receipt;
+otherwise the chain was reset, or lost its latest blocks, without the database,
+and signing would leave a nonce gap that the node never mines past. The output
+is one JSON object naming the chain, the address, the generation and whether
+anything changed.
 
 ## Automatic swap approval
 

@@ -88,7 +88,8 @@ bridge-to-host traffic makes it unreachable from the containers.** `ufw` does
 this by default on Arch and Ubuntu: `host.docker.internal` and the bridge
 gateway (`172.17.0.1`) both time out from the worker, with no route error to
 say why. `BLOCKCHAIN_RPC_URL` in `backend/.env.example` defaults the same way
-(`http://host.docker.internal:8545`) and has the same problem.
+(`http://host.docker.internal:8545`) and has the same problem wherever that file
+applies; the local stack overrides it with its own `chain` service.
 
 Two remedies, either of which works for both: run the service **inside the
 compose network** and point the variable at its service name, or open the

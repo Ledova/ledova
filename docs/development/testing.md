@@ -35,8 +35,9 @@ Formatting checks remain local: CI has no general workspace format step.
 The four real-chain modules that `make chain-test` runs, listed in
 [chains and keys](../operations/chains.md#chain-configuration), are skipped by an
 ordinary backend suite without their chain environment. Use a free
-`CHAIN_TEST_PORT` per checkout and inspect verbose skip
-reasons. A PostgreSQL policy, trigger or status constraint requires the full
+`CHAIN_TEST_PORT` per checkout, and another than 8545 while the local stack is
+up, since its chain holds that port (`make chain-test CHAIN_TEST_PORT=8546`).
+Inspect verbose skip reasons. A PostgreSQL policy, trigger or status constraint requires the full
 PostgreSQL suite; status constraints also require real-chain coverage. Do not
 infer coverage from the test count.
 

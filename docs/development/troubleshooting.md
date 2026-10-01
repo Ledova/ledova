@@ -23,6 +23,10 @@ application code. These are current remedies distilled from prior failures.
 | Backend logs `Upload workers run without RLIMIT_AS` | Expected on macOS, whose kernel refuses that limit; uploads still run under the others and the wall deadline. Linux applies every limit, so there the warning is a fault to investigate. See [upload limits](../operations/uploads.md#upload-validation-and-resource-limits). |
 | `--parallel` aborts with `MaybeEncodingError` naming an unpicklable `Mock` | A subtest failed in a test that keeps mocks on `self`. Django pickles the finished test case to send the failure back, and a mock cannot be pickled. Rerun that module without `--parallel` to read the failure. |
 | LLM or local chain on host times out from container | Check bridge-to-host reachability. Prefer a service on the Compose network and use the documented hostname allowlist for extraction. |
+| `make chain-test` says `CHAIN_TEST_PORT=8545 is already in use` | The local stack's chain holds 8545 while the stack is up. Run `make chain-test CHAIN_TEST_PORT=8546`, or any free port. |
+| `chain-deploy` exits 1 and the stack stops before `migrate` | Its message names the difference: core contracts missing, owned or configured differently, or built from other sources, as after a change to `contracts/`. The chain and database go together: `make dev-clean`, then `make dev-up`. See [the local stack's chain](../operations/chains.md#the-local-stacks-chain). |
+| `migrate` stops at `admit_local_signer` with *the chain was reset, or lost its latest blocks* | The database recorded transactions the chain no longer has, because the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both together. |
+| `chain` exits at once with *invalid value '/state/state.json' for '--state'* | A hard kill interrupted Anvil while it was rewriting its state file, which it does in place. The chain cannot be recovered: `make dev-clean`. |
 
 For PostgreSQL authentication on an existing volume, see
 [role provisioning](../operations/configuration.md#row-level-security-roles).
