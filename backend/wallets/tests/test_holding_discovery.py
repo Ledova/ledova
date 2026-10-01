@@ -164,7 +164,10 @@ class TheWalletSyncFindsTheSettlementAssetItHasNoHoldingForTest(TestCase):
 
         self.chain.get_token_balance.assert_not_called()
 
-    def test_a_wallet_on_a_chain_without_the_settlement_asset_is_not_read(self):
+    def test_a_wallet_on_a_chain_the_operator_does_not_settle_on_is_not_read(self):
+        AssetChainDeployment.objects.create(
+            asset=self.stablecoin, chain="ethereum", contract_address="0x" + "7" * 40, decimals=2
+        )
         elsewhere = Wallet.objects.create(
             user_account=self.tenant.account,
             address=self.wallet.address,

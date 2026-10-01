@@ -160,9 +160,9 @@ wallet holds without one: the share classes it can hold and the operator's
 settlement asset. A share contract credits only an address on its company's
 registry, so it reads the deployed classes of the companies that have approved
 the wallet, whether or not that approval is still live; the settlement asset,
-which anyone can hold, it reads when the operator settles in exactly one asset
-and that asset is verified and deployed on the wallet's chain. It writes each
-positive balance it finds. That recovers a holding a write above could not
+which anyone can hold, it reads when the operator settles in exactly one
+verified asset and the wallet is on the chain the operator settles on. It writes
+each positive balance it finds. That recovers a holding a write above could not
 make, and tokens sent to the wallet outside the platform. A balance it cannot
 read is skipped without failing the sync.
 
