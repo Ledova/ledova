@@ -15,6 +15,7 @@ TRADING_EVENT_TYPES = frozenset(
         "order_created",
         "order_cancelled",
         "order_modified",
+        "order_listed",
         "order_matched",
         "swap_signed",
         "swap_completed",

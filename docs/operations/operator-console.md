@@ -250,7 +250,9 @@ and tasks the worker would run. It adds:
   Wanted orders at several prices around the class's offering price, each signed
   by its wallet and dated over the eighteen days before the run. Some were
   cancelled by a signed cancellation, and two were matched and left unsigned
-  until the match lapsed and its orders returned to the book.
+  until the match lapsed: the order that had been resting returned to the book,
+  the one that took it was held back from the book, and its trader then
+  cancelled it.
 - About 20 trades settled on the day of the run, each a signed order against a
   resting one, with the seller's and buyer's one-time approvals, both settlement
   signatures, the relayed swap and its finality; each class then shows a last
@@ -277,10 +279,10 @@ The investor tester has an order in each status the market's panels show (open,
 partially filled, filled and cancelled), sold Wattlefield shares, bought seed
 preference shares into the Trading wallet, which held none, voted on two
 resolutions with others waiting under Needs you, and has more than a page of
-notices. Three states are left out because production never holds them, or not
-for long: a trade awaiting signatures lapses fifteen minutes after its match
-(`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before anyone looked; nothing in
-the platform marks an order expired; and nothing approves a mint request. The
+notices. Two states are left out: a trade awaiting signatures lapses fifteen
+minutes after its match (`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before
+anyone looked, and the two orders held back after their matches lapsed were
+cancelled by their traders, so no order is held when the seed finishes. The
 periodic jobs leave the market as it is: no match lapses, no resolution closes,
 nothing is signed and the wallet sync reads the balances already recorded.
 

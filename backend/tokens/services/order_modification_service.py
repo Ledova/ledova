@@ -5,6 +5,7 @@ from typing import Optional
 from django.utils import timezone
 
 from operators.settlement import require_deployment
+from shared.db import use_operator
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.exceptions import (
     OrderModificationConflictException,
@@ -27,7 +28,7 @@ def validate_can_modify(order: TransferOrder) -> None:
             "Cannot modify order with pending swap. Complete or cancel the swap first."
         )
 
-    if order.status not in (TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED):
+    if order.status not in TransferOrderStatus.changeable():
         raise OrderModificationException(f"Order with status '{order.get_status_display()}' cannot be modified.")
 
 
@@ -135,6 +136,8 @@ def apply_order_modification(order, challenge, observed_balance, ip_address=None
     order.modification_count += 1
     order.last_modified_at = timezone.now()
     order.current_signature = signature
+    with use_operator():
+        order.rest_or_hold()
     order.save()
 
     OrderModificationLog.objects.bulk_create(

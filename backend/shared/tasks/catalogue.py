@@ -82,6 +82,10 @@ SYSTEM_WIDE = {
     "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes expired challenges regardless of whose.",
     "tokens.tasks.swap_expiry.expire_unclaimed_matches": "Releases eligible unclaimed expired matches across both "
     "parties, retaining every swap with a transaction claim or uncertain history.",
+    "tokens.tasks.held_orders.place_held_orders": "Re-places every order held back from the book because its price "
+    "crosses it: each takes its next single match, never with an order it already lapsed or failed with, or is "
+    "listed once it no longer crosses. It belongs to no tenant: a match pairs two parties' private orders on the "
+    "operator connection, as order creation does.",
     "tokens.tasks.swap_reconciler.recover_swap_execution": "Recovers one explicitly admitted swap execution "
     "using its original participant and common signed journal. The exact job commits with admission.",
     "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap execution across private "

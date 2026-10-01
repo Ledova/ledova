@@ -11454,17 +11454,15 @@
         "type": "object"
       },
       "TransferOrderStatusEnum": {
-        "description": "* `open` - Open\n* `partially_filled` - Partially Filled\n* `matched` - Matched\n* `pending_signature` - Pending Signature\n* `executing` - Executing\n* `completed` - Completed\n* `cancelled` - Cancelled\n* `expired` - Expired\n* `failed` - Failed",
+        "description": "* `open` - Open\n* `partially_filled` - Partially Filled\n* `held` - Held Back\n* `matched` - Matched\n* `pending_signature` - Pending Signature\n* `completed` - Completed\n* `cancelled` - Cancelled",
         "enum": [
           "open",
           "partially_filled",
+          "held",
           "matched",
           "pending_signature",
-          "executing",
           "completed",
-          "cancelled",
-          "expired",
-          "failed"
+          "cancelled"
         ],
         "type": "string"
       },
@@ -18631,6 +18629,7 @@
                     "connected",
                     "order_cancelled",
                     "order_created",
+                    "order_listed",
                     "order_matched",
                     "order_modified",
                     "swap_completed",

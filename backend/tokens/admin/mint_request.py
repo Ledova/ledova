@@ -74,7 +74,6 @@ class MintRequestAdmin(admin.ModelAdmin):
     status_badge = status_badge(
         {
             MintRequestStatus.PENDING: "#17a2b8",
-            MintRequestStatus.APPROVED: "#007bff",
             MintRequestStatus.EXECUTING: "#17a2b8",
             MintRequestStatus.EXECUTED: "#28a745",
             MintRequestStatus.FAILED: "#dc3545",

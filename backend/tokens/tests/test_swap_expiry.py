@@ -262,7 +262,7 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
         positive = self.matched_swap(signed="both")
         self.assertTrue(expire_unclaimed_swap(positive, self.expired_at(positive)))
 
-    def test_previously_filled_orders_return_to_the_book_with_only_their_remaining_quantity(self):
+    def test_the_older_order_returns_to_the_book_with_its_remainder_and_the_one_crossing_it_is_held(self):
         swap = self.matched_swap()
         for order in (swap.sell_order, swap.buy_order):
             record_synthetic_admission(order)
@@ -271,15 +271,17 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
             self.assertEqual(list(orders.order_book_levels(swap.share_token, side)), [])
         self.assertEqual(list(orders.advertised_liquidity()), [])
         self.assertTrue(expire_unclaimed_swap(swap, self.expired_at(swap)))
-        self.assert_available(swap, 20)
-        for side in ("buy", "sell"):
-            levels = list(orders.order_book_levels(swap.share_token, side))
-            self.assertEqual(len(levels), 1)
-            self.assertEqual(levels[0]["total_quantity"], 20)
-            self.assertEqual(levels[0]["order_count"], 1)
+        swap.refresh_from_db()
+        self.assertEqual(swap.status, SwapOrderStatus.EXPIRED)
+        older, newer = sorted((swap.sell_order, swap.buy_order), key=lambda order: (order.created_at, order.pk))
         self.assertEqual(
-            set(orders.advertised_liquidity().values_list("pk", flat=True)), {swap.buy_order_id, swap.sell_order_id}
+            [(order.status, order.filled_quantity, order.can_cancel) for order in (older, newer)],
+            [(TransferOrderStatus.PARTIALLY_FILLED, 20, True), (TransferOrderStatus.HELD, 20, True)],
         )
+        (level,) = orders.order_book_levels(swap.share_token, older.order_type)
+        self.assertEqual((level["total_quantity"], level["order_count"]), (20, 1))
+        self.assertEqual(list(orders.order_book_levels(swap.share_token, newer.order_type)), [])
+        self.assertEqual(list(orders.advertised_liquidity().values_list("pk", flat=True)), [older.pk])
 
     def test_changed_order_reservations_and_additional_active_matches_are_retained(self):
         for mutation in ("quantity", "status", "counterparty", "another_swap"):

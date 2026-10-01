@@ -114,3 +114,18 @@ class TradingLockRulesTest(TestCase):
                 for keyword in calls[0].keywords
             )
         )
+
+    def test_the_held_order_sweep_never_waits_for_the_order_it_places(self):
+        tree = ast.parse((TOKENS / "services/held_orders.py").read_text())
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "lock_orders"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(
+            any(
+                keyword.arg == "nowait" and getattr(keyword.value, "value", None) is True
+                for keyword in calls[0].keywords
+            )
+        )

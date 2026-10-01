@@ -58,13 +58,15 @@ class TransferOrderType(models.TextChoices):
 class TransferOrderStatus(models.TextChoices):
     OPEN = "open", "Open"
     PARTIALLY_FILLED = "partially_filled", "Partially Filled"
+    HELD = "held", "Held Back"
     MATCHED = "matched", "Matched"
     PENDING_SIGNATURE = "pending_signature", "Pending Signature"
-    EXECUTING = "executing", "Executing"
     COMPLETED = "completed", "Completed"
     CANCELLED = "cancelled", "Cancelled"
-    EXPIRED = "expired", "Expired"
-    FAILED = "failed", "Failed"
+
+    @classmethod
+    def changeable(cls):
+        return [cls.OPEN, cls.PARTIALLY_FILLED, cls.HELD]
 
 
 class SwapOrderStatus(models.TextChoices):

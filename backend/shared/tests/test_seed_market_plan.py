@@ -143,7 +143,7 @@ class Replay:
         self.placed = {}
         self.crossed = []
         self.cancelled = set()
-        self.open_lapses = set()
+        self.held = set()
 
     def best(self, order):
         others = [
@@ -166,8 +166,6 @@ class Replay:
         self.placed[order.key] = moment
 
     def check_spread(self, listing):
-        if self.open_lapses:
-            return
         resting = [order for order in self.book[listing].values() if self.remaining[order.key] > 0]
         bids = [order.price for order in resting if order.side == BUY]
         asks = [order.price for order in resting if order.side == SELL]
@@ -184,13 +182,14 @@ class Replay:
                 taker = self.plan.order(item.taker)
                 maker = self.best(taker)
                 assert maker is not None and maker.key == item.maker, f"{key} would not match {item.maker}"
-                self.rest(taker, moment)
-                self.open_lapses.add(key)
+                self.remaining[key] = taker.quantity
+                self.held.add(key)
+                self.check_spread(item.listing)
             else:
-                assert key in self.book[item.listing], f"{key} is cancelled without resting"
-                del self.book[item.listing][key]
+                assert key in self.book[item.listing] or key in self.held, f"{key} is cancelled without resting"
+                self.book[item.listing].pop(key, None)
+                self.held.discard(key)
                 self.cancelled.add(key)
-                self.open_lapses.discard(key)
                 self.check_spread(item.listing)
         later = max(self.placed.values()) + timedelta(days=1)
         for number, fill in enumerate(self.plan.today()):

@@ -466,7 +466,7 @@ it.each([
   ['partially_filled', 'Partially Filled', 3, 4, 'Partially Filled, 4'],
   ['completed', 'Completed', 7, 0, 'Completed, 7'],
   ['cancelled', 'Cancelled', 0, 7, 'Cancelled, 7'],
-  ['expired', 'Expired', 3, 4, 'Expired, 4'],
+  ['held', 'Partially Filled, Remainder Held Back', 3, 4, 'Partially Filled, Remainder Held Back, 4'],
 ] as const)(
   'names the %s order by its status, and its shares remaining or, once none remain, its own',
   async (status, statusDisplay, filledQuantity, remainingQuantity, words) => {
@@ -474,7 +474,7 @@ it.each([
       <OrdersCard {...ordersProps([{ ...order, status, statusDisplay, filledQuantity, remainingQuantity }])} />,
     );
     const name = `Wanted, Share class unavailable, ${words} at AUD\u00a014.00 per share`;
-    const actionable = ['open', 'partially_filled'].includes(status);
+    const actionable = ['open', 'partially_filled', 'held'].includes(status);
     expect(view.getByRole('button', { name: `Details, ${name}` })).toBeTruthy();
     expect(view.queryAllByRole('button', { name: `Modify, ${name}` })).toHaveLength(actionable ? 1 : 0);
     expect(view.queryAllByRole('button', { name: `Cancel order, ${name}` })).toHaveLength(actionable ? 1 : 0);
