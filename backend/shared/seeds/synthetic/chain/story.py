@@ -479,10 +479,6 @@ def money(value):
     return Decimal(value).quantize(CENT)
 
 
-def member_key(company, holder):
-    return f"{company}:{holder}"
-
-
 class IssuanceStory:
     def __init__(self, now, firms, candidates, seed):
         self.rng = stream(ISSUANCE_STREAM, seed)
@@ -528,10 +524,9 @@ class IssuanceStory:
         hour = self.rng.randint(first_hour, last_hour)
         return self.at(days, hour, self.rng.randint(0, 59)) + timedelta(seconds=self.rng.randint(0, 59))
 
-    def after(self, moment, low_minutes, high_minutes, ceiling=None):
+    def after(self, moment, low_minutes, high_minutes):
         later = (moment + timedelta(minutes=self.rng.uniform(low_minutes, high_minutes))).replace(microsecond=0)
-        limit = ceiling or self.ceiling
-        return max(moment, min(later, limit))
+        return max(moment, min(later, self.ceiling))
 
     def between(self, start, end):
         if end <= start:
@@ -736,11 +731,13 @@ class IssuanceStory:
         drafts = []
         for status in statuses:
             earliest, latest = self._window(status, times)
-            chosen = next((candidate for candidate in pool if candidate.ready_by(latest)), None)
+            margin = latest - timedelta(hours=1)
+            chosen = next((candidate for candidate in pool if candidate.ready_by(margin)), None)
             if chosen is None:
                 continue
             pool.remove(chosen)
-            start = max(earliest, chosen.ready_at + timedelta(hours=1))
+            verified = min(wallet.verified_at for wallet in chosen.wallets_ready_by(margin))
+            start = max(earliest, chosen.ready_at + timedelta(hours=1), verified + timedelta(hours=1))
             created = self.between(start, latest)
             ready = [wallet.address for wallet in chosen.wallets_ready_by(created)]
             address = self.wallet(chosen, company)

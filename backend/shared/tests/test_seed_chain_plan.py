@@ -285,6 +285,15 @@ class IssuanceRunOnceTest(TestCase):
         seed(investors=MINIMUM_INVESTORS)
         cls.found = population.companies()
 
+    def test_a_minimum_population_still_plans_applications_from_wallets_verified_in_time(self):
+        candidates = {candidate.key: candidate for candidate in population.candidates(self.found)}
+        plan = build_issuance(timezone.now(), population.firms(self.found), list(candidates.values()))
+
+        self.assertTrue(plan.applications())
+        for application in plan.applications():
+            ready = candidates[application.investor].wallets_ready_by(application.created_at)
+            self.assertIn(application.address, {wallet.address for wallet in ready}, application)
+
     def test_a_layer_that_started_is_reported_and_left_alone_without_reading_the_chain(self):
         ShareToken.objects.create(
             company=self.found["demo-robotics"], symbol="PRF", name="Seed Preference Shares", total_supply="300000"

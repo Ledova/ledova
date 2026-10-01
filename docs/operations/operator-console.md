@@ -228,10 +228,10 @@ as it is.
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded
-Base wallet's balance there to the ether its history leaves it, accounts 0 to 4
-included, and the sync keeps them; without the chain layer a synthetic wallet
-reads zero there and a development account its test ether. Account 0 keeps at
-least 1 ETH for the operator's gas.
+Base wallet's balance there to the ether its history leaves it, the testers'
+development accounts 0, 1, 2 and 4 included, and the sync keeps them; without the
+chain layer a synthetic wallet reads zero there and a development account its
+test ether. Account 0 keeps at least 1 ETH for the operator's gas.
 Ethereum and Bitcoin wallets keep their seeded balances while `ALCHEMY_ETH_URL`
 and `ALCHEMY_BTC_URL` are empty, and the worker logs a warning for each of them
 every hour; with those set, the sync reads the public testnets and replaces the

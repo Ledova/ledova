@@ -92,7 +92,8 @@ def _apply(plan, records):
             create_class(share_class, records)
     records.entries.update(treasury_entries(plan))
     deployed = [share_class for share_class in plan.classes if share_class.deployed]
-    for company in sorted({share_class.company for share_class in deployed}):
+    companies = {share_class.company for share_class in deployed}
+    for company in sorted(companies, key=lambda key: (records.companies[key].activated_at, key)):
         classes = [share_class for share_class in deployed if share_class.company == company]
         for share_class in classes:
             deploy(share_class, records)

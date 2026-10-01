@@ -84,9 +84,10 @@ currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
 the operator, which the backend signs with, and the demo issuer wallet;
 account #1 is the demo investor's wallet. Each starts with 10,000 test ether,
-until `make dev-seed` gives accounts #0 to #4, the demo testers' wallets, the
-ether their seeded history leaves them, between about 0.3 and 2 ETH, which pays
-for gas there. Their keys are public, so never send anything of value to them.
+until `make dev-seed` gives accounts #0, #1, #2 and #4, the demo testers' Base
+wallets, the ether their seeded history leaves them, between about 0.3 and 2 ETH,
+which pays for gas there. Their keys are public, so never send anything of value
+to them.
 
 The chain keeps its contracts, blocks and balances across `make dev-down`, and
 on every start the stack checks that the core contracts are still the ones it

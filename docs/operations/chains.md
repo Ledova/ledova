@@ -131,9 +131,10 @@ accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Each of its
 first ten accounts holds 10,000 test ether: #0 is the operator, the backend's
 signer and the demo issuer wallet, and #1 is the demo investor's wallet. The
-[demo seed's chain layer](operator-console.md#demo-data) then gives accounts #0
-to #4, the demo testers' wallets, the ether their seeded history leaves them,
-between about 0.3 and 2 ETH, so the hourly wallet sync keeps their balances. Avoid
+[demo seed's chain layer](operator-console.md#demo-data) then gives accounts #0,
+#1, #2 and #4, the demo testers' Base wallets, the ether their seeded history
+leaves them, between about 0.3 and 2 ETH, so the hourly wallet sync keeps their
+balances. Avoid
 sending from account #0 while the backend is signing, and never send anything
 of value to these addresses: their keys are public. Scripts on the host reach
 the chain at the same URL, and so can a backend run on the host; but only one
