@@ -113,25 +113,24 @@ class TheServiceRefusesAPartialAnswerTest(TestCase):
 
         self.assertIn("node said no", " ".join(logged.output))
 
-    def test_a_class_whose_contract_gives_no_balance_is_left_out_and_the_rest_still_answer(self):
+    def _left_out(self, refusal):
         readable = make_tenant("partial-readable").deployed_token
-        for refusal in (
-            BadFunctionCallOutput("Could not transact with/call contract function, is contract deployed correctly"),
-            ContractLogicError("execution reverted"),
+        answers = {self.tenant.deployed_token.contract_address: refusal, readable.contract_address: 12}
+        with (
+            self._chain(answers),
+            self.assertLogs("tokens.services.share_token_service", level="WARNING") as logged,
         ):
-            with self.subTest(refusal=type(refusal).__name__):
-                answers = {self.tenant.deployed_token.contract_address: refusal, readable.contract_address: 12}
-                with (
-                    self._chain(answers),
-                    self.assertLogs("tokens.services.share_token_service", level="WARNING") as logged,
-                ):
-                    result = self.service.get_wallet_token_balances(self.tenant.wallet.address)
+            result = self.service.get_wallet_token_balances(self.tenant.wallet.address)
 
-                self.assertEqual(
-                    [(row["token"], row["balance"]) for row in result["balances"]], [(str(readable.pk), "12")]
-                )
-                self.assertIn(f"DEP at {self.tenant.deployed_token.contract_address} gave no balance", logged.output[0])
-                self.assertIn(type(refusal).__name__, logged.output[0])
+        self.assertEqual([(row["token"], row["balance"]) for row in result["balances"]], [(str(readable.pk), "12")])
+        self.assertIn(f"DEP at {self.tenant.deployed_token.contract_address} gave no balance", logged.output[0])
+        self.assertIn(type(refusal).__name__, logged.output[0])
+
+    def test_a_class_with_no_code_at_its_address_is_left_out_and_the_rest_still_answer(self):
+        self._left_out(BadFunctionCallOutput("Could not transact with/call contract function, is contract deployed"))
+
+    def test_a_class_whose_contract_reverts_is_left_out_and_the_rest_still_answer(self):
+        self._left_out(ContractLogicError("execution reverted"))
 
     def test_a_settlement_asset_whose_contract_gives_no_balance_is_left_out_too(self):
         stablecoin = self._stablecoin()
