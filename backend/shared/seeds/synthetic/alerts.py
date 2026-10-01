@@ -73,7 +73,7 @@ class AlertBook:
     def label(self, label, transfer):
         self.labelled[label] = transfer
 
-    def record(self, role, wallet, transfers):
+    def record(self, role, transfers):
         if role:
             self.recorded[role] = transfers
 

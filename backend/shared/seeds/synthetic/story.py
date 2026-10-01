@@ -648,7 +648,7 @@ class Story:
                 start = self.after(wallet.verified_at, 60, 2880)
                 transfers, holdings = self.activity(wallet, start, self.rng.randint(3, 8), forced, end)
                 if own:
-                    self.alerts.record(role, wallet, transfers)
+                    self.alerts.record(role, transfers)
                 wallet = replace(wallet, transfers=transfers, holdings=holdings)
             result.append(wallet)
         return tuple(result)
