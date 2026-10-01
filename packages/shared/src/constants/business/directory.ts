@@ -23,7 +23,7 @@ export const OFFER_DOCUMENT_COPY = {
   EMPTY: 'The company has not attached documents to an approved offering of this share class.',
   VIEW: 'View',
   OPENING: 'Opening…',
-  OPEN_FAILED: 'This document could not be opened. Refresh the page and try again.',
+  OPEN_FAILED: 'This document could not be opened. Try again shortly.',
   ATTACH_HEADING: 'Documents for investors',
   ATTACH_HELP:
     'Eligible investors can open the documents you attach once the operator approves the offering. Offer ' +
