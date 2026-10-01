@@ -65,7 +65,7 @@ help:
 	@echo "  make dev-up                   Start the local Docker Compose stack"
 	@echo "  make dev-down                 Stop the local Docker Compose stack"
 	@echo "  make dev-logs                 Follow local stack logs"
-	@echo "  make dev-seed                 Create or refresh the synthetic demo data in the running stack"
+	@echo "  make dev-seed                 Pause the worker, create or refresh the synthetic demo data, restart the worker"
 	@echo "  make dev-clean                Stop the local stack and delete its volumes and built images (asks first)"
 	@echo "  make docker-prune             Remove dangling images, unused unnamed volumes and build cache machine-wide (asks first)"
 	@echo "  make contracts-deploy-local   Deploy example contracts to a local Hardhat node"
@@ -211,8 +211,11 @@ dev-down:
 dev-logs:
 	docker compose logs -f
 
+# The worker stops while the seed runs, so no periodic job acts on half-written rows, and it starts again
+# whether or not the seed succeeded. The recipe fails when the seed fails or the worker does not start.
 dev-seed:
-	docker compose exec backend python manage.py seed_demo
+	docker compose stop worker
+	docker compose exec backend python manage.py seed_demo; status=$$?; docker compose start worker && exit $$status
 
 dev-clean:
 	@printf "Delete the local stack's containers, volumes and built images? [y/N] "; read answer; \

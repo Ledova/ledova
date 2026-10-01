@@ -47,16 +47,20 @@ ten minutes and five attempts, or request another. Dashboard cookie-authenticate
 writes require its origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; the template includes
 `http://localhost:5174`.
 
-For a prepared local demo, run `make dev-seed`, which runs:
+For a prepared local demo, run `make dev-seed`, which stops the worker, runs:
 
 ```bash
 docker compose exec backend python manage.py seed_demo
 ```
 
-The command prints generated credentials and creates a synthetic operator,
-superuser, issuer, investor, wallets, classification and draft share class.
-It is idempotent; rerunning resolves and applies a password again. It writes
-nothing to a chain. The seeded whitelist entry has no company approval, so the wallet is on no registry.
+and starts the worker again. The command prints generated credentials and
+refreshes a synthetic operator, superuser, issuer, investor, wallets,
+classification and draft share class; rerunning resolves and applies a password
+again. The first run on a fresh database also adds six months of synthetic
+history: staff, about sixty investors in every sign-up and verification state,
+four more companies, wallets and their transactions, notifications and
+compliance alerts. Later runs leave that history alone; `make dev-clean` starts
+over. It writes nothing to a chain. The seeded whitelist entry has no company approval, so the wallet is on no registry.
 See [demo details](operations/operator-console.md#demo-data).
 
 For issuance, the stack has already deployed the core contracts, configured

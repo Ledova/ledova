@@ -1,8 +1,11 @@
+import logging
 import os
 import secrets
+import time
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -28,6 +31,10 @@ from shared.seeds.demo import (
     DEMO_TOKEN_NAME,
     DEMO_TOKEN_SYMBOL,
 )
+from shared.seeds.synthetic.identities import EMAIL_DOMAIN
+from shared.seeds.synthetic.layer import PARTIAL, seed_population, summary
+from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
+from shared.seeds.synthetic.story import STAFF
 from tokens.models import ShareToken
 from tokens.models.choices import ShareTokenStatus
 from users.constants import ACCOUNT_STATUS_ACTIVE
@@ -51,7 +58,8 @@ class Command(BaseCommand):
     help = (
         "Seed a browser-ready local demo: the operator row, a superuser, an active company with a draft "
         "share class and a verified issuer wallet, and an eligible investor whose wallet has a whitelist entry. "
-        "Writes no transactions to any chain."
+        "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
+        "notifications and compliance work. Writes no transactions to any chain."
     )
 
     def add_arguments(self, parser):
@@ -68,18 +76,47 @@ class Command(BaseCommand):
             action="store_true",
             help="Seed even when DEBUG is off. This creates accounts with a known password.",
         )
+        parser.add_argument(
+            "--investors",
+            type=int,
+            default=DEFAULT_INVESTORS,
+            help=(
+                f"How many synthetic investors the first run creates, at least {MINIMUM_INVESTORS}. "
+                "Ignored once the synthetic population exists."
+            ),
+        )
 
-    @atomic()
     def handle(self, *args, **options):
         if not settings.DEBUG and not options["force"]:
             raise CommandError(
                 "Refusing to seed: DEBUG is off. This command creates accounts with a known password. "
                 "Re-run with --force only against a throwaway database."
             )
+        if options["investors"] < MINIMUM_INVESTORS:
+            raise CommandError(f"Seed at least {MINIMUM_INVESTORS} investors so that every state is represented.")
 
         password = options["password"] or os.environ.get(DEMO_PASSWORD_ENV_VAR) or secrets.token_urlsafe(12)
         self.created = 0
 
+        with atomic():
+            company, token = self._seed_testers(password)
+
+        started = time.monotonic()
+        disabled = logging.root.manager.disable
+        logging.disable(max(disabled, logging.INFO))
+        try:
+            outcome = seed_population(timezone.now(), options["investors"])
+        finally:
+            logging.disable(disabled)
+        elapsed = time.monotonic() - started
+        User.objects.filter(email__endswith=f"@{EMAIL_DOMAIN}").update(password=make_password(password))
+
+        if options["verbosity"] >= 1:
+            self.stdout.write(self.style.SUCCESS(f"Seed complete: {self.created} created."))
+            self._report_population(outcome, elapsed)
+            self._report(password, company, token)
+
+    def _seed_testers(self, password):
         self._seed_operator()
         self._seed_user(DEMO_ADMIN_EMAIL, password, superuser=True)
 
@@ -94,10 +131,7 @@ class Command(BaseCommand):
         investor_wallet = self._seed_wallet(investor_account, DEMO_INVESTOR_ADDRESS)
         self._seed_classification(investor_account)
         self._seed_whitelist_entry(investor_wallet)
-
-        if options["verbosity"] >= 1:
-            self.stdout.write(self.style.SUCCESS(f"Seed complete: {self.created} created."))
-            self._report(password, company, token)
+        return company, token
 
     def _track(self, created):
         if created:
@@ -226,7 +260,40 @@ class Command(BaseCommand):
         self._track(created)
         return entry
 
+    def _report_population(self, outcome, elapsed):
+        if outcome.state == PARTIAL:
+            self.stdout.write(
+                self.style.WARNING(
+                    "A previous run stopped part-way through the synthetic population, so nothing was added. "
+                    "Start over with make dev-clean, make dev-up and make dev-seed."
+                )
+            )
+            return
+        if outcome.plan is None:
+            self.stdout.write(
+                "Synthetic population already present; nothing added. "
+                "To start over, run make dev-clean, then make dev-up and make dev-seed."
+            )
+            return
+        counts = summary(outcome.plan)
+        companies = ", ".join(f"{count} {status.replace('_', ' ')}" for status, count in counts["companies"].items())
+        alerts = ", ".join(f"{count} {status}" for status, count in counts["alert_statuses"].items())
+        lines = [
+            f"Synthetic population added in {elapsed:.1f}s, six months of history:",
+            f"  investors   {counts['investors']}: {counts['active']} verified and active, {counts['suspended']} "
+            f"suspended, {counts['terminated']} terminated, {counts['rejected']} rejected, {counts['checking']} "
+            f"in identity checks, {counts['unfinished']} not finished signing up",
+            f"  companies   {sum(counts['companies'].values())} ({companies}), {counts['owners']} synthetic owners",
+            f"  staff       {counts['staff']} (one deactivated); {counts['alerts']} compliance alerts ({alerts})",
+            f"  activity    {counts['wallets']} wallets, {counts['transactions']} wallet transactions, "
+            f"{counts['claims']} classification claims, {counts['notifications']} notifications",
+        ]
+        self.stdout.write("\n".join(lines))
+
     def _report(self, password, company, token):
+        staff = ", ".join(
+            f"{handle}@{EMAIL_DOMAIN} ({title.lower()})" for _, handle, title, _, left in STAFF if not left
+        )
         lines = [
             "",
             "  Dashboard   http://localhost:5174",
@@ -235,7 +302,9 @@ class Command(BaseCommand):
             f"  superuser   {DEMO_ADMIN_EMAIL}",
             f"  company     {DEMO_OWNER_EMAIL}    owns {company.name} ({company.get_status_display()})",
             f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, with a whitelist entry",
+            f"  staff       {staff}",
             f"  password    {password}",
+            "  Every seeded account, the synthetic staff and people included, uses that password.",
             "",
             f"  issuer wallet    {DEMO_ISSUER_ADDRESS}  (development account #0)",
             f"  investor wallet  {DEMO_INVESTOR_ADDRESS}  (development account #1)",
