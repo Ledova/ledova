@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import socket
 import time
 from collections import defaultdict
@@ -262,6 +263,8 @@ class ChainLayerTest(APITransactionTestCase):
         periodic = list(app.periodic_registry.periodic_tasks.values())
         self.assertGreaterEqual(len(periodic), 30)
         before = rows()
+        logging.disable(logging.CRITICAL)
+        self.addCleanup(logging.disable, logging.NOTSET)
         with ExitStack() as stack:
             for target, behaviour in PRICE_FEED:
                 stack.enter_context(patch(target, **behaviour))

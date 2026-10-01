@@ -51,7 +51,7 @@ from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
-from whitelist.models import WhitelistEntry
+from whitelist.models import WhitelistApproval, WhitelistEntry
 
 User = get_user_model()
 
@@ -333,6 +333,17 @@ class Command(BaseCommand):
         ]
         self.stdout.write("\n".join(lines))
 
+    def _approvals(self, email):
+        companies = (
+            WhitelistApproval.objects.filter(entry__wallet__user_account__user_profile__user__email=email)
+            .values("company")
+            .distinct()
+            .count()
+        )
+        if not companies:
+            return "with a whitelist entry"
+        return f"approved on chain for {companies} {'company' if companies == 1 else 'companies'}"
+
     def _report(self, password, company, token):
         staff = ", ".join(
             f"{handle}@{EMAIL_DOMAIN} ({title.lower()})" for _, handle, title, _, left in STAFF if not left
@@ -344,7 +355,7 @@ class Command(BaseCommand):
             "",
             f"  superuser   {DEMO_ADMIN_EMAIL}",
             f"  company     {DEMO_OWNER_EMAIL}    owns {company.name} ({company.get_status_display()})",
-            f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, with a whitelist entry",
+            f"  investor    {DEMO_INVESTOR_EMAIL}  verified wholesale, {self._approvals(DEMO_INVESTOR_EMAIL)}",
             f"  staff       {staff}",
             f"  password    {password}",
             "  Every seeded account, the synthetic staff and people included, uses that password.",
