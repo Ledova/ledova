@@ -57,7 +57,6 @@ def _recorded_nonces(address):
         return 0, []
     awaiting = SignedAttempt.objects.filter(
         signer=signer,
-        nonce__lt=signer.next_nonce,
         operation__current_attempt=F("pk"),
         operation__status=OutgoingStatus.SIGNED,
     )
@@ -66,7 +65,7 @@ def _recorded_nonces(address):
 
 def _require_chain_history(address, next_nonce, awaiting, mined):
     unmined = next_nonce - mined
-    if unmined > 0 and sum(nonce >= mined for nonce in awaiting) != unmined:
+    if unmined > 0 and len({nonce for nonce in awaiting if mined <= nonce < next_nonce}) != unmined:
         raise LocalSignerAdmissionError(
             f"The database has used {address}'s nonces up to {next_nonce - 1}, but the chain has "
             f"mined only {mined} of its transactions, and not every missing one is a signed transaction still "

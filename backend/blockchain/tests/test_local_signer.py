@@ -8,7 +8,7 @@ from django.db import connection
 from django.test import TransactionTestCase, override_settings
 
 from blockchain.exceptions import LocalSignerAdmissionError
-from blockchain.models import SigningAccount
+from blockchain.models import SignedAttempt, SigningAccount
 from blockchain.services.local_signer import admit_local_signer
 from blockchain.services.outgoing import close_signer_admission, record_receipt
 from blockchain.tests.outgoing_fixtures import (
@@ -43,6 +43,19 @@ class LocalSignerAdmissionTest(TransactionTestCase):
 
     def mined(self, count):
         self.chain.w3.eth.get_transaction_count.return_value = count
+
+    def signing_between_the_database_reads(self):
+        signed = []
+        read_attempts = SignedAttempt.objects.filter
+
+        def read_after_signing(**lookups):
+            if not signed:
+                signed.append(sign_claim(claim_operation("synthetic:meanwhile")))
+            return read_attempts(**lookups)
+
+        attempts = Mock()
+        attempts.objects.filter.side_effect = read_after_signing
+        return patch("blockchain.services.local_signer.SignedAttempt", attempts), signed
 
     def test_the_configured_operator_is_admitted_on_the_local_chain(self):
         result = admit_local_signer()
@@ -145,6 +158,37 @@ class LocalSignerAdmissionTest(TransactionTestCase):
             return attempt.nonce
 
         self.chain.w3.eth.get_transaction_count.side_effect = mined_just_after_the_read
+        self.assertTrue(admit_local_signer()["unchanged"])
+
+    def test_a_lost_nonce_is_refused_although_a_transaction_is_signed_between_the_reads(self):
+        admit_local_signer()
+        claim = claim_operation("synthetic:lost")
+        lost = sign_claim(claim)
+        self.assertTrue(record_receipt(claim, lost.tx_hash, receipt(lost), client=chain_client(receipt(lost))))
+        self.mined(lost.nonce)
+        interleaving, signed = self.signing_between_the_database_reads()
+
+        with interleaving:
+            self.refuse("lost its latest blocks")
+        self.assertEqual([attempt.nonce for attempt in signed], [lost.nonce + 1])
+
+    def test_an_intact_chain_is_admitted_although_a_transaction_is_signed_between_the_reads(self):
+        admit_local_signer()
+        waiting = sign_claim(claim_operation("synthetic:waiting"))
+        self.mined(waiting.nonce)
+        interleaving, signed = self.signing_between_the_database_reads()
+
+        with interleaving:
+            self.assertTrue(admit_local_signer()["unchanged"])
+        self.assertEqual([attempt.nonce for attempt in signed], [waiting.nonce + 1])
+
+    def test_an_attempt_mined_before_its_receipt_is_recorded_is_not_taken_for_a_missing_one(self):
+        admit_local_signer()
+        unrecorded = sign_claim(claim_operation("synthetic:unrecorded"))
+        waiting = sign_claim(claim_operation("synthetic:waiting"))
+        self.assertEqual((unrecorded.nonce, waiting.nonce), (7, 8))
+
+        self.mined(waiting.nonce)
         self.assertTrue(admit_local_signer()["unchanged"])
 
     def test_admission_refuses_the_app_role_and_any_enclosing_transaction(self):

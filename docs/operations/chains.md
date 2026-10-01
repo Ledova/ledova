@@ -435,7 +435,10 @@ Compose network, and the chain settings in `docker-compose.yml` override
 or in a Compose override file. An override for any chain other than 31337 must
 also replace `migrate`'s command with one that leaves out its last step:
 `admit_local_signer` refuses every other chain, so `migrate` would exit 1 and
-`backend` and `worker` would never start. A node started on the host is not the backend
+`backend`, `worker` and `dashboard` would never start. An override for a public
+testnet must also set `LOCAL_CHAIN_FINALITY_DEPTH` to empty: the settings refuse
+the stack's depth of 1 for any chain id but 1337 and 31337, so every backend
+service would fail at startup and `migrate` at its first step. A node started on the host is not the backend
 container's `localhost`: point `BLOCKCHAIN_RPC_URL` at a host address reachable
 from the Compose network, or run the node inside that network and use its
 service/container name. Host firewall rules can block `host.docker.internal`;
