@@ -19,6 +19,7 @@ from shared.seeds.demo import (
     DEMO_OWNER_EMAIL,
     DEMO_TOKEN_SYMBOL,
 )
+from shared.seeds.synthetic.plan import MINIMUM_INVESTORS
 from tokens.models import ShareToken
 from tokens.models.choices import ShareTokenStatus
 from tokens.services import deployment
@@ -33,6 +34,7 @@ User = get_user_model()
 def run(**options):
     output = StringIO()
     options.setdefault("password", "pw-12345678")
+    options.setdefault("investors", MINIMUM_INVESTORS)
     call_command("seed_demo", stdout=output, **options)
     return output.getvalue()
 
@@ -44,11 +46,14 @@ def signin(client, email):
 @override_settings(DEBUG=True)
 class SeedDemoCommandTest(APITestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        cls.output = run()
+
     def setUp(self):
         super().setUp()
         cache.clear()
         self.addCleanup(cache.clear)
-        self.output = run()
 
     def test_one_run_produces_an_owner_who_can_sign_in(self):
         response = signin(self.client, DEMO_OWNER_EMAIL)
@@ -117,7 +122,7 @@ class SeedDemoCommandTest(APITestCase):
 
     def test_a_generated_password_is_printed_and_actually_works(self):
         output = StringIO()
-        call_command("seed_demo", stdout=output)
+        call_command("seed_demo", stdout=output, investors=MINIMUM_INVESTORS)
 
         printed = [line for line in output.getvalue().splitlines() if line.strip().startswith("password")]
         self.assertEqual(len(printed), 1, output.getvalue())
@@ -156,12 +161,23 @@ class SeedDemoCommandTest(APITestCase):
 
     def test_a_second_run_changes_nothing(self):
         before = list(Company.objects.order_by("acn").values("acn", "name", "status"))
+        people = User.objects.count()
 
         second = run()
 
         self.assertIn("0 created", second)
+        self.assertIn("already present; nothing added", second)
         self.assertEqual(list(Company.objects.order_by("acn").values("acn", "name", "status")), before)
+        self.assertEqual(User.objects.count(), people)
         self.assertEqual(signin(self.client, DEMO_OWNER_EMAIL).status_code, 200)
+
+    def test_the_first_run_reports_the_synthetic_population(self):
+        self.assertIn("Synthetic population added", self.output)
+        self.assertIn(f"investors   {MINIMUM_INVESTORS}:", self.output)
+
+    def test_it_refuses_fewer_investors_than_every_state_needs(self):
+        with self.assertRaises(CommandError):
+            run(investors=MINIMUM_INVESTORS - 1)
 
 
 @override_settings(DEBUG=True)
