@@ -100,7 +100,8 @@ rests again and the one that took it is held, since the two still cross.
 
 Every minute `place_held_orders` gives each held order, oldest first, its next
 single match by the same price and time priority as a new order, or lists it
-once it no longer crosses. It never pairs two orders whose match already lapsed
+once it no longer crosses and publishes `order_listed`, so both clients refresh
+the book and the owner's orders. It never pairs two orders whose match already lapsed
 or failed, because whoever did not sign would leave the new match to lapse
 again, and an order awaiting signatures cannot be cancelled. A held order that
 crosses only such an order, or only orders it cannot trade with, stays held
