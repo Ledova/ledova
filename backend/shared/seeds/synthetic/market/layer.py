@@ -182,7 +182,7 @@ def _trade(plan, market):
     funded = _parties(plan)
     provider = get_base_chain_client().w3.provider
     trading.fund(funded, lambda address: int((register.seeded_ether(address) + GAS) * WEI), provider)
-    market.signers.update(funded)
+    market.funded.update(funded)
     for fill in plan.today():
         trading.trade(fill, market)
     return register.completed(market)

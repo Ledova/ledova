@@ -32,8 +32,7 @@ class Market:
         self.tokens = {}
         self.orders = {}
         self.swaps = []
-        self.lapsed = []
-        self.signers = set()
+        self.funded = set()
 
     @property
     def tokens_by_id(self):

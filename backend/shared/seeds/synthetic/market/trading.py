@@ -126,7 +126,6 @@ def lapse(fill, market):
     with frozen(taker.placed_at + EXPIRY_RUN) as moment:
         if not expire_unclaimed_swap(swap, moment):
             raise ChainStepFailed(NOT_EXPIRED.format(key=fill.taker))
-    market.lapsed.append(swap.pk)
     return swap
 
 
@@ -153,7 +152,6 @@ def _approve(swap, role, order, wallet, user, market):
         "wallet_uuid": order.wallet_id,
         "settlement_digest": swap.settlement_digest,
     }
-    market.signers.add(wallet.address.lower())
     return atomic_swap_service.broadcast_settlement_approval(
         swap,
         role,

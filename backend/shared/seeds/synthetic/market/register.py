@@ -223,8 +223,8 @@ def seeded_ether(address):
 
 def restore_ether(market):
     provider = get_base_chain_client().w3.provider
-    trading.fund(market.signers, lambda address: int(seeded_ether(address) * WEI), provider)
-    return len(market.signers)
+    trading.fund(market.funded, lambda address: int(seeded_ether(address) * WEI), provider)
+    return len(market.funded)
 
 
 def completed(market):
