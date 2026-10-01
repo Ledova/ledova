@@ -10,8 +10,8 @@ from django.utils import timezone
 from shared import uploads
 from shared.db import current_alias
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
-from shared.seeds.synthetic.chain.registers import acn_text, authority, reference_prefix
-from shared.seeds.synthetic.paper import pdf
+from shared.seeds.synthetic.chain.registers import reference_prefix
+from shared.seeds.synthetic.paper import acn_text, authority, pdf
 from shareholders.models import PublicationEventKind, PublicationRecipient
 from shareholders.services.distributions import entitlement, record_payment
 from shareholders.services.publications import publish_to_members
@@ -68,16 +68,15 @@ class Notices:
 
     def _authority(self, notice, token):
         if notice.authority not in self.authorities:
-            company = self._company(notice)
             self.authorities[notice.authority] = authority(
-                company,
+                self.market.companies[self._company(notice)],
                 f"notice-{notice.authority}",
                 notice.title.lower() if notice.kind != RESOLUTION else f"the resolutions put to {token.name} members",
                 [
                     f"The directors resolved to publish to the members of {token.name} through Ledova the notice",
                     f"titled '{notice.title}', with a record date of {self.record_date:%-d %B %Y}.",
                 ],
-                self.market,
+                self.market.documents,
             )
         return self.authorities[notice.authority]
 

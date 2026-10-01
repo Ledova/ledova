@@ -226,10 +226,10 @@ def _apply(plan, market):
         if notice.window != CLOSED:
             notices.publish(notice)
     notices.close()
+    market.run()
     for deposit in plan.deposits:
         if deposit.state != EXECUTED:
             deposits.record(deposit, market)
-    market.run()
 
 
 def _resolution_state(publication, closes, now):

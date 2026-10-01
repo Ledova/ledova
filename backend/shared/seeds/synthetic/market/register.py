@@ -9,11 +9,12 @@ from assets.models import Asset
 from integrations.base_chain import get_base_chain_client
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
-from shared.seeds.synthetic.chain.registers import authority, reference_prefix
+from shared.seeds.synthetic.chain.registers import reference_prefix
 from shared.seeds.synthetic.chain.settlement import WEI
 from shared.seeds.synthetic.chain.story import CHAIRS
 from shared.seeds.synthetic.market import trading
 from shared.seeds.synthetic.market.population import share_holdings
+from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     RegisterMemberWallet,
     RegisterReconciliationStatus,
@@ -79,14 +80,14 @@ def link_buyers(market, swaps):
     for company_key, rows in sorted(_unlinked(market, swaps).items()):
         company = market.companies[company_key]
         document = authority(
-            company_key,
+            company,
             "wallet-links",
             "the wallets of members who bought on the platform",
             [
                 "The directors resolved to enter in the register the wallets below, each as the member who owns it,",
                 "so that the transfers they settled on the platform can be recorded.",
             ],
-            market,
+            market.documents,
         )
         mapping = [{"address": address, "member": str(member_id(company_key, investor))} for address, investor in rows]
         proposal = submit_link(
@@ -129,14 +130,14 @@ def instruct_transfers(market, swaps):
         ]
         total = sum(swap.share_amount for swap in settled)
         document = authority(
-            company_key,
+            market.companies[company_key],
             f"transfers-{token.symbol.lower()}",
             f"transfers of {token.name} settled on the platform",
             [
                 f"The directors resolved to register the {len(settled)} transfers of {token.name} settled on the",
                 f"platform today, {total:,} shares in all, each from the seller's wallet to the buyer's.",
             ],
-            market,
+            market.documents,
         )
         proposal = submit_instruction(
             actor=token.company.owner,
