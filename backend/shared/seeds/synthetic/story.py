@@ -1,5 +1,4 @@
 import math
-import random
 from dataclasses import replace
 from datetime import date, timedelta
 from decimal import ROUND_DOWN, Decimal
@@ -17,7 +16,7 @@ from shared.seeds.demo import (
 )
 from shared.seeds.synthetic import identities, keys
 from shared.seeds.synthetic.alerts import AlertBook
-from shared.seeds.synthetic.clock import Calendar
+from shared.seeds.synthetic.clock import Calendar, nearest_midnight, utc_midnight
 from shared.seeds.synthetic.plan import (
     DEFAULT_INVESTORS,
     MINIMUM_INVESTORS,
@@ -41,10 +40,12 @@ from shared.seeds.synthetic.plan import (
     Step,
     Transfer,
     WalletPlan,
+    stream,
 )
 from users.models.investor_classification import plus_years
 from users.services.identity import REVIEW_OUTCOME_MESSAGES
 
+PEOPLE_STREAM = "people"
 CURRENT_PRICES = {
     "BTC": Decimal("98400.00"),
     "ETH": Decimal("3620.00"),
@@ -287,11 +288,12 @@ class Story:
     def __init__(self, now, investors, seed):
         if investors < MINIMUM_INVESTORS:
             raise ValueError(f"Seed at least {MINIMUM_INVESTORS} investors so that every state is represented.")
-        self.rng = random.Random(seed)
+        self.rng = stream(PEOPLE_STREAM, seed)
         self.calendar = Calendar(now)
         self.now = self.calendar.anchor
         self.ceiling = (self.now - timedelta(minutes=240)).replace(microsecond=0)
         self.window_start = self.now - timedelta(days=WINDOW_DAYS)
+        self.price_origin = utc_midnight(self.now)
         self.investor_total = investors
         self.prices = self._price_series()
         self.taken = {f"{first}.{last}".lower() for first, last in STAFF_NAMES}
@@ -339,7 +341,8 @@ class Story:
         return series
 
     def price_on(self, symbol, moment):
-        return self.prices[symbol][min(max(self.calendar.days_before(moment), 0), WINDOW_DAYS)]
+        days = (self.price_origin - nearest_midnight(moment)).days
+        return self.prices[symbol][min(max(days, 0), WINDOW_DAYS)]
 
     def _name_pairs(self):
         pairs = [
@@ -825,14 +828,12 @@ class Story:
         devices = []
         for number in range(count):
             registered = self.after(start, 5, 30) if number == 0 else self.after(start, 4320, 60000)
-            active = number == count - 1 and self.rng.random() > 0.12
             pushed = [note.at for note in notes if note.at >= registered]
-            last_used = max(pushed) if pushed and active else self.after(registered, 600, 20000)
+            last_used = max(pushed) if pushed and number == count - 1 else self.after(registered, 600, 20000)
             devices.append(
                 Device(
                     token=keys.device_token(key, number),
                     device_type="ios" if self.rng.random() < 0.6 else "android",
-                    active=active,
                     registered_at=registered,
                     last_used_at=max(last_used, registered),
                 )
@@ -1196,9 +1197,5 @@ class Ledger:
         return transfer
 
     def result(self):
-        holdings = tuple(
-            (symbol, quantized(quantity, AMOUNT_PLACES[symbol]))
-            for symbol, quantity in self.balances.items()
-            if quantity > 0
-        )
+        holdings = tuple((symbol, quantity) for symbol, quantity in self.balances.items() if quantity > 0)
         return tuple(self.transfers), holdings

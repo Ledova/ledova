@@ -144,8 +144,9 @@ people, companies and amounts, dated relative to the day of the run:
   risk assessments, financial profiles, wallets on Base, Ethereum and Bitcoin
   testnet (most verified with signatures over real challenges, some on
   Keystone-style hardware derivations), wallet transactions and holdings, device
-  tokens, notifications, preferences, payslips with extraction results, and
-  classification claims in every status and category.
+  tokens (all inactive, so the worker never pushes to them), notifications,
+  preferences, payslips with extraction results, and classification claims in
+  every status and category.
 - Companies: Demo Robotics and two more active companies, each with full details,
   every document type uploaded and verified by the document reviewer, an
   officeholder attestation and a passed ABR check recorded from a synthetic

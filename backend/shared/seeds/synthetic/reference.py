@@ -1,12 +1,11 @@
-from datetime import datetime, time, timedelta
-from datetime import timezone as dt_timezone
+from datetime import timedelta
 
 from assets.models import Asset, AssetSnapshot, ExchangeRate
 from assets.services.sync import ensure_supported_assets, update_price
 from operators.models import Operator
 from shared.db import atomic
 from shared.models import Country
-from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.clock import frozen, utc_midnight
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 
 COUNTRY_CODES = ("AU", "NZ", "GB", "SG", "US", "IN")
@@ -43,14 +42,14 @@ def _operator_identity():
 
 
 def _price_history(plan, asset, series):
-    today = plan.now.date()
+    origin = utc_midnight(plan.now)
     AssetSnapshot.objects.bulk_create(
         [
             AssetSnapshot(
                 asset=asset,
                 price=price,
                 price_currency="USD",
-                source_timestamp=datetime.combine(today - timedelta(days=days), time.min, dt_timezone.utc),
+                source_timestamp=origin - timedelta(days=days),
                 data_source=SNAPSHOT_SOURCE,
             )
             for days, price in enumerate(series)

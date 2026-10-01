@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
@@ -8,6 +9,10 @@ SEED = 846
 WINDOW_DAYS = 183
 DEFAULT_INVESTORS = 60
 MINIMUM_INVESTORS = 20
+
+
+def stream(name, seed=SEED):
+    return random.Random(f"{seed}/{name}")
 
 
 @dataclass(frozen=True)
@@ -142,7 +147,6 @@ class Claim:
 class Device:
     token: str
     device_type: str
-    active: bool
     registered_at: datetime
     last_used_at: datetime
 

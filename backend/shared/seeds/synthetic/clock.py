@@ -11,6 +11,15 @@ def utc(moment):
     return moment.astimezone(dt_timezone.utc)
 
 
+def utc_midnight(moment):
+    return utc(moment).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def nearest_midnight(moment):
+    day = utc_midnight(moment)
+    return day + timedelta(days=1) if utc(moment) - day > timedelta(hours=12) else day
+
+
 @contextmanager
 def frozen(moment):
     original = timezone.now
@@ -32,6 +41,3 @@ class Calendar:
             raise ValueError("A calendar day is at least one day before the anchor.")
         local = datetime.combine(self.today - timedelta(days=days_ago), time(hour, minute, second), AEST)
         return utc(local)
-
-    def days_before(self, moment):
-        return (self.today - moment.astimezone(AEST).date()).days

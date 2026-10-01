@@ -451,6 +451,6 @@ def _payslip(payslip, user, classification=None, attached_at=None):
 def _device(device, user):
     with frozen(device.registered_at):
         token = DeviceToken.objects.create(
-            user=user, push_token=device.token, device_type=device.device_type, is_active=device.active
+            user=user, push_token=device.token, device_type=device.device_type, is_active=False
         )
     DeviceToken.objects.filter(pk=token.pk).update(last_used_at=device.last_used_at)

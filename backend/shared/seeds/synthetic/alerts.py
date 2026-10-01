@@ -280,14 +280,14 @@ class AlertBook:
         closed = self._closed(self._batched(self.labelled["rapid-4"]), "false_positive", notes)
         return [AlertPlan(person=self.subjects["rapid"], data=data, **self._rule("MON-002"), **closed)]
 
-    def _manual(self, role, alert_type, severity, description, **fields):
+    def _manual(self, role, alert_type, severity, description, data, **fields):
         return AlertPlan(
             person=self.subjects[role],
             rule=MANUAL,
             alert_type=alert_type,
             severity=severity,
             description=description,
-            data={},
+            data={"raised_by": "staff", **data},
             **fields,
         )
 
@@ -298,7 +298,8 @@ class AlertBook:
         notes = "Article concerns a local planning dispute; no financial crime alleged. No action."
         description = "Regional newspaper names the customer in a planning dispute with the local council."
         closed = self._closed(created, "legitimate_activity", notes, assignee="admin")
-        return [self._manual("media", "adverse_media_minor", "low", description, **closed)]
+        data = {"source": "regional newspaper", "matched_on": ["name", "suburb"], "financial_crime": False}
+        return [self._manual("media", "adverse_media_minor", "low", description, data, **closed)]
 
     def _discrepancy(self):
         if "discrepancy" not in self.subjects:
@@ -311,6 +312,7 @@ class AlertBook:
                 "info_discrepancy",
                 "medium",
                 description,
+                {"field": "residential_address", "compared_with": "verified identity document"},
                 created_at=created,
                 status="reviewing",
                 assignee="compliance",
@@ -330,6 +332,7 @@ class AlertBook:
                 "failed_documentation",
                 "medium",
                 description,
+                {"requested": "source of funds", "requests_sent": 3, "final_notice": True},
                 created_at=created,
                 status="closed",
                 assignee="compliance",
@@ -358,6 +361,7 @@ class AlertBook:
                 "sanctions_match",
                 "critical",
                 description,
+                {"list": "DFAT consolidated list", "matched_on": ["name", "year of birth"], "confirmed": False},
                 created_at=created,
                 status="escalated",
                 assignee="compliance",
