@@ -73,8 +73,13 @@ How an issuer publishes an offering and an operator approves its terms.
    [tenancy](tenancy.md#requests-and-jobs), and they record no read, as no read
    of a company document is recorded ([uploaded files](files-and-retention.md)).
    The issuer picks the documents in the offering form on the web and in the
-   app, from those uploaded under Application, while the offering is a draft
-   or after a rejection.
+   app while the offering is a draft or after a rejection. The form lists the
+   offer documents uploaded under Application (`OFFER_DOCUMENT_TYPES`: the
+   prospectus or information memorandum, risk disclosure, business plan,
+   financial statements, auditor report, constitution and shareholder
+   agreement) and anything already attached, so personal records such as the
+   share register or a director's identification are never one click from
+   investors; the API itself accepts any document of the class's company.
 9. A rejected offering can be withdrawn by its issuer. Withdrawal keeps the
    reviewer, the review time, the notes and the rejection reason; the row stays
    visible as a record and offers no further edit, resubmit or delete.

@@ -341,8 +341,8 @@ actions; an open editor retains its draft when a read or save fails. Native date
 and time controls set the offering window in the device's local time. Price
 strings remain exact, request share quantities retain the API bounds, and a
 removed settlement asset must be explicitly removed from the draft before save.
-The form lists the company's uploaded documents to attach for investors and keeps
-an edited offering's attachments until one is switched off.
+The form lists the company's uploaded offer documents to attach for investors and
+keeps an edited offering's attachments until one is switched off.
 Subscription facts remain separate from the stored share register and allotment.
 Offering writes and Directory visibility changes capture the native session epoch;
 credential lookup, token refresh and late UI callbacks cannot carry them into a
@@ -425,9 +425,10 @@ an unavailable edit never becomes a new offering. Quantities are whole integers
 within the existing 2,147,483,647 request limit before JSON number conversion.
 Price, ordered bounds, dates and available settlement choices are checked before
 submission. Operator details failing to load do not imply bank-transfer-only
-settlement. The forms list the company's uploaded documents to attach for
+settlement. The forms list the company's uploaded offer documents to attach for
 investors, who can open them once the operator approves the offering; editing
-keeps the attached ones until the issuer unticks one.
+keeps the attached ones, listed even when of another type, until the issuer
+unticks one.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,
