@@ -78,8 +78,8 @@ that brings no result writes nothing. KYCAID's `verified` is read as a JSON
 boolean or the string `true` or `false`; anything else is no result. A
 verification status KYCAID does not document is recorded as `pending` with no
 result, and a status-changed callback carrying one changes nothing; both are
-logged. Users migration `0029` rewrote rows stored before this mapping: an empty
-result became null and `unused` became `init`.
+logged. A data migration in the users app rewrote rows stored before this
+mapping: an empty result became null and `unused` became `init`.
 
 KYCAID reports a PEP as a yes-or-no flag and names no category. Both providers'
 PEP evidence goes through one classifier, `integrations/kyc/pep.py`, which reads
