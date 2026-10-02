@@ -434,6 +434,34 @@ class ConsolePageTest(TestCase):
         self.assertContains(response, "does not decide who carries the section 168")
 
 
+@override_settings(STORAGES=TEST_STORAGES)
+class ConsolePermissionTest(TestCase):
+    def console(self, user):
+        self.client.force_login(user)
+        return self.client.get(reverse("admin:operators_operator_changelist"))
+
+    def test_staff_without_an_operator_permission_get_the_admins_refusal_and_seed_nothing(self):
+        response = self.console(staff_user("console-plain"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertNotContains(response, "Waiting on the operator", status_code=403)
+        self.assertFalse(Operator.objects.exists())
+
+    def test_the_operator_view_or_change_permission_opens_the_console(self):
+        for action in ("view", "change"):
+            with self.subTest(permission=action):
+                operator_admin = admin.site._registry[Operator]
+                response = self.console(grant(staff_user(f"console-{action}"), operator_admin, action))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Waiting on the operator")
+
+    def test_a_signed_in_customer_is_sent_to_the_admin_login(self):
+        response = self.console(User.objects.create_user(email="console-customer@example.test", password="pw-12345678"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith(reverse("admin:login")))
+
+
 class ConfigurationHealthTest(TestCase):
     def setUp(self):
         self.operator = Operator.get()

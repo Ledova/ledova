@@ -8,6 +8,10 @@ Enter through `/admin/operators/operator/`. It creates the singleton if missing
 and opens the console, with a link to `/admin/operators/operator/1/change/`.
 Opening the change URL alone on a fresh installation redirects to the admin index.
 `GET /api/operator/` also creates the row lazily, using `OPERATOR_NAME` when needed.
+The console needs the operator's view or change permission, as the configuration
+page does; any other staff member gets the admin's refusal, and nothing is created.
+Adding the row by hand also needs the add permission. In the demo data the
+operations officer and the superuser can open the console.
 
 | Admin section | Fields |
 | --- | --- |

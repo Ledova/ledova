@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import render
 from django.urls import reverse
 
@@ -85,6 +85,8 @@ class OperatorAdmin(admin.ModelAdmin):
     ]
 
     def changelist_view(self, request, extra_context=None):
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
         operator = Operator.get()
         context = {
             **self.admin_site.each_context(request),
@@ -109,7 +111,7 @@ class OperatorAdmin(admin.ModelAdmin):
         ]
 
     def has_add_permission(self, request):
-        return not Operator.objects.exists()
+        return super().has_add_permission(request) and not Operator.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
         return False
