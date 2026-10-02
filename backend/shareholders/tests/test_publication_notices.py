@@ -15,6 +15,7 @@ from shareholders.tests.fixtures import (
     a_resolution,
     a_treasury_address,
     published,
+    the_class_is_paused,
 )
 from tokens.models import RegisterEntryKind
 from tokens.services.register_events import record_entry
@@ -139,6 +140,17 @@ class AnnouncingAPublicationTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(len(callbacks), 1)
         defer.assert_called_once_with(publication_id=str(made.pk))
+
+    def test_the_members_of_a_paused_class_find_its_notice_in_their_inbox(self):
+        the_class_is_paused(self.world)
+        meeting = published(self.world, kind=PublicationKind.MEETING_NOTICE, title="Notice of general meeting")
+
+        with patch("users.tasks.notifications.send_push_notification.defer", side_effect=_send_push_notification):
+            told = notify_the_roll(meeting.pk)
+
+        inbox = Notification.objects.filter(data__publication_id=str(meeting.pk))
+        self.assertEqual(told, 2)
+        self.assertEqual(sorted(inbox.values_list("user_id", flat=True)), sorted(m.user.pk for m in self.world.members))
 
     def test_what_is_deferred_is_what_the_existing_notification_task_puts_in_the_members_inbox(self):
         with patch("users.tasks.notifications.send_push_notification.defer", side_effect=_send_push_notification):

@@ -52,7 +52,10 @@ GATES = "docs/development/gates.md"
 SCRIPT_GLOB = "check-*"
 
 PERIODIC = re.compile(r"@app\.periodic\(\s*cron\s*=\s*[\"']([^\"']+)[\"']")
-DEFINITION = re.compile(r"^\s*def\s+(\w+)")
+# A coroutine is a task too: Procrastinate runs an `async def` decorated with
+# @app.periodic like any other, so a pattern that only knew `def` would let one
+# go undocumented while this gate reported green.
+DEFINITION = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$")
 BACKTICKED = re.compile(r"`([^`\n]+)`")

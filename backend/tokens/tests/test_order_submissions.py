@@ -14,6 +14,7 @@ from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import AssetChainDeployment
+from companies.models import Company, CompanyStatus
 from operators.settlement import require_deployment
 from shared.db import acting_for, atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -29,6 +30,7 @@ from tokens.exceptions import (
 from tokens.models import (
     OrderSubmission,
     ShareToken,
+    ShareTokenStatus,
     SigningChallenge,
     SigningChallengePurpose,
     SwapOrder,
@@ -43,6 +45,9 @@ from tokens.tests.order_submission_fixtures import (
     pending_submission,
 )
 from wallets.models import Wallet
+
+MARKET = "/api/v1/trading/tokens/"
+DIRECTORY = "/api/v1/directory/tokens/"
 
 
 class SubmissionRecoveryChecks(SubmissionFixtures):
@@ -458,6 +463,31 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         self.assertEqual(recovered.json()["order"]["uuid"], first.json()["order"]["uuid"])
         fresh = self.message(self.body(submission_id=str(uuid4())))
         self.assertEqual(fresh.status_code, 400, fresh.content)
+
+    def test_a_paused_class_leaves_the_market_and_the_directory_and_takes_no_new_order(self):
+        with use_operator():
+            issuer = make_tenant("submission-paused-issuer")
+            Company.objects.filter(pk=issuer.company.pk).update(status=CompanyStatus.ACTIVE, is_open_to_investors=True)
+        token = str(issuer.deployed_token.pk)
+
+        def listed(route):
+            response = self.client.get(route)
+            self.assertEqual(response.status_code, 200, response.content)
+            return {row["uuid"] for row in response.json()["results"]}
+
+        self.assertIn(token, listed(MARKET))
+        self.assertIn(token, listed(DIRECTORY))
+        with use_operator():
+            ShareToken.objects.filter(pk=issuer.deployed_token.pk).update(status=ShareTokenStatus.PAUSED)
+
+        refused = self.message(self.body(token=token))
+
+        self.assertNotIn(token, listed(MARKET))
+        self.assertNotIn(token, listed(DIRECTORY))
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(list(refused.json()), ["token"])
+        with use_operator():
+            self.assertFalse(OrderSubmission.objects.filter(token_id=issuer.deployed_token.pk).exists())
 
 
 class OrderSubmissionRecoveryTest(SubmissionRecoveryChecks, APITransactionTestCase):

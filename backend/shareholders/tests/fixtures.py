@@ -132,6 +132,12 @@ def a_company_with_members(
     )
 
 
+def the_class_is_paused(world):
+    ShareToken.objects.filter(pk=world.token.pk).update(status=ShareTokenStatus.PAUSED)
+    world.token.refresh_from_db()
+    return world
+
+
 def published(world, **changes):
     fields = {
         "kind": PublicationKind.HOLDING_STATEMENT,
