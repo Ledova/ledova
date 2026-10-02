@@ -12,6 +12,8 @@ from companies.services.document_review import prepare_document_review, verify_d
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_files import admin_file_path
 
+OFFERED_DOCUMENT = "{document} is attached to an approved or closed offering, so it stays available to its investors."
+
 
 class DocumentReviewForm(forms.Form):
     confirmation = forms.CharField(widget=forms.HiddenInput)
@@ -59,6 +61,17 @@ class CompanyDocumentAdmin(admin.ModelAdmin):
             return "-"
         url = reverse("admin:companies_companydocument_file", args=[obj.uuid])
         return format_html('<a href="{}" target="_blank">Open document</a>', url)
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj is not None and CompanyDocument.objects.filter(pk=obj.pk).offered().exists():
+            readonly.append("company")
+        return readonly
+
+    def get_deleted_objects(self, objs, request):
+        deleted, counts, permissions, protected = super().get_deleted_objects(objs, request)
+        offered = CompanyDocument.objects.filter(pk__in=[document.pk for document in objs]).offered()
+        return deleted, counts, permissions, [*protected, *(OFFERED_DOCUMENT.format(document=it) for it in offered)]
 
     def get_urls(self):
         custom_urls = [

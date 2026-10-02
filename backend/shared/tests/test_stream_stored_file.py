@@ -75,3 +75,13 @@ class InlineTypeSetTest(SimpleTestCase):
         widened = frozenset(ALLOWED_UPLOAD_MIME_TYPES | {"image/svg+xml"}) - NEVER_INLINE_MIME_TYPES
 
         self.assertNotIn("image/svg+xml", widened)
+
+
+class StreamStoredFileCachingTest(SimpleTestCase):
+
+    def test_no_cache_keeps_a_private_file_whichever_way_it_is_served(self):
+        for mime_type, as_attachment in (("application/pdf", False), ("text/html", False), ("", False), ("", True)):
+            with self.subTest(mime_type=mime_type, as_attachment=as_attachment):
+                response = stream_stored_file(StoredField(), mime_type, as_attachment=as_attachment)
+
+                self.assertEqual(response.headers["Cache-Control"], "private, no-store")

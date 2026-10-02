@@ -1,4 +1,6 @@
+from offerings.services.documents import published_document, published_documents
 from offerings.services.offering import (
+    attach_documents,
     submit_offering,
     transition_offering,
     unissued_headroom,
@@ -32,6 +34,7 @@ __all__ = [
     "accept",
     "allot",
     "allot_batch",
+    "attach_documents",
     "build_instruction",
     "cap_headroom",
     "confirm_payment",
@@ -42,6 +45,8 @@ __all__ = [
     "normalize_reference",
     "offering_headroom",
     "payment_warnings",
+    "published_document",
+    "published_documents",
     "record_refund",
     "reject",
     "retry_allotment",

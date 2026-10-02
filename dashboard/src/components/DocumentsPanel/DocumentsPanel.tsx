@@ -9,7 +9,7 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 
-import { apiErrorSentence, type InvestorClassification } from '@ledova/shared';
+import { apiErrorSentence, formatFileSize, type InvestorClassification } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import {
@@ -31,12 +31,6 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
 };
 
 const MAX_FILE_MB = 10;
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function formatMoney(raw: string | null): string {
   if (!raw) return '—';

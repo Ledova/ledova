@@ -19,7 +19,7 @@ it('preserves the default issuer reads and requests explicit subsequent pages', 
 });
 
 it('preserves unconfigured write call shapes and forwards explicit transport configs', async () => {
-  const { createOffering, updateOffering, deleteOffering, submitOffering, withdrawOffering } =
+  const { addOfferingDocuments, createOffering, updateOffering, deleteOffering, submitOffering, withdrawOffering } =
     await import('../../src/services/offerings');
   const { updateCompany } = await import('../../src/services/companies');
   const api = axios.create();
@@ -32,12 +32,14 @@ it('preserves unconfigured write call shapes and forwards explicit transport con
   await updateOffering(api, 'one', data);
   await submitOffering(api, 'one');
   await withdrawOffering(api, 'one', 'Example');
+  await addOfferingDocuments(api, 'one', ['memorandum', 'supplement']);
   await deleteOffering(api, 'one');
   await updateCompany(api, 'company', { isOpenToInvestors: true });
   expect(post.mock.calls).toEqual([
     ['/api/v1/offerings/', data],
     ['/api/v1/offerings/one/submit/', {}],
     ['/api/v1/offerings/one/withdraw/', { reason: 'Example' }],
+    ['/api/v1/offerings/one/documents/', { documents: ['memorandum', 'supplement'] }],
   ]);
   expect(patch.mock.calls).toEqual([
     ['/api/v1/offerings/one/', data],
@@ -51,6 +53,7 @@ it('preserves unconfigured write call shapes and forwards explicit transport con
   await updateOffering(api, 'one', data, config);
   await submitOffering(api, 'one', config);
   await withdrawOffering(api, 'one', 'Example', config);
+  await addOfferingDocuments(api, 'one', ['supplement'], config);
   await deleteOffering(api, 'one', config);
   await updateCompany(api, 'company', { isOpenToInvestors: true }, config);
   expect([...post.mock.calls, ...patch.mock.calls, ...remove.mock.calls].every((call) => call.at(-1) === config)).toBe(

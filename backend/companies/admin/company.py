@@ -1,11 +1,13 @@
 from django import forms
 from django.contrib import admin, messages
+from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 
+from companies.admin.document import OFFERED_DOCUMENT
 from companies.models import (
     Company,
     CompanyDocument,
@@ -195,8 +197,18 @@ class CompanyRegistryCheckInline(admin.TabularInline):
         return request.user.has_perm("companies.view_company")
 
 
+class KeepsOfferedDocuments(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        deleting = [form.instance.pk for form in self.forms if form.instance.pk and self._should_delete_form(form)]
+        offered = CompanyDocument.objects.filter(pk__in=deleting).offered()
+        if offered:
+            raise forms.ValidationError([OFFERED_DOCUMENT.format(document=document) for document in offered])
+
+
 class CompanyDocumentInline(admin.TabularInline):
     model = CompanyDocument
+    formset = KeepsOfferedDocuments
     extra = 0
     fields = ["document_type", "name", "file_link", "is_verified", "created_at"]
     readonly_fields = ["file_link", "is_verified", "created_at"]

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, attachableDocuments, requestShares } from '@ledova/shared';
 import type {
+  CompanyDocument,
   CompanyShareTokenListItem,
   Offering,
   OfferingExemption,
@@ -9,6 +10,7 @@ import type {
   OperatorSettlementAsset,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { DocumentChoices } from './DocumentChoices';
 
 const EXEMPTIONS = Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][];
 
@@ -17,6 +19,7 @@ interface OfferingFormProps {
   busy: boolean;
   blocked?: boolean;
   settlementAssets: OperatorSettlementAsset[];
+  documents?: CompanyDocument[];
   operatorName: string;
   onCreate: (input: OfferingInput) => void;
   editing?: Offering;
@@ -46,6 +49,7 @@ export function OfferingForm({
   busy,
   blocked = false,
   settlementAssets,
+  documents = [],
   operatorName,
   onCreate,
   editing,
@@ -64,6 +68,8 @@ export function OfferingForm({
   const [useOfProceeds, setUseOfProceeds] = useState(editing?.useOfProceeds ?? '');
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
+  const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
+  const attachable = attachableDocuments(documents, editing?.documents ?? []);
 
   const chosenToken = token;
   const hasARail = acceptsBankTransfer || chosenAssets.length > 0;
@@ -89,6 +95,10 @@ export function OfferingForm({
 
   const toggleAsset = (uuid: string) =>
     setChosenAssets((chosen) => (chosen.includes(uuid) ? chosen.filter((each) => each !== uuid) : [...chosen, uuid]));
+  const toggleDocument = (uuid: string) =>
+    setChosenDocuments((chosen) =>
+      chosen.includes(uuid) ? chosen.filter((each) => each !== uuid) : [...chosen, uuid],
+    );
 
   const handleSubmit = () => {
     if (!isComplete || busy || blocked) return;
@@ -105,6 +115,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
+      documents: chosenDocuments.filter((uuid) => documents.some((document) => document.uuid === uuid)),
     };
     if (editing && onUpdate) {
       onUpdate(input);
@@ -261,6 +272,16 @@ export function OfferingForm({
           <p className="text-sm text-error-light">
             Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
           </p>
+        )}
+      </div>
+
+      <div className="sm:col-span-2 space-y-2">
+        <span className="text-sm font-medium text-text-primary">{OFFER_DOCUMENT_COPY.ATTACH_HEADING}</span>
+        <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.ATTACH_HELP}</p>
+        {attachable.length === 0 ? (
+          <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.ATTACH_NONE}</p>
+        ) : (
+          <DocumentChoices documents={attachable} chosen={chosenDocuments} onToggle={toggleDocument} />
         )}
       </div>
 

@@ -304,6 +304,18 @@ READS_WIDER_THAN_OWNERSHIP = {
         "tokens/tests/test_market_reads_scoped.py proves cross-issuer prices, one bounded summary query, "
         "private order refusal and no operator summary access for ineligible or unknown-token requests.",
     ),
+    "Documents attached to a published offering": (
+        "offerings/services/documents.py published_documents and published_document, "
+        "for offerings/views/directory.py",
+        "companies_companydocument and offerings_offering_documents: the stored files attached to an approved or "
+        "closed offering of a share class the caller's directory admits. The token resolves through the directory "
+        "selector and the offerings through their own policy, under the app role, before one operator query "
+        "bounded to those offering UUIDs and the class's own company. No unattached document, no other company's "
+        "document and no external link is returned, and the company document policy stays owner-only",
+        "offerings/tests/test_directory_documents_scoped.py - ScopedDirectoryDocumentsTest proves one operator "
+        "read bounded to the published offering and its company, the row still hidden on the app role, and no "
+        "operator read for an unpublished, ineligible or unknown request",
+    ),
     "Stablecoin approvals for a wallet send": (
         "wallets/services/transaction_confirmation.py require_stablecoin_approvals, at prepare in "
         "wallets/services/transfers.py and at submission in wallets/services/submissions.py _submission_plan",
@@ -551,7 +563,9 @@ NOT_TENANCY = {
     "operators_operator_supported_settlement_assets": "Which assets that singleton settles in.",
     "offerings_offering_documents": "A link row reached only through its offering, which is scoped. Nothing "
     "scopes this table today, so a policy here would be a new rule rather than a translation of one - and it "
-    "is worth writing the day anything reaches these rows without going through the offering first.",
+    "is worth writing the day anything reaches these rows without going through the offering first. The "
+    "directory's document read joins it on the operator connection only after resolving the published "
+    "offerings under the app role, and bounds the join to them.",
     "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
     "reached only through the offering, and carrying nothing the catalogue does not already publish.",
     "portfolios_wallets": "A link row between a scoped portfolio and a scoped wallet, reached through either, "

@@ -799,6 +799,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/directory/tokens/{uuid}/documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_directory_tokens_documents_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/directory/tokens/{uuid}/documents/{document_uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_directory_tokens_documents_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/documents/': {
     parameters: {
       query?: never;
@@ -877,6 +909,22 @@ export interface ApiPaths {
     options?: never;
     head?: never;
     patch: ApiOperations['api_v1_offerings_partial_update'];
+    trace?: never;
+  };
+  '/api/v1/offerings/{uuid}/documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_offerings_documents_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/api/v1/offerings/{uuid}/submit/': {
@@ -2588,6 +2636,18 @@ export interface ApiComponents {
       industry: string;
       state: string;
     };
+    DirectoryDocument: {
+      createdAt: string;
+      documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
+      documentTypeDisplay: string;
+      fileSize: number;
+      fileUrl: string;
+      mimeType: string;
+      name: string;
+      uuid: string;
+      validFrom: string | null;
+      validUntil: string | null;
+    };
     DirectoryOpenOfferingResponse: {
       closesAt: string | null;
       opensAt: string;
@@ -2982,6 +3042,9 @@ export interface ApiComponents {
       updatedAt: string;
       useOfProceeds: string;
       uuid: string;
+    };
+    OfferingDocumentsRequest: {
+      documents: string[];
     };
     OfferingList: {
       canBeDeleted: boolean;
@@ -6092,6 +6155,49 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_directory_tokens_documents_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['DirectoryDocument'][];
+        };
+      };
+    };
+  };
+  api_v1_directory_tokens_documents_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_uuid: string;
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
   api_v1_documents_list: {
     parameters: {
       query?: {
@@ -6307,6 +6413,33 @@ export interface ApiOperations {
         'application/json': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
         'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
         'multipart/form-data': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['OfferingDetail'];
+        };
+      };
+    };
+  };
+  api_v1_offerings_documents_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['OfferingDocumentsRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingDocumentsRequest'];
+        'multipart/form-data': ApiComponents['schemas']['OfferingDocumentsRequest'];
       };
     };
     responses: {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { cleanup, fireEvent, render } from '@testing-library/react-native';
-import type { Offering, OperatorSettlementAsset } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, type CompanyDocument, type Offering, type OperatorSettlementAsset } from '@ledova/shared';
 import { OfferingForm } from './OfferingForm';
 
 jest.mock('@react-native-community/datetimepicker', () => {
@@ -140,4 +140,63 @@ it('uses native date/time selections and rejects closing before opening while su
   await fireEvent.press(view.getByRole('button', { name: 'Remove closing date' }));
   await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
   expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ closesAt: null }));
+});
+
+const document = (uuid: string, documentType: CompanyDocument['documentType'], documentTypeDisplay: string) =>
+  ({ uuid, name: `${uuid}.pdf`, documentType, documentTypeDisplay }) as CompanyDocument;
+
+it('attaches the chosen company documents and keeps those already attached', async () => {
+  const documents = [
+    document('memorandum', 'prospectus', 'Prospectus or Information Memorandum'),
+    document('risks', 'risk_disclosure', 'Risk Disclosure Statement'),
+  ];
+  const view = await render(
+    <OfferingForm {...props} editing={{ ...editing, documents: ['memorandum'] }} documents={documents} />,
+  );
+  expect(view.getByText(OFFER_DOCUMENT_COPY.ATTACH_HELP)).toBeTruthy();
+  expect(view.getByLabelText('Attach memorandum.pdf').props.value).toBe(true);
+  expect(view.getByLabelText('Attach risks.pdf').props.value).toBe(false);
+  await fireEvent(view.getByLabelText('Attach risks.pdf'), 'valueChange', true);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: ['memorandum', 'risks'] }));
+  await fireEvent(view.getByLabelText('Attach memorandum.pdf'), 'valueChange', false);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: ['risks'] }));
+});
+
+it('says where documents come from when the company has none', async () => {
+  const view = await render(<OfferingForm {...props} />);
+  expect(view.getByText(OFFER_DOCUMENT_COPY.ATTACH_NONE)).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenCalledWith(expect.objectContaining({ documents: [] }));
+});
+
+it('lists offer documents, and any document already attached, but never personal records', async () => {
+  const documents = [
+    document('memorandum', 'prospectus', 'Prospectus or Information Memorandum'),
+    document('register', 'share_register', 'Current Share Register'),
+    document('authority', 'other', 'Other'),
+  ];
+  const view = await render(
+    <OfferingForm {...props} editing={{ ...editing, documents: ['authority'] }} documents={documents} />,
+  );
+  expect(view.getByLabelText('Attach memorandum.pdf')).toBeTruthy();
+  expect(view.getByLabelText('Attach authority.pdf').props.value).toBe(true);
+  expect(view.queryByLabelText('Attach register.pdf')).toBeNull();
+  await fireEvent(view.getByLabelText('Attach authority.pdf'), 'valueChange', false);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: [] }));
+});
+
+it("drops an attachment the company does not hold, so another company's document never blocks a save", async () => {
+  const view = await render(
+    <OfferingForm
+      {...props}
+      editing={{ ...editing, documents: ['memorandum', 'someone-elses'] }}
+      documents={[document('memorandum', 'prospectus', 'Prospectus or Information Memorandum')]}
+    />,
+  );
+  expect(view.getByLabelText('Attach memorandum.pdf').props.value).toBe(true);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: ['memorandum'] }));
 });
