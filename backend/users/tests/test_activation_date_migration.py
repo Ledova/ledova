@@ -58,7 +58,7 @@ class ActivationDateBackfillTest(TransactionTestCase):
             cursor.execute("SELECT count(*) FROM pg_trigger WHERE tgname = 'users_keep_first_activation'")
             return cursor.fetchone()[0] == 1
 
-    def test_each_account_that_was_ever_active_is_dated_from_the_best_evidence_it_has(self):
+    def test_only_an_account_with_a_completed_green_check_is_dated_and_the_rest_stay_new(self):
         before = migrate_to(BEFORE)
         verified = self.account(before, "verified", "active", verified_at=VERIFIED)
         self.assessed(before, verified, VERIFIED + timedelta(seconds=1))
@@ -81,8 +81,8 @@ class ActivationDateBackfillTest(TransactionTestCase):
         self.assertTrue(self.guarded())
 
         self.assertEqual([dates[account] for account in (verified, reverified, suspended)], [VERIFIED] * 3)
-        self.assertEqual([dates[account] for account in (incomplete, rereviewed, terminated, manual)], [JOINED] * 4)
         self.assertEqual(dates[dated], STAFF_DATED)
-        self.assertEqual([dates[pending], dates[rejected]], [None, None])
+        undated = (incomplete, rereviewed, terminated, manual, pending, rejected)
+        self.assertEqual([dates[account] for account in undated], [None] * len(undated))
         self.assertEqual(self.dates(migrate_to(BEFORE)), dates)
         self.assertFalse(self.guarded())

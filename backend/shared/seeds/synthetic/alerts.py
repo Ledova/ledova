@@ -183,9 +183,7 @@ class AlertBook:
             return []
         transfers = self.recorded["high_volume"]
         last = self.labelled["volume-7"]
-        window = [
-            item for item in transfers if timedelta(0) <= last.recorded_at - item.recorded_at <= timedelta(days=30)
-        ]
+        window = [item for item in transfers if timedelta(0) <= last.at - item.at <= timedelta(days=30)]
         total = sum(item.market_value_aud for item in window)
         created = self._batched(last)
         data = {
@@ -244,16 +242,16 @@ class AlertBook:
         if "dormant" not in self.subjects:
             return []
         transfer = self.labelled["dormant"]
-        earlier = [item for item in self.recorded["dormant"] if item.recorded_at < transfer.recorded_at]
-        previous = max(earlier, key=lambda item: item.recorded_at)
-        days = (transfer.recorded_at - previous.recorded_at).days
+        earlier = [item for item in self.recorded["dormant"] if item.at < transfer.at]
+        previous = max(earlier, key=lambda item: item.at)
+        days = (transfer.at - previous.at).days
         amount = float(transfer.market_value_aud)
         data = {
             "days_inactive": days,
             "dormant_threshold": 90,
             "transaction_amount": amount,
             "min_amount": 5000.0,
-            "last_activity": previous.recorded_at.isoformat(),
+            "last_activity": previous.at.isoformat(),
             "reason": f"Dormant account reactivation after {days} days with ${amount:,.2f} transaction",
         }
         return [

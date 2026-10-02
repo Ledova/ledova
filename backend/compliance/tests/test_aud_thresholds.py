@@ -9,12 +9,16 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from assets.models import Asset, AssetChainDeployment, AssetSnapshot, ExchangeRate
-from compliance.models import MonitoringRule
-from compliance.services.transaction_monitoring import check_rule
+from compliance.models import ComplianceAlert, MonitoringRule
+from compliance.services.transaction_monitoring import (
+    TransactionMonitoringService,
+    check_rule,
+)
 from shared.tests.tenants import an_account
 from users.constants import ACCOUNT_STATUS_ACTIVE
 from wallets.models import Transaction, Wallet
 from wallets.services.sync import sync_wallet
+from wallets.services.transaction_confirmation import create_pending_transaction
 
 ETH_USD = Decimal("2000")
 AUDY_CONTRACT = "0x" + "9" * 40
@@ -58,7 +62,7 @@ class AudThresholdTest(TestCase):
         )
         return account, wallet
 
-    def received(self, wallet, *amounts, contract=None):
+    def received(self, wallet, *amounts, contract=None, happened=timedelta(minutes=5)):
         history = [
             {
                 "tx_hash": f"0x{next(_hashes):064x}",
@@ -66,20 +70,28 @@ class AudThresholdTest(TestCase):
                 "to_address": wallet.address,
                 "amount": str(amount),
                 "contract_address": contract,
-                "block_timestamp": timezone.now() - timedelta(minutes=5),
+                "block_timestamp": timezone.now() - happened,
             }
             for amount in amounts
         ]
+        self.synced(wallet, history)
+        return [Transaction.objects.get(wallet=wallet, tx_hash=item["tx_hash"]) for item in history]
+
+    def synced(self, wallet, history):
         client = MagicMock()
         client.get_transaction_history.return_value = history
         with patch("wallets.services.sync.get_blockchain_client", return_value=client), patch(
             "wallets.services.holdings.fetch_chain_balance", return_value=Decimal("0")
         ):
-            self.assertEqual(sync_wallet(wallet)["transactions"], len(history))
-        return [Transaction.objects.get(wallet=wallet, tx_hash=item["tx_hash"]) for item in history]
+            return sync_wallet(wallet)
 
-    def received_usd(self, wallet, *usd_values):
-        return self.received(wallet, *(value / ETH_USD for value in usd_values))
+    def received_usd(self, wallet, *usd_values, happened=timedelta(minutes=5)):
+        return self.received(wallet, *(value / ETH_USD for value in usd_values), happened=happened)
+
+    def sent_from_the_app(self, wallet, usd_value):
+        tx_hash = f"0x{next(_hashes):064x}"
+        recorded = create_pending_transaction(wallet, tx_hash, "0x" + "e" * 40, usd_value / ETH_USD)
+        return Transaction.objects.get(pk=recorded["transaction_id"])
 
     def check(self, code, account, transaction=None):
         return check_rule(MonitoringRule.objects.get(rule_code=code), transaction, account)
@@ -160,14 +172,68 @@ class AudThresholdTest(TestCase):
 
     def test_a_dormant_account_waking_with_five_thousand_aud_is_flagged(self):
         account, wallet = self.customer("dormant-in-aud")
-        (earlier,) = self.received_usd(wallet, Decimal("100"))
-        Transaction.objects.filter(pk=earlier.pk).update(created_at=timezone.now() - timedelta(days=120))
+        self.received_usd(wallet, Decimal("100"), happened=timedelta(days=120))
         (transfer,) = self.received_usd(wallet, Decimal("3500"))
 
         triggered, details = self.check("MON-008", account, transfer)
 
         self.assertTrue(triggered)
-        self.assertEqual(details["transaction_amount"], 5600.0)
+        self.assertEqual((details["transaction_amount"], details["days_inactive"]), (5600.0, 119))
+
+    def test_history_imported_today_but_months_old_is_not_recent_activity(self):
+        account, wallet = self.customer("old-history")
+        self.received_usd(wallet, Decimal("5500"), Decimal("5600"), Decimal("6000"), happened=timedelta(days=60))
+        self.received_usd(wallet, Decimal("16000"), Decimal("16000"), happened=timedelta(days=45))
+        self.received_usd(wallet, Decimal("3125"), Decimal("6250"), Decimal("9375"), happened=timedelta(days=40))
+        self.received_usd(wallet, Decimal("3750"))
+
+        for code in ("MON-002", "MON-003", "MON-007", "MON-010"):
+            self.assertEqual(self.check(code, account), (False, {}), code)
+
+    def test_a_baseline_older_than_ninety_days_is_no_baseline(self):
+        account, wallet = self.customer("old-baseline")
+        self.received_usd(wallet, *[Decimal("1000")] * 5, happened=timedelta(days=100))
+        (outsized,) = self.received_usd(wallet, Decimal("3750"))
+
+        self.assertEqual(self.check("MON-009", account, outsized), (False, {}))
+
+    def test_a_send_from_the_app_is_valued_and_checked_like_an_imported_one(self):
+        account, wallet = self.customer("app-send")
+
+        sent = self.sent_from_the_app(wallet, Decimal("7000"))
+        result = TransactionMonitoringService.check_recorded_transaction(sent.pk)
+
+        self.assertEqual((sent.market_value, sent.market_value_aud), (Decimal("7000.00"), Decimal("11200.00")))
+        self.assertEqual(result["status"], "completed")
+        alert = ComplianceAlert.objects.get(transaction=sent, triggered_rule="MON-001")
+        self.assertEqual(alert.alert_data["amount"], 11200.0)
+
+    def test_a_send_from_the_app_counts_once_and_before_it_is_mined(self):
+        account, wallet = self.customer("app-send-synced")
+
+        sent = self.sent_from_the_app(wallet, Decimal("20000"))
+        self.assertIsNone(sent.block_timestamp)
+        before_the_sync = self.check("MON-007", account)
+        self.synced(
+            wallet,
+            [
+                {
+                    "tx_hash": sent.tx_hash,
+                    "from_address": wallet.address,
+                    "to_address": sent.to_address,
+                    "amount": str(sent.amount),
+                    "block_timestamp": timezone.now() - timedelta(minutes=1),
+                }
+            ],
+        )
+
+        self.assertEqual(Transaction.objects.filter(wallet=wallet).count(), 1)
+        self.assertEqual(before_the_sync, (False, {}))
+        self.assertEqual(self.check("MON-007", account), (False, {}))
+        self.received_usd(wallet, Decimal("12000"))
+        triggered, details = self.check("MON-007", account)
+        self.assertTrue(triggered)
+        self.assertEqual(details["total_volume"], 51200.0)
 
     def test_a_transfer_is_measured_against_the_customer_average_in_aud(self):
         account, wallet = self.customer("deviation-in-aud")

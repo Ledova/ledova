@@ -116,10 +116,11 @@ def _check_threshold(rule, transaction, user_account) -> RuleResult:
 def _check_rapid_transactions(rule, transaction, user_account) -> RuleResult:
     max_transactions = rule.parameters.get("max_transactions", 5)
     period_minutes = rule.parameters.get("period_minutes", 60)
-    count = Transaction.objects.filter(
-        wallet__user_account=user_account,
-        created_at__gte=timezone.now() - timedelta(minutes=period_minutes),
-    ).count()
+    count = (
+        Transaction.objects.filter(wallet__user_account=user_account)
+        .happened_since(timezone.now() - timedelta(minutes=period_minutes))
+        .count()
+    )
     if count < max_transactions:
         return False, {}
     return True, {
@@ -136,12 +137,13 @@ def _check_structuring_pattern(rule, transaction, user_account) -> RuleResult:
     max_each = Decimal(str(params.get("max_each", 9999)))
     min_each = Decimal(str(params.get("min_each", 8000)))
     period_hours = params.get("period_hours", 168)
-    count = Transaction.objects.filter(
-        wallet__user_account=user_account,
-        created_at__gte=timezone.now() - timedelta(hours=period_hours),
-        market_value_aud__gte=min_each,
-        market_value_aud__lte=max_each,
-    ).count()
+    count = (
+        Transaction.objects.filter(
+            wallet__user_account=user_account, market_value_aud__gte=min_each, market_value_aud__lte=max_each
+        )
+        .happened_since(timezone.now() - timedelta(hours=period_hours))
+        .count()
+    )
     if count < min_transactions:
         return False, {}
     return True, {
@@ -219,8 +221,8 @@ def _check_aggregate_volume(rule, transaction, user_account) -> RuleResult:
     period_days = rule.parameters.get("period_days", AGGREGATE_VOLUME_PERIOD_DAYS)
     period_start = timezone.now() - timedelta(days=period_days)
     total_volume = Transaction.objects.filter(
-        wallet__user_account=user_account, created_at__gte=period_start, market_value_aud__isnull=False
-    ).aggregate(total=Sum("market_value_aud"))["total"] or Decimal("0")
+        wallet__user_account=user_account, market_value_aud__isnull=False
+    ).happened_since(period_start).aggregate(total=Sum("market_value_aud"))["total"] or Decimal("0")
     if total_volume < threshold:
         return False, {}
     return True, {
@@ -239,14 +241,18 @@ def _check_dormant_reactivation(rule, transaction, user_account) -> RuleResult:
     amount = _aud_value(transaction)
     if amount < min_amount:
         return False, {}
+    happened = transaction.block_timestamp or transaction.created_at
     previous = (
-        Transaction.objects.filter(wallet__user_account=user_account, created_at__lt=transaction.created_at)
-        .order_by("-created_at")
+        Transaction.objects.filter(wallet__user_account=user_account)
+        .exclude(pk=transaction.pk)
+        .with_happened_at()
+        .filter(happened_at__lt=happened)
+        .order_by("-happened_at")
         .first()
     )
     if not previous:
         return False, {}
-    days_inactive = (transaction.created_at - previous.created_at).days
+    days_inactive = (happened - previous.happened_at).days
     if days_inactive < dormant_days:
         return False, {}
     return True, {
@@ -254,7 +260,7 @@ def _check_dormant_reactivation(rule, transaction, user_account) -> RuleResult:
         "dormant_threshold": dormant_days,
         "transaction_amount": float(amount),
         "min_amount": float(min_amount),
-        "last_activity": previous.created_at.isoformat(),
+        "last_activity": previous.happened_at.isoformat(),
         "reason": f"Dormant account reactivation after {days_inactive} days with ${float(amount):,.2f} transaction",
     }
 
@@ -268,12 +274,13 @@ def _check_pattern_deviation(rule, transaction, user_account) -> RuleResult:
     amount = _aud_value(transaction)
     if amount <= 0:
         return False, {}
-    history = Transaction.objects.filter(
-        wallet__user_account=user_account,
-        created_at__gte=timezone.now() - timedelta(days=baseline_days),
-        market_value_aud__isnull=False,
-        market_value_aud__gt=0,
-    ).exclude(uuid=transaction.uuid)
+    history = (
+        Transaction.objects.filter(
+            wallet__user_account=user_account, market_value_aud__isnull=False, market_value_aud__gt=0
+        )
+        .exclude(uuid=transaction.uuid)
+        .happened_since(timezone.now() - timedelta(days=baseline_days))
+    )
     history_count = history.count()
     if history_count < min_history:
         return False, {}
@@ -300,11 +307,8 @@ def _check_round_amounts(rule, transaction, user_account) -> RuleResult:
     divisor = Decimal(str(rule.parameters.get("divisor", ROUND_AMOUNT_DIVISOR)))
     min_amount = Decimal(str(rule.parameters.get("min_amount", 1000)))
     recent = Transaction.objects.filter(
-        wallet__user_account=user_account,
-        created_at__gte=timezone.now() - timedelta(days=period_days),
-        market_value_aud__isnull=False,
-        market_value_aud__gte=min_amount,
-    )
+        wallet__user_account=user_account, market_value_aud__isnull=False, market_value_aud__gte=min_amount
+    ).happened_since(timezone.now() - timedelta(days=period_days))
     round_amounts = [float(tx.market_value_aud) for tx in recent if tx.market_value_aud % divisor == 0]
     if len(round_amounts) < count_threshold:
         return False, {}

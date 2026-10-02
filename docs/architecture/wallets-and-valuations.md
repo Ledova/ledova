@@ -157,7 +157,8 @@ rates before refreshing asset prices. Without a positive finite rate, a new
 AUDY holding remains unpriced. A later provider outage preserves the last
 valid cached quote, as it does for market prices; this is not live pricing.
 Manual quotes in another currency also require a stored conversion rate.
-A transaction that wallet sync imports also records its AUD value, for
+Each wallet transaction, imported by sync or sent from the app, also records its
+USD and AUD values when it is recorded, for
 [transaction monitoring](../operations/operator-console.md#transaction-monitoring).
 
 Migration `assets/0013` preserves existing cached prices but leaves their

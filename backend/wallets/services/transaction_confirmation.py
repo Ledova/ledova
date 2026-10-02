@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
@@ -13,6 +14,7 @@ from assets.services.identity import (
     native_asset_for_chain,
     recorded_native_asset_for_chain,
 )
+from assets.services.valuation import transaction_values
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from operators.models import Operator
 from shared.constants import normalize_chain
@@ -98,6 +100,7 @@ def create_pending_transaction(
 ) -> Dict[str, Any]:
     chain = normalize_chain(wallet.chain)
     asset = resolve_transfer_asset(wallet, token_contract)
+    market_value, market_value_aud = transaction_values(asset, amount, timezone.now())
 
     with atomic():
         wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
@@ -109,6 +112,8 @@ def create_pending_transaction(
             to_address=to_address,
             asset=asset,
             amount=amount,
+            market_value=market_value,
+            market_value_aud=market_value_aud,
             transaction_fee_estimated=transaction_fee,
             transaction_fee=None,
             status=TRANSACTION_STATUS_PENDING,

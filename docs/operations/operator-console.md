@@ -325,12 +325,15 @@ customer's 90-day average; and MON-010 for three multiples of AUD 5,000 within
 30 days. The address rules, MON-004 and MON-005, screen a transaction of AUD
 5,000 or more, and any transaction by a high-risk or new customer.
 
-Wallet sync values each transaction it imports as it records it: the USD value
-is the amount at the asset's USD price at the block time, and the AUD value is
-that converted at the USD/AUD rate stored at that moment. `sync_exchange_rates`
-refreshes that rate every 10 minutes, and the per-transaction rules check only
-transactions whose block time is less than an hour old, so for them it is the
-rate in effect when they happened. No USD/AUD history is kept. History imported
+Each transaction is valued as it is recorded: the USD value is the amount at
+the asset's USD price at the block time, and the AUD value is that converted at
+the USD/AUD rate stored at that moment. A transfer sent from the app is recorded
+before it is mined, so it is valued at the price and rate of the moment it is
+sent; wallet sync later finds the same hash already recorded and skips it, so it
+counts once. `sync_exchange_rates` refreshes the rate every 10 minutes, and the
+per-transaction rules check only transactions whose block time is less than an
+hour old, or that are not mined yet, so for them it is the rate in effect when
+they happened. No USD/AUD history is kept. History imported
 later, such as a newly verified wallet's past transfers, is converted at the
 rate stored when it is imported, and migration `wallets/0023` converted the
 transactions already recorded at the rate stored when it ran. An asset with an
@@ -338,10 +341,12 @@ AUD par, AUDY, is valued at par: 5,000 AUDY is AUD 5,000 whatever rate its USD
 price was taken at. Any other transaction with no USD price, or recorded while
 no rate was stored, has no AUD value, and no amount rule counts it.
 
-A transfer sent from the app is recorded before it is mined, without either
-value, and wallet sync later skips it as a transaction it already has. So the
-amount rules never see it; only the count-based rule, MON-002, does. That is a
-known gap.
+The windows run on when a transaction happened: its block time, or for a
+transfer not mined yet, when it was recorded. That holds for MON-002's hour,
+MON-003's 168 hours, MON-007's and MON-010's 30 days, MON-009's 90-day baseline
+and the previous transaction MON-008 measures inactivity from. So the history a
+newly verified wallet imports counts when it happened, not as a burst of recent
+activity.
 
 A customer is new for 30 days after their account first became active. The
 account records that moment once, whichever path activates it: the identity
@@ -355,7 +360,9 @@ terminated accounts that already existed from the earliest evidence of their
 activation: the first automated risk assessment, which the identity check
 completes as it activates the account, or the time the identity was verified.
 It trusts that evidence only for a profile whose identity check is a completed
-GREEN result. Any other account is dated from its creation: one activated by
-staff without an identity check, one activated on a result that never completed
-(the KYCAID mapping once read any truthy `verified` as a pass), or one whose
-check was reviewed again since.
+GREEN result, and leaves every other account undated, so it counts as new: one
+activated by staff without an identity check, one activated on a result that
+never completed (the KYCAID mapping once read any truthy `verified` as a pass),
+or one whose check was reviewed again since. An undated active account is dated
+the next time it is saved active, for example when staff edit it in the admin,
+and counts as new for 30 days from then.
