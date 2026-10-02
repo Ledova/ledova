@@ -6,7 +6,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 
-from compliance.constants import ASSESSMENT_STATUS_COMPLETE, ASSESSMENT_STATUS_PENDING
+from compliance.constants import (
+    ASSESSMENT_STATUS_COMPLETE,
+    ASSESSMENT_STATUS_PENDING,
+    PEP_TYPE_NONE,
+)
 from compliance.models import CustomerRiskAssessment
 from compliance.services.risk_assessment import RiskAssessmentService
 from documents.models import (
@@ -16,6 +20,7 @@ from documents.models import (
     ExtractionStatus,
 )
 from documents.schemas import PayslipExtraction
+from integrations.kyc.pep import pep_data_from_labels
 from portfolios.models import Portfolio
 from shared.db import atomic
 from shared.seeds.synthetic import keys
@@ -211,7 +216,8 @@ def _identity_check(person, profile, account):
             user_account=account, assessment_status=ASSESSMENT_STATUS_COMPLETE
         ).exists()
         if not person.rejection_reason and not complete:
-            RiskAssessmentService.calculate_and_create(user_account=account, pep_data={"pep_type": kyc.pep_type})
+            evidence = [f"{kyc.pep_type}_pep"] if kyc.pep_type != PEP_TYPE_NONE else []
+            RiskAssessmentService.calculate_and_create(user_account=account, pep_data=pep_data_from_labels(evidence))
 
 
 def _wallet(plan, account, seeded):

@@ -102,6 +102,7 @@ SCOPED_TEST_LABELS = (
     "wallets.tests.test_stablecoin_approvals.ScopedStablecoinApprovalTest",
     "blockchain.tests.test_monitor_scoped.ScopedMonitorObservationsTest",
     "users.tests.test_notification_tasks_scoped.NotificationTasksUseRecipientRolesTest",
+    "users.tests.test_identity_apply_race.ScopedIdentityApplyRaceTest",
     "documents.tests.test_extraction_under_scoped_roles.ScopedDocumentExtractionTest",
 )
 

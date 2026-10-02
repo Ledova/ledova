@@ -14,7 +14,13 @@ from integrations.kyc.base import (
     NormalizedVerificationResult,
     VerificationSession,
 )
-from integrations.kyc.constants import PROVIDER_SUMSUB, REVIEW_GREEN, STATUS_COMPLETED
+from integrations.kyc.constants import (
+    PROVIDER_SUMSUB,
+    REVIEW_GREEN,
+    STATUS_COMPLETED,
+    STATUS_PENDING,
+)
+from integrations.kyc.pep import pep_data_from_labels
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +62,17 @@ class SumSubService(KYCProvider):
 
     def normalize_webhook(self, webhook_data: dict) -> NormalizedVerificationResult:
         review_result = webhook_data.get("reviewResult", {})
-        review_answer = review_result.get("reviewAnswer")
+        review_status = webhook_data.get("reviewStatus") or STATUS_PENDING
+        review_answer = review_result.get("reviewAnswer") if review_status == STATUS_COMPLETED else None
         rejection_labels = review_result.get("rejectLabels", [])
-        review_status = webhook_data.get("reviewStatus")
 
         pep_data = self._extract_pep_data(webhook_data)
 
         doc_type, doc_country = self._extract_document_info(webhook_data)
 
         return NormalizedVerificationResult(
-            verification_status=review_status or STATUS_COMPLETED,
-            review_result=review_answer or "",
+            verification_status=review_status,
+            review_result=review_answer or None,
             is_verified=review_answer == REVIEW_GREEN,
             rejection_labels=rejection_labels,
             document_type=doc_type,
@@ -119,52 +125,10 @@ class SumSubService(KYCProvider):
 
     @staticmethod
     def _extract_pep_data(status_data: Dict[str, Any]) -> Dict[str, Any]:
-        from compliance.constants import (
-            PEP_TYPE_ASSOCIATE,
-            PEP_TYPE_DOMESTIC,
-            PEP_TYPE_FAMILY,
-            PEP_TYPE_FOREIGN,
-            PEP_TYPE_INTERNATIONAL_ORG,
-            PEP_TYPE_NONE,
-        )
-
-        pep_data = {"pep_type": PEP_TYPE_NONE, "details": None}
-
         risk_labels = status_data.get("riskLabels", [])
         applicant_risk_labels = status_data.get("applicantRiskLabels", [])
-        review_result = status_data.get("reviewResult", {})
-        review_risk_labels = review_result.get("riskLabels", [])
-
-        all_labels = risk_labels + applicant_risk_labels + review_risk_labels
-        all_labels_lower = [str(label).lower() for label in all_labels if label]
-
-        pep_type = PEP_TYPE_NONE
-
-        for label in all_labels_lower:
-            if "family" in label or "relative" in label:
-                pep_type = PEP_TYPE_FAMILY
-                break
-            elif "associate" in label or "close_associate" in label:
-                pep_type = PEP_TYPE_ASSOCIATE
-                break
-            elif "international" in label or "intl_org" in label:
-                pep_type = PEP_TYPE_INTERNATIONAL_ORG
-                break
-            elif "foreign" in label or "foreign_pep" in label:
-                pep_type = PEP_TYPE_FOREIGN
-                break
-            elif "domestic" in label or "domestic_pep" in label:
-                pep_type = PEP_TYPE_DOMESTIC
-                break
-            elif "pep" in label or "politically_exposed" in label:
-                pep_type = PEP_TYPE_FOREIGN
-                break
-
-        if pep_type != PEP_TYPE_NONE:
-            pep_data["pep_type"] = pep_type
-            pep_data["details"] = all_labels
-
-        return pep_data
+        review_risk_labels = status_data.get("reviewResult", {}).get("riskLabels", [])
+        return pep_data_from_labels(risk_labels + applicant_risk_labels + review_risk_labels)
 
     @staticmethod
     def _extract_document_info(status_data: Dict[str, Any]) -> tuple:

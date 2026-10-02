@@ -11,8 +11,8 @@ from rest_framework.views import APIView
 from integrations.kyc.constants import (
     KYCAID_EVENT_VERIFICATION_COMPLETED,
     KYCAID_EVENT_VERIFICATION_STATUS_CHANGED,
+    KYCAID_VERIFICATION_STATUSES,
     REVIEW_GREEN,
-    STATUS_PENDING,
 )
 from integrations.kycaid.client import KYCAIDService
 from integrations.webhooks import is_stale
@@ -58,21 +58,32 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
             if event_type == KYCAID_EVENT_VERIFICATION_COMPLETED:
-                normalized = kycaid_service.normalize_webhook(data)
+                callback = data
+                applicant_record = None
+                if kycaid_service.reports_an_approval(data) and not kycaid_service.carries_the_pep_flag(
+                    data.get("applicant")
+                ):
+                    applicant_record = kycaid_service.get_applicant_data(applicant_id)
+                    callback = {**data, "applicant": applicant_record}
+                normalized = kycaid_service.normalize_webhook(callback)
                 IdentityVerificationService.update_status_from_normalized(user_profile, normalized)
 
                 if normalized.review_result == REVIEW_GREEN:
                     try:
-                        applicant_data = kycaid_service.get_applicant_data(applicant_id)
+                        applicant_data = applicant_record or kycaid_service.get_applicant_data(applicant_id)
                         extracted_data = kycaid_service.extract_verified_data(applicant_data)
                         IdentityVerificationService.populate_profile(user_profile, extracted_data)
                     except Exception:
                         logger.exception("Failed to populate a profile from webhook data")
 
             elif event_type == KYCAID_EVENT_VERIFICATION_STATUS_CHANGED:
-                new_status = data.get("status", STATUS_PENDING)
-                user_profile.verification_status = new_status
-                user_profile.save(update_fields=["verification_status", "updated_at"])
+                reported_status = data.get("verification_status")
+                new_status = KYCAID_VERIFICATION_STATUSES.get(reported_status)
+                if new_status is None:
+                    logger.warning("Ignored unrecognised verification status %r", reported_status)
+                else:
+                    user_profile.verification_status = new_status
+                    user_profile.save(update_fields=["verification_status", "updated_at"])
 
             else:
                 logger.warning("Unhandled webhook type: %s", event_type)

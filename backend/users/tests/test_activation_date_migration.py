@@ -15,6 +15,8 @@ BEFORE = [
     ("compliance", "0005_remove_fiat_transaction_and_high_risk_country"),
 ]
 AFTER = [("users", "0029_first_activation_date")]
+KYC_RESULTS = ("users", "0029_kyc_results_in_the_fields_choices")
+JOINED_MIGRATIONS = [("users", "0030_join_activation_and_kyc_results")]
 JOINED = datetime(2025, 11, 3, 8, 0, tzinfo=dt_timezone.utc)
 VERIFIED = JOINED + timedelta(days=2)
 REVERIFIED = VERIFIED + timedelta(days=60)
@@ -86,3 +88,43 @@ class ActivationDateBackfillTest(TransactionTestCase):
         self.assertEqual([dates[account] for account in undated], [None] * len(undated))
         self.assertEqual(self.dates(migrate_to(BEFORE)), dates)
         self.assertFalse(self.guarded())
+
+    def apply_the_two_migrations_in_order(self, first, second):
+        before = migrate_to(BEFORE)
+        checked = self.account(before, "checked", "active", verified_at=REVERIFIED)
+        self.assessed(before, checked, VERIFIED)
+        dated = self.account(before, "dated", "active", verified_at=VERIFIED, activation_date=STAFF_DATED)
+        self.assessed(before, dated, VERIFIED)
+        missing_evidence = self.account(before, "no-evidence", "active", check=COMPLETED_GREEN)
+        undocumented = self.account(before, "old-valid", "active", verified_at=VERIFIED, check=("GREEN", "valid"))
+        unused = self.account(before, "unused", "active", verified_at=VERIFIED, check=("GREEN", "unused"))
+        rejected = self.account(before, "red", "active", verified_at=VERIFIED, check=("RED", "completed"))
+        self.assessed(before, rejected, VERIFIED)
+
+        migrate_to([first])
+        dates = self.dates(migrate_to([first, second]))
+        expected = {
+            checked: VERIFIED,
+            dated: STAFF_DATED,
+            missing_evidence: None,
+            undocumented: None,
+            unused: None,
+            rejected: None,
+        }
+        self.assertEqual(dates, expected)
+        self.assertEqual(self.dates(migrate_to(JOINED_MIGRATIONS)), expected)
+        self.assertTrue(self.guarded())
+        profiles = UserProfile.objects.filter(user_account__pk__in=(undocumented, unused))
+        recorded = {
+            account: (status, result)
+            for account, status, result in profiles.values_list(
+                "user_account__pk", "verification_status", "review_result"
+            )
+        }
+        self.assertEqual(recorded, {undocumented: ("valid", "GREEN"), unused: ("init", "GREEN")})
+
+    def test_the_graph_join_preserves_activation_evidence_when_activation_migrates_first(self):
+        self.apply_the_two_migrations_in_order(AFTER[0], KYC_RESULTS)
+
+    def test_the_graph_join_preserves_activation_evidence_when_kyc_results_migrate_first(self):
+        self.apply_the_two_migrations_in_order(KYC_RESULTS, AFTER[0])

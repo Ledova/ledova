@@ -76,6 +76,81 @@ id. The result's `signals` are shares by category, and only a sanctions share
 above zero makes the alert a sanctioned-address one. What the monitoring rules
 compare is under [transaction monitoring](operator-console.md#transaction-monitoring).
 
+### Identity results
+
+Both providers write the same profile fields: `verification_status`, one of
+`init`, `pending`, `queued`, `prechecked`, `onHold` and `completed`;
+`review_result`, which is `GREEN`, `RED` or `YELLOW`, or null while there is no
+result (never an empty string); `rejection_labels`; and, for an approval, the PEP
+type the risk policy reads.
+
+| The provider reports | KYCAID | Sum&Sub |
+| --- | --- | --- |
+| Not started | `unused`, recorded as `init` | `init` |
+| In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold` |
+| Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
+| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook |
+| Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
+| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | risk labels |
+
+A result counts only once the provider reports the check completed. Sum&Sub says
+so of `reviewAnswer`, so an answer reported beside another status, such as a
+provisional `GREEN` while `awaitingService`, or with no `reviewStatus` at all, is
+not recorded, and a status poll that brings no result writes nothing. KYCAID's
+`verified` is read as a JSON boolean or the string `true` or `false`; anything
+else is no result. A verification status KYCAID does not document is recorded as
+`pending` with no result, and a status-changed callback carrying one changes
+nothing; both are logged. A callback and an applicant record are read by separate
+mappings, so neither is mistaken for the other. A data migration in the users app
+rewrote rows stored before this mapping: an empty result became null, `unused`
+became `init`, and the `RED` that the earlier mapping wrote for an `unused`
+verification became null.
+
+KYCAID reports a PEP as a yes-or-no flag and names no category. Both providers'
+PEP evidence goes through one classifier, `integrations/kyc/pep.py`, which reads
+category words (family or relative, associate, international or intl_org,
+foreign, domestic) and counts any other PEP mention as foreign, so a KYCAID PEP is
+recorded as Sum&Sub's uncategorised `PEP` label always was. The risk policy is
+unchanged: foreign, international-organisation, family and associate PEPs are
+rejected, and a domestic PEP is accepted with a higher customer risk score, which
+only a provider that names the category can produce.
+
+A KYCAID approval is recorded only once the applicant's `pep` flag is read as
+true or false, accepting a JSON boolean or the existing strings `true` and
+`false`. The [Get applicant reference](https://docs.kycaid.com/objects/applicants/applicant-get)
+types this flag as boolean or null; null does not establish that the person is
+not a PEP. When the callback's applicant is missing, is not an object, has no
+`pep` key or carries a null or uninterpretable flag, the applicant record is read
+first; if that read fails the callback answers
+500, KYCAID retries it, and the user's next status poll applies the result as
+well. An approval whose applicant record still supplies no interpretable flag,
+by callback or by poll, is recorded as `pending` with no result and logged. Every result is
+applied with the profile's row locked, so a callback and a poll that arrive
+together activate the account, assess its risk and notify the person once; no
+provider is called while that lock is held. KYCAID's `DATABASE_SCREENING`
+callback, which reports PEP and sanctions list matches found after approval, is
+not handled and is logged as an unhandled type.
+
+KYCAID's documentation disagrees with itself in two places. The current
+reference types the applicant's `verification_status` as `any`; only the legacy
+reference lists `pending`, `valid` and `invalid`, which is what the poll reads.
+The current Verification completed page says that callback is sent when a user
+submits the form, with the status `pending`, and the Verification status changed
+page says that one is sent when a status is set, with `completed`. The callbacks
+overview and the legacy reference say the opposite. The mapping does not depend
+on either reading: each callback is read by the status it carries.
+
+Sources, read on 2 October 2026: KYCAID's
+[Verification completed](https://docs.kycaid.com/callbacks/verification-completed),
+[Verification status changed](https://docs.kycaid.com/callbacks/verification-status-changed),
+[callbacks overview](https://docs.kycaid.com/callbacks/overview),
+[form integration](https://docs.kycaid.com/guides/form-integration),
+[decline reasons](https://docs.kycaid.com/decline-reasons) and the
+[legacy API reference](https://docs-v1.kycaid.com/) for the verification and
+applicant objects and database screening; Sum&Sub's
+[Get applicant review status](https://docs.sumsub.com/reference/get-applicant-review-status)
+and [applicant statuses](https://docs.sumsub.com/docs/applicant-statuses).
+
 ## Email
 
 | Variable | Default | Required |

@@ -35,7 +35,7 @@ class StaffMember:
 class Kyc:
     provider: str
     status: str
-    result: str
+    result: str | None
     decided_at: datetime
     document_type: str
     document_country: str
