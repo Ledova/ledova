@@ -52,6 +52,8 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_swap_approval_under_scoped_roles.ScopedSwapApprovalTest",
     "tokens.tests.test_operator_execution.OperatorExecutionFromScopedContextTest",
     "tokens.tests.test_market_reads_scoped.ScopedMarketReadsTest",
+    "offerings.tests.test_directory_documents_scoped.ScopedDirectoryDocumentsTest",
+    "offerings.tests.test_published_documents_stay_scoped.ScopedPublishedDocumentsStayTest",
     "users.tests.test_classification_issuer_scoped.ScopedClassificationIssuerTest",
     "tokens.tests.test_modification_refusals.ScopedModificationRefusalTest",
     "shared.tests.test_cross_tenant_routes.ScopedOrderActionRouteMatrixTest",

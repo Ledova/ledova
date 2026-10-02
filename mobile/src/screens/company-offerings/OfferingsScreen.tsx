@@ -3,7 +3,9 @@ import { RefreshControl, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
+  OFFERING_PUBLISHED_STATUSES,
   OFFERING_WITHDRAWABLE_STATUSES,
+  OFFER_DOCUMENT_COPY,
   apiErrorSentence,
   formatDate,
   formatMoney,
@@ -20,6 +22,7 @@ import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { useOfferingActions, useOfferings } from './useOfferings';
 import { OfferingReadNotice } from './OfferingReadNotice';
+import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
 import { SubscriptionsLedger } from './SubscriptionsLedger';
 
@@ -28,12 +31,14 @@ function OfferingRecord({
   busy,
   run,
   edit,
+  addDocuments,
   error,
 }: {
   row: OfferingListItem;
   busy: boolean;
   run: (action: 'submit' | 'withdraw' | 'remove', uuid: string) => void;
   edit: () => void;
+  addDocuments: () => void;
   error?: string;
 }) {
   const styles = useCompanyStyles();
@@ -94,6 +99,14 @@ function OfferingRecord({
           onPress={() => run('remove', row.uuid)}
         />
       )}
+      {OFFERING_PUBLISHED_STATUSES.includes(row.status) && (
+        <Action
+          label={OFFER_DOCUMENT_COPY.ADD}
+          accessibilityLabel={`${OFFER_DOCUMENT_COPY.ADD} to the ${row.tokenName} offering`}
+          disabled={busy}
+          onPress={addDocuments}
+        />
+      )}
     </View>
   );
 }
@@ -105,6 +118,7 @@ export function OfferingsScreen() {
   const data = useOfferings(companyRead.access.allowed ? company?.uuid : undefined);
   const client = useQueryClient();
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
+  const [documentsEditor, setDocumentsEditor] = useState<{ company: string; uuid: string } | null>(null);
   const [actionError, setActionError] = useState<{ uuid: string | null; message: string } | null>(null);
   const actions = useOfferingActions(data.refresh);
   const listing = useMutation({
@@ -215,6 +229,9 @@ export function OfferingsScreen() {
                         edit={() => {
                           if (ready) setEditor({ company: company.uuid, uuid: row.uuid });
                         }}
+                        addDocuments={() => {
+                          if (ready) setDocumentsEditor({ company: company.uuid, uuid: row.uuid });
+                        }}
                       />
                     ))
                   )}
@@ -276,6 +293,17 @@ export function OfferingsScreen() {
           companyRead={companyRead}
           data={data}
           onClose={() => setEditor(null)}
+        />
+      )}
+      {documentsEditor && (
+        <OfferingDocumentsEditor
+          key={`${documentsEditor.company}:${documentsEditor.uuid}`}
+          uuid={documentsEditor.uuid}
+          targetCompany={documentsEditor.company}
+          company={company}
+          companyRead={companyRead}
+          refresh={data.refresh}
+          onClose={() => setDocumentsEditor(null)}
         />
       )}
     </>

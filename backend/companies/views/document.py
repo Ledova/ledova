@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from companies.models import Company, CompanyDocument
 from companies.serializers import CompanyDocumentSerializer
+from companies.services import delete_document
 from shared.views import AuthenticatedGenericViewSet, stream_stored_file
 from shared.views.uploads import UploadProtectedView
 
@@ -49,7 +50,5 @@ class DocumentViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-
-        instance.delete()
+        delete_document(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)

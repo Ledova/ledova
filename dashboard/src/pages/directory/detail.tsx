@@ -2,16 +2,66 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
+  OFFER_DOCUMENT_COPY,
+  describeOfferDocument,
   formatDate,
   formatMoney,
   formatShareCount,
+  useDirectoryDocuments,
   useDirectoryToken,
   useSubscribableWallets,
+  type DirectoryDocument,
 } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { SubscribeForm } from '@pages/subscriptions/SubscribeForm';
 import { useCreateSubscription } from '@pages/subscriptions/useSubscriptions';
+
+function OfferDocuments({ read }: { read: ReturnType<typeof useDirectoryDocuments> }) {
+  return (
+    <Section title={OFFER_DOCUMENT_COPY.TITLE}>
+      {read.isLoading ? (
+        <p role="status" className="py-2 text-sm text-text-muted">
+          {OFFER_DOCUMENT_COPY.LOADING}
+        </p>
+      ) : read.hasError ? (
+        <div role="alert" className="flex flex-col items-start gap-3 py-2">
+          <p className="text-sm text-text-primary">{OFFER_DOCUMENT_COPY.FAILED}</p>
+          <PageAction
+            label={OFFER_DOCUMENT_COPY.RETRY}
+            onClick={() => void read.retry()}
+            disabled={read.isRefreshing}
+          />
+        </div>
+      ) : read.documents.length === 0 ? (
+        <p className="py-2 text-sm text-text-muted">{OFFER_DOCUMENT_COPY.EMPTY}</p>
+      ) : (
+        <>
+          <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.HELP}</p>
+          <ul className="divide-y divide-border-subtle">
+            {read.documents.map((document: DirectoryDocument) => (
+              <li key={document.uuid} className="flex flex-wrap items-baseline justify-between gap-2 py-3 text-sm">
+                <div className="min-w-0 flex-1 basis-48">
+                  <p className="break-all text-text-primary">{document.name}</p>
+                  <p className="text-text-muted">{describeOfferDocument(document)}</p>
+                </div>
+                <a
+                  href={document.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${OFFER_DOCUMENT_COPY.VIEW} ${document.name}`}
+                  className="text-brand-light underline"
+                >
+                  {OFFER_DOCUMENT_COPY.VIEW}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Section>
+  );
+}
 
 export default function DirectoryTokenPage() {
   const { uuid } = useParams<{ uuid: string }>();
@@ -31,6 +81,7 @@ export default function DirectoryTokenPage() {
     retryOperator,
   } = useDirectoryToken(uuid);
   const wallets = useSubscribableWallets(Boolean(token?.openOffering) && !hasError && !notFound);
+  const documents = useDirectoryDocuments(uuid, Boolean(token) && !hasError && !notFound);
   const create = useCreateSubscription((created) =>
     navigate(DESTINATIONS.subscriptionDetail.path.replace(':uuid', created)),
   );
@@ -108,6 +159,7 @@ export default function DirectoryTokenPage() {
           </p>
         )}
       </Section>
+      <OfferDocuments read={documents} />
       {offering &&
         (wallets.isLoading ? (
           <p role="status" className="py-3 text-sm text-text-muted">
