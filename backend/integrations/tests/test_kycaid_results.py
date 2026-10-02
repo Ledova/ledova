@@ -38,9 +38,23 @@ class KYCAIDStatusMappingTest(SimpleTestCase):
         expected = {"pending": ("pending", None), "valid": ("completed", "GREEN"), "invalid": ("completed", "RED")}
         for reported in DOCUMENTED_APPLICANT_STATUSES:
             with self.subTest(reported=reported):
-                normalised = kycaid(applicant(verification_status=reported))
+                normalised = KYCAIDService().normalize_applicant(applicant(verification_status=reported))
                 self.assertEqual((normalised.verification_status, normalised.review_result), expected[reported])
                 self.assertEqual(normalised.is_verified, reported == "valid")
+
+    def test_a_callback_without_a_status_records_no_result(self):
+        with self.assertLogs("integrations.kycaid.client", level="WARNING"):
+            normalised = kycaid(applicant(verification_status="valid"))
+
+        self.assertEqual((normalised.verification_status, normalised.review_result), ("pending", None))
+
+    def test_an_approved_applicant_record_without_the_pep_flag_records_no_result(self):
+        record = {key: value for key, value in applicant(verification_status="valid").items() if key != "pep"}
+
+        with self.assertLogs("integrations.kycaid.client", level="WARNING"):
+            normalised = KYCAIDService().normalize_applicant(record)
+
+        self.assertEqual((normalised.verification_status, normalised.review_result), ("pending", None))
 
     def test_an_undocumented_status_is_recorded_as_pending_without_a_result(self):
         with self.assertLogs("integrations.kycaid.client", level="WARNING") as logs:
@@ -64,14 +78,24 @@ class KYCAIDResultMappingTest(SimpleTestCase):
         )
         for status, verified, expected in cases:
             with self.subTest(status=status, verified=verified):
-                normalised = kycaid(verification_completed(status=status, verified=verified))
+                normalised = kycaid(verification_completed(status=status, verified=verified, applicant=applicant()))
                 self.assertEqual(normalised.review_result, expected)
                 self.assertEqual(normalised.is_verified, expected == "GREEN")
 
     def test_verified_reported_as_a_documented_string_is_read_as_the_boolean_it_names(self):
-        self.assertEqual(kycaid(verification_completed(verified="true")).review_result, "GREEN")
+        self.assertEqual(kycaid(verification_completed(verified="true", applicant=applicant())).review_result, "GREEN")
         self.assertEqual(kycaid(verification_completed(verified="false")).review_result, "RED")
         self.assertFalse(kycaid(verification_completed(verified="false")).is_verified)
+
+    def test_an_approval_without_the_applicants_pep_flag_records_no_result(self):
+        without_the_flag = {key: value for key, value in applicant().items() if key != "pep"}
+        for embedded in (None, without_the_flag, "not an object"):
+            with self.subTest(embedded=type(embedded).__name__), self.assertLogs(
+                "integrations.kycaid.client", level="WARNING"
+            ):
+                normalised = kycaid(verification_completed(applicant=embedded))
+                self.assertEqual((normalised.verification_status, normalised.review_result), ("pending", None))
+        self.assertEqual(kycaid(verification_completed(applicant=applicant(pep=None))).review_result, "GREEN")
 
     def test_a_pending_review_is_recorded_the_same_way_by_both_providers(self):
         kycaid_pending = kycaid(verification_completed(status="pending", verified=None))
@@ -88,7 +112,8 @@ class KYCAIDResultMappingTest(SimpleTestCase):
                 self.assertFalse(normalised.is_verified)
         completed = sumsub({"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}})
         self.assertEqual((completed.review_result, completed.is_verified), ("GREEN", True))
-        self.assertEqual(sumsub({"reviewResult": {"reviewAnswer": "RED"}}).review_result, "RED")
+        missing = sumsub({"reviewResult": {"reviewAnswer": "RED"}})
+        self.assertEqual((missing.verification_status, missing.review_result), ("pending", None))
 
     def test_decline_reasons_reported_on_the_applicant_are_recorded_once_each(self):
         payload = verification_completed(
@@ -118,7 +143,7 @@ class KYCAIDPoliticallyExposedPersonTest(SimpleTestCase):
         for flag in (True, "true"):
             with self.subTest(flag=flag):
                 self.assertEqual(kycaid(verification_completed(applicant=applicant(pep=flag))).pep_data, uncategorised)
-                self.assertEqual(kycaid(applicant(pep=flag)).pep_data, uncategorised)
+                self.assertEqual(KYCAIDService().normalize_applicant(applicant(pep=flag)).pep_data, uncategorised)
         self.assertEqual(sumsub_pep, uncategorised)
 
     def test_no_pep_is_recorded_in_the_shape_sumsub_records_it(self):

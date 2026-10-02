@@ -301,6 +301,10 @@ class SyntheticPopulationTest(APITestCase):
         )
         self.assertEqual(set(in_progress.values_list("review_result", flat=True)), {None})
         self.assertFalse(UserProfile.objects.filter(review_result="").exists())
+        recorded = CustomerRiskAssessment.objects.filter(assessment_status="complete")
+        self.assertTrue(recorded.exists())
+        for pep_details in recorded.values_list("pep_details", flat=True):
+            self.assertEqual(set(pep_details), {"pep_type", "details"})
 
     def test_every_seeded_identity_check_is_one_its_provider_can_report(self):
         reachable = {

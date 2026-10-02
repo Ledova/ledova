@@ -104,7 +104,7 @@ class IdentityVerificationService:
         if applicant_id and not user_profile.is_id_verified:
             try:
                 status_data = kyc_provider.get_applicant_status(applicant_id)
-                normalized = kyc_provider.normalize_webhook(status_data)
+                normalized = kyc_provider.normalize_status(status_data)
                 if normalized.review_result:
                     IdentityVerificationService.update_status_from_normalized(user_profile, normalized)
             except Exception as e:
@@ -136,30 +136,31 @@ class IdentityVerificationService:
 
     @staticmethod
     def update_status_from_normalized(user_profile: UserProfile, normalized: NormalizedVerificationResult) -> bool:
-        previous_result = user_profile.review_result
-        user_profile.verification_status = normalized.verification_status
-        user_profile.review_result = normalized.review_result
-        user_profile.rejection_labels = normalized.rejection_labels or None
-
-        if user_profile.kyc_provider == PROVIDER_SUMSUB:
-            user_profile.sumsub_verification_status = normalized.verification_status
-
-        if normalized.document_type:
-            user_profile.id_document_type = normalized.document_type
-        if normalized.document_country:
-            user_profile.id_document_country = normalized.document_country
-
-        was_verified = user_profile.is_id_verified
-
-        if normalized.review_result == REVIEW_GREEN and not user_profile.is_id_verified:
-            user_profile.is_id_verified = True
-            user_profile.verified_at = timezone.now()
-            logger.info(f"User {user_profile.user.id} verified successfully")
-        elif normalized.review_result in [REVIEW_RED, REVIEW_YELLOW]:
-            user_profile.is_id_verified = False
-            user_profile.verified_at = None
-
         with atomic():
+            user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
+            previous_result = user_profile.review_result
+            user_profile.verification_status = normalized.verification_status
+            user_profile.review_result = normalized.review_result
+            user_profile.rejection_labels = normalized.rejection_labels or None
+
+            if user_profile.kyc_provider == PROVIDER_SUMSUB:
+                user_profile.sumsub_verification_status = normalized.verification_status
+
+            if normalized.document_type:
+                user_profile.id_document_type = normalized.document_type
+            if normalized.document_country:
+                user_profile.id_document_country = normalized.document_country
+
+            was_verified = user_profile.is_id_verified
+
+            if normalized.review_result == REVIEW_GREEN and not user_profile.is_id_verified:
+                user_profile.is_id_verified = True
+                user_profile.verified_at = timezone.now()
+                logger.info(f"User {user_profile.user_id} verified successfully")
+            elif normalized.review_result in [REVIEW_RED, REVIEW_YELLOW]:
+                user_profile.is_id_verified = False
+                user_profile.verified_at = None
+
             user_profile.save()
 
             if normalized.review_result == REVIEW_GREEN and not was_verified:

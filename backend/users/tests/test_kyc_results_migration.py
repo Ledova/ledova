@@ -16,6 +16,7 @@ MIGRATIONS_ENABLED = getattr(settings, "MIGRATION_MODULES", {}).get("users", "us
 WRITTEN_BEFORE_THE_FIX = {
     "never-started": (None, None),
     "unused": ("unused", ""),
+    "unused-declined": ("unused", "RED"),
     "pending": ("pending", ""),
     "queued": ("queued", None),
     "approved": ("completed", "GREEN"),
@@ -45,6 +46,7 @@ class KYCResultsMigrationTest(TransactionTestCase):
             {
                 "never-started": (None, None),
                 "unused": ("init", None),
+                "unused-declined": ("init", None),
                 "pending": ("pending", None),
                 "queued": ("queued", None),
                 "approved": ("completed", "GREEN"),

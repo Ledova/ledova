@@ -74,16 +74,18 @@ type and country; and, for an approval, the PEP type the risk policy reads.
 
 A result counts only once the provider reports the check completed. Sum&Sub says
 so of `reviewAnswer`, so an answer reported beside another status, such as a
-provisional `GREEN` while `awaitingService`, is not recorded, and a status poll
-that brings no result writes nothing. KYCAID's `verified` is read as a JSON
-boolean or the string `true` or `false`; anything else is no result. A
-verification status KYCAID does not document is recorded as `pending` with no
-result, and a status-changed callback carrying one changes nothing; both are
-logged. Sum&Sub's created, pending and on-hold webhooks record their status in
-`verification_status`, the field the apps read, as well as in
-`sumsub_verification_status`, unless the profile has since moved to KYCAID. A
-data migration in the users app rewrote rows stored before this mapping: an empty
-result became null and `unused` became `init`.
+provisional `GREEN` while `awaitingService`, or with no `reviewStatus` at all, is
+not recorded, and a status poll that brings no result writes nothing. KYCAID's
+`verified` is read as a JSON boolean or the string `true` or `false`; anything
+else is no result. A verification status KYCAID does not document is recorded as
+`pending` with no result, and a status-changed callback carrying one changes
+nothing; both are logged. A callback and an applicant record are read by separate
+mappings, so neither is mistaken for the other. Sum&Sub's created, pending and
+on-hold webhooks record their status in `verification_status`, the field the apps
+read, as well as in `sumsub_verification_status`, unless the profile has since
+moved to KYCAID. A data migration in the users app rewrote rows stored before
+this mapping: an empty result became null, `unused` became `init`, and the `RED`
+that the earlier mapping wrote for an `unused` verification became null.
 
 KYCAID's document objects carry a type, a number, dates and an issuing authority
 but no country, and nothing else KYCAID sends names the document's country, so
@@ -111,10 +113,15 @@ report a list match (`PEP`, `SANCTIONS`, `COMPROMISED_PERSONS`, `ADVERSE_MEDIA`,
 from KYCAID), once, and every other reason as it is. The stored labels keep every
 reason, staff see them in the admin, and the identity notifications name none.
 
-A KYCAID approval whose callback does not carry the applicant is applied only
-after the applicant record, with its PEP flag, has been read. If that read fails
-the callback answers 500, KYCAID retries it, and the user's next status poll
-applies the result as well.
+A KYCAID approval is recorded only once the applicant's `pep` flag has been
+seen. When the callback's applicant is missing, is not an object or has no `pep`
+key, the applicant record is read first; if that read fails the callback answers
+500, KYCAID retries it, and the user's next status poll applies the result as
+well. An approval whose applicant record has no `pep` key either, by callback or
+by poll, is recorded as `pending` with no result and logged. Every result is
+applied with the profile's row locked, so a callback and a poll that arrive
+together activate the account, assess its risk and notify the person once; no
+provider is called while that lock is held.
 
 KYCAID's `DATABASE_SCREENING` callback reports a match that its monitoring finds
 on a sanctions, PEP, wanted, lost-or-stolen-document or internal list. Each one
@@ -122,12 +129,22 @@ raises a compliance alert under rule `KYC-SCREEN` for staff review, and the
 account, the identity result and the risk assessment are left as they are. A
 sanctions match is a critical `sanctions_match`, a wanted-list match a critical
 `watchlist_match`, a PEP match a high `pep_match`, and any other list a high
-`watchlist_match`. The alert keeps the list types, the databases, the accuracy,
+`watchlist_match`; `sync_procedure_templates` loads a staff procedure for each of
+the three types. The alert keeps the list types, the databases, the accuracy,
 the verification and document ids and the matched person's details. A callback
 repeating a match already raised, whatever that alert's status, raises nothing:
 the account is locked while the alert is looked for, so retried or concurrent
 deliveries raise one alert. The callback is authenticated as every KYCAID
 callback is.
+
+KYCAID's documentation disagrees with itself in two places. The current
+reference types the applicant's `verification_status` as `any`; only the legacy
+reference lists `pending`, `valid` and `invalid`, which is what the poll reads.
+The current Verification completed page says that callback is sent when a user
+submits the form, with the status `pending`, and the Verification status changed
+page says that one is sent when a status is set, with `completed`. The callbacks
+overview and the legacy reference say the opposite. The mapping does not depend
+on either reading: each callback is read by the status it carries.
 
 Sources, read on 2 October 2026: KYCAID's
 [Verification completed](https://docs.kycaid.com/callbacks/verification-completed),

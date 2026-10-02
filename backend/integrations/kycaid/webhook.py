@@ -60,11 +60,14 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
             if event_type == KYCAID_EVENT_VERIFICATION_COMPLETED:
-                normalized = kycaid_service.normalize_webhook(data)
+                callback = data
                 applicant_record = None
-                if normalized.review_result == REVIEW_GREEN and not data.get("applicant"):
+                if kycaid_service.reports_an_approval(data) and not kycaid_service.carries_the_pep_flag(
+                    data.get("applicant")
+                ):
                     applicant_record = kycaid_service.get_applicant_data(applicant_id)
-                    normalized = kycaid_service.normalize_webhook({**data, "applicant": applicant_record})
+                    callback = {**data, "applicant": applicant_record}
+                normalized = kycaid_service.normalize_webhook(callback)
                 IdentityVerificationService.update_status_from_normalized(user_profile, normalized)
 
                 if normalized.review_result == REVIEW_GREEN:
