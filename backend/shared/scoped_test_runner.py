@@ -46,6 +46,7 @@ SCOPED_TEST_LABELS = (
     "wallets.tests.test_confirmation_under_split_roles.ImportedConfirmationUsesSeparateRolesTest",
     "compliance.tests.test_durable_screening.ScopedDurableScreeningTest",
     "compliance.tests.test_crypto_screening_results.ScopedScreeningLockTest",
+    "compliance.tests.test_identity_screening.ScopedScreeningMatchAlertTest",
     "wallets.tests.test_sync_under_scoped_roles.ScopedWalletSyncTest",
     "tokens.tests.test_deployment_under_scoped_roles.ScopedTokenDeploymentTest",
     "tokens.tests.test_swap_approval_under_scoped_roles.ScopedSwapApprovalTest",

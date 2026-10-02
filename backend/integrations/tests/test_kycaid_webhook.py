@@ -175,3 +175,51 @@ class KYCAIDWebhookResultTest(APITestCase):
         self.assertEqual(response.status_code, 200, response.content)
         _, account = self.refreshed()
         self.assertEqual((account.account_status, account.rejection_reason), ("rejected", "fatf_blacklist"))
+
+    def test_an_approval_without_a_current_identity_document_clears_stale_document_evidence(self):
+        self.profile.id_document_type, self.profile.id_document_country = "PASSPORT", "GB"
+        self.profile.save(update_fields=["id_document_type", "id_document_country"])
+        record = applicant(pep=False, documents=[])
+        with patch.object(KYCAIDService, "get_applicant_data", return_value=record):
+            response = self.post_event(verification_completed(applicant=record))
+        self.assertEqual(response.status_code, 200, response.content)
+        profile, account = self.refreshed()
+        self.assertEqual((profile.id_document_type, profile.id_document_country), (None, None))
+        self.assertFalse(profile.used_foreign_passport)
+        self.assertEqual(account.account_status, "active")
+        assessment = CustomerRiskAssessment.objects.get(user_account=account, assessment_status="complete")
+        self.assertEqual(assessment.geographic_risk_score, 1)
+        self.assertNotIn("foreign_passport", assessment.assessment_reason)
+
+    def test_an_approval_keeps_the_current_valid_passport_type_without_inventing_its_country(self):
+        self.profile.id_document_type, self.profile.id_document_country = "DRIVERS_LICENSE", "GB"
+        self.profile.save(update_fields=["id_document_type", "id_document_country"])
+        record = applicant(
+            pep=False,
+            documents=[
+                {"type": "PASSPORT", "status": "valid"},
+                {"type": "DRIVERS_LICENSE", "status": "invalid"},
+            ],
+        )
+        with patch.object(KYCAIDService, "get_applicant_data", return_value=record):
+            response = self.post_event(verification_completed(applicant=record))
+        self.assertEqual(response.status_code, 200, response.content)
+        profile, account = self.refreshed()
+        self.assertEqual((profile.id_document_type, profile.id_document_country), ("PASSPORT", None))
+        self.assertFalse(profile.used_foreign_passport)
+        self.assertEqual(account.account_status, "active")
+
+    def test_a_pending_kycaid_callback_preserves_previously_recorded_document_evidence(self):
+        self.profile.id_document_type, self.profile.id_document_country = "PASSPORT", "GB"
+        self.profile.is_id_verified, self.profile.review_result = True, "GREEN"
+        self.profile.save(update_fields=["id_document_type", "id_document_country", "is_id_verified", "review_result"])
+        self.account.account_status = "active"
+        self.account.save(update_fields=["account_status"])
+        response = self.post_event(
+            verification_completed(status="pending", verified=None, applicant=applicant(pep=False, documents=[]))
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        profile, account = self.refreshed()
+        self.assertEqual((profile.id_document_type, profile.id_document_country), ("PASSPORT", "GB"))
+        self.assertTrue(profile.is_id_verified)
+        self.assertEqual(account.account_status, "active")

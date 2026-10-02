@@ -84,7 +84,7 @@ def summary(plan):
         "suspended": statuses["suspended"],
         "terminated": statuses["terminated"],
         "rejected": statuses["rejected"],
-        "checking": cohorts["kyc_pending"] + cohorts["kyc_yellow"] + cohorts["kyc_red"],
+        "checking": cohorts["kyc_pending"] + cohorts["kyc_resubmit"] + cohorts["kyc_red"],
         "unfinished": cohorts["unverified"] + cohorts["stalled"],
         "owners": len(plan.people) - len(investors),
         "companies": dict(companies),

@@ -285,7 +285,7 @@ class SyntheticPopulationTest(APITestCase):
         alerts = ComplianceAlert.objects.all()
 
         self.assertEqual(statuses, {"active", "pending", "suspended", "terminated", "rejected"})
-        self.assertTrue({"GREEN", "RED", "YELLOW"} <= results)
+        self.assertTrue({"GREEN", "RED"} <= results)
         self.assertEqual(set(alerts.values_list("status", flat=True)), {"new", "reviewing", "escalated", "closed"})
         self.assertEqual(alerts.filter(smr_required=True, smr_type="ml").count(), 1)
         self.assertFalse(alerts.exclude(status="new").filter(assigned_to__isnull=True).exists())
@@ -307,7 +307,32 @@ class SyntheticPopulationTest(APITestCase):
         recorded = CustomerRiskAssessment.objects.filter(assessment_status="complete")
         self.assertTrue(recorded.exists())
         for pep_details in recorded.values_list("pep_details", flat=True):
-            self.assertEqual(set(pep_details), {"pep_type", "details"})
+            self.assertEqual(
+                set(pep_details),
+                {"pep_type", "details"} | ({"approved_by_provider"} if pep_details["pep_type"] == "unknown" else set()),
+            )
+        accepted = recorded.exclude(pep_type="none").select_related("user_account__user_profile")
+        self.assertTrue(accepted.exists())
+        for assessment in accepted:
+            with self.subTest(account=assessment.user_account.account_number):
+                self.assertEqual(assessment.user_account.user_profile.kyc_provider, "sumsub")
+                self.assertEqual(assessment.pep_type, "unknown")
+                for hit in assessment.pep_details["details"]:
+                    self.assertIn("pep", hit["riskLabels"])
+                    self.assertNotIn(hit["matchStatus"], ("false_positive", "no_match"))
+
+    def test_every_seeded_identity_check_is_one_its_provider_can_report(self):
+        reachable = {
+            "kycaid": {"init", "pending", "completed"},
+            "sumsub": {value for value, _ in VERIFICATION_STATUS_CHOICES},
+        }
+        checked = UserProfile.objects.exclude(verification_status=None)
+
+        for provider, status, result in checked.values_list("kyc_provider", "verification_status", "review_result"):
+            with self.subTest(provider=provider, status=status, result=result):
+                self.assertIn(status, reachable[provider])
+                self.assertIn(result, {None, "GREEN", "RED"})
+        self.assertTrue(checked.filter(kyc_provider="sumsub", review_result="RED").exists())
 
     def test_nothing_is_left_for_a_periodic_job_to_act_on(self):
         now = timezone.now()

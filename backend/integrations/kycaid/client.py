@@ -29,6 +29,18 @@ logger = logging.getLogger(__name__)
 
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "host.docker.internal"})
 _RESULTS = {True: REVIEW_GREEN, False: REVIEW_RED}
+MATCHED_PERSON_FIELDS = ("full_name", "first_name", "middle_name", "last_name", "dob", "residence_country", "gender")
+IDENTITY_DOCUMENT_TYPES = frozenset(
+    {
+        "GOVERNMENT_ID",
+        "PASSPORT",
+        "DRIVERS_LICENSE",
+        "DOMESTIC_PASSPORT",
+        "PERMANENT_RESIDENCE_PERMIT",
+        "REFUGEE_CARD",
+        "FOREIGN_CITIZEN_PASSPORT",
+    }
+)
 
 
 def _outcome(value) -> Optional[bool]:
@@ -41,6 +53,17 @@ def _outcome(value) -> Optional[bool]:
 
 def _mapping(value) -> dict:
     return value if isinstance(value, dict) else {}
+
+
+def _identity_document_type(applicant: dict) -> Optional[str]:
+    documents = [
+        document
+        for document in applicant.get("documents") or []
+        if isinstance(document, dict) and document.get("type") in IDENTITY_DOCUMENT_TYPES
+    ]
+    valid = [document for document in documents if document.get("status") == "valid"]
+    latest = max(valid or documents, key=lambda document: str(document.get("created_at") or ""), default=None)
+    return latest["type"] if latest else None
 
 
 def _labels(*groups) -> list:
@@ -164,15 +187,12 @@ class KYCAIDService(KYCProvider):
             *(check.get("decline_reasons") for check in checks), applicant.get("decline_reasons")
         )
 
-        doc_verification = _mapping(verifications.get("document"))
-
         return NormalizedVerificationResult(
             verification_status=status,
             review_result=review_result,
             is_verified=review_result == REVIEW_GREEN,
             rejection_labels=rejection_labels,
-            document_type=doc_verification.get("type"),
-            document_country=doc_verification.get("country"),
+            document_type=_identity_document_type(applicant),
             pep_data=pep_data_from_labels(self._pep_evidence(verifications, applicant)),
             extracted_data=self.extract_verified_data(applicant) if applicant else {},
         )
@@ -197,6 +217,22 @@ class KYCAIDService(KYCProvider):
         if _outcome(applicant.get("pep")) is True:
             evidence.append([PEP_LABEL])
         return _labels(*evidence)
+
+    @staticmethod
+    def screening_match(callback: dict) -> dict:
+        list_types = callback.get("list_types") or callback.get("bdb_types")
+        return {
+            "provider": PROVIDER_KYCAID,
+            "applicant_id": callback.get("applicant_id"),
+            "verification_id": callback.get("verification_id"),
+            "document_id": callback.get("document_id"),
+            "list_types": [list_type.upper() for list_type in _labels(list_types)],
+            "databases": _labels(callback.get("databases")),
+            "accuracy": callback.get("accuracy"),
+            "matched_person": {
+                field: callback[field] for field in MATCHED_PERSON_FIELDS if callback.get(field) not in (None, "")
+            },
+        }
 
     def extract_verified_data(self, applicant_data: dict) -> dict:
         first_name = applicant_data.get("first_name") or ""

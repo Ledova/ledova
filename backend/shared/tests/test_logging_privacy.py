@@ -234,6 +234,35 @@ class IdentityProviderLoggingTest(LoggingPrivacyTestCase):
         self.assertIn(f"Status for {APPLICANT_ID}: review answer RED", text)
 
     @patch("integrations.sumsub.client.requests.request")
+    def test_polling_an_approval_logs_the_review_answer_without_the_fetched_identity_or_aml_case(self, request):
+        status = {
+            **APPLICANT_STATUS,
+            "reviewResult": {**APPLICANT_STATUS["reviewResult"], "reviewAnswer": "GREEN"},
+        }
+        steps = {
+            "IDENTITY": {
+                "reviewResult": {"reviewAnswer": "GREEN"},
+                "idDocType": "PASSPORT",
+                "country": "AUS",
+                "number": "PA1234567",
+            }
+        }
+        case = {"riskLabels": ["pep"], "hits": [{"id": "private-aml-hit", "name": "Ada Lovelace", "email": EMAIL}]}
+        request.side_effect = [MagicMock(ok=True, json=Mock(return_value=body)) for body in (status, steps, case)]
+
+        with patch("integrations.sumsub.client.cache", MagicMock(take_rate_slot=Mock(return_value=(True, 0)))):
+            with self.capture() as captured:
+                provider = SumSubService()
+                evidence = provider.with_approval_evidence(APPLICANT_ID, provider.get_applicant_status(APPLICANT_ID))
+
+        self.assertEqual((evidence["verificationSteps"], evidence["amlCase"]), (steps, case))
+        self.assertEqual(request.call_count, 3)
+        text = self.assert_no_dossier(captured)
+        self.assertIn(f"Status for {APPLICANT_ID}: review answer GREEN", text)
+        for private_value in ("private-aml-hit", "api-key", "secret-key"):
+            self.assertNotIn(private_value, text)
+
+    @patch("integrations.sumsub.client.requests.request")
     def test_a_provider_error_logs_the_status_and_the_route_not_the_error_body(self, request):
         request.return_value = MagicMock(
             ok=False,

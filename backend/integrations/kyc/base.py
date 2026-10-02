@@ -56,6 +56,9 @@ class KYCProvider(ABC):
     def normalize_status(self, status_data: dict) -> NormalizedVerificationResult:
         return self.normalize_webhook(status_data)
 
+    def with_approval_evidence(self, applicant_id: str, payload: dict) -> dict:
+        return payload
+
     @abstractmethod
     def generate_session(self, applicant_id: str, external_user_id: str) -> VerificationSession:
         pass

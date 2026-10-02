@@ -82,7 +82,7 @@ SPECIAL_COHORTS = (
     ("unverified", 2),
     ("stalled", 3),
     ("kyc_pending", 4),
-    ("kyc_yellow", 2),
+    ("kyc_resubmit", 2),
     ("kyc_red", 3),
     ("kyc_rejected", 1),
 )
@@ -90,14 +90,14 @@ JOIN_RANGES = {
     "unverified": (2, 24),
     "stalled": (8, 120),
     "kyc_pending": (2, 45),
-    "kyc_yellow": (5, 90),
+    "kyc_resubmit": (5, 90),
     "kyc_red": (6, 150),
     "kyc_rejected": (30, 150),
 }
 STALLED_STEPS = ("account-type", "identity-verification", "financial-profile")
 PENDING_STATES = (("kycaid", "pending"), ("sumsub", "queued"), ("sumsub", "onHold"), ("kycaid", "pending"))
 RED_LABELS = (("DOCUMENT_EXPIRED",), ("SELFIE_MISMATCH",), ("DOCUMENT_DAMAGED", "BAD_PHOTO_QUALITY"))
-YELLOW_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
+RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
 COVERAGE_STORIES = (
     "accountant",
     "professional",
@@ -536,9 +536,9 @@ class Story:
             provider, status = PENDING_STATES[self.pending % len(PENDING_STATES)]
             self.pending += 1
             return Kyc(provider, status, None, submitted, document_type, country), (), "pending", ""
-        if cohort == "kyc_yellow":
-            labels = self.rng.choice(YELLOW_LABELS)
-            kyc = Kyc("sumsub", "completed", "YELLOW", self.after(submitted, 30, 1800), document_type, country, labels)
+        if cohort == "kyc_resubmit":
+            labels = self.rng.choice(RESUBMIT_LABELS)
+            kyc = Kyc("sumsub", "completed", "RED", self.after(submitted, 30, 1800), document_type, country, labels)
             return kyc, (), "pending", ""
         if cohort == "kyc_red":
             labels = self.rng.choice(RED_LABELS)
@@ -597,7 +597,7 @@ class Story:
         return slots
 
     def _investor_wallets(self, key, cohort, role, start):
-        if cohort in ("kyc_pending", "kyc_yellow", "kyc_red"):
+        if cohort in ("kyc_pending", "kyc_resubmit", "kyc_red"):
             if self.rng.random() < 0.5:
                 return (self._wallet("base", keys.secret("wallet", key, 0), self.after(start, 30, 4000), False),)
             return ()

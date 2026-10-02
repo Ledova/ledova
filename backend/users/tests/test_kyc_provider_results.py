@@ -2,16 +2,26 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from requests.exceptions import HTTPError
 from rest_framework.test import APITestCase
 
 from compliance.constants import DOMESTIC_PEP_RISK_ADJUSTMENT
 from compliance.models import CustomerRiskAssessment
+from integrations.kyc.base import NormalizedVerificationResult
+from integrations.kyc.pep import pep_data_from_labels
 from integrations.kycaid.client import KYCAIDService
 from integrations.sumsub.client import SumSubService
 from integrations.tests.kycaid_payloads import (
     APPLICANT_ID,
     applicant,
     verification_completed,
+)
+from integrations.tests.sumsub_payloads import (
+    aml_case,
+    hit,
+    review,
+    step,
+    verification_steps,
 )
 from shared.models import Country
 from users.models import UserAccount, UserProfile
@@ -31,9 +41,20 @@ def a_person(email, **profile_fields):
     return profile, account
 
 
-def sumsub_approval(*risk_labels):
-    return SumSubService().normalize_webhook(
-        {"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}, "riskLabels": list(risk_labels)}
+def sumsub_approval(case=None):
+    service = SumSubService()
+    with patch.object(SumSubService, "get_verification_steps", return_value=verification_steps()), patch.object(
+        SumSubService, "get_aml_case", return_value=aml_case() if case is None else case
+    ):
+        return service.normalize_webhook(service.with_approval_evidence("synthetic-applicant", review()))
+
+
+def an_approval_of_a_pep(*evidence):
+    return NormalizedVerificationResult(
+        verification_status="completed",
+        review_result="GREEN",
+        is_verified=True,
+        pep_data=pep_data_from_labels(list(evidence)),
     )
 
 
@@ -127,8 +148,12 @@ class SumsubStatusPollTest(APITestCase):
         )
         self.client.force_authenticate(self.profile.user)
 
-    def poll(self, review):
-        with patch.object(SumSubService, "get_applicant_status", return_value=review), patch.object(
+    def poll(self, status, case=None, steps=None, case_error=None):
+        with patch.object(SumSubService, "get_applicant_status", return_value=status), patch.object(
+            SumSubService, "get_verification_steps", return_value=verification_steps() if steps is None else steps
+        ), patch.object(
+            SumSubService, "get_aml_case", return_value=aml_case() if case is None else case, side_effect=case_error
+        ), patch.object(
             SumSubService, "get_applicant_data", return_value={"info": {}}
         ):
             response = self.client.get(STATUS_URL)
@@ -151,6 +176,31 @@ class SumsubStatusPollTest(APITestCase):
         self.assertTrue(body["isVerified"])
         self.assertEqual(self.account.account_status, "active")
 
+    def test_an_approval_whose_aml_case_cannot_be_read_is_not_applied(self):
+        body = self.poll(review(), case_error=HTTPError("429 synthetic"))
+
+        self.assertFalse(body["isVerified"])
+        self.assertEqual((self.profile.verification_status, self.profile.review_result), ("pending", None))
+        self.assertEqual(self.account.account_status, "pending")
+        self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=self.account).exists())
+        self.push_task.defer.assert_not_called()
+
+    def test_an_approved_pep_is_activated_with_the_pep_risk_weighting(self):
+        body = self.poll(review(), case=aml_case(hit("hit-1", "potential_match", "pep")))
+
+        self.assertTrue(body["isVerified"])
+        self.assertEqual((self.account.account_status, self.account.rejection_reason), ("active", ""))
+        assessment = CustomerRiskAssessment.objects.get(user_account=self.account, assessment_status="complete")
+        self.assertEqual(assessment.pep_type, "unknown")
+        self.assertEqual(assessment.customer_risk_score, 1 + DOMESTIC_PEP_RISK_ADJUSTMENT)
+
+    def test_a_foreign_passport_reaches_the_risk_assessment(self):
+        self.poll(review(), steps=verification_steps(IDENTITY=step("PASSPORT", "NZL")))
+
+        self.assertEqual((self.profile.id_document_type, self.profile.id_document_country), ("PASSPORT", "NZ"))
+        assessment = CustomerRiskAssessment.objects.get(user_account=self.account, assessment_status="complete")
+        self.assertIn("foreign_passport", assessment.assessment_reason)
+
 
 class PoliticallyExposedPersonPolicyTest(TestCase):
     def setUp(self):
@@ -164,7 +214,7 @@ class PoliticallyExposedPersonPolicyTest(TestCase):
         return account
 
     def test_a_domestic_pep_is_accepted_with_the_policy_adjustment(self):
-        account = self.approve("domestic-pep@example.test", sumsub_approval("domestic_pep"), kyc_provider="sumsub")
+        account = self.approve("domestic-pep@example.test", an_approval_of_a_pep("domestic_pep"))
 
         self.assertEqual(account.account_status, "active")
         assessment = CustomerRiskAssessment.objects.get(user_account=account, assessment_status="complete")
@@ -172,13 +222,40 @@ class PoliticallyExposedPersonPolicyTest(TestCase):
         self.assertEqual(assessment.customer_risk_score, 1 + DOMESTIC_PEP_RISK_ADJUSTMENT)
         self.assertEqual(assessment.pep_details, {"pep_type": "domestic", "details": ["domestic_pep"]})
 
-    def test_every_pep_the_policy_rejects_is_rejected_whichever_provider_reports_it(self):
+    def test_a_pep_a_sumsub_approval_clears_is_accepted_with_the_policy_adjustment(self):
+        account = self.approve(
+            "sumsub-cleared-pep@example.test",
+            sumsub_approval(aml_case(hit("hit-1", "true_positive", "pep"))),
+            kyc_provider="sumsub",
+        )
+
+        self.assertEqual((account.account_status, account.rejection_reason), ("active", ""))
+        assessment = CustomerRiskAssessment.objects.get(user_account=account, assessment_status="complete")
+        self.assertEqual(assessment.pep_type, "unknown")
+        self.assertEqual(assessment.customer_risk_score, 1 + DOMESTIC_PEP_RISK_ADJUSTMENT)
+        self.assertEqual(
+            assessment.pep_details["details"], [{"id": "hit-1", "matchStatus": "true_positive", "riskLabels": ["pep"]}]
+        )
+
+    def test_an_unknown_pep_without_a_sumsub_approval_is_rejected(self):
+        for provider, clearance in (("sumsub", False), ("kycaid", True)):
+            with self.subTest(provider=provider):
+                normalized = NormalizedVerificationResult(
+                    verification_status="completed",
+                    review_result="GREEN",
+                    is_verified=True,
+                    pep_data={"pep_type": "unknown", "details": [], "approved_by_provider": clearance},
+                )
+                account = self.approve(f"uncleared-{provider}@example.test", normalized, kyc_provider=provider)
+                self.assertEqual((account.account_status, account.rejection_reason), ("rejected", "pep_policy"))
+
+    def test_every_pep_category_the_policy_rejects_is_rejected(self):
         reports = {
-            "foreign_pep": sumsub_approval("foreign_pep"),
-            "international_org": sumsub_approval("international_org_pep"),
-            "family": sumsub_approval("pep_family_member"),
-            "associate": sumsub_approval("close_associate"),
-            "sumsub-uncategorised": sumsub_approval("PEP"),
+            "foreign_pep": an_approval_of_a_pep("foreign_pep"),
+            "international_org": an_approval_of_a_pep("international_org_pep"),
+            "family": an_approval_of_a_pep("pep_family_member"),
+            "associate": an_approval_of_a_pep("close_associate"),
+            "uncategorised": an_approval_of_a_pep("PEP"),
             "kycaid-flag": KYCAIDService().normalize_webhook(verification_completed(applicant=applicant(pep=True))),
         }
         for name, normalized in reports.items():

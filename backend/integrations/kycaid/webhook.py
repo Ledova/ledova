@@ -8,7 +8,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from compliance.services.identity_screening import raise_screening_alert
 from integrations.kyc.constants import (
+    KYCAID_EVENT_DATABASE_SCREENING,
     KYCAID_EVENT_VERIFICATION_COMPLETED,
     KYCAID_EVENT_VERIFICATION_STATUS_CHANGED,
     KYCAID_VERIFICATION_STATUSES,
@@ -84,6 +86,13 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                 else:
                     user_profile.verification_status = new_status
                     user_profile.save(update_fields=["verification_status", "updated_at"])
+
+            elif event_type == KYCAID_EVENT_DATABASE_SCREENING:
+                user_account = getattr(user_profile, "user_account", None)
+                if user_account is None:
+                    logger.warning("Ignored a screening match for a profile without an account")
+                else:
+                    raise_screening_alert(user_account, kycaid_service.screening_match(data))
 
             else:
                 logger.warning("Unhandled webhook type: %s", event_type)
