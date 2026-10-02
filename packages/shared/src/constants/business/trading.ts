@@ -21,6 +21,10 @@ export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]
     ['trading', 'orderBook'],
     ['trading', 'userOrders'],
   ],
+  order_held: [
+    ['trading', 'orderBook'],
+    ['trading', 'userOrders'],
+  ],
   order_matched: [
     ['trading', 'orderBook'],
     ['trading', 'userOrders'],

@@ -249,10 +249,13 @@ and tasks the worker would run. It adds:
   preference shares, Wattlefield's and Coralgum's ordinary shares): For sale and
   Wanted orders at several prices around the class's offering price, each signed
   by its wallet and dated over the eighteen days before the run. Some were
-  cancelled by a signed cancellation, and two were matched and left unsigned
-  until the match lapsed: the order that had been resting returned to the book,
-  the one that took it was held back from the book, and its trader then
-  cancelled it.
+  cancelled by a signed cancellation, and three were matched and left unsigned
+  until the match lapsed: the order that had been resting returned to the book
+  and the one that took it was held back from the book. Two of those traders
+  then cancelled; the third, a seed preference sale at the best bid, is still
+  held back, because it crosses the bid it lapsed against and the sweep never
+  pairs them again. Its trader sees it as Held Back, and the seed's summary
+  names them.
 - About 20 trades settled on the day of the run, each a signed order against a
   resting one, with the seller's and buyer's one-time approvals, both settlement
   signatures, the relayed swap and its finality; each class then shows a last
@@ -275,16 +278,15 @@ and tasks the worker would run. It adds:
   push or an email. The seed's own generated documents are the only files that
   skip the malware scan, so seeding does not wait for ClamAV.
 
-The investor tester has an order in each status the market's panels show (open,
-partially filled, filled and cancelled), sold Wattlefield shares, bought seed
-preference shares into the Trading wallet, which held none, voted on two
-resolutions with others waiting under Needs you, and has more than a page of
-notices. Two states are left out: a trade awaiting signatures lapses fifteen
+The investor tester has an order in four of the statuses the market's panels
+show (open, partially filled, filled and cancelled), sold Wattlefield shares,
+bought seed preference shares into the Trading wallet, which held none, voted on
+two resolutions with others waiting under Needs you, and has more than a page of
+notices. One state is left out: a trade awaiting signatures lapses fifteen
 minutes after its match (`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before
-anyone looked, and the two orders held back after their matches lapsed were
-cancelled by their traders, so no order is held when the seed finishes. The
-periodic jobs leave the market as it is: no match lapses, no resolution closes,
-nothing is signed and the wallet sync reads the balances already recorded.
+anyone looked. The periodic jobs leave the market as it is: no match lapses, the
+held order stays held, no resolution closes, nothing is signed and the wallet
+sync reads the balances already recorded.
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded

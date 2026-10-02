@@ -21,7 +21,11 @@ class BookSequencesTest(BookFixtures, TransactionTestCase):
 
     def awaiting(self):
         with use_operator():
-            return list(SwapOrder.objects.filter(share_token=self.token, status=SwapOrderStatus.CREATED).order_by("pk"))
+            return list(
+                SwapOrder.objects.filter(share_token=self.token, status=SwapOrderStatus.CREATED).order_by(
+                    "created_at", "pk"
+                )
+            )
 
     def step(self, rng):
         changeable = self.orders(status__in=TransferOrderStatus.changeable())
@@ -39,7 +43,7 @@ class BookSequencesTest(BookFixtures, TransactionTestCase):
                 minimum=quantity if rng.random() < 0.1 else 0,
             )
         elif move == "sweep":
-            self.sweep()
+            self.sweep_until_nothing_changes()
             self.assert_every_held_order_crosses_with_nothing_to_take()
         elif move == "cancel":
             self.cancel(rng.choice(changeable))
@@ -52,6 +56,14 @@ class BookSequencesTest(BookFixtures, TransactionTestCase):
         else:
             self.revert_match(rng.choice(awaiting))
         return move
+
+    def sweep_until_nothing_changes(self):
+        for _ in range(STEPS):
+            swept = self.sweep()
+            self.assertEqual(swept["crossing"], 0)
+            if not swept["matched"] and not swept["listed"]:
+                return
+        self.fail("The sweeps kept changing held orders.")
 
     def assert_every_held_order_crosses_with_nothing_to_take(self):
         with use_operator():

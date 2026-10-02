@@ -1,6 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from threading import Barrier
+from unittest.mock import patch
 from uuid import uuid4
 
+from django.db import connections
 from django.test import TransactionTestCase
 from rest_framework.test import APITransactionTestCase
 
@@ -13,6 +17,8 @@ from tokens.models import (
     TransferOrder,
     TransferOrderStatus,
 )
+from tokens.services.held_orders import hold_crossing_order
+from tokens.services.trading_order_create import execute_order_submission
 from tokens.tasks.held_orders import place_held_orders
 from tokens.tests.book_fixtures import BUY, SELL, BookFixtures
 from tokens.tests.order_submission_fixtures import BASE, COUNTERPARTY
@@ -27,6 +33,67 @@ CANCELLED = TransferOrderStatus.CANCELLED
 
 
 class TheBookNeverCrossesTest(BookFixtures, TransactionTestCase):
+    def rest_at_the_same_moment(self, *submissions):
+        together = Barrier(len(submissions), timeout=10)
+        rest = TransferOrder.rest_or_hold
+
+        def rest_then_wait(order):
+            rest(order)
+            together.wait()
+
+        def submit(submission):
+            try:
+                return execute_order_submission(*submission)
+            finally:
+                connections.close_all()
+
+        with patch.object(TransferOrder, "rest_or_hold", rest_then_wait), ThreadPoolExecutor(len(submissions)) as pool:
+            results = [future.result(timeout=30) for future in [pool.submit(submit, item) for item in submissions]]
+        return sorted((self.created(result) for result in results), key=lambda order: (order.created_at, order.pk))
+
+    def test_two_crossing_orders_resting_at_the_same_moment_are_uncrossed_by_one_sweep(self):
+        seller, buyer, other = self.traders[1:4]
+        self.place(other, SELL, 10, "2.20")
+        self.place(other, BUY, 10, "1.90")
+        ask = self.signed_submission(seller, SELL, 10, "2.00")
+        bid = self.signed_submission(buyer, BUY, 10, "2.00")
+
+        older, newer = self.rest_at_the_same_moment(ask, bid)
+
+        self.assertEqual((older.status, newer.status), (OPEN, OPEN))
+        bids, asks = self.book()
+        self.assertEqual((bids[0][0], asks[0][0]), (Decimal("2.00"), Decimal("2.00")))
+
+        swept = self.sweep()
+
+        self.assert_uncrossed()
+        left = {
+            BUY: ([(Decimal("1.90"), 10)], [(Decimal("2.00"), 10), (Decimal("2.20"), 10)]),
+            SELL: ([(Decimal("2.00"), 10), (Decimal("1.90"), 10)], [(Decimal("2.20"), 10)]),
+        }
+        self.assertEqual(self.book(), left[newer.order_type])
+        self.assertEqual(swept["crossing"], 1)
+        self.assert_state(older, OPEN, 0)
+        self.assert_state(newer, HELD, 0)
+        self.assertIn("order_held", self.events)
+
+        self.sweep()
+
+        self.assert_state(older, MATCHED, 10)
+        self.assert_state(newer, MATCHED, 10)
+        self.assertEqual(self.pending(newer).pk, self.pending(older).pk)
+
+    def test_an_order_that_stopped_crossing_before_the_sweep_locked_it_stays_listed(self):
+        seller, buyer = self.traders[1:3]
+        self.place(seller, SELL, 10, "2.10")
+        bid = self.place(buyer, BUY, 10, "2.00")
+
+        with use_operator():
+            self.assertFalse(hold_crossing_order(bid))
+
+        self.assert_state(bid, OPEN, 0)
+        self.assertNotIn("order_held", self.events)
+
     def test_a_large_bid_left_over_after_its_first_trade_settles_does_not_cross_the_book(self):
         first, second, buyer = self.traders[1:4]
         self.place(first, SELL, 10, "2.00")
@@ -86,7 +153,7 @@ class TheBookNeverCrossesTest(BookFixtures, TransactionTestCase):
         self.assertEqual(self.assert_state(bid, HELD, 0).status_label, "Held Back")
         self.assertEqual(self.book(), ([], [(Decimal("2.00"), 10)]))
 
-        self.assertEqual(self.sweep(), {"checked": 1, "matched": 0, "listed": 0, "held": 1, "busy": 0})
+        self.assertEqual(self.sweep(), {"checked": 1, "matched": 0, "listed": 0, "held": 1, "busy": 0, "crossing": 0})
         self.assert_state(bid, HELD, 0)
 
         cheaper = self.place(other, SELL, 10, "1.95")

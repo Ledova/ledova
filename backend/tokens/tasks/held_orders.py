@@ -13,11 +13,12 @@ def place_held_orders(timestamp: int = 0):
     with acting_for(None):
         result = held_orders.place_held_orders()
     logger.info(
-        "Held orders checked: %s, matched: %s, listed: %s, still held: %s, busy: %s",
+        "Held orders checked: %s, matched: %s, listed: %s, still held: %s, busy: %s; crossing orders held back: %s",
         result["checked"],
         result["matched"],
         result["listed"],
         result["held"],
         result["busy"],
+        result["crossing"],
     )
     return result

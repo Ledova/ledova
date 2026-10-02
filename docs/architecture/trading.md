@@ -110,6 +110,15 @@ as `Held Back`, or `Partially Filled, Remainder Held Back` once part of it has
 traded. The owner chose this rule on 2 October 2026
 ([decision](../decisions.md#payments-and-settlement)).
 
+Each placement decides from the orders already committed, so two crossing
+orders placed at the same moment can both come to rest. The same sweep then
+reads each class's listed book and, while its best bid is at or above its best
+ask, holds back the newer of the two and publishes `order_held`; the next sweep
+gives that order its match like any held order. A book crossed this way is
+uncrossed by the next minute's sweep, with no lock beyond the one order it
+holds, taken without waiting; an order busy at that moment waits for the
+following sweep.
+
 ## Protocol detail
 
 - [Create, cancel and modify protocols](../reference/order-submissions.md):
@@ -126,10 +135,12 @@ The owner accepted these limits for the experimental version in
 - The Redis event stream uses after-commit publication and has no transactional
   outbox or exactly-once delivery guarantee. Live updates may be missed until
   refresh; recovery of database state does not guarantee an event was delivered.
-- Two crossing orders committed at the same moment can both rest unmatched,
-  because each placement sees only committed orders, and the minute's sweep
-  reads only held orders. Every sequence of placements, settlements, lapses,
-  modifications and cancellations leaves the book uncrossed.
+- Two crossing orders committed at the same moment can both rest until the
+  next minute's sweep holds back the newer of the two, because each placement
+  sees only committed orders and no placement waits on another
+  ([decision](../decisions.md#payments-and-settlement)). Every sequence of
+  placements, settlements, lapses, modifications and cancellations leaves the
+  book uncrossed.
 - Editing an order does not run matching: an edit that would cross is held back
   and takes its match from the minute's sweep.
 

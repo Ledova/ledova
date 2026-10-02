@@ -389,7 +389,13 @@ would let the party who did not sign lock the other's order in fifteen-minute
 windows it could not cancel. [Secondary trading](architecture/trading.md#one-match-never-crossed)
 states the rule. The same day the owner removed four statuses no code ever
 wrote: an order's `executing`, `expired` and `failed`, and a mint request's
-`approved`.
+`approved`. Answering the change's open questions, also on 2 October 2026, the
+owner kept the never-re-pair rule and the labels `Held Back` and
+`Partially Filled, Remainder Held Back`, had the demo seed leave one held order
+so the state shows in the development stack, and closed the race in which two
+crossing orders placed at the same moment both rest: the minute's sweep also
+holds back the newer of any two listed orders that cross, with no new locking,
+so the book uncrosses within a minute.
 
 Payment confirmation is stored on the subscription. The initial expected volume
 is small and admin history records changes. There is no separate payment-per-tranche

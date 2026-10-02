@@ -9016,6 +9016,7 @@ export interface ApiOperations {
 export type TradingEventType =
   | 'order_cancelled'
   | 'order_created'
+  | 'order_held'
   | 'order_listed'
   | 'order_matched'
   | 'order_modified'

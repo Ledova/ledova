@@ -106,7 +106,7 @@ class BookFixtures:
             user_account=trader.account, address=key.address, chain="base", verification_status="VERIFIED"
         )
 
-    def place(self, trader, side, quantity, price, *, minimum=0, wallet=None):
+    def signed_submission(self, trader, side, quantity, price, *, minimum=0, wallet=None):
         wallet = wallet or trader.wallet
         data = {
             "submission_id": uuid4(),
@@ -123,12 +123,16 @@ class BookFixtures:
         }
         key = self.keys[wallet.address.lower()][0]
         challenge = issue_order_submission(trader.user, data).challenge
-        result = execute_order_submission(
-            trader.user, {**data, "digest": challenge["digest"], "signature": _signature(key, challenge)}
-        )
+        return trader.user, {**data, "digest": challenge["digest"], "signature": _signature(key, challenge)}
+
+    def created(self, result):
         self.assertEqual(result.submission.status, OrderSubmissionStatus.CREATED, result.submission.refusal_detail)
         with use_operator():
             return TransferOrder.objects.get(pk=result.submission.order_id)
+
+    def place(self, trader, side, quantity, price, *, minimum=0, wallet=None):
+        user, data = self.signed_submission(trader, side, quantity, price, minimum=minimum, wallet=wallet)
+        return self.created(execute_order_submission(user, data))
 
     def act(self, order, purpose, **values):
         key, trader = self.keys[order.wallet_address.lower()]

@@ -168,7 +168,9 @@ so a decision taken on a stale read would overwrite a match. The held-order swee
 candidate's authority and the order pair; it takes every one of those locks with
 `NOWAIT`, so having started out of order it never waits on another trading
 journey (its foreign-key checks wait only on wallet-side writers, as a create's
-do), and a busy row leaves the order held for the next minute's sweep. Foreign authority comes
+do), and a busy row leaves the order held for the next minute's sweep. Its
+second pass (`hold_crossing_order`) locks one listed order, the newer of a
+crossing pair, also with `NOWAIT`, and nothing else. Foreign authority comes
 after the incoming authority and challenge but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
@@ -215,9 +217,10 @@ therefore extends how long the wallet's other requests and its authorization
 changes wait on the create path only. And matching runs only inside creation and
 the held-order sweep, and an order decides whether it may rest from the orders
 already committed: two crossing orders created concurrently each see only
-committed orders, so both can rest unmatched until a third order arrives. That is
-a liveness limit of the book, not a lock defect; the sweep reads only held orders,
-so nothing sweeps two orders that rest crossed this way. Every placement,
+committed orders, so both can rest unmatched. That is a liveness limit of the
+book, not a lock defect, and the minute's sweep bounds it without a new lock:
+after the held orders it holds back the newer of any two listed orders that
+cross, and its next run matches that order like any held order. Every placement,
 settlement, lapse, revert and modification in turn checks the
 [book it would rest in](../architecture/trading.md#one-match-never-crossed).
 
