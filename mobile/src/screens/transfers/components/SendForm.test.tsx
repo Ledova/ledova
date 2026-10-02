@@ -101,3 +101,16 @@ it('keeps the sending wallet name in its semibold face', async () => {
   const view = await show();
   expect(view.getByText('Test wallet')).toHaveStyle({ fontFamily: theme.result.current.fontFamily.semibold });
 });
+
+describe('share classes in the mobile send form', () => {
+  it("shows each class symbol beside its company so two companies' ORD stay apart", async () => {
+    const first = { ...share, uuid: 'first', symbol: 'ORD', company: 'First Fictional Pty Ltd' };
+    const second = { ...share, uuid: 'second', symbol: 'ORD', company: 'Second Fictional Pty Ltd' };
+    const view = await show(second, '2', [native, first, second]);
+
+    expect(view.getAllByText('ORD')).toHaveLength(2);
+    expect(view.getByText('First Fictional Pty Ltd')).toBeTruthy();
+    expect(view.getByText('Second Fictional Pty Ltd')).toBeTruthy();
+    expect(view.getByText('Amount (ORD)')).toBeTruthy();
+  });
+});

@@ -23,6 +23,7 @@ import {
   getErrorMessage,
   getHoldingTokenDeployment,
   readEveryPage,
+  shownSymbol,
   useUserPreferences,
   validatePreparedTransfer,
 } from '@ledova/shared';
@@ -94,8 +95,9 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
       if (balance > 0 && deployment?.contractAddress) {
         assets.push({
           uuid: holding.uuid,
-          symbol: holding.assetSymbol,
+          symbol: shownSymbol(holding),
           name: holding.assetName,
+          company: holding.shareClass?.companyName,
           balance: holding.quantity,
           marketValue: holding.marketValue,
           isNative: false,

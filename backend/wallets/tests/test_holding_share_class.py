@@ -12,7 +12,7 @@ from shared.db import APP_ALIAS, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
-from wallets.models import Holding
+from wallets.models import Holding, Transaction
 
 
 def a_bridged_class(company, name, symbol, number):
@@ -60,7 +60,12 @@ class AHoldingNamesItsShareClassTest(APITestCase):
 
         self.assertEqual(
             rows["KFA"]["shareClass"],
-            {"uuid": str(self.token.uuid), "name": "Class A preference", "companyName": "class-issuer Pty Ltd"},
+            {
+                "uuid": str(self.token.uuid),
+                "name": "Class A preference",
+                "symbol": "KFA",
+                "companyName": "class-issuer Pty Ltd",
+            },
         )
         self.assertIsNone(rows["TUSD"]["shareClass"])
         self.assertIsNone(rows["TENANT"]["shareClass"])
@@ -131,7 +136,12 @@ class ScopedHoldingShareClassTest(RunsOnTheScopedConnection, APITransactionTestC
 
         self.assertEqual(
             row["shareClass"],
-            {"uuid": str(self.token.uuid), "name": "Class A preference", "companyName": "scoped-class-issuer Pty Ltd"},
+            {
+                "uuid": str(self.token.uuid),
+                "name": "Class A preference",
+                "symbol": "KFA",
+                "companyName": "scoped-class-issuer Pty Ltd",
+            },
         )
         reading_classes = [query["sql"] for query in captured.captured_queries if "tokens_sharetoken" in query["sql"]]
         self.assertEqual(len(reading_classes), 1)
@@ -173,6 +183,38 @@ class ScopedHoldingShareClassTest(RunsOnTheScopedConnection, APITransactionTestC
         self.assertEqual(owner["shareClass"]["companyName"], "scoped-class-issuer Pty Ltd")
         self.assertIsNone(investor["shareClass"])
 
+    def test_activity_names_the_class_inside_the_transactions_query_and_hides_a_paused_one_from_the_investor(self):
+        with use_operator():
+            for tenant in (self.issuer, self.holder):
+                Transaction.objects.create(
+                    wallet=tenant.wallet,
+                    asset=self.asset,
+                    tx_hash=f"0x{tenant.label}-class",
+                    chain=BLOCKCHAIN_BASE,
+                    from_address="0x" + "3" * 40,
+                    to_address=tenant.wallet.address,
+                    amount=Decimal("7"),
+                )
+
+        def activity(tenant):
+            self.client.force_authenticate(tenant.user)
+            response = self.client.get("/api/transactions/", {"wallet": str(tenant.wallet.uuid)})
+            self.assertEqual(response.status_code, 200, response.content)
+            return {row["assetSymbol"]: row["shareClass"] for row in response.json()["results"]}
+
+        with CaptureQueriesContext(connections[APP_ALIAS]) as captured:
+            listed = activity(self.holder)["KFA"]
+
+        self.assertEqual((listed["uuid"], listed["symbol"]), (str(self.token.uuid), "KFA"))
+        reading_classes = [query["sql"] for query in captured.captured_queries if "tokens_sharetoken" in query["sql"]]
+        self.assertEqual(len(reading_classes), 1)
+        self.assertIn('FROM "transactions"', reading_classes[0])
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(status=ShareTokenStatus.PAUSED)
+
+        self.assertIsNone(activity(self.holder)["KFA"])
+        self.assertEqual(activity(self.issuer)["KFA"]["symbol"], "KFA")
+
     def test_class_and_company_renames_are_read_again_without_rewriting_the_asset(self):
         before = self.holdings_for(self.holder)["KFA"]
         self.assertEqual(before["shareClass"]["name"], "Class A preference")
@@ -188,6 +230,7 @@ class ScopedHoldingShareClassTest(RunsOnTheScopedConnection, APITransactionTestC
             {
                 "uuid": str(self.token.uuid),
                 "name": "Class A ordinary",
+                "symbol": "KFA",
                 "companyName": "Renamed synthetic company Pty Ltd",
             },
         )

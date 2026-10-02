@@ -238,11 +238,14 @@ export function SendFormModal({
                     }}
                     className="flex w-full items-center justify-between py-2.5 text-left"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       {getAssetIcon(asset, isSelected)}
                       <span className={`text-sm font-medium ${isSelected ? 'text-brand-light' : 'text-text-primary'}`}>
                         {asset.symbol}
                       </span>
+                      {asset.company && (
+                        <span className="min-w-0 break-words text-xs text-text-muted">{asset.company}</span>
+                      )}
                     </div>
                     <span className="flex items-center gap-1.5">
                       {asset.type === 'crypto' && (

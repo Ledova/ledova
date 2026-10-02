@@ -13,6 +13,7 @@ const transaction: Transaction = {
   asset: 'synthetic-asset',
   assetSymbol: 'ETH',
   assetName: 'Ethereum',
+  shareClass: null,
   amount: '2',
   marketValue: null,
   blockTimestamp: null,

@@ -2242,6 +2242,12 @@ export interface ApiComponents {
       isActive?: boolean;
       uuid: string;
     };
+    AssetShareClass: {
+      companyName: string;
+      name: string;
+      symbol: string;
+      uuid: string;
+    };
     AssetTypeEnum:
       'native_crypto' | 'erc20_token' | 'stablecoin' | 'tokenized_security' | 'tokenized_rwa' | 'synthetic';
     AuthCookieRefreshed: {
@@ -2826,17 +2832,12 @@ export interface ApiComponents {
       lastSyncedAt: string | null;
       marketValue: string | null;
       quantity: string;
-      shareClass: ApiComponents['schemas']['HoldingShareClass'] | null;
+      shareClass: ApiComponents['schemas']['AssetShareClass'] | null;
       updatedAt: string;
       uuid: string;
       valueSource: ApiComponents['schemas']['ValueSourceEnum'];
       walletAddress: string;
       walletUuid: string;
-    };
-    HoldingShareClass: {
-      companyName: string;
-      name: string;
-      uuid: string;
     };
     HttpStatusEnum: 400 | 409;
     IdentitySourceEnum:
@@ -4370,6 +4371,7 @@ export interface ApiComponents {
       createdAt: string;
       fromAddress: string;
       marketValue: string | null;
+      shareClass: ApiComponents['schemas']['AssetShareClass'] | null;
       status: ApiComponents['schemas']['TransactionStatusEnum'];
       toAddress: string | null;
       transactionFee: string | null;

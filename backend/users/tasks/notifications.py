@@ -77,7 +77,7 @@ def _send_transaction_notification(user_id: str, transaction_id: str, event_type
         return {"status": "error", "error": "User not found"}
 
     try:
-        transaction = Transaction.objects.select_related("asset").get(pk=transaction_id)
+        transaction = Transaction.objects.with_share_class().select_related("asset").get(pk=transaction_id)
     except Transaction.DoesNotExist:
         logger.error(f"[NOTIFICATION_TASK] Transaction not found: {transaction_id}")
         return {"status": "error", "error": "Transaction not found"}

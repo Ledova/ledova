@@ -475,6 +475,34 @@
         ],
         "type": "object"
       },
+      "AssetShareClass": {
+        "properties": {
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "symbol": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyName",
+          "name",
+          "symbol",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "AssetTypeEnum": {
         "description": "* `native_crypto` - Native Crypto\n* `erc20_token` - Erc20 Token\n* `stablecoin` - Stablecoin\n* `tokenized_security` - Tokenized Security\n* `tokenized_rwa` - Tokenized Rwa\n* `synthetic` - Synthetic",
         "enum": [
@@ -3343,7 +3371,7 @@
           "shareClass": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/HoldingShareClass"
+                "$ref": "#/components/schemas/AssetShareClass"
               }
             ],
             "nullable": true,
@@ -3393,29 +3421,6 @@
           "valueSource",
           "walletAddress",
           "walletUuid"
-        ],
-        "type": "object"
-      },
-      "HoldingShareClass": {
-        "properties": {
-          "companyName": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "name": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyName",
-          "name",
-          "uuid"
         ],
         "type": "object"
       },
@@ -11179,6 +11184,15 @@
             "readOnly": true,
             "type": "string"
           },
+          "shareClass": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetShareClass"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "status": {
             "allOf": [
               {
@@ -11238,6 +11252,7 @@
           "createdAt",
           "fromAddress",
           "marketValue",
+          "shareClass",
           "status",
           "toAddress",
           "transactionFee",

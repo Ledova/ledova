@@ -10,6 +10,7 @@ import {
   getBlockchainDisplayName,
   formatCryptoBalance,
   getHoldingTokenDeployment,
+  shownSymbol,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet } from '@ledova/shared';
@@ -22,6 +23,7 @@ export interface UnifiedAsset {
   type: AssetType;
   symbol: string;
   name: string;
+  company?: string;
   balance: string;
   displayBalance: string;
   marketValue: string | null;
@@ -104,8 +106,9 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
           assetList.push({
             id: holding.uuid,
             type,
-            symbol: holding.assetSymbol,
+            symbol: shownSymbol(holding),
             name: holding.assetName,
+            company: holding.shareClass?.companyName,
             balance: holding.quantity,
             displayBalance: parseFloat(holding.quantity).toFixed(displayDecimals),
             marketValue: holding.marketValue,
