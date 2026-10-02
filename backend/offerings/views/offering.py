@@ -7,11 +7,12 @@ from offerings.models import Offering, Subscription
 from offerings.serializers import (
     IssuerSubscriptionSerializer,
     OfferingDetailSerializer,
+    OfferingDocumentsSerializer,
     OfferingListSerializer,
     OfferingWithdrawSerializer,
     OfferingWriteSerializer,
 )
-from offerings.services import submit_offering, transition_offering
+from offerings.services import attach_documents, submit_offering, transition_offering
 from shared.views import AuthenticatedModelViewSet
 
 NOT_DELETABLE = "Only a draft offering can be deleted."
@@ -39,6 +40,8 @@ class OfferingViewSet(AuthenticatedModelViewSet):
             return OfferingListSerializer
         if self.action == "withdraw":
             return OfferingWithdrawSerializer
+        if self.action == "documents":
+            return OfferingDocumentsSerializer
         return OfferingDetailSerializer
 
     def perform_destroy(self, instance):
@@ -70,4 +73,15 @@ class OfferingViewSet(AuthenticatedModelViewSet):
         serializer = OfferingWithdrawSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         transition_offering(offering, "withdraw", reason=serializer.validated_data.get("reason") or "")
+        return Response(OfferingDetailSerializer(offering, context=self.get_serializer_context()).data)
+
+    @extend_schema(request=OfferingDocumentsSerializer, responses=OfferingDetailSerializer)
+    @action(detail=True, methods=["post"])
+    def documents(self, request, uuid=None):
+        offering = self.get_object()
+        serializer = OfferingDocumentsSerializer(
+            data=request.data, context={**self.get_serializer_context(), "offering": offering}
+        )
+        serializer.is_valid(raise_exception=True)
+        offering = attach_documents(offering, serializer.validated_data["documents"])
         return Response(OfferingDetailSerializer(offering, context=self.get_serializer_context()).data)

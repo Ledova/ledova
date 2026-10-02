@@ -24,6 +24,7 @@ class OfferingStatus(models.TextChoices):
 
 
 LIVE_OFFERING_STATUSES = [OfferingStatus.SUBMITTED, OfferingStatus.UNDER_REVIEW, OfferingStatus.APPROVED]
+PUBLISHED_OFFERING_STATUSES = [OfferingStatus.APPROVED, OfferingStatus.CLOSED]
 EDITABLE_OFFERING_STATUSES = [OfferingStatus.DRAFT, OfferingStatus.REJECTED]
 SUBMITTABLE_OFFERING_STATUSES = [OfferingStatus.DRAFT, OfferingStatus.REJECTED]
 

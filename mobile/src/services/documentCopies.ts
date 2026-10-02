@@ -75,6 +75,12 @@ async function writeViewCopy(
   return { uri: copy.uri, type };
 }
 
+export const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+};
+
 export const UTI_BY_MIME_TYPE: Record<string, string> = {
   'application/pdf': 'com.adobe.pdf',
   'image/png': 'public.png',

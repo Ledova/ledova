@@ -19,6 +19,21 @@ cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
 [Eligibility](architecture/companies-and-eligibility.md) owns enforcement details.
 
+Anyone eligible to see an offering in the directory can open the documents
+attached to its approved offerings, whether upcoming, open or closed (owner
+decision, 2 October 2026). Drafts and offerings submitted, under review, rejected
+or withdrawn publish none, and the company's other documents stay with the
+company. The product has investors review the documents before they apply, with
+appropriate access to offer information; directory eligibility is that access.
+Once an offering is approved or closed, its documents are added to and never
+removed (owner decision, 2 October 2026): the issuer or staff can attach a
+supplementary memorandum, but nobody detaches or deletes a document investors
+may already have read. The issuer's picker keeps to the offer document types:
+prospectus or information memorandum, risk disclosure, business plan, financial
+statements, auditor report, constitution and shareholder agreement (owner
+decision, the same day).
+[Offerings](architecture/offerings.md) owns the routes.
+
 The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and

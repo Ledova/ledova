@@ -48,3 +48,13 @@ class InvalidStatusTransitionException(APIException):
     def __init__(self, from_status: str, to_status: str):
         detail = f"Cannot transition from '{from_status}' to '{to_status}'."
         super().__init__(detail=detail)
+
+
+class OfferedDocumentException(APIException):
+
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = (
+        "This document is attached to an approved or closed offering, so it stays available to its investors and "
+        "cannot be deleted."
+    )
+    default_code = "offered_document"

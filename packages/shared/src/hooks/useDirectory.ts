@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
-import { getDirectoryToken, getDirectoryTokens } from '../services/directory';
+import { getDirectoryDocuments, getDirectoryToken, getDirectoryTokens } from '../services/directory';
 import { getInvestorEligibility } from '../services/investorClassifications';
 import { getOperator } from '../services/operator';
 import { readEveryPage } from '../utils/pagination';
@@ -63,5 +63,23 @@ export function useDirectoryToken(uuid: string | undefined) {
     operatorFailed: operator.isError,
     operatorRefreshing: operator.isFetching,
     retryOperator: () => operator.refetch(),
+  };
+}
+
+export function useDirectoryDocuments(uuid: string | undefined, enabled: boolean) {
+  const apiClient = useApiClient();
+  const documents = useQuery({
+    queryKey: ['directory', 'token', uuid, 'documents'],
+    queryFn: () => getDirectoryDocuments(apiClient, uuid!).then(({ data }) => data),
+    enabled: !!uuid && enabled,
+    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+  });
+
+  return {
+    documents: documents.data ?? [],
+    isLoading: documents.isLoading,
+    hasError: documents.isError,
+    isRefreshing: documents.isFetching,
+    retry: () => documents.refetch(),
   };
 }
