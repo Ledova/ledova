@@ -1,7 +1,8 @@
 from django.contrib import admin
 
-from compliance.admin._helpers import GREY, RED, TEAL, admin_link, badge
+from compliance.admin._helpers import GREY, RED, TEAL, badge
 from compliance.models import AlertProcedureStep
+from shared.utils.admin_display import admin_link
 
 
 @admin.register(AlertProcedureStep)

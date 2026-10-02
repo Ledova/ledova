@@ -13,6 +13,9 @@
 
     <div class="action-row mt-0">
         <a href="{{ configuration_url }}" class="btn btn-primary">Operator configuration</a>
+        {% for label, url in market_pages %}
+        <a href="{{ url }}" class="btn btn-secondary">{{ label }}</a>
+        {% endfor %}
     </div>
 
     <div class="admin-card">

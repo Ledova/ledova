@@ -171,3 +171,14 @@ class TransactionRecoveryScheduleTest(SimpleTestCase):
                     entry.cron for entry in app.periodic_registry.periodic_tasks.values() if entry.task.name == name
                 ]
                 self.assertEqual(schedules, ["*/5 * * * *"])
+
+
+class OldJobRemovalScheduleTest(SimpleTestCase):
+
+    def test_old_job_records_are_removed_once_a_day_with_the_arguments_in_the_task(self):
+        schedules = [
+            (entry.cron, entry.periodic_id, entry.configure_kwargs)
+            for entry in app.periodic_registry.periodic_tasks.values()
+            if entry.task.name == "shared.tasks.job_retention.remove_old_jobs"
+        ]
+        self.assertEqual(schedules, [("30 4 * * *", "", {})])
