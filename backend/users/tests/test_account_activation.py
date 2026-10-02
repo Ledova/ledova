@@ -223,7 +223,7 @@ class ConcurrentActivationTest(TransactionTestCase):
             sleep(0.01)
         return False
 
-    def test_two_first_activations_at_once_keep_the_earlier_date(self):
+    def first_activation_keeps_its_date(self, update_fields=None):
         account = an_account("concurrent")
         started, stamped = Queue(), Queue()
 
@@ -235,7 +235,7 @@ class ConcurrentActivationTest(TransactionTestCase):
                     started.put(cursor.fetchone()[0])
                 copy = UserAccount.objects.get(pk=account.pk)
                 copy.account_status = ACCOUNT_STATUS_ACTIVE
-                copy.save()
+                copy.save(update_fields=update_fields)
                 stamped.put(copy.activation_date)
             except BaseException as error:
                 stamped.put(error)
@@ -256,3 +256,9 @@ class ConcurrentActivationTest(TransactionTestCase):
         self.assertGreater(stamped.get(timeout=BLOCKED_TIMEOUT), first.activation_date)
         account.refresh_from_db()
         self.assertEqual(account.activation_date, first.activation_date)
+
+    def test_two_first_activations_at_once_keep_the_earlier_date(self):
+        self.first_activation_keeps_its_date()
+
+    def test_a_concurrent_status_only_save_keeps_the_first_activation_date(self):
+        self.first_activation_keeps_its_date(update_fields=["account_status"])
