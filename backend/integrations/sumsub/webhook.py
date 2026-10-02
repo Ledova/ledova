@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from integrations.kyc.constants import (
+    PROVIDER_SUMSUB,
     STATUS_INIT,
     STATUS_ON_HOLD,
     STATUS_PENDING,
@@ -25,6 +26,21 @@ from users.models.user_profile import UserProfile
 from users.services import IdentityVerificationService
 
 logger = logging.getLogger(__name__)
+
+STATUS_BY_EVENT = {
+    SUMSUB_EVENT_APPLICANT_CREATED: STATUS_INIT,
+    SUMSUB_EVENT_APPLICANT_PENDING: STATUS_PENDING,
+    SUMSUB_EVENT_APPLICANT_ON_HOLD: STATUS_ON_HOLD,
+}
+
+
+def _record_status(user_profile, status):
+    user_profile.sumsub_verification_status = status
+    fields = ["sumsub_verification_status", "updated_at"]
+    if user_profile.kyc_provider == PROVIDER_SUMSUB:
+        user_profile.verification_status = status
+        fields.append("verification_status")
+    user_profile.save(update_fields=fields)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -68,22 +84,13 @@ class SumSubWebhookView(RunsOnTheOperatorConnection, APIView):
                 logger.warning("Rejected webhook: externalUserId matched no profile")
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-            if webhook_type == SUMSUB_EVENT_APPLICANT_CREATED:
-                user_profile.sumsub_verification_status = STATUS_INIT
-                user_profile.save()
-
-            elif webhook_type == SUMSUB_EVENT_APPLICANT_PENDING:
-                user_profile.sumsub_verification_status = STATUS_PENDING
-                user_profile.save()
+            if webhook_type in STATUS_BY_EVENT:
+                _record_status(user_profile, STATUS_BY_EVENT[webhook_type])
 
             elif webhook_type == SUMSUB_EVENT_APPLICANT_REVIEWED:
                 IdentityVerificationService.update_status_from_normalized(
                     user_profile, sumsub_service.normalize_webhook(data)
                 )
-
-            elif webhook_type == SUMSUB_EVENT_APPLICANT_ON_HOLD:
-                user_profile.sumsub_verification_status = STATUS_ON_HOLD
-                user_profile.save()
 
             else:
                 logger.warning("Unhandled webhook type: %s", webhook_type)

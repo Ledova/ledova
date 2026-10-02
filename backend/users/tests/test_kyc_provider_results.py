@@ -6,6 +6,8 @@ from rest_framework.test import APITestCase
 
 from compliance.constants import DOMESTIC_PEP_RISK_ADJUSTMENT
 from compliance.models import CustomerRiskAssessment
+from integrations.kyc.base import NormalizedVerificationResult
+from integrations.kyc.pep import pep_data_from_labels
 from integrations.kycaid.client import KYCAIDService
 from integrations.sumsub.client import SumSubService
 from integrations.tests.kycaid_payloads import (
@@ -31,9 +33,16 @@ def a_person(email, **profile_fields):
     return profile, account
 
 
-def sumsub_approval(*risk_labels):
-    return SumSubService().normalize_webhook(
-        {"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}, "riskLabels": list(risk_labels)}
+def sumsub_approval():
+    return SumSubService().normalize_webhook({"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}})
+
+
+def an_approval_of_a_pep(*evidence):
+    return NormalizedVerificationResult(
+        verification_status="completed",
+        review_result="GREEN",
+        is_verified=True,
+        pep_data=pep_data_from_labels(list(evidence)),
     )
 
 
@@ -135,7 +144,7 @@ class PoliticallyExposedPersonPolicyTest(TestCase):
         return account
 
     def test_a_domestic_pep_is_accepted_with_the_policy_adjustment(self):
-        account = self.approve("domestic-pep@example.test", sumsub_approval("domestic_pep"), kyc_provider="sumsub")
+        account = self.approve("domestic-pep@example.test", an_approval_of_a_pep("domestic_pep"))
 
         self.assertEqual(account.account_status, "active")
         assessment = CustomerRiskAssessment.objects.get(user_account=account, assessment_status="complete")
@@ -143,13 +152,13 @@ class PoliticallyExposedPersonPolicyTest(TestCase):
         self.assertEqual(assessment.customer_risk_score, 1 + DOMESTIC_PEP_RISK_ADJUSTMENT)
         self.assertEqual(assessment.pep_details, {"pep_type": "domestic", "details": ["domestic_pep"]})
 
-    def test_every_pep_the_policy_rejects_is_rejected_whichever_provider_reports_it(self):
+    def test_every_pep_category_the_policy_rejects_is_rejected(self):
         reports = {
-            "foreign_pep": sumsub_approval("foreign_pep"),
-            "international_org": sumsub_approval("international_org_pep"),
-            "family": sumsub_approval("pep_family_member"),
-            "associate": sumsub_approval("close_associate"),
-            "sumsub-uncategorised": sumsub_approval("PEP"),
+            "foreign_pep": an_approval_of_a_pep("foreign_pep"),
+            "international_org": an_approval_of_a_pep("international_org_pep"),
+            "family": an_approval_of_a_pep("pep_family_member"),
+            "associate": an_approval_of_a_pep("close_associate"),
+            "uncategorised": an_approval_of_a_pep("PEP"),
             "kycaid-flag": KYCAIDService().normalize_webhook(verification_completed(applicant=applicant(pep=True))),
         }
         for name, normalized in reports.items():

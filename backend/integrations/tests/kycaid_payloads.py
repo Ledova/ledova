@@ -8,6 +8,7 @@ VERIFICATION_ID = "5ca1ab1e0000400080000000000000000b22"
 FORM_ID = "5ca1ab1e0000400080000000000000000c33"
 FORM_TOKEN = "5ca1ab1e0000400080000000000000000d44"
 REQUEST_ID = "5ca1ab1e0000400080000000000000000e55"
+DOCUMENT_ID = "5ca1ab1e0000400080000000000000000f66"
 API_TOKEN = "synthetic-kycaid-token"
 
 DOCUMENTED_VERIFICATION_STATUSES = ("unused", "pending", "completed")
@@ -104,6 +105,19 @@ def status_changed(verification_status):
         "verification_id": VERIFICATION_ID,
         "verification_attempts_left": None,
         "request_id": REQUEST_ID,
+    }
+
+
+def database_screening(list_types, databases, **fields):
+    return {
+        "type": "DATABASE_SCREENING",
+        "document_id": DOCUMENT_ID,
+        "applicant_id": APPLICANT_ID,
+        "external_applicant_id": "synthetic-external-id",
+        "verification_id": VERIFICATION_ID,
+        "databases": list(databases),
+        "list_types": list(list_types),
+        **fields,
     }
 
 

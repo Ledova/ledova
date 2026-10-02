@@ -15,9 +15,11 @@ from integrations.kyc.base import (
     VerificationSession,
 )
 from integrations.kyc.constants import PROVIDER_SUMSUB, REVIEW_GREEN, STATUS_COMPLETED
-from integrations.kyc.pep import pep_data_from_labels
+from integrations.kyc.pep import PEP_LABEL, pep_data_from_labels
 
 logger = logging.getLogger(__name__)
+
+PEP_BUTTON = "pep"
 
 
 class SumSubService(KYCProvider):
@@ -120,10 +122,12 @@ class SumSubService(KYCProvider):
 
     @staticmethod
     def _extract_pep_data(status_data: Dict[str, Any]) -> Dict[str, Any]:
-        risk_labels = status_data.get("riskLabels", [])
-        applicant_risk_labels = status_data.get("applicantRiskLabels", [])
-        review_risk_labels = status_data.get("reviewResult", {}).get("riskLabels", [])
-        return pep_data_from_labels(risk_labels + applicant_risk_labels + review_risk_labels)
+        review_result = status_data.get("reviewResult") or {}
+        evidence = [label for label in review_result.get("rejectLabels") or [] if str(label).upper() == PEP_LABEL]
+        evidence += [
+            button for button in review_result.get("buttonIds") or [] if str(button).split("_")[-1] == PEP_BUTTON
+        ]
+        return pep_data_from_labels(evidence)
 
     @staticmethod
     def _extract_document_info(status_data: Dict[str, Any]) -> tuple:

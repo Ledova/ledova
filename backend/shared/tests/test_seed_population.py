@@ -282,7 +282,7 @@ class SyntheticPopulationTest(APITestCase):
         alerts = ComplianceAlert.objects.all()
 
         self.assertEqual(statuses, {"active", "pending", "suspended", "terminated", "rejected"})
-        self.assertTrue({"GREEN", "RED", "YELLOW"} <= results)
+        self.assertTrue({"GREEN", "RED"} <= results)
         self.assertEqual(set(alerts.values_list("status", flat=True)), {"new", "reviewing", "escalated", "closed"})
         self.assertEqual(alerts.filter(smr_required=True, smr_type="ml").count(), 1)
         self.assertFalse(alerts.exclude(status="new").filter(assigned_to__isnull=True).exists())
@@ -301,6 +301,19 @@ class SyntheticPopulationTest(APITestCase):
         )
         self.assertEqual(set(in_progress.values_list("review_result", flat=True)), {None})
         self.assertFalse(UserProfile.objects.filter(review_result="").exists())
+
+    def test_every_seeded_identity_check_is_one_its_provider_can_report(self):
+        reachable = {
+            "kycaid": {"init", "pending", "completed"},
+            "sumsub": {value for value, _ in VERIFICATION_STATUS_CHOICES},
+        }
+        checked = UserProfile.objects.exclude(verification_status=None)
+
+        for provider, status, result in checked.values_list("kyc_provider", "verification_status", "review_result"):
+            with self.subTest(provider=provider, status=status, result=result):
+                self.assertIn(status, reachable[provider])
+                self.assertIn(result, {None, "GREEN", "RED"})
+        self.assertTrue(checked.filter(kyc_provider="sumsub", review_result="RED").exists())
 
     def test_nothing_is_left_for_a_periodic_job_to_act_on(self):
         now = timezone.now()

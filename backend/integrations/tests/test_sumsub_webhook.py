@@ -104,3 +104,28 @@ class SumSubWebhookTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_status_events_record_the_status_the_apps_read(self):
+        for event, status in (
+            ("applicantCreated", "init"),
+            ("applicantPending", "pending"),
+            ("applicantOnHold", "onHold"),
+        ):
+            with self.subTest(event=event):
+                self.assertEqual(self.post_event(event).status_code, 200)
+                self.profile.refresh_from_db()
+                self.assertEqual(
+                    (self.profile.verification_status, self.profile.sumsub_verification_status), (status, status)
+                )
+
+    def test_a_status_event_for_a_profile_now_on_kycaid_leaves_the_status_the_apps_read(self):
+        self.profile.kyc_provider = "kycaid"
+        self.profile.verification_status = "pending"
+        self.profile.save(update_fields=["kyc_provider", "verification_status"])
+
+        self.assertEqual(self.post_event("applicantOnHold").status_code, 200)
+
+        self.profile.refresh_from_db()
+        self.assertEqual(
+            (self.profile.verification_status, self.profile.sumsub_verification_status), ("pending", "onHold")
+        )

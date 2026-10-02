@@ -104,6 +104,8 @@ ALERT_TYPE_MULTIPLE_ALERTS = "multiple_alerts"
 
 
 ALERT_TYPE_SANCTIONS_MATCH = "sanctions_match"
+ALERT_TYPE_PEP_MATCH = "pep_match"
+ALERT_TYPE_WATCHLIST_MATCH = "watchlist_match"
 ALERT_TYPE_LAW_ENFORCEMENT = "law_enforcement"
 ALERT_TYPE_TERRORISM_FINANCING = "terrorism_financing"
 ALERT_TYPE_SANCTIONS_LIST_UPDATE = "sanctions_list_update"
@@ -136,6 +138,8 @@ ALERT_TYPE_CHOICES = [
     (ALERT_TYPE_FAILED_DOCUMENTATION, "Failed Documentation Request"),
     (ALERT_TYPE_MULTIPLE_ALERTS, "Multiple Alerts (3+) Same Customer"),
     (ALERT_TYPE_SANCTIONS_MATCH, "Sanctions Match"),
+    (ALERT_TYPE_PEP_MATCH, "PEP Match"),
+    (ALERT_TYPE_WATCHLIST_MATCH, "Watchlist Match"),
     (ALERT_TYPE_LAW_ENFORCEMENT, "Law Enforcement Inquiry"),
     (ALERT_TYPE_TERRORISM_FINANCING, "Terrorism Financing Indicators"),
     (ALERT_TYPE_SANCTIONS_LIST_UPDATE, "New Sanctions List Publication"),
@@ -154,6 +158,8 @@ ALERT_SEVERITY_CHOICES = [
     (ALERT_SEVERITY_HIGH, "High"),
     (ALERT_SEVERITY_CRITICAL, "Critical"),
 ]
+
+IDENTITY_SCREENING_RULE = "KYC-SCREEN"
 
 ALERT_STATUS_NEW = "new"
 ALERT_STATUS_REVIEWING = "reviewing"

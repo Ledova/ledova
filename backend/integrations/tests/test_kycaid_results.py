@@ -1,6 +1,7 @@
 from django.test import SimpleTestCase
 
 from integrations.kyc.constants import VERIFICATION_STATUS_CHOICES
+from integrations.kyc.pep import pep_data_from_labels
 from integrations.kycaid.client import KYCAIDService
 from integrations.sumsub.client import SumSubService
 from integrations.tests.kycaid_payloads import (
@@ -111,7 +112,7 @@ class KYCAIDPoliticallyExposedPersonTest(SimpleTestCase):
     def test_a_pep_flag_on_the_applicant_is_recorded_as_sumsub_records_an_uncategorised_pep(self):
         uncategorised = {"pep_type": "foreign", "details": ["PEP"]}
         sumsub_pep = sumsub(
-            {"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}, "riskLabels": ["PEP"]}
+            {"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "RED", "rejectLabels": ["PEP"]}}
         ).pep_data
 
         for flag in (True, "true"):
@@ -161,24 +162,62 @@ class PEPClassificationTest(SimpleTestCase):
         "ADVERSE_MEDIA": "none",
     }
 
-    def test_sumsub_labels_are_classified_by_their_category_words_as_before(self):
+    def test_pep_evidence_is_classified_by_its_category_words(self):
         for label, expected in self.CATEGORY_LABELS.items():
             with self.subTest(label=label):
-                pep = sumsub({"reviewResult": {"reviewAnswer": "GREEN"}, "riskLabels": [label]}).pep_data
+                pep = pep_data_from_labels([label])
                 self.assertEqual(pep, NO_PEP if expected == "none" else {"pep_type": expected, "details": [label]})
 
     def test_the_first_label_naming_a_category_decides_and_every_label_is_kept(self):
         labels = ["SANCTIONS", "", "domestic_pep", "PEP"]
 
-        pep = sumsub(
-            {"riskLabels": labels[:2], "applicantRiskLabels": labels[2:3], "reviewResult": {"riskLabels": labels[3:]}}
-        )
+        self.assertEqual(pep_data_from_labels(labels), {"pep_type": "domestic", "details": labels})
 
-        self.assertEqual(pep.pep_data, {"pep_type": "domestic", "details": labels})
-
-    def test_kycaid_pep_evidence_is_classified_by_the_same_rule_as_sumsub_labels(self):
+    def test_kycaid_pep_evidence_is_classified_by_the_shared_rule(self):
         for label, expected in self.CATEGORY_LABELS.items():
             with self.subTest(label=label):
                 verifications = {"profile": check(True), "pep": check(False, label)}
                 kycaid_type = kycaid(verification_completed(verifications=verifications)).pep_data["pep_type"]
                 self.assertEqual(kycaid_type, "foreign" if expected == "none" else expected)
+
+
+def document(document_type, status, created_at):
+    return {"document_id": f"doc-{created_at}", "type": document_type, "status": status, "created_at": created_at}
+
+
+class KYCAIDIdentityDocumentTest(SimpleTestCase):
+    def test_the_document_type_is_the_applicants_latest_valid_identity_document(self):
+        documents = [
+            document("PASSPORT", "invalid", "2026-09-01 10:00:00"),
+            document("SELFIE_IMAGE", "valid", "2026-09-03 10:00:00"),
+            document("DRIVERS_LICENSE", "valid", "2026-09-02 10:00:00"),
+            document("PASSPORT", "valid", "2026-09-02 11:00:00"),
+            document("ADDRESS_DOCUMENT", "valid", "2026-09-04 10:00:00"),
+            document("DRIVERS_LICENSE", "invalid", "2026-09-05 10:00:00"),
+        ]
+
+        normalised = kycaid(verification_completed(applicant=applicant(documents=documents)))
+
+        self.assertEqual(normalised.document_type, "PASSPORT")
+
+    def test_without_a_valid_identity_document_the_latest_one_is_recorded(self):
+        documents = [
+            document("GOVERNMENT_ID", "invalid", "2026-09-01 10:00:00"),
+            document("PASSPORT", "invalid", "2026-09-02 10:00:00"),
+        ]
+
+        normalised = kycaid(verification_completed(verified=False, applicant=applicant(documents=documents)))
+
+        self.assertEqual(normalised.document_type, "PASSPORT")
+
+    def test_no_document_country_is_recorded_because_kycaid_documents_none(self):
+        documents = [document("PASSPORT", "valid", "2026-09-02 10:00:00")]
+        verifications = {"document": {"verified": True, "comment": "", "decline_reasons": [], "country": "GB"}}
+
+        normalised = kycaid(
+            verification_completed(
+                verifications=verifications, applicant=applicant(nationality="GB", documents=documents)
+            )
+        )
+
+        self.assertEqual((normalised.document_type, normalised.document_country), ("PASSPORT", None))
