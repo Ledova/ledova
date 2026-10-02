@@ -1,7 +1,8 @@
 from django.contrib import admin
 
-from compliance.admin._helpers import GREEN, GREY, RED, YELLOW, admin_link, badge
+from compliance.admin._helpers import GREEN, GREY, RED, YELLOW, badge
 from compliance.models import AlertChecklistItem
+from shared.utils.admin_display import admin_link
 
 
 @admin.register(AlertChecklistItem)

@@ -8,6 +8,10 @@ Enter through `/admin/operators/operator/`. It creates the singleton if missing
 and opens the console, with a link to `/admin/operators/operator/1/change/`.
 Opening the change URL alone on a fresh installation redirects to the admin index.
 `GET /api/operator/` also creates the row lazily, using `OPERATOR_NAME` when needed.
+The console needs the operator's view or change permission, as the configuration
+page does; any other staff member gets the admin's refusal, and nothing is created.
+Adding the row by hand also needs the add permission. In the demo data the
+operations officer and the superuser can open the console.
 
 | Admin section | Fields |
 | --- | --- |
@@ -63,6 +67,21 @@ register audit. Both open the unfiltered whitelist changelist because
 missing entries cannot be represented by a filter. Use the issuer's register view
 to locate the address, then resolve duplicates or link/add the correct named wallet.
 See [register identity](../architecture/register.md).
+
+### The market
+
+The console's **Orders** and **Settlements** buttons open the admin's transfer
+orders and swap orders, and appear only to a staff member allowed to view them.
+With **Order submissions**, every signed request to place an order, refused ones
+included with the reason, they show the whole market read-only: no one can add,
+change or delete a row on these pages, whatever their permissions, because an
+order changes only through its owner's signed actions and the worker. An order
+links to its share class, owner, wallet, signed admission, cancel and modify
+actions and settlements. A settlement links to both orders, their wallets and
+their owners, and shows the relayed transaction with its status and block, and
+the participants' approvals. The admin runs on the operator connection, so these
+pages show every trader's records, which row-level security keeps from everyone
+else. Like the worklists, they read only the database.
 
 ## Seeding
 

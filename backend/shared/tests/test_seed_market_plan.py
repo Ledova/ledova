@@ -548,3 +548,9 @@ class SmallMarketPlanTest(TestCase):
             }
             <= set(PERMISSIONS["operations"])
         )
+
+    def test_the_operations_officer_can_see_the_market_in_the_admin(self):
+        self.assertTrue(
+            {"tokens.view_transferorder", "tokens.view_swaporder", "tokens.view_ordersubmission"}
+            <= set(PERMISSIONS["operations"])
+        )

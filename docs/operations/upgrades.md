@@ -172,6 +172,17 @@ reads its digits as hexadecimal, so a stale tab would have signed 0.001 ETH as
 1.152921504606846976 ETH. Current clients still read a safe JSON number from an
 older backend. No database migration is needed.
 
+## Finished job records are removed
+
+The worker now runs `remove_old_jobs` daily at 04:30 UTC, which deletes
+succeeded job records seven days after they finished and failed, cancelled and
+aborted ones thirty days after; [the job schedule](jobs.md#removing-old-job-records)
+says why. Nothing removed them before, so the first run after the upgrade
+deletes the whole backlog in one statement, which can take a minute on a
+deployment that has run for months. Copy any older records worth keeping out of
+`procrastinate_jobs` and `procrastinate_events` before upgrading. No database
+migration is needed.
+
 ## Database migrations
 
 - `companies/0003_delete_review_and_signature_models` (with

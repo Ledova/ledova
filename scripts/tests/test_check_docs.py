@@ -51,11 +51,11 @@ def a_tree(documents: dict[str, str], scripts: tuple[str, ...] = ()):
             gate.REPO_ROOT = original
 
 
-def a_backend_task(root: Path, module: str, cron: str, name: str) -> None:
+def a_backend_task(root: Path, module: str, cron: str, name: str, definition: str = "def") -> None:
     path = root / "backend" / module
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f'@app.periodic(cron="{cron}")\n@app.task\ndef {name}(timestamp: int = 0):\n    return None\n',
+        f'@app.periodic(cron="{cron}")\n@app.task\n{definition} {name}(timestamp: int = 0):\n    return None\n',
         encoding="utf-8",
     )
 
@@ -191,6 +191,18 @@ class ThePeriodicTaskRuleSeesBothDirections(unittest.TestCase):
             findings = gate.periodic_findings()
         self.assertEqual(len(findings), 1)
         self.assertIn("which is not an @app.periodic task", findings[0])
+
+    def test_an_async_task_in_no_schedule_row_is_a_finding(self):
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `something_else` |")}) as root:
+            a_backend_task(root, "shared/tasks/queue.py", "30 4 * * *", "tidy_the_queue", "async def")
+            findings = gate.periodic_findings()
+        self.assertEqual(len(findings), 2)
+        self.assertIn("`tidy_the_queue` (30 4 * * *) is in no schedule row", findings[0])
+
+    def test_a_documented_async_task_is_not_a_finding(self):
+        with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `tidy_the_queue` |")}) as root:
+            a_backend_task(root, "shared/tasks/queue.py", "30 4 * * *", "tidy_the_queue", "async def")
+            self.assertEqual(gate.periodic_findings(), [])
 
     def test_a_documented_task_is_not_a_finding(self):
         with a_tree({"docs/operations/jobs.md": a_schedule("| daily | `purge_the_thing` |")}) as root:

@@ -1,3 +1,4 @@
+from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 
 BUTTON_STYLE = (
@@ -17,3 +18,10 @@ def action_buttons(items):
     if not items:
         return "-"
     return format_html_join(" ", "{}", ((_button(*item),) for item in items))
+
+
+def admin_link(obj, label=None):
+    if obj is None:
+        return "-"
+    url = reverse(f"admin:{obj._meta.app_label}_{obj._meta.model_name}_change", args=[obj.pk])
+    return format_html('<a href="{}">{}</a>', url, str(obj)[:50] if label is None else label)
