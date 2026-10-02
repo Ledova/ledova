@@ -139,6 +139,34 @@ it('keeps recorded orders visible without any currently selected share class', (
   fireEvent.click(screen.getByText('Yes'));
   expect(cancel).toHaveBeenCalledWith(order.uuid);
 });
+it.each([
+  ['open', 'Open', true],
+  ['partially_filled', 'Partially Filled', true],
+  ['held', 'Partially Filled, Remainder Held Back', true],
+  ['pending_signature', 'Pending Signature', false],
+  ['completed', 'Completed', false],
+  ['cancelled', 'Cancelled', false],
+] as const)('shows a %s order by its status and offers changes only while it can change', (status, label, changes) => {
+  render(
+    <OrdersPanel
+      tokenSymbol={null}
+      orderBook={null}
+      isLoadingOrderBook={false}
+      userOrders={[{ ...order, status, statusDisplay: label }]}
+      isLoadingUserOrders={false}
+      onCancelOrder={vi.fn()}
+      onEditOrder={vi.fn()}
+      swaps={[]}
+      isLoadingSwaps={false}
+      wallets={[]}
+      settlementOwner={null}
+      onSignSwap={vi.fn()}
+    />,
+  );
+  expect(screen.getByText(label)).toBeTruthy();
+  expect(screen.queryAllByTitle('Modify')).toHaveLength(changes ? 1 : 0);
+  expect(screen.queryAllByTitle('Cancel')).toHaveLength(changes ? 1 : 0);
+});
 it('keeps listed supply exact and hides stale listed classes on a read error', () => {
   const props = {
     tokens: [token],

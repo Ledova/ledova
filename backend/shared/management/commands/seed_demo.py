@@ -368,6 +368,10 @@ class Command(BaseCommand):
             f"  orders         {sum(counts['orders'].values())} ({listed(counts['orders'])}); "
             f"matches {listed(counts['swaps'])}",
             f"  last prices    {prices}",
+            *(
+                f"  held back      {owner}'s {side} of {quantity} {label} at {price}, since its match lapsed"
+                for owner, side, quantity, label, price in counts["held"]
+            ),
             f"  notices        {sum(counts['notices'].values())} ({listed(counts['notices'])}); resolutions "
             f"{listed(counts['resolutions'])}; {counts['ballots']} ballots, {counts['payments']} dividend payments",
         ]

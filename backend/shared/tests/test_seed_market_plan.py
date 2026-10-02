@@ -28,6 +28,7 @@ from shared.seeds.synthetic.market.story import (
     BUY,
     CANCELLED,
     FILLED,
+    HELD,
     MARKETS,
     OPEN,
     PARTIAL,
@@ -143,7 +144,7 @@ class Replay:
         self.placed = {}
         self.crossed = []
         self.cancelled = set()
-        self.open_lapses = set()
+        self.held = set()
 
     def best(self, order):
         others = [
@@ -166,8 +167,6 @@ class Replay:
         self.placed[order.key] = moment
 
     def check_spread(self, listing):
-        if self.open_lapses:
-            return
         resting = [order for order in self.book[listing].values() if self.remaining[order.key] > 0]
         bids = [order.price for order in resting if order.side == BUY]
         asks = [order.price for order in resting if order.side == SELL]
@@ -184,13 +183,14 @@ class Replay:
                 taker = self.plan.order(item.taker)
                 maker = self.best(taker)
                 assert maker is not None and maker.key == item.maker, f"{key} would not match {item.maker}"
-                self.rest(taker, moment)
-                self.open_lapses.add(key)
+                self.remaining[key] = taker.quantity
+                self.held.add(key)
+                self.check_spread(item.listing)
             else:
-                assert key in self.book[item.listing], f"{key} is cancelled without resting"
-                del self.book[item.listing][key]
+                assert key in self.book[item.listing] or key in self.held, f"{key} is cancelled without resting"
+                self.book[item.listing].pop(key, None)
+                self.held.discard(key)
                 self.cancelled.add(key)
-                self.open_lapses.discard(key)
                 self.check_spread(item.listing)
         later = max(self.placed.values()) + timedelta(days=1)
         for number, fill in enumerate(self.plan.today()):
@@ -209,6 +209,8 @@ class Replay:
     def fate(self, order):
         if order.key in self.cancelled:
             return CANCELLED
+        if order.key in self.held:
+            return HELD
         filled = order.quantity - self.remaining.get(order.key, order.quantity)
         return FILLED if filled == order.quantity else PARTIAL if filled else OPEN
 
@@ -270,13 +272,36 @@ class MarketPlanTest(TestCase):
             planned = sum(len(takes) for takes in (*spec.asks, *spec.bids))
             self.assertGreaterEqual(trades[spec.listing], planned, spec.listing)
 
-    def test_orders_cover_every_status_a_market_shows_and_two_matches_lapse(self):
-        self.assertEqual({order.fate for order in self.plan.orders}, {OPEN, PARTIAL, FILLED, CANCELLED})
-        self.assertEqual(len(self.plan.lapses()), 2)
+    def test_orders_cover_every_status_a_market_shows_and_one_lapse_leaves_its_order_held(self):
+        self.assertEqual({order.fate for order in self.plan.orders}, {OPEN, PARTIAL, FILLED, CANCELLED, HELD})
+        self.assertEqual(len(self.plan.lapses()), 3)
+        held = []
         for fill in self.plan.lapses():
             taker = self.plan.order(fill.taker)
+            if taker.fate == HELD:
+                held.append((taker, self.plan.order(fill.maker)))
+                continue
             self.assertEqual(taker.fate, CANCELLED)
             self.assertLess(taker.cancelled_at - taker.placed_at, timedelta(hours=1))
+        ((taker, maker),) = held
+        self.assertIsNone(taker.cancelled_at)
+        self.assertEqual(taker.price, maker.price)
+        self.assertEqual((maker.fate, maker.filled), (OPEN, 0))
+        self.assertEqual([order.key for order in self.plan.orders if order.fate == HELD], [taker.key])
+
+    def test_the_held_order_leaves_the_rest_of_the_plan_as_it_was(self):
+        markets = tuple(spec._replace(held="") for spec in MARKETS)
+        with patch("shared.seeds.synthetic.market.story.MARKETS", markets):
+            without, _, _ = build(self.found, self.now)
+
+        held = {order.key for order in self.plan.orders if order.fate == HELD}
+        self.assertEqual(len(held), 1)
+        self.assertEqual(without.orders, tuple(order for order in self.plan.orders if order.key not in held))
+        self.assertEqual(without.fills, tuple(fill for fill in self.plan.fills if fill.taker not in held))
+        self.assertEqual(
+            (without.deposits, without.notices, without.holdings),
+            (self.plan.deposits, self.plan.notices, self.plan.holdings),
+        )
 
     def test_the_investor_tester_has_orders_in_four_statuses_and_buys_a_class_into_a_new_wallet(self):
         mine = [order for order in self.plan.orders if order.investor == TESTER]

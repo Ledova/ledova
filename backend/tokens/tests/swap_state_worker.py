@@ -60,6 +60,10 @@ def run(mode, row_id, detail):
     row = SwapOrder.objects.get(pk=row_id)
     test_case = TestCase()
     service = swap_service(test_case)
+    if mode == "reverse_inclusion":
+        from shared.tests.schema import migrate_to
+
+        migrate_to([("tokens", "0063_swap_finalized_receipt")])
     report("loaded")
     command("run")
 

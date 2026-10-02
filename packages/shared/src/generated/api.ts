@@ -4477,15 +4477,7 @@ export interface ApiComponents {
       walletAddress: string;
     };
     TransferOrderStatusEnum:
-      | 'open'
-      | 'partially_filled'
-      | 'matched'
-      | 'pending_signature'
-      | 'executing'
-      | 'completed'
-      | 'cancelled'
-      | 'expired'
-      | 'failed';
+      'open' | 'partially_filled' | 'held' | 'matched' | 'pending_signature' | 'completed' | 'cancelled';
     TransferOrderTypeEnum: 'buy' | 'sell';
     TypeEnum: 'share_token' | 'stablecoin';
     UnreadCountResponse: {
@@ -9159,6 +9151,8 @@ export interface ApiOperations {
 export type TradingEventType =
   | 'order_cancelled'
   | 'order_created'
+  | 'order_held'
+  | 'order_listed'
   | 'order_matched'
   | 'order_modified'
   | 'swap_completed'
