@@ -274,6 +274,7 @@ ROUTES = (
     Route("post", "/api/v1/offerings/{offering}/submit/", {}, prepare=_activate_company),
     Route("post", "/api/v1/offerings/{offering}/withdraw/", {}),
     Route("get", "/api/v1/offerings/{offering}/subscriptions/"),
+    Route("post", "/api/v1/offerings/{offering}/documents/", {"documents": ["{company_document}"]}),
     Route("post", "/api/v1/offerings/", {"token": "{deployed_token}", **OFFERING}, foreign=400),
     Route("get", "/api/v1/subscriptions/{subscription}/"),
     Route("post", "/api/v1/subscriptions/{subscription}/submit/", {}, prepare=_open_the_offering_to_the_actor),
@@ -449,6 +450,8 @@ def _fill(value, context):
         return value.format_map(context)
     if isinstance(value, dict):
         return {key: _fill(item, context) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_fill(item, context) for item in value]
     return value
 
 

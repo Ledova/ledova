@@ -911,6 +911,22 @@ export interface ApiPaths {
     patch: ApiOperations['api_v1_offerings_partial_update'];
     trace?: never;
   };
+  '/api/v1/offerings/{uuid}/documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_offerings_documents_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/offerings/{uuid}/submit/': {
     parameters: {
       query?: never;
@@ -3026,6 +3042,9 @@ export interface ApiComponents {
       updatedAt: string;
       useOfProceeds: string;
       uuid: string;
+    };
+    OfferingDocumentsRequest: {
+      documents: string[];
     };
     OfferingList: {
       canBeDeleted: boolean;
@@ -6394,6 +6413,33 @@ export interface ApiOperations {
         'application/json': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
         'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
         'multipart/form-data': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['OfferingDetail'];
+        };
+      };
+    };
+  };
+  api_v1_offerings_documents_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['OfferingDocumentsRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingDocumentsRequest'];
+        'multipart/form-data': ApiComponents['schemas']['OfferingDocumentsRequest'];
       };
     };
     responses: {

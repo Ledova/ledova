@@ -1,5 +1,6 @@
 from offerings.services.documents import published_document, published_documents
 from offerings.services.offering import (
+    attach_documents,
     submit_offering,
     transition_offering,
     unissued_headroom,
@@ -33,6 +34,7 @@ __all__ = [
     "accept",
     "allot",
     "allot_batch",
+    "attach_documents",
     "build_instruction",
     "cap_headroom",
     "confirm_payment",

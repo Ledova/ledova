@@ -6,6 +6,7 @@ from offerings.serializers.directory import (
 )
 from offerings.serializers.offering import (
     OfferingDetailSerializer,
+    OfferingDocumentsSerializer,
     OfferingListSerializer,
     OfferingWithdrawSerializer,
     OfferingWriteSerializer,
@@ -24,6 +25,7 @@ __all__ = [
     "DirectoryDocumentSerializer",
     "DirectoryTokenListSerializer",
     "OfferingDetailSerializer",
+    "OfferingDocumentsSerializer",
     "OfferingListSerializer",
     "OfferingWithdrawSerializer",
     "OfferingWriteSerializer",
