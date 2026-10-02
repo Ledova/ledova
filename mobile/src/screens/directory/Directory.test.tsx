@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { RefreshControl } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { ApiClientProvider, OFFER_DOCUMENT_COPY } from '@ledova/shared';
@@ -326,6 +327,20 @@ it('keeps a failed document read distinct from having none and retries it alone'
   failure = null;
   await fireEvent.press(view.getByText(OFFER_DOCUMENT_COPY.RETRY));
   expect(await view.findByLabelText('View Information memorandum')).toBeTruthy();
+});
+
+it('pulls a document added to an approved offering into the page when the investor refreshes it', async () => {
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByLabelText('View Information memorandum')).toBeTruthy();
+  documents = [memorandum, { ...memorandum, uuid: 'supplement', name: 'Supplementary memorandum' }];
+
+  await act(async () => {
+    (RefreshControl as unknown as { latestRef: { props: { onRefresh: () => void } } }).latestRef.props.onRefresh();
+  });
+
+  expect(await view.findByLabelText('View Supplementary memorandum')).toBeTruthy();
+  expect(view.getByLabelText('View Information memorandum')).toBeTruthy();
+  expect(get.mock.calls.filter(([url]) => url === documentsUrl)).toHaveLength(2);
 });
 
 it('does not read documents for a class that is not available to the investor', async () => {
