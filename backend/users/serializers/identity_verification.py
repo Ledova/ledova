@@ -1,6 +1,20 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from integrations.kyc.constants import (
+    NEUTRAL_REJECTION_LABEL,
+    SCREENING_REJECTION_LABELS,
+)
+
+
+def reasons_for_the_applicant(labels) -> list:
+    reasons = []
+    for label in labels or []:
+        shown = NEUTRAL_REJECTION_LABEL if str(label).upper() in SCREENING_REJECTION_LABELS else label
+        if shown not in reasons:
+            reasons.append(shown)
+    return reasons
+
 
 class ExtractedApplicantDataSerializer(serializers.Serializer):
     full_name = serializers.CharField(allow_null=True)
@@ -16,4 +30,5 @@ class ExtractedApplicantDataField(serializers.JSONField):
 
 @extend_schema_field(serializers.ListField(child=serializers.CharField()))
 class RejectionLabelsField(serializers.JSONField):
-    pass
+    def to_representation(self, value):
+        return super().to_representation(reasons_for_the_applicant(value))

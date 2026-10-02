@@ -577,7 +577,7 @@ it('retires the real QR scan callback after closing and executes the next action
   expect(await orderActionStore.list(owner)).toHaveLength(1);
 });
 
-it.each(['executing', 'failed'])(
+it.each(['held', 'completed'])(
   'recovers original modification and separately displays the later %s order',
   async (status) => {
     render(<TradingPage />, { wrapper });
@@ -586,7 +586,7 @@ it.each(['executing', 'failed'])(
       const reply = await ordinary(config);
       if (config.method === 'post') throw new Error('Synthetic lost committed response');
       reply.data.order.status = status;
-      reply.data.order.statusDisplay = status === 'executing' ? 'Executing' : 'Failed';
+      reply.data.order.statusDisplay = status === 'held' ? 'Held Back' : 'Completed';
       return reply;
     };
     sign();
@@ -595,7 +595,7 @@ it.each(['executing', 'failed'])(
     fireEvent.click(screen.getByText('Check change status'));
     await waitFor(() => expect(screen.getByText('Original action recovered')).toBeTruthy());
     expect(screen.getByText('price per share: 12.50 → 14.00')).toBeTruthy();
-    expect(screen.getByText(`Current order status: ${status === 'executing' ? 'Executing' : 'Failed'}`)).toBeTruthy();
+    expect(screen.getByText(`Current order status: ${status === 'held' ? 'Held Back' : 'Completed'}`)).toBeTruthy();
     expect(requests.slice(count).map((request) => request.url)).toEqual([endpoints.ACTION(actionId)]);
     expect(executes()).toHaveLength(1);
     expect(await orderActionStore.list(owner)).toHaveLength(0);

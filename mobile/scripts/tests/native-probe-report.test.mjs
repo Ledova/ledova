@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import https from 'node:https';
 import vm from 'node:vm';
+import { URL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -288,3 +289,111 @@ test('the report server retains only allowlisted failure category and stage valu
   assert.equal(await server.post({ checks: [{ ...check, passed: true }] }), 200);
   assert.deepEqual(server.result().checks, [{ name: check.name, passed: true }]);
 });
+
+async function publication(filename) {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ledova-probe-publication-')));
+  const output = path.join(root, 'results');
+  fs.mkdirSync(path.join(root, 'scripts'));
+  fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
+  for (const module of ['android-test-packages.mjs', 'screen-content.mjs']) {
+    fs.copyFileSync(path.join(mobile, 'scripts', module), path.join(root, 'scripts', module));
+  }
+  let server = fs.readFileSync(path.join(mobile, 'scripts/native-probe-server.mjs'), 'utf8');
+  const created = 'fs.mkdirSync(directory, { recursive: true });';
+  assert.ok(server.includes(created));
+  server = server.replace(
+    created,
+    `${created}
+const actualWrite = fs.writeFileSync;
+fs.writeFileSync = (target, ...args) => {
+  if (path.basename(target).replace(/\\.tmp$/, '') === ${JSON.stringify(filename)}) {
+    actualWrite(target, '');
+    actualWrite(target + '.opened', String(process.pid));
+    const deadline = Date.now() + 90000;
+    while (!fs.existsSync(target + '.release')) {
+      if (Date.now() >= deadline) throw new Error('Synthetic publication was not released.');
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+    }
+  }
+  return actualWrite(target, ...args);
+};`,
+  );
+  fs.writeFileSync(path.join(root, 'scripts/native-probe-server.mjs'), server);
+  let runner = fs.readFileSync(path.join(mobile, 'scripts/native-smoke.mjs'), 'utf8');
+  const boundary = "  const ca = fs.readFileSync(path.join(directory, 'server/ca.pem'));";
+  assert.ok(runner.includes(boundary));
+  runner = runner.replace(
+    boundary,
+    `
+  const checks = [{ name: 'direct', passed: true }, { name: 'native 307 refusal', passed: false,
+    failure: { category: 'assertion', stage: 'check' } }];
+  const posted = new Promise((resolve, reject) => {
+    const request = http.request(new URL('/report', endpoints.httpUrl), { method: 'POST' }, (response) => {
+      response.resume();
+      response.on('end', resolve);
+    });
+    request.on('error', reject);
+    request.end(JSON.stringify({ checks }));
+  });
+  const report = await waitFor(path.join(directory, 'server/result.json'), 120000, server);
+  await posted;
+  fs.writeFileSync(path.join(directory, 'publication-proof.json'), JSON.stringify({ endpoints, report }));
+  throw new Error('Synthetic publication checks passed.');
+${boundary}`,
+  );
+  fs.writeFileSync(path.join(root, 'scripts/native-smoke.mjs'), runner);
+  const child = spawn(process.execPath, [path.join(root, 'scripts/native-smoke.mjs'), 'ios', output], {
+    cwd: root,
+    env: { ...process.env, IOS_SIMULATOR_UDID: 'synthetic-publication-control' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let stderr = '';
+  child.stderr.on('data', (chunk) => (stderr += chunk));
+  child.stdout.resume();
+  const done = new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('close', (code) => resolve(code));
+  });
+  let opened;
+  try {
+    const deadline = Date.now() + 90000;
+    while (!opened) {
+      opened = [filename, `${filename}.tmp`]
+        .map((name) => path.join(output, 'server', `${name}.opened`))
+        .find((name) => fs.existsSync(name));
+      if (opened) break;
+      assert.equal(child.exitCode, null, stderr);
+      assert.ok(Date.now() < deadline, `Timed out waiting for the actual ${filename} writer.`);
+      await delay(20);
+    }
+    assert.equal(
+      fs.existsSync(path.join(output, 'server', filename)),
+      false,
+      `${filename} became visible before the actual writer completed it.`,
+    );
+    fs.writeFileSync(opened.replace(/\.opened$/, '.release'), 'continue');
+    assert.equal(await done, 1, stderr);
+    assert.match(stderr, /Synthetic publication checks passed\./);
+    assert.doesNotMatch(stderr, /Unexpected end of JSON input/);
+    const proof = JSON.parse(fs.readFileSync(path.join(output, 'publication-proof.json'), 'utf8'));
+    for (const key of ['apiUrl', 'targetUrl', 'httpUrl', 'untrustedUrl']) {
+      assert.ok(new URL(proof.endpoints[key]).port);
+    }
+    assert.deepEqual(proof.report.checks, [
+      { name: 'direct', passed: true },
+      { name: 'native 307 refusal', passed: false, failure: { category: 'assertion', stage: 'check' } },
+    ]);
+    assert.equal(proof.report.counts.http, 1);
+  } finally {
+    if (opened) fs.writeFileSync(opened.replace(/\.opened$/, '.release'), 'continue');
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+    await done;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+for (const filename of ['config.json', 'result.json']) {
+  test(`${filename} stays unpublished until complete, then the actual probe reader consumes it`, async () => {
+    await publication(filename);
+  });
+}

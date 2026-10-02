@@ -8,7 +8,10 @@ from rest_framework.viewsets import ViewSet
 
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from users.models import UserProfile
-from users.serializers.identity_verification import ExtractedApplicantDataField
+from users.serializers.identity_verification import (
+    ExtractedApplicantDataField,
+    reasons_for_the_applicant,
+)
 from users.services import IdentityVerificationService
 
 
@@ -61,7 +64,6 @@ class IdentityVerificationViewSet(SetsThePrincipalOnTheConnection, ViewSet):
     @action(detail=False, methods=["get"], url_path="status")
     def verification_status(self, request):
         user_profile = get_object_or_404(UserProfile, user=request.user)
-        return Response(
-            IdentityVerificationService.get_verification_status(user_profile),
-            status=status.HTTP_200_OK,
-        )
+        verification = IdentityVerificationService.get_verification_status(user_profile)
+        verification["rejectionLabels"] = reasons_for_the_applicant(verification.get("rejectionLabels"))
+        return Response(verification, status=status.HTTP_200_OK)

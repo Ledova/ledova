@@ -2290,6 +2290,12 @@ export interface ApiComponents {
       isActive?: boolean;
       uuid: string;
     };
+    AssetShareClass: {
+      companyName: string;
+      name: string;
+      symbol: string;
+      uuid: string;
+    };
     AssetTypeEnum:
       'native_crypto' | 'erc20_token' | 'stablecoin' | 'tokenized_security' | 'tokenized_rwa' | 'synthetic';
     AuthCookieRefreshed: {
@@ -2886,17 +2892,12 @@ export interface ApiComponents {
       lastSyncedAt: string | null;
       marketValue: string | null;
       quantity: string;
-      shareClass: ApiComponents['schemas']['HoldingShareClass'] | null;
+      shareClass: ApiComponents['schemas']['AssetShareClass'] | null;
       updatedAt: string;
       uuid: string;
       valueSource: ApiComponents['schemas']['ValueSourceEnum'];
       walletAddress: string;
       walletUuid: string;
-    };
-    HoldingShareClass: {
-      companyName: string;
-      name: string;
-      uuid: string;
     };
     HttpStatusEnum: 400 | 409;
     IdentitySourceEnum:
@@ -4433,6 +4434,7 @@ export interface ApiComponents {
       createdAt: string;
       fromAddress: string;
       marketValue: string | null;
+      shareClass: ApiComponents['schemas']['AssetShareClass'] | null;
       status: ApiComponents['schemas']['TransactionStatusEnum'];
       toAddress: string | null;
       transactionFee: string | null;
@@ -4475,15 +4477,7 @@ export interface ApiComponents {
       walletAddress: string;
     };
     TransferOrderStatusEnum:
-      | 'open'
-      | 'partially_filled'
-      | 'matched'
-      | 'pending_signature'
-      | 'executing'
-      | 'completed'
-      | 'cancelled'
-      | 'expired'
-      | 'failed';
+      'open' | 'partially_filled' | 'held' | 'matched' | 'pending_signature' | 'completed' | 'cancelled';
     TransferOrderTypeEnum: 'buy' | 'sell';
     TypeEnum: 'share_token' | 'stablecoin';
     UnreadCountResponse: {
@@ -9157,6 +9151,8 @@ export interface ApiOperations {
 export type TradingEventType =
   | 'order_cancelled'
   | 'order_created'
+  | 'order_held'
+  | 'order_listed'
   | 'order_matched'
   | 'order_modified'
   | 'swap_completed'

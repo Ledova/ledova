@@ -30,6 +30,12 @@ def _is_risk_score(value) -> bool:
     return type(value) is float and math.isfinite(value) and value >= 0
 
 
+def _flagged_signals(signals) -> list:
+    if isinstance(signals, dict):
+        return [name for name, share in signals.items() if _is_risk_score(share) and share > 0]
+    return signals if isinstance(signals, list) else []
+
+
 def _locked(screening) -> TransactionScreening:
     return TransactionScreening.objects.select_for_update().get(pk=screening.pk)
 
@@ -80,6 +86,7 @@ class CryptoScreeningService:
                 return screening
             screening.status = SCREENING_STATUS_PENDING
             screening.error_message = None
+            screening.provider = self.provider_name
             screening.save()
         return self._submit(screening)
 
@@ -142,6 +149,8 @@ class CryptoScreeningService:
             if screening.status == SCREENING_STATUS_COMPLETED:
                 return screening
             screening.raw_response = response
+            if isinstance(response.get("requestId"), str) and response["requestId"]:
+                screening.provider_transaction_id = response["requestId"]
             if not _is_risk_score(response.get("riskScore")):
                 screening.save()
                 logger.warning(f"Screening {screening.pk} left {screening.status}: no valid risk score")
@@ -163,7 +172,9 @@ class CryptoScreeningService:
 
     def _create_alert(self, screening: TransactionScreening, severity: str) -> ComplianceAlert:
         sanctioned = any(
-            keyword in str(signal).lower() for signal in screening.risk_signals for keyword in SANCTIONS_KEYWORDS
+            keyword in str(signal).lower()
+            for signal in _flagged_signals(screening.risk_signals)
+            for keyword in SANCTIONS_KEYWORDS
         )
         alert = ComplianceAlert.objects.create(
             user_account=screening.user_account,

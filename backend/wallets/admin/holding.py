@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from shared.utils.share_classes import share_class_label
 from wallets.models import Holding
 
 
@@ -8,7 +9,7 @@ class HoldingAdmin(admin.ModelAdmin):
     list_display = (
         "uuid",
         "wallet_address_short",
-        "asset_symbol",
+        "asset_label",
         "quantity",
         "market_value_display",
         "last_synced_at",
@@ -36,13 +37,16 @@ class HoldingAdmin(admin.ModelAdmin):
     ordering = ("-quantity",)
     list_select_related = ("wallet", "asset")
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).with_share_class()
+
     @admin.display(description="Wallet", ordering="wallet__address")
     def wallet_address_short(self, obj):
         return f"{obj.wallet.address[:10]}..."
 
     @admin.display(description="Asset", ordering="asset__symbol")
-    def asset_symbol(self, obj):
-        return obj.asset.symbol
+    def asset_label(self, obj):
+        return share_class_label(obj) or obj.asset.symbol
 
     @admin.display(description="Market Value (USD)")
     def market_value_display(self, obj):

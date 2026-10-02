@@ -25,6 +25,7 @@ from shared.seeds.synthetic.market.texts import NOTICE_SPECS
 from shared.seeds.synthetic.plan import SEED, stream
 
 MARKET_STREAM = "market"
+HELD_STREAM = "market-held"
 CENT = Decimal("0.01")
 LOT = 100
 BUY = "buy"
@@ -33,6 +34,7 @@ OPEN = "open"
 PARTIAL = "partially_filled"
 FILLED = "completed"
 CANCELLED = "cancelled"
+HELD = "held"
 REST = "rest"
 FOR = "for"
 AGAINST = "against"
@@ -62,6 +64,7 @@ class MarketSpec(NamedTuple):
     open_bids: tuple
     cancels: tuple = ()
     lapse: str = ""
+    held: str = ""
 
 
 class TesterSlot(NamedTuple):
@@ -115,6 +118,7 @@ MARKETS = (
         bids=(),
         open_asks=(0.05, 0.09),
         open_bids=(-0.03, -0.06),
+        held=SELL,
     ),
 )
 TESTER_SLOTS = (
@@ -161,6 +165,7 @@ class Book:
 class MarketStory:
     def __init__(self, now, listings, traders, seed):
         self.rng = stream(MARKET_STREAM, seed)
+        self.held_rng = stream(HELD_STREAM, seed)
         self.calendar = Calendar(now)
         self.now = self.calendar.anchor
         self.start = self.now - timedelta(days=HISTORY_DAYS)
@@ -197,12 +202,13 @@ class MarketStory:
         local = datetime.combine(self.calendar.today - timedelta(days=days), time(hour, minute), AEST)
         return utc(local)
 
-    def moment(self, earliest, latest):
+    def moment(self, earliest, latest, rng=None):
+        rng = rng or self.rng
         earliest = max(earliest, self.start)
         if latest <= earliest:
             return None
         for _ in range(40):
-            seconds = self.rng.randint(0, int((latest - earliest).total_seconds()))
+            seconds = rng.randint(0, int((latest - earliest).total_seconds()))
             moment = (earliest + timedelta(seconds=seconds)).replace(microsecond=0)
             local = moment.astimezone(AEST)
             if 7 <= local.hour < 22:
@@ -334,17 +340,19 @@ class MarketStory:
                 bid_makers.append((order, takes, index))
         for offset in spec.open_asks:
             self._resting_ask(listing, sellers, state, self._price(reference, offset), spec.lot, None)
+        open_bids = []
         for index, offset in enumerate(spec.open_bids):
             slot = slots.get(("open_bid", index))
             if slot is not None:
                 self._tester_order(listing, slot, BUY, self._price(reference, offset))
             else:
-                self._resting_bid(listing, approved, state, self._price(reference, offset), spec.lot)
+                open_bids.append(self._resting_bid(listing, approved, state, self._price(reference, offset), spec.lot))
         for index, (side, offset, placed, cancelled) in enumerate(spec.cancels):
             slot = slots.get(("cancel", index))
             self._cancelled(listing, side, sellers, approved, state, reference, offset, placed, cancelled, slot)
         if spec.lapse:
-            self._lapse(listing, spec, sellers, approved, state, makers, bid_makers)
+            targets = [order for order, _, _ in (makers if spec.lapse == BUY else bid_makers)]
+            self._lapse(listing, spec.lapse, targets, sellers, approved, state, self.rng)
         buys = self._takes(listing, makers, BUY, approved, fresh, state, slots)
         sells = self._takes(listing, bid_makers, SELL, sellers, (), state, {})
         merged = []
@@ -354,6 +362,9 @@ class MarketStory:
             if sells:
                 merged.append(sells.pop(0))
         self.book.fills.extend(merged)
+        if spec.held == SELL:
+            bids = sorted(filter(None, open_bids), key=lambda order: (-order.price, order.placed_at))
+            self._lapse(listing, SELL, bids, sellers, approved, state, self.held_rng, held=True)
 
     def _resting_ask(self, listing, sellers, state, price, lot, slot, placed_at=None):
         if slot is not None:
@@ -471,13 +482,12 @@ class MarketStory:
             order = replace(order, cancelled_at=order.placed_at + timedelta(hours=26))
         self.book.orders[-1] = replace(order, fate=CANCELLED)
 
-    def _lapse(self, listing, spec, sellers, buyers, state, makers, bid_makers):
-        targets = makers if spec.lapse == BUY else bid_makers
+    def _lapse(self, listing, side, targets, sellers, buyers, state, rng, held=False):
         if not targets:
             return
-        maker = targets[0][0]
+        maker = targets[0]
         trader = None
-        if spec.lapse == BUY:
+        if side == BUY:
             busy = self.book.active(listing.key)
             for _ in range(len(buyers)):
                 candidate = self._next_buyer(buyers, state, listing.key, busy)
@@ -499,10 +509,10 @@ class MarketStory:
         earliest = max(maker.placed_at, trader.ready_at) + timedelta(hours=3)
         moment = None
         for _ in range(24):
-            found = self.moment(earliest, self.now - timedelta(hours=30))
+            found = self.moment(earliest, self.now - timedelta(hours=30), rng)
             if found is None:
                 return
-            found = self._hour(found) + timedelta(minutes=self.rng.randint(0, 4), seconds=self.rng.randint(0, 59))
+            found = self._hour(found) + timedelta(minutes=rng.randint(0, 4), seconds=rng.randint(0, 59))
             if found > earliest and self._free(listing.key, found):
                 moment = found
                 break
@@ -510,22 +520,24 @@ class MarketStory:
             return
         self.used_times[listing.key].add(self._hour(moment))
         quantity = min(maker.quantity, lots(maker.quantity * Decimal("0.4")))
-        if spec.lapse == SELL:
+        if side == SELL:
             quantity = min(quantity, self._available(holder))
             if quantity < LOT:
                 return
+            if held:
+                self.committed[(holder.investor, holder.address)] += quantity
         order = self.book.add(
             Order(
-                key=self._key(listing.key, "lapsed-" + ("bid" if spec.lapse == BUY else "ask")),
+                key=self._key(listing.key, ("held-" if held else "lapsed-") + ("bid" if side == BUY else "ask")),
                 listing=listing.key,
                 investor=trader.key,
                 address=address,
-                side=spec.lapse,
+                side=side,
                 quantity=quantity,
                 price=maker.price,
                 placed_at=moment,
-                cancelled_at=moment + timedelta(minutes=self.rng.randint(25, 55)),
-                fate=CANCELLED,
+                cancelled_at=None if held else moment + timedelta(minutes=rng.randint(25, 55)),
+                fate=HELD if held else CANCELLED,
             )
         )
         self.book.fills.append(Fill(listing.key, order.key, maker.key, quantity, maker.price, lapsed=True))

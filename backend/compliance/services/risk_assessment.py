@@ -11,6 +11,7 @@ from compliance.constants import (
     HIGH_RISK_OCCUPATIONS,
     PEP_TYPE_DOMESTIC,
     PEP_TYPE_NONE,
+    PEP_TYPE_UNKNOWN,
     RISK_RATING_EXTREME,
     RISK_RATING_HIGH,
     RISK_RATING_LOW,
@@ -42,9 +43,11 @@ def overall_rating(total_score: int) -> str:
 
 def customer_risk(user_profile, pep_data: Optional[Dict]) -> Tuple[int, list]:
     score, factors = 1, []
-    if (pep_data or {}).get("pep_type", PEP_TYPE_NONE) == PEP_TYPE_DOMESTIC:
+    pep_type = (pep_data or {}).get("pep_type", PEP_TYPE_NONE)
+    provider_approved = pep_type == PEP_TYPE_UNKNOWN and (pep_data or {}).get("approved_by_provider") is True
+    if pep_type == PEP_TYPE_DOMESTIC or provider_approved:
         score += DOMESTIC_PEP_RISK_ADJUSTMENT
-        factors.append("domestic_pep")
+        factors.append("provider_approved_pep" if provider_approved else "domestic_pep")
     financial_profile = getattr(user_profile, "financial_profile", None)
     occupation = (financial_profile.occupation or "").lower().replace(" ", "_") if financial_profile else ""
     if any(high_risk in occupation for high_risk in HIGH_RISK_OCCUPATIONS):

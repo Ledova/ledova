@@ -42,6 +42,7 @@ from tokens.models import (
     SwapApprovalSubmission,
     SwapOrder,
     TransferOrder,
+    TransferOrderStatus,
 )
 from tokens.services.market_data_service import market_summaries
 from whitelist.models import (
@@ -257,10 +258,23 @@ def summary(plan, market, signed):
     resolutions = publications.filter(kind="resolution")
     prices = market_summaries(tokens)
     minted = MintRequest.objects.filter(pk__in=[deposits.mint_id(deposit.key) for deposit in plan.deposits])
+    held = TransferOrder.objects.filter(token__in=tokens, status=TransferOrderStatus.HELD).select_related(
+        "token__company", "owner_account__user_profile__user"
+    )
     return {
         "deposits": dict(Counter(minted.values_list("status", flat=True))),
         "orders": dict(Counter(TransferOrder.objects.filter(token__in=tokens).values_list("status", flat=True))),
         "swaps": dict(Counter(swaps.values_list("status", flat=True))),
+        "held": [
+            (
+                order.owner_account.user_profile.user.email,
+                order.get_order_type_display().lower(),
+                order.remaining_quantity,
+                _label(order.token),
+                order.price_per_share,
+            )
+            for order in held.order_by("created_at", "pk")
+        ],
         "trades": {_label(token): swaps.filter(share_token=token, status="completed").count() for token in tokens},
         "prices": {_label(token): prices.get(token.pk, {}).get("last_price") for token in tokens},
         "notices": dict(Counter(publications.values_list("kind", flat=True))),

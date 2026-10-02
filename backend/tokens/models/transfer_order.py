@@ -146,15 +146,18 @@ class TransferOrder(BaseModel):
         return self.remaining_quantity * self.price_per_share
 
     @property
+    def status_label(self):
+        if self.status == TransferOrderStatus.HELD and self.filled_quantity:
+            return "Partially Filled, Remainder Held Back"
+        return self.get_status_display()
+
+    @property
     def can_cancel(self):
-        return self.status in [TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED]
+        return self.status in TransferOrderStatus.changeable()
 
     @property
     def can_be_modified(self):
-        return (
-            self.status in [TransferOrderStatus.OPEN, TransferOrderStatus.PARTIALLY_FILLED]
-            and not self.has_pending_swap
-        )
+        return self.status in TransferOrderStatus.changeable() and not self.has_pending_swap
 
     @property
     def has_pending_swap(self):
@@ -186,6 +189,14 @@ class TransferOrder(BaseModel):
             other_order.status = TransferOrderStatus.PARTIALLY_FILLED
 
         other_order.save(update_fields=["filled_quantity", "matched_order", "status", "updated_at"])
+
+    def rest_or_hold(self):
+        if type(self).objects.crossing(self).exists():
+            self.status = TransferOrderStatus.HELD
+        elif self.filled_quantity:
+            self.status = TransferOrderStatus.PARTIALLY_FILLED
+        else:
+            self.status = TransferOrderStatus.OPEN
 
     def cancel(self):
         if not self.can_cancel:

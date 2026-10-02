@@ -13,4 +13,4 @@ class TransactionViewSet(AuthenticatedListViewSet):
     scoped_model = Transaction
 
     def narrow(self, queryset):
-        return queryset.filter(asset__is_verified=True).with_optimized_data()
+        return queryset.filter(asset__is_verified=True).with_optimized_data().with_share_class()

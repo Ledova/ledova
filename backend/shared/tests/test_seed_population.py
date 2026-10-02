@@ -19,6 +19,7 @@ from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITestCase
 
 from assets.models import AssetSnapshot
+from assets.services.valuation import aud_value
 from companies.identity import company_identity
 from companies.models import Company, CompanyStatus, DocumentType
 from companies.services.document_review import verified_document_snapshot
@@ -28,7 +29,9 @@ from compliance.models import (
     CustomerRiskAssessment,
     TransactionScreening,
 )
+from compliance.services.transaction_monitoring import check_rule
 from documents.models import Document, DocumentExtraction
+from integrations.kyc.constants import VERIFICATION_STATUS_CHOICES
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic import identities, keys
 from shared.seeds.synthetic.plan import MINIMUM_INVESTORS, WINDOW_DAYS, stream
@@ -42,6 +45,7 @@ from users.models import (
 )
 from users.models.investor_classification import DECLARATION_TEXT, InvestorCategory
 from users.services.eligibility import investor_eligibility
+from users.services.notifications import transaction_message
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services.wallets import (
     generate_verification_challenge,
@@ -281,13 +285,54 @@ class SyntheticPopulationTest(APITestCase):
         alerts = ComplianceAlert.objects.all()
 
         self.assertEqual(statuses, {"active", "pending", "suspended", "terminated", "rejected"})
-        self.assertTrue({"GREEN", "RED", "YELLOW", ""} <= results)
+        self.assertTrue({"GREEN", "RED"} <= results)
         self.assertEqual(set(alerts.values_list("status", flat=True)), {"new", "reviewing", "escalated", "closed"})
         self.assertEqual(alerts.filter(smr_required=True, smr_type="ml").count(), 1)
         self.assertFalse(alerts.exclude(status="new").filter(assigned_to__isnull=True).exists())
         self.assertFalse(alerts.filter(assigned_to__is_active=False).exists())
         self.assertTrue(Notification.objects.filter(is_read=False).exists())
         self.assertTrue(Notification.objects.filter(is_archived=True).exists())
+
+    def test_identity_checks_are_recorded_as_the_provider_mappings_record_them(self):
+        checked = UserProfile.objects.exclude(verification_status=None)
+        in_progress = checked.filter(verification_status__in=("pending", "queued", "onHold"))
+
+        self.assertTrue(in_progress.exists())
+        self.assertLessEqual(
+            set(checked.values_list("verification_status", flat=True)),
+            {value for value, _ in VERIFICATION_STATUS_CHOICES},
+        )
+        self.assertEqual(set(in_progress.values_list("review_result", flat=True)), {None})
+        self.assertFalse(UserProfile.objects.filter(review_result="").exists())
+        recorded = CustomerRiskAssessment.objects.filter(assessment_status="complete")
+        self.assertTrue(recorded.exists())
+        for pep_details in recorded.values_list("pep_details", flat=True):
+            self.assertEqual(
+                set(pep_details),
+                {"pep_type", "details"} | ({"approved_by_provider"} if pep_details["pep_type"] == "unknown" else set()),
+            )
+        accepted = recorded.exclude(pep_type="none").select_related("user_account__user_profile")
+        self.assertTrue(accepted.exists())
+        for assessment in accepted:
+            with self.subTest(account=assessment.user_account.account_number):
+                self.assertEqual(assessment.user_account.user_profile.kyc_provider, "sumsub")
+                self.assertEqual(assessment.pep_type, "unknown")
+                for hit in assessment.pep_details["details"]:
+                    self.assertIn("pep", hit["riskLabels"])
+                    self.assertNotIn(hit["matchStatus"], ("false_positive", "no_match"))
+
+    def test_every_seeded_identity_check_is_one_its_provider_can_report(self):
+        reachable = {
+            "kycaid": {"init", "pending", "completed"},
+            "sumsub": {value for value, _ in VERIFICATION_STATUS_CHOICES},
+        }
+        checked = UserProfile.objects.exclude(verification_status=None)
+
+        for provider, status, result in checked.values_list("kyc_provider", "verification_status", "review_result"):
+            with self.subTest(provider=provider, status=status, result=result):
+                self.assertIn(status, reachable[provider])
+                self.assertIn(result, {None, "GREEN", "RED"})
+        self.assertTrue(checked.filter(kyc_provider="sumsub", review_result="RED").exists())
 
     def test_nothing_is_left_for_a_periodic_job_to_act_on(self):
         now = timezone.now()
@@ -425,11 +470,49 @@ class SyntheticPopulationTest(APITestCase):
             spent = sent + (fees if holding.asset.symbol == native else 0)
             self.assertEqual(holding.quantity, received - spent, (address, holding.asset.symbol))
 
-    def test_transaction_values_use_the_snapshot_the_backend_would_choose(self):
+    def test_transaction_values_use_the_snapshot_and_rate_the_backend_would_choose(self):
         for transaction in Transaction.objects.select_related("asset"):
             snapshots = AssetSnapshot.objects.filter(asset=transaction.asset)
             price = snapshots.get_price_at_timestamp(transaction.block_timestamp)
             self.assertEqual((transaction.amount * price).quantize(Decimal("0.01")), transaction.market_value)
+            self.assertEqual(aud_value(transaction.asset, transaction.amount, price), transaction.market_value_aud)
+
+    def test_every_account_that_was_ever_active_is_dated_from_its_identity_check(self):
+        accounts = UserAccount.objects.select_related("user_profile")
+        once_active = accounts.filter(account_status__in=("active", "suspended", "terminated"))
+
+        self.assertGreater(once_active.count(), MINIMUM_INVESTORS // 2)
+        for account in once_active:
+            self.assertEqual(account.activation_date, account.user_profile.verified_at, account.account_number)
+        self.assertFalse(accounts.exclude(pk__in=once_active).exclude(activation_date=None).exists())
+
+    def test_rule_alerts_quote_the_aud_values_their_rules_compare(self):
+        alerts = ComplianceAlert.objects.select_related("transaction", "monitoring_rule")
+
+        for alert in alerts.filter(triggered_rule__in=("MON-001", "MON-006")):
+            self.assertEqual(alert.alert_data["amount"], float(alert.transaction.market_value_aud))
+        for alert in alerts.filter(triggered_rule="MON-001"):
+            self.assertTrue(check_rule(alert.monitoring_rule, alert.transaction, alert.user_account)[0])
+        dormant = alerts.get(triggered_rule="MON-008")
+        self.assertEqual(dormant.alert_data["transaction_amount"], float(dormant.transaction.market_value_aud))
+        self.assertGreaterEqual(alerts.get(triggered_rule="MON-007").alert_data["total_volume"], 50000)
+        structuring = alerts.get(triggered_rule="MON-003").user_account
+        in_band = Transaction.objects.filter(
+            wallet__user_account=structuring, market_value_aud__gte=8000, market_value_aud__lte=9999
+        )
+        self.assertEqual(in_band.count(), 3)
+
+    def test_transaction_notices_read_as_the_service_writes_them(self):
+        notices = list(Notification.objects.filter(notification_type="transaction"))
+
+        self.assertTrue(notices)
+        for notice in notices:
+            transaction = Transaction.objects.select_related("asset").get(pk=notice.data["transaction_id"])
+            self.assertEqual(
+                (notice.title, notice.body),
+                transaction_message(notice.data["event"], transaction.amount, transaction.asset.symbol),
+            )
+            self.assertNotRegex(notice.body, r"\.\d*0 |\d[eE][-+]?\d")
 
     def test_named_streams_are_reproducible_and_independent(self):
         chain, again = stream("chain"), stream("chain")

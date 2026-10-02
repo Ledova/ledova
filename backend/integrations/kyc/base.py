@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
-from compliance.constants import PEP_TYPE_NONE
+from integrations.kyc.pep import pep_data_from_labels
 
 
 @dataclass
@@ -18,12 +18,12 @@ class VerificationSession:
 class NormalizedVerificationResult:
 
     verification_status: str
-    review_result: str
+    review_result: Optional[str]
     is_verified: bool
     rejection_labels: list = field(default_factory=list)
     document_type: Optional[str] = None
     document_country: Optional[str] = None
-    pep_data: dict = field(default_factory=lambda: {"pep_type": PEP_TYPE_NONE})
+    pep_data: dict = field(default_factory=lambda: pep_data_from_labels([]))
     extracted_data: dict = field(default_factory=dict)
 
 
@@ -52,6 +52,12 @@ class KYCProvider(ABC):
     @abstractmethod
     def normalize_webhook(self, webhook_data: dict) -> NormalizedVerificationResult:
         pass
+
+    def normalize_status(self, status_data: dict) -> NormalizedVerificationResult:
+        return self.normalize_webhook(status_data)
+
+    def with_approval_evidence(self, applicant_id: str, payload: dict) -> dict:
+        return payload
 
     @abstractmethod
     def generate_session(self, applicant_id: str, external_user_id: str) -> VerificationSession:

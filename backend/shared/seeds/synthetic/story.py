@@ -44,6 +44,7 @@ from shared.seeds.synthetic.plan import (
 )
 from users.models.investor_classification import plus_years
 from users.services.identity import REVIEW_OUTCOME_MESSAGES
+from users.services.notifications import transaction_message
 
 PEOPLE_STREAM = "people"
 CURRENT_PRICES = {
@@ -57,7 +58,6 @@ STABLECOINS = ("USDC", "USDT")
 CENT = Decimal("0.01")
 PRICE_PLACES = {"BTC": CENT, "ETH": CENT, "USDC": Decimal("0.0001"), "USDT": Decimal("0.0001")}
 AMOUNT_PLACES = {"BTC": Decimal("0.00000001"), "ETH": Decimal("0.000001"), "USDC": CENT, "USDT": CENT}
-STORED_PLACES = Decimal("0.000000000000000001")
 USD_AUD = Decimal("1.5240")
 SEND_CEILING = Decimal("4500")
 DUST = Decimal("20")
@@ -69,10 +69,6 @@ FEES = {
 }
 FEE_PLACES = {"base": Decimal("0.000000001"), "ethereum": Decimal("0.000000001"), "bitcoin": Decimal("0.00000001")}
 BLOCKS = {"base": (45_120_000, 2), "ethereum": (10_640_000, 12), "bitcoin": (4_611_000, 600)}
-TRANSACTION_MESSAGES = {
-    "confirmed": ("Transaction Confirmed", "Your transaction of {amount} {symbol} has been confirmed."),
-    "failed": ("Transaction Failed", "Your transaction of {amount} {symbol} has failed."),
-}
 
 STAFF = (
     ("compliance", "helena.marsh", "Compliance officer", 198, None),
@@ -86,7 +82,7 @@ SPECIAL_COHORTS = (
     ("unverified", 2),
     ("stalled", 3),
     ("kyc_pending", 4),
-    ("kyc_yellow", 2),
+    ("kyc_resubmit", 2),
     ("kyc_red", 3),
     ("kyc_rejected", 1),
 )
@@ -94,14 +90,14 @@ JOIN_RANGES = {
     "unverified": (2, 24),
     "stalled": (8, 120),
     "kyc_pending": (2, 45),
-    "kyc_yellow": (5, 90),
+    "kyc_resubmit": (5, 90),
     "kyc_red": (6, 150),
     "kyc_rejected": (30, 150),
 }
 STALLED_STEPS = ("account-type", "identity-verification", "financial-profile")
 PENDING_STATES = (("kycaid", "pending"), ("sumsub", "queued"), ("sumsub", "onHold"), ("kycaid", "pending"))
 RED_LABELS = (("DOCUMENT_EXPIRED",), ("SELFIE_MISMATCH",), ("DOCUMENT_DAMAGED", "BAD_PHOTO_QUALITY"))
-YELLOW_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
+RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
 COVERAGE_STORIES = (
     "accountant",
     "professional",
@@ -276,10 +272,6 @@ def quantized(value, places):
     return value.quantize(places, rounding=ROUND_DOWN)
 
 
-def stored(value):
-    return format(value.quantize(STORED_PLACES), "f")
-
-
 def decimal(value):
     return Decimal(repr(value))
 
@@ -343,6 +335,9 @@ class Story:
     def price_on(self, symbol, moment):
         days = (self.price_origin - nearest_midnight(moment)).days
         return self.prices[symbol][min(max(days, 0), WINDOW_DAYS)]
+
+    def aud_price_on(self, symbol, moment):
+        return self.price_on(symbol, moment) * USD_AUD
 
     def _name_pairs(self):
         pairs = [
@@ -540,10 +535,10 @@ class Story:
         if cohort == "kyc_pending":
             provider, status = PENDING_STATES[self.pending % len(PENDING_STATES)]
             self.pending += 1
-            return Kyc(provider, status, "", submitted, document_type, country), (), "pending", ""
-        if cohort == "kyc_yellow":
-            labels = self.rng.choice(YELLOW_LABELS)
-            kyc = Kyc("sumsub", "completed", "YELLOW", self.after(submitted, 30, 1800), document_type, country, labels)
+            return Kyc(provider, status, None, submitted, document_type, country), (), "pending", ""
+        if cohort == "kyc_resubmit":
+            labels = self.rng.choice(RESUBMIT_LABELS)
+            kyc = Kyc("sumsub", "completed", "RED", self.after(submitted, 30, 1800), document_type, country, labels)
             return kyc, (), "pending", ""
         if cohort == "kyc_red":
             labels = self.rng.choice(RED_LABELS)
@@ -602,7 +597,7 @@ class Story:
         return slots
 
     def _investor_wallets(self, key, cohort, role, start):
-        if cohort in ("kyc_pending", "kyc_yellow", "kyc_red"):
+        if cohort in ("kyc_pending", "kyc_resubmit", "kyc_red"):
             if self.rng.random() < 0.5:
                 return (self._wallet("base", keys.secret("wallet", key, 0), self.after(start, 30, 4000), False),)
             return ()
@@ -677,7 +672,7 @@ class Story:
 
     def _random_event(self, chain, balances):
         native = NATIVE[chain]
-        if balances.get(native, Decimal(0)) * self.price_on(native, self.now) < 25:
+        if balances.get(native, Decimal(0)) * self.aud_price_on(native, self.now) < 25:
             return native, True, None, False, None
         symbols = ("ETH", "USDC", "USDT") if chain == "ethereum" else (native,)
         if self.rng.random() < 0.45:
@@ -857,13 +852,12 @@ class Story:
         for wallet in person.wallets:
             for transfer in wallet.transfers:
                 if transfer.app_sent:
-                    title, body = TRANSACTION_MESSAGES[transfer.status]
+                    title, text = transaction_message(transfer.status, transfer.amount, transfer.symbol)
                     data = {
                         "type": "transaction",
                         "event": transfer.status,
                         "transaction_id": Ref("transaction", transfer.tx_hash),
                     }
-                    text = body.format(amount=stored(transfer.amount), symbol=transfer.symbol)
                     raw.append(
                         (transfer.at + timedelta(seconds=self.rng.randint(30, 240)), title, text, "transaction", data)
                     )
@@ -998,7 +992,7 @@ class Story:
         pending = spec.target == "submitted"
         submitted = self.after(joined, 6, 12)
         decided = submitted if pending else self.after(submitted, 5, 240)
-        result = "" if pending else "GREEN"
+        result = None if pending else "GREEN"
         kyc = Kyc("kycaid", "pending" if pending else "completed", result, decided, "DRIVERS_LICENSE", "AU")
         wallets = self._founder_wallet(spec, key, decided, tester)
         operator = wallets[0].address if wallets and spec.target == "active" else None
@@ -1130,13 +1124,13 @@ class Ledger:
         fee_ceiling = FEES[self.wallet.chain][1]
         native = self.balances.get(self.native, Decimal(0))
         held = self.balances.get(symbol, Decimal(0))
-        if native <= fee_ceiling * 2 or held * self.story.price_on(symbol, at) < DUST:
+        if native <= fee_ceiling * 2 or held * self.story.aud_price_on(symbol, at) < DUST:
             return False
         reserve = fee_ceiling if symbol == self.native else 0
-        return value is None or decimal(value) / self.story.price_on(symbol, at) <= held - reserve
+        return value is None or decimal(value) / self.story.aud_price_on(symbol, at) <= held - reserve
 
     def receive(self, symbol, value, at):
-        price = self.story.price_on(symbol, at)
+        price = self.story.aud_price_on(symbol, at)
         worth = decimal(value) if value is not None else decimal(self.story.rng.uniform(150, 4200))
         amount = quantized(worth / price, AMOUNT_PLACES[symbol])
         self.balances[symbol] = self.balances.get(symbol, Decimal(0)) + amount
@@ -1149,10 +1143,10 @@ class Ledger:
         spare = self.balances[symbol] - (fee if symbol == self.native else 0)
         if value is None:
             share = spare * decimal(story.rng.uniform(0.1, 0.55))
-            cap = SEND_CEILING / story.price_on(symbol, at)
+            cap = SEND_CEILING / story.aud_price_on(symbol, at)
             amount = quantized(min(share, cap), AMOUNT_PLACES[symbol])
         else:
-            amount = quantized(min(decimal(value) / story.price_on(symbol, at), spare), AMOUNT_PLACES[symbol])
+            amount = quantized(min(decimal(value) / story.aud_price_on(symbol, at), spare), AMOUNT_PLACES[symbol])
         app_sent = story.rng.random() < self.app_share if app_sent is None else app_sent
         failed = app_sent and chain != "bitcoin" and not forced and story.rng.random() < 0.06
         self.balances[self.native] = self.balances.get(self.native, Decimal(0)) - fee
@@ -1187,6 +1181,7 @@ class Ledger:
             block_hash=keys.block_hash(chain, block),
             at=at,
             market_value=(amount * story.price_on(symbol, at)).quantize(CENT),
+            market_value_aud=(amount * story.aud_price_on(symbol, at)).quantize(CENT),
             recorded_at=recorded,
             settled_at=settled,
             monitored_at=recorded + timedelta(seconds=5 + spread % 35),

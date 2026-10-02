@@ -6,7 +6,11 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 
-from compliance.constants import ASSESSMENT_STATUS_COMPLETE, ASSESSMENT_STATUS_PENDING
+from compliance.constants import (
+    ASSESSMENT_STATUS_COMPLETE,
+    ASSESSMENT_STATUS_PENDING,
+    PEP_TYPE_NONE,
+)
 from compliance.models import CustomerRiskAssessment
 from compliance.services.risk_assessment import RiskAssessmentService
 from documents.models import (
@@ -16,6 +20,8 @@ from documents.models import (
     ExtractionStatus,
 )
 from documents.schemas import PayslipExtraction
+from integrations.kyc.pep import pep_data_from_labels
+from integrations.sumsub.client import SumSubService
 from portfolios.models import Portfolio
 from shared.db import atomic
 from shared.seeds.synthetic import keys
@@ -204,12 +210,36 @@ def _identity_check(person, profile, account):
             return
         account.account_status = "rejected" if person.rejection_reason else "active"
         account.rejection_reason = person.rejection_reason
-        account.save(update_fields=["account_status", "rejection_reason", "updated_at"])
+        if not person.rejection_reason:
+            account.activation_date = kyc.decided_at
+        account.save(update_fields=["account_status", "rejection_reason", "activation_date", "updated_at"])
         complete = CustomerRiskAssessment.objects.filter(
             user_account=account, assessment_status=ASSESSMENT_STATUS_COMPLETE
         ).exists()
         if not person.rejection_reason and not complete:
-            RiskAssessmentService.calculate_and_create(user_account=account, pep_data={"pep_type": kyc.pep_type})
+            evidence = [f"{kyc.pep_type}_pep"] if kyc.pep_type != PEP_TYPE_NONE else []
+            pep_data = pep_data_from_labels(evidence)
+            if kyc.provider == "sumsub" and kyc.pep_type != PEP_TYPE_NONE:
+                pep_data = (
+                    SumSubService()
+                    .normalize_webhook(
+                        {
+                            "reviewStatus": "completed",
+                            "reviewResult": {"reviewAnswer": "GREEN"},
+                            "amlCase": {
+                                "hits": [
+                                    {
+                                        "id": "synthetic-pep",
+                                        "review": {"matchStatus": "true_positive"},
+                                        "riskLabels": ["pep"],
+                                    }
+                                ]
+                            },
+                        }
+                    )
+                    .pep_data
+                )
+            RiskAssessmentService.calculate_and_create(user_account=account, pep_data=pep_data)
 
 
 def _wallet(plan, account, seeded):
@@ -282,6 +312,7 @@ def _transaction(transfer, wallet, seeded):
             asset=seeded.assets[transfer.symbol],
             amount=transfer.amount,
             market_value=transfer.market_value,
+            market_value_aud=transfer.market_value_aud,
             block_timestamp=transfer.at,
             block_number=transfer.block_number,
             block_hash=transfer.block_hash,

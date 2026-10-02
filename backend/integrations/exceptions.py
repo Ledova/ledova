@@ -1,0 +1,2 @@
+class ApprovalEvidenceUnavailable(Exception):
+    pass

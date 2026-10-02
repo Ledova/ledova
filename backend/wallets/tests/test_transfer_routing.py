@@ -190,3 +190,14 @@ class TokenizedSecurityTransferApiTest(APITestCase):
         get_client.return_value.broadcast_transaction.assert_not_called()
         schedule.assert_not_called()
         self.assertFalse(Transaction.objects.filter(wallet=self.wallet).exists())
+
+    def test_a_share_refusal_does_not_show_the_bridged_asset_symbol(self, get_client, schedule):
+        Asset.objects.filter(symbol="ORD").update(symbol="ORD.000000037")
+        response = self.client.post(
+            f"/api/wallets/{self.wallet.uuid}/prepare-transfer/",
+            {"to_address": TO, "amount_token": "1", "token_contract": SHARE_TOKEN},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "Shares move by allotment, not by a wallet transfer.")
+        get_client.assert_not_called()

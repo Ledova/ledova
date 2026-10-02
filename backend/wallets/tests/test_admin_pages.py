@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from shared.tests.tenants import make_tenant
-from wallets.models import Holding, Wallet
+from wallets.models import Holding, Transaction, Wallet
 
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -37,6 +37,20 @@ class WalletsAdminPagesTest(TestCase):
                     self.client.get(reverse("admin:%s_%s_change" % info, args=[instance.pk])).status_code, 200
                 )
         self.assertEqual(self.client.get(reverse("admin:wallets_wallet_add")).status_code, 200)
+
+    def test_a_transaction_shows_its_aud_value_read_only_beside_its_usd_value(self):
+        transaction = self.tenant.transaction
+        Transaction.objects.filter(pk=transaction.pk).update(
+            market_value=Decimal("1000.00"), market_value_aud=Decimal("1524.00")
+        )
+
+        listed = self.client.get(reverse("admin:wallets_transaction_changelist"))
+        detail = self.client.get(reverse("admin:wallets_transaction_change", args=[transaction.pk]))
+
+        self.assertContains(listed, "A$1,524.00")
+        self.assertContains(detail, "1524.00")
+        self.assertIn("market_value", detail.context["adminform"].form.fields)
+        self.assertNotIn("market_value_aud", detail.context["adminform"].form.fields)
 
     def test_holdings_count_is_annotated_and_survives_the_profile_join_of_search(self):
         Holding.objects.create(wallet=self.tenant.wallet, asset=self.tenant.refs.spare_asset, quantity=Decimal("1"))

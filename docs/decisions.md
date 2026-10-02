@@ -392,6 +392,26 @@ executes, so a swap can still fail if the funds move first. The swap is atomic,
 so a failure moves neither the shares nor the payment, and the settlement's
 failed-execution handling applies.
 
+**One match, never crossed** (owner decision, 2 October 2026, on
+[#846](https://github.com/Ledova/ledova/issues/846)). A new order matched at most
+one resting order, so an order larger than the best opposite order could leave
+the book crossed once its trade settled. The owner chose "One match, never
+cross": keep one match per order; any remainder rests only at a price that does
+not cross the book, otherwise it is held back. Smallest change, no advanced
+trading mechanisms. A held order takes its next single match from a sweep every
+minute; a lapsed or reverted pair is never matched again, since re-pairing it
+would let the party who did not sign lock the other's order in fifteen-minute
+windows it could not cancel. [Secondary trading](architecture/trading.md#one-match-never-crossed)
+states the rule. The same day the owner removed four statuses no code ever
+wrote: an order's `executing`, `expired` and `failed`, and a mint request's
+`approved`. Answering the change's open questions, also on 2 October 2026, the
+owner kept the never-re-pair rule and the labels `Held Back` and
+`Partially Filled, Remainder Held Back`, had the demo seed leave one held order
+so the state shows in the development stack, and closed the race in which two
+crossing orders placed at the same moment both rest: the minute's sweep also
+holds back the newer of any two listed orders that cross, with no new locking,
+so the book uncrosses within a minute.
+
 Payment confirmation is stored on the subscription. The initial expected volume
 is small and admin history records changes. There is no separate payment-per-tranche
 model: a second payment updates the cumulative total with a note. A future
@@ -531,6 +551,11 @@ requests on #785 carry out the last three:
   into user preferences, the owner chose "Merge them": "Move transaction alerts
   onto the user preferences record; delete the separate model, table, route and
   admin, with a migration carrying each person's setting across."
+
+The owner answered a Send follow-up on 2 October 2026, during the display review
+on #846: **Stop offering shares.** Both clients' Send pickers exclude share
+classes, including ones whose class details cannot be read. Crypto and AUDY stay
+sendable; shares move through allotment and the market.
 
 The owner answered the tidy-up's three questions on 29 September 2026, accepting
 each recommendation

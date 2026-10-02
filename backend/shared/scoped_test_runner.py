@@ -46,6 +46,7 @@ SCOPED_TEST_LABELS = (
     "wallets.tests.test_confirmation_under_split_roles.ImportedConfirmationUsesSeparateRolesTest",
     "compliance.tests.test_durable_screening.ScopedDurableScreeningTest",
     "compliance.tests.test_crypto_screening_results.ScopedScreeningLockTest",
+    "compliance.tests.test_identity_screening.ScopedScreeningMatchAlertTest",
     "wallets.tests.test_sync_under_scoped_roles.ScopedWalletSyncTest",
     "tokens.tests.test_deployment_under_scoped_roles.ScopedTokenDeploymentTest",
     "tokens.tests.test_swap_approval_under_scoped_roles.ScopedSwapApprovalTest",
@@ -71,6 +72,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_order_submissions.ScopedOrderSubmissionRecoveryTest",
     "tokens.tests.test_cross_account_matching.ScopedCrossAccountMatchingTest",
     "tokens.tests.test_cross_account_matching.ScopedCrossAccountMatchingProcessTest",
+    "tokens.tests.test_the_book_never_crosses.ScopedHeldAcrossAccountsTest",
     "tokens.tests.test_order_submission_processes.ScopedOrderSubmissionProcessTest",
     "tokens.tests.test_swap_expiry_processes.ScopedExpiryProcessesRespectExecutionClaimsTest",
     "tokens.tests.test_swap_expiry.ScopedSwapExpiryTaskWiringTest",
@@ -101,6 +103,7 @@ SCOPED_TEST_LABELS = (
     "wallets.tests.test_stablecoin_approvals.ScopedStablecoinApprovalTest",
     "blockchain.tests.test_monitor_scoped.ScopedMonitorObservationsTest",
     "users.tests.test_notification_tasks_scoped.NotificationTasksUseRecipientRolesTest",
+    "users.tests.test_identity_apply_race.ScopedIdentityApplyRaceTest",
     "documents.tests.test_extraction_under_scoped_roles.ScopedDocumentExtractionTest",
 )
 

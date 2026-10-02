@@ -20,6 +20,8 @@ from shared.db import (
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.tests.tenants import make_tenant
+from tokens.models import ShareToken, ShareTokenStatus
 from users.models import (
     DeviceToken,
     Notification,
@@ -32,6 +34,7 @@ from users.tasks.notifications import (
     send_transaction_notification,
 )
 from wallets.models import Transaction, Wallet
+from wallets.tests.share_symbol_fixtures import two_ordinary_classes
 
 User = get_user_model()
 
@@ -230,6 +233,42 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
         self.assertEqual(row.data["event"], "failed")
         self.assertEqual(row.data["transaction_id"], str(self.recipient.transaction.pk))
         self.assertEqual(self.inbox(self.other), [])
+
+    def test_a_share_notice_names_the_class_the_recipient_reads_and_a_paused_one_by_its_asset_symbol(self):
+        with use_operator():
+            listed_issuer = make_tenant("scoped-notice-listed")
+            paused_issuer = make_tenant("scoped-notice-paused")
+            (_, listed), (paused_class, paused) = two_ordinary_classes(listed_issuer.company, paused_issuer.company)
+            ShareToken.objects.filter(pk=paused_class.pk).update(status=ShareTokenStatus.PAUSED)
+            moved = {
+                asset.symbol: Transaction.objects.create(
+                    wallet=self.recipient.wallet,
+                    asset=asset,
+                    tx_hash="0x" + digit * 64,
+                    chain="base",
+                    from_address="0x" + "3" * 40,
+                    to_address=self.recipient.wallet.address,
+                    amount=Decimal("40"),
+                )
+                for asset, digit in ((listed, "7"), (paused, "8"))
+            }
+        for transaction in moved.values():
+            self.run_task(
+                send_transaction_notification,
+                user_id=str(self.recipient.user.pk),
+                transaction_id=str(transaction.pk),
+                event_type="confirmed",
+            )
+
+        bodies = {row.data["transaction_id"]: row.body for row in self.inbox()}
+        self.assertEqual(
+            bodies,
+            {
+                str(moved["ORD"].pk): f"Your transaction of 40 ORD ({listed_issuer.company.name}) has been confirmed.",
+                str(moved[paused.symbol].pk): f"Your transaction of 40 {paused.symbol} has been confirmed.",
+            },
+        )
+        self.assertEqual(paused.symbol, f"ORD.{paused_issuer.company.acn}")
 
     def delete_jobs(self, identifiers):
         with use_operator(), connections[OPERATOR_ALIAS].cursor() as cursor:

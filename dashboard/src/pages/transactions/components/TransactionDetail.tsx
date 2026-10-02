@@ -7,6 +7,7 @@ import {
   getBlockExplorerTxUrl,
   getBlockchainDisplayName,
   getChainShortCode,
+  shownSymbol,
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
@@ -28,7 +29,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
           <span className="break-words">{transaction.assetName || transaction.assetSymbol || 'Unavailable'}</span>
         </Row>
         <Row label="Amount">
-          <span className="break-all">{activityAmount(transaction.amount, transaction.assetSymbol)}</span>
+          <span className="break-all">{activityAmount(transaction.amount, shownSymbol(transaction))}</span>
         </Row>
         <Row label="Network">{getBlockchainDisplayName(getChainShortCode(transaction.chain))}</Row>
         <Row label="Recorded">

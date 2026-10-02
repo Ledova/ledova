@@ -14,6 +14,7 @@ const transaction: Transaction = {
   asset: 'synthetic-asset',
   assetSymbol: 'ETH',
   assetName: 'Ethereum',
+  shareClass: null,
   marketValue: null,
   blockNumber: null,
   status: 'pending',
@@ -97,4 +98,21 @@ it('updates an open pending import when its receipt confirms', async () => {
   expect(within(detail).getByText('✓ Confirmed')).toBeTruthy();
   expect(view.queryByText('Pending')).toBeNull();
   expect(view.queryByText('✗ Failed')).toBeNull();
+});
+
+it('shows a share transfer by its class symbol in the summary and the detail, not the bridged asset symbol', async () => {
+  const share = {
+    ...transaction,
+    assetSymbol: 'ORD.123456782',
+    assetName: 'Second Fictional Pty Ltd Ordinary Shares',
+    shareClass: { uuid: 'class-2', name: 'Ordinary Shares', symbol: 'ORD', companyName: 'Second Fictional Pty Ltd' },
+    amount: '40.000000000000000000',
+  };
+  const { view, detail } = await opened(share);
+
+  expect(
+    view.getByRole('button', { name: /^Outgoing · Second Fictional Pty Ltd Ordinary Shares, .+, 40 ORD$/ }),
+  ).toBeTruthy();
+  expect(within(detail).getByText('40 ORD')).toBeTruthy();
+  expect(view.queryByText(/ORD\.123456782/)).toBeNull();
 });

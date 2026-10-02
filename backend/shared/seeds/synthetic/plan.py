@@ -35,7 +35,7 @@ class StaffMember:
 class Kyc:
     provider: str
     status: str
-    result: str
+    result: str | None
     decided_at: datetime
     document_type: str
     document_country: str
@@ -73,6 +73,7 @@ class Transfer:
     block_hash: str
     at: datetime
     market_value: Decimal
+    market_value_aud: Decimal
     recorded_at: datetime
     settled_at: datetime
     monitored_at: datetime

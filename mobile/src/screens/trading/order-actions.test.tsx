@@ -728,7 +728,7 @@ it('keeps an unverified exact wallet eligible to cancel an existing order', asyn
   expect(executes()).toHaveLength(1);
 });
 
-it.each(['executing', 'failed'])(
+it.each(['held', 'completed'])(
   'recovers original modification and separately displays the later %s order',
   async (status) => {
     const view = await render(<TradingScreen />, { wrapper });
@@ -737,7 +737,7 @@ it.each(['executing', 'failed'])(
       const reply = await ordinary(config);
       if (config.method === 'post') throw new Error('Synthetic lost committed response');
       reply.data.order.status = status;
-      reply.data.order.statusDisplay = status === 'executing' ? 'Executing' : 'Failed';
+      reply.data.order.statusDisplay = status === 'held' ? 'Held Back' : 'Completed';
       return reply;
     };
     await fireEvent.press(view.getByText('Sign with biometric'));
@@ -746,7 +746,7 @@ it.each(['executing', 'failed'])(
     await fireEvent.press(view.getByText('Check change status'));
     await waitFor(() => expect(view.getByText('Original action recovered')).toBeTruthy());
     expect(view.getByText('price per share: 12.50 → 14.00')).toBeTruthy();
-    expect(view.getByText(`Current order status: ${status === 'executing' ? 'Executing' : 'Failed'}`)).toBeTruthy();
+    expect(view.getByText(`Current order status: ${status === 'held' ? 'Held Back' : 'Completed'}`)).toBeTruthy();
     expect(requests.slice(count).map((request) => request.url)).toEqual([endpoints.ACTION(actionId)]);
     expect(executes()).toHaveLength(1);
     expect(await orderActionStore.list(owner)).toHaveLength(0);

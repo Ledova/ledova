@@ -89,7 +89,11 @@ export function SendForm({
     assetRowLeft: {
       flexDirection: 'row',
       alignItems: 'center',
+      flexShrink: 1,
       gap: theme.spacing.sm,
+    },
+    assetCompany: {
+      flexShrink: 1,
     },
     assetSymbol: {
       fontFamily: theme.fontFamily.medium,
@@ -227,6 +231,9 @@ export function SendForm({
                 <View style={styles.assetRowLeft}>
                   {getAssetIcon(asset, isSelected)}
                   <Text style={[styles.assetSymbol, isSelected && styles.assetTextSelected]}>{asset.symbol}</Text>
+                  {asset.company ? (
+                    <Text style={[styles.assetBalance, styles.assetCompany]}>{asset.company}</Text>
+                  ) : null}
                 </View>
                 <View style={styles.assetRowRight}>
                   {asset.isNative && (
