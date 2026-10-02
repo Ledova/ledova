@@ -9,11 +9,11 @@ from compliance.admin._helpers import (
     SEVERITY_COLOURS,
     TEAL,
     YELLOW,
-    admin_link,
     badge,
     choice_badge,
 )
 from compliance.models import AlertChecklistItem, ComplianceAlert
+from shared.utils.admin_display import admin_link
 
 ALERT_STATUS_COLOURS = {"new": TEAL, "reviewing": YELLOW, "escalated": ORANGE, "closed": GREY}
 

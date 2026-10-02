@@ -34,35 +34,40 @@ SYSTEM_WIDE = {
     "assets.sync_all_assets": "Refreshes the global asset catalogue, which belongs to no tenant.",
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "
-    "submitted transactions, across all issuers.",
-    "compliance.tasks.run_batch_monitoring": "Screens every account against the operator's rules, which is "
-    "the operator's question rather than any customer's.",
+    "submitted transactions that no outgoing operation owns, across all issuers; a journaled transaction is "
+    "recovered by its own sweep.",
+    "compliance.tasks.run_batch_monitoring": "Screens every account with a transaction in the last two hours "
+    "against the operator's pattern rules, which is the operator's question rather than any customer's.",
     "compliance.tasks.screen_transaction": "Applies the operator's monitoring rules to a recorded transaction "
     "and its account history, writing operator-only alerts and screening records. The transaction and job "
     "commit together on the producer's connection; the task explicitly uses the operator role and records "
     "completion with its alert writes so a retried delivery cannot duplicate them.",
     "compliance.tasks.check_periodic_reviews": "Finds which reviews are due across every account.",
-    "offerings.tasks.subscription.reconcile_subscriptions": "Matching a bank line means searching every tenant's "
-    "subscriptions, because the line does not say whose it is.",
-    "offerings.tasks.subscription.expire_unpaid_subscriptions": "Sweeps every offering's unpaid\n"
-    "subscriptions on a clock, across all of them.",
-    "shared.tasks.orphaned_files.sweep_private_uploads": "Compares the whole object store against the whole "
-    "database, so it has to see both in full.",
+    "offerings.tasks.subscription.reconcile_subscriptions": "Moves each paid subscription whose linked issuance "
+    "request has executed to allotted, in bounded batches, repairing historical gaps between an issuance and its "
+    "subscription; a new admitted issuance updates both together. It reads no chain and no bank line, and it "
+    "sweeps every offering's subscriptions whoever subscribed, so it belongs to no tenant.",
+    "offerings.tasks.subscription.expire_unpaid_subscriptions": "Rejects every offering's subscriptions still "
+    "awaiting payment past their due date with no payment recorded, on a clock and across all of them; one with "
+    "money recorded is left for an operator.",
+    "shared.tasks.orphaned_files.sweep_private_uploads": "Compares every private file under the swept prefixes "
+    "with every row that references a file, so it has to see both in full.",
     "tokens.tasks.deployment.check_pending_token_deployments": "Polls every deployment this operator started.",
     "tokens.tasks.review_request.check_executing_issuance_requests": "Polls every issuance the relayer claimed.",
     "tokens.tasks.review_request.recover_capital_increases": "Recovers only previously admitted operator capital work.",
     "tokens.tasks.former_holders.fold_every_share_class": "Reads the Transfer log of every deployed "
     "share class and writes the cessations it finds. It is the deployment's statutory register rather "
     "than any owner's data, and R24 makes the table operator-written for that reason.",
-    "tokens.tasks.register_reconciliation.reconcile_every_register": "Compares every opened share class's "
-    "stored register with a fresh canonical chain snapshot and records the result. It is the deployment's "
-    "statutory register rather than any owner's data; it writes only reconciliation records.",
+    "tokens.tasks.register_reconciliation.reconcile_every_register": "Compares the stored register of every share "
+    "class with an applied opening, that is one opened from the chain, with a fresh canonical chain snapshot and "
+    "records the result; a register an import opened is not compared. It is the deployment's statutory register "
+    "rather than any owner's data; it writes only reconciliation records.",
     "shareholders.tasks.publications.purge_publications_past_the_clock": "Deletes publications, their frozen "
-    "rolls and their read records seven years after the publication, on the same clock and the same settings "
-    "constant the register's own outputs use. It belongs to no tenant: it sweeps every company's publications "
-    "on the operator connection, and it is the only deletion anyone may perform on those tables, because the "
-    "app role's policy refuses all three write commands on both of them and has no grant on the read records "
-    "at all.",
+    "rolls, their events (ballots, closes and payment records) and their read records seven years after the "
+    "publication, on the same clock and the same settings constant the register's own outputs use. It belongs to "
+    "no tenant: it sweeps every company's publications on the operator connection, and it is the only deletion "
+    "anyone may perform on those tables, because the app role's policy refuses all three write commands on the "
+    "publications, rolls and events and the app role has no grant on the read records at all.",
     "shareholders.tasks.publications.tell_the_members": "Announces one publication to every member of the frozen "
     "roll who has an account, by deferring one ordinary notification each. It belongs to no tenant: it reads a "
     "whole company's roll on the operator connection, which no member and no issuer may do, and the members it "
@@ -79,7 +84,9 @@ SYSTEM_WIDE = {
     "years after the export. These are the only deletions anyone may perform on those tables - the app "
     "role's policy refuses all three write commands on the former-member and particulars tables, and the "
     "app role has no grant on export records at all.",
-    "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes expired challenges regardless of whose.",
+    "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes challenges that expired unused, past the "
+    "retention window, regardless of whose; a consumed challenge stays as the signed authority for the action it "
+    "executed.",
     "tokens.tasks.swap_expiry.expire_unclaimed_matches": "Releases eligible unclaimed expired matches across both "
     "parties, retaining every swap with a transaction claim or uncertain history.",
     "tokens.tasks.held_orders.place_held_orders": "Re-places every order held back from the book because its price "
@@ -89,8 +96,10 @@ SYSTEM_WIDE = {
     "to no tenant: a match pairs two parties' private orders on the operator connection, as order creation does.",
     "tokens.tasks.swap_reconciler.recover_swap_execution": "Recovers one explicitly admitted swap execution "
     "using its original participant and common signed journal. The exact job commits with admission.",
-    "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap execution across private "
-    "counterparties without inventing an actor, restarting a claim or releasing signed financial holds.",
+    "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap executions across private "
+    "counterparties and settles each once its network's approved finality policy is satisfied and its inclusion "
+    "re-verifies: a final success completes the swap and a final revert releases its reservation once. It never "
+    "invents an actor, restarts a claim or releases a hold on unknown, waiting or changed evidence.",
     "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Replays the exact recorded bytes of "
     "every pending participant-signed approval across both parties and records the receipt it finds; it signs "
     "nothing, allocates no nonce and reads the private journal on the operator connection.",
@@ -101,13 +110,18 @@ SYSTEM_WIDE = {
     "watch is due, across all accounts. The chain answers about a transaction, not about whose it is.",
     "wallets.tasks.submissions.recover_wallet_submissions": "Retries every submission left pending across all "
     "accounts on a clock; the owner is not present and each retry re-reads its own row.",
-    "wallets.tasks.sync.sync_all_wallets": "Fans out over every wallet; the per-wallet task it defers is the "
-    "one that acts for somebody.",
+    "wallets.tasks.sync.sync_all_wallets": "Fans out over every verified wallet; the per-wallet task it defers is "
+    "the one that acts for somebody.",
     "wallets.tasks.confirmation.check_all_pending_transactions": "Requeues pending transactions and unfinished "
     "balance reconciliation across all accounts.",
     "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
     "staff-only approval rows. It reads chain state for every company and acts for no principal.",
-    "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance.",
+    "shared.tasks.job_retention.remove_old_jobs": "Removes the worker queue's finished job records through "
+    "Procrastinate's job manager, as Procrastinate's own builtin does: succeeded jobs a week after they finished, "
+    "failed, cancelled and aborted jobs after thirty days, and never a job still to do or running. The queue is "
+    "the platform's own bookkeeping and belongs to no tenant.",
+    "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance. Nothing defers it: "
+    "shared.tasks.job_retention.remove_old_jobs runs the same removal on a schedule.",
     "builtin:procrastinate.builtin_tasks.remove_old_jobs": "The same task under its builtin alias.",
 }
 
@@ -146,9 +160,9 @@ PRINCIPAL_BEARING = {
     "users.tasks.notifications.send_transaction_notification": "Sends to one user about one transaction. "
     "Converted the same way, and the transaction lookup moved inside the recipient context, so a "
     "transaction the recipient cannot reach is refused instead of described to them. The gap between "
-    "enqueue and run is up to four attempts at sixty seconds: _notify_wallet_users fans out one job per "
-    "account member on the operator connection, and a member removed in between resolves no transaction "
-    'and answers "Transaction not found" while the remaining members are notified normally.',
+    "enqueue and run is up to four attempts at sixty seconds: _notify_wallet_users defers one job, for the "
+    "wallet's owner, on the connection that settles the transaction, so the job commits with the settlement, "
+    'and an owner who can no longer reach the transaction by then is answered "Transaction not found".',
 }
 
 CONVERTED_IN = {

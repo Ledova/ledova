@@ -14,7 +14,9 @@ participants follows the [regulatory pathway](../regulatory-pathway.md).
 
 ## Intent and settlement
 
-Private orders remain visible and editable only to their owners. Eligible market
+Private orders remain visible and editable only to their owners; staff see every
+order and settlement read-only in the admin
+([the market pages](../operations/operator-console.md#the-market)). Eligible market
 readers see aggregated prices and remaining quantities from open or partially
 filled orders that meet the same signed admission and current-authority checks
 as foreign matching. Unjournaled, stale-domain, unverified-wallet and inactive-owner

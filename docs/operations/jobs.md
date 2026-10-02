@@ -29,6 +29,7 @@ one.
 | daily 03:40 | `purge_former_members_past_the_clock` |
 | daily 03:50 | `purge_publications_past_the_clock` |
 | daily 04:00 | `check_periodic_reviews` |
+| daily 04:30 | `remove_old_jobs` |
 
 ## Previewing the upload sweep
 
@@ -44,5 +45,29 @@ runs the same sweep, prints each file it would delete and deletes nothing. What
 it prints matches what the job would delete only when the command runs with the
 worker's environment: the same database roles, `STORAGE_BACKEND` and bucket.
 Without `--dry-run` it runs the sweep immediately.
+
+## Removing old job records
+
+`remove_old_jobs` deletes finished job records, with their events, through
+Procrastinate's job manager, as Procrastinate's own builtin `remove_old_jobs`
+does: a succeeded job seven days after it finished, and a failed, cancelled or
+aborted job thirty days after. A job still to do or running is never removed,
+however old, so a job that keeps retrying on its own schedule stays until it
+finishes.
+
+The two windows follow what each record is for. A succeeded record shows only
+that a run happened, and the schedule above queues thousands of them a day.
+Whether the work a job started is complete is answered by the records the work
+changed, not by the job: a job can succeed with its work still unresolved (see
+[recovery](recovery.md#deployment-and-issuance)). A failed job is a signal to
+look at, as it is for the
+[register reconciliation](register-foundation.md#reconciling-with-the-chain),
+and staff retry one from the admin's Procrastinate jobs page with **Retry Job**,
+which needs the record. A month leaves time to notice a failure and act on it,
+and a sweep that fails on every run while its cause persists always has its
+latest failure inside the window.
+
+To keep older records, for an investigation or an audit, copy them out of
+`procrastinate_jobs` and `procrastinate_events` before the next run.
 
 For interrupted work, use [recovery and reconciliation](recovery.md).
