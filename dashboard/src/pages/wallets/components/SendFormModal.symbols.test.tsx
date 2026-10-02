@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Wallet } from '@ledova/shared';
 
@@ -30,7 +30,27 @@ const getWalletHoldings = vi.fn(() =>
   Promise.resolve({
     data: [
       shareHolding('first', 'ORD', 'First Fictional Pty Ltd', `0x${'3'.repeat(40)}`),
-      shareHolding('second', 'ORD.123456782', 'Second Fictional Pty Ltd', `0x${'4'.repeat(40)}`),
+      {
+        ...shareHolding('second', 'ORD.123456782', 'Second Fictional Pty Ltd', `0x${'4'.repeat(40)}`),
+        shareClass: null,
+      },
+      ...['USDC', 'AUDY'].map((symbol) => ({
+        ...shareHolding(symbol, symbol, symbol, `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`),
+        assetName: symbol,
+        shareClass: null,
+        asset: {
+          isActive: true,
+          assetType: 'stablecoin',
+          chainDeployments: [
+            {
+              chain: 'base',
+              contractAddress: `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`,
+              decimals: 6,
+              isActive: true,
+            },
+          ],
+        },
+      })),
     ],
   }),
 );
@@ -82,7 +102,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-it('lists each share class by its own symbol beside its company, never by the bridged asset symbol', async () => {
+it('offers native crypto and payment tokens, without share classes even when their identity is unavailable', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -92,13 +112,14 @@ it('lists each share class by its own symbol beside its company, never by the br
     </QueryClientProvider>,
   );
 
-  const second = (await screen.findByText('Second Fictional Pty Ltd')).closest('button')!;
-  const first = screen.getByText('First Fictional Pty Ltd').closest('button')!;
-  for (const row of [first, second]) expect(within(row).getByText('ORD')).toBeDefined();
-  expect(screen.queryByText(/ORD\.123456782/)).toBeNull();
+  const usdc = (await screen.findByText('USDC')).closest('button')!;
+  expect(screen.getByText('AUDY')).toBeDefined();
+  expect(screen.getByText('ETH')).toBeDefined();
+  expect(screen.queryByText('First Fictional Pty Ltd')).toBeNull();
+  expect(screen.queryByText('Second Fictional Pty Ltd')).toBeNull();
+  expect(screen.queryByText(/ORD/)).toBeNull();
 
-  fireEvent.click(second);
-
-  expect(screen.getByText('Amount (ORD)')).toBeDefined();
-  expect(screen.queryByText(/ORD\.123456782/)).toBeNull();
+  fireEvent.click(usdc);
+  expect(screen.getByText('Amount (USDC)')).toBeDefined();
+  expect(getWhitelistStatus).not.toHaveBeenCalled();
 });

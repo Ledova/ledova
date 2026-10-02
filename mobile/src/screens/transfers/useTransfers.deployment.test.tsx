@@ -90,8 +90,8 @@ describe('mobile token deployment selection', () => {
   });
 });
 
-describe('mobile share class symbols', () => {
-  it('offers each share class by its own symbol and company, not the bridged asset symbol', async () => {
+describe('mobile sendable assets', () => {
+  it('offers crypto and payment tokens, without share classes even when their identity is unavailable', async () => {
     const shareHolding = (uuid: string, assetSymbol: string, companyName: string, address: string) => ({
       uuid,
       walletUuid: wallet.uuid,
@@ -111,7 +111,26 @@ describe('mobile share class symbols', () => {
       data: url.includes('/holdings/')
         ? [
             shareHolding('first', 'ORD', 'First Fictional Pty Ltd', `0x${'3'.repeat(40)}`),
-            shareHolding('second', 'ORD.123456782', 'Second Fictional Pty Ltd', `0x${'4'.repeat(40)}`),
+            {
+              ...shareHolding('second', 'ORD.123456782', 'Second Fictional Pty Ltd', `0x${'4'.repeat(40)}`),
+              shareClass: null,
+            },
+            ...['USDC', 'AUDY'].map((symbol) => ({
+              ...shareHolding(symbol, symbol, symbol, `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`),
+              shareClass: null,
+              asset: {
+                isActive: true,
+                assetType: 'stablecoin',
+                chainDeployments: [
+                  {
+                    chain: 'base',
+                    contractAddress: `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`,
+                    decimals: 6,
+                    isActive: true,
+                  },
+                ],
+              },
+            })),
           ]
         : { results: [wallet], count: 1, next: null, previous: null },
     }));
@@ -123,8 +142,8 @@ describe('mobile share class symbols', () => {
 
     expect(result.current!.transferableAssets.map(({ uuid, symbol, company }) => ({ uuid, symbol, company }))).toEqual([
       { uuid: `native-${wallet.uuid}`, symbol: 'ETH', company: undefined },
-      { uuid: 'first', symbol: 'ORD', company: 'First Fictional Pty Ltd' },
-      { uuid: 'second', symbol: 'ORD', company: 'Second Fictional Pty Ltd' },
+      { uuid: 'USDC', symbol: 'USDC', company: undefined },
+      { uuid: 'AUDY', symbol: 'AUDY', company: undefined },
     ]);
   });
 });

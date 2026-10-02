@@ -100,7 +100,7 @@ def _evm_plan(wallet, signed_transaction: str) -> SignedTransferPlan:
         chain__iexact=normalize_chain(wallet.chain), contract_address__iexact=decoded.to
     ).first()
     if share_token is not None:
-        raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=share_token.symbol))
+        raise InvalidTransactionException(NOT_TRANSFERABLE)
 
     deployment = (
         AssetChainDeployment.objects.select_related("asset")
@@ -108,7 +108,7 @@ def _evm_plan(wallet, signed_transaction: str) -> SignedTransferPlan:
         .first()
     )
     if deployment is not None and deployment.asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
-        raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=deployment.asset.symbol))
+        raise InvalidTransactionException(NOT_TRANSFERABLE)
 
     if not decoded.data:
         return SignedTransferPlan(

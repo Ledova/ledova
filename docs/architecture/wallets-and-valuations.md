@@ -155,11 +155,15 @@ admin, the staff transactions list's asset filter and the account export carry
 it. Each Activity row (`GET /api/transactions/`) resolves the same `shareClass`
 in the same way, and wherever a person reads a class it reads by its own symbol
 with its company: Activity's amounts (`40 ORD`, beside the class's combined
-name), both clients' Send pickers (the company beside the symbol), transaction
-notices ("100 ORD (Example Pty Ltd)") and the staff lists of holdings and
-transactions ("ORD (Example Pty Ltd)"). Crypto keeps its asset symbol, and so
+name), transaction notices ("100 ORD (Example Pty Ltd)") and the staff lists of
+holdings and transactions ("ORD (Example Pty Ltd)"). Crypto keeps its asset symbol, and so
 does a class the reader cannot see, such as another company's paused class,
 which shows its stored symbol as Holdings shows its combined name.
+
+Neither client's Send picker offers shares. It filters the asset type, so a
+paused class with no readable class details stays excluded. Crypto and payment
+tokens remain available; the backend continues refusing direct share transfers
+with the same instruction to use allotment instead.
 
 ## Valuation sources
 

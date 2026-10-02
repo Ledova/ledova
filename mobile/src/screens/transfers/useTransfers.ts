@@ -92,7 +92,7 @@ function buildTransferableAssets(wallet: Wallet, holdings: WalletHolding[]): Tra
     for (const holding of holdings) {
       const balance = parseFloat(holding.quantity) || 0;
       const deployment = getHoldingTokenDeployment(holding, wallet);
-      if (balance > 0 && deployment?.contractAddress) {
+      if (balance > 0 && holding.asset?.assetType !== 'tokenized_security' && deployment?.contractAddress) {
         assets.push({
           uuid: holding.uuid,
           symbol: shownSymbol(holding),

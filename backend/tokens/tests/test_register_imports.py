@@ -655,6 +655,35 @@ class RegisterImportTest(TransactionTestCase):
             },
         )
 
+    def test_a_folded_former_live_member_keeps_the_profile_over_imported_particulars(self):
+        self.apply(self.submit())
+        RegisterMemberWallet.objects.create(company=self.company, member=self.member, address=ALICE)
+        live_wallet(self.company, self.member, LIVE, "Live Mia", "1 Live Street")
+        ShareToken.objects.filter(pk=self.token.pk).update(deployment_tx_hash="0x" + "de" * 32)
+        self.token.refresh_from_db()
+        reader = Mock()
+        reader.finalized_block.return_value = 99
+        reader.deployment_block.return_value = 1
+        reader.block_date.side_effect = lambda block: DAY + timedelta(days=block)
+        reader.transfer_entries.return_value = [
+            transfer(ZERO, ALICE, 100, 10),
+            transfer(ALICE, BOB, 100, 20),
+            transfer(ZERO, LIVE, 50, 30),
+            transfer(LIVE, BOB, 50, 40),
+        ]
+        fold_former_holders(self.token, reader=reader)
+        folded = {
+            row.wallet_address: (row.name, row.residential_address, row.identity_source)
+            for row in FormerHolder.objects.filter(token=self.token)
+        }
+        self.assertEqual(
+            folded,
+            {
+                ALICE: ("Mia Member", RESIDENCE, IDENTITY_PARTICULARS),
+                LIVE: ("Live Mia", "1 Live Street", IDENTITY_LIVE),
+            },
+        )
+
     def test_the_holders_api_lists_imported_former_members_as_the_csv_does(self):
         self.apply(self.submit())
         client = APIClient()
