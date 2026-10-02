@@ -55,7 +55,7 @@ def applicant(**fields):
         "residence_country": "AU",
         "nationality": "AU",
         "dob": "1990-01-01",
-        "pep": None,
+        "pep": False,
         "decline_reasons": [],
         "addresses": [],
         "documents": [],

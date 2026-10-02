@@ -104,6 +104,15 @@ class KYCAIDStatusPollTest(APITestCase):
         self.assertEqual(self.account.account_status, "pending")
         self.push_task.defer.assert_not_called()
 
+    def test_an_approved_record_with_an_uninterpretable_pep_flag_is_not_applied(self):
+        for flag in (None, "unknown", "", 0, 1, [], {}):
+            with self.subTest(flag=flag), self.assertLogs("integrations.kycaid.client", level="WARNING"):
+                body = self.poll(applicant(verification_status="valid", pep=flag))
+                self.assertFalse(body["isVerified"])
+                self.assertEqual((body["status"], body["reviewResult"]), ("pending", None))
+                self.assertEqual(self.account.account_status, "pending")
+                self.push_task.defer.assert_not_called()
+
 
 @override_settings(KYC_PROVIDER="sumsub")
 class SumsubStatusPollTest(APITestCase):

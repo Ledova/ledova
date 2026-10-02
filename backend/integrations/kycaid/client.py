@@ -151,11 +151,11 @@ class KYCAIDService(KYCProvider):
 
     @staticmethod
     def carries_the_pep_flag(applicant) -> bool:
-        return isinstance(applicant, dict) and "pep" in applicant
+        return isinstance(applicant, dict) and _outcome(applicant.get("pep")) is not None
 
     def _normalized(self, status, review_result, webhook_data: dict, applicant) -> NormalizedVerificationResult:
         if review_result == REVIEW_GREEN and not self.carries_the_pep_flag(applicant):
-            logger.warning("A KYCAID approval without the applicant's PEP flag is not recorded")
+            logger.warning("A KYCAID approval without an interpretable applicant PEP flag is not recorded")
             status, review_result = STATUS_PENDING, None
         applicant = _mapping(applicant)
         verifications = _mapping(webhook_data.get("verifications"))
