@@ -87,9 +87,10 @@ class SumSubWebhookView(RunsOnTheOperatorConnection, APIView):
             if webhook_type in STATUS_BY_EVENT:
                 _record_status(user_profile, STATUS_BY_EVENT[webhook_type])
 
-            elif webhook_type == SUMSUB_EVENT_APPLICANT_REVIEWED:
+            elif webhook_type == SUMSUB_EVENT_APPLICANT_REVIEWED and user_profile.kyc_provider == PROVIDER_SUMSUB:
                 IdentityVerificationService.update_status_from_normalized(
-                    user_profile, sumsub_service.normalize_webhook(data)
+                    user_profile,
+                    sumsub_service.normalize_webhook(sumsub_service.with_approval_evidence(applicant_id, data)),
                 )
 
             else:

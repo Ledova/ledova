@@ -110,7 +110,7 @@ class KYCAIDResultMappingTest(SimpleTestCase):
                 normalised = sumsub({"reviewStatus": status, "reviewResult": {"reviewAnswer": "GREEN"}})
                 self.assertIsNone(normalised.review_result)
                 self.assertFalse(normalised.is_verified)
-        completed = sumsub({"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}})
+        completed = sumsub({"reviewStatus": "completed", "reviewResult": {"reviewAnswer": "GREEN"}, "amlCase": {}})
         self.assertEqual((completed.review_result, completed.is_verified), ("GREEN", True))
         missing = sumsub({"reviewResult": {"reviewAnswer": "RED"}})
         self.assertEqual((missing.verification_status, missing.review_result), ("pending", None))

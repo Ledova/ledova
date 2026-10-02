@@ -304,7 +304,19 @@ class SyntheticPopulationTest(APITestCase):
         recorded = CustomerRiskAssessment.objects.filter(assessment_status="complete")
         self.assertTrue(recorded.exists())
         for pep_details in recorded.values_list("pep_details", flat=True):
-            self.assertEqual(set(pep_details), {"pep_type", "details"})
+            self.assertEqual(
+                set(pep_details),
+                {"pep_type", "details"} | ({"approved_by_provider"} if pep_details["pep_type"] == "unknown" else set()),
+            )
+        accepted = recorded.exclude(pep_type="none").select_related("user_account__user_profile")
+        self.assertTrue(accepted.exists())
+        for assessment in accepted:
+            with self.subTest(account=assessment.user_account.account_number):
+                self.assertEqual(assessment.user_account.user_profile.kyc_provider, "sumsub")
+                self.assertEqual(assessment.pep_type, "unknown")
+                for hit in assessment.pep_details["details"]:
+                    self.assertIn("pep", hit["riskLabels"])
+                    self.assertNotIn(hit["matchStatus"], ("false_positive", "no_match"))
 
     def test_every_seeded_identity_check_is_one_its_provider_can_report(self):
         reachable = {

@@ -104,6 +104,7 @@ class IdentityVerificationService:
         if applicant_id and not user_profile.is_id_verified:
             try:
                 status_data = kyc_provider.get_applicant_status(applicant_id)
+                status_data = kyc_provider.with_approval_evidence(applicant_id, status_data)
                 normalized = kyc_provider.normalize_status(status_data)
                 if normalized.review_result:
                     IdentityVerificationService.update_status_from_normalized(user_profile, normalized)
@@ -148,7 +149,6 @@ class IdentityVerificationService:
 
             if normalized.document_type:
                 user_profile.id_document_type = normalized.document_type
-            if normalized.document_country:
                 user_profile.id_document_country = normalized.document_country
 
             was_verified = user_profile.is_id_verified
@@ -184,7 +184,11 @@ class IdentityVerificationService:
 
     @staticmethod
     def _process_verified_customer(user_profile, pep_data: Dict[str, Any]) -> None:
-        from compliance.constants import FATF_BLACKLIST_COUNTRIES, PEP_REJECTION_TYPES
+        from compliance.constants import (
+            FATF_BLACKLIST_COUNTRIES,
+            PEP_REJECTION_TYPES,
+            PEP_TYPE_UNKNOWN,
+        )
         from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_REJECTED
 
         pep_type = pep_data.get("pep_type", "none")
@@ -194,7 +198,10 @@ class IdentityVerificationService:
             logger.warning(f"No user_account found for user_profile {user_profile.uuid}")
             return
 
-        if pep_type in PEP_REJECTION_TYPES:
+        uncleared_unknown = pep_type == PEP_TYPE_UNKNOWN and (
+            user_profile.kyc_provider != PROVIDER_SUMSUB or pep_data.get("approved_by_provider") is not True
+        )
+        if pep_type in PEP_REJECTION_TYPES or uncleared_unknown:
             user_account.account_status = ACCOUNT_STATUS_REJECTED
             user_account.rejection_reason = "pep_policy"
             user_account.save()

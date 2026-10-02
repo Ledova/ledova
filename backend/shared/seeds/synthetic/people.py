@@ -21,6 +21,7 @@ from documents.models import (
 )
 from documents.schemas import PayslipExtraction
 from integrations.kyc.pep import pep_data_from_labels
+from integrations.sumsub.client import SumSubService
 from portfolios.models import Portfolio
 from shared.db import atomic
 from shared.seeds.synthetic import keys
@@ -215,7 +216,28 @@ def _identity_check(person, profile, account):
         ).exists()
         if not person.rejection_reason and not complete:
             evidence = [f"{kyc.pep_type}_pep"] if kyc.pep_type != PEP_TYPE_NONE else []
-            RiskAssessmentService.calculate_and_create(user_account=account, pep_data=pep_data_from_labels(evidence))
+            pep_data = pep_data_from_labels(evidence)
+            if kyc.provider == "sumsub" and kyc.pep_type != PEP_TYPE_NONE:
+                pep_data = (
+                    SumSubService()
+                    .normalize_webhook(
+                        {
+                            "reviewStatus": "completed",
+                            "reviewResult": {"reviewAnswer": "GREEN"},
+                            "amlCase": {
+                                "hits": [
+                                    {
+                                        "id": "synthetic-pep",
+                                        "review": {"matchStatus": "true_positive"},
+                                        "riskLabels": ["pep"],
+                                    }
+                                ]
+                            },
+                        }
+                    )
+                    .pep_data
+                )
+            RiskAssessmentService.calculate_and_create(user_account=account, pep_data=pep_data)
 
 
 def _wallet(plan, account, seeded):

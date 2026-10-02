@@ -235,6 +235,7 @@ ACCOUNT_ACTION_CHOICES = [
 
 
 PEP_TYPE_NONE = "none"
+PEP_TYPE_UNKNOWN = "unknown"
 PEP_TYPE_DOMESTIC = "domestic"
 PEP_TYPE_FOREIGN = "foreign"
 PEP_TYPE_INTERNATIONAL_ORG = "international_org"
@@ -243,6 +244,7 @@ PEP_TYPE_ASSOCIATE = "associate"
 
 PEP_TYPE_CHOICES = [
     (PEP_TYPE_NONE, "Not a PEP"),
+    (PEP_TYPE_UNKNOWN, "PEP category not provided"),
     (PEP_TYPE_DOMESTIC, "Domestic PEP"),
     (PEP_TYPE_FOREIGN, "Foreign PEP"),
     (PEP_TYPE_INTERNATIONAL_ORG, "International Organisation PEP"),

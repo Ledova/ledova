@@ -69,8 +69,8 @@ type and country; and, for an approval, the PEP type the risk policy reads.
 | Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
 | A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook |
 | Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
-| Identity document | the type of the applicant's latest valid identity document; no country | `fixedInfo` or `info.idDocs` when the payload carries them |
-| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | the `PEP` reject label or the `pep` explanatory button, both only with `RED` |
+| Identity document | the type of the applicant's latest valid identity document; no country | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country |
+| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case |
 
 A result counts only once the provider reports the check completed. Sum&Sub says
 so of `reviewAnswer`, so an answer reported beside another status, such as a
@@ -88,23 +88,40 @@ this mapping: an empty result became null, `unused` became `init`, and the `RED`
 that the earlier mapping wrote for an `unused` verification became null.
 
 KYCAID's document objects carry a type, a number, dates and an issuing authority
-but no country, and nothing else KYCAID sends names the document's country, so
-the foreign-passport risk factor is never set for a KYCAID applicant. Sum&Sub's
-document details are in its applicant data, which neither its webhooks nor its
-review status carry.
+but no country, so the foreign-passport factor remains unset. Neither provider's
+applicant country or nationality is inferred as an issuing country. On a Sum&Sub
+approval, the integration reads [verification step results](https://docs.sumsub.com/reference/get-status-of-verification-steps)
+and records an approved identity document, preferring a passport. Its alpha-3
+issuing country is converted to alpha-2 where ISO defines it.
 
-No provider names a PEP category in its documented data: KYCAID reports a PEP as
-a yes-or-no flag, and Sum&Sub as the `PEP` reject label and the `pep` button of a
-rejection. Both providers' PEP evidence goes through one classifier,
-`integrations/kyc/pep.py`, which reads category words (family or relative,
-associate, international or intl_org, foreign, domestic) and counts any other PEP
-mention as foreign. The risk policy is unchanged: foreign,
-international-organisation, family and associate PEPs are rejected, and a
-domestic PEP is accepted with a higher customer risk score, which today only a
-compliance officer's own risk assessment records. Sum&Sub records the PEP status
-of an applicant it approves, for example one a compliance officer cleared there,
-in the applicant's risk labels and AML case, which this integration does not
-read.
+The same approval then reads [the applicant's AML case](https://docs.sumsub.com/reference/get-aml-case-data).
+The token needs **View applicants** and **View AML screening** permissions. The
+AML endpoint allows ten requests per minute; a shared Redis window applies that
+limit across applicants and workers. Exhaustion, unavailable Redis, a failed
+provider request or malformed evidence leaves the approval unapplied. The
+webhook answers 500 for Sum&Sub to resend; a status poll retains the cached
+pending result and can try again. Provider calls happen before the apply
+transaction, and each completed GREEN approval makes both reads. Rejections and
+unfinished reviews make neither extra read.
+
+A PEP hit in that fetched case counts unless it is marked `false_positive` or
+`no_match`; a case that omits its hits can supply the `pep` case label. Only the
+hit ID, match status and labels are retained as evidence, without names or source
+URLs. Sum&Sub does not provide the PEP's locality or category here, so the risk
+assessment records **PEP category not provided** (`unknown`) with
+`approved_by_provider`, and adds the existing accepted-PEP customer score
+adjustment of two under `provider_approved_pep`. It does not invent a domestic
+category or overturn Sum&Sub's completed approval. This is the owner's decision
+to respect the officer's clearance and retain the PEP risk weighting. FATF
+black-list rejection still applies. The authenticated callback always replaces
+any supplied AML or document fields with fetched evidence; unsigned callbacks
+never cause a read.
+
+Rejected PEP evidence from either provider still uses the shared classifier in
+`integrations/kyc/pep.py`, and KYCAID's yes-or-no PEP flag remains a foreign PEP
+under its existing rejection policy. Known foreign, international-organisation,
+family and associate categories are rejected; existing domestic categories keep
+their existing score adjustment. No sanctions rejection is overridden.
 
 Applicants never see a screening reason. The identity status and the profile
 show `UNABLE_TO_VERIFY` in place of the reject labels and decline reasons that

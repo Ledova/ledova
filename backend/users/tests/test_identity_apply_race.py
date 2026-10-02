@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+import json
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event, Lock
 from unittest.mock import patch
@@ -6,11 +9,13 @@ from django.contrib.auth import get_user_model
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from compliance.models import CustomerRiskAssessment
 from integrations.kyc.base import NormalizedVerificationResult
 from integrations.kycaid.client import KYCAIDService
+from integrations.sumsub.client import SumSubService
 from integrations.tests.kycaid_payloads import (
     API_TOKEN,
     APPLICANT_ID,
@@ -18,6 +23,7 @@ from integrations.tests.kycaid_payloads import (
     signed,
     verification_completed,
 )
+from integrations.tests.sumsub_payloads import aml_case, review, verification_steps
 from shared.db import current_alias, set_principal, use_operator
 from shared.models import Country
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -26,6 +32,8 @@ from users.services.identity import IdentityVerificationService
 
 User = get_user_model()
 PUSH_TASK = "users.tasks.notifications.send_push_notification"
+SUMSUB_SECRET = "synthetic-sumsub-secret"
+SUMSUB_APPLICANT_ID = "5ca1ab1e0000400080000a11"
 
 
 def a_profile_awaiting_its_result(email):
@@ -138,4 +146,70 @@ class ProviderCallsOutsideTheApplyTransactionTest(TransactionTestCase):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(self.calls, [[], []])
+        self.assertTrue(response.json()["isVerified"])
+
+
+@override_settings(SUMSUB_WEBHOOK_SECRET=SUMSUB_SECRET, KYC_PROVIDER="sumsub")
+class SumsubApprovalReadsOutsideAnyTransactionTest(TransactionTestCase):
+    def setUp(self):
+        user = User.objects.create_user(email="sumsub-outside@example.test", password="pw-12345678")
+        self.profile = UserProfile.objects.create(
+            user=user,
+            kyc_provider="sumsub",
+            sumsub_applicant_id=SUMSUB_APPLICANT_ID,
+            verification_status="pending",
+            citizenship_country=Country.get_or_create_for_code("AU"),
+        )
+        UserAccount.objects.create(account_number=f"ACC-{user.pk:06d}", user_profile=self.profile)
+        self.client = APIClient()
+        self.calls = []
+        push = patch(PUSH_TASK)
+        push.start()
+        self.addCleanup(push.stop)
+
+    def provider_answers(self, answer):
+        def read(applicant_id):
+            self.calls.append([alias for alias in connections if connections[alias].in_atomic_block])
+            return answer
+
+        return read
+
+    def reads(self):
+        return patch.object(
+            SumSubService, "get_verification_steps", side_effect=self.provider_answers(verification_steps())
+        ), patch.object(SumSubService, "get_aml_case", side_effect=self.provider_answers(aml_case()))
+
+    def test_the_webhook_reads_an_approvals_evidence_outside_any_transaction(self):
+        payload = {
+            "type": "applicantReviewed",
+            "applicantId": SUMSUB_APPLICANT_ID,
+            "externalUserId": str(self.profile.uuid),
+            "createdAtMs": timezone.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
+            **review(),
+        }
+        body = json.dumps(payload).encode()
+        signature = hmac.new(SUMSUB_SECRET.encode(), body, hashlib.sha256).hexdigest()
+        steps, case = self.reads()
+
+        with steps, case:
+            response = self.client.post(
+                reverse("sumsub-webhook"), body, content_type="application/json", HTTP_X_PAYLOAD_DIGEST=signature
+            )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(self.calls, [[], []])
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.is_id_verified)
+
+    def test_the_poll_reads_an_approvals_evidence_outside_any_transaction(self):
+        self.client.force_authenticate(self.profile.user)
+        steps, case = self.reads()
+
+        with patch.object(
+            SumSubService, "get_applicant_status", side_effect=self.provider_answers(review())
+        ), steps, case, patch.object(SumSubService, "get_applicant_data", return_value={"info": {}}):
+            response = self.client.get("/api/users/identity-verification/status/")
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(self.calls, [[], [], []])
         self.assertTrue(response.json()["isVerified"])
