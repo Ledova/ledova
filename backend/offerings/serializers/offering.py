@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from assets.models import Asset
-from companies.models import CompanyDocument
+from companies.models import OFFER_DOCUMENT_TYPES, CompanyDocument
 from offerings.models import Offering
 from operators.settlement import settlement_assets
 from tokens.models import ShareToken
@@ -27,6 +27,11 @@ NOT_EDITABLE = "An offering can be edited while it is a draft and after it is re
 BOUNDS_ORDER = "Order the bounds minimum <= target <= cap."
 WINDOW_ORDER = "An offering must close after it opens."
 MAXIMUM_ORDER = "The maximum per investor must be at least the minimum."
+FOREIGN_DOCUMENT = "Attach documents of the company whose share class this offering is for."
+OFFER_DOCUMENTS_ONLY = (
+    "Add offer documents: a prospectus or information memorandum, risk disclosure, business plan, financial "
+    "statements, auditor report, constitution or shareholder agreement."
+)
 
 
 class OfferingListSerializer(serializers.ModelSerializer):
@@ -138,6 +143,9 @@ class OfferingWriteSerializer(serializers.ModelSerializer):
         closes_at = self._value(attrs, "closes_at")
         if closes_at is not None and closes_at <= self._value(attrs, "opens_at"):
             raise serializers.ValidationError({"closes_at": WINDOW_ORDER})
+        company_id = self._value(attrs, "token").company_id
+        if any(document.company_id != company_id for document in attrs.get("documents", [])):
+            raise serializers.ValidationError({"documents": FOREIGN_DOCUMENT})
         return attrs
 
     def validate_token(self, value):
@@ -152,3 +160,23 @@ class OfferingWriteSerializer(serializers.ModelSerializer):
 class OfferingWithdrawSerializer(serializers.Serializer):
 
     reason = serializers.CharField(required=False, allow_blank=True)
+
+
+class OfferingDocumentsSerializer(serializers.Serializer):
+
+    documents = serializers.SlugRelatedField(
+        slug_field="uuid", many=True, allow_empty=False, queryset=CompanyDocument.objects.none()
+    )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        fields["documents"].child_relation.queryset = CompanyDocument.objects.all()
+        return fields
+
+    def validate_documents(self, documents):
+        company_id = self.context["offering"].company_id
+        if any(document.company_id != company_id for document in documents):
+            raise serializers.ValidationError(FOREIGN_DOCUMENT)
+        if any(document.document_type not in OFFER_DOCUMENT_TYPES for document in documents):
+            raise serializers.ValidationError(OFFER_DOCUMENTS_ONLY)
+        return documents

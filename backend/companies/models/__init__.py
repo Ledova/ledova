@@ -1,6 +1,7 @@
 from companies.models.company import Company, CompanyStatus, CompanyType
 from companies.models.document import (
     LISTING_REQUIRED_DOCUMENTS,
+    OFFER_DOCUMENT_TYPES,
     CompanyDocument,
     DocumentType,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "CompanyPack",
     "DocumentType",
     "LISTING_REQUIRED_DOCUMENTS",
+    "OFFER_DOCUMENT_TYPES",
     "CompanyRegistryCheck",
     "RegistryCheckPurpose",
     "RegistryCheckStatus",

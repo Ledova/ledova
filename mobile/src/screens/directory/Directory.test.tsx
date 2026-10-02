@@ -1,11 +1,15 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { RefreshControl } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApiClientProvider } from '@ledova/shared';
+import * as Sharing from 'expo-sharing';
+import { ApiClientProvider, OFFER_DOCUMENT_COPY } from '@ledova/shared';
 import { DirectoryScreen } from './DirectoryScreen';
 import { ShareClassScreen } from './ShareClassScreen';
 import { DirectoryStackNavigator } from '../../navigation/DirectoryStackNavigator';
 import { apiClient } from '../../services/apiClient';
+import { getSessionEpoch } from '../../services/sessionScope';
+import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 
 const mockNavigate = jest.fn();
 const mockParentNavigate = jest.fn();
@@ -24,11 +28,27 @@ jest.mock('@react-navigation/native-stack', () => ({
 jest.mock('../../navigation/headers', () => ({ MainHeader: () => ({}), getMainHeaderStyle: () => ({}) }));
 jest.mock('../../hooks/useRole', () => ({ useRole: () => mockRole }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
+jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 
 const eligibilityUrl = '/api/investor-classifications/eligibility/';
 const listUrl = '/api/v1/directory/tokens/';
 const detailUrl = `${listUrl}class-a/`;
 const operatorUrl = '/api/operator/';
+const documentsUrl = `${detailUrl}documents/`;
+const memorandum = {
+  uuid: 'memorandum',
+  name: 'Information memorandum',
+  documentType: 'prospectus',
+  documentTypeDisplay: 'Prospectus or Information Memorandum',
+  fileSize: 24576,
+  mimeType: 'application/pdf',
+  validFrom: null,
+  validUntil: null,
+  createdAt: '2026-09-01T00:00:00Z',
+  fileUrl: `https://api.example.test${documentsUrl}memorandum/file/`,
+};
+const fileUrl = `${documentsUrl}${memorandum.uuid}/file/`;
 const get = jest.mocked(apiClient.get);
 let client: QueryClient;
 let eligible: boolean;
@@ -36,6 +56,7 @@ let pages: Record<number, object>;
 let token: ReturnType<typeof shareClass>;
 let failure: string | null;
 let notFound: boolean;
+let documents: object[];
 
 function shareClass(uuid = 'class-a') {
   return {
@@ -63,6 +84,10 @@ beforeEach(() => {
   pages = { 1: { results: [token], next: null } };
   failure = null;
   notFound = false;
+  documents = [memorandum];
+  resetFiles();
+  jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(true);
+  jest.mocked(Sharing.shareAsync).mockResolvedValue(undefined);
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   get.mockReset().mockImplementation(async (url, config) => {
     const page = (config?.params as { page?: number } | undefined)?.page ?? 1;
@@ -74,6 +99,12 @@ beforeEach(() => {
       return { data: token };
     }
     if (url === '/api/wallets/') return { data: { results: [], next: null } };
+    if (url === documentsUrl) return { data: documents };
+    if (url === fileUrl)
+      return {
+        data: Uint8Array.from('%PDF', (character) => character.charCodeAt(0)).buffer,
+        headers: { 'content-type': 'application/pdf' },
+      };
     if (url === operatorUrl) return { data: { name: 'Fictional Ledova Operator' } };
     throw new Error(`Unexpected request ${url}`);
   });
@@ -243,4 +274,79 @@ it('keeps class reads independent of operator failure and retries the operator e
   failure = null;
   await fireEvent.press(view.getByText('Try operator details again'));
   expect(await view.findByText(/Fictional Ledova Operator reviews your application/)).toBeTruthy();
+});
+
+it('lists the offer documents and opens one from a private copy through the authenticated client', async () => {
+  const copy = `${cache}ledova-document-views-v1/${memorandum.uuid}.pdf`;
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText('Information memorandum')).toBeTruthy();
+  expect(view.getByText('Prospectus or Information Memorandum · 24.0 KB · Uploaded 1 September 2026')).toBeTruthy();
+  expect(view.getByText(OFFER_DOCUMENT_COPY.HELP)).toBeTruthy();
+
+  await fireEvent.press(view.getByLabelText('View Information memorandum'));
+
+  await waitFor(() =>
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(copy, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' }),
+  );
+  expect(get).toHaveBeenCalledWith(fileUrl, { ledovaSessionEpoch: getSessionEpoch(), responseType: 'arraybuffer' });
+  expect(get.mock.calls.some(([url]) => url === memorandum.fileUrl)).toBe(false);
+  expect(files.get(copy)?.content).toBe('%PDF');
+});
+
+it('says so when a refused document cannot be opened, and keeps no copy', async () => {
+  const copy = `${cache}ledova-document-views-v1/${memorandum.uuid}.pdf`;
+  failure = fileUrl;
+  const view = await render(<ShareClassScreen />, { wrapper });
+  await fireEvent.press(await view.findByLabelText('View Information memorandum'));
+  expect(await view.findByText(OFFER_DOCUMENT_COPY.OPEN_FAILED)).toBeTruthy();
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+  expect(files.has(copy)).toBe(false);
+});
+
+it('shows the documents of approved offerings even when none is open now', async () => {
+  token.openOffering = null;
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText('No offering open')).toBeTruthy();
+  expect(await view.findByLabelText('View Information memorandum')).toBeTruthy();
+});
+
+it('says so when no document is attached, rather than showing an empty list', async () => {
+  documents = [];
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText(OFFER_DOCUMENT_COPY.EMPTY)).toBeTruthy();
+  expect(view.queryByText(OFFER_DOCUMENT_COPY.HELP)).toBeNull();
+  expect(view.queryByText(OFFER_DOCUMENT_COPY.VIEW)).toBeNull();
+});
+
+it('keeps a failed document read distinct from having none and retries it alone', async () => {
+  failure = documentsUrl;
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText(OFFER_DOCUMENT_COPY.FAILED)).toBeTruthy();
+  expect(view.queryByText(OFFER_DOCUMENT_COPY.EMPTY)).toBeNull();
+  expect(view.getByText('Ordinary shares')).toBeTruthy();
+  failure = null;
+  await fireEvent.press(view.getByText(OFFER_DOCUMENT_COPY.RETRY));
+  expect(await view.findByLabelText('View Information memorandum')).toBeTruthy();
+});
+
+it('pulls a document added to an approved offering into the page when the investor refreshes it', async () => {
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByLabelText('View Information memorandum')).toBeTruthy();
+  documents = [memorandum, { ...memorandum, uuid: 'supplement', name: 'Supplementary memorandum' }];
+
+  await act(async () => {
+    (RefreshControl as unknown as { latestRef: { props: { onRefresh: () => void } } }).latestRef.props.onRefresh();
+  });
+
+  expect(await view.findByLabelText('View Supplementary memorandum')).toBeTruthy();
+  expect(view.getByLabelText('View Information memorandum')).toBeTruthy();
+  expect(get.mock.calls.filter(([url]) => url === documentsUrl)).toHaveLength(2);
+});
+
+it('does not read documents for a class that is not available to the investor', async () => {
+  notFound = true;
+  const view = await render(<ShareClassScreen />, { wrapper });
+  expect(await view.findByText('Share class not available')).toBeTruthy();
+  expect(view.queryByText(OFFER_DOCUMENT_COPY.TITLE)).toBeNull();
+  expect(get.mock.calls.some(([url]) => url === documentsUrl)).toBe(false);
 });

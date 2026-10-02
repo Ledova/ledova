@@ -75,7 +75,8 @@ from on-chain recipient whitelisting.
 
 Directory selectors allow a globally eligible investor to discover companies, or
 restrict an associated-person investor to the companies their live claims name.
-The secondary market uses the unscoped predicate and receives no widening from
+The same selector decides who opens the documents of a class's approved offerings
+([offerings](offerings.md)). The secondary market uses the unscoped predicate and receives no widening from
 associated-person claims. Inaccessible list/detail querysets produce empty lists
 or 404; they do not confirm a hidden row with 403. Operator payment instructions
 use eligibility for at least one company.

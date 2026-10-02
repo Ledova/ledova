@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApiClientProvider } from '@ledova/shared';
+import { ApiClientProvider, OFFER_DOCUMENT_COPY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
@@ -68,6 +68,7 @@ const draft = {
 };
 let current = { ...company };
 let detail = { ...draft };
+let listed = { ...draft };
 let client: QueryClient;
 let failure: string | null;
 let badPage: string | null;
@@ -96,6 +97,7 @@ beforeEach(() => {
   badPage = null;
   current = { ...company };
   detail = { ...draft };
+  listed = { ...draft };
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
   });
@@ -140,7 +142,7 @@ beforeEach(() => {
       return page(
         number === 1
           ? [{ ...draft, uuid: 'foreign-offering', tokenUuid: 'foreign', tokenName: 'Foreign offering' }]
-          : [{ ...draft }],
+          : [{ ...listed }],
         number,
       );
     if (url === OFFERING) return { data: { ...detail } };
@@ -466,4 +468,120 @@ it.each([
   await waitFor(() => expect(view.getByRole('button', { name: 'New offering' })).toBeEnabled());
   expect(view.queryByRole('alert')).toBeNull();
   expect(refresh).not.toHaveBeenCalled();
+});
+
+const DOCUMENTS = `${OFFERING}documents/`;
+function companyDocument(uuid: string, documentType: string, documentTypeDisplay: string) {
+  return { uuid, name: `${uuid}.pdf`, documentType, documentTypeDisplay };
+}
+function publish(status: 'approved' | 'closed') {
+  listed = { ...draft, status, statusDisplay: status, canBeEdited: false, canBeDeleted: false };
+  detail = { ...listed, documents: ['memorandum'] } as typeof detail;
+  current = {
+    ...company,
+    documents: [
+      companyDocument('memorandum', 'prospectus', 'Prospectus or Information Memorandum'),
+      companyDocument('supplement', 'risk_disclosure', 'Risk Disclosure Statement'),
+      companyDocument('register', 'share_register', 'Current Share Register'),
+    ],
+  } as typeof current;
+}
+async function openDocuments() {
+  const view = await start();
+  await fireEvent.press(view.getByRole('button', { name: 'Add documents to the Ordinary shares offering' }));
+  await waitFor(() => expect(view.getByLabelText('Attach supplement.pdf').props.disabled).toBe(false));
+  return view;
+}
+
+it.each(['approved', 'closed'] as const)(
+  'adds documents to a %s offering and never offers to remove one',
+  async (status) => {
+    publish(status);
+    const view = await openDocuments();
+    expect(view.getByLabelText('Attach memorandum.pdf').props).toEqual(
+      expect.objectContaining({ value: true, disabled: true }),
+    );
+    expect(view.getByText('Prospectus or Information Memorandum · Attached')).toBeTruthy();
+    expect(view.queryByLabelText('Attach register.pdf')).toBeNull();
+    expect(view.getByRole('button', { name: 'Add documents' })).toBeDisabled();
+    await fireEvent(view.getByLabelText('Attach supplement.pdf'), 'valueChange', true);
+    await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
+    await waitFor(() => expect(view.queryByLabelText('Attach supplement.pdf')).toBeNull());
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledWith(
+      DOCUMENTS,
+      { documents: ['supplement'] },
+      { ledovaSessionEpoch: getSessionEpoch() },
+    );
+  },
+);
+
+it.each(['draft', 'submitted', 'under_review', 'rejected', 'withdrawn'])(
+  'offers no way to add documents to a %s offering',
+  async (status) => {
+    listed = { ...draft, status };
+    const view = await start();
+    expect(view.queryByRole('button', { name: 'Add documents to the Ordinary shares offering' })).toBeNull();
+  },
+);
+
+it('keeps the dialog open with the refusal when the documents cannot be added', async () => {
+  publish('approved');
+  post.mockRejectedValueOnce({ response: { data: { detail: 'Documents can be added to a draft offering.' } } });
+  const view = await openDocuments();
+  await fireEvent(view.getByLabelText('Attach supplement.pdf'), 'valueChange', true);
+  await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
+  expect(await view.findByRole('alert', { name: 'Documents can be added to a draft offering.' })).toBeTruthy();
+  expect(view.getByLabelText('Attach supplement.pdf').props.value).toBe(true);
+  expect(view.getByRole('button', { name: 'Add documents' })).toBeEnabled();
+});
+
+it.each(['success', 'refusal'])(
+  'suppresses an old documents addition after session retirement (%s)',
+  async (outcome) => {
+    publish('approved');
+    const view = await openDocuments();
+    const pending = deferred<{ data: object }>();
+    post.mockReturnValueOnce(pending.promise);
+    const epoch = getSessionEpoch();
+    await fireEvent(view.getByLabelText('Attach supplement.pdf'), 'valueChange', true);
+    await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(DOCUMENTS, { documents: ['supplement'] }, { ledovaSessionEpoch: epoch }),
+    );
+    const refresh = jest.spyOn(client, 'invalidateQueries');
+    await act(() => {
+      invalidateSessionScope();
+    });
+    await act(() => (outcome === 'success' ? pending.resolve({ data: {} }) : pending.reject(new Error('Old refusal'))));
+    await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeEnabled());
+    expect(view.getByLabelText('Attach supplement.pdf')).toBeTruthy();
+    expect(view.queryByRole('alert')).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+  },
+);
+
+it('says so and adds nothing when the offering is no longer approved or closed', async () => {
+  publish('approved');
+  const view = await start();
+  detail = { ...detail, status: 'withdrawn', statusDisplay: 'Withdrawn' };
+  await fireEvent.press(view.getByRole('button', { name: 'Add documents to the Ordinary shares offering' }));
+  expect(await view.findByRole('alert', { name: OFFER_DOCUMENT_COPY.ADD_UNAVAILABLE })).toBeTruthy();
+  expect(view.queryByLabelText('Attach supplement.pdf')).toBeNull();
+  expect(view.getByRole('button', { name: 'Add documents' })).toBeDisabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('sends nothing once the offering leaves approved or closed with a document already switched on', async () => {
+  publish('approved');
+  const view = await openDocuments();
+  await fireEvent(view.getByLabelText('Attach supplement.pdf'), 'valueChange', true);
+  detail = { ...detail, status: 'withdrawn', statusDisplay: 'Withdrawn' };
+  await act(() => client.invalidateQueries({ queryKey: ['offering'] }));
+  expect(await view.findByRole('alert', { name: OFFER_DOCUMENT_COPY.ADD_UNAVAILABLE })).toBeTruthy();
+  expect(view.queryByLabelText('Attach supplement.pdf')).toBeNull();
+  expect(view.getByRole('button', { name: 'Add documents' })).toBeDisabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
+  expect(post).not.toHaveBeenCalled();
 });

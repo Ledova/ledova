@@ -47,3 +47,9 @@ export function formatCryptoBalance(balance: string | number, symbol: string, de
   const places = digits.slice(point).replace(/0+$/, '');
   return `${sign}${digits.slice(0, point)}${places ? `.${places}` : ''} ${symbol}`;
 }
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
