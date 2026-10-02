@@ -4,6 +4,7 @@ from typing import Generator, Optional
 
 from django.conf import settings
 from django.db import OperationalError
+from django.db.models import Q
 
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
@@ -19,6 +20,8 @@ from tokens.exceptions import (
 )
 from tokens.models import (
     ShareToken,
+    SwapOrder,
+    SwapOrderStatus,
     TransferOrder,
     TransferOrderStatus,
     TransferOrderType,
@@ -157,7 +160,16 @@ def find_matching_orders(order: TransferOrder) -> Generator[tuple[TransferOrder,
             )
         )
 
-    qs = qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID).exclude(wallet_address__iexact=order.wallet_address)
+    parted = SwapOrder.objects.filter(
+        Q(sell_order_id=order.pk) | Q(buy_order_id=order.pk),
+        status__in=(SwapOrderStatus.EXPIRED, SwapOrderStatus.FAILED),
+    )
+    qs = (
+        qs.admitted_to_match(order, settings.BLOCKCHAIN_CHAIN_ID)
+        .exclude(wallet_address__iexact=order.wallet_address)
+        .exclude(pk__in=parted.values("sell_order_id"))
+        .exclude(pk__in=parted.values("buy_order_id"))
+    )
     price_order = "price_per_share" if order.order_type == TransferOrderType.BUY else "-price_per_share"
     candidates = qs.order_by(price_order, "created_at", "pk").iterator(chunk_size=100)
     yield from _compatible_matches(candidates, order)
@@ -224,6 +236,17 @@ def _match_candidate(order, candidate, match_quantity):
         if getattr(exc.__cause__, "sqlstate", None) != "55P03":
             raise
         raise OrderMatchingBusyException() from exc
+
+
+def take_one_match(order):
+    refusal = None
+    with closing(find_matching_orders(order)) as candidates:
+        for matching_order, match_quantity in candidates:
+            try:
+                return _match_candidate(order, matching_order, match_quantity), None
+            except InvalidSettlementAmountException as exc:
+                refusal = exc
+    return None, refusal
 
 
 @atomic()
@@ -311,26 +334,19 @@ def create_order_and_match(
         filled_quantity=0,
     )
 
-    amount_refusal = None
-    with closing(find_matching_orders(order)) as candidates:
-        for matching_order, match_quantity in candidates:
-            try:
-                match_result = _match_candidate(order, matching_order, match_quantity)
-            except InvalidSettlementAmountException as exc:
-                amount_refusal = exc
-                continue
-            order = match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"]
+    from tokens.events import publish_trading_event
 
-            from tokens.events import publish_trading_event
-
-            publish_trading_event("order_created", str(token.uuid))
-            publish_trading_event("order_matched", str(token.uuid))
-            return order, match_result
+    match_result, amount_refusal = take_one_match(order)
+    if match_result is not None:
+        publish_trading_event("order_created", str(token.uuid))
+        publish_trading_event("order_matched", str(token.uuid))
+        return match_result["buy_order" if order_type == TransferOrderType.BUY else "sell_order"], match_result
 
     if amount_refusal is not None:
         raise amount_refusal
 
-    from tokens.events import publish_trading_event
-
+    order.rest_or_hold()
+    if order.status != TransferOrderStatus.OPEN:
+        order.save(update_fields=["status", "updated_at"])
     publish_trading_event("order_created", str(token.uuid))
     return order, None

@@ -11,6 +11,7 @@ from authentication.managers.user import EmailLookupState
 from authentication.services import TokenService
 from portfolios.models import Portfolio
 from shared.db import atomic
+from shared.utils.token_amounts import plain_amount
 from users.models import FinancialProfile, UserAccount, UserProfile
 from wallets.models import Transaction, Wallet
 
@@ -122,11 +123,6 @@ def export_account_data(user):
     return data
 
 
-def _plain(value):
-    text = format(Decimal(value), "f")
-    return text.rstrip("0").rstrip(".") if "." in text else text
-
-
 def _exact_integer(value):
     return None if value is None else str(value)
 
@@ -138,8 +134,8 @@ def _exported_transaction(tx):
         "chain": tx.chain,
         "status": tx.status,
         "asset": tx.asset.symbol if tx.asset else None,
-        "amount": _plain(tx.amount or 0),
-        "transaction_fee": None if tx.transaction_fee is None else _plain(tx.transaction_fee),
+        "amount": plain_amount(tx.amount or Decimal(0)),
+        "transaction_fee": None if tx.transaction_fee is None else plain_amount(tx.transaction_fee),
         "from_address": tx.from_address,
         "to_address": tx.to_address,
         "block_timestamp": tx.block_timestamp,

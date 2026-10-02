@@ -11,6 +11,12 @@ import { setTimeout, clearTimeout, setInterval, clearInterval } from 'node:timer
 const directory = path.resolve(process.argv[2]);
 const host = process.argv[3] === 'ios' ? 'localhost' : '10.0.2.2';
 fs.mkdirSync(directory, { recursive: true });
+function publishJson(filename, value) {
+  const temporary = `${filename}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(value, null, 2));
+  fs.renameSync(temporary, filename);
+}
+
 function certificateTool() {
   for (const directory of (process.env.PATH ?? '').split(path.delimiter)) {
     const candidate = path.resolve(directory, 'openssl');
@@ -271,7 +277,7 @@ function handler(kind) {
               failure: { category: failure.category, stage: failure.stage },
             }),
         }));
-        fs.writeFileSync(path.join(directory, 'result.json'), JSON.stringify({ checks, counts }, null, 2));
+        publishJson(path.join(directory, 'result.json'), { checks, counts });
         response.end('{}');
         return;
       }
@@ -318,19 +324,12 @@ console.log('listen-probe-services');
 await Promise.all(servers.map((server) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))));
 const ports = servers.map((server) => server.address().port);
 destination = `https://${host}:${ports[1]}`;
-fs.writeFileSync(
-  path.join(directory, 'config.json'),
-  JSON.stringify(
-    {
-      apiUrl: `https://${host}:${ports[0]}`,
-      targetUrl: destination,
-      httpUrl: `http://${host === 'localhost' ? '127.0.0.1' : host}:${ports[2]}`,
-      untrustedUrl: `https://${host}:${ports[3]}`,
-    },
-    null,
-    2,
-  ),
-);
+publishJson(path.join(directory, 'config.json'), {
+  apiUrl: `https://${host}:${ports[0]}`,
+  targetUrl: destination,
+  httpUrl: `http://${host === 'localhost' ? '127.0.0.1' : host}:${ports[2]}`,
+  untrustedUrl: `https://${host}:${ports[3]}`,
+});
 console.log('probe-services-ready');
 
 process.on('SIGTERM', () => {

@@ -43,7 +43,7 @@ from whitelist.services import whitelist
 
 logger = logging.getLogger(__name__)
 
-NOT_TRANSFERABLE = "{symbol} is a tokenized security. Shares move by allotment, not by a wallet transfer."
+NOT_TRANSFERABLE = "Shares move by allotment, not by a wallet transfer."
 SENDER_NOT_APPROVED = (
     "This wallet has no current approval with any company, so it cannot send {symbol}. "
     "Ask the operator to approve it, then try again."
@@ -64,7 +64,7 @@ def resolve_transfer_asset(wallet: Wallet, token_contract: Optional[str] = None)
             f"Token contract {token_contract} is not a verified asset on {normalize_chain(wallet.chain)}."
         )
     if asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
-        raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=asset.symbol))
+        raise InvalidTransactionException(NOT_TRANSFERABLE)
     return asset
 
 

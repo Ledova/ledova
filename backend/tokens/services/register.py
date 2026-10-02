@@ -249,6 +249,8 @@ def _member_identity(addresses, identities, stamps, recorded=None):
         return MEMBER_AMBIGUOUS
     if people:
         holder_type, name, residential_address = people.pop()
+        if holder_type == HolderType.TREASURY.value and recorded is not None:
+            return holder_type, recorded.name, recorded.residential_address, IDENTITY_PARTICULARS, None
         return holder_type, name, residential_address, IDENTITY_BY_HOLDER_TYPE[holder_type], None
     found = [stamps[address.lower()] for address in addresses if address.lower() in stamps]
     resolved = [stamp for stamp in found if stamp["stamped_at"]]

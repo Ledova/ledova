@@ -44,6 +44,7 @@ from shared.seeds.synthetic.plan import (
 )
 from users.models.investor_classification import plus_years
 from users.services.identity import REVIEW_OUTCOME_MESSAGES
+from users.services.notifications import transaction_message
 
 PEOPLE_STREAM = "people"
 CURRENT_PRICES = {
@@ -57,7 +58,6 @@ STABLECOINS = ("USDC", "USDT")
 CENT = Decimal("0.01")
 PRICE_PLACES = {"BTC": CENT, "ETH": CENT, "USDC": Decimal("0.0001"), "USDT": Decimal("0.0001")}
 AMOUNT_PLACES = {"BTC": Decimal("0.00000001"), "ETH": Decimal("0.000001"), "USDC": CENT, "USDT": CENT}
-STORED_PLACES = Decimal("0.000000000000000001")
 USD_AUD = Decimal("1.5240")
 SEND_CEILING = Decimal("4500")
 DUST = Decimal("20")
@@ -69,10 +69,6 @@ FEES = {
 }
 FEE_PLACES = {"base": Decimal("0.000000001"), "ethereum": Decimal("0.000000001"), "bitcoin": Decimal("0.00000001")}
 BLOCKS = {"base": (45_120_000, 2), "ethereum": (10_640_000, 12), "bitcoin": (4_611_000, 600)}
-TRANSACTION_MESSAGES = {
-    "confirmed": ("Transaction Confirmed", "Your transaction of {amount} {symbol} has been confirmed."),
-    "failed": ("Transaction Failed", "Your transaction of {amount} {symbol} has failed."),
-}
 
 STAFF = (
     ("compliance", "helena.marsh", "Compliance officer", 198, None),
@@ -274,10 +270,6 @@ def build_plan(now, investors=DEFAULT_INVESTORS, seed=SEED):
 
 def quantized(value, places):
     return value.quantize(places, rounding=ROUND_DOWN)
-
-
-def stored(value):
-    return format(value.quantize(STORED_PLACES), "f")
 
 
 def decimal(value):
@@ -860,13 +852,12 @@ class Story:
         for wallet in person.wallets:
             for transfer in wallet.transfers:
                 if transfer.app_sent:
-                    title, body = TRANSACTION_MESSAGES[transfer.status]
+                    title, text = transaction_message(transfer.status, transfer.amount, transfer.symbol)
                     data = {
                         "type": "transaction",
                         "event": transfer.status,
                         "transaction_id": Ref("transaction", transfer.tx_hash),
                     }
-                    text = body.format(amount=stored(transfer.amount), symbol=transfer.symbol)
                     raw.append(
                         (transfer.at + timedelta(seconds=self.rng.randint(30, 240)), title, text, "transaction", data)
                     )

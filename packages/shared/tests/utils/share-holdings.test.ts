@@ -9,7 +9,7 @@ function held(overrides: Partial<HoldingWithWallet> = {}): HoldingWithWallet {
     assetSymbol: 'ORD',
     quantity: '250.000000000000000000',
     chain: 'base',
-    shareClass: { uuid: 'class-1', name: 'Ordinary shares', companyName: 'Fictional Company' },
+    shareClass: { uuid: 'class-1', name: 'Ordinary shares', symbol: 'ORD', companyName: 'Fictional Company' },
     marketValue: null,
     valueSource: 'unpriced',
     createdAt: '2026-09-27T00:00:00Z',
@@ -142,10 +142,22 @@ describe('summarizeShareHoldings', () => {
 
   it('orders companies, names, assets and wallet identities deterministically without changing its input', () => {
     const input = [
-      held({ assetUuid: 'asset-z', shareClass: { uuid: 'class-z', companyName: 'Zulu Company', name: 'A' } }),
-      held({ assetUuid: 'asset-b', shareClass: { uuid: 'class-b', companyName: 'Alpha Company', name: 'B' } }),
-      held({ assetUuid: 'asset-c', shareClass: { uuid: 'class-c', companyName: 'Alpha Company', name: 'A' } }),
-      held({ assetUuid: 'asset-a', shareClass: { uuid: 'class-a', companyName: 'Alpha Company', name: 'A' } }),
+      held({
+        assetUuid: 'asset-z',
+        shareClass: { uuid: 'class-z', companyName: 'Zulu Company', name: 'A', symbol: 'ZA' },
+      }),
+      held({
+        assetUuid: 'asset-b',
+        shareClass: { uuid: 'class-b', companyName: 'Alpha Company', name: 'B', symbol: 'AB' },
+      }),
+      held({
+        assetUuid: 'asset-c',
+        shareClass: { uuid: 'class-c', companyName: 'Alpha Company', name: 'A', symbol: 'AC' },
+      }),
+      held({
+        assetUuid: 'asset-a',
+        shareClass: { uuid: 'class-a', companyName: 'Alpha Company', name: 'A', symbol: 'AA' },
+      }),
       held({ walletInfo: { uuid: 'wallet-z', name: null, address: '0x3333', chain: 'base' } }),
       held({ walletInfo: { uuid: 'wallet-b', name: null, address: '0x1111', chain: 'base' } }),
       held({ walletInfo: { uuid: 'wallet-a', name: null, address: '0x1111', chain: 'base' } }),

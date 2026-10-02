@@ -321,7 +321,12 @@ wallet verification or signing authority, and QR parsing, key derivation,
 verification, Buy and Send keep their existing boundaries.
 
 Activity presents recorded wallet transfers in a read-only ledger, with exact
-decimal amounts, native network fees and the current recorded status. A
+decimal amounts, native network fees and the current recorded status. A share
+transfer's amount carries its class's own symbol ([a share holding names its
+class](wallets-and-valuations.md#a-share-holding-names-its-class)). Send offers
+crypto and payment tokens, including AUDY, and excludes share assets even when
+their class details are unavailable. Shares move through allotment and the
+market; direct wallet-transfer requests remain refused. A
 confirmed or failed status shows a ✓ or ✗ before its word, which screen readers
 skip, in the entry's name and in its detail. Its history
 read does not depend on the wallet filter read succeeding. The wallet selector

@@ -16,6 +16,7 @@ from shared.seeds.synthetic.chain.settlement import (
 )
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.market.context import seeded_id
+from shared.seeds.synthetic.market.story import HELD
 from shared.utils.token_amounts import token_base_units
 from shared.utils.typed_data import signable_message
 from tokens.models import (
@@ -25,6 +26,7 @@ from tokens.models import (
     SwapOrder,
     SwapOrderStatus,
     TransferOrder,
+    TransferOrderStatus,
 )
 from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.order_actions import execute_order_action, issue_order_action
@@ -41,6 +43,7 @@ REFUSED = "The {side} order {key} was not created: {code} {detail}"
 MISMATCHED = "The {side} order {key} matched {actual}, and the plan has it match {planned}."
 NOT_CANCELLED = "The cancellation of {key} ended {status}."
 NOT_EXPIRED = "The lapsed match of {key} did not expire."
+NOT_HELD = "The order {key} ended {status} after its match lapsed, and the plan has it held back."
 NOT_COMPLETED = "The trade {taker} against {maker} ended {status}."
 
 
@@ -126,6 +129,10 @@ def lapse(fill, market):
     with frozen(taker.placed_at + EXPIRY_RUN) as moment:
         if not expire_unclaimed_swap(swap, moment):
             raise ChainStepFailed(NOT_EXPIRED.format(key=fill.taker))
+    if taker.fate == HELD:
+        status = TransferOrder.objects.get(pk=market.orders[fill.taker]).status
+        if status != TransferOrderStatus.HELD:
+            raise ChainStepFailed(NOT_HELD.format(key=fill.taker, status=status))
     return swap
 
 

@@ -128,7 +128,7 @@ def _admit(request_id, user, permission, notes):
         if request.status == MintRequestStatus.REJECTED:
             raise MintRequestConflict("This mint request was rejected.")
         if request.execution_intent is None:
-            if request.status not in (MintRequestStatus.PENDING, MintRequestStatus.APPROVED):
+            if request.status != MintRequestStatus.PENDING:
                 raise MintRequestConflict("This mint has no attributable execution intent.")
             request.execution_intent = _intent(request)
             request.executed_by = actor

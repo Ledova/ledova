@@ -44,6 +44,7 @@ from users.models import (
 )
 from users.models.investor_classification import DECLARATION_TEXT, InvestorCategory
 from users.services.eligibility import investor_eligibility
+from users.services.notifications import transaction_message
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services.wallets import (
     generate_verification_challenge,
@@ -458,6 +459,18 @@ class SyntheticPopulationTest(APITestCase):
             wallet__user_account=structuring, market_value_aud__gte=8000, market_value_aud__lte=9999
         )
         self.assertEqual(in_band.count(), 3)
+
+    def test_transaction_notices_read_as_the_service_writes_them(self):
+        notices = list(Notification.objects.filter(notification_type="transaction"))
+
+        self.assertTrue(notices)
+        for notice in notices:
+            transaction = Transaction.objects.select_related("asset").get(pk=notice.data["transaction_id"])
+            self.assertEqual(
+                (notice.title, notice.body),
+                transaction_message(notice.data["event"], transaction.amount, transaction.asset.symbol),
+            )
+            self.assertNotRegex(notice.body, r"\.\d*0 |\d[eE][-+]?\d")
 
     def test_named_streams_are_reproducible_and_independent(self):
         chain, again = stream("chain"), stream("chain")

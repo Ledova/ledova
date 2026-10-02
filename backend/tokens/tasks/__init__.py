@@ -6,6 +6,7 @@ from .deployment import (
     recover_swap_approval,
 )
 from .former_holders import fold_every_share_class, purge_former_members_past_the_clock
+from .held_orders import place_held_orders
 from .mint_request import recover_mint_requests
 from .nav import check_pending_nav_updates, recover_nav_update
 from .pause import check_pending_pause_changes, recover_pause_change
@@ -31,6 +32,7 @@ __all__ = [
     "execute_review_request_task",
     "expire_unclaimed_matches",
     "fold_every_share_class",
+    "place_held_orders",
     "purge_former_members_past_the_clock",
     "purge_signing_challenges",
     "reconcile_every_register",

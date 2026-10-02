@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from shared.utils.share_classes import share_class_label
 from wallets.models import Transaction
 
 
@@ -10,7 +11,7 @@ class TransactionAdmin(admin.ModelAdmin):
         "chain",
         "from_address_short",
         "to_address_short",
-        "asset",
+        "asset_label",
         "amount",
         "market_value_display",
         "market_value_aud_display",
@@ -34,6 +35,9 @@ class TransactionAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid", "market_value_aud", "created_at", "updated_at")
     list_select_related = ("asset", "wallet")
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).with_share_class()
+
     @admin.display(description="TX Hash")
     def tx_hash_short(self, obj):
         return f"{obj.tx_hash[:16]}..." if obj.tx_hash else "-"
@@ -45,6 +49,10 @@ class TransactionAdmin(admin.ModelAdmin):
     @admin.display(description="To")
     def to_address_short(self, obj):
         return f"{obj.to_address[:10]}..." if obj.to_address else "-"
+
+    @admin.display(description="Asset", ordering="asset__symbol")
+    def asset_label(self, obj):
+        return share_class_label(obj) or str(obj.asset)
 
     @admin.display(description="USD Value")
     def market_value_display(self, obj):
