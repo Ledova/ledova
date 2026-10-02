@@ -41,9 +41,15 @@ the investors the directory admits to that share class, through the directory's
 own route and `file_url` ([offerings](offerings.md)), under the same rules: the
 row resolves before streaming, and a document that is not published through
 that class answers the same 404 as a phantom. Only stored files are served there;
-a document held as an external link is not offered to investors.
+a document held as an external link is not offered to investors. While an
+approved or closed offering carries a document, its owner cannot delete it:
+the delete answers 409 `offered_document`, and admin refuses it too.
 Admin downloads are attachments. Customer serving is inline only for the allowed
 PDF/PNG/JPEG MIME types; other or absent types become attachments.
+`stream_stored_file`, which every customer file route uses, marks each response
+`Cache-Control: private, no-store`, so neither a shared cache nor the browser
+keeps a copy; admin downloads, the company pack among them, carry the same
+directives through the admin's `never_cache`.
 
 ## Deletion and retention
 

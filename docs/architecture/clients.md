@@ -101,7 +101,8 @@ history/detail refreshes suppress cached terms and actions; a later-page failure
 marks the history incomplete. Directory draft creation reads every verified Base
 wallet, preserves quantity and selection across failed refreshes, and blocks writes
 until current prerequisites recover. A native class page lists its offer documents
-as the dashboard does; opening one fetches it with the bearer client into a
+as the dashboard does, and pulling the page to refresh reads them again with the
+class; opening one fetches it with the bearer client into a
 session-scoped temporary copy for the share sheet, and a failed open keeps no
 copy. Native application writes carry the captured
 session epoch through the existing transport guard and ignore retired-session
@@ -342,7 +343,10 @@ and time controls set the offering window in the device's local time. Price
 strings remain exact, request share quantities retain the API bounds, and a
 removed settlement asset must be explicitly removed from the draft before save.
 The form lists the company's uploaded offer documents to attach for investors and
-keeps an edited offering's attachments until one is switched off.
+keeps an edited offering's attachments until one is switched off. An approved or
+closed offering has Add documents instead, a dialog whose attached documents are
+switched on and disabled; it sends only the new choices under the captured
+session epoch, keeps a refusal in the dialog and refreshes Offerings.
 Subscription facts remain separate from the stored share register and allotment.
 Offering writes and Directory visibility changes capture the native session epoch;
 credential lookup, token refresh and late UI callbacks cannot carry them into a
@@ -428,7 +432,13 @@ submission. Operator details failing to load do not imply bank-transfer-only
 settlement. The forms list the company's uploaded offer documents to attach for
 investors, who can open them once the operator approves the offering; editing
 keeps the attached ones, listed even when of another type, until the issuer
-unticks one.
+unticks one, and saving leaves out an attachment that is not one of the
+company's documents. An approved or closed offering has Add documents instead:
+its dialog lists the offer documents with the attached ones ticked and
+disabled, sends only the new choices, keeps a refusal in the dialog and
+refreshes the page on success. Nothing offers to untick an attached document
+there, and a dialog opened on an offering that has since left approved or
+closed says so and sends nothing.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,

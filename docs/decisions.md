@@ -25,6 +25,13 @@ decision, 2 October 2026). Drafts and offerings submitted, under review, rejecte
 or withdrawn publish none, and the company's other documents stay with the
 company. The product has investors review the documents before they apply, with
 appropriate access to offer information; directory eligibility is that access.
+Once an offering is approved or closed, its documents are added to and never
+removed (owner decision, 2 October 2026): the issuer or staff can attach a
+supplementary memorandum, but nobody detaches or deletes a document investors
+may already have read. The issuer's picker keeps to the offer document types:
+prospectus or information memorandum, risk disclosure, business plan, financial
+statements, auditor report, constitution and shareholder agreement (owner
+decision, the same day).
 [Offerings](architecture/offerings.md) owns the routes.
 
 The register leaves amount paid blank when it cannot be established exactly;
