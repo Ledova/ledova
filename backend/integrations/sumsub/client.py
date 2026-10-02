@@ -225,7 +225,9 @@ class SumSubService(KYCProvider):
         return self._make_request("GET", f"/resources/api/applicants/{applicant_id}/amlCase")
 
     def get_applicant_status(self, applicant_id: str) -> Dict[str, Any]:
-        return self._make_request("GET", f"/resources/applicants/{applicant_id}/status")
+        response = self._make_request("GET", f"/resources/applicants/{applicant_id}/status")
+        logger.info(f"[SUMSUB_CLIENT] Status for {applicant_id}: review answer {self._review_answer(response)}")
+        return response
 
     def _generate_signature(self, method: str, url: str, timestamp: str, body: bytes = b"") -> str:
         data = f"{timestamp}{method.upper()}{url}".encode() + body
