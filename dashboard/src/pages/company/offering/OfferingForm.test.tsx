@@ -312,6 +312,41 @@ describe('OfferingForm documents for investors', () => {
     expect((onUpdate.mock.calls[0][0] as OfferingInput).documents).toEqual([]);
   });
 
+  it("drops an attachment the company does not hold, so another company's document never blocks a save", () => {
+    const onUpdate = vi.fn();
+    const editing = {
+      tokenUuid: TOKEN.uuid,
+      exemption: 's708_11_professional',
+      pricePerShare: '1.50',
+      minimumShares: 10,
+      targetShares: 100,
+      capShares: 200,
+      opensAt: '2026-10-01T09:00:00Z',
+      closesAt: null,
+      summary: '',
+      useOfProceeds: '',
+      acceptsBankTransfer: true,
+      settlementAssets: [],
+      documents: ['memorandum', 'someone-elses'],
+      status: 'draft',
+    } as unknown as Offering;
+    render(
+      <OfferingForm
+        tokens={[TOKEN]}
+        busy={false}
+        settlementAssets={[]}
+        documents={[MEMORANDUM]}
+        operatorName="Example Operator"
+        onCreate={vi.fn()}
+        editing={editing}
+        onUpdate={onUpdate}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect((onUpdate.mock.calls[0][0] as OfferingInput).documents).toEqual(['memorandum']);
+  });
+
   it('says where documents come from when the company has none', () => {
     const onCreate = vi.fn();
     render(

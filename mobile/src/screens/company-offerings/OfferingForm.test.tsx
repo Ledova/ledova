@@ -187,3 +187,16 @@ it('lists offer documents, and any document already attached, but never personal
   await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
   expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: [] }));
 });
+
+it("drops an attachment the company does not hold, so another company's document never blocks a save", async () => {
+  const view = await render(
+    <OfferingForm
+      {...props}
+      editing={{ ...editing, documents: ['memorandum', 'someone-elses'] }}
+      documents={[document('memorandum', 'prospectus', 'Prospectus or Information Memorandum')]}
+    />,
+  );
+  expect(view.getByLabelText('Attach memorandum.pdf').props.value).toBe(true);
+  await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
+  expect(submit).toHaveBeenLastCalledWith(expect.objectContaining({ documents: ['memorandum'] }));
+});

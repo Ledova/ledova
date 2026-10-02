@@ -1,5 +1,6 @@
-import { describeOfferDocument, formatFileSize } from '../../src/utils';
-import type { DirectoryDocument } from '../../src/types';
+import { OFFER_DOCUMENT_TYPES } from '../../src/constants';
+import { attachableDocuments, describeOfferDocument, formatFileSize } from '../../src/utils';
+import type { CompanyDocument, DirectoryDocument } from '../../src/types';
 
 const memorandum: DirectoryDocument = {
   uuid: 'memorandum',
@@ -35,4 +36,22 @@ it('adds the validity the issuer recorded, on the calendar day it names', () => 
     'Prospectus or Information Memorandum · 2.5 MB · Uploaded 1 September 2026 · ' +
       'Valid from 1 September 2026 · Valid until 30 November 2026',
   );
+});
+
+const companyDocument = (uuid: string, documentType: CompanyDocument['documentType']) =>
+  ({ uuid, name: `${uuid}.pdf`, documentType }) as CompanyDocument;
+
+it('offers every offer document type for attaching, and no other company record', () => {
+  const offer = OFFER_DOCUMENT_TYPES.map((type) => companyDocument(type, type));
+  const records = (['cert_inc', 'share_register', 'director_id', 'beneficial_ownership', 'other'] as const).map(
+    (type) => companyDocument(type, type),
+  );
+
+  expect(attachableDocuments([...records, ...offer], [])).toEqual(offer);
+});
+
+it('keeps listing a document already attached, whatever its type, so a save never drops it', () => {
+  const documents = [companyDocument('passport', 'director_id'), companyDocument('memorandum', 'prospectus')];
+
+  expect(attachableDocuments(documents, ['passport'])).toEqual(documents);
 });

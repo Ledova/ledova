@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { OFFER_DOCUMENT_COPY, OFFER_DOCUMENT_TYPES, OFFERING_EXEMPTION_LABELS, requestShares } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, attachableDocuments, requestShares } from '@ledova/shared';
 import type {
   CompanyDocument,
   CompanyShareTokenListItem,
@@ -10,6 +10,7 @@ import type {
   OperatorSettlementAsset,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { DocumentChoices } from './DocumentChoices';
 
 const EXEMPTIONS = Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][];
 
@@ -68,10 +69,7 @@ export function OfferingForm({
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
   const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
-  const attachable = documents.filter(
-    (document) =>
-      OFFER_DOCUMENT_TYPES.includes(document.documentType) || (editing?.documents ?? []).includes(document.uuid),
-  );
+  const attachable = attachableDocuments(documents, editing?.documents ?? []);
 
   const chosenToken = token;
   const hasARail = acceptsBankTransfer || chosenAssets.length > 0;
@@ -117,7 +115,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
-      documents: chosenDocuments,
+      documents: chosenDocuments.filter((uuid) => documents.some((document) => document.uuid === uuid)),
     };
     if (editing && onUpdate) {
       onUpdate(input);
@@ -283,21 +281,7 @@ export function OfferingForm({
         {attachable.length === 0 ? (
           <p className="text-sm text-text-muted">{OFFER_DOCUMENT_COPY.ATTACH_NONE}</p>
         ) : (
-          attachable.map((document) => (
-            <label key={document.uuid} className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                aria-label={`${OFFER_DOCUMENT_COPY.ATTACH} ${document.name}`}
-                checked={chosenDocuments.includes(document.uuid)}
-                onChange={() => toggleDocument(document.uuid)}
-                className="mt-0.5 h-4 w-4 rounded border-border"
-              />
-              <span className="min-w-0">
-                <span className="block break-all text-sm text-text-primary">{document.name}</span>
-                <span className="block text-sm text-text-muted">{document.documentTypeDisplay}</span>
-              </span>
-            </label>
-          ))
+          <DocumentChoices documents={attachable} chosen={chosenDocuments} onToggle={toggleDocument} />
         )}
       </div>
 

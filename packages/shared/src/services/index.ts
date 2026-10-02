@@ -99,6 +99,7 @@ export {
   submitOffering,
   withdrawOffering,
   getOfferingSubscriptions,
+  addOfferingDocuments,
 } from './offerings';
 export {
   getSubscriptions,

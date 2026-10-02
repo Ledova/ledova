@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { Company, Offering } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, type Company, type Offering } from '@ledova/shared';
 import OfferingPage from '.';
 import { companyRecord, documentRecord, renderCompanyPage } from '../testSupport';
 
@@ -345,6 +345,7 @@ it('edits the rejected record with its current values, retaining unchanged docum
     maximumShares: 800,
   });
   offered = [offering];
+  company = { ...company, documents: [documentRecord('prospectus', 'document-one')] };
   show();
   const dialog = await openEditor(true);
   expect(within(dialog).getByDisplayValue('The tranche as the operator saw it')).toBeTruthy();
@@ -579,4 +580,102 @@ it('keeps approved offerings read-only except the existing withdrawal rule', asy
   await screen.findByRole('heading', { name: 'Your offerings (1)' });
   expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+});
+
+it('adds documents to an approved or closed offering and never offers to remove one', async () => {
+  for (const status of ['approved', 'closed'] as const) {
+    offering = record({ status, statusDisplay: status, canBeEdited: false, canBeDeleted: false });
+    offered = [offering];
+    company = companyRecord({
+      status: 'active',
+      statusDisplay: 'Active',
+      canIssueTokens: true,
+      documents: [
+        documentRecord('prospectus', 'document-one'),
+        documentRecord('risk_disclosure', 'document-two'),
+        documentRecord('share_register', 'document-three'),
+      ],
+    });
+    api.post.mockClear();
+    show();
+    await screen.findByRole('heading', { name: 'Your offerings (1)' });
+    fireEvent.click(screen.getByRole('button', { name: 'Add documents' }));
+    const dialog = await screen.findByRole('dialog');
+    const kept = (await within(dialog).findByLabelText('Attach document-one.pdf')) as HTMLInputElement;
+    expect([kept.checked, kept.disabled]).toEqual([true, true]);
+    expect(within(dialog).queryByLabelText('Attach document-three.pdf')).toBeNull();
+    const add = within(dialog).getByRole('button', { name: 'Add documents' }) as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+    fireEvent.click(within(dialog).getByLabelText('Attach document-two.pdf'));
+    fireEvent.click(add);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(BASE + 'offering-one/documents/', { documents: ['document-two'] });
+    cleanup();
+    client.clear();
+  }
+});
+
+it('offers no way to add documents while an offering is a draft, under review or withdrawn', async () => {
+  for (const status of ['draft', 'submitted', 'under_review', 'rejected', 'withdrawn'] as const) {
+    offering = record({ status, statusDisplay: status });
+    offered = [offering];
+    show();
+    await screen.findByRole('heading', { name: 'Your offerings (1)' });
+    expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+    cleanup();
+    client.clear();
+  }
+});
+
+it('keeps the dialog open with the refusal when the documents cannot be added', async () => {
+  offering = record({ status: 'approved', statusDisplay: 'Approved', canBeEdited: false, canBeDeleted: false });
+  offered = [offering];
+  company = { ...company, documents: [documentRecord('risk_disclosure', 'document-two')] };
+  api.post.mockRejectedValue(refusal('Documents can be added to a draft or rejected offering.'));
+  show();
+  await screen.findByRole('heading', { name: 'Your offerings (1)' });
+  fireEvent.click(screen.getByRole('button', { name: 'Add documents' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(await within(dialog).findByLabelText('Attach document-two.pdf'));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Add documents' }));
+  expect(await within(dialog).findByRole('alert')).toHaveProperty(
+    'textContent',
+    'Documents can be added to a draft or rejected offering.',
+  );
+  expect(screen.getByRole('dialog')).toBeTruthy();
+});
+
+it('says so and adds nothing when the offering is no longer approved or closed', async () => {
+  offering = record({ status: 'approved', statusDisplay: 'Approved', canBeEdited: false, canBeDeleted: false });
+  offered = [offering];
+  company = { ...company, documents: [documentRecord('risk_disclosure', 'document-two')] };
+  show();
+  await screen.findByRole('heading', { name: 'Your offerings (1)' });
+  offering = { ...offering, status: 'withdrawn', statusDisplay: 'Withdrawn' };
+  fireEvent.click(screen.getByRole('button', { name: 'Add documents' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(await within(dialog).findByRole('alert')).toHaveProperty('textContent', OFFER_DOCUMENT_COPY.ADD_UNAVAILABLE);
+  expect(within(dialog).queryByLabelText('Attach document-two.pdf')).toBeNull();
+  const add = within(dialog).getByRole('button', { name: 'Add documents' }) as HTMLButtonElement;
+  expect(add.disabled).toBe(true);
+  fireEvent.click(add);
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('sends nothing once the offering leaves approved or closed with a document already ticked', async () => {
+  offering = record({ status: 'approved', statusDisplay: 'Approved', canBeEdited: false, canBeDeleted: false });
+  offered = [offering];
+  company = { ...company, documents: [documentRecord('risk_disclosure', 'document-two')] };
+  show();
+  await screen.findByRole('heading', { name: 'Your offerings (1)' });
+  fireEvent.click(screen.getByRole('button', { name: 'Add documents' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(await within(dialog).findByLabelText('Attach document-two.pdf'));
+  offering = { ...offering, status: 'withdrawn', statusDisplay: 'Withdrawn' };
+  await act(() => client.invalidateQueries({ queryKey: ['offering'] }));
+  expect(await within(dialog).findByRole('alert')).toHaveProperty('textContent', OFFER_DOCUMENT_COPY.ADD_UNAVAILABLE);
+  const add = within(dialog).getByRole('button', { name: 'Add documents' }) as HTMLButtonElement;
+  expect(add.disabled).toBe(true);
+  fireEvent.click(add);
+  expect(api.post).not.toHaveBeenCalled();
 });

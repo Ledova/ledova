@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
   OFFER_DOCUMENT_COPY,
-  OFFER_DOCUMENT_TYPES,
   OFFERING_EXEMPTION_LABELS,
+  attachableDocuments,
   requestShares,
   type CompanyDocument,
   type CompanyShareTokenListItem,
@@ -15,6 +15,7 @@ import {
 import { Action, Choice } from '../../components/Ledger';
 import { ModalActions } from '../../components/modal';
 import { useCompanyStyles } from '../company-register/styles';
+import { DocumentChoices } from './DocumentChoices';
 import { OfferingDateField } from './OfferingDateField';
 
 export function OfferingForm({
@@ -54,10 +55,7 @@ export function OfferingForm({
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
   const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
-  const attachable = documents.filter(
-    (document) =>
-      OFFER_DOCUMENT_TYPES.includes(document.documentType) || (editing?.documents ?? []).includes(document.uuid),
-  );
+  const attachable = attachableDocuments(documents, editing?.documents ?? []);
   const minimum = requestShares(minimumShares);
   const target = requestShares(targetShares);
   const cap = requestShares(capShares);
@@ -93,7 +91,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
-      documents: chosenDocuments,
+      documents: chosenDocuments.filter((uuid) => documents.some((document) => document.uuid === uuid)),
     });
   };
   return (
@@ -202,22 +200,14 @@ export function OfferingForm({
       {attachable.length === 0 ? (
         <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_NONE}</Text>
       ) : (
-        attachable.map((document) => (
-          <View key={document.uuid} style={styles.group}>
-            <Text style={styles.text}>{document.name}</Text>
-            <Text style={styles.muted}>{document.documentTypeDisplay}</Text>
-            <Switch
-              accessibilityLabel={`${OFFER_DOCUMENT_COPY.ATTACH} ${document.name}`}
-              value={chosenDocuments.includes(document.uuid)}
-              disabled={busy}
-              onValueChange={(value) =>
-                setChosenDocuments((chosen) =>
-                  value ? [...chosen, document.uuid] : chosen.filter((uuid) => uuid !== document.uuid),
-                )
-              }
-            />
-          </View>
-        ))
+        <DocumentChoices
+          documents={attachable}
+          chosen={chosenDocuments}
+          busy={busy}
+          onChange={(uuid, attached) =>
+            setChosenDocuments((chosen) => (attached ? [...chosen, uuid] : chosen.filter((each) => each !== uuid)))
+          }
+        />
       )}
       {unavailableAssets.length > 0 && (
         <View style={styles.group}>

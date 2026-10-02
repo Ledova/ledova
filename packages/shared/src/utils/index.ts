@@ -6,7 +6,7 @@ export {
   formatFileSize,
   formatPlainDecimal,
 } from './formatting';
-export { describeOfferDocument } from './offer-documents';
+export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {
   isNumericOnly,
   validatePassword,
