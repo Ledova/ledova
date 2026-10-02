@@ -102,7 +102,12 @@ SYSTEM_WIDE = {
     "balance reconciliation across all accounts.",
     "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
     "staff-only approval rows. It reads chain state for every company and acts for no principal.",
-    "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance.",
+    "shared.tasks.job_retention.remove_old_jobs": "Removes the worker queue's finished job records through "
+    "Procrastinate's job manager, as Procrastinate's own builtin does: succeeded jobs a week after they finished, "
+    "failed, cancelled and aborted jobs after thirty days, and never a job still to do or running. The queue is "
+    "the platform's own bookkeeping and belongs to no tenant.",
+    "procrastinate.builtin_tasks.remove_old_jobs": "Procrastinate's own queue maintenance. Nothing defers it: "
+    "shared.tasks.job_retention.remove_old_jobs runs the same removal on a schedule.",
     "builtin:procrastinate.builtin_tasks.remove_old_jobs": "The same task under its builtin alias.",
 }
 
