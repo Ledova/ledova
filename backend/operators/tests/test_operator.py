@@ -1,3 +1,4 @@
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -9,6 +10,7 @@ from assets.models import Asset, AssetChainDeployment
 from operators.models import SINGLETON_PK, DeploymentMode, Operator, ReceivingChain
 from operators.serializers import OperatorSerializer
 from shared.tests.tenants import make_associated, make_eligible, make_tenant
+from shared.tests.test_admin_row_actions import grant, staff_user
 from users.models import InvestorClassification, InvestorClassificationStatus
 
 User = get_user_model()
@@ -149,6 +151,16 @@ class OperatorAdminTest(TestCase):
         self.assertEqual(self.client.get(delete_url).status_code, 403)
         self.assertEqual(self.client.post(delete_url, {"post": "yes"}).status_code, 403)
         self.assertEqual(Operator.objects.count(), 1)
+
+    def test_adding_the_row_needs_the_add_permission_even_while_none_exists(self):
+        operator_admin = admin.site._registry[Operator]
+        self.client.force_login(grant(staff_user("operator-viewer"), operator_admin, "view"))
+        refused = self.client.get(self.add_url)
+        self.client.force_login(grant(staff_user("operator-adder"), operator_admin, "add"))
+        offered = self.client.get(self.add_url)
+
+        self.assertEqual((refused.status_code, offered.status_code), (403, 200))
+        self.assertFalse(Operator.objects.exists())
 
     def test_change_form_validates_and_limits_the_asset_choices_to_stablecoins(self):
         audy = stablecoin()

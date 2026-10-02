@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import render
 from django.urls import reverse
 
@@ -13,6 +13,9 @@ from operators.services import (
     worklist,
 )
 from operators.settlement import settlement_errors
+from tokens.models import SwapOrder, TransferOrder
+
+MARKET_PAGES = (("Orders", TransferOrder), ("Settlements", SwapOrder))
 
 
 class OperatorForm(forms.ModelForm):
@@ -82,6 +85,8 @@ class OperatorAdmin(admin.ModelAdmin):
     ]
 
     def changelist_view(self, request, extra_context=None):
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
         operator = Operator.get()
         context = {
             **self.admin_site.each_context(request),
@@ -94,11 +99,19 @@ class OperatorAdmin(admin.ModelAdmin):
             "deployment_mode": operator.get_deployment_mode_display(),
             "registrants": registrants(),
             "registrant_note": REGISTRANT_NOTE,
+            "market_pages": self._market_pages(request),
         }
         return render(request, "admin/operators/operator/console.html", context)
 
+    def _market_pages(self, request):
+        return [
+            (label, reverse(f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"))
+            for label, model in MARKET_PAGES
+            if self.admin_site.get_model_admin(model).has_view_permission(request)
+        ]
+
     def has_add_permission(self, request):
-        return not Operator.objects.exists()
+        return super().has_add_permission(request) and not Operator.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
         return False

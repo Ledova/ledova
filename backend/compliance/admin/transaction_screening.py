@@ -8,13 +8,13 @@ from compliance.admin._helpers import (
     GREEN,
     RED,
     YELLOW,
-    admin_link,
     choice_badge,
     short_hex,
 )
 from compliance.constants import SCREENING_STATUS_FAILED
 from compliance.models import ComplianceAlert, TransactionScreening
 from compliance.services.crypto_screening import CryptoScreeningService
+from shared.utils.admin_display import admin_link
 
 SCREENING_STATUS_COLOURS = {"pending": YELLOW, "completed": GREEN, "failed": RED}
 SCREENING_RESULT_COLOURS = {"approved": GREEN, "review": YELLOW, "rejected": RED}
