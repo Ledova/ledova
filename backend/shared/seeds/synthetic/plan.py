@@ -73,6 +73,7 @@ class Transfer:
     block_hash: str
     at: datetime
     market_value: Decimal
+    market_value_aud: Decimal
     recorded_at: datetime
     settled_at: datetime
     monitored_at: datetime

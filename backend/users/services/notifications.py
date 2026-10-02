@@ -1,10 +1,24 @@
 import logging
+from decimal import Decimal
 from typing import Any, Dict, Optional
 
 from integrations.expo_push import ExpoPushClient, ExpoPushError
+from shared.utils.share_classes import share_class_label
+from shared.utils.token_amounts import format_amount
 from users.models import DeviceToken, Notification, UserPreferences
 
 logger = logging.getLogger(__name__)
+
+TRANSACTION_MESSAGES = {
+    "confirmed": ("Transaction Confirmed", "Your transaction of {moved} has been confirmed."),
+    "failed": ("Transaction Failed", "Your transaction of {moved} has failed."),
+}
+TRANSACTION_UPDATED = ("Transaction Update", "Your transaction has been updated.")
+
+
+def transaction_message(event_type: str, amount: Decimal, symbol: str) -> tuple[str, str]:
+    title, body = TRANSACTION_MESSAGES.get(event_type, TRANSACTION_UPDATED)
+    return title, body.format(moved=f"{format_amount(amount)} {symbol}")
 
 
 class NotificationService:
@@ -101,23 +115,8 @@ class NotificationService:
         transaction,
         event_type: str,
     ) -> Dict[str, Any]:
-        event_messages = {
-            "confirmed": {
-                "title": "Transaction Confirmed",
-                "body": f"Your transaction of {transaction.amount} {transaction.asset.symbol} has been confirmed.",
-            },
-            "failed": {
-                "title": "Transaction Failed",
-                "body": f"Your transaction of {transaction.amount} {transaction.asset.symbol} has failed.",
-            },
-        }
-
-        message = event_messages.get(
-            event_type,
-            {
-                "title": "Transaction Update",
-                "body": "Your transaction has been updated.",
-            },
+        title, body = transaction_message(
+            event_type, transaction.amount, share_class_label(transaction) or transaction.asset.symbol
         )
 
         data = {
@@ -128,8 +127,8 @@ class NotificationService:
 
         return self.notify_user(
             user=user,
-            title=message["title"],
-            body=message["body"],
+            title=title,
+            body=body,
             data=data,
             notification_type="transaction",
         )

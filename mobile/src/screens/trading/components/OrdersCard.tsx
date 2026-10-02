@@ -177,7 +177,7 @@ export function OrdersCard({
                     </Rows>
                   </Disclosure>
                 </Rows>
-                {['open', 'partially_filled'].includes(order.status) && (
+                {['open', 'partially_filled', 'held'].includes(order.status) && (
                   <View style={styles.actions}>
                     {confirming === order.uuid ? (
                       <>

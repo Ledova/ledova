@@ -11,6 +11,7 @@ export interface TransferableAsset {
   uuid: string;
   symbol: string;
   name: string;
+  company?: string;
   balance: string;
   marketValue: string | null;
   isNative: boolean;

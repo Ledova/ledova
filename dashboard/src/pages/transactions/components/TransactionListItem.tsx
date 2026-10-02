@@ -4,6 +4,7 @@ import {
   formatDate,
   getBlockchainDisplayName,
   getChainShortCode,
+  shownSymbol,
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Disclosure, Status } from '@components/Ledger';
@@ -40,7 +41,7 @@ export function TransactionListItem({ transaction, open, onToggle }: Transaction
             </span>
           </span>
           <span className="max-w-full break-all text-sm tabular-nums text-text-primary">
-            {activityAmount(transaction.amount, transaction.assetSymbol)}
+            {activityAmount(transaction.amount, shownSymbol(transaction))}
           </span>
         </span>
       }

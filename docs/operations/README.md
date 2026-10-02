@@ -15,6 +15,7 @@ assume the API, worker and database run compatible code.
 | Verify a real Keystone wallet using a Mac camera and separate synthetic data | [Keystone on a Mac](keystone-mac.md) |
 | Read which real-chain test proves each step of the product's demonstration journey | [Demonstration journey](demonstration-journey.md) |
 | Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
+| Read what transaction monitoring compares and when a customer counts as new | [Transaction monitoring](operator-console.md#transaction-monitoring) |
 | Publish a document to a share class's members | [Publishing to members](publications.md) |
 | Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
 | Configure private storage, scanning and retention | [Uploads](uploads.md) |

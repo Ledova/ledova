@@ -18,6 +18,7 @@ const transaction: Transaction = {
   asset: 'synthetic-asset',
   assetSymbol: 'ETH',
   assetName: 'Ethereum',
+  shareClass: null,
   amount: '2',
   marketValue: null,
   blockTimestamp: null,
@@ -78,4 +79,19 @@ it.each([
 it('names the direction in its opened detail', () => {
   const detail = detailOf({ ...transaction, toAddress: '0x' + 'AB'.repeat(20) });
   expect(within(detail).getByText('Self transfer')).toBeTruthy();
+});
+
+it('shows a share transfer by its class symbol in the row and the detail, not the bridged asset symbol', () => {
+  const detail = detailOf({
+    ...transaction,
+    assetSymbol: 'ORD.123456782',
+    assetName: 'Second Fictional Pty Ltd Ordinary Shares',
+    shareClass: { uuid: 'class-2', name: 'Ordinary Shares', symbol: 'ORD', companyName: 'Second Fictional Pty Ltd' },
+    amount: '40.000000000000000000',
+  });
+  const row = screen.getByRole('button', { name: /Second Fictional Pty Ltd Ordinary Shares/ });
+
+  expect(row.textContent).toContain('40 ORD');
+  expect(within(detail).getByText('40 ORD')).toBeTruthy();
+  expect(document.body.textContent).not.toContain('ORD.123456782');
 });

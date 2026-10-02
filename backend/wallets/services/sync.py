@@ -1,13 +1,13 @@
 import logging
-from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from assets.models import Asset, AssetSnapshot
+from assets.models import Asset
 from assets.services.identity import native_asset_for_chain, quarantine_unknown_token
+from assets.services.valuation import transaction_values
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from integrations.blockchain import get_blockchain_client
 from shared.constants import normalize_chain
@@ -88,7 +88,7 @@ def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> bool:
     if isinstance(block_timestamp, str):
         block_timestamp = parse_datetime(block_timestamp)
     amount = Decimal(str(tx_data["amount"]))
-    market_value = _calculate_market_value(amount, asset, block_timestamp)
+    market_value, market_value_aud = transaction_values(asset, amount, block_timestamp)
 
     tx, created = Transaction.objects.get_or_create(
         tx_hash=tx_data["tx_hash"],
@@ -100,6 +100,7 @@ def _process_single_transaction(wallet: Wallet, tx_data: Dict) -> bool:
             "asset": asset,
             "amount": tx_data["amount"],
             "market_value": market_value,
+            "market_value_aud": market_value_aud,
             "block_timestamp": block_timestamp,
             "block_number": tx_data.get("block_number"),
             "transaction_fee": tx_data.get("transaction_fee"),
@@ -141,18 +142,3 @@ def _sync_holdings_from_blockchain(wallet: Wallet) -> tuple[int, int]:
     assets = [holding.asset for holding in wallet.holdings.select_related("asset").filter(asset__is_verified=True)]
     written = [asset for asset in assets if sync_holding(wallet, asset) is not None]
     return len(written), len(assets) - len(written)
-
-
-def _calculate_market_value(amount: Decimal, asset: Asset, timestamp: datetime) -> Optional[Decimal]:
-    if not timestamp:
-        return None
-
-    try:
-        price = AssetSnapshot.objects.filter(asset=asset).get_price_at_timestamp(timestamp)
-        if price is not None:
-            market_value = abs(amount) * price
-            return market_value.quantize(Decimal("0.01"))
-        return None
-    except Exception as e:
-        logger.warning(f"Failed to calculate market value for {asset.symbol}: {e}")
-        return None

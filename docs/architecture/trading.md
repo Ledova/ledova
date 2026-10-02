@@ -84,6 +84,43 @@ settlement, reservation or signer guarantee. See [tenancy](tenancy.md) for acces
 boundaries and the [Phase 0 residuals](https://github.com/Ledova/ledova/issues/646)
 for scope.
 
+## One match, never crossed
+
+An order takes one match at a time: once when it is placed, and once more each
+time its current match settles with shares left over. While a match is pending
+the whole order is out of the book, its remainder included. An order rests in
+the book (`open` or `partially_filled`) only at a price that does not cross the
+other side's listed orders, a bid at or above the best ask or an ask at or
+below the best bid. Otherwise it is held back (`held`): it is not listed, no
+other order matches it, it still counts against the wallet's balance, and its
+owner can modify or cancel it. The rule applies wherever an order would rest:
+when it is placed and nothing it crosses can take it (its own wallet's order, a
+minimum fill it cannot meet), when its match settles with shares left, when its
+match lapses or reverts, and when it is modified. A lapsed or reverted match
+returns its two orders oldest first, so the order that was resting usually
+rests again and the one that took it is held, since the two still cross.
+
+Every minute `place_held_orders` gives each held order, oldest first, its next
+single match by the same price and time priority as a new order, or lists it
+once it no longer crosses and publishes `order_listed`, so both clients refresh
+the book and the owner's orders. It never pairs two orders whose match already lapsed
+or failed, because whoever did not sign would leave the new match to lapse
+again, and an order awaiting signatures cannot be cancelled. A held order that
+crosses only such an order, or only orders it cannot trade with, stays held
+until they leave the book or its owner changes it. The investor sees the order
+as `Held Back`, or `Partially Filled, Remainder Held Back` once part of it has
+traded. The owner chose this rule on 2 October 2026
+([decision](../decisions.md#payments-and-settlement)).
+
+Each placement decides from the orders already committed, so two crossing
+orders placed at the same moment can both come to rest. The same sweep then
+reads each class's listed book and, while its best bid is at or above its best
+ask, holds back the newer of the two and publishes `order_held`; the next sweep
+gives that order its match like any held order. A book crossed this way is
+uncrossed by the next minute's sweep, with no lock beyond the one order it
+holds, taken without waiting; an order busy at that moment waits for the
+following sweep.
+
 ## Protocol detail
 
 - [Create, cancel and modify protocols](../reference/order-submissions.md):
@@ -100,9 +137,14 @@ The owner accepted these limits for the experimental version in
 - The Redis event stream uses after-commit publication and has no transactional
   outbox or exactly-once delivery guarantee. Live updates may be missed until
   refresh; recovery of database state does not guarantee an event was delivered.
-- Concurrently created crossing orders can both remain unmatched. No background
-  sweep matches a crossed book.
-- Editing an order does not run matching again.
+- Two crossing orders committed at the same moment can both rest until the
+  next minute's sweep holds back the newer of the two, because each placement
+  sees only committed orders and no placement waits on another
+  ([decision](../decisions.md#payments-and-settlement)). Every sequence of
+  placements, settlements, lapses, modifications and cancellations leaves the
+  book uncrossed.
+- Editing an order does not run matching: an edit that would cross is held back
+  and takes its match from the minute's sweep.
 
 These are accepted boundaries of this version, not scheduled work. The separate
 [owner direction on bounded cross-account matching](https://github.com/Ledova/ledova/issues/646#issuecomment-5745448042)

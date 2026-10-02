@@ -32,7 +32,7 @@ function holding(overrides: Partial<WalletHolding> = {}): WalletHolding {
     marketValue: null,
     valueSource: 'unpriced',
     lastSyncedAt: '2026-09-01T00:00:00Z',
-    shareClass: { uuid: 'class-one', name: 'Ordinary', companyName: 'Harbour Example Pty Ltd' },
+    shareClass: { uuid: 'class-one', name: 'Ordinary', symbol: 'ORD', companyName: 'Harbour Example Pty Ltd' },
     asset: {
       uuid: 'asset-one',
       symbol: 'ORD',
@@ -153,7 +153,7 @@ it('reads every wallet page and shows exact share totals with company/class name
 
 it('opens each holding in place under its row, all closed at first, independently and from the keyboard', async () => {
   const user = userEvent.setup();
-  const preference = { uuid: 'class-two', name: 'Preference', companyName: 'Harbour Example Pty Ltd' };
+  const preference = { uuid: 'class-two', name: 'Preference', symbol: 'PREF', companyName: 'Harbour Example Pty Ltd' };
   api.get.mockImplementation(async (url: string) => {
     if (url === WALLET_ENDPOINTS.BASE) return page([firstWallet, secondWallet]);
     if (url === WALLET_ENDPOINTS.HOLDINGS(firstWallet.uuid)) {

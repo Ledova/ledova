@@ -89,7 +89,7 @@ class OrderActionRecoveryChecks(ActionFixtures):
         self.assertEqual(len(first.json()["result"]["changes"]), 3)
         with use_operator():
             self.assertEqual(OrderModificationLog.objects.filter(order=self.order).count(), 3)
-        for status in ("cancelled", "executing", "failed"):
+        for status in ("held", "pending_signature", "cancelled"):
             with self.subTest(current_status=status):
                 with use_operator():
                     TransferOrder.objects.filter(pk=self.order.pk).update(status=status)

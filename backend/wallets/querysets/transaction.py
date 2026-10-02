@@ -1,10 +1,11 @@
-from django.db.models import F, Q, QuerySet
-from django.db.models.functions import Lower
+from django.db.models import F, Q
+from django.db.models.functions import Coalesce, Lower
 
 from shared.constants import EVM_BLOCKCHAINS, normalize_chain
+from wallets.querysets.share_class import ShareClassQuerySet
 
 
-class TransactionQuerySet(QuerySet):
+class TransactionQuerySet(ShareClassQuerySet):
     def holding_unresolved(self, wallet, asset, native):
         affected = Q(asset=asset)
         if asset == native:
@@ -37,3 +38,9 @@ class TransactionQuerySet(QuerySet):
 
     def with_optimized_data(self):
         return self.select_related("asset", "wallet", "wallet__user_account")
+
+    def with_happened_at(self):
+        return self.annotate(happened_at=Coalesce("block_timestamp", "created_at"))
+
+    def happened_since(self, moment):
+        return self.with_happened_at().filter(happened_at__gte=moment)

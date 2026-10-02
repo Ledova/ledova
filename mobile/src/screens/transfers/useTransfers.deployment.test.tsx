@@ -89,3 +89,61 @@ describe('mobile token deployment selection', () => {
     expect(result.current!.transferableAssets.some((row) => row.uuid === 'token-holding')).toBe(false);
   });
 });
+
+describe('mobile sendable assets', () => {
+  it('offers crypto and payment tokens, without share classes even when their identity is unavailable', async () => {
+    const shareHolding = (uuid: string, assetSymbol: string, companyName: string, address: string) => ({
+      uuid,
+      walletUuid: wallet.uuid,
+      chain: 'base',
+      quantity: '40',
+      assetSymbol,
+      assetName: `${companyName} Ordinary Shares`,
+      marketValue: null,
+      shareClass: { uuid: `${uuid}-class`, name: 'Ordinary Shares', symbol: 'ORD', companyName },
+      asset: {
+        isActive: true,
+        assetType: 'tokenized_security',
+        chainDeployments: [{ chain: 'base', contractAddress: address, decimals: 0, isActive: true }],
+      },
+    });
+    (apiClient.get as jest.Mock).mockImplementation(async (url: string) => ({
+      data: url.includes('/holdings/')
+        ? [
+            shareHolding('first', 'ORD', 'First Fictional Pty Ltd', `0x${'3'.repeat(40)}`),
+            {
+              ...shareHolding('second', 'ORD.123456782', 'Second Fictional Pty Ltd', `0x${'4'.repeat(40)}`),
+              shareClass: null,
+            },
+            ...['USDC', 'AUDY'].map((symbol) => ({
+              ...shareHolding(symbol, symbol, symbol, `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`),
+              shareClass: null,
+              asset: {
+                isActive: true,
+                assetType: 'stablecoin',
+                chainDeployments: [
+                  {
+                    chain: 'base',
+                    contractAddress: `0x${(symbol === 'USDC' ? '5' : '6').repeat(40)}`,
+                    decimals: 6,
+                    isActive: true,
+                  },
+                ],
+              },
+            })),
+          ]
+        : { results: [wallet], count: 1, next: null, previous: null },
+    }));
+    const { result } = await renderHook(() => useTransfers(), { wrapper });
+    await act(async () => {
+      result.current!.selectWallet(wallet);
+    });
+    await waitFor(() => expect(result.current!.isLoadingHoldings).toBe(false));
+
+    expect(result.current!.transferableAssets.map(({ uuid, symbol, company }) => ({ uuid, symbol, company }))).toEqual([
+      { uuid: `native-${wallet.uuid}`, symbol: 'ETH', company: undefined },
+      { uuid: 'USDC', symbol: 'USDC', company: undefined },
+      { uuid: 'AUDY', symbol: 'AUDY', company: undefined },
+    ]);
+  });
+});
