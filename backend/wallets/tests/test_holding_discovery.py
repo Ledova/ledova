@@ -9,7 +9,7 @@ from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
 from tokens.services import share_token_service
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
-from wallets.models import Holding, Wallet
+from wallets.models import Holding, Transaction, Wallet
 from wallets.services.holdings import discover_holdings
 from wallets.services.sync import _sync_holdings_from_blockchain
 from whitelist.models import WhitelistApproval, WhitelistEntry, WhitelistStatus
@@ -53,6 +53,22 @@ class TheWalletSyncFindsSharesItHasNoHoldingForTest(TestCase):
 
     def test_a_class_it_holds_none_of_gets_no_holding(self):
         self.balance.return_value = 0
+
+        self.assertEqual(discover_holdings(self.wallet), [])
+
+        self.assertEqual(self.held(), {})
+
+    def test_an_unresolved_share_transfer_does_not_create_an_empty_holding(self):
+        Transaction.objects.create(
+            wallet=self.wallet,
+            asset=self.asset,
+            chain=self.wallet.chain,
+            tx_hash="0x" + "31" * 32,
+            from_address="0x" + "32" * 20,
+            to_address=self.wallet.address,
+            amount=Decimal(7),
+            status="pending",
+        )
 
         self.assertEqual(discover_holdings(self.wallet), [])
 
@@ -134,6 +150,22 @@ class TheWalletSyncFindsTheSettlementAssetItHasNoHoldingForTest(TestCase):
 
     def test_a_wallet_that_holds_none_of_it_gets_no_holding(self):
         self.chain.get_token_balance.return_value = Decimal("0")
+
+        self.assertEqual(discover_holdings(self.wallet), [])
+
+        self.assertEqual(self.held(), {})
+
+    def test_an_unresolved_settlement_transfer_does_not_create_an_empty_holding(self):
+        Transaction.objects.create(
+            wallet=self.wallet,
+            asset=self.stablecoin,
+            chain=self.wallet.chain,
+            tx_hash="0x" + "41" * 32,
+            from_address="0x" + "42" * 20,
+            to_address=self.wallet.address,
+            amount=Decimal("12.5"),
+            status="pending",
+        )
 
         self.assertEqual(discover_holdings(self.wallet), [])
 

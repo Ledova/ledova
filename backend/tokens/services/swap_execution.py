@@ -680,7 +680,12 @@ def _record_holdings(swap):
             if asset is None:
                 continue
             try:
-                sync_holding(wallet, asset, create_empty=False)
+                if sync_holding(wallet, asset, create_empty=False) is None:
+                    logger.warning(
+                        UNRECORDED_HOLDING.format(
+                            swap=swap.pk, symbol=asset.symbol, wallet=wallet.pk, error="no holding returned"
+                        )
+                    )
             except Exception as exc:
                 logger.warning(
                     UNRECORDED_HOLDING.format(

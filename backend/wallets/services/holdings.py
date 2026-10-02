@@ -36,14 +36,14 @@ def sync_holding(wallet, asset, *, create_empty=True) -> Optional[Holding]:
         if expected != actual:
             logger.info("Holding changed while its balance was being read; the stale observation was discarded")
             return None
-        if holding is None:
-            if not create_empty and balance <= 0:
-                return None
-            holding = Holding.objects.create(wallet=wallet, asset=asset, quantity=Decimal("0"))
         unresolved = Transaction.objects.holding_unresolved(
             wallet, asset, recorded_native_asset_for_chain(wallet.chain)
         ).select_related("finality_observation__watch")
         capped = any(settled_chain_observation(tx) is None for tx in unresolved)
+        if holding is None:
+            if not create_empty and (balance <= 0 or capped):
+                return None
+            holding = Holding.objects.create(wallet=wallet, asset=asset, quantity=Decimal("0"))
         if capped:
             balance = min(balance, holding.quantity)
         if holding.quantity != balance:

@@ -85,6 +85,7 @@ class SwapFinalityFixtures:
 
     def holding_written(self, *arguments, **options):
         self.written_inside_a_transaction.append(connections[current_alias()].in_atomic_block)
+        return object()
 
     def confirm(self, status=1):
         self.node.status = status
@@ -544,7 +545,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
 
     def test_a_holding_that_cannot_be_written_leaves_the_trade_settled_and_the_others_written(self):
         share = self.share_asset()
-        self.holdings.side_effect = [DatabaseError("lost"), None, None, None]
+        self.holdings.side_effect = [DatabaseError("lost"), object(), object(), object()]
 
         with self.assertLogs(LOGGER, "WARNING") as logs:
             attempt, outcome = self.settled()
@@ -556,6 +557,21 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             f"the {share.symbol} holding of wallet {self.fixture.orders[0].wallet.pk} was not written", logs.output[0]
         )
         self.assertIn("(DatabaseError)", logs.output[0])
+
+    def test_an_unrecorded_balance_is_logged_without_undoing_the_settled_trade(self):
+        share = self.share_asset()
+        self.holdings.side_effect = [None, object(), object(), object()]
+
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            attempt, outcome = self.settled()
+
+        self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
+        self.assert_completed(attempt)
+        self.assertEqual(self.holdings.call_count, 4)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(
+            f"the {share.symbol} holding of wallet {self.fixture.orders[0].wallet.pk} was not written", logs.output[0]
+        )
 
     def test_a_class_without_an_asset_still_writes_the_payment_holdings(self):
         with self.assertLogs(LOGGER, "WARNING") as logs:
