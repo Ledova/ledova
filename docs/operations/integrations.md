@@ -67,7 +67,7 @@ type the risk policy reads.
 | Not started | `unused`, recorded as `init` | `init` |
 | In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold` |
 | Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
-| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, read as a webhook is |
+| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook |
 | Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
 | PEP evidence | the applicant's `pep` flag, or a failed `pep` check | risk labels |
 
