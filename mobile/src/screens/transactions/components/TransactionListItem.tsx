@@ -6,6 +6,7 @@ import {
   formatDate,
   getBlockchainDisplayName,
   getChainShortCode,
+  shownSymbol,
   type Transaction,
 } from '@ledova/shared';
 import { Disclosure } from '../../../components/Ledger';
@@ -33,7 +34,7 @@ export function TransactionListItem({
   const network = getBlockchainDisplayName(getChainShortCode(transaction.chain));
   const context = `${network} · ${formatDate(transaction.blockTimestamp ?? transaction.createdAt)}`;
   const status = activityStatus(transaction);
-  const amount = activityAmount(transaction.amount, transaction.assetSymbol);
+  const amount = activityAmount(transaction.amount, shownSymbol(transaction));
   return (
     <View style={styles.row}>
       <Disclosure

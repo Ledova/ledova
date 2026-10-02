@@ -134,18 +134,36 @@ A share class becomes an asset when it is deployed (`bridge_share_asset`),
 named after the company and the class, with the class's Base contract as its
 deployment. That contract is the only link between the two. So
 `GET /api/wallets/{uuid}/holdings/` resolves each row's `shareClass`
-(`uuid`, `name` and `companyName`) as it reads: from the asset's Base contract
-to the class deployed there, inside the holdings query and under the caller's
-policies (`HoldingQuerySet.with_share_class`). The class lookups use one SQL
-statement; the route's existing deployment and yield reads remain separate.
-An absent Base deployment, unmatched contract or class hidden by those policies
-leaves `shareClass` null and preserves the holding. An investor reads another
-company's class only while it is on the market, so a paused class keeps its row
-with `shareClass` null and the asset's combined name stands in. A company owner
-can still read the names of its own paused class under the existing owner
-policy. Class and company renames appear on the next read without rewriting
-the asset's combined name. See
+(`uuid`, `name`, `symbol` and `companyName`) as it reads: from the asset's Base
+contract to the class deployed there, inside the holdings query and under the
+caller's policies (`with_share_class` in `wallets/querysets/share_class.py`). The
+class lookups use one SQL statement; the route's existing deployment and yield
+reads remain separate. An absent Base deployment, unmatched contract or class
+hidden by those policies leaves `shareClass` null and preserves the holding. An
+investor reads another company's class only while it is on the market, so a
+paused class keeps its row with `shareClass` null and the asset's combined name
+stands in. A company owner can still read the names of its own paused class under
+the existing owner policy. Class and company renames appear on the next read
+without rewriting the asset's combined name. See
 [the decision](../decisions.md#the-signed-in-app).
+
+Asset symbols are unique, so when two companies' classes share a symbol the
+second asset bridged is stored as the symbol followed by its company's ACN
+(`ORD.123456782`), or by part of its contract address when that is taken too.
+The stored symbol stays the asset's identity: the API's `assetSymbol`, the asset
+admin, the staff transactions list's asset filter and the account export carry
+it. Each Activity row (`GET /api/transactions/`) resolves the same `shareClass`
+in the same way, and wherever a person reads a class it reads by its own symbol
+with its company: Activity's amounts (`40 ORD`, beside the class's combined
+name), transaction notices ("100 ORD (Example Pty Ltd)") and the staff lists of
+holdings and transactions ("ORD (Example Pty Ltd)"). Crypto keeps its asset symbol, and so
+does a class the reader cannot see, such as another company's paused class,
+which shows its stored symbol as Holdings shows its combined name.
+
+Neither client's Send picker offers shares. It filters the asset type, so a
+paused class with no readable class details stays excluded. Crypto and payment
+tokens remain available; the backend continues refusing direct share transfers
+with the same instruction to use allotment instead.
 
 ## Valuation sources
 

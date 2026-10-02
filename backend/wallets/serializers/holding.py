@@ -1,15 +1,9 @@
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from assets.choices import VALUE_SOURCE_CHOICES
 from assets.serializers import AssetSerializer
 from wallets.models import Holding
-
-
-class HoldingShareClassSerializer(serializers.Serializer):
-    uuid = serializers.UUIDField(source="share_class_uuid", read_only=True)
-    name = serializers.CharField(source="share_class_name", read_only=True)
-    company_name = serializers.CharField(source="share_class_company_name", read_only=True)
+from wallets.serializers.share_class import ShareClassField
 
 
 class HoldingSerializer(serializers.ModelSerializer):
@@ -22,7 +16,7 @@ class HoldingSerializer(serializers.ModelSerializer):
     market_value = serializers.DecimalField(max_digits=40, decimal_places=2, read_only=True, allow_null=True)
     value_source = serializers.ChoiceField(choices=VALUE_SOURCE_CHOICES, read_only=True)
     asset = AssetSerializer(read_only=True, required=False)
-    share_class = serializers.SerializerMethodField()
+    share_class = ShareClassField()
 
     class Meta:
         model = Holding
@@ -44,9 +38,3 @@ class HoldingSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = fields
-
-    @extend_schema_field(HoldingShareClassSerializer(allow_null=True))
-    def get_share_class(self, holding):
-        if holding.share_class_uuid is None:
-            return None
-        return HoldingShareClassSerializer(holding).data

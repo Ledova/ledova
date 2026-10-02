@@ -101,15 +101,16 @@ def _is_an_account(address) -> bool:
 
 def _particulars(address, identities, stamps, recorded) -> dict:
     identity = identities.get(address.lower(), UNIDENTIFIED)
+    stamp = stamps.get(address.lower())
+    particulars = recorded.get(address.lower())
+    unresolved = identity.holder_type == HolderType.UNIDENTIFIED.value and not (stamp and stamp["stamped_at"])
+    if particulars is not None and (unresolved or identity.holder_type == HolderType.TREASURY.value):
+        return {
+            "name": particulars.name,
+            "residential_address": particulars.residential_address,
+            "identity_source": IDENTITY_PARTICULARS,
+        }
     if identity.holder_type == HolderType.UNIDENTIFIED.value:
-        stamp = stamps.get(address.lower())
-        particulars = recorded.get(address.lower())
-        if particulars is not None and not (stamp and stamp["stamped_at"]):
-            return {
-                "name": particulars.name,
-                "residential_address": particulars.residential_address,
-                "identity_source": IDENTITY_PARTICULARS,
-            }
         if stamp:
             return {
                 "name": stamp["name"],

@@ -552,6 +552,11 @@ requests on #785 carry out the last three:
   onto the user preferences record; delete the separate model, table, route and
   admin, with a migration carrying each person's setting across."
 
+The owner answered a Send follow-up on 2 October 2026, during the display review
+on #846: **Stop offering shares.** Both clients' Send pickers exclude share
+classes, including ones whose class details cannot be read. Crypto and AUDY stay
+sendable; shares move through allotment and the market.
+
 The owner answered the tidy-up's three questions on 29 September 2026, accepting
 each recommendation
 ([#792](https://github.com/Ledova/ledova/issues/792#issuecomment-5887890998)):

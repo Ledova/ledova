@@ -55,6 +55,7 @@ const transaction: Transaction = {
   asset: 'asset-one',
   assetName: 'Example settlement asset',
   assetSymbol: 'AUDX',
+  shareClass: null,
   amount: '9007199254740993.000000000000000001',
   marketValue: null,
   blockTimestamp: null,
