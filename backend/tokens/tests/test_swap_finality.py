@@ -65,7 +65,10 @@ class SwapFinalityFixtures:
     def setUp(self):
         super().setUp()
         self.publisher = self.enterContext(patch.object(swap_execution, "publish_trading_event"))
-        self.holdings = self.enterContext(patch.object(swap_execution, "sync_holding"))
+        self.holdings = self.enterContext(
+            patch.object(swap_execution, "sync_holding", side_effect=self.holding_written)
+        )
+        self.written_inside_a_transaction = []
         with use_operator():
             self.fixture = make_execution("finality")
             admitted_signer()
@@ -79,6 +82,9 @@ class SwapFinalityFixtures:
                 )
             self.record = self.swap.transaction
         self.node = ExecutionNode(self.record.function_args)
+
+    def holding_written(self, *arguments, **options):
+        self.written_inside_a_transaction.append(connections[current_alias()].in_atomic_block)
 
     def confirm(self, status=1):
         self.node.status = status
@@ -534,6 +540,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
                 call(buyer, payment, create_empty=False),
             ],
         )
+        self.assertEqual(self.written_inside_a_transaction, [False] * 4)
 
     def test_a_holding_that_cannot_be_written_leaves_the_trade_settled_and_the_others_written(self):
         share = self.share_asset()
@@ -557,6 +564,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
         self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
         payment = self.fixture.seller.refs.stablecoin
         self.assertEqual([written.args[1] for written in self.holdings.call_args_list], [payment, payment])
+        self.assertEqual(self.written_inside_a_transaction, [False, False])
         self.assertIn("which has no asset; no share holding was written", logs.output[-1])
 
     def test_a_reverted_trade_writes_no_holding(self):

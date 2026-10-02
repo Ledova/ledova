@@ -2,11 +2,12 @@ from datetime import date
 from unittest.mock import call, patch
 
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError
+from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 
 from blockchain.models import SignedAttempt
 from blockchain.tests.outgoing_fixtures import receipt
+from shared.db import current_alias
 from shared.tests.tenants import an_account
 from tokens.exceptions import MintRequestConflict
 from tokens.models import MintRequest, MintRequestStatus, YieldToken
@@ -32,9 +33,13 @@ class AnExecutedDepositWritesItsRecipientsHoldingTest(TransactionTestCase):
         self.request = mint_request(self.actor)
         self.node = MintNode()
         self.enterContext(patch("tokens.services.mint_service.get_base_chain_client", return_value=self.node.client))
-        self.holdings = self.enterContext(patch.object(mint_service, "sync_holding"))
+        self.holdings = self.enterContext(patch.object(mint_service, "sync_holding", side_effect=self.holding_written))
+        self.written_inside_a_transaction = []
         admitted_signer()
         self.wallet = self.recipient("mint-recipient", "base", WALLET_VERIFICATION_STATUS_VERIFIED)
+
+    def holding_written(self, *arguments, **options):
+        self.written_inside_a_transaction.append(connections[current_alias()].in_atomic_block)
 
     def recipient(self, label, chain, status):
         return Wallet.objects.create(
@@ -52,6 +57,7 @@ class AnExecutedDepositWritesItsRecipientsHoldingTest(TransactionTestCase):
 
         self.assertEqual(self.request.status, MintRequestStatus.EXECUTED)
         self.assertEqual(self.holdings.call_args_list, self.written())
+        self.assertEqual(self.written_inside_a_transaction, [False])
 
     def test_a_deposit_whose_receipt_arrives_later_is_written_when_recovery_sees_it_executed(self):
         self.node.confirmed = False
@@ -63,6 +69,7 @@ class AnExecutedDepositWritesItsRecipientsHoldingTest(TransactionTestCase):
         self.assertEqual(mint_service.recover(self.request.pk), MintRequestStatus.EXECUTED)
 
         self.assertEqual(self.holdings.call_args_list, self.written())
+        self.assertEqual(self.written_inside_a_transaction, [False])
 
     def test_a_reverted_deposit_writes_no_holding(self):
         self.node.receipt_status = 0

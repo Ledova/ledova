@@ -153,8 +153,8 @@ completes, the recipient's AUDY holding when a deposit's mint executes (each
 verified Base wallet registered at that address), and the buyer's and the
 seller's share and AUDY holdings when a trade settles. Each write runs after the
 work that moved the tokens has committed, so a node that fails at that moment
-leaves the issuance, mint or trade complete and the holding unwritten, and a
-holding is never created for a balance of zero. The wallet sync (hourly, and
+leaves the issuance, mint or trade complete and the holding unwritten, and none
+of these writes creates a holding for a balance of zero. The wallet sync (hourly, and
 Sync balances) refreshes every verified holding and then looks for what the
 wallet holds without one: the share classes it can hold and the operator's
 settlement asset. A share contract credits only an address on its company's

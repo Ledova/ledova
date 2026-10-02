@@ -1,5 +1,6 @@
 import re
 from typing import Optional, Tuple
+from urllib.parse import urlsplit
 
 ERROR_SELECTORS = {
     "0xe450d38c": ("ERC20InsufficientBalance", "Insufficient token balance"),
@@ -107,3 +108,31 @@ def decode_exception_to_message(exception: Exception, default_message: str = "Tr
     if len(reasons) != 1 or len(details) > 1:
         return default_message
     return details.pop() if details else next(iter(reasons.values()))
+
+
+def _host_of(exception: BaseException) -> Optional[str]:
+    url = getattr(getattr(exception, "request", None), "url", None)
+    try:
+        host = (
+            urlsplit(url).hostname if isinstance(url, str) else getattr(getattr(exception, "pool", None), "host", None)
+        )
+    except ValueError:
+        return None
+    return host.lower() if isinstance(host, str) and host else None
+
+
+def endpoint_host(exception: BaseException) -> Optional[str]:
+    seen = set()
+    current = exception
+    while current is not None and id(current) not in seen and len(seen) < 16:
+        seen.add(id(current))
+        host = _host_of(current)
+        if host:
+            return host
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def failure_summary(exception: BaseException) -> str:
+    host = endpoint_host(exception)
+    return f"{type(exception).__name__} from {host}" if host else type(exception).__name__

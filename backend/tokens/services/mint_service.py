@@ -22,6 +22,7 @@ from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.utils.blockchain import failure_summary
 from tokens.constants import MINT_CHAIN
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
 from tokens.models import MintRequest, MintRequestStatus
@@ -305,8 +306,8 @@ def execute(mint_request, user, notes="", *, permission="tokens.change_mintreque
         current = _process(request, retry_of=retry_of)
     except (MintRequestConflict, MintRequestUnresolved, PermissionDenied):
         raise
-    except Exception:
-        logger.exception("Mint request %s requires outcome recovery", request.pk)
+    except Exception as exc:
+        logger.error("Mint request %s requires outcome recovery (%s)", request.pk, failure_summary(exc))
         raise MintRequestUnresolved() from None
     mint_request.refresh_from_db()
     if current.status == MintRequestStatus.FAILED:
@@ -322,8 +323,8 @@ def recover(request_id):
         return "not_admitted"
     try:
         current = _process(request)
-    except Exception:
-        logger.exception("Mint request %s remains unresolved", request.pk)
+    except Exception as exc:
+        logger.error("Mint request %s remains unresolved (%s)", request.pk, failure_summary(exc))
         MintRequest.objects.filter(pk=request.pk).update(updated_at=timezone.now())
         return "unresolved"
     _record_holding(current)

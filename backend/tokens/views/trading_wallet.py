@@ -34,9 +34,9 @@ class TradingWalletViewSet(AuthenticatedGenericViewSet):
         try:
             token_service = share_token_service
             result = token_service.get_wallet_token_balances(authorized_wallets.addresses[0])
-        except BaseChainConnectionError as exc:
+        except BaseChainConnectionError:
             raise WalletBalancesUnavailableException(
                 f"{WalletBalancesUnavailableException.default_detail} The chain could not be reached."
-            ) from exc
+            ) from None
 
         return Response(result, status=status.HTTP_200_OK)

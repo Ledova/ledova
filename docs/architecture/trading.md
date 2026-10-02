@@ -76,11 +76,16 @@ parties' share and settlement-asset holdings are written from the chain, as
 
 Selling reads the chosen wallet's balance of every deployed class and of the
 settlement asset from the chain (`GET /api/v1/trading/wallets/balances/`). A
-contract that answers without a balance, because nothing is deployed at its
-address or the call reverts, is left out of the answer and logged with its
-symbol and address, so the wallet's other classes can still be sold. A node that
-cannot be reached, or any other failure, still answers 503 rather than a partial
-list that would say the wallet holds nothing.
+class or the settlement asset is left out of the answer only when its call
+returns no data and the node, asked again at once, reports the configured chain
+(`eth_chainId`) and no contract code at that address (`eth_getCode`): nothing is
+deployed there. That is logged with its symbol and address, and the wallet's
+other classes can still be sold. Every other failure answers 503 rather than a
+partial list that would say the wallet holds nothing: a node that cannot be
+reached or does not answer in time, any JSON-RPC error (web3 reports some, rate
+limits and internal errors among them, as contract errors), a revert, a node on
+another chain, missing return data where the address has code, and a check that
+cannot be made.
 
 The expiry sweep releases only matches whose eligibility marker and recorded
 state prove they have no execution claim or competing reservation. Legacy,

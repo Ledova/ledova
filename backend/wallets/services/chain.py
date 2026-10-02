@@ -9,6 +9,7 @@ from shared.constants import (
     NATIVE_ASSET_DECIMALS,
     normalize_chain,
 )
+from shared.utils.blockchain import failure_summary
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import BitcoinSubmission, WalletSubmission
 from wallets.services.chain_evidence import _network_matches
@@ -89,7 +90,7 @@ def fetch_chain_balance(wallet, asset) -> Optional[Decimal]:
             return None
         return balance
     except Exception as e:
-        logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain}: {e}")
+        logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain} ({failure_summary(e)})")
         return None
 
 
@@ -106,5 +107,5 @@ def _share_balance(wallet, asset, deployment) -> Optional[Decimal]:
     try:
         return Decimal(share_token_service.get_token_balance(token.contract_address, wallet.address))
     except Exception as e:
-        logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain}: {e}")
+        logger.warning(f"Balance query failed for {asset.symbol} on {wallet.chain} ({failure_summary(e)})")
         return None

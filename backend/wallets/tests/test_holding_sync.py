@@ -8,6 +8,7 @@ from shared.tests.tenants import make_tenant
 from tokens.services import share_token_service
 from wallets.models import Holding, Wallet
 from wallets.services.holdings import sync_holding
+from whitelist.models import WhitelistEntry
 
 
 class SyncHoldingTest(TestCase):
@@ -107,3 +108,14 @@ class SyncHoldingTest(TestCase):
         self.assertEqual(holding.pk, existing.pk)
         existing.refresh_from_db()
         self.assertEqual(existing.quantity, Decimal("0"))
+
+    def test_an_issuance_whose_recipient_holds_none_by_the_write_leaves_no_empty_holding(self):
+        WhitelistEntry.objects.create(wallet=self.wallet)
+
+        with self._chain(balance=0):
+            share_token_service.seed_recipient_holding(self.token.contract_address, self.wallet.address)
+        self.assertFalse(Holding.objects.filter(asset=self.share).exists())
+
+        with self._chain():
+            share_token_service.seed_recipient_holding(self.token.contract_address, self.wallet.address)
+        self.assertEqual(Holding.objects.get(asset=self.share).quantity, Decimal("250"))

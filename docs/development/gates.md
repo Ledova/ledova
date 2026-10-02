@@ -186,6 +186,12 @@ interprocedural taint analysis. See [privacy checks](../reference/gate-internals
 serialization and request/response bodies interpolated into strings. Backend logs
 must not name private values or whole provider bodies. Use narrow identifiers and
 safe diagnostics, with logger names the checker scans (`logger`, `log`, `logging`).
+In the modules listed in `PROVIDER_FACING`, which call the EVM node whose URL
+carries the provider's key in its path, a log line never formats a caught
+exception except through `failure_summary()` (its class and the endpoint's host)
+or `type()`, and never prints a traceback (`logger.exception`, `exc_info`): a
+requests error's text names the URL it failed on, key included. The list names
+only files that exist.
 Syntax-based checks do not establish that arbitrary strings contain no secrets.
 
 ## The documentation gate

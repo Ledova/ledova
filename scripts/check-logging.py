@@ -20,6 +20,12 @@ token. "Reference" means an expression whose own syntax names one: an attribute
 access, a bare name, or a constant string subscript. A user's primary key
 identifies them for an operator without putting an email in a log aggregator.
 
+Backend, third rule, for the modules that call a keyed provider endpoint (the
+EVM node URLs carry the provider's key in their path): a logging call never
+formats the exception an except clause caught, except through failure_summary()
+or type(...), and never prints a traceback (logger.exception, exc_info). A
+requests error's text names the URL it failed on, key included.
+
 Backend, second rule: no logging call may hand a whole provider response body to
 the formatter. A named field is a decision about what an operator needs; a whole
 body is whatever the provider chose to send, and for a KYC provider that is the
@@ -54,6 +60,8 @@ CONSOLE_BODY = "console-argument-interpolates-a-request-or-response-body"
 LOG_PRIVATE = "private-value-in-a-log-line"
 LOG_BODY = "provider-body-in-a-log-line"
 LOG_ALIAS = "logger-bound-to-a-name-the-gate-does-not-scan"
+LOG_EXCEPTION_TEXT = "provider-error-text-in-a-log-line"
+LOG_UNKNOWN_MODULE = "provider-facing-module-that-does-not-exist"
 
 RULES = {
     CONSOLE_ARGUMENT: "a console argument must be a string literal or a template literal, never an object",
@@ -62,6 +70,9 @@ RULES = {
     LOG_PRIVATE: "log an identifier an operator can resolve, never an email address, a password or a push token",
     LOG_BODY: "log the fields an operator needs, never a whole provider response body",
     LOG_ALIAS: "bind a logger to logger, log or logging; any other name is not scanned by this gate",
+    LOG_EXCEPTION_TEXT: "in a provider-facing module, log failure_summary(error) or type(error).__name__, never the "
+    "error's text or a traceback: a provider error can name the endpoint URL and the key in it",
+    LOG_UNKNOWN_MODULE: "PROVIDER_FACING lists only files that exist, so the rule cannot silently stop applying",
 }
 
 CONSOLE_METHODS = frozenset({"assert", "debug", "dir", "error", "info", "log", "table", "trace", "warn"})
@@ -89,6 +100,18 @@ BODY_NAMES = frozenset(
     }
 )
 BODY_ATTRIBUTES = frozenset({"body", "content", "data", "details", "text"})
+
+PROVIDER_FACING = frozenset(
+    {
+        "backend/integrations/base_chain/client.py",
+        "backend/integrations/blockchain/ethereum.py",
+        "backend/tokens/services/mint_service.py",
+        "backend/tokens/services/share_token_service.py",
+        "backend/tokens/services/swap_execution.py",
+        "backend/wallets/services/chain.py",
+    }
+)
+SAFE_ERROR_READERS = frozenset({"failure_summary", "type"})
 BODY_KEYS = frozenset({"body", "content", "data", "details", "payload", "raw", "response", "result"})
 SUB_BODY_KEYS = frozenset(
     {
@@ -500,13 +523,51 @@ def alias_findings(tree: ast.AST, source: str) -> list[tuple[int, str, str]]:
     return findings
 
 
-def python_findings(text: str) -> list[tuple[int, str, str]]:
+def quotes_error(node: ast.AST, name: str) -> bool:
+    if isinstance(node, ast.Call) and (dotted_name(node.func) or "").rsplit(".", 1)[-1] in SAFE_ERROR_READERS:
+        return False
+    if isinstance(node, ast.Attribute) and node.attr == "__class__":
+        return False
+    if isinstance(node, ast.Name):
+        return node.id == name
+    return any(quotes_error(child, name) for child in ast.iter_child_nodes(node))
+
+
+def prints_a_traceback(node: ast.Call) -> bool:
+    if node.func.attr == "exception":
+        return True
+    return any(
+        keyword.arg == "exc_info" and not (isinstance(keyword.value, ast.Constant) and not keyword.value.value)
+        for keyword in node.keywords
+    )
+
+
+def error_text_findings(tree: ast.AST) -> list[tuple[int, str, str]]:
+    findings: list[tuple[int, str, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and is_logging_call(node) and prints_a_traceback(node):
+            findings.append((node.lineno, LOG_EXCEPTION_TEXT, f"{dotted_name(node.func)}(... a traceback ...)"))
+    for handler in ast.walk(tree):
+        if not isinstance(handler, ast.ExceptHandler) or not handler.name:
+            continue
+        for node in ast.walk(handler):
+            if not isinstance(node, ast.Call) or not is_logging_call(node):
+                continue
+            arguments = [*node.args, *(keyword.value for keyword in node.keywords)]
+            if any(quotes_error(argument, handler.name) for argument in arguments):
+                findings.append((node.lineno, LOG_EXCEPTION_TEXT, f"{dotted_name(node.func)}(... {handler.name} ...)"))
+    return findings
+
+
+def python_findings(text: str, provider_facing: bool = False) -> list[tuple[int, str, str]]:
     try:
         tree = ast.parse(text)
     except SyntaxError as error:
         return [(0, LOG_PRIVATE, f"could not parse: {error}")]
 
     findings: list[tuple[int, str, str]] = alias_findings(tree, text)
+    if provider_facing:
+        findings.extend(error_text_findings(tree))
 
     for scope in scopes_of(tree):
         bindings = single_bindings(scope)
@@ -559,8 +620,13 @@ def scan() -> tuple[list[str], int]:
     for path in files_in(BACKEND_TREE, (".py",)):
         checked += 1
         relative = path.relative_to(ROOT)
-        for line, rule, detail in python_findings(path.read_text(encoding="utf-8-sig", errors="replace")):
+        text = path.read_text(encoding="utf-8-sig", errors="replace")
+        for line, rule, detail in python_findings(text, relative.as_posix() in PROVIDER_FACING):
             violations.append(f"{relative}:{line}: {rule}: {detail}")
+
+    for listed in sorted(PROVIDER_FACING):
+        if not (ROOT / listed).is_file():
+            violations.append(f"{listed}:0: {LOG_UNKNOWN_MODULE}: listed in PROVIDER_FACING")
 
     return violations, checked
 
