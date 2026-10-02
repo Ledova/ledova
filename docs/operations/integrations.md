@@ -43,8 +43,11 @@ Disabled until configured. With `KYC_PROVIDER` blank the integration answers
 | `CRYPTO_RISK_THRESHOLD_HIGH` | `0.6` | No |
 
 Crypto screening never approves without a score. A provider result counts only
-when it is a JSON object whose risk score (`riskScore`, or `result.risk_score` in
-a `/webhooks/kycaid/crypto/` callback) is a finite, non-negative number. Anything
+when it is a JSON object whose risk score (`riskScore`, or in a
+`/webhooks/kycaid/crypto/` callback `result.risk_score`, which KYCAID's reference
+table spells `result.riskscore`; both are read) is a finite, non-negative number.
+KYCAID documents a result without a score as no risk found; this deployment still
+leaves such a result pending for staff rather than approving it. Anything
 else is kept on the screening's raw response for staff and leaves it pending; a
 submission reply that is not an object fails it, and the callback refuses one
 with HTTP 400. A KYCAID submission reply without a score therefore waits,
@@ -53,6 +56,25 @@ arrives. A completed result is final: a repeated or late callback, a retry and a
 provider error after it leave it unchanged. A provider that cannot screen, such
 as Sum&Sub today, fails every screening, and the address rule reports it as
 unverified.
+
+A screening names the provider that screens it. One recorded while
+`KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere and fails with
+"Crypto monitoring is disabled"; it names the configured `KYC_PROVIDER`, or
+`disabled` when that is blank. Retrying it from the screening admin once
+screening is on sends it to the configured provider and records that provider,
+which is the one the KYCAID callback looks it up by.
+
+KYCAID answers an address check with `data.service_request_id` and delivers the
+result later in a `SERVICE_RESULT` callback that carries the same
+`service_request_id`, as its
+[address verification](https://docs.kycaid.com/risks-check/crypto) and
+[result callback](https://docs-v1.kycaid.com/#crypto-result-callback) references
+describe. The screening records that id as its provider id when KYCAID answers,
+and the callback finds the screening by it. A screening submitted before that
+change, whose callback matched nothing, stays pending; retrying it records a new
+id. The result's `signals` are shares by category, and only a sanctions share
+above zero makes the alert a sanctioned-address one. What the monitoring rules
+compare is under [transaction monitoring](operator-console.md#transaction-monitoring).
 
 ## Email
 

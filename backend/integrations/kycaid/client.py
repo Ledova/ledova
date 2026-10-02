@@ -242,7 +242,10 @@ class KYCAIDService(KYCProvider):
         response = self._make_request("POST", "/services/crypto/address-verification", data=body)
         logger.info("Address check accepted")
 
-        return response
+        data = response.get("data") if isinstance(response, dict) else None
+        if not isinstance(data, dict):
+            return response
+        return {"requestId": data.get("service_request_id"), "raw": response}
 
     def verify_crypto_webhook_signature(self, payload: bytes, signature: str) -> bool:
         return self.verify_webhook_signature(payload, signature)
