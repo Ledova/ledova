@@ -34,8 +34,8 @@ below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
 with the mapping. The register routes name members from their wallets'
 identities and allotment stamps; an [import's](#importing-an-existing-register)
-recorded particulars fill in only where neither resolves. It never merges members
-by matching names.
+recorded particulars fill in only where neither resolves, or where the only
+identity is a treasury label. It never merges members by matching names.
 
 A register belongs to one share class. Its first entry records the opening state,
 including an explicitly empty state. Subsequent event kinds are:
@@ -1157,14 +1157,18 @@ database keeps imports immutable and refuses:
 The [register reads](../architecture/register.md#membership-and-identity) then
 show a member's live verified identity when it is present and unambiguous.
 Recorded particulars fill in only for a member with no live identity and no
-resolved allotment stamp, and an ambiguous identity stays ambiguous. The
+resolved allotment stamp, and an ambiguous identity stays ambiguous. A treasury
+label is not a live identity: a member held at a labelled treasury address, such
+as an employee share trust, takes its imported name and residential address and
+stays a treasury holder. The
 imported date entered applies to a member the opening carried in for as long as
 the holding stays continuous, and the imported amount paid only while that
 holding is also unchanged since the import. A member who entered on the
 platform keeps the date and amount the platform recorded. The holders API and
 the CSV list imported former members beside the chain-derived ones. A folded
-former member whose wallet resolves to no profile and no resolved stamp takes
-the particulars of the member the wallet is linked to. A class an import opened
+former member whose wallet resolves to no profile and no resolved stamp, or
+only to a treasury label, takes the particulars of the member the wallet is
+linked to. A class an import opened
 reads as not on chain, as [reading the register](#reading-the-register)
 describes, and takes no [register instruction](#register-instructions-for-issues)
 until it is.

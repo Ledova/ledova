@@ -1,10 +1,11 @@
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q
 from django.db.models.functions import Lower
 
 from shared.constants import EVM_BLOCKCHAINS, normalize_chain
+from wallets.querysets.share_class import ShareClassQuerySet
 
 
-class TransactionQuerySet(QuerySet):
+class TransactionQuerySet(ShareClassQuerySet):
     def holding_unresolved(self, wallet, asset, native):
         affected = Q(asset=asset)
         if asset == native:

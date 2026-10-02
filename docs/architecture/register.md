@@ -99,6 +99,17 @@ never replace a live identity or hide an ambiguous one (owner decision,
 22 September 2026). Otherwise a name without a resolved stamp remains
 unidentified. Old unstamped issuances are not backfilled by guessing identity.
 
+A treasury label is not a live identity: it names a bare address and carries no
+residential address. So a member held at a labelled treasury address, such as an
+employee share trust, takes its recorded name and residential address from an
+import's particulars when it has them, with the identity source "Recorded
+register particulars", and stays typed `treasury`. The CSV, the inspection copy,
+certificates, the notice figures, the holders API and the publication roll all
+read it that way, and so does the [former-member fold](#former-members) for a
+treasury address that ceases. Without particulars the label still names it, with
+no residential address. A treasury address beside another identity stays
+`ambiguous`.
+
 Allotments to the member's wallets provide consideration, not membership. Amount
 paid is shown only for a holding that transfers have not touched and that is
 still its paid allotments: every share is subscribed, subscribed quantity equals
@@ -397,7 +408,8 @@ block and records cessations in `FormerHolder`. Particulars are frozen at first
 recorded cessation: current profile at recording, otherwise a resolved allotment
 stamp no later than cessation, otherwise the particulars an import recorded for
 the member the wallet is linked to, otherwise a name recorded at allotment,
-otherwise unknown. Refolding does not rewrite them.
+otherwise unknown. A labelled treasury address takes those imported particulars
+before its label. Refolding does not rewrite them.
 
 The fold sees wallets, not members. A cessation of a wallet linked to a member
 who currently holds shares of the class is left out of the former members, in
