@@ -1,6 +1,13 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { OFFERING_ENDPOINTS } from '../constants';
-import type { IssuerSubscription, Offering, OfferingListItem, OfferingInput, PaginatedResponse } from '../types';
+import type {
+  IssuerSubscription,
+  Offering,
+  OfferingDocumentsInput,
+  OfferingListItem,
+  OfferingInput,
+  PaginatedResponse,
+} from '../types';
 
 export const getOfferings = (apiClient: AxiosInstance, page?: number) =>
   page === undefined
@@ -51,3 +58,17 @@ export const withdrawOffering = (
   config === undefined
     ? apiClient.post<Offering>(OFFERING_ENDPOINTS.WITHDRAW(uuid), { reason })
     : apiClient.post<Offering>(OFFERING_ENDPOINTS.WITHDRAW(uuid), { reason }, config);
+
+export const addOfferingDocuments = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  documents: string[],
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.post<Offering>(OFFERING_ENDPOINTS.DOCUMENTS(uuid), { documents } satisfies OfferingDocumentsInput)
+    : apiClient.post<Offering>(
+        OFFERING_ENDPOINTS.DOCUMENTS(uuid),
+        { documents } satisfies OfferingDocumentsInput,
+        config,
+      );

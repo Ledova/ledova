@@ -1,5 +1,12 @@
 export { formatDate, formatTime, formatDateTime, formatSyncAge, parseDateString, formatDateToString } from './date';
-export { formatCurrency, type FormatCurrencyOptions, formatCryptoBalance, formatPlainDecimal } from './formatting';
+export {
+  formatCurrency,
+  type FormatCurrencyOptions,
+  formatCryptoBalance,
+  formatFileSize,
+  formatPlainDecimal,
+} from './formatting';
+export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {
   isNumericOnly,
   validatePassword,

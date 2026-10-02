@@ -10,7 +10,9 @@ import {
   DIRECTORY_ENDPOINTS,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   SUBSCRIPTION_ENDPOINTS,
+  OFFER_DOCUMENT_COPY,
   WALLET_ENDPOINTS,
+  type DirectoryDocument,
   type DirectoryToken,
 } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
@@ -54,6 +56,18 @@ const token: DirectoryToken = {
     pricePerShare: '1.25',
   },
 };
+const memorandum: DirectoryDocument = {
+  uuid: 'memorandum',
+  name: 'Information memorandum',
+  documentType: 'prospectus',
+  documentTypeDisplay: 'Prospectus or Information Memorandum',
+  fileSize: 24576,
+  mimeType: 'application/pdf',
+  validFrom: null,
+  validUntil: '2026-11-30',
+  createdAt: '2026-09-01T00:00:00Z',
+  fileUrl: 'https://api.example.test/api/v1/directory/tokens/ordinary/documents/memorandum/file/',
+};
 function page<T>(results: T[], next: string | null = null) {
   return { data: { results, next, previous: null, count: results.length } };
 }
@@ -61,6 +75,7 @@ function defaults(url: string) {
   if (url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY) return eligibility;
   if (url === DIRECTORY_ENDPOINTS.TOKENS.LIST) return page([token]);
   if (url === DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary')) return { data: token };
+  if (url === DIRECTORY_ENDPOINTS.TOKENS.DOCUMENTS('ordinary')) return { data: [memorandum] };
   if (url === WALLET_ENDPOINTS.BASE) return page([firstWallet]);
   if (url === '/api/operator/') return { data: { name: 'Example Registry' } };
   throw Error(`Unexpected request ${url}`);
@@ -375,4 +390,65 @@ it('preserves entered draft details when creation fails and permits retry', asyn
   expect((screen.getByLabelText('Shares') as HTMLInputElement).value).toBe('7');
   fireEvent.click(screen.getByRole('button', { name: 'Create application' }));
   expect(await screen.findByRole('heading', { name: 'Application detail' })).toBeTruthy();
+});
+
+it('lists the offer documents of the class, each opening its own file in a new tab', async () => {
+  renderPage(true);
+  expect(await screen.findByRole('heading', { name: OFFER_DOCUMENT_COPY.TITLE })).toBeTruthy();
+  expect(await screen.findByText('Information memorandum')).toBeTruthy();
+  expect(
+    screen.getByText(
+      'Prospectus or Information Memorandum · 24.0 KB · Uploaded 1 September 2026 · Valid until 30 November 2026',
+    ),
+  ).toBeTruthy();
+  const view = screen.getByRole('link', { name: 'View Information memorandum' });
+  expect(view.getAttribute('href')).toBe(memorandum.fileUrl);
+  expect(view.getAttribute('target')).toBe('_blank');
+  expect(view.getAttribute('rel')).toBe('noopener noreferrer');
+  expect(screen.getByText(OFFER_DOCUMENT_COPY.HELP)).toBeTruthy();
+});
+
+it('shows the documents of approved offerings even when none is open now', async () => {
+  api.get.mockImplementation(async (url: string) =>
+    url === DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary') ? { data: { ...token, openOffering: null } } : defaults(url),
+  );
+  renderPage(true);
+  expect(await screen.findByText('No offering open')).toBeTruthy();
+  expect(await screen.findByRole('link', { name: 'View Information memorandum' })).toBeTruthy();
+});
+
+it('says so when no document is attached, rather than showing an empty list', async () => {
+  api.get.mockImplementation(async (url: string) =>
+    url === DIRECTORY_ENDPOINTS.TOKENS.DOCUMENTS('ordinary') ? { data: [] } : defaults(url),
+  );
+  renderPage(true);
+  expect(await screen.findByText(OFFER_DOCUMENT_COPY.EMPTY)).toBeTruthy();
+  expect(screen.queryByText(OFFER_DOCUMENT_COPY.HELP)).toBeNull();
+  expect(screen.queryByRole('link', { name: /^View / })).toBeNull();
+});
+
+it('keeps a failed document read distinct from having none and retries it alone', async () => {
+  let broken = true;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === DIRECTORY_ENDPOINTS.TOKENS.DOCUMENTS('ordinary') && broken) throw Error('Unavailable');
+    return defaults(url);
+  });
+  renderPage(true);
+  expect(await screen.findByText(OFFER_DOCUMENT_COPY.FAILED)).toBeTruthy();
+  expect(screen.queryByText(OFFER_DOCUMENT_COPY.EMPTY)).toBeNull();
+  expect(screen.getByRole('button', { name: 'Create application' })).toBeTruthy();
+  broken = false;
+  fireEvent.click(screen.getByRole('button', { name: OFFER_DOCUMENT_COPY.RETRY }));
+  expect(await screen.findByRole('link', { name: 'View Information memorandum' })).toBeTruthy();
+});
+
+it('does not read documents for a class that is not available to the investor', async () => {
+  api.get.mockImplementation(async (url: string) => {
+    if (url === DIRECTORY_ENDPOINTS.TOKENS.DETAIL('ordinary')) throw { response: { status: 404 } };
+    return defaults(url);
+  });
+  renderPage(true);
+  expect(await screen.findByText('Share class not available')).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: OFFER_DOCUMENT_COPY.TITLE })).toBeNull();
+  expect(api.get.mock.calls.some(([url]) => url === DIRECTORY_ENDPOINTS.TOKENS.DOCUMENTS('ordinary'))).toBe(false);
 });
