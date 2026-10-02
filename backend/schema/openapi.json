@@ -2122,6 +2122,74 @@
         ],
         "type": "object"
       },
+      "DirectoryDocument": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "documentType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyDocumentDocumentTypeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "documentTypeDisplay": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "fileSize": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "fileUrl": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "mimeType": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "validUntil": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "documentType",
+          "documentTypeDisplay",
+          "fileSize",
+          "fileUrl",
+          "mimeType",
+          "name",
+          "uuid",
+          "validFrom",
+          "validUntil"
+        ],
+        "type": "object"
+      },
       "DirectoryOpenOfferingResponse": {
         "properties": {
           "closesAt": {
@@ -4246,6 +4314,22 @@
           "updatedAt",
           "useOfProceeds",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "OfferingDocumentsRequest": {
+        "properties": {
+          "documents": {
+            "items": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents"
         ],
         "type": "object"
       },
@@ -15777,6 +15861,99 @@
         ]
       }
     },
+    "/api/v1/directory/tokens/{uuid}/documents/": {
+      "get": {
+        "operationId": "api_v1_directory_tokens_documents_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DirectoryDocument"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/directory/tokens/{uuid}/documents/{document_uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_directory_tokens_documents_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/documents/": {
       "get": {
         "operationId": "api_v1_documents_list",
@@ -16208,6 +16385,68 @@
               }
             }
           }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferingDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/offerings/{uuid}/documents/": {
+      "post": {
+        "operationId": "api_v1_offerings_documents_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferingDocumentsRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferingDocumentsRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferingDocumentsRequest"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "200": {

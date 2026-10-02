@@ -90,6 +90,7 @@ export function OfferingEditor({
             busy={request.isPending}
             blocked={blocked}
             settlementAssets={data.settlementAssets}
+            documents={company?.documents ?? []}
             operatorName={data.operatorName}
             editing={uuid ? detail.data : undefined}
             onCreate={(input) => {

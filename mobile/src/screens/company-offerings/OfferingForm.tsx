@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import {
+  OFFER_DOCUMENT_COPY,
   OFFERING_EXEMPTION_LABELS,
+  attachableDocuments,
   requestShares,
+  type CompanyDocument,
   type CompanyShareTokenListItem,
   type Offering,
   type OfferingExemption,
@@ -12,6 +15,7 @@ import {
 import { Action, Choice } from '../../components/Ledger';
 import { ModalActions } from '../../components/modal';
 import { useCompanyStyles } from '../company-register/styles';
+import { DocumentChoices } from './DocumentChoices';
 import { OfferingDateField } from './OfferingDateField';
 
 export function OfferingForm({
@@ -19,6 +23,7 @@ export function OfferingForm({
   busy,
   blocked,
   settlementAssets,
+  documents = [],
   operatorName,
   editing,
   onSubmit,
@@ -29,6 +34,7 @@ export function OfferingForm({
   busy: boolean;
   blocked: boolean;
   settlementAssets: OperatorSettlementAsset[];
+  documents?: CompanyDocument[];
   operatorName: string;
   editing?: Offering;
   onSubmit: (input: OfferingInput) => void;
@@ -48,6 +54,8 @@ export function OfferingForm({
   const [useOfProceeds, setUseOfProceeds] = useState(editing?.useOfProceeds ?? '');
   const [acceptsBankTransfer, setAcceptsBankTransfer] = useState(editing?.acceptsBankTransfer ?? true);
   const [chosenAssets, setChosenAssets] = useState<string[]>(editing?.settlementAssets ?? []);
+  const [chosenDocuments, setChosenDocuments] = useState<string[]>(editing?.documents ?? []);
+  const attachable = attachableDocuments(documents, editing?.documents ?? []);
   const minimum = requestShares(minimumShares);
   const target = requestShares(targetShares);
   const cap = requestShares(capShares);
@@ -83,6 +91,7 @@ export function OfferingForm({
       closesAt: closesAt ? new Date(closesAt).toISOString() : null,
       summary,
       useOfProceeds,
+      documents: chosenDocuments.filter((uuid) => documents.some((document) => document.uuid === uuid)),
     });
   };
   return (
@@ -185,6 +194,20 @@ export function OfferingForm({
         <Text accessibilityRole="alert" style={styles.error}>
           Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
         </Text>
+      )}
+      <Text style={styles.heading}>{OFFER_DOCUMENT_COPY.ATTACH_HEADING}</Text>
+      <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_HELP}</Text>
+      {attachable.length === 0 ? (
+        <Text style={styles.muted}>{OFFER_DOCUMENT_COPY.ATTACH_NONE}</Text>
+      ) : (
+        <DocumentChoices
+          documents={attachable}
+          chosen={chosenDocuments}
+          busy={busy}
+          onChange={(uuid, attached) =>
+            setChosenDocuments((chosen) => (attached ? [...chosen, uuid] : chosen.filter((each) => each !== uuid)))
+          }
+        />
       )}
       {unavailableAssets.length > 0 && (
         <View style={styles.group}>

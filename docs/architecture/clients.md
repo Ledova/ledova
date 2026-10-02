@@ -100,7 +100,11 @@ share-class and price snapshots independently of Directory eligibility. Failed
 history/detail refreshes suppress cached terms and actions; a later-page failure
 marks the history incomplete. Directory draft creation reads every verified Base
 wallet, preserves quantity and selection across failed refreshes, and blocks writes
-until current prerequisites recover. Native application writes carry the captured
+until current prerequisites recover. A native class page lists its offer documents
+as the dashboard does, and pulling the page to refresh reads them again with the
+class; opening one fetches it with the bearer client into a
+session-scoped temporary copy for the share sheet, and a failed open keeps no
+copy. Native application writes carry the captured
 session epoch through the existing transport guard and ignore retired-session
 results. Payment details come only from the application's issued instruction,
 including exact references, leading zeroes and raw settlement units. Partial
@@ -244,6 +248,11 @@ the displayed fixed-price total in integer cents. Its quantity and chosen wallet
 survive a failed class or wallet refresh, while the retry screen hides application
 actions. Those inputs are scoped to the offering, so a replacement offering starts
 with a fresh quantity. A closed or unavailable offering has no application form.
+Below the offering, Offer documents lists what the company attached to the
+class's approved offerings, open or not, with each document's type, size and
+upload date and a link that opens it in a new tab with the session cookie. A
+failed read has its own retry and stays distinct from having none, and an
+unavailable class reads none.
 The server still selects the
 applicant and enforces quantity and eligibility rules. Payment details remain on
 the accepted application, which supplies its exact amount and reference.
@@ -338,6 +347,11 @@ actions; an open editor retains its draft when a read or save fails. Native date
 and time controls set the offering window in the device's local time. Price
 strings remain exact, request share quantities retain the API bounds, and a
 removed settlement asset must be explicitly removed from the draft before save.
+The form lists the company's uploaded offer documents to attach for investors and
+keeps an edited offering's attachments until one is switched off. An approved or
+closed offering has Add documents instead, a dialog whose attached documents are
+switched on and disabled; it sends only the new choices under the captured
+session epoch, keeps a refusal in the dialog and refreshes Offerings.
 Subscription facts remain separate from the stored share register and allotment.
 Offering writes and Directory visibility changes capture the native session epoch;
 credential lookup, token refresh and late UI callbacks cannot carry them into a
@@ -420,7 +434,16 @@ an unavailable edit never becomes a new offering. Quantities are whole integers
 within the existing 2,147,483,647 request limit before JSON number conversion.
 Price, ordered bounds, dates and available settlement choices are checked before
 submission. Operator details failing to load do not imply bank-transfer-only
-settlement.
+settlement. The forms list the company's uploaded offer documents to attach for
+investors, who can open them once the operator approves the offering; editing
+keeps the attached ones, listed even when of another type, until the issuer
+unticks one, and saving leaves out an attachment that is not one of the
+company's documents. An approved or closed offering has Add documents instead:
+its dialog lists the offer documents with the attached ones ticked and
+disabled, sends only the new choices, keeps a refusal in the dialog and
+refreshes the page on success. Nothing offers to untick an attached document
+there, and a dialog opened on an offering that has since left approved or
+closed says so and sends nothing.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,
@@ -629,13 +652,13 @@ A setting that takes effect as soon as it changes has one control, a
 investors on Offerings. Its `aria-checked` is the saved value; it is disabled
 while a change is saving, keeps the saved value when the change is refused, and
 the refusal is an alert in the same card. On the web a choice that is saved
-with a form stays a checkbox, as the payment choices in the offering editor and
-the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
+with a form stays a checkbox, as the payment and document choices in the
+offering editor and the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
 the end of the same row, named by the label with the sentence as its hint, for
 biometric sign-in, App lock and Transaction alerts on Settings and Show this
 company to eligible investors on Offerings. The mobile offering editor's
-payment choices are not in that row yet: each is still a bare native switch
-under its own line of text.
+payment and document choices are not in that row yet: each is still a bare
+native switch under its own line of text.
 
 A lede, the one muted sentence under a page's title, appears only where it says
 what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
