@@ -93,6 +93,10 @@ applicant country or nationality is inferred as an issuing country. On a Sum&Sub
 approval, the integration reads [verification step results](https://docs.sumsub.com/reference/get-status-of-verification-steps)
 and records an approved identity document, preferring a passport. Its alpha-3
 issuing country is converted to alpha-2 where ISO defines it.
+When a completed GREEN result has no current identity document, either provider
+clears the stored type and issuing country. Pending results retain earlier
+verified document evidence. A valid KYCAID document records its type with no
+issuing country, including when an earlier result had supplied a country.
 
 The same approval then reads [the applicant's AML case](https://docs.sumsub.com/reference/get-aml-case-data).
 The token needs **View applicants** and **View AML screening** permissions. The

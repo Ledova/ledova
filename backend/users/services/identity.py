@@ -147,9 +147,7 @@ class IdentityVerificationService:
             if user_profile.kyc_provider == PROVIDER_SUMSUB:
                 user_profile.sumsub_verification_status = normalized.verification_status
 
-            if normalized.document_type or (
-                user_profile.kyc_provider == PROVIDER_SUMSUB and normalized.review_result == REVIEW_GREEN
-            ):
+            if normalized.document_type or normalized.review_result == REVIEW_GREEN:
                 user_profile.id_document_type = normalized.document_type
                 user_profile.id_document_country = normalized.document_country
 
