@@ -6,7 +6,7 @@ from django.test import override_settings
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import atomic, use_operator
+from shared.db import acting_for, atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
@@ -21,10 +21,13 @@ from shareholders.services.resolutions import close_resolution, enter_ballot
 from shareholders.tests.fixtures import (
     PUBLICATION_BYTES,
     a_company_with_members,
+    a_distribution,
     a_resolution,
     published,
+    the_class_is_paused,
     voting_has_closed,
 )
+from tokens.models import ShareToken
 
 LISTING = "/api/v1/publications/"
 
@@ -136,6 +139,27 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
         self.assertEqual(listed.status_code, 200)
         self.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(self.mine.pk)])
         self.assertEqual(listed.json()["results"][0]["shares"], str(holder.shares))
+
+    def test_a_member_of_a_paused_class_reads_and_votes_on_what_was_published_after_the_pause(self):
+        holder = self.here.members[0]
+        with use_operator():
+            the_class_is_paused(self.here)
+            resolution = a_resolution(self.here)
+            dividend = a_distribution(self.here)
+        self.client.force_authenticate(holder.user)
+
+        listed = self.client.get(LISTING, {"addressed": "me"})
+        voted = self.client.post(f"{LISTING}{resolution.pk}/ballot/", {"choice": "for"}, format="json")
+
+        self.assertEqual(listed.status_code, 200, listed.content)
+        self.assertEqual(
+            {row["uuid"] for row in listed.json()["results"]},
+            {str(self.mine.pk), str(resolution.pk), str(dividend.pk)},
+        )
+        self.assertEqual(voted.status_code, 200, voted.content)
+        self.assertEqual(voted.json()["myBallot"]["choice"], "for")
+        with acting_for(holder.user.pk):
+            self.assertFalse(ShareToken.objects.filter(pk=self.here.token.pk).exists())
 
     def test_the_issuer_filter_is_owned_company_only_on_the_real_app_connection(self):
         owner = self.there.members[0].user
