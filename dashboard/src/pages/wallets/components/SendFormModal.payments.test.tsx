@@ -117,7 +117,7 @@ describe('the Send form payment policy', () => {
 
     expect(screen.getByText('ETH')).toBeDefined();
     expect(screen.getByText('AUDY')).toBeDefined();
-    expect(screen.queryByText(/QAT/)).toBeNull();
+    expect(screen.queryAllByText(/QAT/)).toHaveLength(0);
     expect(screen.queryByText('Fictional Shares Pty Ltd')).toBeNull();
     expect(getWalletHoldings).toHaveBeenCalledWith(apiClient, wallet.uuid);
     expect(getWhitelistStatus).not.toHaveBeenCalled();
