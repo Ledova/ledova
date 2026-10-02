@@ -76,6 +76,7 @@ PERMISSIONS = {
         "tokens.change_mintrequest",
         "tokens.view_transferorder",
         "tokens.view_swaporder",
+        "tokens.view_ordersubmission",
         "shareholders.view_publication",
         "shareholders.change_publication",
         "shareholders.view_publicationevent",
