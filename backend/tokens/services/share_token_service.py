@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from web3 import Web3
+from web3.exceptions import BadFunctionCallOutput
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
@@ -17,6 +18,7 @@ from integrations.base_chain.exceptions import (
 )
 from operators.settlement import settlement_deployments
 from shared.constants import BLOCKCHAIN_BASE
+from shared.utils.blockchain import failure_summary
 from tokens.exceptions import (
     ContractLoadException,
     InvalidHolderAddressException,
@@ -46,6 +48,10 @@ EXCEEDS_AUTHORIZED = "Amount exceeds authorized shares. Submit a capital increas
 TOKEN_PAUSED = "Token is paused. Unpause it before executing."
 SHARE_ASSET_CHAIN = BLOCKCHAIN_BASE
 NOT_ATTESTED = "{symbol} at {address} is not the address the factory holds for {identifier}; left unverified"
+NO_CONTRACT_CODE = (
+    "{symbol} has no contract code at {address} on chain {chain}; the wallet's other balances are returned without it"
+)
+UNREADABLE_BALANCE = "The balance of {symbol} could not be read ({failure}); the wallet's balances are refused"
 
 
 def factory_address() -> str:
@@ -62,7 +68,7 @@ def factory_contract():
     try:
         return get_base_chain_client().load_contract("ShareTokenFactory", factory_address())
     except BaseChainContractError as exc:
-        logger.error("ShareTokenFactory could not be loaded: %s", exc)
+        logger.error("ShareTokenFactory could not be loaded (%s)", failure_summary(exc))
         raise ContractLoadException("The token factory contract could not be loaded.") from exc
 
 
@@ -101,7 +107,9 @@ def bridge_share_asset(token: ShareToken, contract_address: str) -> bool:
     try:
         attested = get_token_by_identifier(identifier)
     except Exception as exc:
-        logger.warning(f"getTokenByIdentifier({identifier}) failed; {token.symbol} has no verified asset: {exc}")
+        logger.warning(
+            f"getTokenByIdentifier({identifier}) failed ({failure_summary(exc)}); {token.symbol} has no verified asset"
+        )
         return False
     if not attested or attested.lower() != contract_address.lower():
         logger.warning(NOT_ATTESTED.format(symbol=token.symbol, address=contract_address, identifier=identifier))
@@ -116,7 +124,7 @@ def bridge_share_asset(token: ShareToken, contract_address: str) -> bool:
             asset_type=AssetType.TOKENIZED_SECURITY.value,
         )
     except Exception as exc:
-        logger.error(f"Could not bridge {token.symbol} at {contract_address} into an asset: {exc}")
+        logger.error(f"Could not bridge {token.symbol} at {contract_address} into an asset ({failure_summary(exc)})")
         return False
     logger.info(f"{token.symbol} at {contract_address} is asset {asset.symbol} on {SHARE_ASSET_CHAIN}")
     return True
@@ -242,7 +250,7 @@ def seed_recipient_holding(contract_address: str, recipient_address: str) -> Non
         if asset is None:
             logger.warning(f"{contract_address} has no asset on {SHARE_ASSET_CHAIN}; no holding written")
             return
-        sync_holding(entry.wallet, asset)
+        sync_holding(entry.wallet, asset, create_empty=False)
     except Exception:
         logger.error(
             "Could not record the holding for contract %s and recipient %s", contract_address, recipient_address
@@ -252,11 +260,11 @@ def seed_recipient_holding(contract_address: str, recipient_address: str) -> Non
 def read_paused(token: ShareToken) -> bool:
     try:
         return load_share_token(token.contract_address).functions.paused().call()
-    except BaseChainConnectionError as exc:
-        raise TokenPauseFailedException("The chain is unreachable.") from exc
+    except BaseChainConnectionError:
+        raise TokenPauseFailedException("The chain is unreachable.") from None
     except Exception as exc:
-        logger.error(f"paused() could not be read for {token.symbol}: {exc}")
-        raise TokenPauseFailedException("The token's paused state could not be read.") from exc
+        logger.error(f"paused() could not be read for {token.symbol} ({failure_summary(exc)})")
+        raise TokenPauseFailedException("The token's paused state could not be read.") from None
 
 
 def get_token_balance(contract_address: str, holder: str) -> int:
@@ -265,8 +273,36 @@ def get_token_balance(contract_address: str, holder: str) -> int:
     except InvalidHolderAddressException:
         raise
     except Exception as e:
-        logger.error(f"Error getting balance: {e}")
-        raise TokenBalanceRetrievalException() from e
+        logger.error(f"Error getting balance ({failure_summary(e)})")
+        raise TokenBalanceRetrievalException() from None
+
+
+def _no_code_on_the_configured_chain(contract_address: str) -> bool:
+    try:
+        w3 = get_base_chain_client().w3
+        return w3.eth.chain_id == settings.BLOCKCHAIN_CHAIN_ID and not w3.eth.get_code(
+            Web3.to_checksum_address(contract_address)
+        )
+    except Exception:
+        return False
+
+
+def _wallet_balance(contract_name: str, symbol: str, contract_address: str, holder: str) -> Optional[int]:
+    try:
+        return _get_balance(contract_name, contract_address, holder)
+    except BadFunctionCallOutput as exc:
+        if _no_code_on_the_configured_chain(contract_address):
+            logger.warning(
+                NO_CONTRACT_CODE.format(symbol=symbol, address=contract_address, chain=settings.BLOCKCHAIN_CHAIN_ID)
+            )
+            return None
+        failure = exc
+    except Exception as exc:
+        failure = exc
+    logger.error(UNREADABLE_BALANCE.format(symbol=symbol, failure=failure_summary(failure)))
+    raise WalletBalancesUnavailableException(
+        f"{WalletBalancesUnavailableException.default_detail} The balance of {symbol} could not be read."
+    ) from None
 
 
 def get_wallet_token_balances(wallet_address: str) -> dict:
@@ -276,48 +312,34 @@ def get_wallet_token_balances(wallet_address: str) -> dict:
 
     tokens = ShareToken.objects.deployed_with_contract()
     for token in tokens:
-        try:
-            balance = get_token_balance(token.contract_address, wallet_checksum)
-            if balance > 0:
-                balances.append(
-                    {
-                        "token": str(token.uuid),
-                        "symbol": token.symbol,
-                        "name": token.name,
-                        "balance": str(balance),
-                        "contractAddress": token.contract_address,
-                        "decimals": 0,
-                        "type": "share_token",
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Failed to get balance for {token.symbol}: {e}")
-            raise WalletBalancesUnavailableException(
-                f"{WalletBalancesUnavailableException.default_detail} The balance of {token.symbol} could "
-                f"not be read."
-            ) from e
+        balance = _wallet_balance("ShareToken", token.symbol, token.contract_address, wallet_checksum)
+        if balance:
+            balances.append(
+                {
+                    "token": str(token.uuid),
+                    "symbol": token.symbol,
+                    "name": token.name,
+                    "balance": str(balance),
+                    "contractAddress": token.contract_address,
+                    "decimals": 0,
+                    "type": "share_token",
+                }
+            )
 
     for deployment in settlement_deployments():
         asset = deployment.asset
-        try:
-            balance = _get_balance("AUDY", deployment.contract_address, wallet_checksum)
-            if balance > 0:
-                balances.append(
-                    {
-                        "token": str(asset.uuid),
-                        "symbol": asset.symbol,
-                        "name": asset.name,
-                        "balance": str(balance),
-                        "contractAddress": deployment.contract_address,
-                        "decimals": deployment.decimals,
-                        "type": "stablecoin",
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Failed to get settlement asset balance for {asset.symbol}: {e}")
-            raise WalletBalancesUnavailableException(
-                f"{WalletBalancesUnavailableException.default_detail} The balance of {asset.symbol} could "
-                f"not be read."
-            ) from e
+        balance = _wallet_balance("AUDY", asset.symbol, deployment.contract_address, wallet_checksum)
+        if balance:
+            balances.append(
+                {
+                    "token": str(asset.uuid),
+                    "symbol": asset.symbol,
+                    "name": asset.name,
+                    "balance": str(balance),
+                    "contractAddress": deployment.contract_address,
+                    "decimals": deployment.decimals,
+                    "type": "stablecoin",
+                }
+            )
 
     return {"walletAddress": wallet_checksum, "balances": balances}

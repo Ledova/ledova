@@ -37,7 +37,7 @@ from shared.seeds.synthetic.chain.settlement import fund_wallets
 from shared.seeds.synthetic.chain.story import CLASS_SPECS, ROUND_SPECS, TESTER_WALLETS
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.market import layer as market_layer
-from shared.seeds.synthetic.market.deposits import mint_id
+from shared.seeds.synthetic.market.deposits import EXECUTED, mint_id
 from shared.seeds.synthetic.market.notices import Notices
 from shared.seeds.synthetic.market.story import MARKETS
 from shared.services.orphaned_files import orphaned_files
@@ -64,6 +64,8 @@ from tokens.services.register_inclusions import waiting_effects
 from tokens.tests.test_chain_integration import (
     CHAIN_SETTINGS,
     chain_available,
+    chain_clock_lead,
+    isolate_chain,
     reset_chain_client,
 )
 from users.models import DeviceToken, Notification
@@ -116,6 +118,8 @@ AUDY_DECIMALS = 2
 MEMORANDUM = "-information-memorandum.pdf"
 MARKET_SEED = "shared.seeds.synthetic.market.layer.seed_market"
 EXPO_TOKEN = "ExponentPushToken[seed-test-last-step]"
+CLOCK_TOLERANCE = timedelta(minutes=1)
+NODE_AHEAD = "The node's clock is ahead of the wall clock, so the seed's trades could pass their settlement deadline."
 LAST_STEPS = (
     ("shared.seeds.synthetic.chain.layer.fund_wallets", fund_wallets, "Queued by the chain layer's last step"),
     ("shared.seeds.synthetic.market.layer.Notices.close", Notices.close, "Queued by the market layer's last step"),
@@ -185,8 +189,8 @@ class ChainLayerTest(APITransactionTestCase):
         BlockchainClientFactory._clients.clear()
         self.addCleanup(BlockchainClientFactory._clients.clear)
         self.w3 = get_base_chain_client().w3
-        snapshot = self.w3.provider.make_request("evm_snapshot", [])["result"]
-        self.addCleanup(self.w3.provider.make_request, "evm_revert", [snapshot])
+        isolate_chain(self, self.w3)
+        self.assertLess(chain_clock_lead(self.w3), CLOCK_TOLERANCE.total_seconds(), NODE_AHEAD)
         call_command("sync_monitoring_rules", stdout=StringIO())
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         with use_operator():
@@ -278,6 +282,13 @@ class ChainLayerTest(APITransactionTestCase):
             self.assertEqual(Notification.objects.filter(user=investor, title=title).count(), 1, title)
         device.delete()
 
+    def audy_held(self, wallet):
+        audy = Asset.objects.get(symbol="AUDY")
+        contract = get_base_chain_client().load_contract("AUDY", audy.get_deployment_for_chain("base").contract_address)
+        balance = contract.functions.balanceOf(Web3.to_checksum_address(wallet.address)).call()
+        holding = Holding.objects.filter(wallet=wallet, asset=audy).first()
+        return (holding.quantity if holding else None), Decimal(balance) / 10**AUDY_DECIMALS
+
     def check_mints(self):
         [market] = self.markets
         audy = Asset.objects.get(symbol="AUDY").get_deployment_for_chain("base")
@@ -286,6 +297,15 @@ class ChainLayerTest(APITransactionTestCase):
             request = MintRequest.objects.get(pk=mint_id(deposit.key))
             planned = int(deposit.amount * 10**AUDY_DECIMALS)
             self.assertEqual((request.status, request.amount), (deposit.state, planned), deposit.key)
+            if deposit.state == EXECUTED:
+                wallet = Wallet.objects.filter_by_address(deposit.address, chain="base").get(
+                    user_account__user_profile__user__email=deposit.investor
+                )
+                held, on_chain = self.audy_held(wallet)
+                self.assertEqual(held, on_chain, deposit.key)
+        for swap in SwapOrder.objects.filter(status="completed").select_related("seller_wallet"):
+            held, on_chain = self.audy_held(swap.seller_wallet)
+            self.assertEqual(held, on_chain, swap.seller_address)
 
     def check_registers(self):
         on_chain = ShareToken.objects.exclude(contract_address=None)

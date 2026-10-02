@@ -246,6 +246,11 @@ deployment eligibility, signer configuration and on-chain minter permission
 before signing. Signed recovery uses the recorded intent after configuration
 changes; it never silently switches the recorded signer or deployment.
 
+Once a settlement-asset mint is executed, by its execution or by recovery, the
+AUDY holding of each verified Base wallet registered at the recipient address is
+written from `balanceOf`, after the mint has committed; a holding that cannot be
+written is logged and leaves the mint executed. A yield-token mint writes none.
+
 A missing receipt or lost send acknowledgement leaves the request **Outcome
 unresolved**. Use **Recover** on the same request. The five-minute
 `recover_mint_requests` task selects at most 100 admitted unresolved requests,

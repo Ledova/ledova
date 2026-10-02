@@ -16,6 +16,7 @@ from integrations.blockchain import BlockchainClientFactory
 from integrations.blockchain.ethereum import EthereumClient
 from shared.db import acting_for, use_operator
 from shared.tests.signed_transactions import high_s_transaction
+from tokens.tests.test_chain_integration import isolate_chain
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, WalletChainObservation
 from wallets.services.chain_observations import observe_wallet_chain
@@ -58,8 +59,7 @@ class SubmissionChainTest(SubmissionFixture, APITransactionTestCase):
         self.addCleanup(BlockchainClientFactory._clients.clear)
         self.w3 = Web3(Web3.HTTPProvider(RPC_URL))
         self.assertEqual(self.w3.eth.chain_id, 31337)
-        snapshot = self.w3.manager.request_blocking("evm_snapshot", [])
-        self.addCleanup(self.w3.manager.request_blocking, "evm_revert", [snapshot])
+        isolate_chain(self, self.w3)
         funding = self.w3.eth.send_transaction(
             {"from": self.w3.eth.accounts[0], "to": self.signer.address, "value": 10 * 10**18}
         )

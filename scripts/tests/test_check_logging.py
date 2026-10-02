@@ -370,3 +370,49 @@ class LoggerAliasRule(unittest.TestCase):
     def test_a_shouted_binding_is_allowed_because_its_calls_are_scanned(self):
         self.assertEqual(self.rules("LOGGER = logging.getLogger(__name__)"), [])
         self.assertEqual(self.rules('LOGGER.info(f"{response}")'), [gate.LOG_BODY])
+
+
+class ProviderErrorTextRule(unittest.TestCase):
+    def rules(self, body, provider_facing=True):
+        source = "try:\n    read()\nexcept Exception as error:\n" + "".join(f"    {line}\n" for line in body)
+        return [rule for _, rule, _ in gate.python_findings(source, provider_facing)]
+
+    def test_the_text_of_a_caught_error_is_refused_however_it_is_formatted(self):
+        for line in (
+            'logger.error(f"Balance query failed: {error}")',
+            'logger.warning("Balance query failed: %s", error)',
+            'logger.error("Balance query failed: " + str(error))',
+            'logger.error(f"Balance query failed: {error.args}")',
+            "logger.error(repr(error))",
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(self.rules([line]), [gate.LOG_EXCEPTION_TEXT])
+
+    def test_the_class_or_the_summary_is_allowed(self):
+        for line in (
+            'logger.error(f"Balance query failed ({failure_summary(error)})")',
+            'logger.warning("Balance query failed (%s)", type(error).__name__)',
+            'logger.warning("Balance query failed (%s)", error.__class__.__name__)',
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(self.rules([line]), [])
+
+    def test_a_traceback_is_refused_because_it_prints_the_text(self):
+        self.assertEqual(self.rules(['logger.exception("Mint request %s is unresolved", 7)']), [gate.LOG_EXCEPTION_TEXT])
+        self.assertEqual(self.rules(['logger.error("Mint request failed", exc_info=True)']), [gate.LOG_EXCEPTION_TEXT])
+        self.assertEqual(self.rules(['logger.error("Mint request failed", exc_info=False)']), [])
+
+    def test_the_finding_names_the_caught_error(self):
+        source = 'try:\n    read()\nexcept Exception as error:\n    logger.error(f"failed: {error}")\n'
+        self.assertEqual(
+            gate.python_findings(source, True), [(4, gate.LOG_EXCEPTION_TEXT, "logger.error(... error ...)")]
+        )
+
+    def test_a_module_that_calls_no_provider_is_not_held_to_it(self):
+        self.assertEqual(self.rules(['logger.error(f"Skipped row: {error}")'], provider_facing=False), [])
+
+    def test_every_listed_provider_module_exists_and_is_scanned_by_the_repository_run(self):
+        missing = [path for path in sorted(gate.PROVIDER_FACING) if not (gate.ROOT / path).is_file()]
+        self.assertEqual(missing, [])
+        violations, _ = gate.scan()
+        self.assertFalse([entry for entry in violations if gate.LOG_EXCEPTION_TEXT in entry], violations)

@@ -41,8 +41,10 @@ rows. Receipt verification for marked imports preserves block metadata when the
 provider cannot supply it and updates available receipt fields under the wallet
 and transaction locks. It sends no lifecycle notifications and changes no
 holdings, including for quarantined assets. The wallet sync still
-refreshes current balances for verified holdings. History imports do not record
-an optimistic deduction.
+refreshes current balances for verified holdings, and records the share classes
+and the settlement asset a wallet holds without a holding
+([which ones](../architecture/wallets-and-valuations.md#a-share-holding-names-its-class)).
+History imports do not record an optimistic deduction.
 A confirmation job whose initial lookup finds no stored transaction returns
 `not_found` without contacting the provider or entering a settlement writer.
 History imported after that lookup remains pending for a later confirmation

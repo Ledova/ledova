@@ -289,9 +289,10 @@ and tasks the worker would run. It adds:
 - Registers: each company enters its first-time buyers' wallets as members under
   a reviewed wallet link and records the day's transfers under one applied
   transfer instruction per class, so every register reconciles matched with
-  nothing waiting. Buyers' holdings are written from the chain, since a settled
-  swap never creates one, and each investor's ether goes back to its seeded
-  balance after their approvals paid for gas.
+  nothing waiting. Each deposit writes its recipient's AUDY holding and each
+  settled trade the buyer's and the seller's share and AUDY holdings from the
+  chain, as they do outside the seed, and each investor's ether goes back to its
+  seeded balance after their approvals paid for gas.
 - Notices to members: 27 publications across the four classes, each with the
   day of the run as its record date, because each register opened that day:
   holding statements; meeting notices; three dividends in AUD, recorded as paid

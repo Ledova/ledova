@@ -8,6 +8,7 @@ from shared.tests.tenants import make_tenant
 from tokens.services import share_token_service
 from wallets.models import Holding, Wallet
 from wallets.services.holdings import sync_holding
+from whitelist.models import WhitelistEntry
 
 
 class SyncHoldingTest(TestCase):
@@ -91,3 +92,30 @@ class SyncHoldingTest(TestCase):
             self.assertIsNone(sync_holding(elsewhere, self.share))
 
         self.assertFalse(Holding.objects.filter(asset=self.share).exists())
+
+    def test_a_wallet_that_holds_none_gets_no_empty_holding_when_none_is_wanted(self):
+        with self._chain(balance=0):
+            self.assertIsNone(sync_holding(self.wallet, self.share, create_empty=False))
+
+        self.assertFalse(Holding.objects.filter(asset=self.share).exists())
+
+    def test_an_existing_holding_still_falls_to_zero_when_no_empty_holding_is_wanted(self):
+        existing = Holding.objects.create(wallet=self.wallet, asset=self.share, quantity=Decimal("40"))
+
+        with self._chain(balance=0):
+            holding = sync_holding(self.wallet, self.share, create_empty=False)
+
+        self.assertEqual(holding.pk, existing.pk)
+        existing.refresh_from_db()
+        self.assertEqual(existing.quantity, Decimal("0"))
+
+    def test_an_issuance_whose_recipient_holds_none_by_the_write_leaves_no_empty_holding(self):
+        WhitelistEntry.objects.create(wallet=self.wallet)
+
+        with self._chain(balance=0):
+            share_token_service.seed_recipient_holding(self.token.contract_address, self.wallet.address)
+        self.assertFalse(Holding.objects.filter(asset=self.share).exists())
+
+        with self._chain():
+            share_token_service.seed_recipient_holding(self.token.contract_address, self.wallet.address)
+        self.assertEqual(Holding.objects.get(asset=self.share).quantity, Decimal("250"))

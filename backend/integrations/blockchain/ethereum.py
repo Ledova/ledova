@@ -9,6 +9,7 @@ from web3 import Web3
 from web3.exceptions import TimeExhausted, TransactionNotFound
 
 from integrations.base_chain.exceptions import GasEstimationError
+from shared.utils.blockchain import failure_summary
 from shared.utils.token_amounts import token_base_units
 
 from .base import BlockchainClient
@@ -90,7 +91,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"ETH balance for {address}: {balance_eth}")
             return balance_eth
         except Exception as e:
-            logger.error(f"Error getting ETH balance for {address}: {str(e)}")
+            logger.error(f"Error getting ETH balance for {address}: {failure_summary(e)}")
             raise
 
     def get_token_balance(self, address: str, contract_address: str, decimals: int) -> Decimal:
@@ -107,7 +108,7 @@ class EthereumClient(BlockchainClient):
             return balance_standard
 
         except Exception as e:
-            logger.error(f"Error getting token balance for {address}: {str(e)}")
+            logger.error(f"Error getting token balance for {address}: {failure_summary(e)}")
             raise
 
     def get_total_supply(self, contract_address: str, decimals: int) -> Decimal:
@@ -119,7 +120,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"Total supply for {contract_address}: {supply}")
             return supply
         except Exception as e:
-            logger.error(f"Error getting total supply for {contract_address}: {e}")
+            logger.error(f"Error getting total supply for {contract_address} ({failure_summary(e)})")
             raise
 
     def get_current_block(self) -> int:
@@ -128,7 +129,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"Current block: {block_number}")
             return block_number
         except Exception as e:
-            logger.error(f"Error getting current block: {str(e)}")
+            logger.error(f"Error getting current block: {failure_summary(e)}")
             raise
 
     def get_transaction(self, tx_hash: str) -> Dict[str, Any]:
@@ -139,7 +140,7 @@ class EthereumClient(BlockchainClient):
             logger.warning(f"Transaction not found: {tx_hash}")
             raise
         except Exception as e:
-            logger.error(f"Error getting transaction {tx_hash}: {str(e)}")
+            logger.error(f"Error getting transaction {tx_hash}: {failure_summary(e)}")
             raise
 
     def get_transaction_receipt(self, tx_hash: str) -> Optional[Dict[str, Any]]:
@@ -150,7 +151,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"Receipt not yet available: {tx_hash}")
             return None
         except Exception as e:
-            logger.error(f"Error getting receipt for {tx_hash}: {str(e)}")
+            logger.error(f"Error getting receipt for {tx_hash}: {failure_summary(e)}")
             raise
 
     def estimate_gas(self, tx_params: Dict[str, Any]) -> int:
@@ -165,7 +166,7 @@ class EthereumClient(BlockchainClient):
             return gas_estimate
 
         except Exception as e:
-            logger.error(f"Error estimating gas: {str(e)}")
+            logger.error(f"Error estimating gas: {failure_summary(e)}")
             raise
 
     def broadcast_transaction(self, signed_tx: str) -> str:
@@ -177,7 +178,7 @@ class EthereumClient(BlockchainClient):
             return tx_hash_hex
 
         except Exception as e:
-            logger.error(f"Error broadcasting transaction: {str(e)}")
+            logger.error(f"Error broadcasting transaction: {failure_summary(e)}")
             raise
 
     def get_gas_price(self) -> int:
@@ -186,7 +187,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"Gas price: {gas_price} wei")
             return gas_price
         except Exception as e:
-            logger.error(f"Error getting gas price: {str(e)}")
+            logger.error(f"Error getting gas price: {failure_summary(e)}")
             raise
 
     def wait_for_transaction_receipt(self, tx_hash: str, timeout: int = 120) -> Dict[str, Any]:
@@ -200,7 +201,7 @@ class EthereumClient(BlockchainClient):
             logger.error(f"Timeout waiting for {tx_hash} after {timeout}s")
             raise TimeoutError(f"Transaction not confirmed within {timeout}s")
         except Exception as e:
-            logger.error(f"Error waiting for receipt {tx_hash}: {str(e)}")
+            logger.error(f"Error waiting for receipt {tx_hash}: {failure_summary(e)}")
             raise
 
     def build_erc20_transfer_data(self, contract_address: str, recipient: str, amount: Decimal, decimals: int) -> str:
@@ -220,7 +221,7 @@ class EthereumClient(BlockchainClient):
             return encoded_data
 
         except Exception as e:
-            logger.error(f"Error building ERC-20 transfer data: {str(e)}")
+            logger.error(f"Error building ERC-20 transfer data: {failure_summary(e)}")
             raise
 
     def estimate_erc20_transfer_gas(
@@ -246,7 +247,7 @@ class EthereumClient(BlockchainClient):
             return gas_with_buffer
 
         except Exception as e:
-            logger.warning(f"ERC-20 gas estimation failed for {contract_address}: {str(e)}")
+            logger.warning(f"ERC-20 gas estimation failed for {contract_address}: {failure_summary(e)}")
             raise GasEstimationError(
                 "The node would not estimate gas for this transfer, so it is not being prepared."
             ) from e
@@ -258,7 +259,7 @@ class EthereumClient(BlockchainClient):
             logger.debug(f"Nonce for {address}: {nonce}")
             return nonce
         except Exception as e:
-            logger.error(f"Error getting nonce for {address}: {str(e)}")
+            logger.error(f"Error getting nonce for {address}: {failure_summary(e)}")
             raise
 
     def get_mined_nonce(self, address: str) -> dict:
@@ -332,7 +333,7 @@ class EthereumClient(BlockchainClient):
             return unique_transactions
 
         except Exception as e:
-            logger.error(f"Error fetching history for {address}: {str(e)}")
+            logger.error(f"Error fetching history for {address}: {failure_summary(e)}")
             raise
 
     def _fetch_asset_transfers(
@@ -372,7 +373,7 @@ class EthereumClient(BlockchainClient):
                         gas_fee_wei = gas_used * effective_gas_price
                         gas_fee = Decimal(gas_fee_wei) / Decimal(10**18)
                 except Exception as e:
-                    logger.debug(f"Could not fetch gas fee for {tx_hash}: {e}")
+                    logger.debug(f"Could not fetch gas fee for {tx_hash} ({failure_summary(e)})")
 
                 raw_contract = transfer.get("rawContract", {})
                 contract_address = raw_contract.get("address")

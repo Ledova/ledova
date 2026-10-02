@@ -9,6 +9,7 @@ from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from assets.models import Asset, AssetChainDeployment
 from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import (
@@ -64,6 +65,10 @@ class SwapFinalityFixtures:
     def setUp(self):
         super().setUp()
         self.publisher = self.enterContext(patch.object(swap_execution, "publish_trading_event"))
+        self.holdings = self.enterContext(
+            patch.object(swap_execution, "sync_holding", side_effect=self.holding_written)
+        )
+        self.written_inside_a_transaction = []
         with use_operator():
             self.fixture = make_execution("finality")
             admitted_signer()
@@ -77,6 +82,10 @@ class SwapFinalityFixtures:
                 )
             self.record = self.swap.transaction
         self.node = ExecutionNode(self.record.function_args)
+
+    def holding_written(self, *arguments, **options):
+        self.written_inside_a_transaction.append(connections[current_alias()].in_atomic_block)
+        return object()
 
     def confirm(self, status=1):
         self.node.status = status
@@ -299,7 +308,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.node.receipts[attempt.tx_hash]["gasUsed"] = 22000
             with self.assertLogs(LOGGER, "INFO") as logs:
                 self.assertEqual(self.settle(), SwapOrderStatus.COMPLETED)
-        self.assertIn("later block", logs.output[-1])
+        self.assertTrue(any("finalized in a later block" in line for line in logs.output), logs.output)
         self.assert_completed(attempt)
         self.assert_finalized_receipt(block=14, block_hash=REORG_HASH, gas=22000)
         with use_operator():
@@ -496,6 +505,90 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
                 "history": [{**recorded[0], "block_hash": OTHER_HASH}],
             }
             self.assertEqual(classify_inclusion(replaced, inclusions[0]), ATTRIBUTION)
+
+    def share_asset(self):
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+            asset = Asset.objects.create(
+                symbol="FIN", name="Finality shares", asset_type="tokenized_security", decimals=0, is_verified=True
+            )
+            AssetChainDeployment.objects.create(
+                asset=asset, chain="base", contract_address=token.contract_address.lower(), decimals=0
+            )
+        return asset
+
+    def settled(self, status=1):
+        attempt = self.confirm(status)
+        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
+            self.node.advance(head=20, finalized=12)
+            outcome = self.settle()
+        return attempt, outcome
+
+    def test_a_settled_trade_writes_both_parties_share_and_payment_holdings_from_the_chain(self):
+        share = self.share_asset()
+        attempt, outcome = self.settled()
+
+        self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
+        self.assert_completed(attempt)
+        seller, buyer = (order.wallet for order in self.fixture.orders)
+        payment = self.fixture.seller.refs.stablecoin
+        self.assertEqual(
+            self.holdings.call_args_list,
+            [
+                call(seller, share, create_empty=False),
+                call(seller, payment, create_empty=False),
+                call(buyer, share, create_empty=False),
+                call(buyer, payment, create_empty=False),
+            ],
+        )
+        self.assertEqual(self.written_inside_a_transaction, [False] * 4)
+
+    def test_a_holding_that_cannot_be_written_leaves_the_trade_settled_and_the_others_written(self):
+        share = self.share_asset()
+        self.holdings.side_effect = [DatabaseError("lost"), object(), object(), object()]
+
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            attempt, outcome = self.settled()
+
+        self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
+        self.assert_completed(attempt)
+        self.assertEqual(self.holdings.call_count, 4)
+        self.assertIn(
+            f"the {share.symbol} holding of wallet {self.fixture.orders[0].wallet.pk} was not written", logs.output[0]
+        )
+        self.assertIn("(DatabaseError)", logs.output[0])
+
+    def test_an_unrecorded_balance_is_logged_without_undoing_the_settled_trade(self):
+        share = self.share_asset()
+        self.holdings.side_effect = [None, object(), object(), object()]
+
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            attempt, outcome = self.settled()
+
+        self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
+        self.assert_completed(attempt)
+        self.assertEqual(self.holdings.call_count, 4)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(
+            f"the {share.symbol} holding of wallet {self.fixture.orders[0].wallet.pk} was not written", logs.output[0]
+        )
+
+    def test_a_class_without_an_asset_still_writes_the_payment_holdings(self):
+        with self.assertLogs(LOGGER, "WARNING") as logs:
+            _, outcome = self.settled()
+
+        self.assertEqual(outcome, SwapOrderStatus.COMPLETED)
+        payment = self.fixture.seller.refs.stablecoin
+        self.assertEqual([written.args[1] for written in self.holdings.call_args_list], [payment, payment])
+        self.assertEqual(self.written_inside_a_transaction, [False, False])
+        self.assertIn("which has no asset; no share holding was written", logs.output[-1])
+
+    def test_a_reverted_trade_writes_no_holding(self):
+        self.share_asset()
+        _, outcome = self.settled(status=0)
+
+        self.assertEqual(outcome, SwapOrderStatus.FAILED)
+        self.holdings.assert_not_called()
 
     def test_the_sweep_settles_a_confirmed_executing_swap_and_then_leaves_it(self):
         self.confirm()

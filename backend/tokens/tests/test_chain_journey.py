@@ -4,6 +4,7 @@ from contextlib import suppress
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
@@ -17,6 +18,7 @@ from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 from web3.exceptions import ContractLogicError, Web3RPCError
 
+from assets.models import Asset
 from companies.models import Company
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
@@ -34,7 +36,12 @@ from tokens.models import (
     SwapOrder,
     TransferOrder,
 )
-from tokens.services import atomic_swap_service, mint_service, swap_approval
+from tokens.services import (
+    atomic_swap_service,
+    mint_service,
+    swap_approval,
+    swap_execution,
+)
 from tokens.services.register_events import verify_register
 from tokens.services.register_inclusions import waiting_effects
 from tokens.services.register_openings import decide_link, prepare_link_review
@@ -64,6 +71,8 @@ from tokens.tests.test_market_summary import TRADING
 from users.models import InvestorClassification
 from users.services import transition_classification
 from users.services.eligibility import investor_eligibility
+from wallets.models import Holding
+from wallets.tasks import sync_wallet
 from whitelist.models import (
     WhitelistApproval,
     WhitelistAuthority,
@@ -73,6 +82,7 @@ from whitelist.models import (
 from whitelist.tasks import refresh_whitelist_targets
 
 CREATE = "/api/v1/trading/orders/create/"
+BALANCES = "/api/v1/trading/wallets/balances/"
 DEPOSIT = 5000
 DEPOSIT_REFERENCE = "SYNTHETIC-DEPOSIT-645-1"
 DEPOSIT_DATE = date(2026, 9, 24)
@@ -594,6 +604,71 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             (recovered.status, recovered.discrepancies, recovered.register_sequence, recovered.block_number),
             ("matched", [], 1, self.w3.eth.block_number),
         )
+
+    def held(self, party):
+        wallet = self.party_wallets[party.address]
+        share = Asset.get_by_chain_and_contract("base", self.token.contract_address)
+        return tuple(
+            Holding.objects.filter(wallet=wallet, asset=asset).values_list("quantity", flat=True).first()
+            for asset in (share, self.tenant.refs.stablecoin)
+        )
+
+    def test_once_the_trade_settles_both_parties_hold_what_the_chain_says(self):
+        self.trade()
+
+        self.assertEqual(self.balances(), (10, 10, 1500, 3500))
+        self.assertEqual(self.held(self.seller), (Decimal(10), Decimal("15")))
+        self.assertEqual(self.held(self.buyer), (Decimal(10), Decimal("35")))
+        buyer = self.party_wallets[self.buyer.address]
+        self.client.force_authenticate(self.user_of(self.buyer))
+        rows = self.client.get(f"/api/wallets/{buyer.uuid}/holdings/").json()
+        self.assertIn(
+            (str(self.token.pk), "10.000000000000000000"),
+            [(row["shareClass"]["uuid"], row["quantity"]) for row in rows if row["shareClass"]],
+        )
+
+    def test_a_deposit_gives_its_recipient_an_audy_holding_equal_to_the_chain(self):
+        self.assertEqual(self.held(self.buyer), (None, None))
+
+        self.record_deposit()
+
+        self.assertEqual(self.balances()[3], DEPOSIT)
+        self.assertEqual(self.held(self.buyer), (None, Decimal(DEPOSIT) / 100))
+
+    def test_the_wallet_sync_finds_the_holdings_a_settlement_could_not_write(self):
+        with patch.object(swap_execution, "sync_holding", side_effect=ConnectionError("node lost")):
+            self.trade()
+        self.assertIsNone(self.held(self.buyer)[0])
+        self.assertEqual(self.held(self.seller), (Decimal(20), None))
+
+        for party in (self.seller, self.buyer):
+            synced = sync_wallet(wallet_uuid=str(self.party_wallets[party.address].pk), principal_id=None)
+            self.assertEqual(synced["status"], "success", synced)
+
+        self.assertEqual(self.held(self.buyer), (Decimal(10), Decimal(35)))
+        self.assertEqual(self.held(self.seller), (Decimal(10), Decimal(15)))
+
+    def test_one_class_without_code_leaves_the_other_balances_readable_while_a_lost_node_still_refuses(self):
+        missing = ShareToken.objects.deployed_with_contract().exclude(pk=self.token.pk)
+        self.assertTrue(missing.exists())
+        for token in missing:
+            self.assertEqual(self.w3.eth.get_code(Web3.to_checksum_address(token.contract_address)), b"")
+        self.client.force_authenticate(self.user_of(self.seller))
+
+        answered = self.client.get(BALANCES, {"wallet_address": self.seller.address})
+
+        self.assertEqual(answered.status_code, 200, answered.content)
+        self.assertEqual(
+            [(row["token"], row["symbol"], row["balance"]) for row in answered.json()["balances"]],
+            [(str(self.token.pk), self.token.symbol, "20")],
+        )
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            unreachable = f"http://127.0.0.1:{probe.getsockname()[1]}"
+        with patch.object(self.w3.provider, "endpoint_uri", unreachable):
+            refused = self.client.get(BALANCES, {"wallet_address": self.seller.address})
+        self.assertEqual(refused.status_code, 503, refused.content)
+        self.assertIn("could not be read", refused.json()["detail"])
 
     def test_another_tenant_reaches_none_of_the_journeys_records(self):
         journey = self.walk()

@@ -147,6 +147,25 @@ the existing owner policy. Class and company renames appear on the next read
 without rewriting the asset's combined name. See
 [the decision](../decisions.md#the-signed-in-app).
 
+A holding is written from the chain (`balanceOf`) wherever the platform moves
+shares or its settlement asset: the recipient's share holding when an issuance
+completes, the recipient's AUDY holding when a deposit's mint executes (each
+verified Base wallet registered at that address), and the buyer's and the
+seller's share and AUDY holdings when a trade settles. Each write runs after the
+work that moved the tokens has committed, so a node that fails at that moment
+leaves the issuance, mint or trade complete and the holding unwritten, and none
+of these writes creates a holding for a balance of zero. The wallet sync (hourly, and
+Sync balances) refreshes every verified holding and then looks for what the
+wallet holds without one: the share classes it can hold and the operator's
+settlement asset. A share contract credits only an address on its company's
+registry, so it reads the deployed classes of the companies that have approved
+the wallet, whether or not that approval is still live; the settlement asset,
+which anyone can hold, it reads when the operator settles in exactly one
+verified asset and the wallet is on the chain the operator settles on. It writes
+each positive balance it finds. That recovers a holding a write above could not
+make, and tokens sent to the wallet outside the platform. A balance it cannot
+read is skipped without failing the sync.
+
 Asset symbols are unique, so when two companies' classes share a symbol the
 second asset bridged is stored as the symbol followed by its company's ACN
 (`ORD.123456782`), or by part of its contract address when that is taken too.
