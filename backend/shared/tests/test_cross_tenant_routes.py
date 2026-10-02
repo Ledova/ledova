@@ -108,6 +108,12 @@ def _open_the_offering_to_the_actor(tenant):
     )
 
 
+def _approve_the_offering(tenant):
+    Offering.objects.filter(pk=tenant.offering.pk).update(
+        status=OfferingStatus.APPROVED, opens_at=timezone.now() - timedelta(days=1)
+    )
+
+
 def _pause_change(token, user, submission_id, paused=True):
     return PauseChange(pk=submission_id, token_id=token.pk, company_id=token.company_id, paused=paused)
 
@@ -268,6 +274,7 @@ ROUTES = (
     Route("post", "/api/v1/offerings/{offering}/submit/", {}, prepare=_activate_company),
     Route("post", "/api/v1/offerings/{offering}/withdraw/", {}),
     Route("get", "/api/v1/offerings/{offering}/subscriptions/"),
+    Route("post", "/api/v1/offerings/{offering}/documents/", {"documents": ["{offer_document}"]}),
     Route("post", "/api/v1/offerings/", {"token": "{deployed_token}", **OFFERING}, foreign=400),
     Route("get", "/api/v1/subscriptions/{subscription}/"),
     Route("post", "/api/v1/subscriptions/{subscription}/submit/", {}, prepare=_open_the_offering_to_the_actor),
@@ -413,7 +420,15 @@ SINGLETON_ROUTES = (
     ("/api/user-preferences/", "preferences"),
 )
 
-DIRECTORY_ROUTES = (Route("get", "/api/v1/directory/tokens/{deployed_token}/"),)
+DIRECTORY_ROUTES = (
+    Route("get", "/api/v1/directory/tokens/{deployed_token}/"),
+    Route("get", "/api/v1/directory/tokens/{deployed_token}/documents/", prepare=_approve_the_offering),
+    Route(
+        "get",
+        "/api/v1/directory/tokens/{deployed_token}/documents/{company_document}/file/",
+        prepare=_approve_the_offering,
+    ),
+)
 
 MARKET_ROUTES = (
     Route("get", "/api/v1/trading/tokens/{deployed_token}/"),
@@ -435,6 +450,8 @@ def _fill(value, context):
         return value.format_map(context)
     if isinstance(value, dict):
         return {key: _fill(item, context) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_fill(item, context) for item in value]
     return value
 
 
@@ -515,6 +532,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         for tenant in (*self.actors, self.other):
             tenant.issuance_request = _an_issuance_request(tenant)
             with self.as_an_operator_would():
+                tenant.offering.documents.add(tenant.company_document)
+                tenant.offer_document = make_document(tenant.company)
                 open_register(
                     token_id=tenant.deployed_token.pk,
                     operation_id=uuid4(),
@@ -636,10 +655,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                             make_eligible(actor)
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                             open_to_investors(self.other)
+                            if route.prepare:
+                                route.prepare(self.other)
                         foreign_response = self.send(route, actor, foreign)
                         phantom_response = self.send(route, actor, phantom)
-                    self.assertEqual(foreign_response.status_code, 200, foreign_response.content)
-                    self.assertEqual(phantom_response.status_code, 404, phantom_response.content)
+                    self.assertEqual(foreign_response.status_code, 200, _body(foreign_response))
+                    self.assertEqual(phantom_response.status_code, 404, _body(phantom_response))
 
     def test_the_market_answers_without_the_issuers_directory_opt_in(self):
         foreign = route_context(self.other)
@@ -650,9 +671,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     with self.undone_before_the_next_case():
                         with self.as_whoever_may_write_the_fixture(route, foreign, actor, actor):
                             make_eligible(actor)
+                        if route.prepare:
+                            with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
+                                route.prepare(self.other)
                         foreign_response = self.send(route, actor, foreign)
                     expected = 200 if route in MARKET_ROUTES else 404
-                    self.assertEqual(foreign_response.status_code, expected, foreign_response.content)
+                    self.assertEqual(foreign_response.status_code, expected, _body(foreign_response))
 
     def test_directory_and_market_routes_are_empty_and_not_found_without_eligibility(self):
         foreign = route_context(self.other)
@@ -664,10 +688,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     with self.undone_before_the_next_case():
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                             open_to_investors(self.other)
+                            if route.prepare:
+                                route.prepare(self.other)
                         foreign_response = self.send(route, actor, foreign)
                         phantom_response = self.send(route, actor, phantom)
-                    self.assertEqual(foreign_response.status_code, 404, foreign_response.content)
-                    self.assertEqual(phantom_response.status_code, 404, phantom_response.content)
+                    self.assertEqual(foreign_response.status_code, 404, _body(foreign_response))
+                    self.assertEqual(phantom_response.status_code, 404, _body(phantom_response))
                     self.assertEqual(self.masked(foreign_response, foreign), self.masked(phantom_response, phantom))
 
     def test_collection_routes_return_only_the_actors_rows(self):

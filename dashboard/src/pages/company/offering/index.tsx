@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
+  OFFERING_PUBLISHED_STATUSES,
   OFFERING_WITHDRAWABLE_STATUSES,
+  OFFER_DOCUMENT_COPY,
   apiErrorSentence,
   formatDate,
   formatMoney,
@@ -17,6 +19,7 @@ import { useCompany } from '../hooks/useCompany';
 import { CompanyReadNotice } from '../CompanyState';
 import { useOfferingActions, useOfferings } from './useOffering';
 import { OfferingReadNotice } from './OfferingReadNotice';
+import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
 import { SubscriptionsLedger } from './SubscriptionsLedger';
 
@@ -25,11 +28,13 @@ function OfferingRecord({
   busy,
   run,
   edit,
+  addDocuments,
 }: {
   row: OfferingListItem;
   busy: boolean;
   run: (action: 'submit' | 'withdraw' | 'remove', uuid: string) => void;
   edit: () => void;
+  addDocuments: () => void;
 }) {
   return (
     <li className="space-y-3 py-4">
@@ -91,6 +96,9 @@ function OfferingRecord({
           <PageAction label="Withdraw" disabled={busy} onClick={() => run('withdraw', row.uuid)} />
         )}
         {row.canBeDeleted && <PageAction label="Delete" disabled={busy} onClick={() => run('remove', row.uuid)} />}
+        {OFFERING_PUBLISHED_STATUSES.includes(row.status) && (
+          <PageAction label={OFFER_DOCUMENT_COPY.ADD} disabled={busy} onClick={addDocuments} />
+        )}
       </div>
     </li>
   );
@@ -102,6 +110,7 @@ export default function OfferingPage() {
   const data = useOfferings(company?.uuid);
   const client = useQueryClient();
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
+  const [documentsEditor, setDocumentsEditor] = useState<{ company: string; uuid: string } | null>(null);
   const [actionError, setActionError] = useState<{ listing: boolean; message: string } | null>(null);
   const actions = useOfferingActions(data.refresh);
   const listing = useMutation({
@@ -180,6 +189,9 @@ export default function OfferingPage() {
                           edit={() => {
                             if (ready) setEditor({ company: company.uuid, uuid: row.uuid });
                           }}
+                          addDocuments={() => {
+                            if (ready) setDocumentsEditor({ company: company.uuid, uuid: row.uuid });
+                          }}
                         />
                       ))}
                     </ul>
@@ -243,6 +255,17 @@ export default function OfferingPage() {
           companyRead={companyRead}
           data={data}
           onClose={() => setEditor(null)}
+        />
+      )}
+      {documentsEditor && (
+        <OfferingDocumentsEditor
+          key={`${documentsEditor.company}:${documentsEditor.uuid}`}
+          uuid={documentsEditor.uuid}
+          targetCompany={documentsEditor.company}
+          company={company}
+          companyRead={companyRead}
+          refresh={data.refresh}
+          onClose={() => setDocumentsEditor(null)}
         />
       )}
     </>

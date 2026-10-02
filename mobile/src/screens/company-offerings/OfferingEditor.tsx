@@ -99,6 +99,7 @@ export function OfferingEditor({
             }
             blocked={blocked}
             settlementAssets={data.settlementAssets}
+            documents={company?.documents ?? []}
             operatorName={data.operatorName}
             editing={uuid ? detail.data : undefined}
             onSubmit={(input) => {

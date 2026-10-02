@@ -24,6 +24,11 @@ class OfferingQuerySet(QuerySet):
 
         return self.filter(status__in=LIVE_OFFERING_STATUSES)
 
+    def published(self):
+        from offerings.models.offering import PUBLISHED_OFFERING_STATUSES
+
+        return self.filter(status__in=PUBLISHED_OFFERING_STATUSES)
+
     def open_now(self):
         from offerings.models.offering import OfferingStatus
 

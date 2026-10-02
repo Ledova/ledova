@@ -1,13 +1,17 @@
+from django import forms
 from django.contrib import admin, messages
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
+from companies.models import OFFER_DOCUMENT_TYPES, CompanyDocument
 from offerings.exceptions import (
     InvalidOfferingTransitionException,
     OfferingRefusedException,
 )
 from offerings.models import Offering, OfferingStatus
+from offerings.models.offering import PUBLISHED_OFFERING_STATUSES
 from offerings.services import transition_offering, unissued_headroom
 from shared.utils.admin_actions import admin_action_re_path
 from shared.utils.admin_display import action_buttons
@@ -27,6 +31,14 @@ LOCKED_PAST_DRAFT = [
     "opens_at",
     "closes_at",
 ]
+
+KEPT_DOCUMENTS = (
+    "Documents attached to an approved or closed offering stay attached, because its investors can open them. "
+    "Add documents here; do not remove any."
+)
+KEEPS_ITS_DOCUMENTS = (
+    "{offering} carries documents its investors can open, and an approved or closed offering keeps them."
+)
 
 STATUS_COLORS = {
     OfferingStatus.DRAFT: "#6c757d",
@@ -111,8 +123,23 @@ STATUS_BUTTONS = {
 }
 
 
+class OfferingAdminForm(forms.ModelForm):
+    class Meta:
+        model = Offering
+        fields = "__all__"
+
+    def clean_documents(self):
+        documents = self.cleaned_data["documents"]
+        if self.instance.pk is not None and self.instance.status in PUBLISHED_OFFERING_STATUSES:
+            kept = set(self.instance.documents.values_list("pk", flat=True))
+            if not kept <= {document.pk for document in documents}:
+                raise forms.ValidationError(KEPT_DOCUMENTS)
+        return documents
+
+
 @admin.register(Offering)
 class OfferingAdmin(admin.ModelAdmin):
+    form = OfferingAdminForm
     list_display = [
         "token_symbol",
         "company_name",
@@ -153,7 +180,18 @@ class OfferingAdmin(admin.ModelAdmin):
         ("Bounds", {"fields": ["minimum_shares", "target_shares", "cap_shares", "maximum_shares"]}),
         ("Window", {"fields": ["opens_at", "closes_at"]}),
         ("Payment Rails", {"fields": ["accepts_bank_transfer", "settlement_assets"]}),
-        ("Documents", {"fields": ["documents"], "classes": ["collapse"]}),
+        (
+            "Documents",
+            {
+                "fields": ["documents"],
+                "classes": ["collapse"],
+                "description": (
+                    "Investors the directory admits to this share class can open these once the offering is "
+                    "approved. Only the class company's offer documents are listed, with any already attached. "
+                    "An approved or closed offering's documents can be added to but never removed."
+                ),
+            },
+        ),
         (
             "Review",
             {
@@ -183,6 +221,23 @@ class OfferingAdmin(admin.ModelAdmin):
         if obj is not None and obj.status != OfferingStatus.DRAFT:
             readonly += LOCKED_PAST_DRAFT
         return readonly
+
+    def get_deleted_objects(self, objs, request):
+        deleted, counts, permissions, protected = super().get_deleted_objects(objs, request)
+        kept = Offering.objects.filter(
+            pk__in=[offering.pk for offering in objs],
+            status__in=PUBLISHED_OFFERING_STATUSES,
+            documents__isnull=False,
+        ).distinct()
+        return deleted, counts, permissions, [*protected, *(KEEPS_ITS_DOCUMENTS.format(offering=it) for it in kept)]
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj, change=change, **kwargs)
+        if obj is not None and "documents" in form.base_fields:
+            form.base_fields["documents"].queryset = CompanyDocument.objects.filter(
+                Q(company_id=obj.company_id, document_type__in=OFFER_DOCUMENT_TYPES) | Q(pk__in=obj.documents.all())
+            )
+        return form
 
     @admin.display(description="Token", ordering="token__symbol")
     def token_symbol(self, obj):

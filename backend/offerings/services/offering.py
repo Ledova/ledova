@@ -3,6 +3,10 @@ from decimal import Decimal
 
 from offerings.exceptions import OfferingRefusedException
 from offerings.models import Offering
+from offerings.models.offering import (
+    EDITABLE_OFFERING_STATUSES,
+    PUBLISHED_OFFERING_STATUSES,
+)
 from operators.settlement import require_deployment
 from shared.db import atomic
 from tokens.models import ShareIssuance, ShareToken
@@ -25,6 +29,11 @@ ALREADY_LIVE = (
     "{symbol} already has an offering in flight ({status}, opening {opens}). Close, reject or withdraw it "
     "before submitting another; one share class carries one live offering at a time."
 )
+NOT_ATTACHABLE = (
+    "Documents can be added to a draft or rejected offering, or to an approved or closed one, where they stay "
+    "attached. This one is {status}."
+)
+ATTACHABLE_OFFERING_STATUSES = [*EDITABLE_OFFERING_STATUSES, *PUBLISHED_OFFERING_STATUSES]
 MINIMUM_BELOW_THRESHOLD = (
     "Section 708(8)(a) needs at least AUD {threshold} payable on acceptance; {shares} shares at "
     "{price} is AUD {amount}."
@@ -148,3 +157,12 @@ def submit_offering(offering: Offering, submitted_by) -> Offering:
     transition_offering(offering, "submit", submitted_by=submitted_by)
     logger.info(f"Offering submitted for {token.symbol} ({company.acn})")
     return offering
+
+
+def attach_documents(offering, documents):
+    with atomic():
+        locked = Offering.objects.select_for_update().get(pk=offering.pk)
+        if locked.status not in ATTACHABLE_OFFERING_STATUSES:
+            raise OfferingRefusedException(NOT_ATTACHABLE.format(status=locked.get_status_display().lower()))
+        locked.documents.add(*documents)
+    return locked

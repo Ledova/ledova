@@ -5,14 +5,8 @@ import { formatDate, getErrorMessage, type CompanyDocument } from '@ledova/share
 import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
+import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { useCompanyStyles } from '../company-register/styles';
-
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
 
 export function DocumentEntry({
   document,

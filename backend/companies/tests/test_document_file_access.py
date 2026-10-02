@@ -128,6 +128,7 @@ class CompanyDocumentFileViewTest(APITestCase):
         self.assertTrue(response.streaming)
         self.assertEqual(self._streamed(response), DOCUMENT_BYTES)
         self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response["Cache-Control"], "private, no-store")
 
     def test_it_streams_rather_than_redirecting_to_media(self):
         self.client.force_authenticate(self.user)
@@ -173,6 +174,7 @@ class CompanyDocumentFileViewTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self._streamed(response), DOCUMENT_BYTES)
+        self.assertLessEqual({"private", "no-store"}, {part.strip() for part in response["Cache-Control"].split(",")})
 
     def test_the_admin_file_view_refuses_a_non_staff_caller(self):
         self.client.force_authenticate(None)
