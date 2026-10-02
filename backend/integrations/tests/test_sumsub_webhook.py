@@ -288,3 +288,21 @@ class SumSubApprovalWebhookTest(SumSubWebhookCase):
         steps.assert_not_called()
         case.assert_not_called()
         self.assert_held()
+
+    def test_an_approval_without_an_approved_identity_step_clears_stale_document_evidence(self):
+        self.profile.id_document_type = "PASSPORT"
+        self.profile.id_document_country = "GB"
+        self.profile.save(update_fields=["id_document_type", "id_document_country"])
+        self.approve(steps=verification_steps(IDENTITY=step("PASSPORT", "GBR", answer="RED")))
+        self.assertEqual((self.profile.id_document_type, self.profile.id_document_country), (None, None))
+        self.assertFalse(self.profile.used_foreign_passport)
+        self.assertEqual(self.assessment().geographic_risk_score, 1)
+
+    def test_a_pending_callback_preserves_previously_recorded_document_evidence(self):
+        self.profile.id_document_type = "PASSPORT"
+        self.profile.id_document_country = "GB"
+        self.profile.save(update_fields=["id_document_type", "id_document_country"])
+        response = self.post_event("applicantPending")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.profile.refresh_from_db()
+        self.assertEqual((self.profile.id_document_type, self.profile.id_document_country), ("PASSPORT", "GB"))
