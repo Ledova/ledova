@@ -13,6 +13,7 @@ from shared.tests.tenants import (
     make_tenant,
     open_to_investors,
 )
+from shared.tests.test_cross_tenant_routes import _body
 from shared.tests.upload_fixtures import pdf_bytes
 from tokens.models import ShareToken, ShareTokenStatus
 
@@ -88,9 +89,9 @@ class OfferingDocumentsTest(APITestCase):
         token = token or self.token
         real = self.client.get(file_of(token, document))
         phantom = self.client.get(f"{DIRECTORY}{token.uuid}/documents/{uuid4()}/file/")
-        self.assertEqual(real.status_code, 404, real.content)
-        self.assertEqual(phantom.status_code, 404, phantom.content)
-        self.assertEqual(real.content, phantom.content)
+        self.assertEqual(real.status_code, 404, _body(real))
+        self.assertEqual(phantom.status_code, 404, _body(phantom))
+        self.assertEqual(_body(real), _body(phantom))
 
     def test_an_open_offering_lists_and_serves_its_documents(self):
         publish(self.issuer.offering)
@@ -102,6 +103,7 @@ class OfferingDocumentsTest(APITestCase):
         self.assertEqual(streamed(response), MEMORANDUM)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response["Content-Disposition"].startswith("inline"))
+        self.assertEqual(response["Cache-Control"], "private, no-store")
 
     def test_an_upcoming_offering_already_shares_its_documents(self):
         publish(self.issuer.offering, opens_at=timezone.now() + timedelta(days=7))
@@ -277,8 +279,8 @@ class OfferingDocumentsFollowTheDirectoryTest(APITestCase):
             with self.subTest(path=real):
                 answered = self.client.get(real)
                 expected = self.client.get(missing)
-                self.assertEqual(answered.status_code, 404, answered.content)
-                self.assertEqual(answered.content, expected.content)
+                self.assertEqual(answered.status_code, 404, _body(answered))
+                self.assertEqual(_body(answered), _body(expected))
 
     def test_an_ineligible_investor_reaches_nothing(self):
         self.assert_a_phantom(self.token)

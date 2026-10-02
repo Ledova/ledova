@@ -24,9 +24,11 @@ def stream_stored_file(field, mime_type="", filename="", as_attachment=False):
     except (FileNotFoundError, OSError):
         raise Http404("No file")
     content_type = mime_type or "application/octet-stream"
-    return FileResponse(
+    response = FileResponse(
         handle,
         as_attachment=as_attachment or content_type not in INLINE_MIME_TYPES,
         content_type=content_type,
         filename=filename or os.path.basename(field.name),
     )
+    response["Cache-Control"] = "private, no-store"
+    return response
