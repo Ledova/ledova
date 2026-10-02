@@ -67,7 +67,7 @@ type and country; and, for an approval, the PEP type the risk policy reads.
 | Not started | `unused`, recorded as `init` | `init`, from the created webhook |
 | In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
 | Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
-| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, read as a webhook is |
+| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook |
 | Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
 | Identity document | the type of the applicant's latest valid identity document; no country | `fixedInfo` or `info.idDocs` when the payload carries them |
 | PEP evidence | the applicant's `pep` flag, or a failed `pep` check | the `PEP` reject label or the `pep` explanatory button, both only with `RED` |

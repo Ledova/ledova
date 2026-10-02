@@ -14,8 +14,11 @@ the instruction and make the publication.
 You need an active staff account with **Can change publication**
 (`shareholders.change_publication`) to publish, and **Can view publication**
 (`shareholders.view_publication`) to open a published document afterwards. The
-share class needs an applied opening, and the company needs a verified company
-document carrying the director authority for the publication.
+share class needs an applied opening and must be on chain, deployed or paused,
+and the company needs a verified company document carrying the director
+authority for the publication. Publish to the members of a paused class as to
+any other: a pause stops transfers, not membership
+([why](../architecture/shareholder-publications.md#a-paused-class-keeps-its-members)).
 
 ## Making a publication
 
@@ -31,11 +34,13 @@ document carrying the director authority for the publication.
    **Publish**.
 
 The page refuses, and records nothing, when the share class's register has no
-applied opening, when the record date is after today in Sydney's calendar, when
-no member held shares on that record date, when the instruction or the title is
-blank, or when the authority document is not a current verification of a
-document of that company. An attachment is size-bounded, scanned and decoded
-before it is stored, exactly as every other upload is.
+applied opening, when the class is not on chain (a class whose register an
+import opened before it was deployed), when the record date is after today in
+Sydney's calendar, when no member held shares on that record date, when the
+instruction or the title is blank, or when the authority document is not a
+current verification of a document of that company. An attachment is
+size-bounded, scanned and decoded before it is stored, exactly as every other
+upload is.
 
 ## Publishing a resolution
 
