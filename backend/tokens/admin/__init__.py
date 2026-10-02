@@ -1,4 +1,5 @@
 from .capital_increase import CapitalIncreaseAdmin
+from .market import OrderSubmissionAdmin, SwapOrderAdmin, TransferOrderAdmin
 from .mint_request import MintRequestAdmin
 from .register_correction import RegisterCorrectionAdmin
 from .register_export import RegisterExportAdmin
@@ -21,7 +22,10 @@ __all__ = [
     "CapitalIncreaseAdmin",
     "MintRequestAdmin",
     "NAVUpdateAdmin",
+    "OrderSubmissionAdmin",
     "ShareIssuanceRequestAdmin",
     "ShareTokenAdmin",
+    "SwapOrderAdmin",
+    "TransferOrderAdmin",
     "YieldTokenAdmin",
 ]

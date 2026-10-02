@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test import TestCase, override_settings
@@ -22,6 +23,7 @@ from offerings.models import (
 )
 from operators.models import Operator
 from operators.services import configuration_health, worklist
+from shared.tests.test_admin_row_actions import grant, staff_user
 from tokens.models import (
     CapitalIncreaseRequest,
     IssuanceStatus,
@@ -31,6 +33,8 @@ from tokens.models import (
     ShareIssuanceRequest,
     ShareToken,
     ShareTokenStatus,
+    SwapOrder,
+    TransferOrder,
 )
 from tokens.services.register import stored_register
 from tokens.services.register_events import create_member, open_register
@@ -60,6 +64,12 @@ SHARED = Web3.to_checksum_address("0x" + "c3" * 20)
 NAMELESS_ADDRESS = Web3.to_checksum_address("0x" + "e1" * 20)
 AMBIGUOUS_ROW = "Allotment addresses with two wallets, so no member can be named"
 UNIDENTIFIED_ROW = "Allotment addresses with no member behind them"
+MARKET_PAGES = (("Orders", TransferOrder), ("Settlements", SwapOrder))
+
+
+def _market_button(label, model):
+    url = reverse(f"admin:tokens_{model._meta.model_name}_changelist")
+    return f'<a href="{url}" class="btn btn-secondary">{label}</a>'
 
 
 def _counts():
@@ -383,6 +393,30 @@ class ConsolePageTest(TestCase):
         for row in worklist():
             with self.subTest(label=row.label):
                 self.assertEqual(self.client.get(row.url).status_code, 200)
+
+    def test_the_console_opens_the_markets_orders_and_settlements(self):
+        response = self.client.get(reverse("admin:operators_operator_changelist"))
+
+        for label, model in MARKET_PAGES:
+            with self.subTest(page=label):
+                self.assertContains(response, _market_button(label, model))
+                self.assertEqual(
+                    self.client.get(reverse(f"admin:tokens_{model._meta.model_name}_changelist")).status_code, 200
+                )
+
+    def test_the_console_offers_only_the_market_pages_its_viewer_may_open(self):
+        orders, settlements = (_market_button(label, model) for label, model in MARKET_PAGES)
+        viewer = grant(staff_user("console-viewer"), admin.site._registry[Operator], "view")
+        self.client.force_login(viewer)
+        without = self.client.get(reverse("admin:operators_operator_changelist"))
+        self.client.force_login(grant(viewer, admin.site._registry[TransferOrder], "view"))
+        with_orders = self.client.get(reverse("admin:operators_operator_changelist"))
+
+        self.assertEqual((without.status_code, with_orders.status_code), (200, 200))
+        self.assertNotContains(without, orders)
+        self.assertNotContains(without, settlements)
+        self.assertContains(with_orders, orders)
+        self.assertNotContains(with_orders, settlements)
 
     def test_the_console_states_the_deployment_mode_and_who_keeps_each_register(self):
         owner = User.objects.create_user(email="listed@example.test", password="pw-12345678")
