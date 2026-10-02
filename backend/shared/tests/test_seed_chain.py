@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.management import call_command
 from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITransactionTestCase
@@ -55,6 +56,7 @@ from tokens.models import (
     ShareIssuance,
     ShareToken,
     SwapOrder,
+    SwapOrderStatus,
     TransferOrder,
 )
 from tokens.services import share_token_service
@@ -96,6 +98,9 @@ APPENDED_BY_DESIGN = {"tokens.RegisterReconciliation", "assets.AssetSnapshot"}
 ADMIN_PAGES = (
     "/admin/operators/operator/",
     "/admin/tokens/mintrequest/",
+    "/admin/tokens/transferorder/",
+    "/admin/tokens/swaporder/",
+    "/admin/tokens/ordersubmission/",
     "/admin/tokens/registerinstruction/",
     "/admin/tokens/registerwalletlink/",
     "/admin/shareholders/publication/",
@@ -473,6 +478,11 @@ class ChainLayerTest(APITransactionTestCase):
         for page in ADMIN_PAGES:
             response = self.client.get(page)
             self.assertEqual(response.status_code, 200, page)
+        settled = SwapOrder.objects.filter(status=SwapOrderStatus.COMPLETED).latest("completed_at")
+        trade = self.client.get(reverse("admin:tokens_swaporder_change", args=[settled.pk]))
+        order = self.client.get(reverse("admin:tokens_transferorder_change", args=[settled.sell_order_id]))
+        self.assertContains(trade, settled.transaction.tx_hash)
+        self.assertContains(order, reverse("admin:tokens_swaporder_change", args=[settled.pk]))
         self.client.logout()
 
     def check_quiet_jobs(self, shift):

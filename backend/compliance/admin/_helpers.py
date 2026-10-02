@@ -1,4 +1,3 @@
-from django.urls import reverse
 from django.utils.html import format_html
 
 GREEN = "#28a745"
@@ -29,10 +28,3 @@ def choice_badge(value, colours):
 
 def short_hex(value, head=10, tail=8):
     return f"{value[:head]}...{value[-tail:]}" if value else "-"
-
-
-def admin_link(obj, label=None):
-    if obj is None:
-        return "-"
-    url = reverse(f"admin:{obj._meta.app_label}_{obj._meta.model_name}_change", args=[obj.pk])
-    return format_html('<a href="{}">{}</a>', url, str(obj)[:50] if label is None else label)

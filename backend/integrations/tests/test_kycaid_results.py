@@ -95,7 +95,24 @@ class KYCAIDResultMappingTest(SimpleTestCase):
             ):
                 normalised = kycaid(verification_completed(applicant=embedded))
                 self.assertEqual((normalised.verification_status, normalised.review_result), ("pending", None))
-        self.assertEqual(kycaid(verification_completed(applicant=applicant(pep=None))).review_result, "GREEN")
+
+    def test_an_approval_needs_an_interpretable_applicant_pep_flag(self):
+        for flag in (None, "unknown", "", 0, 1, [], {}):
+            with self.subTest(flag=flag), self.assertLogs("integrations.kycaid.client", level="WARNING"):
+                record = applicant(verification_status="valid", pep=flag)
+                callback = kycaid(verification_completed(applicant=record))
+                polled = KYCAIDService().normalize_applicant(record)
+                for normalized in (callback, polled):
+                    self.assertEqual((normalized.verification_status, normalized.review_result), ("pending", None))
+                    self.assertFalse(normalized.is_verified)
+
+    def test_boolean_and_existing_string_pep_flags_are_interpretable(self):
+        for flag in (True, False, "true", "false"):
+            with self.subTest(flag=flag):
+                record = applicant(verification_status="valid", pep=flag)
+                self.assertTrue(KYCAIDService.carries_the_pep_flag(record))
+                self.assertEqual(kycaid(verification_completed(applicant=record)).review_result, "GREEN")
+                self.assertEqual(KYCAIDService().normalize_applicant(record).review_result, "GREEN")
 
     def test_a_pending_review_is_recorded_the_same_way_by_both_providers(self):
         kycaid_pending = kycaid(verification_completed(status="pending", verified=None))

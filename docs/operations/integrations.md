@@ -130,12 +130,16 @@ report a list match (`PEP`, `SANCTIONS`, `COMPROMISED_PERSONS`, `ADVERSE_MEDIA`,
 from KYCAID), once, and every other reason as it is. The stored labels keep every
 reason, staff see them in the admin, and the identity notifications name none.
 
-A KYCAID approval is recorded only once the applicant's `pep` flag has been
-seen. When the callback's applicant is missing, is not an object or has no `pep`
-key, the applicant record is read first; if that read fails the callback answers
+A KYCAID approval is recorded only once the applicant's `pep` flag is read as
+true or false, accepting a JSON boolean or the existing strings `true` and
+`false`. The [Get applicant reference](https://docs.kycaid.com/objects/applicants/applicant-get)
+types this flag as boolean or null; null does not establish that the person is
+not a PEP. When the callback's applicant is missing, is not an object, has no
+`pep` key or carries a null or uninterpretable flag, the applicant record is read
+first; if that read fails the callback answers
 500, KYCAID retries it, and the user's next status poll applies the result as
-well. An approval whose applicant record has no `pep` key either, by callback or
-by poll, is recorded as `pending` with no result and logged. Every result is
+well. An approval whose applicant record still supplies no interpretable flag,
+by callback or by poll, is recorded as `pending` with no result and logged. Every result is
 applied with the profile's row locked, so a callback and a poll that arrive
 together activate the account, assess its risk and notify the person once; no
 provider is called while that lock is held.
