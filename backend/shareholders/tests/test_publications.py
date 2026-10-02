@@ -22,6 +22,7 @@ from shareholders.services.publications import (
     NO_INSTRUCTION,
     NO_MEMBERS,
     NO_TITLE,
+    NOT_ON_CHAIN,
     REGISTER_NOT_OPENED,
     UNKNOWN_KIND,
     publish_to_members,
@@ -34,18 +35,23 @@ from shareholders.tests.fixtures import (
     PUBLICATION_BYTES,
     TITLE,
     a_company_with_members,
+    a_distribution,
     a_listed_wallet,
     a_member,
     a_person,
+    a_resolution,
     a_treasury_address,
     an_upload,
     published,
+    the_class_is_paused,
     unused_address,
 )
 from tokens.constants import STATUTORY_CALENDAR
-from tokens.models import RegisterEntryKind, ShareToken
+from tokens.models import RegisterEntryKind, ShareToken, ShareTokenStatus
 from tokens.services.register_events import record_entry
 from whitelist.models import HolderType
+
+GUARD_REFUSAL = "A publication requires a share class on chain, deployed or paused"
 
 
 class PublishingToMembersTest(StubUploadDependencies, TestCase):
@@ -224,6 +230,41 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
 
         self.assertEqual((row.user_id, row.holder_type, row.name), (None, HolderType.UNIDENTIFIED, ""))
 
+    def test_the_members_of_a_paused_class_are_still_published_to(self):
+        the_class_is_paused(self.world)
+
+        papers = [
+            published(self.world),
+            published(self.world, kind=PublicationKind.MEETING_NOTICE),
+            a_resolution(self.world),
+            a_distribution(self.world),
+        ]
+
+        self.assertEqual([paper.kind for paper in papers], list(PublicationKind.values))
+        for paper in papers:
+            with self.subTest(kind=paper.kind):
+                self.assertEqual((paper.token_id, paper.member_rows), (self.world.token.pk, 2))
+                self.assertEqual(
+                    sorted(PublicationRecipient.objects.filter(publication=paper).values_list("user_id", flat=True)),
+                    sorted(holder.user.pk for holder in self.world.members),
+                )
+
+    def test_a_class_with_an_opened_register_that_is_not_on_chain_is_refused_and_nothing_is_stored(self):
+        for status, contract in (
+            (ShareTokenStatus.DRAFT, None),
+            (ShareTokenStatus.DEPLOYING, None),
+            (ShareTokenStatus.PAUSED, ""),
+        ):
+            ShareToken.objects.filter(pk=self.world.token.pk).update(status=status, contract_address=contract)
+            self.world.token.refresh_from_db()
+            with (
+                self.subTest(status=status, contract=contract),
+                self.assertRaisesMessage(ValidationError, NOT_ON_CHAIN),
+                atomic(),
+            ):
+                published(self.world)
+        self.assertFalse(Publication.objects.exists())
+
     def test_publishing_refuses_what_it_cannot_stand_behind(self):
         other = a_company_with_members("publish-other")
         draft = ShareToken.objects.create(
@@ -280,6 +321,21 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
 
         self.assertTrue(Publication.objects.filter(pk=publication.pk).exists())
 
+    def test_reversing_the_paused_class_guard_refuses_a_paused_class_again_and_keeps_what_was_published(self):
+        guard = importlib.import_module("shareholders.migrations.0006_publication_to_a_paused_class")
+        operation = guard.Migration.operations[0]
+        made = published(the_class_is_paused(self.world))
+
+        with atomic(), connections[current_alias()].schema_editor() as editor:
+            operation.reverse_code(None, editor)
+        with self.assertRaisesMessage(IntegrityError, "A publication requires a deployed share class"), atomic():
+            published(self.world)
+        with atomic(), connections[current_alias()].schema_editor() as editor:
+            operation.code(None, editor)
+
+        self.assertEqual(published(self.world).token_id, made.token_id)
+        self.assertEqual(Publication.objects.count(), 2)
+
     def test_the_roll_digest_reports_a_roll_that_no_longer_matches_what_was_published(self):
         publication = published(self.world)
         self.assertEqual(verify_roll(publication)["member_rows"], 2)
@@ -304,8 +360,8 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
 
         self.assertNotEqual(roll_digest(rows), roll_digest(named))
 
-    def insert(self, **columns):
-        publication = published(self.world)
+    def insert(self, publication=None, **columns):
+        publication = publication or published(self.world)
         fresh = uuid4()
         row = {
             "uuid": fresh,
@@ -364,10 +420,28 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
         ):
             with (
                 self.subTest(columns=columns),
-                self.assertRaisesMessage(IntegrityError, "A publication requires a deployed share class"),
+                self.assertRaisesMessage(IntegrityError, GUARD_REFUSAL),
                 atomic(),
             ):
                 self.insert(**columns)
+
+    def test_the_database_admits_a_paused_class_and_still_refuses_a_class_that_is_not_on_chain(self):
+        made = published(self.world)
+        contract = self.world.token.contract_address
+        for status, address, admitted in (
+            (ShareTokenStatus.PAUSED, contract, True),
+            (ShareTokenStatus.PAUSED, "", False),
+            (ShareTokenStatus.DEPLOYING, contract, False),
+            (ShareTokenStatus.DRAFT, None, False),
+        ):
+            ShareToken.objects.filter(pk=self.world.token.pk).update(status=status, contract_address=address)
+            with self.subTest(status=status, address=address):
+                if admitted:
+                    self.insert(made)
+                else:
+                    with self.assertRaisesMessage(IntegrityError, GUARD_REFUSAL), atomic():
+                        self.insert(made)
+        self.assertEqual(Publication.objects.count(), 2)
 
     def test_the_database_refuses_a_roll_row_that_does_not_belong_to_its_publication(self):
         publication = published(self.world)
