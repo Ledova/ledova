@@ -18,7 +18,7 @@ class MintRequestMigrationTest(TransactionTestCase):
         requests = before.get_model("tokens", "MintRequest").objects
         transactions = before.get_model("blockchain", "BlockchainTransaction").objects
         saved = []
-        for status in ("pending", "approved", "failed", "executed"):
+        for status in ("pending", "failed", "executed"):
             record = transactions.create(
                 tx_hash="0x" + str(len(saved) + 1) * 64, tx_type="stablecoin_mint", status="submitted"
             )

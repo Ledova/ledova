@@ -120,13 +120,7 @@ export function OrdersPanel({
                 </Row>
                 <Row label="Status">
                   <Status
-                    tone={
-                      order.status === 'completed'
-                        ? 'done'
-                        : ['cancelled', 'failed', 'expired'].includes(order.status)
-                          ? 'closed'
-                          : 'waiting'
-                    }
+                    tone={order.status === 'completed' ? 'done' : order.status === 'cancelled' ? 'closed' : 'waiting'}
                   >
                     {order.statusDisplay ?? order.status.replace(/_/g, ' ')}
                   </Status>
@@ -147,7 +141,7 @@ export function OrdersPanel({
                   <span className="break-all">{order.walletAddress}</span>
                 </Row>
               </Rows>
-              {['open', 'partially_filled'].includes(order.status) && (
+              {['open', 'partially_filled', 'held'].includes(order.status) && (
                 <div className="flex flex-wrap items-center gap-4 py-2 text-sm">
                   {confirmingOrderId === order.uuid ? (
                     <>

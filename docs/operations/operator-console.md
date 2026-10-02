@@ -172,7 +172,9 @@ people, companies and amounts, dated relative to the day of the run:
   observation; one more company with information requested and one submitted for
   review.
 - Compliance work: alerts in every status and several types, most closed with an
-  outcome, one with a suspicious matter report.
+  outcome, one with a suspicious matter report. Their amounts are the AUD values
+  the rules compare, and each account that was ever active is dated from its
+  identity check, so only customers in their first 30 days count as new.
 
 The testers get the richest data. The founder's wallet is development account 0
 of the public test mnemonic, which is also the operator's signer, and the
@@ -272,8 +274,13 @@ and tasks the worker would run. It adds:
   preference shares, Wattlefield's and Coralgum's ordinary shares): For sale and
   Wanted orders at several prices around the class's offering price, each signed
   by its wallet and dated over the eighteen days before the run. Some were
-  cancelled by a signed cancellation, and two were matched and left unsigned
-  until the match lapsed and its orders returned to the book.
+  cancelled by a signed cancellation, and three were matched and left unsigned
+  until the match lapsed: the order that had been resting returned to the book
+  and the one that took it was held back from the book. Two of those traders
+  then cancelled; the third, a seed preference sale at the best bid, is still
+  held back, because it crosses the bid it lapsed against and the sweep never
+  pairs them again. Its trader sees it as Held Back, and the seed's summary
+  names them.
 - About 20 trades settled on the day of the run, each a signed order against a
   resting one, with the seller's and buyer's one-time approvals, both settlement
   signatures, the relayed swap and its finality; each class then shows a last
@@ -296,16 +303,15 @@ and tasks the worker would run. It adds:
   push or an email. The seed's own generated documents are the only files that
   skip the malware scan, so seeding does not wait for ClamAV.
 
-The investor tester has an order in each status the market's panels show (open,
-partially filled, filled and cancelled), sold Wattlefield shares, bought seed
-preference shares into the Trading wallet, which held none, voted on two
-resolutions with others waiting under Needs you, and has more than a page of
-notices. Three states are left out because production never holds them, or not
-for long: a trade awaiting signatures lapses fifteen minutes after its match
-(`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before anyone looked; nothing in
-the platform marks an order expired; and nothing approves a mint request. The
-periodic jobs leave the market as it is: no match lapses, no resolution closes,
-nothing is signed and the wallet sync reads the balances already recorded.
+The investor tester has an order in four of the statuses the market's panels
+show (open, partially filled, filled and cancelled), sold Wattlefield shares,
+bought seed preference shares into the Trading wallet, which held none, voted on
+two resolutions with others waiting under Needs you, and has more than a page of
+notices. One state is left out: a trade awaiting signatures lapses fifteen
+minutes after its match (`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before
+anyone looked. The periodic jobs leave the market as it is: no match lapses, the
+held order stays held, no resolution closes, nothing is signed and the wallet
+sync reads the balances already recorded.
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded
@@ -334,3 +340,56 @@ review; it grants view permissions, not classification approval or editing.
 Company owners and accounts with company roles cannot use cross-customer document
 review even with document permissions. Attached payslips supplement human review;
 extraction never verifies a claim.
+
+## Transaction monitoring
+
+The rules `sync_monitoring_rules` seeds state their amounts in AUD, and each is
+compared with a transaction's AUD value: MON-001 at AUD 10,000; MON-003 for three
+transactions of AUD 8,000 to 9,999 within 168 hours; MON-006 at AUD 10,000 for a
+new customer without source-of-funds documents; MON-007 at AUD 50,000 within 30
+days; MON-008 at AUD 5,000 after 90 days without activity; MON-009 against the
+customer's 90-day average; and MON-010 for three multiples of AUD 5,000 within
+30 days. The address rules, MON-004 and MON-005, screen a transaction of AUD
+5,000 or more, and any transaction by a high-risk or new customer.
+
+Each transaction is valued as it is recorded: the USD value is the amount at
+the asset's USD price at the block time, and the AUD value is that converted at
+the USD/AUD rate stored at that moment. A transfer sent from the app is recorded
+before it is mined, so it is valued at the price and rate of the moment it is
+sent; wallet sync later finds the same hash already recorded and skips it, so it
+counts once. `sync_exchange_rates` refreshes the rate every 10 minutes, and the
+per-transaction rules check only transactions whose block time is less than an
+hour old, or that are not mined yet, so for them it is the rate in effect when
+they happened. No USD/AUD history is kept. History imported
+later, such as a newly verified wallet's past transfers, is converted at the
+rate stored when it is imported, and migration `wallets/0023` converted the
+transactions already recorded at the rate stored when it ran. An asset with an
+AUD par, AUDY, is valued at par: 5,000 AUDY is AUD 5,000 whatever rate its USD
+price was taken at. Any other transaction with no USD price, or recorded while
+no rate was stored, has no AUD value, and no amount rule counts it.
+
+The windows run on when a transaction happened: its block time, or for a
+transfer not mined yet, when it was recorded. That holds for MON-002's hour,
+MON-003's 168 hours, MON-007's and MON-010's 30 days, MON-009's 90-day baseline
+and the previous transaction MON-008 measures inactivity from. So the history a
+newly verified wallet imports counts when it happened, not as a burst of recent
+activity.
+
+A customer is new for 30 days after their account first became active. The
+account records that moment once, whichever path activates it: the identity
+check passing, staff changing its status in the admin, or the demo seed.
+Suspending and reactivating it keeps the first date, and the admin shows the
+date read-only. The database enforces it: an update can never clear the date or
+move it later, so of two activations at the same moment the earlier stamp
+stands. It can still move earlier, which is how the demo seed dates its testers
+from their identity check. Migration `users/0029` dated the active, suspended and
+terminated accounts that already existed from the earliest evidence of their
+activation: the first automated risk assessment, which the identity check
+completes as it activates the account, or the time the identity was verified.
+It trusts that evidence only for a profile whose identity check is a completed
+GREEN result, and leaves every other account undated, so it counts as new: one
+activated by staff without an identity check, one activated on a result that
+never completed (the KYCAID mapping once read any truthy `verified` as a pass),
+or one whose check was reviewed again since. An undated active account is dated
+the next time it is saved active, for example when staff edit it in the admin,
+and counts as new for 30 days from then.

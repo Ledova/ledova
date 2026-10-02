@@ -209,7 +209,9 @@ def _identity_check(person, profile, account):
             return
         account.account_status = "rejected" if person.rejection_reason else "active"
         account.rejection_reason = person.rejection_reason
-        account.save(update_fields=["account_status", "rejection_reason", "updated_at"])
+        if not person.rejection_reason:
+            account.activation_date = kyc.decided_at
+        account.save(update_fields=["account_status", "rejection_reason", "activation_date", "updated_at"])
         complete = CustomerRiskAssessment.objects.filter(
             user_account=account, assessment_status=ASSESSMENT_STATUS_COMPLETE
         ).exists()
@@ -288,6 +290,7 @@ def _transaction(transfer, wallet, seeded):
             asset=seeded.assets[transfer.symbol],
             amount=transfer.amount,
             market_value=transfer.market_value,
+            market_value_aud=transfer.market_value_aud,
             block_timestamp=transfer.at,
             block_number=transfer.block_number,
             block_hash=transfer.block_hash,

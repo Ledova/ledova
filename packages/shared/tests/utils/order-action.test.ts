@@ -650,7 +650,7 @@ test('recovery compares a recorded outcome by values and rejects a changed origi
   expect(f.action.getSnapshot().error).toContain('changed its recorded outcome');
 });
 
-test.each(['executing', 'failed'])('recovers an original result when the current order is later %s', async (status) => {
+test.each(['held', 'completed'])('recovers an original result when the current order is later %s', async (status) => {
   const f = setup();
   await prepare(f);
   f.handler(async () => {

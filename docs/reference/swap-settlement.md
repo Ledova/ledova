@@ -287,12 +287,15 @@ still tracked in [#647](https://github.com/Ledova/ledova/issues/647).
 
 A final successful inclusion completes the swap. `completed_at` is the settlement
 clock, when finality was observed, not the block time. Parents keep their filled
-quantity, take the transaction hash, and become `completed` when fully filled or
-return to `partially_filled` otherwise, where they can be modified or cancelled
-again. `swap_completed` is published after commit, and the market's last price
-moves at this point rather than at the first receipt. A reverted inclusion
-releases the reservation only once that revert is itself final, through the same
-unwind as an unsigned failure; its first receipt holds. A transaction re-included
+quantity, take the transaction hash, and become `completed` when fully filled.
+A parent with shares left returns to the book as `partially_filled`, or is held
+back (`held`) when its price would cross the book, and takes its next single match
+from the minute's sweep ([one match, never crossed](../architecture/trading.md#one-match-never-crossed));
+either way it can be modified or cancelled again. `swap_completed` is published
+after commit, and the market's last price moves at this point rather than at the
+first receipt. A reverted inclusion releases the reservation only once that
+revert is itself final, through the same unwind as an unsigned failure, which
+returns both parents as the expiry sweep does; its first receipt holds. A transaction re-included
 in a different block completes when the same hash is final there and the event
 re-verifies; the frozen receipt summary on the operation and transaction records
 the first-seen inclusion and is not rewritten. A re-inclusion whose finalized
@@ -351,8 +354,10 @@ previously filled quantities and signed terms, marks the swap `expired`, and
 publishes `swap_expired` so both clients refresh their orders and swaps. A retry
 cannot release the same reservation twice. Signing still stops at the recorded
 deadline; the worker makes eligible orders available on its next minute sweep.
-The order book and best prices include reopened partially filled orders using
-only their remaining quantity.
+The two orders return oldest first: each rests in the book, which counts only its
+remaining quantity, unless its price would cross the book, when it is held back.
+The two still cross each other, so the one placed later, usually the order that
+took the match, is held, and the held-order sweep never pairs them again.
 
 `tokens/0036_swap_expiry_eligibility` leaves existing rows ineligible and prevents
 changing the marker on PostgreSQL. Do not backfill it: missing transaction data

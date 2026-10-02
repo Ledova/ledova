@@ -13,6 +13,18 @@ def format_units(raw: int, decimals: int) -> str:
     return f"{token_full_units(raw, decimals):,.{decimals}f}"
 
 
+def plain_amount(amount: Decimal) -> str:
+    return _trimmed(format(amount, "f"))
+
+
+def format_amount(amount: Decimal) -> str:
+    return _trimmed(format(amount, ",f"))
+
+
+def _trimmed(text: str) -> str:
+    return text.rstrip("0").rstrip(".") if "." in text else text
+
+
 def token_base_units(amount: Decimal, decimals: int) -> int:
     if not amount.is_finite() or amount <= 0 or not 0 <= decimals <= 255:
         raise ValueError("Invalid token amount")

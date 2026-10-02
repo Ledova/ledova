@@ -21,7 +21,7 @@ def token_identity(order, field):
 
 
 class TransferOrderListSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    status_display = serializers.CharField(source="status_label", read_only=True)
     order_type_display = serializers.CharField(source="get_order_type_display", read_only=True)
     token_symbol = serializers.SerializerMethodField()
     token_name = serializers.SerializerMethodField()

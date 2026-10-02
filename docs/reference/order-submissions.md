@@ -158,13 +158,20 @@ Each journey's sequence is a subsequence of G: create and match
 (`execute_order_submission`, `create_order_and_match`), cancel and modify
 (`execute_order_action`), the swap signature (`submit_signature`), execution
 recovery (`recover`), settlement (`settle`) and the expiry sweep
-(`expire_unclaimed_swap`), with two exceptions. The action path locks its
+(`expire_unclaimed_swap`), with three exceptions. The action path locks its
 `SigningChallenge` after its `TransferOrder`; a challenge is bound to one
 submission or action and one wallet, so only replays of the same action contend
 for it, and those already serialised on the journal row. The action path's order
 lock is load-bearing: `apply_order_modification` saves every column of the order,
-so a decision taken on a stale read would overwrite a match. Foreign authority
-comes after the incoming authority and challenge but never waits (R3).
+so a decision taken on a stale read would overwrite a match. The held-order sweep
+(`place_held_order`) locks its held order first and then, like a create, a
+candidate's authority and the order pair; it takes every one of those locks with
+`NOWAIT`, so having started out of order it never waits on another trading
+journey (its foreign-key checks wait only on wallet-side writers, as a create's
+do), and a busy row leaves the order held for the next minute's sweep. Its
+second pass (`hold_crossing_order`) locks one listed order, the newer of a
+crossing pair, also with `NOWAIT`, and nothing else. Foreign authority comes
+after the incoming authority and challenge but never waits (R3).
 
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
@@ -207,10 +214,15 @@ reads the whitelist and the chain balance while holding its wallet and account
 rows, so a balance is measured against every commitment visible under the lock,
 while the modify path reads the chain outside every transaction; a slow provider
 therefore extends how long the wallet's other requests and its authorization
-changes wait on the create path only. And matching runs only inside creation:
-two crossing orders created concurrently each see only committed candidates, so
-both can rest unmatched until a third order arrives. That is a liveness limit of
-the book, not a lock defect; nothing sweeps a crossed book.
+changes wait on the create path only. And matching runs only inside creation and
+the held-order sweep, and an order decides whether it may rest from the orders
+already committed: two crossing orders created concurrently each see only
+committed orders, so both can rest unmatched. That is a liveness limit of the
+book, not a lock defect, and the minute's sweep bounds it without a new lock:
+after the held orders it holds back the newer of any two listed orders that
+cross, and its next run matches that order like any held order. Every placement,
+settlement, lapse, revert and modification in turn checks the
+[book it would rest in](../architecture/trading.md#one-match-never-crossed).
 
 | Pair | What must hold | Proved by |
 | --- | --- | --- |

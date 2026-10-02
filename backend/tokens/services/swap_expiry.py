@@ -56,9 +56,9 @@ def expire_unclaimed_swap(snapshot, cutoff):
         return False
     swap.status = SwapOrderStatus.EXPIRED
     swap.save(update_fields=["status", "updated_at"])
-    for order in orders.values():
+    for order in sorted(orders.values(), key=lambda order: (order.created_at, order.pk)):
         order.filled_quantity -= swap.share_amount
-        order.status = TransferOrderStatus.PARTIALLY_FILLED if order.filled_quantity else TransferOrderStatus.OPEN
+        order.rest_or_hold()
         order.save(update_fields=["filled_quantity", "status", "updated_at"])
     publish_trading_event("swap_expired", str(swap.share_token_id))
     return True

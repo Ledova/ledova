@@ -15,9 +15,9 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 COMMITTED_STATUSES = [
     TransferOrderStatus.OPEN,
     TransferOrderStatus.PARTIALLY_FILLED,
+    TransferOrderStatus.HELD,
     TransferOrderStatus.MATCHED,
     TransferOrderStatus.PENDING_SIGNATURE,
-    TransferOrderStatus.EXECUTING,
 ]
 
 
@@ -50,15 +50,8 @@ class TransferOrderQuerySet(QuerySet):
     def completed(self):
         return self.filter(status=TransferOrderStatus.COMPLETED)
 
-    def active(self):
-        return self.filter(
-            status__in=[
-                TransferOrderStatus.OPEN,
-                TransferOrderStatus.MATCHED,
-                TransferOrderStatus.PENDING_SIGNATURE,
-                TransferOrderStatus.EXECUTING,
-            ]
-        )
+    def held(self):
+        return self.filter(status=TransferOrderStatus.HELD)
 
     def buy_orders(self):
         return self.filter(order_type=TransferOrderType.BUY)
@@ -77,20 +70,25 @@ class TransferOrderQuerySet(QuerySet):
             | (signed_matching_admission(chain_id) & models.Q(payment_asset_id=order.payment_asset_id))
         )
 
-    def advertised_liquidity(self):
+    def admitted(self):
         asset = single_settlement_asset()
         if asset is None:
             return self.none()
-        return (
-            self.ownership_bound()
-            .open_or_partial()
-            .filter(
-                signed_matching_admission(settings.BLOCKCHAIN_CHAIN_ID),
-                payment_asset=asset,
-                quantity__gt=models.F("filled_quantity"),
-                min_quantity__lte=models.F("quantity") - models.F("filled_quantity"),
-            )
+        return self.ownership_bound().filter(
+            signed_matching_admission(settings.BLOCKCHAIN_CHAIN_ID),
+            payment_asset=asset,
+            quantity__gt=models.F("filled_quantity"),
+            min_quantity__lte=models.F("quantity") - models.F("filled_quantity"),
         )
+
+    def advertised_liquidity(self):
+        return self.admitted().open_or_partial()
+
+    def crossing(self, order):
+        opposite = self.advertised_liquidity().filter(token_id=order.token_id).exclude(pk=order.pk)
+        if order.order_type == TransferOrderType.BUY:
+            return opposite.sell_orders().filter(price_per_share__lte=order.price_per_share)
+        return opposite.buy_orders().filter(price_per_share__gte=order.price_per_share)
 
     def committed_sell_quantity(self, token, wallet_address, exclude_uuid=None) -> int:
         orders = self.ownership_bound().filter(

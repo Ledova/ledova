@@ -12,7 +12,6 @@ from tokens.querysets.mint_request import MintRequestQuerySet
 
 class MintRequestStatus(models.TextChoices):
     PENDING = "pending", "Pending"
-    APPROVED = "approved", "Approved"
     EXECUTING = "executing", "Outcome unresolved"
     EXECUTED = "executed", "Executed"
     FAILED = "failed", "Failed"
@@ -161,11 +160,10 @@ class MintRequest(BaseModel):
     def can_be_executed(self) -> bool:
         return self.dispatch_id is not None and self.status in (
             MintRequestStatus.PENDING,
-            MintRequestStatus.APPROVED,
             MintRequestStatus.FAILED,
             MintRequestStatus.EXECUTING,
         )
 
     @property
     def can_be_rejected(self) -> bool:
-        return self.execution_intent is None and self.status in (MintRequestStatus.PENDING, MintRequestStatus.APPROVED)
+        return self.execution_intent is None and self.status == MintRequestStatus.PENDING

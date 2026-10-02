@@ -607,7 +607,7 @@ def _complete(swap):
             order.status = TransferOrderStatus.COMPLETED
             order.completed_at = swap.completed_at
         else:
-            order.status = TransferOrderStatus.PARTIALLY_FILLED
+            order.rest_or_hold()
         order.save(update_fields=["status", "tx_hash", "completed_at", "updated_at"])
     publish_trading_event("swap_completed", str(swap.share_token_id))
 

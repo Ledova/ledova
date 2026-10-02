@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
@@ -13,6 +14,7 @@ from assets.services.identity import (
     native_asset_for_chain,
     recorded_native_asset_for_chain,
 )
+from assets.services.valuation import transaction_values
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from operators.models import Operator
 from shared.constants import normalize_chain
@@ -41,7 +43,7 @@ from whitelist.services import whitelist
 
 logger = logging.getLogger(__name__)
 
-NOT_TRANSFERABLE = "{symbol} is a tokenized security. Shares move by allotment, not by a wallet transfer."
+NOT_TRANSFERABLE = "Shares move by allotment, not by a wallet transfer."
 SENDER_NOT_APPROVED = (
     "This wallet has no current approval with any company, so it cannot send {symbol}. "
     "Ask the operator to approve it, then try again."
@@ -62,7 +64,7 @@ def resolve_transfer_asset(wallet: Wallet, token_contract: Optional[str] = None)
             f"Token contract {token_contract} is not a verified asset on {normalize_chain(wallet.chain)}."
         )
     if asset.asset_type == AssetType.TOKENIZED_SECURITY.value:
-        raise InvalidTransactionException(NOT_TRANSFERABLE.format(symbol=asset.symbol))
+        raise InvalidTransactionException(NOT_TRANSFERABLE)
     return asset
 
 
@@ -98,6 +100,7 @@ def create_pending_transaction(
 ) -> Dict[str, Any]:
     chain = normalize_chain(wallet.chain)
     asset = resolve_transfer_asset(wallet, token_contract)
+    market_value, market_value_aud = transaction_values(asset, amount, timezone.now())
 
     with atomic():
         wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
@@ -109,6 +112,8 @@ def create_pending_transaction(
             to_address=to_address,
             asset=asset,
             amount=amount,
+            market_value=market_value,
+            market_value_aud=market_value_aud,
             transaction_fee_estimated=transaction_fee,
             transaction_fee=None,
             status=TRANSACTION_STATUS_PENDING,

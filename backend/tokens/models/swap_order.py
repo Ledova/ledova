@@ -222,16 +222,11 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
 
         from .choices import TransferOrderStatus
 
-        for order in [self.sell_order, self.buy_order]:
-            if order.status in [TransferOrderStatus.FAILED, TransferOrderStatus.COMPLETED]:
+        for order in sorted((self.sell_order, self.buy_order), key=lambda order: (order.created_at, order.pk)):
+            if order.status == TransferOrderStatus.COMPLETED:
                 continue
 
             order.filled_quantity = max(0, (order.filled_quantity or 0) - self.share_amount)
-
-            if order.filled_quantity > 0:
-                order.status = TransferOrderStatus.PARTIALLY_FILLED
-            else:
-                order.status = TransferOrderStatus.OPEN
-
+            order.rest_or_hold()
             order.error_message = error_message
             order.save(update_fields=["filled_quantity", "status", "error_message", "updated_at"])

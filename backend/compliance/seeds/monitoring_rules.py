@@ -89,9 +89,9 @@ MONITORING_RULES = [
     {
         "rule_code": "MON-010",
         "name": "Round Amount Transactions",
-        "description": "3+ transactions divisible by $5,000 in 30 days (potential structuring indicator)",
+        "description": "3+ transactions divisible by AUD 5,000 in 30 days (potential structuring indicator)",
         "rule_type": "round_amounts",
-        "parameters": {"count": 3, "period_days": 30, "divisor": 5000, "min_amount": 1000},
+        "parameters": {"count": 3, "period_days": 30, "divisor": 5000, "min_amount": 1000, "currency": "AUD"},
         "alert_severity": "low",
         "is_active": True,
     },

@@ -242,6 +242,8 @@ class ChainLayerTest(APITransactionTestCase):
 
         self.assertIn("Chain layer added", output, output)
         self.assertIn("Market layer added", output, output)
+        held = TransferOrder.objects.select_related("owner_account__user_profile__user").get(status="held")
+        self.assertIn(f"held back      {held.owner_account.user_profile.user.email}'s sell of", output)
         self.assertEqual(self.w3.eth.get_balance(operator), funds - self.spent_by(operator, start))
         self.assertEqual(self.outbound, [])
         self.assertEqual(mail.outbox, [])
@@ -400,7 +402,7 @@ class ChainLayerTest(APITransactionTestCase):
         }
         swaps = SwapOrder.objects.all()
         self.assertGreaterEqual(swaps.filter(status="completed").count(), 15)
-        self.assertEqual(swaps.filter(status="expired").count(), 2)
+        self.assertEqual(swaps.filter(status="expired").count(), 3)
         self.assertEqual(set(swaps.values_list("status", flat=True)), {"completed", "expired"})
         self.client.force_authenticate(investor)
         tokens = listed(self.client.get("/api/v1/trading/tokens/"))
@@ -450,6 +452,12 @@ class ChainLayerTest(APITransactionTestCase):
             on_chain = Web3.from_wei(self.w3.eth.get_balance(Web3.to_checksum_address(address)), "ether")
             self.assertEqual(seeded, on_chain, address)
         self.assertEqual(set(MintRequest.objects.values_list("status", flat=True)), {"executed", "pending", "rejected"})
+        held = TransferOrder.objects.select_related("owner_account__user_profile__user").get(status="held")
+        [listing] = [token for token in tokens if token["uuid"] == str(held.token_id)]
+        self.assertEqual(Decimal(listing["bestBid"]), held.price_per_share)
+        self.client.force_authenticate(held.owner_account.user_profile.user)
+        rows = [row for row in listed(self.client.get("/api/v1/trading/orders/")) if row["uuid"] == str(held.pk)]
+        self.assertEqual([(row["status"], row["statusDisplay"]) for row in rows], [("held", "Held Back")])
 
     def check_notices(self):
         investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)

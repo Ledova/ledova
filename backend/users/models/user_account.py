@@ -1,7 +1,9 @@
 from django.db import models
+from django.utils import timezone
 
 from shared.models import BaseModel
 from users.constants import (
+    ACCOUNT_STATUS_ACTIVE,
     ACCOUNT_STATUS_CHOICES,
     ACCOUNT_STATUS_PENDING,
     USER_ACCOUNT_TYPE_CHOICES,
@@ -37,3 +39,15 @@ class UserAccount(BaseModel):
 
     def __str__(self):
         return f"User Account {self.account_number}"
+
+    def save(self, *args, **kwargs):
+        if self.account_status == ACCOUNT_STATUS_ACTIVE and self.activation_date is None:
+            self.activation_date = self._recorded_activation_date() or timezone.now()
+            if kwargs.get("update_fields") is not None:
+                kwargs["update_fields"] = {*kwargs["update_fields"], "activation_date"}
+        super().save(*args, **kwargs)
+
+    def _recorded_activation_date(self):
+        if self._state.adding:
+            return None
+        return type(self).objects.filter(pk=self.pk).values_list("activation_date", flat=True).first()

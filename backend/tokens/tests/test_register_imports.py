@@ -67,6 +67,9 @@ from tokens.services.register import (
     STALE,
     WAITING_ROW,
     WAITING_UNKNOWN,
+    member_identities,
+    prepare_certificate,
+    prepare_inspection_copy,
     prepare_notice_figures,
 )
 from tokens.services.register_events import (
@@ -87,6 +90,7 @@ from tokens.services.register_instructions import (
     submit_instruction,
 )
 from tokens.tests.instruction_fixtures import instruction_payload
+from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_instructions import instruction_fixture
 from tokens.tests.test_the_fold_that_writes_former_members import (
@@ -106,6 +110,10 @@ LIVE = Web3.to_checksum_address("0x" + "11" * 20)
 FIRST = Web3.to_checksum_address("0x" + "22" * 20)
 SECOND = Web3.to_checksum_address("0x" + "33" * 20)
 STAMPED = Web3.to_checksum_address("0x" + "44" * 20)
+TRUST = Web3.to_checksum_address("0x" + "75" * 20)
+TRUST_LABEL = "Synthetic Employee Share Trust"
+TRUSTEE = "Synthetic Trustee Pty Ltd ATF Synthetic Employee Share Trust"
+TRUSTEE_ADDRESS = "Level 3, 1 Trust Street, Sydney NSW 2000"
 NEWCOMER = {
     "name": "Nia Newcomer",
     "residential_address": "7 New Street, Perth WA 6000",
@@ -647,6 +655,35 @@ class RegisterImportTest(TransactionTestCase):
             },
         )
 
+    def test_a_folded_former_live_member_keeps_the_profile_over_imported_particulars(self):
+        self.apply(self.submit())
+        RegisterMemberWallet.objects.create(company=self.company, member=self.member, address=ALICE)
+        live_wallet(self.company, self.member, LIVE, "Live Mia", "1 Live Street")
+        ShareToken.objects.filter(pk=self.token.pk).update(deployment_tx_hash="0x" + "de" * 32)
+        self.token.refresh_from_db()
+        reader = Mock()
+        reader.finalized_block.return_value = 99
+        reader.deployment_block.return_value = 1
+        reader.block_date.side_effect = lambda block: DAY + timedelta(days=block)
+        reader.transfer_entries.return_value = [
+            transfer(ZERO, ALICE, 100, 10),
+            transfer(ALICE, BOB, 100, 20),
+            transfer(ZERO, LIVE, 50, 30),
+            transfer(LIVE, BOB, 50, 40),
+        ]
+        fold_former_holders(self.token, reader=reader)
+        folded = {
+            row.wallet_address: (row.name, row.residential_address, row.identity_source)
+            for row in FormerHolder.objects.filter(token=self.token)
+        }
+        self.assertEqual(
+            folded,
+            {
+                ALICE: ("Mia Member", RESIDENCE, IDENTITY_PARTICULARS),
+                LIVE: ("Live Mia", "1 Live Street", IDENTITY_LIVE),
+            },
+        )
+
     def test_the_holders_api_lists_imported_former_members_as_the_csv_does(self):
         self.apply(self.submit())
         client = APIClient()
@@ -998,6 +1035,92 @@ class RegisterImportTest(TransactionTestCase):
         rows = list(csv.reader(io.StringIO(content.decode())))
         self.assertIn(["2", "Transfer", DAY.isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
         self.assertIn([str(self.member.pk), "Mia Member", RESIDENCE, "70", "not recorded"], rows)
+
+    def trust_import(self):
+        trust = create_member(company_id=self.company.pk, member_id=uuid4())
+        self.move(self.member, trust, 40)
+        WhitelistEntry.objects.create(address=TRUST, label=TRUST_LABEL)
+        RegisterMemberWallet.objects.create(company=self.company, member=trust, address=TRUST)
+        row = self.payload["members"][0]
+        trustee = {"name": TRUSTEE, "residential_address": TRUSTEE_ADDRESS, "amount_paid": None}
+        self.apply(
+            self.submit(members=[{**row, "shares": "60"}, {**row, "member": str(trust.pk), "shares": "40", **trustee}]),
+            count=2,
+        )
+        return trust
+
+    def test_a_trust_held_at_a_labelled_treasury_address_shows_its_imported_particulars_on_every_output(self):
+        trust = self.trust_import()
+        shown = ("Name", "Residential address", "Holder type", "Identity source")
+
+        self.assertEqual(
+            [self.members()[str(trust.pk)][header] for header in shown],
+            [TRUSTEE, TRUSTEE_ADDRESS, "Treasury", PARTICULARS],
+        )
+        inspection = list(
+            csv.reader(
+                io.StringIO(
+                    prepare_inspection_copy(
+                        self.token, self.owner, instruction="SYNTHETIC-INSPECTION", requested_on=DAY, recipient="A"
+                    ).decode()
+                )
+            )
+        )
+        copied = {row[0]: dict(zip(REGISTER_HEADERS, row)) for row in inspection[1 : inspection.index([])]}
+        self.assertEqual(
+            [copied[str(trust.pk)][header] for header in shown], [TRUSTEE, TRUSTEE_ADDRESS, "Treasury", PARTICULARS]
+        )
+        client = APIClient()
+        client.force_authenticate(self.owner)
+        holders = {
+            row["member"]: row for row in client.get(f"/api/v1/tokens/{self.token.uuid}/holders/").json()["holders"]
+        }
+        self.assertEqual(
+            [holders[str(trust.pk)][key] for key in ("name", "holderType", "identitySource")],
+            [TRUSTEE, "treasury", PARTICULARS],
+        )
+        identity = member_identities(self.token, [trust.pk])[trust.pk]
+        self.assertEqual(
+            (identity.name, identity.residential_address, identity.holder_type, identity.source, identity.user_id),
+            (TRUSTEE, TRUSTEE_ADDRESS, "treasury", IDENTITY_PARTICULARS, None),
+        )
+        [transferee, _] = pages_of(
+            prepare_certificate(self.token, self.reviewer, sequence=2, instruction="SYNTHETIC-CERTIFICATE")
+        )
+        self.assertIn(f"Member: {TRUSTEE}", transferee)
+        self.assertIn(f"Residential address: {TRUSTEE_ADDRESS}", transferee)
+        content, _ = prepare_notice_figures(
+            self.token, self.reviewer, period_from=DAY, instruction="SYNTHETIC-NOTICE-TRUST"
+        )
+        rows = list(csv.reader(io.StringIO(content.decode())))
+        self.assertIn([str(trust.pk), TRUSTEE, TRUSTEE_ADDRESS, "40", "not recorded"], rows)
+
+    def test_a_trust_whose_wallets_resolve_to_someone_else_too_stays_ambiguous(self):
+        trust = self.trust_import()
+        live_wallet(self.company, trust, LIVE, "Live Lee")
+
+        self.assertEqual(
+            [self.members()[str(trust.pk)][header] for header in ("Name", "Residential address", "Holder type")],
+            [MEMBER_AMBIGUOUS_NAME, "", "Ambiguous"],
+        )
+
+    def test_a_folded_former_trust_address_keeps_the_imported_particulars(self):
+        self.trust_import()
+        ShareToken.objects.filter(pk=self.token.pk).update(deployment_tx_hash="0x" + "de" * 32)
+        self.token.refresh_from_db()
+        reader = Mock()
+        reader.finalized_block.return_value = 99
+        reader.deployment_block.return_value = 1
+        reader.block_date.side_effect = lambda block: DAY + timedelta(days=block)
+        reader.transfer_entries.return_value = [transfer(ZERO, TRUST, 40, 10), transfer(TRUST, BOB, 40, 20)]
+
+        fold_former_holders(self.token, reader=reader)
+
+        folded = FormerHolder.objects.get(token=self.token, wallet_address=TRUST)
+        self.assertEqual(
+            (folded.name, folded.residential_address, folded.identity_source),
+            (TRUSTEE, TRUSTEE_ADDRESS, IDENTITY_PARTICULARS),
+        )
 
 
 class ImportOpenedInstructionTest(TransactionTestCase):

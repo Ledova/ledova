@@ -38,7 +38,7 @@ class KYCAIDCryptoWebhookView(RunsOnTheOperatorConnection, APIView):
             return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            request_id = data.get("request_id")
+            service_request_id = data.get("service_request_id")
             result = data.get("result")
             if not isinstance(result, dict):
                 result = {}
@@ -50,14 +50,14 @@ class KYCAIDCryptoWebhookView(RunsOnTheOperatorConnection, APIView):
             try:
                 screening = TransactionScreening.objects.get(
                     provider=PROVIDER_KYCAID,
-                    provider_transaction_id=request_id,
+                    provider_transaction_id=service_request_id,
                 )
             except TransactionScreening.DoesNotExist:
                 logger.warning("Webhook result matched no screening record")
                 return Response({"success": True}, status=status.HTTP_200_OK)
 
             normalized_data = {
-                "riskScore": result.get("risk_score"),
+                "riskScore": result.get("risk_score", result.get("riskscore")),
                 "signals": result.get("signals", []),
                 "raw": data,
             }
