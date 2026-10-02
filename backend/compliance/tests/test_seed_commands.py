@@ -7,6 +7,10 @@ from compliance.constants import ALERT_TYPE_MANUAL, RULE_TYPE_THRESHOLD
 from compliance.models import AlertProcedureStep, AlertProcedureTemplate, MonitoringRule
 from compliance.seeds.monitoring_rules import MONITORING_RULES
 from compliance.seeds.procedure_templates import PROCEDURE_TEMPLATES
+from compliance.services.identity_screening import (
+    ALERT_BY_LIST_TYPE,
+    ALERT_FOR_ANY_OTHER_LIST,
+)
 
 
 def run(command):
@@ -47,7 +51,7 @@ class SyncProcedureTemplatesTest(TestCase):
         AlertProcedureStep.objects.create(template=stale, order=1, description="stale step")
 
         summary = run("sync_procedure_templates")
-        self.assertIn("Templates: 22 created, 0 updated, 1 deleted | Steps: 169 created, 0 updated", summary)
+        self.assertIn("Templates: 24 created, 0 updated, 1 deleted | Steps: 187 created, 0 updated", summary)
         self.assertEqual(AlertProcedureTemplate.objects.count(), len(PROCEDURE_TEMPLATES))
         self.assertEqual(AlertProcedureStep.objects.count(), sum(len(t["steps"]) for t in PROCEDURE_TEMPLATES))
         sanctions = AlertProcedureTemplate.objects.get(alert_type="sanctions_match")
@@ -60,10 +64,26 @@ class SyncProcedureTemplatesTest(TestCase):
         sanctions.save()
 
         summary = run("sync_procedure_templates")
-        self.assertIn("Templates: 0 created, 22 updated, 0 deleted | Steps: 0 created, 169 updated", summary)
+        self.assertIn("Templates: 0 created, 24 updated, 0 deleted | Steps: 0 created, 187 updated", summary)
         sanctions.refresh_from_db()
         self.assertEqual(sanctions.name, "Sanctions Match")
         self.assertFalse(sanctions.steps.filter(order=99).exists())
-        self.assertEqual(AlertProcedureStep.objects.count(), 169)
+        self.assertEqual(AlertProcedureStep.objects.count(), 187)
         self.assertEqual(PROCEDURE_TEMPLATES[0]["alert_type"], "sanctions_match")
         self.assertEqual(PROCEDURE_TEMPLATES[0]["steps"][0]["order"], 1)
+
+
+class ScreeningMatchProceduresTest(TestCase):
+    def test_every_alert_type_an_identity_screening_match_raises_has_a_staff_procedure(self):
+        raised = {alert_type for _, alert_type, _ in ALERT_BY_LIST_TYPE} | {ALERT_FOR_ANY_OTHER_LIST[0]}
+
+        run("sync_procedure_templates")
+
+        procedures = AlertProcedureTemplate.objects.filter(alert_type__in=raised)
+        self.assertEqual(set(procedures.values_list("alert_type", flat=True)), raised)
+        for procedure in procedures:
+            with self.subTest(alert_type=procedure.alert_type):
+                self.assertFalse(procedure.customer_notification_allowed)
+                self.assertTrue(procedure.escalation_required)
+                self.assertTrue(procedure.steps.filter(description__icontains="false positive").exists())
+                self.assertTrue(procedure.steps.filter(description__icontains="tipping-off").exists())
