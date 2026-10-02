@@ -8,14 +8,17 @@ from django.utils import timezone
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shareholders.models import Publication, PublicationKind, PublicationRecipient
+from shareholders.services.publications import NOT_ON_CHAIN
 from shareholders.tests.fixtures import (
     DAY,
     INSTRUCTION,
     TITLE,
     a_company_with_members,
     an_upload,
+    the_class_is_paused,
 )
 from tokens.constants import STATUTORY_CALENDAR
+from tokens.models import ShareToken, ShareTokenStatus
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
@@ -58,6 +61,28 @@ class PublishingFromTheAdminTest(StubUploadDependencies, TestCase):
             (PublicationKind.MEETING_NOTICE, self.operator.pk, 2),
         )
         self.assertEqual(PublicationRecipient.objects.filter(publication=publication).count(), 2)
+
+    def test_staff_publish_to_the_members_of_a_paused_class(self):
+        the_class_is_paused(self.world)
+
+        response = self.client.post(self.url, self.form())
+
+        publication = Publication.objects.get()
+        self.assertRedirects(
+            response,
+            reverse("admin:shareholders_publication_change", args=[publication.pk]),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual((publication.token_id, publication.member_rows), (self.world.token.pk, 2))
+
+    def test_a_class_that_is_not_on_chain_is_refused_with_its_reason_rather_than_an_error(self):
+        ShareToken.objects.filter(pk=self.world.token.pk).update(status=ShareTokenStatus.DRAFT, contract_address=None)
+
+        response = self.client.post(self.url, self.form())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"{NOT_ON_CHAIN} Nothing was published.")
+        self.assertFalse(Publication.objects.exists())
 
     def test_a_refused_publication_says_why_and_records_nothing(self):
         tomorrow = (timezone.localdate(timezone=STATUTORY_CALENDAR) + timedelta(days=1)).isoformat()

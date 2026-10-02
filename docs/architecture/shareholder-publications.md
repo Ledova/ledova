@@ -61,19 +61,35 @@ member's name as at the record date.
 And the company and the share class are not reliably readable by the member.
 `tokens_sharetoken`'s read term is the issuer's own companies or a class on the
 market, which is `status = 'deployed'`; `companies_company`'s is ownership,
-the directory opt-in, or having a class on the market. The insert guard requires
-a deployed class with a contract address, so both rows are readable at the
-moment of publishing — but **a pause moves the class out of both terms.** A
-serializer that reached the names through `select_related` would then drop the
-publication itself from the member's listing, because Django joins a
-non-nullable foreign key with an INNER JOIN, and a row the policy hides deletes
-the row that points at it. That is the failure the `companies_company` entry in
+the directory opt-in, or having a class on the market. **A pause moves the class
+out of both terms**, and [a paused class is still published to](#a-paused-class-keeps-its-members),
+so both rows can be hidden from the member when the publication is made as well
+as afterwards. A serializer that reached the names through `select_related`
+would then drop the publication itself from the member's listing, because Django
+joins a non-nullable foreign key with an INNER JOIN, and a row the policy hides
+deletes the row that points at it. That is the failure the `companies_company` entry in
 [policies.py](../../backend/shared/db/policies.py) was measured against, and the
 reason it carries a market term at all. Storing the three names avoids the join
 instead of widening a policy: widening one is not open to us here, because the
 roll's own policy reads `companies_company` through the visible-companies
 helper, and a term on `companies_company` that read the roll back would be a
 recursion PostgreSQL refuses.
+
+## A paused class keeps its members
+
+A pause stops transfers, not membership. The token's pause refuses every
+movement on chain, minting included ([contracts and issuance](contracts-and-issuance.md)),
+and the platform takes the class off the market and out of the directory, but
+the stored register still lists the same members holding the same shares, and
+the company still sends them statements and notices, puts resolutions to them and
+declares dividends on their shares.
+So the insert guard requires a class on chain, deployed or paused, with a
+contract address, and `publish_to_members` refuses any other class with that
+reason before anything is stored. A class whose register an import opened
+before the class was ever deployed is not on chain, and cannot be published to.
+Members of a paused class read what is published to them, vote on the
+resolutions put to them and see their payment records exactly as other members
+do, because none of those paths reads the class.
 
 ## The frozen roll
 
