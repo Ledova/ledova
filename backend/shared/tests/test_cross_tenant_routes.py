@@ -274,7 +274,7 @@ ROUTES = (
     Route("post", "/api/v1/offerings/{offering}/submit/", {}, prepare=_activate_company),
     Route("post", "/api/v1/offerings/{offering}/withdraw/", {}),
     Route("get", "/api/v1/offerings/{offering}/subscriptions/"),
-    Route("post", "/api/v1/offerings/{offering}/documents/", {"documents": ["{company_document}"]}),
+    Route("post", "/api/v1/offerings/{offering}/documents/", {"documents": ["{offer_document}"]}),
     Route("post", "/api/v1/offerings/", {"token": "{deployed_token}", **OFFERING}, foreign=400),
     Route("get", "/api/v1/subscriptions/{subscription}/"),
     Route("post", "/api/v1/subscriptions/{subscription}/submit/", {}, prepare=_open_the_offering_to_the_actor),
@@ -533,6 +533,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             tenant.issuance_request = _an_issuance_request(tenant)
             with self.as_an_operator_would():
                 tenant.offering.documents.add(tenant.company_document)
+                tenant.offer_document = make_document(tenant.company)
                 open_register(
                     token_id=tenant.deployed_token.pk,
                     operation_id=uuid4(),
