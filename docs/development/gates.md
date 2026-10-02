@@ -192,9 +192,10 @@ Syntax-based checks do not establish that arbitrary strings contain no secrets.
 
 `make check-docs` checks relative inline links and heading anchors in root README,
 CONTRIBUTING, SECURITY and CODE_OF_CONDUCT, plus **every Markdown document recursively
-under docs/**. It holds the [job schedule](../operations/jobs.md#schedule) to periodic
-backend task names and the gate inventory above to `scripts/check-*`, in both
-directions. `check-port-free` is deliberately not a gate.
+under docs/**. It holds the [job schedule](../operations/jobs.md#schedule) to the names
+of the backend's `@app.periodic` tasks, `def` or `async def`, and the gate inventory
+above to `scripts/check-*`, in both directions. `check-port-free` is deliberately not
+a gate.
 
 The checker compares paths, anchors and names. It does not verify external URLs,
 cron values, arbitrary Markdown syntax or behavioral claims. New nested guides
