@@ -49,13 +49,16 @@ class KYCAIDWebhookResultTest(APITestCase):
         return self.profile, self.account
 
     def test_a_status_change_records_each_documented_status_as_one_of_the_fields_choices(self):
-        expected = {"unused": "init", "pending": "pending", "completed": "completed"}
+        cases = {"unused": ("completed", "init"), "pending": ("init", "pending"), "completed": ("pending", "completed")}
         for reported in DOCUMENTED_VERIFICATION_STATUSES:
+            start, expected = cases[reported]
             with self.subTest(reported=reported):
+                self.profile.verification_status = start
+                self.profile.save(update_fields=["verification_status"])
                 response = self.post_event(status_changed(reported))
                 self.assertEqual(response.status_code, 200, response.content)
                 profile, _ = self.refreshed()
-                self.assertEqual(profile.verification_status, expected[reported])
+                self.assertEqual(profile.verification_status, expected)
 
     def test_an_undocumented_status_change_leaves_the_recorded_status_alone(self):
         with self.assertLogs("integrations.kycaid.webhook", level="WARNING"):
@@ -78,7 +81,7 @@ class KYCAIDWebhookResultTest(APITestCase):
         self.push_task.defer.assert_not_called()
 
     def test_an_approved_pep_is_rejected_by_the_unchanged_pep_policy(self):
-        with patch.object(KYCAIDService, "get_applicant_data", return_value=applicant(pep=True)):
+        with patch.object(KYCAIDService, "get_applicant_data", return_value=applicant(pep=False)) as fetch:
             response = self.post_event(verification_completed(applicant=applicant(pep=True)))
 
         self.assertEqual(response.status_code, 200, response.content)
@@ -88,6 +91,21 @@ class KYCAIDWebhookResultTest(APITestCase):
         self.assertFalse(
             CustomerRiskAssessment.objects.filter(user_account=account, assessment_status="complete").exists()
         )
+        fetch.assert_called_once_with(APPLICANT_ID)
+
+    def test_an_approval_whose_applicant_carries_no_pep_flag_reads_the_flag_from_the_applicant_record(self):
+        without_the_flag = {key: value for key, value in applicant().items() if key != "pep"}
+        for embedded in (without_the_flag, "an applicant that is not an object", []):
+            with self.subTest(embedded=type(embedded).__name__):
+                self.account.account_status, self.account.rejection_reason = "pending", ""
+                self.account.save(update_fields=["account_status", "rejection_reason"])
+                self.profile.is_id_verified, self.profile.review_result = False, None
+                self.profile.save(update_fields=["is_id_verified", "review_result"])
+                with patch.object(KYCAIDService, "get_applicant_data", return_value=applicant(pep=True)):
+                    response = self.post_event(verification_completed(applicant=embedded))
+                self.assertEqual(response.status_code, 200, response.content)
+                _, account = self.refreshed()
+                self.assertEqual((account.account_status, account.rejection_reason), ("rejected", "pep_policy"))
 
     def test_an_approved_applicant_who_is_no_pep_is_activated_and_assessed_as_sumsub_records_it(self):
         with patch.object(KYCAIDService, "get_applicant_data", return_value=applicant(pep=False)):

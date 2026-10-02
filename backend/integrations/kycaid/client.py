@@ -133,14 +133,31 @@ class KYCAIDService(KYCProvider):
         return is_valid
 
     def normalize_webhook(self, webhook_data: dict) -> NormalizedVerificationResult:
-        if "status" in webhook_data:
-            applicant = _mapping(webhook_data.get("applicant"))
-            status, review_result = self._verification_result(webhook_data)
-        else:
-            applicant = webhook_data
-            review_result = KYCAID_APPLICANT_RESULTS.get(applicant.get("verification_status"))
-            status = STATUS_COMPLETED if review_result else STATUS_PENDING
+        status, review_result = self._verification_result(webhook_data)
+        return self._normalized(status, review_result, webhook_data, webhook_data.get("applicant"))
 
+    def normalize_applicant(self, applicant_data: dict) -> NormalizedVerificationResult:
+        review_result = KYCAID_APPLICANT_RESULTS.get(_mapping(applicant_data).get("verification_status"))
+        status = STATUS_COMPLETED if review_result else STATUS_PENDING
+        return self._normalized(status, review_result, {}, applicant_data)
+
+    def normalize_status(self, status_data: dict) -> NormalizedVerificationResult:
+        return self.normalize_applicant(status_data)
+
+    @staticmethod
+    def reports_an_approval(webhook_data: dict) -> bool:
+        status = KYCAID_VERIFICATION_STATUSES.get(webhook_data.get("status"))
+        return status == STATUS_COMPLETED and _outcome(webhook_data.get("verified")) is True
+
+    @staticmethod
+    def carries_the_pep_flag(applicant) -> bool:
+        return isinstance(applicant, dict) and "pep" in applicant
+
+    def _normalized(self, status, review_result, webhook_data: dict, applicant) -> NormalizedVerificationResult:
+        if review_result == REVIEW_GREEN and not self.carries_the_pep_flag(applicant):
+            logger.warning("A KYCAID approval without the applicant's PEP flag is not recorded")
+            status, review_result = STATUS_PENDING, None
+        applicant = _mapping(applicant)
         verifications = _mapping(webhook_data.get("verifications"))
         checks = [_mapping(check) for check in verifications.values()]
         rejection_labels = _labels(
@@ -162,7 +179,7 @@ class KYCAIDService(KYCProvider):
 
     @staticmethod
     def _verification_result(verification: dict) -> tuple:
-        reported = verification["status"]
+        reported = verification.get("status")
         status = KYCAID_VERIFICATION_STATUSES.get(reported)
         if status is None:
             logger.warning("Unrecognised KYCAID verification status %r recorded as pending", reported)

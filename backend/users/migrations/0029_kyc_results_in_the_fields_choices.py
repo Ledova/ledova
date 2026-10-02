@@ -4,6 +4,7 @@ from django.db import migrations
 def record_kyc_results_as_the_mappings_now_do(apps, schema_editor):
     profiles = apps.get_model("users", "UserProfile")._base_manager.using(schema_editor.connection.alias)
     profiles.filter(review_result="").update(review_result=None)
+    profiles.filter(verification_status="unused", review_result="RED").update(review_result=None)
     profiles.filter(verification_status="unused").update(verification_status="init")
 
 

@@ -14,7 +14,12 @@ from integrations.kyc.base import (
     NormalizedVerificationResult,
     VerificationSession,
 )
-from integrations.kyc.constants import PROVIDER_SUMSUB, REVIEW_GREEN, STATUS_COMPLETED
+from integrations.kyc.constants import (
+    PROVIDER_SUMSUB,
+    REVIEW_GREEN,
+    STATUS_COMPLETED,
+    STATUS_PENDING,
+)
 from integrations.kyc.pep import pep_data_from_labels
 
 logger = logging.getLogger(__name__)
@@ -57,7 +62,7 @@ class SumSubService(KYCProvider):
 
     def normalize_webhook(self, webhook_data: dict) -> NormalizedVerificationResult:
         review_result = webhook_data.get("reviewResult", {})
-        review_status = webhook_data.get("reviewStatus") or STATUS_COMPLETED
+        review_status = webhook_data.get("reviewStatus") or STATUS_PENDING
         review_answer = review_result.get("reviewAnswer") if review_status == STATUS_COMPLETED else None
         rejection_labels = review_result.get("rejectLabels", [])
 
