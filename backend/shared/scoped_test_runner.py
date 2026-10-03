@@ -10,6 +10,7 @@ from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 SCOPED_TEST_LABELS = (
     "companies.tests.test_authority_request_withdrawal_scoped.ScopedCompanyAuthorityRequestWithdrawalTest",
     "companies.tests.test_authority_requests_scoped.ScopedCompanyAuthorityRequestTest",
+    "companies.tests.test_authority_request_capability_guard_scoped.ScopedAuthorityRequestCapabilityGuardTest",
     "tokens.tests.test_trading_retention.ScopedTradingRetentionTest",
     "offerings.tests.test_application_retention.ScopedApplicationRetentionTest",
     "blockchain.tests.test_fresh_signer_scoped.ScopedFreshSignerTest",

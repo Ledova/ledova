@@ -60,6 +60,14 @@ principal. Empty reversal preserves the original requests; populated reversal
 refuses to discard cancellation history. Back up database and private storage
 together before upgrading or reversing either migration.
 
+`companies/0014_authority_request_capabilities_refuse_null` makes the request
+guard refuse JSON `null` in requested or delegatable capabilities, which it
+previously accepted. It replaces only that check in the installed guard, and
+neither direction filters or rewrites retained requests. Reversal restores the
+earlier check, so a downgraded database accepts `null` elements again. Only a raw
+insert on the operator connection can supply one: the service refuses
+capabilities that are not listed strings.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)
