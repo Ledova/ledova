@@ -8,6 +8,8 @@ focused guides, and each guide links to the implementation detail behind it.
 | I want to… | Start here |
 | --- | --- |
 | Understand Ledova and what works today | [Product and functionality](product.md) |
+| Understand company-managed registers and the one-product direction | [Company-managed register plan](architecture/company-managed-registers.md) |
+| Review documentation alignment and implementation tracking | [Company-managed implementation](plans/company-managed-registers/README.md) |
 | Understand the route to lawful launch | [Regulatory pathway](regulatory-pathway.md) |
 | Run it locally | [Getting started](getting-started.md) |
 | Understand the system | [Architecture](architecture/README.md) |

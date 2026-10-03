@@ -4,6 +4,24 @@
 
 Where backend code belongs and how its layers interact.
 
+## Company-managed implementation direction
+
+The app and layer catalogue below describes current code. The
+[accepted plan](company-managed-registers.md#delivery-sequence) adds company
+administrative appointments, capabilities, invitations and mandates; no such
+membership model is implemented by `Company.owner` or `RegisterMember` today.
+Place company authority with the company concern and pass an explicit actor and
+company command into shared workflow services. Client actions and exceptional
+admin support must call those services rather than duplicate decision logic.
+
+Routine activation, offering decisions, register changes, payment/allotment and
+shareholder administration move to company-authorised workflows. The `operators`
+configuration row and privileged automation remain technical infrastructure;
+neither establishes a human company appointment. New customer entry points need
+the service, policy, trigger and worker changes in the plan, rather than reuse of
+global admin permissions. Preserve the admin permission checks below for the
+current and exceptional staff surfaces.
+
 ## Backend apps
 
 One Django app per bounded concern. `backend/ledova_backend/settings/` is a

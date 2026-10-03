@@ -2,6 +2,17 @@
 
 [Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
+**Dated research and implementation record.** The accepted
+[3 October 2026 company-managed register plan](../architecture/company-managed-registers.md)
+sets one product in which companies administer their registers, whether hosted
+by Ledova or privately. It retires the two deployment modes and the assumption
+that platform staff routinely act as register clerks. This page preserves the
+earlier source readings, dates and sign-off status; it does not confirm those
+readings for the replacement workflows. Staff-only procedures described here
+are current implementation references pending that work, not the new authority
+model. Platform payment, crypto and support functions must be assessed on what
+they actually do.
+
 The questions the project depends on. Nobody qualified has been asked any of
 them. Each position records what the source says, what the code does, the
 reading the project acts on, what would show it wrong, which way to be wrong,
@@ -16,11 +27,12 @@ assistant from primary sources and are **not yet confirmed by the owner**.
 Position 12 was drafted on 2026-09-22, when the owner chose to record
 PyMuPDF's licence, and is not yet confirmed either.
 
-The positions serve two operating models, the
+The positions were written against two responsibility assumptions, the
 [company-hosted instance](company-hosted-instance.md) (A) and the
 [registry service](registry-service.md) (B). The "Binds" column says which
-model a position is engaged by; where the reading differs between them, the
-position says so.
+historical assumption a position was engaged by; where the earlier reading
+differs between them, the position says so. A and B are retained research
+labels, not selectable product modes.
 
 | # | Question | Triggered by | Binds | Status |
 | --- | --- | --- | --- | --- |
@@ -89,7 +101,10 @@ says the register may be kept on computer, pointing to s1306.
 register as its agent. That is the plain reading. In a
 [company-hosted instance](company-hosted-instance.md) there is no agent: the
 company keeps the register itself, and the agreement below is not needed; the
-two deployment modes are one product serving those two legal arrangements.
+earlier analysis therefore distinguished those two responsibility arrangements.
+The current plan removes the software modes and assigns ordinary register work
+to companies; the agency reading and any required terms must be revisited
+against the actual replacement service.
 
 **What this leaves undone, and it is not a legal question.** An agency
 relationship has to exist in the terms between the operator and each company.
@@ -183,8 +198,9 @@ probably is.
 the platform also hosts offerings, subscriptions, payment recording, investor
 classification and trading enabled by default for synthetic/testnet use — none of
 which a registry service would run.
-The [registry service](registry-service.md) page's feature table says which
-features that model switches off or defers. An issue is now approved only under
+The [registry service](registry-service.md) page's feature table records what
+the earlier clerk-only service proposal would omit or defer; it is not a list
+of implemented deployment-mode controls. An issue is now approved only under
 a [register instruction](../operations/register-foundation.md#register-instructions-for-issues),
 and entered only once an applied one covers it: the company owner lists the
 exact issues a named director approved, staff verify the documentary authority,
@@ -509,11 +525,13 @@ provided. The AUSTRAC CEO may exempt a person from provisions of the Act under
 s248 where the risks are low. These items were read from AUSTRAC's pages and
 professional summaries, not from the amended Act.
 
-**What the code does.** Investor onboarding and classification exist for the
-fuller model; the registry model moves no money or tokens, and collects no
-identity evidence unless the operator turns on the issuer KYC switch, which
-requires each company's owner to be identity-verified before the company is
-submitted for review.
+**Implementation and earlier service assumption.** Investor onboarding,
+classification, payment recording and token workflows exist in the software.
+The earlier clerk-only service proposal assumed no movement of money or tokens;
+deployment-mode selection does not enforce that whole proposal. The current
+issuer KYC switch requires each company's owner to be identity-verified before
+the company is submitted for review. The replacement company-managed workflows
+and retained platform functions need their own assessment.
 
 **The position.** Keeping a register and preparing registration or transfer
 documents on the company's instruction is not a Table 6 service, because the
@@ -639,8 +657,10 @@ $50 million, the discount on shares to be at most fifteen per cent of market
 value, and the interests held for three years. The Division 1A and concession
 details come from professional and ATO summaries, not the enacted text.
 
-**What the code does.** The [offerings flow](../architecture/offerings.md) hosts
-offers; the registry model does not. Each allotment and direct issue is approved
+**Implementation and earlier service assumption.** The
+[offerings flow](../architecture/offerings.md) hosts offers; the earlier
+clerk-only service proposal assumed that it would not use that flow. Each
+allotment and direct issue in the current implementation is approved
 by a register instruction that retains the directors' authority document and
 names the approving director beside the issues it lists.
 

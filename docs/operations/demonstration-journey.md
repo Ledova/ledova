@@ -2,6 +2,15 @@
 
 [Operations](README.md) · [Chains and keys](chains.md) · [Product §8](../product.md#8-guidance-for-implementation)
 
+This page records the existing synthetic chain journey and its staff-assisted
+setup. It does not demonstrate the accepted
+[company-managed register journey](../architecture/company-managed-registers.md),
+which must complete ordinary company and participant work without routine
+platform-staff approvals, admin actions or manual database writes. Keep this
+test and its evidence as regression coverage while adding verification of the
+replacement company workflows; payment and crypto operations do not confer
+company register authority.
+
 [Product §8](../product.md#8-guidance-for-implementation) asks for an
 incremental flow covering discovery, a seller listing, offer acceptance,
 approvals, simulated external payment, contract-enforced transfer and

@@ -29,6 +29,22 @@ How sessions are authenticated, transported, revoked and reflected in client que
   are throttled per address.
 - The Django admin uses ordinary Django sessions, not the JWT stack above.
 
+## Company authority after authentication
+
+The [company-managed register plan](company-managed-registers.md#responsibility-and-company-access)
+adds invitations, company appointments and capability checks alongside these
+sessions. A successful login, a company account role or a global staff permission
+must not grant a company mandate. Accepting an invitation must bind the actual
+authenticated person to the intended company and appointment; the detailed
+bootstrap and invitation proof are implementation design, not existing endpoints.
+
+Company appointment revocation must stop new actions from a still-valid session
+and pending unsigned work. Recheck current company authority at the relevant
+service and commit boundary; JWT expiry or a hidden client control is not that
+check. Already admitted signed work retains its original recovery semantics.
+Company users use the normal client authentication transport, without requiring
+a Django admin session. The session behavior described here remains current.
+
 ## Client session queries
 
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query and exports

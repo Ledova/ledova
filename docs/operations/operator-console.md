@@ -2,6 +2,20 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
+This guide describes the current implementation. The accepted
+[company-managed register plan](../architecture/company-managed-registers.md)
+retires deployment-mode selection and routine platform-staff register gates.
+The configuration and staff workflows below remain in the code until those
+migrations and replacement company tools are implemented.
+
+The singleton represents the platform operator organisation and its technical
+configuration; staff accounts are individual people working within its granted
+permissions. Neither makes an employee a company-appointed register
+administrator or director. The current register worklist labels active
+companies with the operator's identity as keeper. That reflects the legacy
+staff-operated allocation, not the target allocation to each company and its
+appointed users. Private hosting does not require a separate product mode.
+
 ## Operator configuration
 
 Enter through `/admin/operators/operator/`. It creates the singleton if missing
@@ -40,6 +54,10 @@ verified only through the provider, so with none configured every submission is
 refused.
 Single-issuer mode disables the supporting-payslip store; switching is refused
 while unpurged payslips exist. Classification evidence and review remain available.
+
+These are existing mode behaviours, scheduled for removal. Retirement keeps
+the current registry supporting-evidence behaviour and its private access and
+retention controls; it does not introduce another mode or capability flag.
 See [eligibility](../architecture/companies-and-eligibility.md) and
 [file retention](../architecture/files-and-retention.md).
 

@@ -4,6 +4,24 @@
 
 How payment, refund, scale-back and share allotment fit together.
 
+## Company-managed primary relationship
+
+The [accepted plan](company-managed-registers.md#delivery-sequence) replaces the
+admin-only acceptance, receipt/refund recording and allotment paths with
+company-capability workflows. Company or appointed-provider payment settings
+and instruction snapshots must identify the actual primary recipient. Retain
+existing instructions as historical evidence; migrate secondary-market deposits
+and settlement separately rather than silently retargeting them.
+
+Company finance and issue authority are separate capabilities. A recorded receipt
+does not approve an issue, and evidence of a payment must not claim more than
+the configured provider/check actually establishes. Allotment must still bind
+the exact approved subscription, recipient and shares, with atomic admission,
+headroom, refund holds, idempotency, original transaction finality and bounded
+recovery. Non-paid grants use genuine non-paid terms and issue authority, not a
+fabricated receipt. The detailed flow below describes current staff-assisted
+code, including its bank and stablecoin attestation limitations.
+
 ## Data flow of a subscription
 
 1. An eligible investor creates a draft at `POST /api/v1/subscriptions/` for a
@@ -120,7 +138,7 @@ How payment, refund, scale-back and share allotment fit together.
    The issuance sweep handles queued and executing private commands, plus
    unresolved historical requests. The daily `expire_unpaid_subscriptions` only
    touches rows with no payment recorded.
-9. Allotment stays an admin action. The API carries create, list, detail, submit
+9. Allotment is currently an admin action. The API carries create, list, detail, submit
    and withdraw for the investor and no operator write route. The issuer reads
    its own offering's subscriptions at `GET
    /api/v1/offerings/{uuid}/subscriptions/`, scoped by the offering's own

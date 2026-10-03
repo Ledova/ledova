@@ -4,6 +4,14 @@
 
 Start a worker and find the periodic tasks that keep the application current. All clock times below are UTC.
 
+This is the current schedule. A worker's technical database or signer access
+does not appoint it to make company decisions. The accepted
+[company-managed register plan](../architecture/company-managed-registers.md)
+requires new company register effects to carry an exact company-authorised
+instruction and to recheck the relevant authority when committed. Recovery must
+still preserve
+the identity and signed history of already admitted work; see [recovery](recovery.md).
+
 Procrastinate runs on PostgreSQL. Start a worker with
 `python manage.py procrastinate worker --queues=default,builtin` (the compose
 `worker` service and `make worker` in `backend/`).

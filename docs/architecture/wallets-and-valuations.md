@@ -4,6 +4,25 @@
 
 How wallet identity, ownership verification, asset identity and portfolio values are represented.
 
+## Wallets in company-managed registers
+
+The [accepted plan](company-managed-registers.md#responsibility-and-company-access)
+keeps wallet-possession proof with the participant and makes company registry
+approval a separate company-capability decision backed by the required live
+checks. Neither a company appointment nor a self-declared signing preference
+grants control of a participant's key. Preserve network/address identity,
+conflict handling, expiry and current signed-work recovery when replacing
+staff-only whitelist admission.
+
+Imported and non-tokenised register members can have no wallet. Supported
+employee grants and other non-chain register changes need real ledger and
+participant-record paths; they must not create invented wallet holdings or mint
+receipts. Later tokenisation mirrors existing authorised holdings without
+issuing twice. The wallet, asset and valuation mechanisms below describe current
+implementation. Infrastructure asset allowlisting, settlement-token minting and
+yield-token NAV controls are separate capabilities, not an automatic grant to a
+company register administrator.
+
 ## Wallet ownership and signing
 
 **`VERIFIED` means someone held the private key, not that a hardware device held

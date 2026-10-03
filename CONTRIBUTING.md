@@ -28,9 +28,12 @@ before opening your first pull request.
 ## Where to start
 
 - Issues are tracked on GitHub, not in this repository. Browse the
-  [open issues](https://github.com/Ledova/ledova/issues); the
+  [open issues](https://github.com/Ledova/ledova/issues). The
+  [company-managed register plan](docs/architecture/company-managed-registers.md)
+  and [programme #860](https://github.com/Ledova/ledova/issues/860)
+  sequence the accepted work; the earlier
   [product alignment programme](https://github.com/Ledova/ledova/issues/645)
-  sequences the current phases.
+  records the shipped foundation.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
   implementation.
@@ -40,6 +43,10 @@ before opening your first pull request.
 - Link pull requests to their issues and close an issue only when its work is
   complete. Record distinct problems discovered along the way in follow-up
   issues, checking for an existing issue first.
+- Build one registry product for hosted and private instances. Company
+  appointments authorise register decisions; platform staff permissions do not.
+  Preserve evidence, tenant isolation and guarded execution when replacing
+  staff workflows. Document accepted scope separately from current behaviour.
 
 ## Development setup
 

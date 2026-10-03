@@ -292,6 +292,13 @@ to be transient.
 
 ## Company registry verification
 
+The review and activation actions below describe the current staff workflow.
+The accepted [company-managed register plan](../architecture/company-managed-registers.md)
+replaces routine platform approval with company bootstrap, authority evidence
+and configured provider checks. That change must preserve attributed attempts
+and unresolved failures: an unavailable provider, a missing declaration or a
+name mismatch must not become an invented successful verification.
+
 `ABR_AUTH_GUID` is blank by default. Obtain the free authentication GUID through
 [ABR Web Services](https://abr.business.gov.au/Tools/WebServices) and configure it
 server-side. With no GUID, review records a pending, unconfigured attempt without

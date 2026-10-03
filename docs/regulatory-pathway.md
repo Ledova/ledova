@@ -2,7 +2,13 @@
 
 [Documentation](README.md) · [Product and functionality](product.md)
 
-Updated 19 September 2026 · Australian operating model under assessment
+Assessment dated 19 September 2026 · Product direction updated 3 October 2026
+
+The [3 October 2026 company-managed register decision](architecture/company-managed-registers.md)
+sets the current product direction: one registry product, with companies making
+their own share decisions and administering their registers through the tools.
+Validate this responsibility allocation against the actual replacement workflows;
+the product decision is not a finding about the platform's legal obligations.
 
 ## Purpose and status
 
@@ -38,15 +44,19 @@ Substantiate any exemption, licensing or approval claim.
 
 | Party | Proposed allocation |
 | --- | --- |
-| Issuing company | Share rights, primary-issue terms, disclosures, applicable eligibility requirements, required approvals and responsibility for the member register. |
+| Issuing company and its appointed users | Share rights, offers and primary-issue terms, disclosures, applicable eligibility requirements, company appointments and decisions, register entries and corrections, corporate actions, payment instructions and register outputs. Actual director authority remains explicit. |
 | Selling shareholder | Ownership and authority to sell, accurate sale information, applicable sale obligations and transfer authorisation. |
 | Buying investor | Accurate identity and eligibility information, agreements, investment decision, payment and wallet authorisation. |
+| Other holders and participants | Their own particulars, employee or non-paid issue acceptance where required, holder access, votes and signatures; register membership alone is not register-administrator authority. |
 | Screening or verification provider | Accurate checks, documented evidence, updates and corrections within its mandate, with an identified accountable customer. |
-| Ledova or another identified operator | Obligations arising from running the service, including any permissions, required platform controls, records, complaints and regulatory cooperation. |
+| Ledova or another identified platform operator | Infrastructure, security, availability, support and specifically assigned payment or crypto operations, with any obligations arising from those actual functions, required controls, records, complaints and regulatory cooperation. No standing mandate for ordinary company register decisions. |
 | Other regulated providers | The functions they actually perform within the scope of their permissions and contractual responsibilities. |
 
 Counsel must validate delegation and retained accountability. Identify the
 actual operator of each regulated activity; a partner label is insufficient.
+Private hosting uses the same product and company authority model. Hosting
+location or an employer's identity does not by itself appoint a human user to
+act for a company, or decide who performs a regulated activity.
 
 ## 3. Questions that determine the pathway
 
@@ -166,5 +176,5 @@ Agents need owner authorisation to contact regulators, submit applications or
 launch services. Recheck current law and instruments before relying on the
 selected pathway.
 
-Next: the [legal positions](legal/positions.md) and [operating models](legal/README.md)
+Next: the [legal positions](legal/positions.md) and [historical operating analyses](legal/README.md)
 behind the assessment, then the [decision log](decisions.md).

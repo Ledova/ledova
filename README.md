@@ -6,12 +6,15 @@ combines a multi-company share registry, investor marketplace and verifiable
 ownership records on a public blockchain, bringing company onboarding, investor
 eligibility, share issuance, payments and ownership records into one system.
 
-A company can operate an instance for its own shares, or a registry provider can
-host multiple issuers. Investors interact through the dashboard and mobile app;
-operators review applications and manage the deployment through Django admin.
-The [product page](docs/product.md) defines the agreed product direction and
-explains the roles, deployment modes and which features are available in each
-client.
+The agreed direction is one registry product: companies manage their own share
+registers and interact directly with investors, shareholders and employees.
+Ledova provides infrastructure, records, workflows and tools. A private internal
+installation uses the same product, without a separately maintained mode.
+The current implementation still requires staff actions for several register
+workflows. The [company-managed register plan](docs/architecture/company-managed-registers.md)
+sets out their replacement with company-scoped authority and self-service.
+The [product page](docs/product.md) distinguishes this direction from the
+features currently available in each client.
 
 > **Experimental and unaudited.** Use only synthetic data on a local development
 > chain or supported public testnet. Ledova is not production ready and must not
@@ -60,7 +63,8 @@ Report vulnerabilities through the [security policy](SECURITY.md).
 Ronildo da Rocha Braga Junior created and maintains Ledova. Contributors retain
 copyright in their contributions.
 Blueberry Money sponsors the work and
-intends to be its first hosted operator. Sponsorship transfers neither ownership
+intends to be its first hosted platform operator. Company register administration
+follows the company-managed direction above. Sponsorship transfers neither ownership
 nor control over the project.
 
 Ledova is public and source-available under the

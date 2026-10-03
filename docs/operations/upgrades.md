@@ -4,6 +4,36 @@
 
 Apply only the migration notes relevant to the database you are upgrading. Schema reversibility does not guarantee data restoration.
 
+## Planned company-managed register upgrade
+
+The accepted [company-managed register plan](../architecture/company-managed-registers.md)
+is not a shipped migration. The historical migrations below remain applied
+history; do not edit them or reset a database to implement the new direction.
+
+- Remove the operator's deployment-mode field with a new schema migration,
+  preserving companies, registers, memberships, documents, provider attempts,
+  reviews and signed operation history. A rollback may restore the default
+  registry value, but cannot reconstruct a removed historical mode choice.
+- Coordinate the API schema and backend change with every client consuming
+  `deploymentMode`. Removing the field before retiring client equality checks
+  can hide supporting-document tools. Keep the registry supporting-evidence
+  behaviour, private access and retention; do not replace the removed mode
+  with another capability flag or purge its files.
+- Replace global staff gates with company appointments and scoped service,
+  row-level-security and database admission checks. An existing company owner
+  may seed a company administrator, but must not thereby acquire a director
+  mandate or approve a pending instruction. Preserve the genuine historical
+  actors on completed reviews and operations.
+- Back up the database and referenced private files together, verify the
+  migration on preserved data and retain exact unresolved signed operations
+  for recovery. Deployment-mode retirement does not require fresh contracts,
+  signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
+
+Once implemented, add the actual migration identifiers, coordinated release
+order, rollback limits and verification commands here. These notes do not
+authorise staff to manufacture company appointments or approvals while the
+company tools are missing.
+
 ## Retired asset and portfolio HTTP routes
 
 The paper client cleanup removes the unused asset detail and asset snapshots

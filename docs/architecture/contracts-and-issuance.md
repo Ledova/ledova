@@ -4,9 +4,31 @@
 
 How a share class is deployed and shares are minted within its authorized cap.
 
+## Company authority and technical execution
+
+The [company-managed plan](company-managed-registers.md#existing-gates-to-replace)
+makes the company decision and the technical signer distinct. Company-appointed
+users must authorise supported whitelist, issue/allotment and capital changes
+within their mandates; a backend signing key or privileged connection grants no
+human company authority. Replace the current staff admission checks together
+with the service and database guards, retaining exact company/class/recipient,
+quantity, evidence and commit-time authority checks.
+
+The lifecycle below describes current code. Preserve whole-share arithmetic,
+authorised headroom, wallet possession and company registry approval for chain
+actions, original signed bytes, finality and atomic register recording. A
+non-paid employee grant must record its actual terms and authority rather than
+invent a paid subscription. An imported register without a deployed class
+currently cannot issue or transfer through register instructions; supporting
+non-chain changes or later tokenisation needs additional ledger/execution work.
+Non-chain changes must retain real ledger authority without fake chain receipts;
+later tokenisation mirrors those holdings without issuing them twice.
+Changing company authority does not by itself change deployed contract ownership
+or bytecode, and must not be presented as such.
+
 ## Contracts
 
-Every contract is Solidity 0.8.24, OpenZeppelin-based, and operator-key owned.
+The current contracts are Solidity 0.8.24, OpenZeppelin-based, and operator-key owned.
 
 | Contract | Responsibility |
 | --- | --- |

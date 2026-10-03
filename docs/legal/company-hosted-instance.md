@@ -1,18 +1,31 @@
-# Operating model A: a company-hosted instance
+# Historical analysis A: a company-hosted instance
 
 [Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-A private company deploys and runs its own Ledova instance, for its own shares
-and its own shareholders, with no other company on it. Its own officers make
-every entry. Ledova is infrastructure the company uses to keep its register and
-the processes around it. The software ships this shape as its single-issuer
-deployment mode ([product page](../product.md#roles-and-deployment-modes)).
+**Historical operating analysis.** The 3 October 2026
+[company-managed registry decision](../architecture/company-managed-registers.md)
+replaces the two-mode product design. Private hosting uses the same product;
+this page is retained research, not a separate product roadmap. Its legal
+readings are not newly confirmed by that decision.
+
+The earlier scenario studied here is a private company deploying and running
+its own Ledova instance, for its own shares and its own shareholders, with no
+other company on it. Its own officers make every entry. Ledova is infrastructure
+the company uses to keep its register and the processes around it. The earlier
+product description associated this scenario with the single-issuer setting.
+That setting controls supporting-payslip availability, not single-company
+tenancy or a separate company authority model, and is scheduled for retirement
+([product direction](../product.md#roles-and-deployment)).
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
 apply, and the drafted ones remain unconfirmed until the owner signs them off.
 
 ## Whom the law looks at
+
+The responsibility and perimeter readings below refer to that earlier scenario.
+They do not establish a separate current product role for a privately hosted
+company or confirm the legal allocation for the replacement workflows.
 
 The company and its directors, and nobody else. Every duty in
 [position 6](positions.md#6-where-and-in-what-form-the-register-is-kept) is
@@ -165,9 +178,10 @@ conditions to be satisfied.
    details have not been read.
 3. The terms of the low-volume exemption after it sunsets on 1 October 2026 and
    is remade, as CS 60 proposes; they matter only if a transfer board is opened.
-4. Whether a managed single-company instance, hosted by the project but operated
-   by the company's officers, is offered as the first paid product. Its legal
-   profile is this model's; its commercial profile is the service's.
+4. The earlier commercial question was whether a managed single-company
+   instance would be the first paid offering. The current product decision
+   permits private hosting of the same software, without a separate product
+   mode; the actual hosting, support and company functions still need assessment.
 
 Next: the [registry service](registry-service.md), then the
 [positions](positions.md) each model rests on.

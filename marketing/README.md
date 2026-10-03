@@ -2,6 +2,13 @@
 
 The public Ledova site: React, TypeScript and Vite, static output, no API calls.
 
+Product copy follows the [company-managed registry direction](../docs/architecture/company-managed-registers.md):
+one registry product, with companies responsible for their share decisions and
+registers and Ledova supplying the platform and tools. Private hosting uses the
+same product. Describe accepted future workflows as planned until implemented;
+the [current capability boundaries](../docs/product.md#current-capability-boundaries)
+remain the reference for claims about what works today.
+
 ## Local development
 
 ```bash

@@ -6,17 +6,25 @@ Use these guides to run a synthetic local or public-testnet instance. Start with
 [getting started](../getting-started.md) for a new checkout. Operator procedures
 assume the API, worker and database run compatible code.
 
+These are runbooks for the current implementation, including staff workflows
+that the accepted [company-managed register plan](../architecture/company-managed-registers.md)
+will replace. The target is one registry product: companies and their appointed
+users administer their own registers, while platform staff handle infrastructure,
+support and specifically assigned payment or crypto operations. Private hosting
+uses the same software and company authority model. Do not grant company users
+platform-staff permissions to bridge missing company tools.
+
 | Task | Guide |
 | --- | --- |
 | Set environment variables and database roles | [Configuration](configuration.md) |
 | Configure email, KYC, market data or extraction | [Integrations](integrations.md) |
 | Deploy local/testnet contracts and align signer ownership | [Chains and keys](chains.md) |
-| Read the evidence for company-scoped approvals and their bypass review | [Approval controls](approval-controls.md) |
+| Read the current company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md) |
 | Verify a real Keystone wallet using a Mac camera and separate synthetic data | [Keystone on a Mac](keystone-mac.md) |
 | Read which real-chain test proves each step of the product's demonstration journey | [Demonstration journey](demonstration-journey.md) |
-| Seed data, configure the operator and work review queues | [Operator console](operator-console.md) |
+| Seed data, configure the platform operator and work current staff queues | [Operator console](operator-console.md) |
 | Read what transaction monitoring compares and when a customer counts as new | [Transaction monitoring](operator-console.md#transaction-monitoring) |
-| Publish a document to a share class's members | [Publishing to members](publications.md) |
+| Follow the current staff workflow for publishing on company instruction | [Publishing to members](publications.md) |
 | Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
 | Configure private storage, scanning and retention | [Uploads](uploads.md) |
 | Start workers and inspect schedules | [Background jobs](jobs.md) |

@@ -1,12 +1,21 @@
-# Operating model B: a registry service
+# Historical analysis B: a registry service
 
 [Legal and regulatory](README.md) · [Company-hosted instance](company-hosted-instance.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-One operator hosts the platform and keeps the share registers of many private
-companies, making each entry on the written instruction of that company's
-authorised officers with a director's approval recorded beside it. The software
-ships this shape as its registry deployment mode, the default
-([product page](../product.md#roles-and-deployment-modes)).
+**Historical operating analysis.** The 3 October 2026
+[company-managed registry decision](../architecture/company-managed-registers.md)
+replaces the assumption that platform staff routinely operate company registers.
+This page retains research about that earlier service model; assess the new
+workflow separately before relying on those readings for it.
+
+The earlier scenario studied here has one operator hosting the platform and
+keeping the share registers of many private companies, making each entry on
+the written instruction of that company's authorised officers with a director's
+approval recorded beside it. The current software implements staff-operated
+workflows. Its legacy registry setting is the default, but does not enforce the
+whole clerk-only service proposal below.
+The [accepted product direction](../product.md#roles-and-deployment) replaces
+that allocation of routine register work and removes product-mode selection.
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
@@ -98,6 +107,11 @@ does not waive the software licence or the live-operation conditions.
 | The ledger as the register of record | Relief or the 2027 sandbox, as the [pathway's routes](../regulatory-pathway.md#4-operating-routes-to-compare) set out |
 
 ## Getting an operator to market
+
+This sequence belongs to the earlier clerk-only service assumption. It is not
+the implementation sequence for company-managed registers; use the accepted
+[plan](../architecture/company-managed-registers.md) and the
+[regulatory pathway](../regulatory-pathway.md) to assess the actual workflows.
 
 On the positions as drafted, a clerk-only service does not need the financial
 services permissions discussed below while it stays within that boundary. The

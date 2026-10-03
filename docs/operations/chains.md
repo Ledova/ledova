@@ -4,6 +4,14 @@
 
 Configure the local chain or Base Sepolia and align deployment ownership with the backend signer.
 
+This guide describes the current contract ownership and technical signer setup.
+Under the accepted [company-managed register plan](../architecture/company-managed-registers.md),
+an execution key carrying out a company register decision must act on its exact
+company-authorised instruction; possession of that key does not give a human
+operator authority to decide
+a company's share issue, transfer or correction. The current staff admission
+and approval procedures below remain implementation references until replaced.
+
 ## Blockchain
 
 | Variable | Default | Required |
@@ -236,6 +244,11 @@ against block time, so the later modules' trades, the seed's among them, would
 start to expire on chain once the earlier tests ran longer than that.
 
 ## Fresh-start redeploy
+
+This procedure belongs to the retired global-registry contract cutover in #648.
+It is not the upgrade procedure for company-managed registers or deployment-mode
+retirement. Those planned changes preserve existing companies, registers,
+documents, approvals and signed history; see [upgrades](upgrades.md#planned-company-managed-register-upgrade).
 
 The per-company registries of [#648](https://github.com/Ledova/ledova/issues/648)
 changed the bytecode of every contract, and a deployed share token can never be

@@ -2,6 +2,14 @@
 
 [Operations](README.md) · [Chains and keys](chains.md) · [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
 
+This is an implementation and dated evidence record. The accepted
+[company-managed register plan](../architecture/company-managed-registers.md)
+replaces routine platform-staff eligibility and register decisions with
+company-scoped authority. The staff actors and signer paths below describe
+the existing controls; they do not establish a standing platform mandate under
+that plan. Replacement controls must retain company, participant, wallet,
+action, expiry and revocation checks and have their own verification evidence.
+
 [#648](https://github.com/Ledova/ledova/issues/648) gave each company its own
 on-chain `WhitelistRegistry` with an expiry the share token enforces on both
 sides of every movement, made a revoked or expired classification reach the
@@ -11,8 +19,9 @@ This page records the evidence for
 merged pull request supplies each required behaviour, which test on `main`
 proves it, what the bypass review asked and answered, and what the
 [fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found. Every
-test named here exists on `main` and passes; the commands that produced that
-statement are in the pull requests.
+test named here was recorded as present on `main` and passing at the reviews
+described here; the commands that produced that evidence are in the pull
+requests. This document audit does not report a new test run.
 
 Contract tests are Mocha names inside `contracts/test/`, run with
 `npm --prefix contracts test`. Backend tests are `module.Class.method`, run with

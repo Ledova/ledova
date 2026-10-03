@@ -2,6 +2,22 @@
 
 [Operations](README.md) · [Register architecture](../architecture/register.md)
 
+This guide describes the current implementation and the staged #647 operator
+exercise. The accepted [company-managed register plan](../architecture/company-managed-registers.md)
+replaces routine platform-staff register work with company-appointed users and
+company instructions. The owner and staff routes below are not the final
+company authority model, and their presence is not a reason to grant customers
+global staff permissions.
+
+The replacement tools must cover company bootstrap and appointments, imports
+and openings, walletless and employee issues, member links, transfers,
+corrections, register access, certificates and filing preparation. Actual
+director approval and conflict rules remain explicit; an initial administrator
+is not automatically a director, and external approval evidence need not force
+the director to create a platform account. Private hosting uses the same
+product and authority model. Until these tools and enforcement changes ship,
+the detailed limitations and recovery steps below still apply.
+
 [#647](https://github.com/Ledova/ledova/issues/647) built the authoritative
 stored register: company-scoped member references with durable wallet links, an
 append-only share-event chain, stored holdings, an approved opening capture and

@@ -5,6 +5,14 @@
 Start with the relevant [architecture overview](../architecture/README.md) when
 you need context. These documents describe the contracts behind a particular flow.
 
+They describe current implementation, not the future workflows in the accepted
+[company-managed register plan](../architecture/company-managed-registers.md).
+An operator alias/role, bounded operator transaction or signer in a protocol is
+a technical execution boundary; it does not itself establish a Ledova employee's
+mandate to make a company's register decision. Existing crypto/payment protocols,
+recovery and historical evidence remain in force while company authority and
+routine self-service replacements are implemented.
+
 | Contract | Reference |
 | --- | --- |
 | Native/ERC-20 signed identity and durable recovery | [EVM transfers](evm-transfers.md) |

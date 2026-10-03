@@ -12,6 +12,24 @@ safety: releases require the human checks in
 [#624](https://github.com/Ledova/ledova/issues/624), and operation with real
 participants follows the [regulatory pathway](../regulatory-pathway.md).
 
+## Company register decisions alongside trading
+
+The [company-managed plan](company-managed-registers.md#required-self-service-workflows)
+replaces routine staff review/application of the company's transfer instruction
+with company-capability decisions. Preserve director conflicts, exact settlement
+parties and quantity, documentary authority and the distinction between a
+completed settlement and its approved register entry. A company appointment
+does not confer access to investors' private orders or authority to sign for
+their wallets; the matching and participant-signature protocol below remains
+current.
+
+Company/provider eligibility and company-specific wallet approval need the
+planned attributable, live company workflows. Technical relaying, finality and
+recovery continue to use bounded accepted work. The `trading_enabled` safety
+switch is a feature/operations control, not the retired registry/single-issuer
+product-mode distinction, and company self-service does not remove its existing
+release or payment/crypto safeguards.
+
 ## Intent and settlement
 
 Private orders remain visible and editable only to their owners; staff see every

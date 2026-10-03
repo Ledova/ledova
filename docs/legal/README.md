@@ -2,6 +2,12 @@
 
 [Documentation](../README.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
+The owner adopted [company-managed registers and one product](../architecture/company-managed-registers.md)
+on 3 October 2026. The operating-model pages here retain research about earlier
+responsibility assumptions; they do not define two maintained product modes.
+Their analysis must be revisited against the new company-managed workflows.
+The product decision itself establishes no new legal conclusion.
+
 This folder records what the project has decided about the law it operates
 under, why, and what it still has to find out. **Nobody qualified has been
 asked any of it.** Each question is worked out from primary sources and
@@ -14,9 +20,9 @@ sequence — and the conditions that must hold before live operation.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
-| [Company-hosted instance](company-hosted-instance.md) | Operating model A: a company runs its own instance for its own shares; software permission, regulatory duties, the perimeter, the path for a first company | Before offering the software to a company to run itself |
-| [Registry service](registry-service.md) | Operating model B: one operator keeps the registers of many companies on instruction; the clerk boundary, the perimeter, the path to market | Before operating a hosted service for anyone |
-| [Positions](positions.md) | The positions taken, one per question, with sources, triggers, the model each binds, and status | Before changing anything that touches the register, evidence, licensing or the licence |
+| [Company-hosted instance](company-hosted-instance.md) | Historical analysis A: a company running its own instance; software permission, regulatory duties and earlier launch assumptions | When tracing the earlier hosting analysis; validate the current company-managed workflow separately |
+| [Registry service](registry-service.md) | Historical analysis B: a platform operator keeping company registers on instruction; the clerk boundary and earlier launch assumptions | When tracing the earlier staff-operated service analysis; validate the actual platform functions separately |
+| [Positions](positions.md) | Dated positions, sources, triggers, historical responsibility assumptions and sign-off status | Before changing anything that touches the register, evidence, licensing or the licence; reassess readings affected by the current plan |
 | [Regulatory pathway](../regulatory-pathway.md) | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity |
 | [LICENSE](../../LICENSE) | The Ledova Noncommercial License 1.0 the code is published under | Position 5 |
 
@@ -72,7 +78,7 @@ service requires separate written permission. That includes a company's own
 business use and a free competing service. Public forks for permitted purposes
 remain welcome.
 
-The positions serve two operating models, each with its own page, because the
+The earlier positions compare two operating assumptions, each with its own page, because the
 law places register duties on the company and asks its licence questions of
 whoever operates the register:
 

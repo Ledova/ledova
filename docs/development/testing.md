@@ -179,6 +179,45 @@ tests prove the route opens its own transaction; a matrix's outer rollback canno
 establish that. A task proof must exercise its real authority boundary before
 provider/delivery fakes. See [tenancy](../architecture/tenancy.md).
 
+## Company-managed register verification
+
+The [company-managed register plan](../architecture/company-managed-registers.md#acceptance-criteria)
+defines accepted future outcomes, not tests or workflows already delivered. Each
+implementation issue must identify the company/participant decision, its bounded
+executor and the failure cases it changes. Keep ordinary, scoped and role/catalogue
+verification above; a technical operator alias remains an execution boundary and
+does not prove a human company mandate.
+
+Select evidence for the increment:
+
+- **Mode removal:** migrate from each historical value without rewriting actor
+  history or discarding private files; verify evidence availability in both clients,
+  migration drift, generated schema/types and the coordinated API/client contract.
+- **Authority and register commands:** exercise individual company appointments,
+  prepare versus approve/apply capabilities, cross-company references, revocation
+  after preview and before a queued new effect, and stale evidence or terms. Include
+  direct SQL/ORM forgery, concurrent identical/changed retries and atomic rollback.
+  Global staff access and shareholder status must not substitute for company authority.
+- **Primary issuance and dependent crypto actions:** keep receipt, issue authority,
+  execution, holding and register effect independently attributable. Prove exact
+  company/class/recipient/quantity bindings, configured eligibility, headroom and
+  finality, with isolated real-chain checks where execution changes. A non-paid
+  authorised issue must not manufacture a receipt. Preserve recovery of original
+  signed transactions after authority changes without admitting a new instruction.
+- **Participant access and outputs:** verify own-record privacy, access independent
+  of unrelated investment eligibility, and actions that need no wallet. Certificates
+  and exports retain company authority, register sequence, evidence and provenance;
+  filing drafts cannot claim submitted/accepted status without genuine outcome evidence.
+- **Web/mobile acceptance:** start fresh company and participant accounts and complete
+  supported activation, publication, register action and certificate workflows without
+  routine platform staff, global privilege grants, admin screens or undocumented API
+  calls. Record unresolved provider checks and exceptional technical support separately.
+
+Seeded staff-assisted journeys remain useful current-implementation controls and
+historical evidence. They do not satisfy the future company-managed acceptance
+journey. A new recording follows working implementation and records its served
+commit, commands, results and limits.
+
 ## Reviewing and driving the product
 
 The PR title identifies both its change type and owning issue using
