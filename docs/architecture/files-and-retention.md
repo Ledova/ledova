@@ -32,6 +32,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
+| Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
 | Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
@@ -118,6 +119,14 @@ with its content and company binding. During the synthetic experiment those
 requests and files have no automatic expiry. The database refuses ordinary row
 deletion; the existing orphan sweep removes only unreferenced copies. See the
 [correction workflow](../operations/register-foundation.md#reviewed-compensating-corrections).
+
+[Representative authority requests](../plans/company-managed-registers/authority-requests.md)
+retain a separate private upload and immutable person/company/terms/content
+snapshot. Only the requester can read the personal API or download its evidence.
+The initial slice records no verified mandate and has no automatic purge;
+requested appointment expiry does not erase the submission. Its referenced file
+stays protected by the retained row, while aborted-copy orphans use the ordinary
+sweep. A populated schema reversal refuses to discard those records.
 
 ## Validation and extraction
 

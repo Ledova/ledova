@@ -786,6 +786,54 @@
         ],
         "type": "object"
       },
+      "AuthorityCompanyIdentitySnapshot": {
+        "properties": {
+          "abn": {
+            "type": "string"
+          },
+          "acn": {
+            "type": "string"
+          },
+          "companyType": {
+            "$ref": "#/components/schemas/CompanyTypeEnum"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "abn",
+          "acn",
+          "companyType",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AuthorityPersonIdentitySnapshot": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "profileUuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userId": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "fullName",
+          "profileUuid",
+          "userId"
+        ],
+        "type": "object"
+      },
       "BallotChoiceEnum": {
         "description": "* `for` - For\n* `against` - Against\n* `abstain` - Abstain",
         "enum": [
@@ -1376,6 +1424,231 @@
           "message"
         ],
         "type": "object"
+      },
+      "CompanyAuthorityRequest": {
+        "properties": {
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyIdentity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthorityCompanyIdentitySnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "companyIdentityRaw": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthorityCompanyIdentitySnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "fileSha256": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "fileSize": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "fileUrl": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "mimeType": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "originalFilename": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "personIdentity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthorityPersonIdentitySnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "personIdentityRaw": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthorityPersonIdentitySnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "purpose": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "requestDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "requestedCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "requesterProfile": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAuthorityStatusEnum"
+              }
+            ],
+            "default": "pending",
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "verificationMessage": {
+            "default": "Evidence received and awaiting independent verification. Company authority verification is unavailable; this request grants no company authority.",
+            "readOnly": true,
+            "type": "string"
+          },
+          "verificationStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAuthorityVerificationStatusEnum"
+              }
+            ],
+            "default": "unavailable",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "company",
+          "companyIdentity",
+          "companyIdentityRaw",
+          "createdAt",
+          "delegatableCapabilities",
+          "fileSha256",
+          "fileSize",
+          "fileUrl",
+          "idempotencyKey",
+          "mimeType",
+          "originalFilename",
+          "personIdentity",
+          "personIdentityRaw",
+          "purpose",
+          "requestDigest",
+          "requestedCapabilities",
+          "requestedExpiresAt",
+          "requesterProfile",
+          "status",
+          "uuid",
+          "verificationMessage",
+          "verificationStatus"
+        ],
+        "type": "object"
+      },
+      "CompanyAuthorityRequestUploadRequest": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "type": "array"
+          },
+          "file": {
+            "format": "binary",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "requestedCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "type": "array"
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "file",
+          "idempotencyKey"
+        ],
+        "type": "object"
+      },
+      "CompanyAuthorityStatusEnum": {
+        "description": "* `pending` - pending",
+        "enum": [
+          "pending"
+        ],
+        "type": "string"
+      },
+      "CompanyAuthorityVerificationStatusEnum": {
+        "description": "* `unavailable` - unavailable",
+        "enum": [
+          "unavailable"
+        ],
+        "type": "string"
+      },
+      "CompanyCapabilityEnum": {
+        "description": "* `admin` - Company administration\n* `prepare` - Prepare register decisions\n* `approve` - Approve register decisions\n* `apply` - Apply register decisions\n* `finance` - Company finance\n* `read_register` - Read company register",
+        "enum": [
+          "admin",
+          "prepare",
+          "approve",
+          "apply",
+          "finance",
+          "read_register"
+        ],
+        "type": "string"
       },
       "CompanyDetail": {
         "properties": {
@@ -5485,6 +5758,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/CapitalIncreaseList"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedCompanyAuthorityRequestList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyAuthorityRequest"
             },
             "type": "array"
           }
@@ -15747,6 +16051,202 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/requests/": {
+      "get": {
+        "operationId": "api_v1_company_authority_requests_list",
+        "parameters": [
+          {
+            "description": "Unique identifier (primary key)",
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyAuthorityRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_company_authority_requests_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestUploadRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestUploadRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/requests/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_company_authority_requests_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/requests/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_company_authority_requests_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

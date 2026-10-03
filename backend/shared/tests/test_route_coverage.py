@@ -101,6 +101,8 @@ def matrix_routes():
     def add(method, path):
         routes.add((method.lower(), TEMPLATE.sub("{}", path.split("?")[0])))
 
+    for method, path in matrix.COMPANY_AUTHORITY_ROUTES.values():
+        add(method, path)
     for method, path in matrix.REGISTER_CORRECTION_ROUTES.values():
         add(method, path)
     for method, path in matrix.REGISTER_OPENING_ROUTES.values():

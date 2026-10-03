@@ -35,6 +35,24 @@ Reversal recreates the column with the historical `registry` default for every
 row. It cannot reconstruct a removed `single_issuer` choice. Restore a backup
 to recover that choice; coordinate old code and clients with schema reversal.
 
+## Representative authority requests
+
+`companies/0012_company_authority_request` adds an immutable private-evidence
+request table, requester-only RLS and a guarded creation boundary. Existing
+companies, owners, reviews, register entries and pending instructions are
+preserved. It seeds no appointments and changes no approval or activation.
+The [client workflow](../plans/company-managed-registers/authority-requests.md)
+always remains pending verification.
+
+The migration requires the existing role-creation migration and grants only its
+new table; it does not pull the later catalogue grant ahead of the queue schema
+on a fresh database. Rehearse both an existing database upgrade and a full fresh
+migration with the required ordinary/scoped and role/catalogue checks.
+
+Reversal succeeds only with an empty request table. Once requests exist it
+refuses, preserving request history and its referenced private files. Back up
+database and private storage together; do not delete requests to force a downgrade.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)

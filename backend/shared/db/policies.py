@@ -190,6 +190,7 @@ POLICIES = {
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "companies_companyregistrycheck": ("false", "false"),
+    "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
     "offerings_offering": (
         _company_or_public("company_id"),
         _company("company_id", MANAGEABLE_COMPANIES),

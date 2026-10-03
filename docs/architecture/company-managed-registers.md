@@ -3,7 +3,9 @@
 [Product](../product.md) · [Decisions](../decisions.md#company-managed-registers-and-one-product) · [Roadmap](../roadmap.md)
 
 **Status:** Accepted product direction; phase 1 product-mode retirement delivered.
-Company-authority workflows in later phases remain an implementation plan.
+Unverified [representative authority requests](../plans/company-managed-registers/authority-requests.md)
+can be submitted in both clients. Effective appointments and the dependent
+company-authority workflows remain an implementation plan.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

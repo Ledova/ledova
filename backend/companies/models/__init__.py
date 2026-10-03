@@ -1,3 +1,7 @@
+from companies.models.authority_request import (
+    CompanyAuthorityRequest,
+    CompanyCapability,
+)
 from companies.models.company import Company, CompanyStatus, CompanyType
 from companies.models.document import (
     LISTING_REQUIRED_DOCUMENTS,
@@ -14,6 +18,8 @@ from companies.models.registry_check import (
 
 __all__ = [
     "Company",
+    "CompanyAuthorityRequest",
+    "CompanyCapability",
     "CompanyStatus",
     "CompanyType",
     "CompanyDocument",

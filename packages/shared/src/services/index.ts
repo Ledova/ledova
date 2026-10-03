@@ -65,6 +65,11 @@ export {
   withdrawApplication,
 } from './companies';
 export {
+  getCompanyAuthorityRequests,
+  submitCompanyAuthorityRequest,
+  downloadCompanyAuthorityFile,
+} from './company-authority';
+export {
   getCompanyTokens,
   getCompanyToken,
   createCompanyToken,

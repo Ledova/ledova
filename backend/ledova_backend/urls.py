@@ -48,6 +48,7 @@ urlpatterns = [
     path("webhooks/alchemy/", AlchemyWebhookView.as_view(), name="alchemy-webhook"),
     path("api/operator/", include("operators.urls", namespace="operators")),
     path("api/v1/companies/", include("companies.urls", namespace="companies")),
+    path("api/v1/company-authority/", include("companies.urls_authority", namespace="company-authority")),
     path("api/v1/tokens/", include("tokens.urls", namespace="tokens")),
     path("api/v1/offerings/", include("offerings.urls", namespace="offerings")),
     path("api/v1/subscriptions/", include("offerings.urls_subscriptions", namespace="subscriptions")),

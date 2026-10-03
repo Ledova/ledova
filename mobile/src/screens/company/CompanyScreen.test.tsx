@@ -96,6 +96,8 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
   await fireEvent.press(view.getByText('Published to your members'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');
+  await fireEvent.press(view.getByText('Representative authority'));
+  expect(mockNavigate).toHaveBeenCalledWith('CompanyAuthority');
 });
 
 it('offers Edit company under the page title rather than inside the company card', async () => {

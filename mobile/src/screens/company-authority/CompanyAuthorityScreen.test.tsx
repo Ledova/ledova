@@ -1,0 +1,294 @@
+import React from 'react';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
+import { COMPANY_AUTHORITY_PENDING_NOTICE } from '@ledova/shared';
+import { apiClient } from '../../services/apiClient';
+import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
+import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
+import { CompanyAuthorityScreen } from './CompanyAuthorityScreen';
+
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
+jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
+jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
+jest.mock('../../services/tokenStorage', () => ({ getAccessToken: jest.fn(async () => 'synthetic-access') }));
+jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
+const COMPANIES = '/api/v1/companies/';
+const REQUESTS = '/api/v1/company-authority/requests/';
+const a = { uuid: 'company-a', name: 'Draft A', acn: '000000019', status: 'draft' };
+const b = { uuid: 'company-b', name: 'Draft B', acn: '000000027', status: 'draft' };
+const record = {
+  uuid: 'request-a',
+  company: a.uuid,
+  companyIdentityRaw: { name: 'Frozen Company A', acn: a.acn, abn: '', companyType: 'proprietary' },
+  originalFilename: 'retained.pdf',
+  createdAt: '2026-10-03T00:00:00Z',
+  status: 'pending',
+  verificationStatus: 'unavailable',
+  verificationMessage: COMPANY_AUTHORITY_PENDING_NOTICE,
+  requestedCapabilities: ['prepare'],
+  delegatableCapabilities: ['approve'],
+  requestedExpiresAt: null,
+  fileSha256: 'a'.repeat(64),
+};
+const get = jest.mocked(apiClient.get);
+const post = jest.mocked(apiClient.post);
+const pick = jest.mocked(DocumentPicker.getDocumentAsync);
+let client: QueryClient;
+let history: (typeof record)[];
+let companyReadFailure: boolean;
+let historyReadFailure: boolean;
+let nextKey: number;
+let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData['append']>>;
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+function parts(form: unknown) {
+  return append.mock.calls
+    .filter((_, index) => append.mock.contexts[index] === form)
+    .map(([name, value]) => [name, value] as [string, unknown]);
+}
+
+function field(form: unknown, key: string) {
+  return parts(form).find(([name]) => name === key)?.[1];
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((yes) => {
+    resolve = yes;
+  });
+  return { promise, resolve };
+}
+
+beforeEach(() => {
+  append = jest.spyOn(FormData.prototype, 'append');
+  resetFiles();
+  history = [];
+  companyReadFailure = false;
+  historyReadFailure = false;
+  nextKey = 0;
+  jest
+    .mocked(Crypto.randomUUID)
+    .mockImplementation(() => `00000000-0000-4000-8000-${String(++nextKey).padStart(12, '0')}`);
+  pick.mockReset().mockImplementation(async () => pickedFile());
+  jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(true);
+  jest.mocked(Sharing.shareAsync).mockResolvedValue();
+  post.mockReset().mockResolvedValue({ data: record });
+  get.mockReset().mockImplementation(async (url, config) => {
+    const page = (config?.params as { page?: number } | undefined)?.page ?? 1;
+    if (url === COMPANIES) {
+      if (companyReadFailure) throw new Error('Company read refused');
+      return {
+        data: {
+          results: page === 1 ? [{ uuid: 'active', name: 'Active Company', status: 'active' }] : [a, b],
+          next: page === 1 ? 'https://api.example.test/companies/?page=2' : null,
+          count: 3,
+        },
+      };
+    }
+    if (url === REQUESTS) {
+      if (historyReadFailure) throw new Error('History read refused');
+      return { data: { results: history, count: history.length, next: null } };
+    }
+    if (url === `${REQUESTS}${record.uuid}/file/`)
+      return { data: new Uint8Array([65, 66]).buffer, headers: { 'content-type': 'application/pdf' } };
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+});
+
+afterEach(async () => {
+  await cleanup();
+  client.clear();
+});
+
+async function selectAndPick(view: Awaited<ReturnType<typeof render>>, company = 'Draft B') {
+  await fireEvent.press(await view.findByRole('radio', { name: company }));
+  await fireEvent.press(view.getByRole('button', { name: 'Choose evidence' }));
+  await view.findByRole('button', { name: 'Replace evidence' });
+}
+
+it('reads every owned-company page, requires explicit selection and submits separate permission scopes', async () => {
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  expect(await view.findByText('Select a company to prepare your request.')).toBeTruthy();
+  expect(view.queryByRole('radio', { name: 'Active Company' })).toBeNull();
+  expect(view.queryByRole('button', { name: 'Choose evidence' })).toBeNull();
+  expect(get).toHaveBeenCalledWith(COMPANIES, { params: { page: 2 }, ledovaSessionEpoch: getSessionEpoch() });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Approve register changes' }));
+  const epoch = getSessionEpoch();
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  expect(await view.findByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeTruthy();
+  const body = post.mock.calls[0][1];
+  expect(field(body, 'company')).toBe(b.uuid);
+  expect(parts(body)).toEqual(
+    expect.arrayContaining([
+      ['requested_capabilities', 'prepare'],
+      ['delegatable_capabilities', 'approve'],
+    ]),
+  );
+  expect(field(body, 'file')).toEqual(expect.objectContaining({ name: '1.pdf', type: 'application/pdf' }));
+  expect(parts(body).some(([name]) => /verified|representative|requester|provider|status/.test(name))).toBe(false);
+  expect(post.mock.calls[0][2]).toEqual(expect.objectContaining({ ledovaSessionEpoch: epoch }));
+  expect([...files.keys()].some((uri) => uri.includes('ledova-upload-copies'))).toBe(false);
+});
+
+it('allows delegation-only evidence and an optional expiry without inventing exercised permissions', async () => {
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  expect(view.getByRole('button', { name: 'Submit authority request' })).toBeDisabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Read company register' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Choose expiry date' }));
+  await fireEvent(view.getByTestId('authority-expiry'), 'onChange', { type: 'set' }, new Date('2099-01-01T00:00:00Z'));
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(parts(post.mock.calls[0][1]).filter(([name]) => name === 'requested_capabilities')).toEqual([]);
+  expect(field(post.mock.calls[0][1], 'delegatable_capabilities')).toBe('read_register');
+  expect(field(post.mock.calls[0][1], 'requested_expires_at')).toBe('2099-01-01T00:00:00.000Z');
+});
+
+it('keeps exact evidence and idempotency key through an interrupted response, then rotates the key for changed terms', async () => {
+  post.mockRejectedValue({ response: { data: { detail: 'Response interrupted' } } });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  await view.findByText('Response interrupted');
+  const first = post.mock.calls[0][1];
+  const uri = (field(first, 'file') as { uri: string }).uri;
+  expect(files.has(uri)).toBe(true);
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  expect(parts(post.mock.calls[1][1])).toEqual(parts(first));
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Approve register changes' }));
+  post.mockResolvedValue({ data: record });
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(3));
+  expect(field(post.mock.calls[2][1], 'idempotency_key')).not.toEqual(field(first, 'idempotency_key'));
+  expect(field(post.mock.calls[2][1], 'file')).toEqual(field(first, 'file'));
+  expect(files.has(uri)).toBe(false);
+});
+
+it('retires evidence when the selected company changes and never submits it for the new company', async () => {
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  const uri = [...files.keys()].find((value) => value.includes('ledova-upload-copies'))!;
+  await fireEvent.press(view.getByRole('radio', { name: 'Draft A' }));
+  expect(view.getByRole('button', { name: 'Choose evidence' })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Submit authority request' })).toBeDisabled();
+  expect(files.has(uri)).toBe(false);
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('retains the draft but blocks a cached company after refresh fails and recovers through retry', async () => {
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  companyReadFailure = true;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await view.findByText('Your companies could not be loaded. Retry before submitting.');
+  expect(view.getByRole('button', { name: 'Submit authority request' })).toBeDisabled();
+  expect(view.getByText('1.pdf')).toBeTruthy();
+  companyReadFailure = false;
+  await fireEvent.press(view.getByRole('button', { name: 'Retry companies' }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Submit authority request' })).toBeEnabled());
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('reads every own-history page and displays frozen identity, pending status and retained evidence', async () => {
+  const previous = get.getMockImplementation()!;
+  get.mockImplementation(async (url, config) => {
+    if (url !== REQUESTS) return previous(url, config);
+    const page = (config?.params as { page?: number } | undefined)?.page ?? 1;
+    return {
+      data: {
+        results: page === 1 ? [] : [record],
+        next: page === 1 ? 'https://api.example.test/requests/?page=2' : null,
+        count: 1,
+      },
+    };
+  });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  expect(await view.findByText('Frozen Company A')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Request retained.pdf' }));
+  expect(view.getByText(a.acn)).toBeTruthy();
+  expect(view.getAllByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toHaveLength(2);
+  await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
+  await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
+  expect(get).toHaveBeenCalledWith(`${REQUESTS}${record.uuid}/file/`, {
+    responseType: 'arraybuffer',
+    ledovaSessionEpoch: getSessionEpoch(),
+  });
+  expect(view.queryByRole('button', { name: /approve request|activate company|delete request/i })).toBeNull();
+});
+
+it('hides cached history and exposes a retry after a refused history refresh', async () => {
+  history = [record];
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await view.findByText('Frozen Company A');
+  historyReadFailure = true;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await view.findByText('Your requests could not be loaded.');
+  expect(view.queryByText('Frozen Company A')).toBeNull();
+  historyReadFailure = false;
+  await fireEvent.press(view.getByRole('button', { name: 'Retry requests' }));
+  expect(await view.findByText('Frozen Company A')).toBeTruthy();
+});
+
+it('clears private history and selected evidence as soon as the authenticated session changes', async () => {
+  history = [record];
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await view.findByText('Frozen Company A');
+  await selectAndPick(view);
+  const uri = [...files.keys()].find((value) => value.includes('ledova-upload-copies'))!;
+  history = [];
+  await act(() => invalidateSessionScope());
+  expect(view.queryByText('Frozen Company A')).toBeNull();
+  expect(view.queryByText('1.pdf')).toBeNull();
+  expect(files.has(uri)).toBe(false);
+  expect(await view.findByText('Select a company to prepare your request.')).toBeTruthy();
+});
+
+it('suppresses a previous session submission result and retains active upload bytes until it settles', async () => {
+  const response = deferred<{ data: typeof record }>();
+  post.mockReturnValue(response.promise);
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const uri = (field(post.mock.calls[0][1], 'file') as { uri: string }).uri;
+  await act(() => invalidateSessionScope());
+  expect(files.has(uri)).toBe(true);
+  await act(() => response.resolve({ data: record }));
+  await waitFor(() => expect(files.has(uri)).toBe(false));
+  expect(view.queryByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeNull();
+});
+
+it('does not share a private download that completes after sign-out', async () => {
+  history = [record];
+  const response = deferred<{ data: ArrayBuffer; headers: { 'content-type': string } }>();
+  const previous = get.getMockImplementation()!;
+  get.mockImplementation((url, config) =>
+    url === `${REQUESTS}${record.uuid}/file/` ? response.promise : previous(url, config),
+  );
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
+  await waitFor(() => expect(get).toHaveBeenCalledWith(`${REQUESTS}${record.uuid}/file/`, expect.any(Object)));
+  history = [];
+  await act(() => invalidateSessionScope());
+  await act(() => response.resolve({ data: new ArrayBuffer(2), headers: { 'content-type': 'application/pdf' } }));
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+  expect([...files.keys()].some((uri) => uri.includes('ledova-document-views'))).toBe(false);
+});
