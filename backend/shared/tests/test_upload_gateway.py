@@ -52,13 +52,14 @@ class UploadRouteCoverageTest(TestCase):
                         self.assertEqual((method, action), ("post", "create"))
                         self.assertEqual(fields, {view.upload_field})
                     found.add(view)
-        self.assertEqual(len(found), 3)
+        self.assertEqual(len(found), 4)
 
-    def test_the_gateway_resolves_all_three_upload_routes_and_leaves_reads_alone(self):
+    def test_the_gateway_resolves_all_upload_routes_and_leaves_reads_alone(self):
         for path in (
             "/api/v1/documents/",
             "/api/v1/companies/00000000-0000-0000-0000-000000000001/documents/",
             "/api/investor-classifications/",
+            "/api/v1/company-authority/requests/",
         ):
             self.assertTrue(is_upload_request(path, "POST"))
             self.assertFalse(is_upload_request(path, "GET"))

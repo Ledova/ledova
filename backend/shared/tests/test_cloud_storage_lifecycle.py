@@ -16,8 +16,10 @@ from google.auth.credentials import AnonymousCredentials
 from storages.backends.gcloud import GoogleCloudStorage
 from storages.backends.s3 import S3Storage
 
-from companies.models import Company, CompanyDocument
+from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
+from companies.services.authority_requests import submit_authority_request
 from companies.services.document_review import prepare_document_review, verify_document
+from companies.tests.test_authority_requests import authority_fixture, evidence
 from companies.tests.test_document_file_access import attach_file, make_document
 from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
@@ -166,6 +168,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     {
                         (Document, "file"),
                         (CompanyDocument, "file"),
+                        (CompanyAuthorityRequest, "file"),
                         (InvestorClassification, "evidence_file"),
                         (RegisterCorrection, "file"),
                         (RegisterOpening, "file"),
@@ -180,6 +183,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 for model in (
                     Document,
                     CompanyDocument,
+                    CompanyAuthorityRequest,
                     RegisterCorrection,
                     RegisterOpening,
                     RegisterWalletLink,
@@ -192,6 +196,28 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):
                     storage.path("documents/no-filesystem.pdf")
+
+    def test_retained_authority_evidence_survives_cloud_orphan_sweeps(self):
+        for backend, acn in (("s3", "000000019"), ("gcs", "000000027")):
+            with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
+                requester, _, company = authority_fixture(f"cloud-authority-{backend}", acn)
+                with patch("shared.uploads.scan_upload"):
+                    proposal, _ = submit_authority_request(
+                        requester=requester,
+                        company_id=company.pk,
+                        idempotency_key=uuid4(),
+                        file=evidence(),
+                        requested_capabilities=["prepare"],
+                    )
+                original = objects.files[proposal.file.name]
+                orphan = storage.save("companies/interrupted-authority.bin", ContentFile(PDF))
+                for key in objects.files:
+                    objects.modified[key] = timezone.now() - GRACE - timedelta(seconds=1)
+                result = sweep_orphaned_files(storage=storage)
+                self.assertEqual(result["deleted"], 1)
+                self.assertNotIn(orphan, objects.files)
+                self.assertEqual(objects.files[proposal.file.name], original)
+                self.assertTrue(CompanyAuthorityRequest.objects.filter(pk=proposal.pk).exists())
 
     def test_retained_opening_copy_survives_source_deletion_and_orphan_sweep(self):
         for backend in ("s3", "gcs"):
