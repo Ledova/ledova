@@ -6,7 +6,9 @@ The initial increments of [#862](https://github.com/Ledova/ledova/issues/862) re
 private evidence of a proposed company appointment and let its requester withdraw
 it. A request is **pending verification** until withdrawn; it grants no company
 authority in either state. The repository has no
-configured representative-mandate verifier. KYC, company identity checks and
+configured representative-mandate verifier. The owner has selected a future
+[ASIC officeholder-matching route](../../architecture/company-managed-registers.md#representative-verification);
+its provider integration is not delivered. KYC, company identity checks and
 historical staff attestations do not supply that missing result.
 
 Use synthetic people, companies and evidence in this experimental implementation.
@@ -109,6 +111,13 @@ The request guard refuses `null` capability elements from `companies/0014`;
 reversing that migration accepts them again, as the upgrade notes describe.
 
 ## Remaining verification boundary
+
+The selected route matches the initial representative's verified identity to a
+current ASIC director or secretary of the exact ACN through a purchased provider
+search. Other representatives receive in-app delegation from a verified
+officeholder. Provider choice, account and sandbox credentials remain outstanding;
+the accepted plan records the required proof and the distinction between
+officeholder matching and action-specific company authority.
 
 A later admission workflow must bind fresh, attributable identity, entity and
 representative-mandate results to this exact retained request before creating an

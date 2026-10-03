@@ -105,6 +105,8 @@ non-tokenised register member.
 Bootstrap starts with fresh company and participant signup. Establish initial
 company access through verified representative authority and recorded company
 identity/registry results; registration alone does not grant a director mandate.
+The selected [representative verification route](#representative-verification)
+is ASIC officeholder matching, followed by in-app delegation.
 Company activation becomes a validated workflow outcome when its configured
 requirements are met, rather than an unconditional platform-staff approval.
 Company-appointed approvers control offering publication under recorded terms
@@ -118,6 +120,32 @@ verification facts do not automatically approve investing in every company.
 Participant wallet-ownership proof is already self-service. Company-specific
 wallet/whitelist approval is a separate decision that needs company capability
 and provider/check evidence before automated application.
+
+### Representative verification
+
+On 4 October 2026 (Australia/Sydney), the owner
+[selected ASIC officeholder matching](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155).
+The initial representative's verified identity must match a current director or
+secretary of the exact ACN, using an ASIC registry search purchased through a
+data provider. Other representatives receive in-app delegation from a verified
+officeholder, within that person's delegatable company mandate.
+
+The data provider, account and sandbox credentials still need to be supplied.
+Its authenticated result contract and integration must establish the exact
+person, company and current officeholder role, with attributable evidence bound
+to the retained request. Missing, ambiguous or unavailable verification remains
+unresolved; no mock result, uploaded declaration, KYC result alone or staff
+override establishes the registry match. Preserve private evidence, provenance,
+expiry and revocation checks.
+
+This choice does not equate a secretary's role with directorship or resolve the
+capability bundles and company approval policy. An officeholder match establishes
+the selected bootstrap proof; subsequent actions still require their applicable
+company mandate, capability and exact approval. Registration or existing company
+ownership alone grants none of that proof. Effective admission, appointments and
+delegation remain planned; the delivered
+[request lifecycle](../plans/company-managed-registers/authority-requests.md)
+only retains pending proposals and withdrawals.
 
 ## Required self-service workflows
 
@@ -297,8 +325,10 @@ not itself prove any new workflow works.
 
 ## Implementation decisions still needed
 
-Exact capability bundles, bootstrap authority proof, approval policies,
-external-signature capture and provider integrations need detailed design against
-company workflows. Company registration must not imply unverified directorship.
+The bootstrap verification route is selected above; its data provider, access
+and genuine result/proof integration remain prerequisites. Exact capability
+bundles, approval policies, external-signature capture and delegation/recovery
+checks need detailed design against company workflows. Company registration
+must not imply unverified directorship.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.
