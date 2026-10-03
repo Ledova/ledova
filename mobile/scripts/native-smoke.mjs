@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { setTimeout, clearTimeout } from 'node:timers';
 import { createAndroidTestPackages } from './android-test-packages.mjs';
 import { waitForContent } from './screen-content.mjs';
-import { refuseNotResponding, windowFocus } from './window-focus.mjs';
+import { checkFocus, windowFocus } from './window-focus.mjs';
 
 const mobile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [platform, output] = process.argv.slice(2);
@@ -347,14 +347,14 @@ async function screenshot(name) {
 
 function focus(name) {
   if (platform !== 'android') return {};
-  const windows = execFileSync(adb, [...adbArgs, 'shell', 'dumpsys', 'window', 'windows'], {
+  const displays = execFileSync(adb, [...adbArgs, 'shell', 'dumpsys', 'window', 'displays'], {
     encoding: 'utf8',
     maxBuffer: 16 * 1024 * 1024,
     timeout: 15000,
     killSignal: 'SIGKILL',
   });
-  fs.writeFileSync(path.join(directory, `${name}-windows.txt`), windows);
-  return windowFocus(windows);
+  fs.writeFileSync(path.join(directory, `${name}-window-displays.txt`), displays);
+  return windowFocus(displays);
 }
 
 function checkAndroidArtifact(artifact) {
@@ -501,7 +501,7 @@ try {
     path.join(directory, 'ordinary-screen.json'),
     JSON.stringify({ ...launchScreen, ...launchFocus }, null, 2),
   );
-  refuseNotResponding(launchFocus, 'ordinary.png');
+  checkFocus(launchFocus, 'ordinary.png');
   if (platform === 'android') {
     await command(
       './gradlew',

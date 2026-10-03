@@ -7,7 +7,7 @@ import vm from 'node:vm';
 import { crc32, deflateSync } from 'node:zlib';
 import { test } from 'node:test';
 import { decodePng, hasContent, minimumContent, screenContent, waitForContent } from '../screen-content.mjs';
-import { refuseNotResponding } from '../window-focus.mjs';
+import { checkFocus } from '../window-focus.mjs';
 
 const mobile = path.resolve(import.meta.dirname, '../..');
 const fixtures = path.join(import.meta.dirname, 'fixtures');
@@ -212,7 +212,7 @@ function ordinaryLaunch(context, frames, focused = { focus: appFocus }) {
       events.push(`focus ${name}`);
       return focused;
     },
-    refuseNotResponding,
+    checkFocus,
   };
   const run = vm.compileFunction(
     `return (async () => { ${source.slice(start, end)} })()`,
@@ -257,4 +257,14 @@ test('a launch screenshot with content still fails while a SystemUI Application 
   const ios = ordinaryLaunch(context, [signIn], {});
   await ios.run;
   assert.equal(JSON.parse(fs.readFileSync(ios.record, 'utf8')).focus, undefined);
+});
+
+test('a launch screenshot whose window dump has no current focus fails as unchecked, and its record is kept', async (context) => {
+  const unknown = ordinaryLaunch(context, [signIn], { focus: [] });
+  await assert.rejects(
+    unknown.run,
+    /^Error: ordinary\.png could not be checked: the window dump has no mCurrentFocus line, so focus is unknown\.$/,
+  );
+  const recorded = JSON.parse(fs.readFileSync(unknown.record, 'utf8'));
+  assert.deepEqual([recorded.dominant, recorded.focus], ['#f6f3ec', []]);
 });

@@ -76,6 +76,7 @@ jobs:
           printf 'no\n' | avdmanager create avd --name ledova_native --package 'system-images;android-36;google_apis;x86_64' --device pixel_6
           sudo chmod a+rw /dev/kvm
           vmstat -t -w 15 > "$RUNNER_TEMP/ledova-host-vmstat.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/ledova-samplers.pid"
           "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -camera-front emulated -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 2 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
@@ -83,9 +84,10 @@ jobs:
           (
             while sleep 30; do
               printf '== %s\n' "$(date -u +%FT%TZ)"
-              timeout 10 adb -s "$ANDROID_SERIAL" shell 'cat /proc/loadavg; head -n 1 /proc/stat; grep -E "^(MemAvailable|SwapFree):" /proc/meminfo; cat /proc/pressure/cpu /proc/pressure/memory' || true
+              timeout 10 adb -s "$ANDROID_SERIAL" shell 'cat /proc/loadavg; head -n 1 /proc/stat; grep -E "^(MemAvailable|SwapFree):" /proc/meminfo' || echo "sample failed with exit status $?"
             done
           ) > "$RUNNER_TEMP/ledova-guest-load.log" 2>&1 &
+          echo $! >> "$RUNNER_TEMP/ledova-samplers.pid"
       - name: Generate and check Debug and Release policy
         working-directory: mobile
         run: |
@@ -99,11 +101,17 @@ jobs:
         run: |
           records="$RUNNER_TEMP/ledova-native-android"
           mkdir -p "$records"
-          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys dropbox --print system_app_anr > "$records/guest-anr-dropbox.txt" 2>&1 || true
-          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys dropbox --print data_app_anr >> "$records/guest-anr-dropbox.txt" 2>&1 || true
-          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys window lastanr > "$records/guest-last-anr.txt" 2>&1 || true
-          timeout 60 adb -s "$ANDROID_SERIAL" logcat -d -b events -v UTC -v year > "$records/guest-events.log" 2>&1 || true
-          timeout 60 adb -s "$ANDROID_SERIAL" logcat -d -b system,crash -v UTC -v year > "$records/guest-system.log" 2>&1 || true
+          record() {
+            local file=$1 status=0
+            shift
+            timeout 60 adb -s "$ANDROID_SERIAL" "$@" >> "$records/$file" 2>&1 || status=$?
+            printf '%s %s: adb %s exited %s\n' "$(date -u +%FT%TZ)" "$file" "$*" "$status" >> "$records/guest-records-status.txt"
+          }
+          record guest-anr-dropbox.txt shell dumpsys dropbox --print system_app_anr
+          record guest-anr-dropbox.txt shell dumpsys dropbox --print data_app_anr
+          record guest-last-anr.txt shell dumpsys window lastanr
+          record guest-events.log logcat -d -b events -v UTC -v year
+          record guest-system.log logcat -d -b system,crash -v UTC -v year
       - name: Preserve native evidence and the ordinary test-signed Release APK
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -123,6 +131,7 @@ jobs:
       - name: Remove the owned emulator
         if: always()
         run: |
+          if [ -f "$RUNNER_TEMP/ledova-samplers.pid" ]; then xargs -r kill < "$RUNNER_TEMP/ledova-samplers.pid" || true; fi
           adb -s "$ANDROID_SERIAL" emu kill || true
           export JAVA_HOME="$JAVA_HOME_21_X64"
           avdmanager delete avd --name ledova_native || true
