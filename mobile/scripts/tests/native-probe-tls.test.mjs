@@ -13,7 +13,7 @@ function fixture(untrustedEndpoint, check, { withoutShell = false } = {}) {
     fs.mkdirSync(path.join(root, 'scripts'));
     fs.mkdirSync(path.join(root, 'bin'));
     fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
-    for (const module of ['native-smoke.mjs', 'android-test-packages.mjs', 'screen-content.mjs']) {
+    for (const module of ['native-smoke.mjs', 'android-test-packages.mjs', 'screen-content.mjs', 'window-focus.mjs']) {
       fs.copyFileSync(path.join(mobile, 'scripts', module), path.join(root, 'scripts', module));
     }
     let server = fs.readFileSync(path.join(mobile, 'scripts/native-probe-server.mjs'), 'utf8');

@@ -10,6 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { setTimeout, clearTimeout } from 'node:timers';
 import { createAndroidTestPackages } from './android-test-packages.mjs';
 import { waitForContent } from './screen-content.mjs';
+import { checkFocus, windowFocus } from './window-focus.mjs';
 
 const mobile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [platform, output] = process.argv.slice(2);
@@ -344,6 +345,18 @@ async function screenshot(name) {
   }
 }
 
+function focus(name) {
+  if (platform !== 'android') return {};
+  const displays = execFileSync(adb, [...adbArgs, 'shell', 'dumpsys', 'window', 'displays'], {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+    timeout: 15000,
+    killSignal: 'SIGKILL',
+  });
+  fs.writeFileSync(path.join(directory, `${name}-window-displays.txt`), displays);
+  return windowFocus(displays);
+}
+
 function checkAndroidArtifact(artifact) {
   const aapt = path.join(sdk, 'build-tools/36.0.0/aapt2');
   const resources = execFileSync(aapt, ['dump', 'resources', artifact], {
@@ -482,7 +495,13 @@ try {
   await launch('ordinary');
   await delay(10000);
   const launchScreen = await waitForContent(() => screenshot('ordinary'), path.join(directory, 'ordinary.png'));
-  fs.writeFileSync(path.join(directory, 'ordinary-screen.json'), JSON.stringify(launchScreen, null, 2));
+  markStage('ordinary-focus');
+  const launchFocus = focus('ordinary');
+  fs.writeFileSync(
+    path.join(directory, 'ordinary-screen.json'),
+    JSON.stringify({ ...launchScreen, ...launchFocus }, null, 2),
+  );
+  checkFocus(launchFocus, 'ordinary.png');
   if (platform === 'android') {
     await command(
       './gradlew',

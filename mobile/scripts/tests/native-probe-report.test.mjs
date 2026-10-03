@@ -295,7 +295,7 @@ async function publication(filename) {
   const output = path.join(root, 'results');
   fs.mkdirSync(path.join(root, 'scripts'));
   fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
-  for (const module of ['android-test-packages.mjs', 'screen-content.mjs']) {
+  for (const module of ['android-test-packages.mjs', 'screen-content.mjs', 'window-focus.mjs']) {
     fs.copyFileSync(path.join(mobile, 'scripts', module), path.join(root, 'scripts', module));
   }
   let server = fs.readFileSync(path.join(mobile, 'scripts/native-probe-server.mjs'), 'utf8');
