@@ -53,7 +53,7 @@ owning issues replace them. See the [dependency index](README.md#delivery-tracki
 
 `/api/v1/company-authority/requests/` provides authenticated multipart submission
 and paginated personal history. Detail and file actions resolve only the caller's
-own request. Active accounts with verified email are required; submission also
+own request. Active accounts with verified email are required; a new submission also
 requires current ownership of the selected draft company. Public company
 visibility, shareholder records and staff permissions do not widen that scope.
 
@@ -61,7 +61,13 @@ The server resolves the person and profile, validates the upload and freezes the
 raw and normalised identities, file SHA256/size/type, requested scope and expiry.
 It accepts no caller-supplied verification result or representative account.
 An identical retry under the same requester-scoped idempotency key returns the
-retained request. Changed evidence, terms, company or captured identity conflicts;
+retained request, including after its company leaves draft or changes owner.
+Retries compare the exact incoming bytes, filename, declared MIME type and terms
+with the retained digest and current company/person identities. They do not scan
+the same retained evidence again, so scanner unavailability does not prevent an
+identical retry. Bounded input capture and the current account checks still apply.
+New keys require successful upload validation and current draft-company ownership.
+Changed evidence, terms, company or captured identity conflicts;
 submit a new request for changed information. Clients preserve a key for retries
 and replace it when inputs change.
 
