@@ -105,6 +105,8 @@ private-storage backup together. Follow [upgrade notes](../../operations/upgrade
 
 Withdrawal migration reversal likewise refuses to discard populated withdrawal
 history; its empty reversal preserves existing requests and their evidence.
+The request guard refuses `null` capability elements from `companies/0014`;
+reversing that migration accepts them again, as the upgrade notes describe.
 
 ## Remaining verification boundary
 
