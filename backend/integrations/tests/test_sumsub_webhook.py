@@ -22,7 +22,7 @@ from integrations.tests.sumsub_payloads import (
 )
 from shared.models import Country
 from users.models import UserAccount, UserProfile
-from users.services.identity import IdentityVerificationService
+from users.services import identity
 
 User = get_user_model()
 
@@ -57,7 +57,7 @@ class SumSubWebhookCase(APITestCase):
 
 class SumSubWebhookTest(SumSubWebhookCase):
     def test_reviewed_event_reads_sumsub_camel_case_keys_and_verifies(self):
-        with patch.object(IdentityVerificationService, "_trigger_risk_assessment") as risk_assessment, patch(
+        with patch.object(identity, "_trigger_risk_assessment") as risk_assessment, patch(
             "users.tasks.notifications.send_push_notification"
         ) as push_task, patch.object(
             SumSubService, "get_verification_steps", return_value=verification_steps()

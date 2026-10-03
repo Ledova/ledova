@@ -14,7 +14,8 @@ from integrations.kycaid.client import KYCAIDService
 from integrations.sumsub.client import SumSubService
 from shared.models import Country
 from users.models import Notification, UserAccount, UserProfile
-from users.services.identity import REVIEW_OUTCOME_MESSAGES, IdentityVerificationService
+from users.services import identity
+from users.services.identity import REVIEW_OUTCOME_MESSAGES
 from users.tasks.notifications import send_push_notification as run_task
 
 User = get_user_model()
@@ -41,8 +42,8 @@ class IdentityVerificationApprovalTest(TestCase):
     def test_green_result_with_citizenship_activates_account(self):
         profile, account = self._profile_with_citizenship("AU")
 
-        with patch.object(IdentityVerificationService, "_trigger_risk_assessment") as risk_assessment:
-            self.assertTrue(IdentityVerificationService.update_status_from_normalized(profile, self._green()))
+        with patch.object(identity, "_trigger_risk_assessment") as risk_assessment:
+            self.assertTrue(identity.update_status_from_normalized(profile, self._green()))
 
         profile.refresh_from_db()
         account.refresh_from_db()
@@ -54,8 +55,8 @@ class IdentityVerificationApprovalTest(TestCase):
     def test_green_result_with_blacklisted_citizenship_rejects_account(self):
         profile, account = self._profile_with_citizenship("kp")
 
-        with patch.object(IdentityVerificationService, "_trigger_risk_assessment") as risk_assessment:
-            IdentityVerificationService.update_status_from_normalized(profile, self._green())
+        with patch.object(identity, "_trigger_risk_assessment") as risk_assessment:
+            identity.update_status_from_normalized(profile, self._green())
 
         account.refresh_from_db()
         self.assertEqual(account.account_status, "rejected")
@@ -67,8 +68,8 @@ class IdentityVerificationApprovalTest(TestCase):
         profile.kyc_provider = "sumsub"
         profile.save(update_fields=["kyc_provider"])
 
-        with patch.object(IdentityVerificationService, "_trigger_risk_assessment"):
-            IdentityVerificationService.update_status_from_normalized(profile, self._green())
+        with patch.object(identity, "_trigger_risk_assessment"):
+            identity.update_status_from_normalized(profile, self._green())
 
         profile.refresh_from_db()
         self.assertEqual(profile.sumsub_verification_status, "completed")
@@ -80,7 +81,7 @@ class IdentityVerificationApprovalTest(TestCase):
             verification_status="completed", review_result="YELLOW", is_verified=False
         )
 
-        IdentityVerificationService.update_status_from_normalized(profile, yellow)
+        identity.update_status_from_normalized(profile, yellow)
 
         profile.refresh_from_db()
         self.assertTrue(profile.needs_verification_retry)
@@ -93,10 +94,10 @@ class IdentityVerificationApprovalTest(TestCase):
             verification_status="completed", review_result="YELLOW", is_verified=False
         )
 
-        with patch.object(IdentityVerificationService, "_trigger_risk_assessment"):
-            IdentityVerificationService.update_status_from_normalized(profile, yellow)
-            IdentityVerificationService.update_status_from_normalized(profile, yellow)
-            IdentityVerificationService.update_status_from_normalized(profile, self._green())
+        with patch.object(identity, "_trigger_risk_assessment"):
+            identity.update_status_from_normalized(profile, yellow)
+            identity.update_status_from_normalized(profile, yellow)
+            identity.update_status_from_normalized(profile, self._green())
 
         self.assertEqual(self.push_task.defer.call_count, 2)
         self.push_task.defer.assert_called_with(
@@ -128,7 +129,7 @@ class IdentityVerificationApprovalTest(TestCase):
 
         with patch.object(RiskAssessmentService, "calculate_and_create", side_effect=broken_assessment):
             with self.assertLogs("users.services.identity", level="ERROR") as logs:
-                self.assertTrue(IdentityVerificationService.update_status_from_normalized(profile, self._green()))
+                self.assertTrue(identity.update_status_from_normalized(profile, self._green()))
 
         self.assertIn("Error triggering risk assessment", "\n".join(logs.output))
         profile.refresh_from_db()
@@ -145,7 +146,7 @@ class IdentityVerificationApprovalTest(TestCase):
         )
 
         with self.assertRaises(RuntimeError):
-            IdentityVerificationService.update_status_from_normalized(profile, yellow)
+            identity.update_status_from_normalized(profile, yellow)
 
         profile.refresh_from_db()
         self.assertIsNone(profile.review_result)
@@ -223,7 +224,7 @@ class PopulateProfileTest(TestCase):
         profile = UserProfile.objects.create(user=user)
 
         self.assertTrue(
-            IdentityVerificationService.populate_profile(
+            identity.populate_profile(
                 profile, {"fullName": "Res Ident", "address": None, "dateOfBirth": None, "residenceCountry": "AUS"}
             )
         )

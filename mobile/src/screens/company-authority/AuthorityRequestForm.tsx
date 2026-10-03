@@ -29,7 +29,7 @@ export function AuthorityRequestForm({
   const styles = useCompanyStyles();
   const document = useDocumentUpload(company.uuid);
   const [idempotencyKey, setIdempotencyKey] = useState(() => Crypto.randomUUID());
-  const [requested, setRequested] = useState<CompanyCapability[]>([]);
+  const [requested, setRequested] = useState<CompanyCapability[]>(['admin']);
   const [delegatable, setDelegatable] = useState<CompanyCapability[]>([]);
   const [expiresAt, setExpiresAt] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -91,10 +91,14 @@ export function AuthorityRequestForm({
   return (
     <View style={styles.group}>
       <Text style={styles.heading}>{company.name}</Text>
-      <Text style={styles.muted}>ACN {company.acn}</Text>
+      <Text style={styles.muted}>ACN {company.acn} · Provided by the company</Text>
       <Text style={styles.muted}>
-        Request authority for yourself using evidence of your relationship with this company. Requested permissions are
-        proposals; submission does not appoint you or activate the company.
+        Submit a private request for your own representative role, then accept the authorisation declaration to
+        establish your appointment. Submitting evidence alone does not appoint you or activate the company.
+      </Text>
+      <Text style={styles.muted}>
+        Initial admission requires Manage company team in your own permissions. Evidence and history remain private to
+        your account; no ASIC extract is required.
       </Text>
       {(
         [

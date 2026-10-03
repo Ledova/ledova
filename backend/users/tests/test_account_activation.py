@@ -19,7 +19,7 @@ from users.constants import (
     ACCOUNT_STATUS_SUSPENDED,
 )
 from users.models import UserAccount, UserProfile
-from users.services.identity import IdentityVerificationService
+from users.services import identity
 
 User = get_user_model()
 PUSH_TASK = "users.tasks.notifications.send_push_notification"
@@ -56,7 +56,7 @@ class IdentityCheckActivationTest(TestCase):
     def verify(self, account, result, moment):
         profile = UserProfile.objects.get(pk=account.user_profile_id)
         with at(moment):
-            IdentityVerificationService.update_status_from_normalized(profile, verdict(result))
+            identity.update_status_from_normalized(profile, verdict(result))
         account.refresh_from_db()
         return profile
 

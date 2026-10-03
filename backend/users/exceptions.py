@@ -21,3 +21,9 @@ class InvestorNotEligibleException(APIException):
     def __init__(self, reasons):
         super().__init__(detail=f"{self.default_detail} ({', '.join(reasons)})")
         self.reasons = tuple(reasons)
+
+
+class VerificationTokenGenerationException(APIException):
+    status_code = 502
+    default_detail = "Unable to initialize verification. Please try again."
+    default_code = "verification_token_generation_failed"

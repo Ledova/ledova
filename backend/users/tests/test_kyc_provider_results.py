@@ -25,7 +25,7 @@ from integrations.tests.sumsub_payloads import (
 )
 from shared.models import Country
 from users.models import UserAccount, UserProfile
-from users.services.identity import IdentityVerificationService
+from users.services import identity
 
 User = get_user_model()
 PUSH_TASK = "users.tasks.notifications.send_push_notification"
@@ -209,7 +209,7 @@ class PoliticallyExposedPersonPolicyTest(TestCase):
 
     def approve(self, email, normalized, **profile_fields):
         profile, account = a_person(email, **profile_fields)
-        IdentityVerificationService.update_status_from_normalized(profile, normalized)
+        identity.update_status_from_normalized(profile, normalized)
         account.refresh_from_db()
         return account
 

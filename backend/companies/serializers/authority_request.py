@@ -1,15 +1,24 @@
+from collections.abc import Mapping
+
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import CompanyAuthorityRequest, CompanyCapability, CompanyType
+from companies.models import (
+    CompanyAppointment,
+    CompanyAuthorityRequest,
+    CompanyCapability,
+    CompanyType,
+)
+from companies.services.authority import DECLARATION_VERSION, has_company_capability
 
 VERIFICATION_UNAVAILABLE = (
-    "Evidence received and awaiting independent verification. Company authority verification is unavailable; "
-    "this request grants no company authority."
+    "Evidence retained. Accept the company authorisation declaration to establish initial authority after "
+    "the required identity and ABR company checks pass. This pending request grants no company authority."
 )
 WITHDRAWN_MESSAGE = (
     "Request withdrawn. Its evidence and original terms remain retained and accessible; "
-    "company authority verification is unavailable, and this request grants no company authority."
+    "this request grants no company authority. Submit a new request to declare company authorisation."
 )
 
 
@@ -26,6 +35,8 @@ class CompanyAuthorityRequestUploadSerializer(serializers.Serializer):
     requested_expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
 
     def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"non_field_errors": ["Submit the declaration as an object."]})
         unexpected = set(data) - set(self.fields)
         if unexpected:
             raise serializers.ValidationError({key: "This field cannot be submitted." for key in sorted(unexpected)})
@@ -48,6 +59,56 @@ class CompanyAuthorityRequestWithdrawalSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
+class CompanyAuthorityRequestAdmissionSerializer(serializers.Serializer):
+    declaration_version = serializers.ChoiceField(choices=[DECLARATION_VERSION])
+    accept_declaration = serializers.BooleanField()
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"non_field_errors": ["Submit the declaration as an object."]})
+        unexpected = set(data) - set(self.fields)
+        if unexpected:
+            raise serializers.ValidationError({key: "This field cannot be submitted." for key in sorted(unexpected)})
+        if data.get("accept_declaration") is not True:
+            raise serializers.ValidationError({"accept_declaration": "Accept the company authorisation declaration."})
+        return super().to_internal_value(data)
+
+
+class CompanyAppointmentSerializer(serializers.ModelSerializer):
+    is_effective = serializers.SerializerMethodField()
+    capabilities = serializers.ListField(
+        child=serializers.ChoiceField(choices=CompanyCapability.choices), read_only=True
+    )
+    delegatable_capabilities = serializers.ListField(
+        child=serializers.ChoiceField(choices=CompanyCapability.choices), read_only=True
+    )
+    revoked_at = serializers.DateTimeField(
+        source="revocation.created_at", read_only=True, allow_null=True, default=None
+    )
+    status = serializers.ChoiceField(choices=["active", "expired", "revoked"], read_only=True)
+
+    class Meta:
+        model = CompanyAppointment
+        fields = [
+            "uuid",
+            "capabilities",
+            "delegatable_capabilities",
+            "expires_at",
+            "created_at",
+            "revoked_at",
+            "status",
+            "is_effective",
+            "declaration_version",
+            "declaration_text",
+        ]
+        read_only_fields = fields
+
+    def get_is_effective(self, obj) -> bool:
+        return has_company_capability(
+            requester=obj.request.requester, company_id=obj.company_id, capability=CompanyCapability.ADMIN
+        )
+
+
 class AuthorityPersonIdentitySnapshotSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     profile_uuid = serializers.UUIDField()
@@ -61,12 +122,13 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
     person_identity_raw = AuthorityPersonIdentitySnapshotSerializer(read_only=True)
     person_identity = AuthorityPersonIdentitySnapshotSerializer(read_only=True)
     file_url = serializers.SerializerMethodField()
-    status = serializers.ChoiceField(choices=["pending", "withdrawn"], read_only=True)
+    status = serializers.ChoiceField(choices=["pending", "withdrawn", "admitted"], read_only=True)
     withdrawn_at = serializers.DateTimeField(
         source="withdrawal.created_at", read_only=True, allow_null=True, default=None
     )
-    verification_status = serializers.ChoiceField(choices=["unavailable"], read_only=True, default="unavailable")
+    verification_status = serializers.SerializerMethodField()
     verification_message = serializers.SerializerMethodField()
+    appointment = CompanyAppointmentSerializer(read_only=True, allow_null=True, default=None)
     requested_capabilities = serializers.ListField(
         child=serializers.ChoiceField(choices=CompanyCapability.choices), read_only=True
     )
@@ -100,6 +162,7 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
             "withdrawn_at",
             "verification_status",
             "verification_message",
+            "appointment",
         ]
         read_only_fields = fields
 
@@ -109,4 +172,16 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(url) if request else url
 
     def get_verification_message(self, obj) -> str:
+        if obj.status == "admitted":
+            active = has_company_capability(
+                requester=obj.requester, company_id=obj.company_id, capability=CompanyCapability.ADMIN
+            )
+            return (
+                "Authorisation declared by the company representative. Company information is provided by the company. "
+                + ("Your company appointment is current." if active else "Your company appointment is not current.")
+            )
         return WITHDRAWN_MESSAGE if obj.status == "withdrawn" else VERIFICATION_UNAVAILABLE
+
+    @extend_schema_field(serializers.ChoiceField(choices=["unavailable", "self_declared"]))
+    def get_verification_status(self, obj) -> str:
+        return "self_declared" if obj.status == "admitted" else "unavailable"

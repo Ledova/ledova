@@ -1,150 +1,136 @@
-# Representative authority requests
+# Representative authority and initial appointments
 
 [Implementation index](README.md) · [Accepted plan](../../architecture/company-managed-registers.md)
 
-The initial increments of [#862](https://github.com/Ledova/ledova/issues/862) record
-private evidence of a proposed company appointment and let its requester withdraw
-it. In the current clients, a request is **pending verification** until withdrawn;
-it grants no company authority in either state. That label describes the delivered
-request lifecycle, not an outstanding ASIC/InfoTrack prerequisite. The owner has
-selected [self-declaration admission](../../architecture/company-managed-registers.md#representative-verification);
-effective appointments are not delivered yet. The existing representative identity
-check and ABR company lookup remain unchanged.
+[Issue #862](https://github.com/Ledova/ledova/issues/862) provides private authority
+requests, withdrawal and initial self-declaration admission on web and mobile.
+A pending request grants no authority. Admission records the representative's
+declaration and an effective initial appointment for the exact company, personal
+capabilities, delegatable scope and expiry. Company activation and register
+decisions retain their current workflows; an appointment supplies no approval of
+a share instruction, payment or director decision.
 
-Use synthetic people, companies and evidence in this experimental implementation.
+Company details are **provided by the company**. The existing ABR lookup checks
+entity facts; it does not make Ledova responsible for company information or
+establish the representative's mandate. Use synthetic people, companies and
+evidence in this experimental implementation.
 
-## Current company user steps
+## Company user steps
 
-1. Sign up, verify your account email and register a draft company.
+1. Sign up, verify your account email and register a draft company. Complete the
+   existing representative identity check when configured for issuers.
 2. Open **Representative authority** from the company details screen on web or
    mobile. Select the draft company you own; selection is explicit when you have
    several companies.
-3. Choose the actions you propose to exercise and, separately, the actions you
-   propose to delegate. These are requested scopes, not permissions granted by
-   selecting them. You may propose an expiry.
-4. Upload the supporting PDF, PNG or JPEG through the existing checked upload
-   flow. The file is private and retained with the request.
-5. Submit. The platform records the company and person snapshots, requested
-   terms and exact evidence bytes, then displays the pending verification result.
-6. Review **Your requests** and download your retained evidence. A request keeps
-   the company name and ACN captured when it was submitted. Retained submissions
-   cannot be edited or deleted through the clients.
-7. If a proposal is no longer wanted, choose **Withdraw request** in its history.
-   The recorded state becomes **Withdrawn** with its original withdrawal time.
-   Evidence remains available. Submit a new request to propose authority again.
+3. Choose personal capabilities and, separately, capabilities you intend to
+   delegate. Initial admission requires personal company administration. Set an
+   expiry if required. Selecting scopes alone grants no authority.
+4. Upload supporting PDF, PNG or JPEG through the existing checked upload flow.
+   No ASIC extract is required. The file remains private and retained.
+5. Submit the request. The platform freezes the company and representative
+   identities, scopes, expiry and evidence bytes. Review the captured information.
+6. Accept the displayed declaration and choose the admission action. Version
+   `2026-10-04` records: “I am authorised to act for this company. The company is
+   responsible for the company and share information it provides, its ASIC filings
+   and legal obligations.” The existing configured identity and ABR checks must
+   pass; missing or mismatched results leave the request pending. Admission does
+   not activate the company.
+7. Read the appointment's personal and delegatable capabilities, expiry and
+   current status. Download the retained evidence from your request history.
+8. Withdraw an unwanted pending request. After admission, use appointment
+   revocation instead; its original declaration and evidence remain available.
+   Revocation is permanent for this appointment. It does not admit a replacement
+   representative or reopen initial admission.
 
 ```mermaid
 flowchart LR
-    signup[Sign up and verify email] --> draft[Register a draft company]
-    draft --> select[Select owned draft company]
-    select --> terms[Propose personal and delegation scopes]
-    terms --> evidence[Upload private evidence]
-    evidence --> capture[Retain exact request and evidence]
-    capture --> pending[Pending request - no authority granted]
-    pending --> history[Read own request and evidence]
-    pending --> withdraw[Withdraw unwanted request]
-    withdraw --> history
+    capture[Retain exact request and evidence] --> pending[Pending - no authority]
+    pending --> withdraw[Withdraw request]
+    pending --> declaration[Accept authorisation and responsibility declaration]
+    declaration --> checks[Existing identity and ABR checks]
+    checks --> appointment[Initial scoped appointment]
+    appointment --> revoke[Revoke own appointment]
+    withdraw --> history[Private retained history]
+    revoke --> history
 ```
 
-Company appointments, invitation acceptance, effective capabilities, revocation
-and administrator-change workflows remain later increments of #862. Company activation,
-register decisions and payments retain their current workflows until their
-owning issues replace them. See the [dependency index](README.md#delivery-tracking).
+Team invitations, delegation, legacy-owner migration and administrator-change
+workflows remain later increments of #862. Current delegation scope is retained;
+this increment has no invitation or grant-to-another-person action. Company
+activation, register decisions and payments follow their owning issues in the
+[dependency index](README.md#delivery-tracking).
 
 ## API and retained records
 
 `/api/v1/company-authority/requests/` provides authenticated multipart submission
 and paginated personal history. Detail and file actions resolve only the caller's
-own request. Active accounts with verified email are required; a new submission also
-requires current ownership of the selected draft company. Public company
-visibility, shareholder records and staff permissions do not widen that scope.
+own request. Active accounts with verified email are required. New submissions
+also require current ownership of the selected draft company. Public company
+visibility, shareholder records and staff permissions do not widen this scope.
 
-The server resolves the person and profile, validates the upload and freezes the
-raw and normalised identities, file SHA256/size/type, requested scope and expiry.
-It accepts no caller-supplied verification result or representative account.
-An identical retry under the same requester-scoped idempotency key returns the
-retained request, including after its company leaves draft or changes owner.
-Retries compare the exact incoming bytes, filename, declared MIME type and terms
-with the retained digest and current company/person identities. They do not scan
-the same retained evidence again, so scanner unavailability does not prevent an
-identical retry. Bounded input capture and the current account checks still apply.
-New keys require successful upload validation and current draft-company ownership.
-Changed evidence, terms, company or captured identity conflicts;
-submit a new request for changed information. Clients preserve a key for retries
-and replace it when inputs change.
+The server validates the upload and freezes raw and normalised identities,
+file SHA256/size/type, requested scopes and expiry. It accepts no caller-supplied
+verification result or representative account. Identical submission retries under
+the same requester-scoped idempotency key return the retained request, including
+after its company leaves draft or changes owner. Retries compare incoming bytes,
+filename, MIME type and terms with the retained digest and current identities;
+they do not rescan already retained evidence. New keys require upload validation
+and current draft-company ownership. Changed inputs conflict.
+
+`POST /api/v1/company-authority/requests/{uuid}/admit/` requires
+`declaration_version: "2026-10-04"` and `accept_declaration: true`. The server
+checks the exact retained request, live requester and configured identity result,
+current draft-company ownership, unchanged captured identities and unexpired
+scope. It runs the existing ABR adapter under a separate authority purpose and
+checks its genuine result for that company and lifecycle revision before creating
+an immutable initial appointment. A provider failure supplies no appointment.
+Repeated admission returns the retained outcome. A company has only one initial
+admission; expiry or revocation does not permit a new bootstrap.
 
 `POST /api/v1/company-authority/requests/{uuid}/withdraw/` accepts an empty body
-and returns the request with its derived `withdrawn` state and `withdrawnAt`.
-Initial and repeated withdrawals return HTTP 200 with the same recorded time.
-Only the original requester can withdraw, including after the company changes
-owner or leaves draft status. A retry of the original submission returns its
-withdrawn record; it cannot reactivate it or upload another copy.
+and records immutable requester withdrawal. Admission and withdrawal share the
+request lock. Whichever commits first excludes the other outcome.
 
-`companies/0012_company_authority_request` adds only the request table, its
-requester-only read policy and immutable database guard. Ordinary app SQL cannot
-insert or change the retained records. Creation uses a bounded service that
-rechecks the exact person/profile/company under locks and carries the person
-explicitly across database aliases. It changes no company owner, activation
-state, historical decision or register entry.
+`POST /api/v1/company-authority/requests/{uuid}/revoke/` accepts an empty body
+and records immutable self-revocation of the admitted appointment. Repeated
+revocation returns its original outcome. Reads and files remain available.
+Current-authority checks reject revoked or expired appointments and inactive
+accounts. Existing signed-transaction recovery is unaffected; no new chain or
+register command is introduced here.
 
-`companies/0013_company_authority_request_withdrawal` adds one immutable,
-requester-private withdrawal record per request. The bounded service locks the
-current person and original request; SQL independently checks that principal
-and actor match its requester. Ordinary app writes, updates and deletion fail.
-The parent request, snapshots, digest and evidence are unchanged.
+## Database and upgrade boundaries
 
-Requests and their referenced evidence have no automatic purge in this
-experimental slice. Submission errors do not immediately delete uploaded bytes:
-a COMMIT acknowledgement or principal-restoration failure can occur after the
-request has committed. The existing orphan sweep removes only unreferenced
-uploads older than its 24-hour grace period; it preserves files referenced by
-retained requests, including after an uncertain submission outcome. Requested appointment
-expiry or request withdrawal does not delete submission evidence. See [files and retention](../../architecture/files-and-retention.md).
+The app connection reads only its principal's requests, appointments and retained
+outcomes. It cannot create or alter these authority records directly. Bounded
+operator services carry and restore the individual principal, lock and recheck
+identities and exact scopes. Database triggers protect admission, withdrawal,
+revocation and immutable history. Existing identity-provider results and the
+configured issuer check remain server-owned; ordinary profile changes keep their
+existing account scope.
 
-Reversal is allowed only while the new table is empty. A populated reversal
-refuses to discard request history and private evidence; retain a database and
-private-storage backup together. Follow [upgrade notes](../../operations/upgrades.md).
+Supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
+Migration reversal refuses to discard populated admission/revocation history;
+empty reversal preserves the earlier request and withdrawal lifecycle. Follow
+[upgrade notes](../../operations/upgrades.md) and retain the database and private
+storage together.
 
-Withdrawal migration reversal likewise refuses to discard populated withdrawal
-history; its empty reversal preserves existing requests and their evidence.
-The request guard refuses `null` capability elements from `companies/0014`;
-reversing that migration accepts them again, as the upgrade notes describe.
-
-## Planned self-declaration admission
+## Accepted decision and remaining work
 
 The [owner's self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
-replaces the earlier [ASIC officeholder route](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
-and [InfoTrack selection](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175),
-retained as superseded history. A company provides its company and share
-information; its representative declares that they are authorised to act for it.
-The declaration can establish initial authority in the future admission workflow.
-No ASIC search, broker, uploaded ASIC extract or InfoTrack agreement is needed,
-and those prerequisites no longer block #862–#873. The current upload form above
-does not yet implement declaration-based admission or grant an appointment.
+and [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
+supersede the earlier ASIC officeholder/InfoTrack route. No ASIC search, broker,
+extract or InfoTrack agreement is a prerequisite. The company remains responsible
+for its information, ASIC filings and legal obligations.
 
-Under the [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105),
-details are shown as provided by the company, never verified by Ledova; the terms
-make the company responsible for them. The company remains responsible for its
-information, ASIC filings and legal obligations. Ledova changes company
-administrators only through existing company administrators or at the direction
-of a court or regulator. Normal recovery of a person's own account is separate.
+Company administrators change through existing company administrators or
+court/regulator direction. Normal recovery of a person's own account is separate;
+it supplies no appointment to a replacement administrator. Initial admission and
+self-revocation implement neither disputed-access replacement nor a court-order
+processing route.
 
-Admission must record the declaration for the exact company and representative,
-retaining the existing identity check and ABR lookup. Invitations and in-app
-delegation then grant only the recorded company capabilities and delegatable
-scope, subject to expiry and revocation. Ordinary security, cross-company
-isolation, private evidence and signed-transaction safeguards remain. A declaration
-does not approve a pending share instruction or supply a separate provider result.
-Do not add fraud or impersonation verification unless a legal duty is identified
-on Ledova; cite and raise such a duty with the owner rather than building a check.
-See the dated [legal positions](../../legal/positions.md).
-
-The original #862 completion checks remain open until self-declaration admission,
-memberships, capabilities, invitations, delegation, revocation and the accepted
-administrator-change/account-recovery boundaries are demonstrated.
-
-Future admission must lock the same request and reject a withdrawal before
-creating authority. After an actual admission commits, it must refuse request
-withdrawal and offer the effective appointment's revocation workflow. This
-increment implements no admission or appointment, so it proves request
-withdrawal, retention and isolation rather than that future admission race.
+Original #862 completion checks remain open for legacy-owner migration, multiple
+appointments, invitations, in-app delegation and company team administration.
+Later domain issues must convert their API/service/worker/RLS/trigger authority
+boundaries together. No new fraud or impersonation verification is added. Any
+identified legal duty on Ledova must be cited and raised with the owner before
+building a check; see the dated [legal positions](../../legal/positions.md).

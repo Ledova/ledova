@@ -54,17 +54,29 @@ class CompanyAuthorityRequestWithdrawalMigrationTest(StubUploadDependencies, Tra
         with before.file.open("rb") as source:
             self.assertEqual(source.read(), PDF)
         MigrationExecutor(connection).migrate([NEW])
+        executor = MigrationExecutor(connection)
+        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
         with use_operator():
-            after = CompanyAuthorityRequest.objects.select_related("withdrawal").get(pk=self.proposal.pk)
+            after = (
+                historical.get_model("companies", "CompanyAuthorityRequest")
+                .objects.select_related("withdrawal")
+                .get(pk=self.proposal.pk)
+            )
             self.assertEqual({field.attname: getattr(after, field.attname) for field in after._meta.fields}, original)
-            self.assertEqual(after.status, "pending")
-            self.assertFalse(CompanyAuthorityRequestWithdrawal.objects.exists())
-            self.company.refresh_from_db()
-            self.assertEqual(self.company.name, "withdrawal-migration Pty Ltd")
-            self.profile.refresh_from_db()
-            self.assertEqual(self.profile.full_name, "withdrawal-migration representative")
+            self.assertFalse(historical.get_model("companies", "CompanyAuthorityRequestWithdrawal").objects.exists())
+            self.assertEqual(
+                historical.get_model("companies", "Company").objects.get(pk=self.company.pk).name,
+                "withdrawal-migration Pty Ltd",
+            )
+            self.assertEqual(
+                historical.get_model("users", "UserProfile").objects.get(pk=self.profile.pk).full_name,
+                "withdrawal-migration representative",
+            )
         with after.file.open("rb") as source:
             self.assertEqual(source.read(), PDF)
+        self.latest()
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.get(pk=self.proposal.pk).status, "pending")
 
     def test_populated_reversal_refuses_and_keeps_withdrawal_request_and_private_bytes(self):
         withdrawn = withdraw_authority_request(requester=self.user, request_id=self.proposal.pk)

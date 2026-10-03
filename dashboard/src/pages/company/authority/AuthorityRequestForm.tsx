@@ -24,7 +24,7 @@ export function AuthorityRequestForm({
   onSuccess: (request: CompanyAuthorityRequest) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const [requested, setRequested] = useState<CompanyCapability[]>([]);
+  const [requested, setRequested] = useState<CompanyCapability[]>(['admin']);
   const [delegatable, setDelegatable] = useState<CompanyCapability[]>([]);
   const [expiry, setExpiry] = useState('');
   const key = useRef<string | null>(null);
@@ -90,8 +90,13 @@ export function AuthorityRequestForm({
       }}
     >
       <p className="text-sm text-text-muted">
-        Submit evidence for your own representative role at {company.name}. This requests verification and grants no
-        authority. Your evidence and request history are private to your account.
+        Company information is provided by the company. Submit a private request for your own representative role at
+        {company.name}, then accept the authorisation declaration to establish your appointment. Submitting evidence
+        alone grants no authority and does not activate the company.
+      </p>
+      <p className="text-sm text-text-muted">
+        Initial admission requires Manage company team in your own requested actions. Your evidence and request history
+        remain private to your account; no ASIC extract is required.
       </p>
       {(['requested', 'delegatable'] as const).map((scope) => {
         const values = scope === 'requested' ? requested : delegatable;

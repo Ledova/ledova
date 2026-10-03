@@ -42,6 +42,8 @@ class CompanyAuthorityRequest(BaseModel):
 
     @property
     def status(self):
+        if getattr(self, "appointment", None):
+            return "admitted"
         return "withdrawn" if getattr(self, "withdrawal", None) else "pending"
 
     class Meta:

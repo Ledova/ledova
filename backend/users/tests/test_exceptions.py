@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from users.services.identity import VerificationTokenGenerationException
+from users.exceptions import VerificationTokenGenerationException
 
 
 class UserExceptionTests(SimpleTestCase):
