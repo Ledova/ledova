@@ -12,6 +12,7 @@ CAPITAL_RECOVERY_BATCH = 100
 ISSUANCE_RECOVERY_BATCH = 100
 ISSUANCE_RECOVERY_COLLISION_RETRIES = 3
 MINT_CHAIN = "base"
+RESERVED_SYMBOL = "{symbol} is the symbol of a supported asset. Choose another symbol for this share class."
 
 NAV_RECOVERY_BATCH = 100
 
