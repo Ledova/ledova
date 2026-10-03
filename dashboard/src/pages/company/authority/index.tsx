@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  COMPANY_AUTHORITY_CAPABILITIES,
+  admitCompanyAuthorityRequest,
   downloadCompanyAuthorityFile,
-  formatDateTime,
   getCompanies,
   getCompanyAuthorityRequests,
   getErrorMessage,
   readEveryPage,
+  revokeCompanyAuthorityAppointment,
   useSubmissionOwner,
   useUserPreferences,
   withdrawCompanyAuthorityRequest,
@@ -15,10 +15,11 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Section } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
+import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 
 export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -77,11 +78,31 @@ function OwnAuthorityRequests({
   });
   const drafts = companies.isError ? [] : (companies.data ?? []).filter((company) => company.status === 'draft');
   const company = drafts.find((item) => item.uuid === selected);
-  const withdrawal = useMutation({
-    mutationFn: async (request: CompanyAuthorityRequest) => {
+  const lifecycle = useMutation({
+    mutationFn: async ({
+      request,
+      action,
+    }: {
+      request: CompanyAuthorityRequest;
+      action: 'withdraw' | 'admit' | 'revoke';
+    }) => {
       guard();
-      const { data } = await withdrawCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
+      const send =
+        action === 'admit'
+          ? admitCompanyAuthorityRequest
+          : action === 'revoke'
+            ? revokeCompanyAuthorityAppointment
+            : withdrawCompanyAuthorityRequest;
+      const { data } = await send(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
       guard();
+      if (
+        data.uuid !== request.uuid ||
+        (action === 'withdraw' && (data.status !== 'withdrawn' || !data.withdrawnAt)) ||
+        (action === 'admit' && (data.status !== 'admitted' || !data.appointment)) ||
+        (action === 'revoke' &&
+          (data.status !== 'admitted' || data.appointment?.status !== 'revoked' || !data.appointment.revokedAt))
+      )
+        throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
       return data;
     },
     onSuccess: async (request) => {
@@ -114,7 +135,8 @@ function OwnAuthorityRequests({
   return (
     <Page>
       <p className="text-sm text-text-muted">
-        Representative authority verification is unavailable. Submitting evidence grants no company authority.
+        Establish your representative appointment by accepting an authorisation declaration for your company. Company
+        information is provided by the company. Submitting evidence alone grants no authority.
       </p>
       <Section title="New authority request">
         {companies.isLoading ? (
@@ -195,56 +217,21 @@ function OwnAuthorityRequests({
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(history.data ?? []).map((request) => (
-              <li key={request.uuid} className="space-y-2 py-3">
-                <Rows>
-                  <Row label="Request">{request.uuid}</Row>
-                  <Row label="Company">
-                    {request.companyIdentityRaw.name} · {request.companyIdentityRaw.acn}
-                  </Row>
-                  <Row label="Status">
-                    <Status tone={request.status === 'withdrawn' ? 'closed' : 'waiting'}>
-                      {request.status === 'withdrawn' ? 'Withdrawn' : 'Pending verification'}
-                    </Status>
-                  </Row>
-                  <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-                  {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
-                  <Row label="Requested expiry">
-                    {request.requestedExpiresAt ? formatDateTime(request.requestedExpiresAt) : 'No requested expiry'}
-                  </Row>
-                  <Row label="Requested actions">
-                    {request.requestedCapabilities
-                      .map(
-                        (value) => COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value,
-                      )
-                      .join(', ') || 'None'}
-                  </Row>
-                  <Row label="Requested delegation">
-                    {request.delegatableCapabilities
-                      .map(
-                        (value) => COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value,
-                      )
-                      .join(', ') || 'None'}
-                  </Row>
-                </Rows>
-                <p className="text-sm text-text-muted">{request.verificationMessage}</p>
-                <PageAction
-                  label={`Download evidence ${request.originalFilename}`}
-                  disabled={opening.isPending || history.isFetching}
-                  onClick={() => opening.mutate(request)}
-                />
-                {request.status === 'pending' && (
-                  <>
-                    <p className="text-sm text-text-muted">
-                      Withdrawing retires this request and retains its evidence.
-                    </p>
-                    <PageAction
-                      label={`${withdrawal.isPending && withdrawal.variables?.uuid === request.uuid ? 'Withdrawing' : 'Withdraw'} request ${request.originalFilename}`}
-                      disabled={withdrawal.isPending || history.isFetching}
-                      onClick={() => withdrawal.mutate(request)}
-                    />
-                  </>
-                )}
-              </li>
+              <AuthorityRequestRecord
+                key={request.uuid}
+                request={request}
+                blocked={lifecycle.isPending || history.isFetching}
+                opening={opening.isPending}
+                action={
+                  lifecycle.isPending && lifecycle.variables?.request.uuid === request.uuid
+                    ? lifecycle.variables.action
+                    : undefined
+                }
+                onDownload={() => opening.mutate(request)}
+                onWithdraw={() => lifecycle.mutate({ request, action: 'withdraw' })}
+                onAdmit={() => lifecycle.mutate({ request, action: 'admit' })}
+                onRevoke={() => lifecycle.mutate({ request, action: 'revoke' })}
+              />
             ))}
           </ul>
         )}
@@ -253,9 +240,9 @@ function OwnAuthorityRequests({
             {getErrorMessage(opening.error, 'Your evidence could not be downloaded.')}
           </p>
         )}
-        {withdrawal.isError && (
+        {lifecycle.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {getErrorMessage(withdrawal.error, 'Your request could not be withdrawn. Retry to check its outcome.')}
+            {getErrorMessage(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
           </p>
         )}
       </Section>

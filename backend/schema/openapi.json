@@ -1425,8 +1425,100 @@
         ],
         "type": "object"
       },
+      "CompanyAppointment": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationText": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationVersion": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "isEffective": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointmentStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "capabilities",
+          "createdAt",
+          "declarationText",
+          "declarationVersion",
+          "delegatableCapabilities",
+          "expiresAt",
+          "isEffective",
+          "revokedAt",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyAppointmentStatusEnum": {
+        "description": "* `active` - active\n* `expired` - expired\n* `revoked` - revoked",
+        "enum": [
+          "active",
+          "expired",
+          "revoked"
+        ],
+        "type": "string"
+      },
       "CompanyAuthorityRequest": {
         "properties": {
+          "appointment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointment"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "company": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -1553,7 +1645,6 @@
                 "$ref": "#/components/schemas/CompanyAuthorityVerificationStatusEnum"
               }
             ],
-            "default": "unavailable",
             "readOnly": true
           },
           "withdrawnAt": {
@@ -1564,6 +1655,7 @@
           }
         },
         "required": [
+          "appointment",
           "company",
           "companyIdentity",
           "companyIdentityRaw",
@@ -1587,6 +1679,21 @@
           "verificationMessage",
           "verificationStatus",
           "withdrawnAt"
+        ],
+        "type": "object"
+      },
+      "CompanyAuthorityRequestAdmissionRequest": {
+        "properties": {
+          "acceptDeclaration": {
+            "type": "boolean"
+          },
+          "declarationVersion": {
+            "$ref": "#/components/schemas/DeclarationVersionEnum"
+          }
+        },
+        "required": [
+          "acceptDeclaration",
+          "declarationVersion"
         ],
         "type": "object"
       },
@@ -1630,17 +1737,19 @@
         "type": "object"
       },
       "CompanyAuthorityStatusEnum": {
-        "description": "* `pending` - pending\n* `withdrawn` - withdrawn",
+        "description": "* `pending` - pending\n* `withdrawn` - withdrawn\n* `admitted` - admitted",
         "enum": [
           "pending",
-          "withdrawn"
+          "withdrawn",
+          "admitted"
         ],
         "type": "string"
       },
       "CompanyAuthorityVerificationStatusEnum": {
-        "description": "* `unavailable` - unavailable",
+        "description": "* `unavailable` - unavailable\n* `self_declared` - self_declared",
         "enum": [
-          "unavailable"
+          "unavailable",
+          "self_declared"
         ],
         "type": "string"
       },
@@ -2289,6 +2398,13 @@
           "name"
         ],
         "type": "object"
+      },
+      "DeclarationVersionEnum": {
+        "description": "* `2026-10-04` - 2026-10-04",
+        "enum": [
+          "2026-10-04"
+        ],
+        "type": "string"
       },
       "DeletedAccountResponse": {
         "properties": {
@@ -16219,6 +16335,68 @@
         ]
       }
     },
+    "/api/v1/company-authority/requests/{uuid}/admit/": {
+      "post": {
+        "operationId": "api_v1_company_authority_requests_admit_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/company-authority/requests/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_company_authority_requests_file_retrieve",
@@ -16253,6 +16431,48 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/requests/{uuid}/revoke/": {
+      "post": {
+        "operationId": "api_v1_company_authority_requests_revoke_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

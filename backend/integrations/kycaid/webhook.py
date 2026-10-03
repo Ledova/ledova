@@ -20,7 +20,7 @@ from integrations.kycaid.client import KYCAIDService
 from integrations.webhooks import is_stale
 from shared.db.middleware import RunsOnTheOperatorConnection
 from users.models.user_profile import UserProfile
-from users.services import IdentityVerificationService
+from users.services import identity
 
 logger = logging.getLogger(__name__)
 
@@ -68,13 +68,13 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                     applicant_record = kycaid_service.get_applicant_data(applicant_id)
                     callback = {**data, "applicant": applicant_record}
                 normalized = kycaid_service.normalize_webhook(callback)
-                IdentityVerificationService.update_status_from_normalized(user_profile, normalized)
+                identity.update_status_from_normalized(user_profile, normalized)
 
                 if normalized.review_result == REVIEW_GREEN:
                     try:
                         applicant_data = applicant_record or kycaid_service.get_applicant_data(applicant_id)
                         extracted_data = kycaid_service.extract_verified_data(applicant_data)
-                        IdentityVerificationService.populate_profile(user_profile, extracted_data)
+                        identity.populate_profile(user_profile, extracted_data)
                     except Exception:
                         logger.exception("Failed to populate a profile from webhook data")
 

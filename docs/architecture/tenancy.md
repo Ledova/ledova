@@ -28,8 +28,8 @@ proved on existing databases as well as fresh ones.
 ## Roles and principal
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
-are an unverified submission/withdrawal boundary: the app reads its principal's
-requests and cannot insert, update or delete them. A bounded creation service carries and
+and initial self-declared appointments are requester-private boundaries: the app
+reads its principal's records and cannot create, update or delete authority rows. A bounded creation service carries and
 restores the individual principal on the selected connection, then locks and
 rechecks that person, profile and owned draft company. This does not widen the
 existing company helpers or grant any register capability.
@@ -38,7 +38,12 @@ Withdrawal likewise resolves the individual's own request on the app connection
 before a bounded operator service locks that person and request. A separate
 immutable row records cancellation; only its requester can read it. Current
 company ownership or staff status grants no access to another person's proposal.
-Future verified admission must share the request lock and reject a withdrawal.
+Initial self-declaration admission shares the request lock and rejects a
+withdrawal. It retains the exact declaration, scoped appointment and genuine ABR
+check without activating the company. Self-revocation creates an immutable outcome;
+expiry/revocation stops current capability checks. The preserved configured issuer
+identity gate consumes server-owned provider results. None of these reads widens
+legacy owner-based company, investor or financial-data scopes.
 
 | Role | Purpose |
 | --- | --- |

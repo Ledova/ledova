@@ -14,7 +14,7 @@ from compliance.services.transaction_monitoring import TransactionMonitoringServ
 from integrations.kyc.base import NormalizedVerificationResult
 from shared.models import Country
 from users.models import UserAccount, UserProfile
-from users.services.identity import IdentityVerificationService
+from users.services import identity
 from wallets.models import Transaction, Wallet
 
 User = get_user_model()
@@ -39,7 +39,7 @@ class NewCustomerScreeningTest(TestCase):
         profile = UserProfile.objects.create(user=user, citizenship_country=country)
         account = UserAccount.objects.create(account_number=f"ACC-{label.upper()}"[:20], user_profile=profile)
         with patch("django.utils.timezone.now", return_value=timezone.now() - timedelta(days=days_ago)):
-            IdentityVerificationService.update_status_from_normalized(profile, GREEN)
+            identity.update_status_from_normalized(profile, GREEN)
         return UserAccount.objects.get(pk=account.pk)
 
     def small_transfer(self, account):

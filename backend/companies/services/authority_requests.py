@@ -9,7 +9,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from companies.exceptions import AuthorityRequestConflictException
+from companies.exceptions import (
+    AuthorityAdmissionConflictException,
+    AuthorityRequestConflictException,
+)
 from companies.identity import company_identity, registered_name
 from companies.models import (
     Company,
@@ -194,5 +197,7 @@ def withdraw_authority_request(*, requester, request_id):
         proposal = get_object_or_404(
             CompanyAuthorityRequest.objects.select_for_update(), pk=request_id, requester=actor
         )
+        if getattr(proposal, "appointment", None):
+            raise AuthorityAdmissionConflictException("An admitted appointment must be revoked instead of withdrawn.")
         CompanyAuthorityRequestWithdrawal.objects.get_or_create(request=proposal, defaults={"withdrawn_by": actor})
         return CompanyAuthorityRequest.objects.select_related("withdrawal").get(pk=proposal.pk)

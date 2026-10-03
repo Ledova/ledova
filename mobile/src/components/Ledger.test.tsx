@@ -190,6 +190,19 @@ it('names the switch after its label, hints its sentence and shows the saved val
   expect(view.queryByText('Notifications for transaction status changes.')).toBeNull();
 });
 
+it('exposes explicit declaration acceptance as a checked and disabled checkbox', async () => {
+  const accept = jest.fn();
+  const view = await render(
+    <Choice label="Accept declaration" accessibilityRole="checkbox" selected={false} onPress={accept} />,
+  );
+  await fireEvent.press(view.getByRole('checkbox', { name: 'Accept declaration', checked: false }));
+  expect(accept).toHaveBeenCalledTimes(1);
+  await view.rerender(
+    <Choice label="Accept declaration" accessibilityRole="checkbox" selected onPress={accept} disabled />,
+  );
+  expect(view.getByRole('checkbox', { name: 'Accept declaration', checked: true })).toBeDisabled();
+});
+
 it('asks for the value it is switched to, and is disabled when told', async () => {
   const change = jest.fn();
   const view = await render(<SwitchRow label="Directory" checked={false} onChange={change} />);

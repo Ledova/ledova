@@ -12,7 +12,7 @@ from users.models import (
     UserPreferences,
     UserProfile,
 )
-from users.services import IdentityVerificationService
+from users.services import identity
 
 User = get_user_model()
 
@@ -105,7 +105,7 @@ class NotificationScopingTest(APITestCase):
         self.client.force_authenticate(self.alice)
         session = SimpleNamespace(provider="sumsub", applicant_id="app-1", access_token="tok", form_url="https://f")
 
-        with patch.object(IdentityVerificationService, "get_verification_session", return_value=session) as start:
+        with patch.object(identity, "get_verification_session", return_value=session) as start:
             token_response = self.client.post(IDENTITY_TOKEN)
         self.assertEqual(token_response.status_code, 200)
         self.assertEqual(
@@ -114,7 +114,7 @@ class NotificationScopingTest(APITestCase):
         )
         start.assert_called_once_with(self.profiles[self.alice])
 
-        with patch.object(IdentityVerificationService, "get_verification_status", return_value={"status": "x"}) as st:
+        with patch.object(identity, "get_verification_status", return_value={"status": "x"}) as st:
             status_response = self.client.get(IDENTITY_STATUS)
         self.assertEqual(status_response.status_code, 200)
         st.assert_called_once_with(self.profiles[self.alice])
@@ -123,8 +123,8 @@ class NotificationScopingTest(APITestCase):
         orphan = User.objects.create_user(email="orphan@example.test", password="pw-12345678")
         self.client.force_authenticate(orphan)
 
-        with patch.object(IdentityVerificationService, "get_verification_session") as start, patch.object(
-            IdentityVerificationService, "get_verification_status"
+        with patch.object(identity, "get_verification_session") as start, patch.object(
+            identity, "get_verification_status"
         ) as st:
             for method, url in (
                 ("get", PREFERENCES),

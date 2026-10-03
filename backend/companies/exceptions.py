@@ -65,3 +65,10 @@ class AuthorityRequestConflictException(APIException):
     default_detail = "This request key already records different identity, evidence or terms. Submit a new request."
     default_code = "authority_request_conflict"
     expose_code = True
+
+
+class AuthorityAdmissionConflictException(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This authority request conflicts with its retained company appointment history."
+    default_code = "authority_admission_conflict"
+    expose_code = True

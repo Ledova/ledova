@@ -12,6 +12,7 @@ class RegistryCheckStatus(models.TextChoices):
 
 
 class RegistryCheckPurpose(models.TextChoices):
+    AUTHORITY = "authority", "Representative authority"
     REVIEW = "review", "Start review"
     RETRY = "retry", "Retry"
     ACTIVATION = "activation", "Activation"

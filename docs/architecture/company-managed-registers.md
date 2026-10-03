@@ -3,10 +3,11 @@
 [Product](../product.md) · [Decisions](../decisions.md#company-managed-registers-and-one-product) · [Roadmap](../roadmap.md)
 
 **Status:** Accepted product direction; phase 1 product-mode retirement delivered.
-Unverified [representative authority requests](../plans/company-managed-registers/authority-requests.md)
-can be submitted and withdrawn in both clients, retaining evidence and history.
-Effective appointments and the dependent
-company-authority workflows remain an implementation plan.
+[Representative authority requests](../plans/company-managed-registers/authority-requests.md)
+can be submitted, withdrawn or admitted through explicit self-declaration in both
+clients, retaining private evidence and history. Initial appointments record scoped
+capabilities, expiry and self-revocation after the existing configured identity and
+ABR checks. Team delegation and dependent company workflows remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -162,10 +163,11 @@ within their recorded delegatable scope. Memberships, capabilities, invitations,
 expiry and revocation remain in scope. Subsequent actions require their applicable
 company mandate, capability and exact approval; self-declaration does not approve
 an issue or payment. Capability bundles and company approval policy still need
-implementation design. Effective self-declaration admission, appointments and
-delegation remain planned; the delivered
-[request lifecycle](../plans/company-managed-registers/authority-requests.md)
-only retains pending proposals and withdrawals.
+implementation design. The delivered
+[initial appointment lifecycle](../plans/company-managed-registers/authority-requests.md)
+records exact self-declaration admission, scope, expiry and self-revocation.
+Invitations, team delegation, legacy-owner migration and dependent domain actions
+remain planned. Pending proposals and withdrawals retain their original history.
 
 ## Required self-service workflows
 
