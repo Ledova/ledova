@@ -61,7 +61,7 @@ jobs:
       - name: Check probe TLS and command deadlines before native setup
         working-directory: mobile
         run: |
-          node --test scripts/tests/native-probe-tls.test.mjs scripts/tests/native-command-timeout.test.mjs scripts/tests/android-test-packages.test.mjs scripts/tests/native-probe-report.test.mjs scripts/tests/screen-content.test.mjs scripts/tests/window-focus.test.mjs
+          node --test scripts/tests/native-probe-tls.test.mjs scripts/tests/native-command-timeout.test.mjs scripts/tests/android-test-packages.test.mjs scripts/tests/native-probe-report.test.mjs scripts/tests/screen-content.test.mjs scripts/tests/window-focus.test.mjs scripts/tests/emulator-settle.test.mjs
           npx jest --runInBand --testMatch '<rootDir>/native-tests/ScannerBridgeProbe.test.tsx'
       - name: Install native tools and prepare the emulator
         run: |
@@ -88,21 +88,7 @@ jobs:
             done
           ) > "$RUNNER_TEMP/ledova-guest-load.log" 2>&1 &
           echo $! >> "$RUNNER_TEMP/ledova-samplers.pid"
-          since=$(date +%s)
-          {
-            printf 'boot completed at %s\n' "$(date -u +%FT%TZ)"
-            timeout 120 adb -s "$ANDROID_SERIAL" shell am wait-for-broadcast-idle || echo "wait-for-broadcast-idle exited with status $?"
-            printf 'broadcast wait ended after %ss\n' "$(( $(date +%s) - since ))"
-            load=unknown
-            until load=$(timeout 10 adb -s "$ANDROID_SERIAL" shell cat /proc/loadavg | cut -d ' ' -f 1 | tr -d '\r') && awk -v l="$load" 'BEGIN { exit !(l ~ /^[0-9.]+$/ && l + 0 < 4) }'; do
-              if [ $(( $(date +%s) - since )) -ge 300 ]; then
-                echo "not settled within 300s; the build starts with the guest still busy"
-                break
-              fi
-              sleep 10
-            done
-            printf 'settle ended at %s after %ss with 1-minute load %s\n' "$(date -u +%FT%TZ)" "$(( $(date +%s) - since ))" "$load"
-          } > "$RUNNER_TEMP/ledova-guest-settle.log" 2>&1
+          node mobile/scripts/emulator-settle.mjs "$RUNNER_TEMP/ledova-guest-settle.log"
       - name: Generate and check Debug and Release policy
         working-directory: mobile
         run: |
