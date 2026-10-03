@@ -34,9 +34,13 @@ How sessions are authenticated, transported, revoked and reflected in client que
 The [company-managed register plan](company-managed-registers.md#responsibility-and-company-access)
 adds invitations, company appointments and capability checks alongside these
 sessions. A successful login, a company account role or a global staff permission
-must not grant a company mandate. Accepting an invitation must bind the actual
-authenticated person to the intended company and appointment; the detailed
-bootstrap and invitation proof are implementation design, not existing endpoints.
+must not grant a company mandate. The initial bootstrap is delivered: a signed-in
+draft-company owner admits their own pending request through
+`POST /api/v1/company-authority/requests/{uuid}/admit/` by accepting the
+authorisation declaration ([authority requests](../plans/company-managed-registers/authority-requests.md)).
+Accepting an invitation must bind the actual authenticated person to the
+intended company and appointment; invitation proof remains implementation
+design, not an existing endpoint.
 
 Company appointment revocation must stop new actions from a still-valid session
 and pending unsigned work. Recheck current company authority at the relevant

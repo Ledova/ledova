@@ -537,6 +537,8 @@ it('requires declaration acceptance, records the appointment and revokes while r
     { declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
     { ledovaSessionEpoch: getSessionEpoch() },
   );
+  expect(view.getByText(`Admitted · ${formatDateTime(admitted.appointment.createdAt)}`)).toBeTruthy();
+  expect(view.queryByText(/^Pending/)).toBeNull();
   expect(view.getByText('active')).toBeTruthy();
   expect(view.getByText('Current')).toBeTruthy();
   expect(view.getAllByText('Manage company team, Prepare register changes').length).toBeGreaterThan(0);
@@ -599,6 +601,38 @@ it('refuses an unconfirmed admission response and retries the same declaration w
   await view.findByText('appointment-a');
   expect(post.mock.calls[1]).toEqual(post.mock.calls[0]);
   expect(view.queryByText('The request outcome could not be confirmed. Retry the same request or refresh.')).toBeNull();
+});
+
+it.each([
+  ['a pending status', admissionRequest],
+  ['no appointment', { ...admitted, appointment: undefined }],
+])('refuses an admission response with %s and keeps the declaration available to retry', async (_shape, receipt) => {
+  history = [admissionRequest];
+  post.mockResolvedValue({ data: receipt });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('checkbox', { name: 'Accept authorisation declaration' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Establish appointment' }));
+  await view.findByText('The request outcome could not be confirmed. Retry the same request or refresh.');
+  expect(view.queryByText('appointment-a')).toBeNull();
+  expect(view.getByRole('button', { name: 'Establish appointment' })).toBeEnabled();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([admissionRequest]);
+});
+
+it.each([
+  ['an active appointment', admitted],
+  ['no revocation time', { ...revoked, appointment: { ...revoked.appointment, revokedAt: null } }],
+])('refuses a revocation response with %s and keeps the appointment revocable', async (_shape, receipt) => {
+  history = [admitted];
+  post.mockResolvedValue({ data: receipt });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  await view.findByText('The request outcome could not be confirmed. Retry the same request or refresh.');
+  expect(view.getByText('active')).toBeTruthy();
+  expect(view.queryByText('revoked')).toBeNull();
+  expect(view.getByRole('button', { name: 'Revoke appointment' })).toBeEnabled();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([admitted]);
 });
 
 it.each(['success', 'refusal'])('suppresses a previous session admission %s', async (outcome) => {
