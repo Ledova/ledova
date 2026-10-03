@@ -42,10 +42,13 @@ current director or secretary of the exact ACN, using an ASIC registry search
 purchased through a data provider. Other representatives receive in-app
 delegation from a verified officeholder.
 
-The provider, account and sandbox credentials remain outstanding. This is the
-selected future verification route, not a delivered admission workflow. Mock or
-simulated registry success cannot replace genuine verification. Officeholder
-matching does not grant every capability or make a secretary a director;
+The owner then [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+on the same day. InfoTrack API access, its documentation and sandbox credentials
+remain outstanding. Credentials belong only in the backend environment, never
+in chat, issues or commits. This is the selected future verification route, not
+a delivered admission workflow. Mock or simulated InfoTrack success cannot
+replace genuine verification. Officeholder matching does not grant every
+capability or make a secretary a director;
 company mandates and action-specific approval requirements still apply. The
 [accepted plan](architecture/company-managed-registers.md#representative-verification)
 records the implementation boundary.

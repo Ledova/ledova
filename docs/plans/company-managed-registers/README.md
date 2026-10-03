@@ -18,9 +18,11 @@ to be implemented; submitting evidence grants no authority.
 
 The owner selected
 [ASIC officeholder matching and in-app delegation](../../architecture/company-managed-registers.md#representative-verification)
-on 4 October 2026 (Australia/Sydney). The data provider, account and sandbox
-credentials remain outstanding; genuine result/proof integration must precede
-effective admission. This decision does not complete #862 or its downstream
+on 4 October 2026 (Australia/Sydney), then chose InfoTrack as the broker. InfoTrack
+API access, its documentation and sandbox credentials remain outstanding;
+credentials stay only in the backend environment. Genuine result/proof
+integration must precede effective admission. This decision does not complete
+#862 or its downstream
 dependencies.
 
 The documentation audit covers all 73 Markdown documents tracked at its baseline

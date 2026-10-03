@@ -115,9 +115,10 @@ reversing that migration accepts them again, as the upgrade notes describe.
 The selected route matches the initial representative's verified identity to a
 current ASIC director or secretary of the exact ACN through a purchased provider
 search. Other representatives receive in-app delegation from a verified
-officeholder. Provider choice, account and sandbox credentials remain outstanding;
-the accepted plan records the required proof and the distinction between
-officeholder matching and action-specific company authority.
+officeholder. InfoTrack is the selected broker; its API access, documentation and
+sandbox credentials remain outstanding, with credentials only in the backend
+environment. The accepted plan records the required proof and the distinction
+between officeholder matching and action-specific company authority.
 
 A later admission workflow must bind fresh, attributable identity, entity and
 representative-mandate results to this exact retained request before creating an

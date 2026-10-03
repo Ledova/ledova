@@ -130,9 +130,12 @@ secretary of the exact ACN, using an ASIC registry search purchased through a
 data provider. Other representatives receive in-app delegation from a verified
 officeholder, within that person's delegatable company mandate.
 
-The data provider, account and sandbox credentials still need to be supplied.
-Its authenticated result contract and integration must establish the exact
-person, company and current officeholder role, with attributable evidence bound
+The owner [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+on the same day. InfoTrack API access, its documentation and sandbox credentials
+still need to be supplied; credentials belong only in the backend environment,
+never in chat, issues or commits. Its authenticated result contract and
+integration must establish the exact person, company and current officeholder
+role, with attributable evidence bound
 to the retained request. Missing, ambiguous or unavailable verification remains
 unresolved; no mock result, uploaded declaration, KYC result alone or staff
 override establishes the registry match. Preserve private evidence, provenance,
@@ -325,9 +328,10 @@ not itself prove any new workflow works.
 
 ## Implementation decisions still needed
 
-The bootstrap verification route is selected above; its data provider, access
-and genuine result/proof integration remain prerequisites. Exact capability
-bundles, approval policies, external-signature capture and delegation/recovery
+The bootstrap route and InfoTrack broker are selected above; API access,
+documentation, sandbox credentials and genuine result/proof integration remain
+prerequisites. Exact capability bundles, approval policies, external-signature
+capture and delegation/recovery
 checks need detailed design against company workflows. Company registration
 must not imply unverified directorship.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
