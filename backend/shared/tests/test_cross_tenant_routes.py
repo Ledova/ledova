@@ -48,6 +48,7 @@ from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_openings import SETTINGS
+from users.models import UserProfile
 from users.models.investor_classification import InvestorClassification
 
 
@@ -617,6 +618,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
     def test_own_rows_resolve_for_every_actor(self):
         for actor in self.actors:
+            with self.committed_where_a_request_on_another_connection_can_read_it():
+                UserProfile.objects.filter(pk=actor.profile.pk).update(is_id_verified=True)
             self.client.force_authenticate(actor.user)
             own = route_context(actor)
             for route in ROUTES:
@@ -657,12 +660,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         foreign = route_context(self.other)
         phantom = phantom_context(self.other)
         for actor in self.actors:
+            with self.committed_where_a_request_on_another_connection_can_read_it():
+                make_eligible(actor)
             self.client.force_authenticate(actor.user)
             for route in DIRECTORY_ROUTES + MARKET_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
                     with self.undone_before_the_next_case():
-                        with self.as_whoever_may_write_the_fixture(route, foreign, actor, actor):
-                            make_eligible(actor)
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                             open_to_investors(self.other)
                             if route.prepare:
@@ -675,12 +678,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
     def test_the_market_answers_without_the_issuers_directory_opt_in(self):
         foreign = route_context(self.other)
         for actor in self.actors:
+            with self.committed_where_a_request_on_another_connection_can_read_it():
+                make_eligible(actor)
             self.client.force_authenticate(actor.user)
             for route in MARKET_ROUTES + DIRECTORY_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
                     with self.undone_before_the_next_case():
-                        with self.as_whoever_may_write_the_fixture(route, foreign, actor, actor):
-                            make_eligible(actor)
                         if route.prepare:
                             with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                                 route.prepare(self.other)
