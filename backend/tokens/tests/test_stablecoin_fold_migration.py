@@ -23,7 +23,7 @@ class StablecoinFoldMigrationTest(TransactionTestCase):
     def setUp(self):
         super().setUp()
         self.addCleanup(self.restore_latest_schema)
-        self.old_apps = self.migrate(MIGRATE_FROM)
+        self.old_apps = self.migrate(MIGRATE_FROM + [("operators", "0001_initial")])
         self.stablecoin = self.old_apps.get_model("tokens", "Stablecoin")
         self.asset = self.old_apps.get_model("assets", "Asset")
         self.deployment = self.old_apps.get_model("assets", "AssetChainDeployment")
@@ -155,24 +155,24 @@ class StablecoinFoldMigrationTest(TransactionTestCase):
         self.migrate(MIGRATE_FROM)
 
     def test_the_fold_supports_every_folded_asset_for_settlement(self):
-        from operators.models import Operator
-
-        Operator.objects.create(name="Ledova", receiving_wallet_chain=BASE)
+        operator = self.old_apps.get_model("operators", "Operator").objects.create(
+            name="Ledova", receiving_wallet_chain=BASE
+        )
         self.coin()
 
         Asset, _ = self.fold()
 
         asset = Asset._base_manager.get(symbol="TUSD")
-        self.assertEqual([row.pk for row in Operator.get().supported_settlement_assets.all()], [asset.pk])
+        self.assertEqual(list(operator.supported_settlement_assets.values_list("pk", flat=True)), [asset.pk])
 
         self.migrate(MIGRATE_FROM)
 
-        self.assertEqual(Operator.get().supported_settlement_assets.count(), 0)
+        self.assertEqual(operator.supported_settlement_assets.count(), 0)
 
     def test_an_operator_configured_settlement_asset_survives_a_full_round_trip(self):
-        from operators.models import Operator
-
-        operator = Operator.objects.create(name="Ledova", receiving_wallet_chain=BASE)
+        operator = self.old_apps.get_model("operators", "Operator").objects.create(
+            name="Ledova", receiving_wallet_chain=BASE
+        )
         euroc = self.asset._base_manager.create(
             symbol="EUROC", name="Euro Coin", asset_type="stablecoin", decimals=6, is_verified=True
         )
@@ -200,9 +200,8 @@ class StablecoinFoldMigrationTest(TransactionTestCase):
         self.assertEqual(self.supported(), {euroc.pk, Asset._base_manager.get(symbol="TUSD").pk})
 
     def supported(self):
-        from operators.models import Operator
-
-        return set(Operator.get().supported_settlement_assets.values_list("pk", flat=True))
+        operator = self.old_apps.get_model("operators", "Operator").objects.get(pk=1)
+        return set(operator.supported_settlement_assets.values_list("pk", flat=True))
 
     def mint_request(self, coin, user=None):
         from datetime import date
