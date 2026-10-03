@@ -4,12 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import axios from 'axios';
-import {
-  ApiClientProvider,
-  AUTH_QUERY_KEY,
-  COMPANY_AUTHORITY_PENDING_NOTICE,
-  USER_PREFERENCES_QUERY_KEY,
-} from '@ledova/shared';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import CompanyAuthorityPage from './index';
 
@@ -21,6 +16,10 @@ const companyA = { uuid: 'company-a', name: 'Harbour Synthetic Pty Ltd', acn: '0
 const companyB = { uuid: 'company-b', name: 'Inland Synthetic Pty Ltd', acn: '000000027', status: 'draft' };
 const ownerA = { userProfile: 'profile-a', userAccount: { uuid: 'account-a' } };
 const ownerB = { userProfile: 'profile-b', userAccount: { uuid: 'account-b' } };
+const pendingMessage =
+  'Evidence received and awaiting independent verification. Company authority verification is unavailable; this request grants no company authority.';
+const withdrawnMessage =
+  'Request withdrawn. Its evidence and original terms remain retained and accessible; company authority verification is unavailable, and this request grants no company authority.';
 let client: QueryClient;
 let rows: ReturnType<typeof request>[];
 
@@ -30,7 +29,7 @@ function request(company = companyA, uuid = 'request-a') {
     company: company.uuid,
     status: 'pending',
     verificationStatus: 'unavailable',
-    verificationMessage: COMPANY_AUTHORITY_PENDING_NOTICE,
+    verificationMessage: pendingMessage,
     companyIdentityRaw: { name: company.name, acn: company.acn },
     requestedCapabilities: ['prepare'],
     delegatableCapabilities: ['approve'],
@@ -51,7 +50,7 @@ function withdrawn() {
     ...request(),
     status: 'withdrawn',
     withdrawnAt: '2026-10-03T02:00:00Z',
-    verificationMessage: 'Request withdrawn. Its evidence is retained and no company authority was granted.',
+    verificationMessage: withdrawnMessage,
   };
 }
 
@@ -134,7 +133,7 @@ it('records independently requested delegation as pending with no authority gran
   fireEvent.click(screen.getByRole('button', { name: 'Submit authority request' }));
   expect(await screen.findByText(/Request recorded: request-a/)).toBeTruthy();
   expect(screen.getByText('Pending verification')).toBeTruthy();
-  expect(screen.getAllByText(COMPANY_AUTHORITY_PENDING_NOTICE).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(pendingMessage).length).toBeGreaterThan(0);
   const [url, form, config] = api.post.mock.calls[0];
   expect(url).toBe(endpoint);
   expect(form.get('company')).toBe(companyB.uuid);
