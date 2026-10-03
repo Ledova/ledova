@@ -79,13 +79,15 @@ function screen(routeWallet: Wallet = wallet, chosen = false) {
 
 beforeEach(() => {
   client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
   });
   holdingsAnswer(false);
 });
 
 afterEach(async () => {
   await cleanup();
+  await act(() => settleHoldings?.());
+  settleHoldings = null;
   client.clear();
   onlineManager.setOnline(true);
 });
