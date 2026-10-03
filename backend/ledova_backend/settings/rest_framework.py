@@ -40,6 +40,7 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
+        "CompanyCapabilityEnum": "companies.models.authority_request.CompanyCapability.choices",
         "ApprovalRequiredEnum": [(True, True)],
         "BallotChoiceEnum": "shareholders.models.event.BallotChoice",
         "ApprovalSufficientEnum": [(False, False)],

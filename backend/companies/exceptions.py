@@ -58,3 +58,10 @@ class OfferedDocumentException(APIException):
         "cannot be deleted."
     )
     default_code = "offered_document"
+
+
+class AuthorityRequestConflictException(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This request key already records different identity, evidence or terms. Submit a new request."
+    default_code = "authority_request_conflict"
+    expose_code = True

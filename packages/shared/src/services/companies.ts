@@ -15,8 +15,13 @@ import type {
   PaginatedResponse,
 } from '../types';
 
-export const getCompanies = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<CompanyListItem>>(COMPANY_ENDPOINTS.BASE);
+export const getCompanies = (apiClient: AxiosInstance, page?: number, config?: AxiosRequestConfig) =>
+  page === undefined && config === undefined
+    ? apiClient.get<PaginatedResponse<CompanyListItem>>(COMPANY_ENDPOINTS.BASE)
+    : apiClient.get<PaginatedResponse<CompanyListItem>>(COMPANY_ENDPOINTS.BASE, {
+        ...config,
+        ...(page === undefined ? {} : { params: { page } }),
+      });
 
 export const registerCompany = (apiClient: AxiosInstance, data: CompanyRegistration) =>
   apiClient.post<CompanyRegistrationResponse>(COMPANY_ENDPOINTS.BASE, data);

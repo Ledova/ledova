@@ -10,6 +10,7 @@ import SubscriptionDetailPage from '@pages/subscriptions/detail';
 import InvestorEligibilityPage from '@pages/investor-eligibility';
 import PublicationsPage from '@pages/publications';
 import CompanyPage from '@pages/company';
+import CompanyAuthorityPage from '@pages/company/authority';
 import ShareClassPage from '@pages/company/classes';
 import CompanyRegisterPage from '@pages/company/register';
 import ListingPage from '@pages/company/listing';
@@ -33,6 +34,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyClass: <ShareClassPage />,
   companyRegister: <CompanyRegisterPage />,
   company: <CompanyPage />,
+  companyAuthority: <CompanyAuthorityPage />,
   companyListing: <ListingPage />,
   companyPublications: <IssuerPublicationsPage />,
   companyOffering: <OfferingPage />,

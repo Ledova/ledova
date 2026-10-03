@@ -88,6 +88,7 @@ export function CompanyScreen() {
               </Rows>
               <Rows>
                 <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
+                <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
                 <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
               </Rows>
             </Section>

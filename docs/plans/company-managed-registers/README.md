@@ -11,7 +11,9 @@ The [GitHub programme #860](https://github.com/Ledova/ledova/issues/860) owns th
 transition and its 13 implementation issues below. GitHub is the working backlog;
 this folder records scope, sequencing and documentation traceability. These are
 planned changes except phase 1: product-mode retirement is delivered by #861.
-Company appointments and the dependent register workflows remain to be implemented.
+The first #862 increment provides [unverified authority requests](authority-requests.md)
+in both clients. Company appointments and the dependent register workflows remain
+to be implemented; submitting evidence grants no authority.
 
 The documentation audit covers all 73 Markdown documents tracked at its baseline
 plus the accepted plan: 74 documents, 46 updated and 28 retained as aligned

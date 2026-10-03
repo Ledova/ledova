@@ -27,6 +27,13 @@ proved on existing databases as well as fresh ones.
 
 ## Roles and principal
 
+[Representative authority requests](../plans/company-managed-registers/authority-requests.md)
+are a current pending-only boundary: the app reads its principal's requests and
+cannot insert, update or delete them. A bounded creation service carries and
+restores the individual principal on the selected connection, then locks and
+rechecks that person, profile and owned draft company. This does not widen the
+existing company helpers or grant any register capability.
+
 | Role | Purpose |
 | --- | --- |
 | App | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS` |

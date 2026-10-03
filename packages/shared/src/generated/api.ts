@@ -767,6 +767,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/requests/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_requests_list'];
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_requests_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/requests/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_requests_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/requests/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_requests_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/directory/tokens/': {
     parameters: {
       query?: never;
@@ -2312,6 +2360,18 @@ export interface ApiComponents {
       isEmailVerified: boolean;
       uuid: string | null;
     };
+    AuthorityCompanyIdentitySnapshot: {
+      abn: string;
+      acn: string;
+      companyType: ApiComponents['schemas']['CompanyTypeEnum'];
+      name: string;
+    };
+    AuthorityPersonIdentitySnapshot: {
+      email: string;
+      fullName: string;
+      profileUuid: string;
+      userId: number;
+    };
     AuthPasswordChanged: {
       message: string;
     };
@@ -2469,6 +2529,41 @@ export interface ApiComponents {
       company: ApiComponents['schemas']['ApplicationStatus'];
       message: string;
     };
+    CompanyAuthorityRequest: {
+      company: string;
+      companyIdentity: ApiComponents['schemas']['AuthorityCompanyIdentitySnapshot'];
+      companyIdentityRaw: ApiComponents['schemas']['AuthorityCompanyIdentitySnapshot'];
+      createdAt: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      fileSha256: string;
+      fileSize: number;
+      fileUrl: string;
+      idempotencyKey: string;
+      mimeType: string;
+      originalFilename: string;
+      personIdentity: ApiComponents['schemas']['AuthorityPersonIdentitySnapshot'];
+      personIdentityRaw: ApiComponents['schemas']['AuthorityPersonIdentitySnapshot'];
+      purpose: string;
+      requestDigest: string;
+      requestedCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      requestedExpiresAt: string | null;
+      requesterProfile: string;
+      status: ApiComponents['schemas']['CompanyAuthorityStatusEnum'];
+      uuid: string;
+      verificationMessage: string;
+      verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
+    };
+    CompanyAuthorityRequestUploadRequest: {
+      company: string;
+      delegatableCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      file: Blob;
+      idempotencyKey: string;
+      requestedCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      requestedExpiresAt?: string | null;
+    };
+    CompanyAuthorityStatusEnum: 'pending';
+    CompanyAuthorityVerificationStatusEnum: 'unavailable';
+    CompanyCapabilityEnum: 'admin' | 'prepare' | 'approve' | 'apply' | 'finance' | 'read_register';
     CompanyDetail: {
       abn?: string;
       acn: string;
@@ -3285,6 +3380,12 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['CapitalIncreaseList'][];
+    };
+    PaginatedCompanyAuthorityRequestList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['CompanyAuthorityRequest'][];
     };
     PaginatedCompanyListList: {
       count: number;
@@ -6100,6 +6201,104 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyApplicationWithdrawn'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedCompanyAuthorityRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyAuthorityRequestUploadRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyAuthorityRequestUploadRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyAuthorityRequestUploadRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

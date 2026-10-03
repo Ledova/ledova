@@ -166,6 +166,13 @@ CAPITAL_INCREASE = {
     "purpose": "Growth",
     "boardResolutionReference": "BOARD-NEW",
 }
+COMPANY_AUTHORITY_ROUTES = {
+    "create": ("post", "/api/v1/company-authority/requests/"),
+    "list": ("get", "/api/v1/company-authority/requests/"),
+    "detail": ("get", "/api/v1/company-authority/requests/{uuid}/"),
+    "file": ("get", "/api/v1/company-authority/requests/{uuid}/file/"),
+}
+
 REGISTER_CORRECTION_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-corrections/"),
     "list": ("get", "/api/v1/tokens/register-corrections/"),
@@ -741,6 +748,53 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         with self.committed_where_a_request_on_another_connection_can_read_it():
             make_eligible(alice)
         self.assertEqual(self.client.get(GLOBAL_ROUTES[0]).json()["paymentInstructions"], RAILS)
+
+    def test_authority_requests_are_requester_only_for_company_staff_and_missing_reference_cases(self):
+        from companies.tests.test_authority_requests import authority_fixture
+
+        with self.as_an_operator_would():
+            owner, profile, company = authority_fixture("matrix-authority", "112233445")
+        self.client.force_authenticate(owner)
+        created = self.client.post(
+            COMPANY_AUTHORITY_ROUTES["create"][1],
+            {
+                "company": str(company.pk),
+                "idempotency_key": str(uuid4()),
+                "requested_capabilities": ["admin"],
+                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        proposal_id = created.json()["uuid"]
+        listing = COMPANY_AUTHORITY_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
+        for name in ("detail", "file"):
+            path = COMPANY_AUTHORITY_ROUTES[name][1].format(uuid=proposal_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(proposal_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.get(listing).status_code, 401)
+            self.client.force_authenticate(owner)
+        self.client.force_authenticate(self.actors[0].user)
+        refused = self.client.post(
+            COMPANY_AUTHORITY_ROUTES["create"][1],
+            {
+                "company": str(company.pk),
+                "idempotency_key": str(uuid4()),
+                "requested_capabilities": ["admin"],
+                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(refused.status_code, 404, refused.content)
 
     @override_settings(
         STORAGES={

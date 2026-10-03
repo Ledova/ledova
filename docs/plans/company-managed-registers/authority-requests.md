@@ -1,0 +1,85 @@
+# Representative authority requests
+
+[Implementation index](README.md) · [Accepted plan](../../architecture/company-managed-registers.md)
+
+The first increment of [#862](https://github.com/Ledova/ledova/issues/862) records
+private evidence of a proposed company appointment. Every request remains
+**pending verification** and grants no company authority. The repository has no
+configured representative-mandate verifier. KYC, company identity checks and
+historical staff attestations do not supply that missing result.
+
+Use synthetic people, companies and evidence in this experimental implementation.
+
+## Company user steps
+
+1. Sign up, verify your account email and register a draft company.
+2. Open **Representative authority** from the company details screen on web or
+   mobile. Select the draft company you own; selection is explicit when you have
+   several companies.
+3. Choose the actions you propose to exercise and, separately, the actions you
+   propose to delegate. These are requested scopes, not permissions granted by
+   selecting them. You may propose an expiry.
+4. Upload the supporting PDF, PNG or JPEG through the existing checked upload
+   flow. The file is private and retained with the request.
+5. Submit. The platform records the company and person snapshots, requested
+   terms and exact evidence bytes, then displays the pending verification result.
+6. Review **Your requests** and download your retained evidence. A request keeps
+   the company name and ACN captured when it was submitted. Retained submissions
+   cannot be edited or deleted through the clients.
+
+```mermaid
+flowchart LR
+    signup[Sign up and verify email] --> draft[Register a draft company]
+    draft --> select[Select owned draft company]
+    select --> terms[Propose personal and delegation scopes]
+    terms --> evidence[Upload private evidence]
+    evidence --> capture[Retain exact request and evidence]
+    capture --> pending[Pending independent verification]
+    pending --> history[Read own request and evidence]
+```
+
+Company appointments, invitation acceptance, effective capabilities, revocation
+and representative recovery remain later increments of #862. Company activation,
+register decisions and payments retain their current workflows until their
+owning issues replace them. See the [dependency index](README.md#delivery-tracking).
+
+## API and retained records
+
+`/api/v1/company-authority/requests/` provides authenticated multipart submission
+and paginated personal history. Detail and file actions resolve only the caller's
+own request. Active accounts with verified email are required; submission also
+requires current ownership of the selected draft company. Public company
+visibility, shareholder records and staff permissions do not widen that scope.
+
+The server resolves the person and profile, validates the upload and freezes the
+raw and normalised identities, file SHA256/size/type, requested scope and expiry.
+It accepts no caller-supplied verification result or representative account.
+An identical retry under the same requester-scoped idempotency key returns the
+retained request. Changed evidence, terms, company or captured identity conflicts;
+submit a new request for changed information. Clients preserve a key for retries
+and replace it when inputs change.
+
+`companies/0012_company_authority_request` adds only the request table, its
+requester-only read policy and immutable database guard. Ordinary app SQL cannot
+insert or change the retained records. Creation uses a bounded service that
+rechecks the exact person/profile/company under locks and carries the person
+explicitly across database aliases. It changes no company owner, activation
+state, historical decision or register entry.
+
+Requests and their referenced evidence have no automatic purge in this
+experimental slice. The existing orphan sweep can remove unreferenced interrupted
+uploads; it preserves files referenced by retained requests. Requested appointment
+expiry does not delete submission evidence. See [files and retention](../../architecture/files-and-retention.md).
+
+Reversal is allowed only while the new table is empty. A populated reversal
+refuses to discard request history and private evidence; retain a database and
+private-storage backup together. Follow [upgrade notes](../../operations/upgrades.md).
+
+## Remaining verification boundary
+
+A later admission workflow must bind fresh, attributable identity, entity and
+representative-mandate results to this exact retained request before creating an
+appointment. No successful mock, uploaded declaration or staff override can
+complete that boundary. Missing or unavailable verification stays pending.
+The original #862 completion checks remain open until the actual verification,
+team, delegation, revocation and recovery workflows are demonstrated.
