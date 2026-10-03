@@ -67,7 +67,7 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    Through the API, a new symbol is 3–5 letters, stored in capitals. Neither
    the API nor admin accepts a new or changed symbol that a supported asset
    uses (`SUPPORTED_ASSETS`: BTC, ETH, USDC, USDT, AUDY, AUSG), in any letter
-   case, so a share class is never confused with a crypto or payment asset.
+   case, preventing new symbol collisions with crypto or payment assets.
    Existing classes keep their symbols.
 2. `POST /api/v1/tokens/{uuid}/deploy/` calls `deployment.start_deployment`.
    A draft requires an active company and primary wallet. Its submission UUID,
