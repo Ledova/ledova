@@ -35,21 +35,39 @@ accepted direction, not a statement that the code already implements it.
 
 ### Company representative verification
 
-On 4 October 2026 (Australia/Sydney), the owner selected
-[ASIC officeholder matching](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
-for the initial representative: the person's verified identity must match a
-current director or secretary of the exact ACN, using an ASIC registry search
-purchased through a data provider. Other representatives receive in-app
-delegation from a verified officeholder.
+On 4 October 2026 (Australia/Sydney), the owner chose
+[company self-declaration](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112).
+A company registers itself and supplies its company and share information. Its
+representative declares that they are authorised to act for it. The company
+remains responsible for that information, its ASIC filings and its legal
+obligations. Companies and investors remain responsible for their own actions;
+Ledova provides infrastructure and tools with as little involvement as reasonably
+possible. False information and impersonation are matters for regulators and
+law enforcement, not a reason to add platform verification.
 
-The owner then [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
-on the same day. InfoTrack API access, its documentation and sandbox credentials
-remain outstanding. Credentials belong only in the backend environment, never
-in chat, issues or commits. This is the selected future verification route, not
-a delivered admission workflow. Mock or simulated InfoTrack success cannot
-replace genuine verification. Officeholder matching does not grant every
-capability or make a secretary a director;
-company mandates and action-specific approval requirements still apply. The
+The owner also [accepted two refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105):
+company details are shown as **provided by the company**, never **verified by
+Ledova**, and the terms make the company responsible for them. Ledova changes a
+company's administrators only through its existing administrators or at the
+direction of a court or regulator. Normal recovery of a person's own account is
+separate from changing company administrators.
+
+This supersedes the earlier same-day
+[ASIC officeholder route](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
+and [InfoTrack broker choice](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175),
+retained as history. No ASIC search, broker, uploaded ASIC extract or InfoTrack
+agreement is required for representative authority; those prerequisites no longer
+block #862–#873. A declaration can establish the initial representative's
+authority in the planned admission workflow. The existing representative identity
+check and ABR company lookup remain unchanged, as do tenant isolation and
+signed-transaction safeguards. Memberships, scoped capabilities, in-app
+delegation, invitations, revocation and action-specific company approvals remain
+in scope. Self-declaration admission is planned; current requests and withdrawals
+grant no company authority.
+
+Do not add impersonation or fraud verification unless a legal duty on Ledova
+requires it. If such a duty is identified, raise it with the owner with its source
+rather than building a check; see [legal positions](legal/positions.md). The
 [accepted plan](architecture/company-managed-registers.md#representative-verification)
 records the implementation boundary.
 

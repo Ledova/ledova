@@ -16,14 +16,26 @@ in both clients, retaining evidence and history. Company appointments and the
 dependent register workflows remain
 to be implemented; submitting evidence grants no authority.
 
-The owner selected
-[ASIC officeholder matching and in-app delegation](../../architecture/company-managed-registers.md#representative-verification)
-on 4 October 2026 (Australia/Sydney), then chose InfoTrack as the broker. InfoTrack
-API access, its documentation and sandbox credentials remain outstanding;
-credentials stay only in the backend environment. Genuine result/proof
-integration must precede effective admission. This decision does not complete
-#862 or its downstream
-dependencies.
+The owner's [4 October 2026 self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
+and [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
+set the planned [representative authority route](../../architecture/company-managed-registers.md#representative-verification).
+The company supplies its information and the representative declares their
+authorisation. Company details are shown as provided by the company, never
+verified by Ledova; the terms assign responsibility to the company. Companies
+remain responsible for their information, ASIC filings and legal obligations.
+Company administrators change only through existing company administrators or
+court/regulator direction; normal own-account recovery is separate.
+
+The earlier [ASIC officeholder route](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
+and [InfoTrack broker choice](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+are superseded history. No ASIC search, broker, uploaded ASIC extract or InfoTrack
+agreement is required; those prerequisites no longer block #862–#873. Existing
+representative identity/ABR checks, memberships, capabilities, invitations,
+in-app delegation, revocation, isolation and signed-transaction safeguards remain.
+No new anti-impersonation verification is planned without an identified legal
+duty on Ledova, which must be cited and raised with the owner before any check is
+built. This documentation decision does not deliver admission or complete #862;
+the issue dependencies below remain implementation prerequisites.
 
 The documentation audit covers all 73 Markdown documents tracked at its baseline
 plus the accepted plan: 74 documents, 46 updated and 28 retained as aligned
@@ -142,7 +154,7 @@ and its phase tickets record the delivered foundation. Closed
 [#846](https://github.com/Ledova/ledova/issues/846) delivered synthetic development
 fixtures; open [#624](https://github.com/Ledova/ledova/issues/624) owns separate
 physical-device/live-operation release acceptance. Their work does not replace
-fresh company-authority verification.
+fresh self-declaration admission and the company-managed workflows.
 
 Preserve the earlier staff-assisted screenshots, PDF, gallery and embedded
 artifact. The new acceptance issue owns a separate step-by-step company/member

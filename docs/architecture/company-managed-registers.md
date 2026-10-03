@@ -85,7 +85,7 @@ design. `RegisterMember` remains a shareholder record, not an administrative rol
 Participant access to one's holding/notices does not imply company admin access.
 
 Platform permissions and company appointments are independent. Company membership
-must not confer global staff privileges. Company capabilities come from verified
+must not confer global staff privileges. Company capabilities come from recorded
 company appointments, never from a platform staff role. Routine register workflows
 must work with company-authorised users who have no platform staff access.
 Existing `Company.owner` can seed administrator access, but must not silently
@@ -103,10 +103,11 @@ Wallet proof is required for wallet-dependent actions, not every imported or
 non-tokenised register member.
 
 Bootstrap starts with fresh company and participant signup. Establish initial
-company access through verified representative authority and recorded company
-identity/registry results; registration alone does not grant a director mandate.
-The selected [representative verification route](#representative-verification)
-is ASIC officeholder matching, followed by in-app delegation.
+company access through the representative's authorisation declaration, retaining
+the existing representative identity check and ABR company lookup. The selected
+[representative authority route](#representative-verification) is self-declaration,
+followed by scoped in-app delegation. It does not approve pending instructions
+or replace action-specific company approvals.
 Company activation becomes a validated workflow outcome when its configured
 requirements are met, rather than an unconditional platform-staff approval.
 Company-appointed approvers control offering publication under recorded terms
@@ -123,35 +124,45 @@ and provider/check evidence before automated application.
 
 ### Representative verification
 
-On 4 October 2026 (Australia/Sydney), the owner
-[selected ASIC officeholder matching](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155).
-The initial representative's verified identity must match a current director or
-secretary of the exact ACN, using an ASIC registry search purchased through a
-data provider. Other representatives receive in-app delegation from a verified
-officeholder, within that person's delegatable company mandate.
+The owner's [4 October 2026 self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
+establishes the initial representative's authority through their declaration that
+they are authorised to act for the company. The company registers itself and
+provides its own company and share information. It remains responsible for that
+information, ASIC filings and legal obligations. Companies and investors are
+responsible for their own actions; Ledova supplies infrastructure and tools and
+minimises its involvement wherever reasonably possible. False information and
+impersonation are matters for regulators and law enforcement.
 
-The owner [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
-on the same day. InfoTrack API access, its documentation and sandbox credentials
-still need to be supplied; credentials belong only in the backend environment,
-never in chat, issues or commits. Its authenticated result contract and
-integration must establish the exact person, company and current officeholder
-role, with attributable evidence bound
-to the retained request. Missing, ambiguous or unavailable verification remains
-unresolved; no mock result, uploaded declaration, KYC result alone or staff
-override establishes the registry match. Preserve private evidence, provenance,
-expiry and revocation checks.
+The [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
+require company details to be shown as **provided by the company**, never
+**verified by Ledova**; the terms make the company responsible for them. Ledova
+changes company administrators only when the company's existing administrators
+do it, or when a court or regulator directs it. A person recovering their own
+account through normal account recovery is a separate matter; it does not
+appoint a replacement company administrator.
 
-The actual InfoTrack agreement must support the required retained proof and
-permitted user access. Its [published API terms](https://www.infotrack.com.au/legal/APITerms)
-(clauses 5.1(c) and 5.1(f)) limit retention and product access unless expressly
-permitted otherwise. Confirm the applicable agreement before storing provider
-results; this does not change existing request-evidence retention.
+The earlier same-day [ASIC officeholder decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
+and [InfoTrack selection](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+are superseded history. No ASIC search, broker, uploaded ASIC extract or InfoTrack
+agreement is required for representative authority. Remove those admission
+prerequisites and the rule that an uploaded declaration cannot establish
+authority; they no longer block #862–#873. Preserve retained records and private
+evidence rather than purging the earlier request lifecycle.
 
-This choice does not equate a secretary's role with directorship or resolve the
-capability bundles and company approval policy. An officeholder match establishes
-the selected bootstrap proof; subsequent actions still require their applicable
-company mandate, capability and exact approval. Registration or existing company
-ownership alone grants none of that proof. Effective admission, appointments and
+The existing representative identity check and ABR company lookup remain
+unchanged. A declaration does not turn either check into a company-provided
+success result. Keep ordinary account security, tenant isolation and
+signed-transaction safeguards. Do not add verification to catch impersonation or
+fraud unless a legal duty falls on Ledova itself. If one is identified, cite it
+and raise it with the owner rather than building the check; the
+[legal positions](../legal/positions.md) remain a dated research record.
+
+Other representatives receive in-app delegation from authorised company users
+within their recorded delegatable scope. Memberships, capabilities, invitations,
+expiry and revocation remain in scope. Subsequent actions require their applicable
+company mandate, capability and exact approval; self-declaration does not approve
+an issue or payment. Capability bundles and company approval policy still need
+implementation design. Effective self-declaration admission, appointments and
 delegation remain planned; the delivered
 [request lifecycle](../plans/company-managed-registers/authority-requests.md)
 only retains pending proposals and withdrawals.
@@ -160,7 +171,7 @@ only retains pending proposals and withdrawals.
 
 | Workflow | Company | Participant | Tools/automation |
 | --- | --- | --- | --- |
-| Setup | Establish identity, representatives and mandates; invite team | Verify account and accept invitation | Configured checks; visible unresolved requirements |
+| Setup | Provide company/share information, declare representative authorisation and invite team | Verify account and accept invitation | Existing identity/ABR checks; record declaration and scoped appointments |
 | Opening/import | Import particulars/structure, resolve differences and approve initial records | Confirm particulars when requested | Validate totals/duplicates, retain source and apply exact opening |
 | Issue/employee grant | Prepare terms/resolution, select recipients and approve exact issue | Apply/accept, supply information and sign | Validate authority/limits; record effect and tokenise when the selected workflow requires it |
 | Paid subscription | Publish terms, decide applications, issue instructions, reconcile receipts and authorise allotment | Apply, inspect instructions and pay company/provider | References, reconciliation evidence and exactly-once authorised allotment |
@@ -257,8 +268,9 @@ uncertain execution completed or manufacture company authority through support.
    preserving supply and genuine authority without requiring a wallet or
    manufacturing chain completions. Design subsequent tokenisation as a mirror.
    Replace routine staff onboarding/activation and eligibility dependencies with
-   evidenced company authority and configured verification. Do not let a company
-   assert its own registry/provider check succeeded without the corresponding result.
+   declared company authority and the existing identity/ABR and participant
+   eligibility checks. Self-declaration establishes representative authority;
+   it does not fabricate success for a separate configured provider check.
 4. **Primary relationship.** Company-controlled offering publication and investor
    application decisions, payment instructions,
    receipt/refund evidence and exact issue/allotment authority. Primary payments
@@ -280,6 +292,11 @@ remain implementation references until their described workflows change.
 
 - Company A's appointee cannot read or act on company B's private records; reject
   foreign company/class/member/document references, even for a shared owner.
+- Initial admission records the representative's authorisation declaration,
+  retaining the existing identity check and ABR lookup. Company details are
+  attributed to the company, with responsibility stated in the terms, and never
+  labelled verified by Ledova. Administrator changes require existing company
+  administrators or court/regulator direction; own-account recovery remains separate.
 - Preparing an issue without approval authority succeeds; applying it fails
   until required company approval exists. Global staff permissions do not count
   as that appointment, and shareholder status grants no register admin rights.
@@ -334,11 +351,10 @@ not itself prove any new workflow works.
 
 ## Implementation decisions still needed
 
-The bootstrap route and InfoTrack broker are selected above; API access,
-documentation, sandbox credentials and genuine result/proof integration remain
-prerequisites. Exact capability bundles, approval policies, external-signature
-capture and delegation/recovery
-checks need detailed design against company workflows. Company registration
-must not imply unverified directorship.
+Self-declaration is the selected bootstrap route; ASIC/InfoTrack prerequisites
+are superseded. Exact capability bundles, approval policies, declaration and
+terms capture, external-signature capture and delegation need detailed design
+against company workflows. Implement administrator changes under the accepted
+existing-administrator or court/regulator rule, separate from own-account recovery.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.

@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-Updated 3 October 2026 · Agreed product direction, paired with the
+Updated 4 October 2026 · Agreed product direction, paired with the
 [regulatory pathway](regulatory-pathway.md)
 
 ## Purpose
@@ -47,7 +47,7 @@ decision. A technical support or signing role cannot supply that authority.
 
 | Capability | Intended behaviour |
 | --- | --- |
-| Company onboarding | Register the company, verify representative authority and establish its authorised users, shareholder relationships, share classes and initial ownership records. |
+| Company onboarding | Register the company and record the representative's authorisation declaration under the [accepted authority plan](architecture/company-managed-registers.md#representative-verification), retaining the existing identity check and ABR lookup; establish its authorised users, shareholder relationships, share classes and initial ownership records. |
 | Company discovery | Let investors browse company profiles and available investment opportunities, with appropriate access to offer information. |
 | Share registry and cap table | Let authorised company users maintain membership particulars, approve register openings and changes, and record issuance and ownership changes with their authority and evidence; reconcile the register with blockchain records. |
 | Primary issuance | Let companies present their terms, collect applications, complete checks and approvals, confirm external payment and issue shares. |
