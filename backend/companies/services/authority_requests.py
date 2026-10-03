@@ -95,7 +95,9 @@ def submit_authority_request(
     if not requested and not delegatable:
         raise ValidationError({"requested_capabilities": "Request at least one personal or delegatable capability."})
     with use_app(), _requester_principal(requester.pk):
-        get_object_or_404(Company.objects.owned_by(requester), pk=company_id)
+        replay = CompanyAuthorityRequest.objects.filter(requester=requester, idempotency_key=idempotency_key).exists()
+        if not replay:
+            get_object_or_404(Company.objects.owned_by(requester), pk=company_id)
     file.seek(0)
     try:
         raw = read_bounded(file)
@@ -104,19 +106,34 @@ def submit_authority_request(
     finally:
         file.seek(0)
     original_filename = file.name
-    captured = ContentFile(raw, name=original_filename)
-    captured.content_type = getattr(file, "content_type", "")
-    file_size, mime_type = validate_upload(captured)
+    file_size = len(raw)
+    mime_type = getattr(file, "content_type", "")
+    if not replay:
+        captured = ContentFile(raw, name=original_filename)
+        captured.content_type = mime_type
+        file_size, mime_type = validate_upload(captured)
     file_sha256 = hashlib.sha256(raw).hexdigest()
     with use_operator(), _requester_principal(requester.pk), atomic():
         actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
         _require_requester(actor)
         profile = get_object_or_404(UserProfile.objects.select_for_update(), user=actor)
-        company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner=actor)
-        if company.status != CompanyStatus.DRAFT:
-            raise ValidationError(
-                {"company": "Initial authority evidence can only be requested for your draft company."}
-            )
+        existing = (
+            CompanyAuthorityRequest.objects.select_related("withdrawal")
+            .filter(requester=actor, idempotency_key=idempotency_key)
+            .first()
+        )
+        if existing:
+            if str(existing.company_id) != str(company_id):
+                raise AuthorityRequestConflictException()
+            company = get_object_or_404(Company.objects.select_for_update(), pk=existing.company_id)
+        else:
+            if replay:
+                raise AuthorityRequestConflictException()
+            company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner=actor)
+            if company.status != CompanyStatus.DRAFT:
+                raise ValidationError(
+                    {"company": "Initial authority evidence can only be requested for your draft company."}
+                )
         raw_company, identity, raw_person, person = _snapshots(company, actor, profile)
         frozen = {
             "company": str(company.pk),
@@ -138,11 +155,6 @@ def submit_authority_request(
             "original_filename": original_filename,
         }
         digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        existing = (
-            CompanyAuthorityRequest.objects.select_related("withdrawal")
-            .filter(requester=actor, idempotency_key=idempotency_key)
-            .first()
-        )
         if existing:
             if existing.request_digest != digest:
                 raise AuthorityRequestConflictException()
