@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import { COMPANY_AUTHORITY_PENDING_NOTICE, formatDateTime } from '@ledova/shared';
+import { formatDateTime } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
@@ -22,6 +22,10 @@ const COMPANIES = '/api/v1/companies/';
 const REQUESTS = '/api/v1/company-authority/requests/';
 const a = { uuid: 'company-a', name: 'Draft A', acn: '000000019', status: 'draft' };
 const b = { uuid: 'company-b', name: 'Draft B', acn: '000000027', status: 'draft' };
+const pendingMessage =
+  'Evidence received and awaiting independent verification. Company authority verification is unavailable; this request grants no company authority.';
+const withdrawnMessage =
+  'Request withdrawn. Its evidence and original terms remain retained and accessible; company authority verification is unavailable, and this request grants no company authority.';
 const record = {
   uuid: 'request-a',
   company: a.uuid,
@@ -31,7 +35,7 @@ const record = {
   status: 'pending',
   withdrawnAt: null as string | null,
   verificationStatus: 'unavailable',
-  verificationMessage: COMPANY_AUTHORITY_PENDING_NOTICE,
+  verificationMessage: pendingMessage,
   requestedCapabilities: ['prepare'],
   delegatableCapabilities: ['approve'],
   requestedExpiresAt: null,
@@ -41,8 +45,7 @@ const withdrawn = {
   ...record,
   status: 'withdrawn',
   withdrawnAt: '2026-10-03T02:15:00Z',
-  verificationMessage:
-    'This request has been withdrawn. Its history and evidence remain retained. No authority was granted.',
+  verificationMessage: withdrawnMessage,
 };
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -140,7 +143,7 @@ it('reads every owned-company page, requires explicit selection and submits sepa
   await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Approve register changes' }));
   const epoch = getSessionEpoch();
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
-  expect(await view.findByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeTruthy();
+  expect(await view.findByText(`Your request has been retained. ${pendingMessage}`)).toBeTruthy();
   const body = post.mock.calls[0][1];
   expect(field(body, 'company')).toBe(b.uuid);
   expect(parts(body)).toEqual(
@@ -235,7 +238,7 @@ it('reads every own-history page and displays frozen identity, pending status an
   expect(await view.findByText('Frozen Company A')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Request retained.pdf' }));
   expect(view.getByText(a.acn)).toBeTruthy();
-  expect(view.getByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toBeTruthy();
+  expect(view.getByText(pendingMessage)).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
   await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
   expect(get).toHaveBeenCalledWith(`${REQUESTS}${record.uuid}/file/`, {
@@ -285,7 +288,7 @@ it('suppresses a previous session submission result and retains active upload by
   expect(files.has(uri)).toBe(true);
   await act(() => response.resolve({ data: record }));
   await waitFor(() => expect(files.has(uri)).toBe(false));
-  expect(view.queryByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeNull();
+  expect(view.queryByText(`Your request has been retained. ${pendingMessage}`)).toBeNull();
 });
 
 it('does not share a private download that completes after sign-out', async () => {
@@ -355,7 +358,7 @@ it('offers retained evidence for an already withdrawn record without another wit
   expect(view.getByText(`Withdrawn · ${formatDateTime(withdrawn.withdrawnAt)}`)).toBeTruthy();
   expect(view.getByText(formatDateTime(withdrawn.withdrawnAt))).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
-  expect(view.queryByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toBeNull();
+  expect(view.queryByText(pendingMessage)).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
   await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
   expect(post).not.toHaveBeenCalled();
@@ -383,7 +386,7 @@ it('shows the server withdrawal outcome when retrying the original evidence subm
   await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   expect(await view.findByText(`Your request has been retained. ${withdrawn.verificationMessage}`)).toBeTruthy();
-  expect(view.queryByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeNull();
+  expect(view.queryByText(`Your request has been retained. ${pendingMessage}`)).toBeNull();
 });
 
 it('refuses an unconfirmed withdrawal response and keeps the pending request available to retry', async () => {

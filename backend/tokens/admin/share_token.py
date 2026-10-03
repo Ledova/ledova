@@ -1,5 +1,6 @@
 import logging
 
+from django import forms
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -8,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
+from tokens.constants import RESERVED_SYMBOL
 from tokens.exceptions import (
     CompanyNotReadyException,
     InvalidTokenStateException,
@@ -69,8 +71,17 @@ class ShareIssuanceInline(admin.TabularInline):
     status_badge = status_badge(ISSUANCE_COLORS)
 
 
+class ShareTokenForm(forms.ModelForm):
+    def clean_symbol(self):
+        symbol = self.cleaned_data["symbol"]
+        if symbol != self.instance.symbol and share_token_service.reserved_symbol(symbol):
+            raise forms.ValidationError(RESERVED_SYMBOL.format(symbol=symbol.upper()))
+        return symbol
+
+
 @admin.register(ShareToken)
 class ShareTokenAdmin(admin.ModelAdmin):
+    form = ShareTokenForm
     list_display = [
         "name",
         "symbol",

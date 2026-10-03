@@ -13,12 +13,15 @@ from django.db import DatabaseError, connections
 from django.db.models import ProtectedError
 from django.test import override_settings
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APITransactionTestCase
 
 from companies.exceptions import AuthorityRequestConflictException
 from companies.models import Company, CompanyAuthorityRequest
-from companies.services.authority_requests import submit_authority_request
+from companies.services.authority_requests import (
+    submit_authority_request,
+    withdraw_authority_request,
+)
 from shared.db import (
     atomic,
     current_alias,
@@ -31,6 +34,7 @@ from shared.db import (
 from shared.db.principal import give_the_role_back, take_the_app_role
 from shared.services.orphaned_files import orphaned_files, sweep_orphaned_files
 from shared.tests.upload_fixtures import StubUploadDependencies, image_bytes, pdf_bytes
+from shared.upload_errors import UploadUnavailable
 from users.models import UserProfile
 
 URL = "/api/v1/company-authority/requests/"
@@ -83,13 +87,15 @@ class AuthorityRequestCases:
 
     def service_submit(self, **changes):
         return submit_authority_request(
-            requester=self.user,
-            company_id=self.company.pk,
-            idempotency_key=self.key,
-            file=evidence(),
-            requested_capabilities=["admin", "prepare"],
-            delegatable_capabilities=["approve"],
-            **changes,
+            **{
+                "requester": self.user,
+                "company_id": self.company.pk,
+                "idempotency_key": self.key,
+                "file": evidence(),
+                "requested_capabilities": ["admin", "prepare"],
+                "delegatable_capabilities": ["approve"],
+                **changes,
+            }
         )
 
     def stored(self, response):
@@ -271,6 +277,175 @@ class AuthorityRequestCases:
         repeated = self.submit(requested_capabilities=["admin", "prepare"])
         self.assertEqual((created.status_code, repeated.status_code), (201, 200), repeated.content)
         self.assertEqual(created.json(), repeated.json())
+        proposal, fresh = self.service_submit(company_id=str(self.company.pk))
+        self.assertFalse(fresh)
+        self.assertEqual(str(proposal.pk), created.json()["uuid"])
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_pending_and_withdrawn_retries_survive_company_changes_without_scanning_again(self):
+        expiry = timezone.now() + timedelta(days=1)
+        terms = {"requested_expires_at": expiry.isoformat()}
+        recorded = self.submit(**terms)
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        for withdrawn in (False, True):
+            if withdrawn:
+                recorded = self.client.post(f"{URL}{recorded.json()['uuid']}/withdraw/", {}, format="json")
+                self.assertEqual(recorded.status_code, 200, recorded.content)
+                self.assertEqual(recorded.json()["status"], "withdrawn")
+            for change in ({"status": "submitted"}, {"owner": self.other}, {"status": "active", "owner": self.other}):
+                with self.subTest(withdrawn=withdrawn, change=change):
+                    with use_operator():
+                        Company.objects.filter(pk=self.company.pk).update(**change)
+                    with (
+                        patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner,
+                        patch(
+                            "companies.services.authority_requests.timezone.now",
+                            return_value=expiry + timedelta(days=1),
+                        ),
+                    ):
+                        repeated = self.submit(**terms)
+                    self.assertEqual(repeated.status_code, 200, repeated.content)
+                    self.assertEqual(repeated.json(), recorded.json())
+                    scanner.assert_not_called()
+                    with use_operator():
+                        self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+                        Company.objects.filter(pk=self.company.pk).update(owner=self.user, status="draft")
+        self.assertEqual(len(self.private_files()), 1)
+        download = self.client.get(recorded.json()["fileUrl"])
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(b"".join(download.streaming_content), PDF)
+
+    def test_changed_retry_inputs_conflict_without_scanning_or_replacing_retained_evidence(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        changes = (
+            {"company": str(self.other_company.pk)},
+            {"file": evidence(pdf_bytes(pages=2))},
+            {"file": evidence(b"x" * len(PDF))},
+            {"file": evidence(PDF, "renamed.pdf")},
+            {"file": evidence(PDF, "authority.txt")},
+            {"file": evidence(PDF, mime="image/png")},
+            {"file": evidence(PDF, mime="")},
+            {"requested_capabilities": ["finance"]},
+            {"delegatable_capabilities": ["finance"]},
+            {"requested_expires_at": (timezone.now() + timedelta(days=1)).isoformat()},
+        )
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            for change in changes:
+                with self.subTest(change=list(change)):
+                    refused = self.submit(**change)
+                    self.assertEqual(refused.status_code, 409, refused.content)
+            scanner.assert_not_called()
+        proposal = self.stored(created)
+        with proposal.file.open("rb") as retained:
+            self.assertEqual(retained.read(), PDF)
+        self.assertEqual(len(self.private_files()), 1)
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+
+    def test_company_identity_changes_still_conflict_after_ownership_is_lost(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        with use_operator():
+            Company.objects.filter(pk=self.company.pk).update(owner=self.other, name="Changed by new owner Pty Ltd")
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            refused = self.submit()
+        self.assertEqual(refused.status_code, 409, refused.content)
+        scanner.assert_not_called()
+        self.assertEqual(self.client.get(f"{URL}{created.json()['uuid']}/").json(), created.json())
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_existing_key_rechecks_the_current_locked_account_before_replay(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        for withdrawn in (False, True):
+            if withdrawn:
+                withdraw_authority_request(requester=self.user, request_id=created.json()["uuid"])
+            for field in ("is_active", "is_email_verified"):
+                with self.subTest(withdrawn=withdrawn, field=field):
+                    with use_operator():
+                        get_user_model().objects.filter(pk=self.user.pk).update(**{field: False})
+                    self.assertTrue(getattr(self.user, field))
+                    with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+                        with self.assertRaises(PermissionDenied):
+                            self.service_submit()
+                        scanner.assert_not_called()
+                    with use_operator():
+                        get_user_model().objects.filter(pk=self.user.pk).update(**{field: True})
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_withdrawal_during_retry_capture_returns_the_latest_outcome(self):
+        from companies.services import authority_requests
+
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        read = authority_requests.read_bounded
+        recorded = []
+
+        def capture_then_withdraw(file):
+            raw = read(file)
+            recorded.append(withdraw_authority_request(requester=self.user, request_id=created.json()["uuid"]))
+            return raw
+
+        with (
+            patch.object(authority_requests, "read_bounded", side_effect=capture_then_withdraw) as captured,
+            patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner,
+        ):
+            repeated = self.submit()
+        self.assertEqual(repeated.status_code, 200, repeated.content)
+        captured.assert_called_once()
+        scanner.assert_not_called()
+        self.assertEqual(repeated.json()["status"], "withdrawn")
+        self.assertEqual(repeated.json()["requestDigest"], created.json()["requestDigest"])
+        self.assertEqual(repeated.json(), self.client.get(f"{URL}{recorded[0].pk}/").json())
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_new_keys_still_require_upload_scanning_and_owned_draft_company(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            repeated = self.submit()
+            self.assertEqual(repeated.status_code, 200, repeated.content)
+            scanner.assert_not_called()
+            unavailable = self.submit(idempotency_key=str(uuid4()))
+            self.assertEqual(unavailable.status_code, 503, unavailable.content)
+            scanner.assert_called_once_with(PDF)
+        with use_operator():
+            Company.objects.filter(pk=self.company.pk).update(status="submitted")
+        self.assertEqual(self.submit(idempotency_key=str(uuid4())).status_code, 400)
+        with use_operator():
+            Company.objects.filter(pk=self.company.pk).update(status="draft", owner=self.other)
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            self.assertEqual(self.submit(idempotency_key=str(uuid4())).status_code, 404)
+            scanner.assert_not_called()
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_retry_capture_limits_use_actual_bytes_and_do_not_trust_reported_size(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        upload = evidence()
+        upload.size = 1
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            proposal, fresh = self.service_submit(file=upload)
+            self.assertFalse(fresh)
+            self.assertEqual(str(proposal.pk), created.json()["uuid"])
+            with override_settings(UPLOAD_MAX_BYTES=10):
+                self.assertEqual(self.submit().status_code, 400)
+            scanner.assert_not_called()
+        self.assertEqual(len(self.private_files()), 1)
+
+    def test_another_requester_cannot_replay_a_private_key_or_bypass_new_upload_checks(self):
+        created = self.submit()
+        self.assertEqual(created.status_code, 201, created.content)
+        self.client.force_authenticate(self.other)
+        with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+            self.assertEqual(self.submit().status_code, 404)
+            scanner.assert_not_called()
+            unavailable = self.submit(company=str(self.other_company.pk))
+            self.assertEqual(unavailable.status_code, 503, unavailable.content)
+            scanner.assert_called_once_with(PDF)
         self.assertEqual(len(self.private_files()), 1)
 
     def test_changed_company_file_scope_and_expiry_conflict_under_one_key(self):
@@ -296,9 +471,16 @@ class AuthorityRequestCases:
             (UserProfile, self.profile.pk, {"full_name": "Changed representative"}),
             (get_user_model(), self.user.pk, {"email": "changed-authority@example.test"}),
         ):
-            with self.subTest(model=model.__name__), use_operator():
-                model.objects.filter(pk=pk).update(**change)
-            self.assertEqual(self.submit().status_code, 409)
+            with self.subTest(model=model.__name__):
+                with use_operator():
+                    original = model.objects.values(*change).get(pk=pk)
+                    model.objects.filter(pk=pk).update(**change)
+                with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
+                    refused = self.submit()
+                self.assertEqual(refused.status_code, 409, refused.content)
+                scanner.assert_not_called()
+                with use_operator():
+                    model.objects.filter(pk=pk).update(**original)
         proposal = self.stored(created)
         self.assertEqual(proposal.company_identity_raw["name"], "authority Pty Ltd")
         self.assertEqual(proposal.person_identity_raw["email"], "authority@example.test")
