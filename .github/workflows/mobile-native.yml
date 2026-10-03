@@ -61,7 +61,7 @@ jobs:
       - name: Check probe TLS and command deadlines before native setup
         working-directory: mobile
         run: |
-          node --test scripts/tests/native-probe-tls.test.mjs scripts/tests/native-command-timeout.test.mjs scripts/tests/android-test-packages.test.mjs scripts/tests/native-probe-report.test.mjs scripts/tests/screen-content.test.mjs
+          node --test scripts/tests/native-probe-tls.test.mjs scripts/tests/native-command-timeout.test.mjs scripts/tests/android-test-packages.test.mjs scripts/tests/native-probe-report.test.mjs scripts/tests/screen-content.test.mjs scripts/tests/window-focus.test.mjs
           npx jest --runInBand --testMatch '<rootDir>/native-tests/ScannerBridgeProbe.test.tsx'
       - name: Install native tools and prepare the emulator
         run: |
@@ -75,10 +75,17 @@ jobs:
           mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_USER_HOME"
           printf 'no\n' | avdmanager create avd --name ledova_native --package 'system-images;android-36;google_apis;x86_64' --device pixel_6
           sudo chmod a+rw /dev/kvm
+          vmstat -t -w 15 > "$RUNNER_TEMP/ledova-host-vmstat.log" 2>&1 &
           "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -camera-front emulated -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 2 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           timeout 180 bash -c 'until [ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 1; done'
+          (
+            while sleep 30; do
+              printf '== %s\n' "$(date -u +%FT%TZ)"
+              timeout 10 adb -s "$ANDROID_SERIAL" shell 'cat /proc/loadavg; head -n 1 /proc/stat; grep -E "^(MemAvailable|SwapFree):" /proc/meminfo; cat /proc/pressure/cpu /proc/pressure/memory' || true
+            done
+          ) > "$RUNNER_TEMP/ledova-guest-load.log" 2>&1 &
       - name: Generate and check Debug and Release policy
         working-directory: mobile
         run: |
@@ -87,6 +94,16 @@ jobs:
       - name: Build and run the ordinary app and native red/green probe
         working-directory: mobile
         run: node scripts/native-smoke.mjs android "$RUNNER_TEMP/ledova-native-android"
+      - name: Retain the emulator's ANR and system records
+        if: always()
+        run: |
+          records="$RUNNER_TEMP/ledova-native-android"
+          mkdir -p "$records"
+          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys dropbox --print system_app_anr > "$records/guest-anr-dropbox.txt" 2>&1 || true
+          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys dropbox --print data_app_anr >> "$records/guest-anr-dropbox.txt" 2>&1 || true
+          timeout 60 adb -s "$ANDROID_SERIAL" shell dumpsys window lastanr > "$records/guest-last-anr.txt" 2>&1 || true
+          timeout 60 adb -s "$ANDROID_SERIAL" logcat -d -b events -v UTC -v year > "$records/guest-events.log" 2>&1 || true
+          timeout 60 adb -s "$ANDROID_SERIAL" logcat -d -b system,crash -v UTC -v year > "$records/guest-system.log" 2>&1 || true
       - name: Preserve native evidence and the ordinary test-signed Release APK
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -101,6 +118,8 @@ jobs:
             ${{ runner.temp }}/ledova-native-android/*.xml
             ${{ runner.temp }}/ledova-native-android/*.apk
             ${{ runner.temp }}/ledova-emulator.log
+            ${{ runner.temp }}/ledova-host-vmstat.log
+            ${{ runner.temp }}/ledova-guest-load.log
       - name: Remove the owned emulator
         if: always()
         run: |
@@ -131,7 +150,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm --prefix mobile ci --ignore-scripts --no-audit --no-fund
       - name: Check probe TLS and command deadlines before native setup
-        run: node --test mobile/scripts/tests/native-probe-tls.test.mjs mobile/scripts/tests/native-command-timeout.test.mjs mobile/scripts/tests/native-probe-report.test.mjs mobile/scripts/tests/screen-content.test.mjs
+        run: node --test mobile/scripts/tests/native-probe-tls.test.mjs mobile/scripts/tests/native-command-timeout.test.mjs mobile/scripts/tests/native-probe-report.test.mjs mobile/scripts/tests/screen-content.test.mjs mobile/scripts/tests/window-focus.test.mjs
       - name: Generate native projects and resolve Pods
         working-directory: mobile
         run: |
