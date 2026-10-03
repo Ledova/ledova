@@ -4,7 +4,7 @@ from typing import Any, Dict
 from procrastinate import RetryStrategy
 
 from documents.models import Document
-from documents.services.extraction import ExtractionService
+from documents.services.extraction import run_extraction
 from integrations.llm_extract import LlmExtractTransientError
 from ledova_backend.procrastinate_app import app
 from shared.db import acting_for
@@ -25,7 +25,7 @@ def _extract_document(document_uuid: str) -> Dict[str, Any]:
         logger.error("documents.tasks.extract: document not found uuid=%s", document_uuid)
         return {"status": "error", "error": "document_not_found"}
 
-    extraction = ExtractionService.run(document)
+    extraction = run_extraction(document)
     if extraction is None:
         return {"status": "skipped", "reason": "document_unavailable"}
     return {

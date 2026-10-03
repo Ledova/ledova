@@ -18,7 +18,6 @@ import {
   useDocument,
   useDocumentClaims,
   useDocuments,
-  useDocumentsEnabled,
   useUploadDocument,
 } from '@hooks/useDocuments';
 import type { Document, DocumentType, ExtractionStatus } from '../../types/document';
@@ -356,7 +355,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   );
 }
 
-function AvailableDocumentsPanel() {
+export function DocumentsPanel() {
   const docs = useDocuments();
   const claimsQuery = useDocumentClaims();
   const claims = claimsQuery.data?.data?.results ?? [];
@@ -389,9 +388,4 @@ function AvailableDocumentsPanel() {
       ))}
     </div>
   );
-}
-
-export function DocumentsPanel() {
-  const enabled = useDocumentsEnabled();
-  return enabled ? <AvailableDocumentsPanel /> : null;
 }

@@ -33,7 +33,7 @@ class ScopedDocumentExtractionTest(RunsOnTheScopedConnection, TransactionTestCas
         with use_operator():
             self.uploader = make_tenant("scoped-extract-owner")
             self.other = make_tenant("scoped-extract-other")
-        render = patch("documents.services.extraction.ExtractionService.render_first_page", return_value=b"image")
+        render = patch("documents.services.extraction.render_first_page", return_value=b"image")
         self.addCleanup(render.stop)
         render.start()
         client = patch("documents.services.extraction.LlmExtractClient")

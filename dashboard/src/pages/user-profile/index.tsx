@@ -3,14 +3,12 @@ import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/s
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { DocumentsPanel } from '@components/DocumentsPanel';
-import { useDocumentsEnabled } from '@hooks/useDocuments';
 import { useUserProfile } from './useUserProfile';
 import { IdentityVerificationModal } from './components/IdentityVerificationModal';
 
 export function UserProfilePage() {
   const { userProfile, isLoading, isError, refreshProfile, updateProfile, isUpdating, updateError, resetUpdate } =
     useUserProfile();
-  const documentsEnabled = useDocumentsEnabled();
   const verification = getUserVerificationStatus(userProfile);
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneCode, setPhoneCode] = useState('');
@@ -130,11 +128,9 @@ export function UserProfilePage() {
         </Rows>
         <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
       </Section>
-      {documentsEnabled && (
-        <Section title="Supporting payslips">
-          <DocumentsPanel />
-        </Section>
-      )}
+      <Section title="Supporting payslips">
+        <DocumentsPanel />
+      </Section>
       <IdentityVerificationModal
         isOpen={verificationOpen}
         onClose={() => {

@@ -74,7 +74,6 @@ const OPERATOR = {
   legalName: 'Ledova Smoke Test Operator',
   abn: '00000000000',
   contactEmail: 'operator@example.test',
-  deploymentMode: 'registry',
   investorKycRequired: false,
   issuerKycRequired: false,
   issuedStablecoin: null,

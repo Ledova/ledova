@@ -695,7 +695,12 @@ and limits.
 The earlier implementation's registry and single-issuer modes share one operator
 model and tenancy boundary. The 3 October 2026
 [one-product decision](#company-managed-registers-and-one-product) supersedes
-that mode distinction; field and feature-branch removal remain migration work.
+that mode distinction. [#861](https://github.com/Ledova/ledova/issues/861) removes
+the field with `operators/0002` and retires its API/client/evidence branches.
+The initial migration remains historical; reversal recreates the registry
+default rather than each installation's old choice. Private evidence, unrelated
+configuration and register/payment history are preserved. Company authority is
+separate remaining work.
 PostgreSQL RLS enforces row isolation; product selectors still distinguish issuer
 management, personal accounts and discovery. See [tenancy](architecture/tenancy.md).
 

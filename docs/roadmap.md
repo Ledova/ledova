@@ -72,9 +72,6 @@ do not yet provide these delegated company workflows. Preserve their existing
 controls. Follow the plan's [canonical delivery sequence](architecture/company-managed-registers.md#delivery-sequence)
 for dependencies; the priorities below group that work by theme:
 
-- **Remove legacy product modes.** Retire the `Registry`/`Single issuer` field
-   and feature branches through a coordinated API/client migration. Preserve
-   evidence, retention, history and the same capabilities for private hosting.
 - **Company authority and roles.** Give individual company users explicit
    membership, decision and administration permissions, invitations, delegation
    and revocation. Record who can approve each issuer action and the authority

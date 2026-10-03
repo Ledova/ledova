@@ -23,7 +23,6 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ledova/shared')>()),
   useAuth: () => ({ isAuthenticated: true }),
 }));
-vi.mock('@hooks/useDocuments', () => ({ useDocumentsEnabled: () => false }));
 vi.mock('./user-profile/components/IdentityVerificationModal', () => ({
   IdentityVerificationModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? <button onClick={onClose}>Close identity review</button> : null,
@@ -69,6 +68,7 @@ beforeEach(() => {
   api.get.mockImplementation(async (url: string) => {
     if (url === USER_PROFILE_ENDPOINTS.BASE) return { data: { results: [profile], next: null } };
     if (url === USER_PREFERENCES_ENDPOINTS.BASE) return { data: { transactionAlerts: true } };
+    if (url === '/api/v1/documents/' || url === '/api/investor-classifications/') return { data: { results: [] } };
     throw new Error(`Unexpected read ${url}`);
   });
   api.patch.mockResolvedValue({ data: profile });
@@ -85,9 +85,15 @@ it('shows profile ledger data and keeps identity review reachable', async () => 
   expect(await screen.findByText('Avery Example')).toBeTruthy();
   expect(screen.getByText('+61 400000000')).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Personal information' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Supporting payslips' })).toBeTruthy();
+  expect(await screen.findByText('Click to upload a payslip')).toBeTruthy();
+  expect(api.get).toHaveBeenCalledWith('/api/v1/documents/');
+  expect(api.get).not.toHaveBeenCalledWith('/api/operator/');
   fireEvent.click(screen.getByRole('button', { name: 'Review identity check' }));
   fireEvent.click(screen.getByRole('button', { name: 'Close identity review' }));
-  await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === USER_PROFILE_ENDPOINTS.BASE)).toHaveLength(2),
+  );
 });
 
 it('keeps a failed phone edit and its values until a successful retry', async () => {

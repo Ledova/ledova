@@ -2,7 +2,8 @@
 
 [Product](../product.md) · [Decisions](../decisions.md#company-managed-registers-and-one-product) · [Roadmap](../roadmap.md)
 
-**Status:** Accepted product direction; implementation plan, not shipped behaviour.
+**Status:** Accepted product direction; phase 1 product-mode retirement delivered.
+Company-authority workflows in later phases remain an implementation plan.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -17,8 +18,9 @@ Ledova supplies infrastructure, software, records, workflows, validation,
 automation and tools. Routine company register work must not require Ledova
 staff to perform or approve it.
 
-There is one registry product. Retire the `registry` / `single_issuer` product
-mode distinction. A private internal instance uses the same software, features
+There is one registry product. The `registry` / `single_issuer` product-mode
+distinction is [retired](../operations/upgrades.md#one-registry-product).
+A private internal instance uses the same software, features
 and authority model. Hosting does not select a separately maintained product.
 This decision does not change the software licence or establish a legal finding.
 
@@ -155,7 +157,6 @@ flowchart LR
 
 | Current implementation | Change needed |
 | --- | --- |
-| Operator model/admin/API/schema `deployment_mode`, dashboard evidence visibility | Coordinated field/branch removal across API and clients |
 | Staff company approval/activation, offering publication and classification review | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
 | `Company.owner`, global staff groups and model permissions | Company memberships/capabilities, mandates and revocation |
 | Owner proposal APIs, several without forms | Company prepare/preview/approve/apply client actions |

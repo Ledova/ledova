@@ -17,6 +17,12 @@ future capability claim today.
 
 Coverage: **74 documents** — 26 aligned, 1 historical, 1 retained implementation, 46 updated.
 
+This table records the documentation baseline before implementation. #861 updates
+the current product, operator, retention, standards and upgrade documents as
+product-mode retirement lands, while the remaining company workflows stay
+planned. [AGENTS.md](../../../AGENTS.md) preserves the owner's standing simplicity,
+cleanup and continuity instructions for subsequent increments.
+
 ## Findings carried into implementation
 
 - Retire the deployment-mode field and evidence-only branches together across API

@@ -2022,14 +2022,6 @@
         ],
         "type": "object"
       },
-      "DeploymentModeEnum": {
-        "description": "* `single_issuer` - Single issuer (one company on its own instance)\n* `registry` - Registry (many companies on one instance)",
-        "enum": [
-          "single_issuer",
-          "registry"
-        ],
-        "type": "string"
-      },
       "DeviceToken": {
         "properties": {
           "createdAt": {
@@ -4586,14 +4578,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "deploymentMode": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DeploymentModeEnum"
-              }
-            ],
-            "readOnly": true
-          },
           "investorKycRequired": {
             "readOnly": true,
             "type": "boolean"
@@ -4644,7 +4628,6 @@
         "required": [
           "abn",
           "contactEmail",
-          "deploymentMode",
           "investorKycRequired",
           "issuedStablecoin",
           "issuerKycRequired",

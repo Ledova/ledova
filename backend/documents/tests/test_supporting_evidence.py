@@ -15,10 +15,9 @@ from rest_framework.test import APIClient, APITestCase
 
 from documents.models import Document, DocumentExtraction, DocumentRead
 from documents.services.document import attach_document, create_document
-from documents.services.extraction import ExtractionService
+from documents.services.extraction import render_first_page, run_extraction
 from documents.services.retention import purge_expired_documents
 from documents.tasks.extract import extract_document
-from operators.admin import OperatorForm
 from operators.models import Operator
 from shared.db import atomic
 from shared.services.orphaned_files import orphaned_files
@@ -186,12 +185,12 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
 
     def test_attachment_between_start_and_render_keeps_the_extraction_input_available(self):
         original_name = self.document.file.name
-        render = ExtractionService.render_first_page
+        render = render_first_page
 
-        def attach_then_render(document, *args):
+        def attach_then_render(raw):
             self.attach()
             self.assertFalse((self.root / original_name).exists())
-            return render(document, *args)
+            return render(raw)
 
         import fitz
 
@@ -200,33 +199,48 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
         self.document.file.save("synthetic.pdf", ContentFile(pdf.tobytes()), save=True)
         pdf.close()
         original_name = self.document.file.name
-        with patch.object(ExtractionService, "render_first_page", side_effect=attach_then_render), patch(
-            "documents.services.extraction.LlmExtractClient"
-        ) as llm:
+        with (
+            patch("documents.services.extraction.render_first_page", side_effect=attach_then_render),
+            patch("documents.services.extraction.LlmExtractClient") as llm,
+        ):
             llm.return_value.extract.return_value = SimpleNamespace(
                 parsed=SimpleNamespace(model_dump=lambda **kwargs: {"gross_pay": "1"}),
                 raw_output="synthetic extraction",
                 duration_ms=1,
                 model_used="synthetic",
             )
-            result = ExtractionService.run(self.document)
+            result = run_extraction(self.document)
         self.assertEqual(result.status, "succeeded", result.error)
         self.assertTrue(llm.return_value.extract.call_args.kwargs["image_bytes"].startswith(b"\x89PNG"))
 
     @patch("documents.services.document.extract_document.defer")
-    def test_single_issuer_refuses_every_document_route_and_does_not_enqueue(self, defer):
+    def test_document_routes_work_without_reading_operator_configuration(self, defer):
         operator = Operator.get()
-        Operator.objects.filter(pk=operator.pk).update(deployment_mode="single_issuer")
-        for method, url, data in (
-            ("get", "/api/v1/documents/", None),
-            ("get", self.url, None),
-            ("delete", self.url, None),
-            ("post", self.url + "attach/", {"classification": str(self.claim.pk)}),
-            ("post", "/api/v1/documents/", {}),
-        ):
-            with self.subTest(method=method, url=url):
-                self.assertEqual(getattr(self.client, method)(url, data, format="json").status_code, 403)
-        defer.assert_not_called()
+        self.assertEqual(operator.pk, 1)
+        with patch.object(Operator.objects, "values_list", side_effect=AssertionError("Operator lookup")):
+            listing = self.client.get("/api/v1/documents/")
+            detail = self.client.get(self.url)
+            self.assertEqual((listing.status_code, detail.status_code), (200, 200))
+            self.assertEqual(detail.json()["uuid"], str(self.document.pk))
+            self.assertEqual(listing.json()["results"][0]["uuid"], str(self.document.pk))
+            uploaded = self.client.post(
+                "/api/v1/documents/",
+                {"file": ContentFile(PDF, name="new.pdf")},
+                format="multipart",
+            )
+            self.assertEqual(uploaded.status_code, 202, uploaded.content)
+            uploaded_url = f"/api/v1/documents/{uploaded.json()['uuid']}/"
+            self.assertEqual(self.client.delete(uploaded_url).status_code, 204)
+            self.assertEqual(
+                self.client.post(
+                    self.url + "attach/", {"classification": str(self.claim.pk)}, format="json"
+                ).status_code,
+                200,
+            )
+        defer.assert_called_once_with(document_uuid=uploaded.json()["uuid"], principal_id=self.owner.user.pk)
+        self.document.refresh_from_db()
+        self.assertEqual(self.document.classification_id, self.claim.pk)
+        self.assertEqual((self.root / self.document.file.name).read_bytes(), PDF)
 
 
 class SupportingPayslipAdminTest(EvidenceCase, TestCase):
@@ -341,35 +355,36 @@ class SupportingPayslipAdminTest(EvidenceCase, TestCase):
             with self.assertRaises(RuntimeError):
                 self.client.get(reverse("admin:documents_document_file", args=[self.document.pk]))
 
-    def test_single_issuer_has_no_document_or_extraction_admin_path(self):
+    def test_review_and_extraction_work_without_reading_operator_configuration(self):
         reviewer = self.operations_user()
-        extraction = self.extraction()
+        previous_extraction = self.extraction()
         self.client.force_login(reviewer)
-        operator = Operator.get()
-        Operator.objects.filter(pk=operator.pk).update(deployment_mode="single_issuer")
-        for name, pk in (
-            ("admin:documents_document_change", self.document.pk),
-            ("admin:documents_document_file", self.document.pk),
-            ("admin:documents_documentextraction_change", extraction.pk),
+        with (
+            patch.object(Operator.objects, "values_list", side_effect=AssertionError("Operator lookup")),
+            patch("documents.services.extraction.render_first_page", return_value=b"synthetic image"),
+            patch("documents.services.extraction.LlmExtractClient") as llm,
         ):
-            self.assertEqual(self.client.get(reverse(name, args=[pk])).status_code, 403)
-        with patch("documents.services.extraction.LlmExtractClient") as llm:
-            self.assertEqual(
-                extract_document(document_uuid=str(self.document.pk), principal_id=self.document.uploaded_by_id)[
-                    "status"
-                ],
-                "skipped",
+            for name, pk in (
+                ("admin:documents_document_change", self.document.pk),
+                ("admin:documents_document_file", self.document.pk),
+                ("admin:documents_documentextraction_change", previous_extraction.pk),
+            ):
+                response = self.client.get(reverse(name, args=[pk]))
+                self.assertEqual(response.status_code, 200)
+                if getattr(response, "streaming", False):
+                    self.assertEqual(b"".join(response.streaming_content), PDF)
+            llm.return_value.extract.return_value = SimpleNamespace(
+                parsed=SimpleNamespace(model_dump=lambda **kwargs: {"gross_pay": "1"}),
+                raw_output="synthetic extraction",
+                duration_ms=1,
+                model_used="synthetic",
             )
-            llm.assert_not_called()
-        self.assertEqual(DocumentExtraction.objects.count(), 1)
-
-    def test_switching_a_populated_store_to_single_issuer_is_refused_by_the_operator_form(self):
-        form = OperatorForm(
-            data={"name": "Synthetic registry", "deployment_mode": "single_issuer", "receiving_wallet_chain": "base"},
-            instance=Operator.get(),
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn("deployment_mode", form.errors)
+            result = extract_document(document_uuid=str(self.document.pk), principal_id=self.document.uploaded_by_id)
+        self.assertEqual(result["status"], "succeeded")
+        self.assertEqual(DocumentExtraction.objects.count(), 2)
+        previous_extraction.refresh_from_db()
+        self.assertEqual(previous_extraction.raw_output, "synthetic private raw response")
+        self.assertEqual(DocumentRead.objects.count(), 3)
 
 
 @override_settings(CLASSIFICATION_EVIDENCE_RETENTION_DAYS=30, UNATTACHED_DOCUMENT_RETENTION_DAYS=7)
@@ -449,11 +464,12 @@ class SupportingPayslipRetentionTest(EvidenceCase, TestCase):
                 model_used="synthetic",
             )
 
-        with patch.object(ExtractionService, "render_first_page", return_value=b"synthetic image"), patch(
-            "documents.services.extraction.LlmExtractClient"
-        ) as llm:
+        with (
+            patch("documents.services.extraction.render_first_page", return_value=b"synthetic image"),
+            patch("documents.services.extraction.LlmExtractClient") as llm,
+        ):
             llm.return_value.extract.side_effect = complete_after_purge
-            self.assertIsNone(ExtractionService.run(self.document))
+            self.assertIsNone(run_extraction(self.document))
         self.assertFalse(DocumentExtraction.objects.exists())
 
 
@@ -467,8 +483,9 @@ class EvidenceCommitFailureTest(EvidenceCase, TransactionTestCase):
                 raise OSError("Synthetic old object cleanup outage")
             return delete(instance, name)
 
-        with patch.object(type(storage), "delete", autospec=True, side_effect=fail_old_delete), patch(
-            "documents.services.document.extract_document.defer"
+        with (
+            patch.object(type(storage), "delete", autospec=True, side_effect=fail_old_delete),
+            patch("documents.services.document.extract_document.defer"),
         ):
             for uploading in (False, True):
                 with self.subTest(uploading=uploading):

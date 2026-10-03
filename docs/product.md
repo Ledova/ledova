@@ -227,13 +227,13 @@ The repository's current terms for the users above:
 | Account | The person's customer account, linked to one profile |
 | Wallet | An account's address on a specific network; the same EVM address on two networks is two wallet records |
 
-One operator configuration currently exists per deployment. The code still has
-legacy `Registry` and `Single issuer` settings, including a `Single issuer`
-restriction on supporting-payslip storage and its API/admin surfaces. Those are
-existing implementation details to reconcile with the accepted single-product
-direction, rather than two product offerings. Classification evidence and human
-review remain available in the current implementation. See
-[operator setup](operations/operator-console.md) for existing configuration and
+One operator configuration exists per deployment. The legacy `Registry` and
+`Single issuer` setting and its evidence visibility branches are removed by
+[`operators/0002`](operations/upgrades.md#one-registry-product). Supporting
+payslips and classification evidence retain private access, human review and
+retention controls on every instance. This retirement does not grant company
+administration capabilities. See [operator setup](operations/operator-console.md)
+for existing configuration and
 [company-managed registers](architecture/company-managed-registers.md) for the
 target responsibility and migration plan.
 

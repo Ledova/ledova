@@ -94,10 +94,10 @@ Permitted document-operations staff read attached payslips and extraction histor
 Company owners and company-role accounts do not gain that cross-customer access.
 Every operations page/file/extraction/changelist read records `DocumentRead`;
 an audit write failure refuses delivery. Audit rows survive content purge and
-have no admin mutation path. The current legacy `single_issuer` mode disables
-supporting payslips and refuses conversion while unpurged content remains. That
-mode and its conversion path are to be retired under the plan above; they are
-not a second product to maintain.
+have no admin mutation path. Supporting evidence uses these same controls on
+hosted and private instances. Product-mode selection and its evidence-only
+restrictions are [retired](../operations/upgrades.md#one-registry-product);
+retirement does not purge private content or widen reviewer access.
 
 A [publication to members](shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
 follows the same read-audit rule for a document a member reads rather than a

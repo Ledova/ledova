@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import apiClient from '@services/apiClient';
 import type { Document } from '../../types/document';
@@ -28,16 +28,14 @@ const document: Document = {
   updatedAt: '2026-09-09T00:00:00Z',
 };
 let client: QueryClient;
-let mode: string;
 let rows: Document[];
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mode = 'registry';
   rows = [{ ...document }];
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   vi.mocked(apiClient.get).mockImplementation(async (url) => {
-    if (url === '/api/operator/') return { data: { deploymentMode: mode } };
+    if (url === '/api/operator/') throw new Error('Operator configuration is unavailable.');
     if (url === '/api/investor-classifications/') return { data: { results: [claim] } };
     if (url === '/api/v1/documents/') return { data: { results: rows } };
     return { data: rows[0] };
@@ -119,20 +117,34 @@ describe('supporting payslips', () => {
     expect(failure.closest('[class*="bg-error"]')).toBeNull();
   });
 
-  it('does not render or fetch payslips in single-issuer mode', async () => {
-    mode = 'single_issuer';
-    const view = showPanel();
-    await waitFor(() => expect(client.getQueryState(['operator'])?.status).toBe('success'));
-    expect(view.container.textContent).toBe('');
-    expect(vi.mocked(apiClient.get).mock.calls.map(([url]) => url)).toEqual(['/api/operator/']);
+  it('loads private payslips without requesting operator configuration', async () => {
+    showPanel();
+    expect(await screen.findByText('synthetic-payslip.pdf')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Your payslips are private to you and permitted platform operations staff. Issuers cannot review them.',
+      ),
+    ).toBeTruthy();
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/documents/');
+    expect(apiClient.get).not.toHaveBeenCalledWith('/api/operator/');
   });
 
-  it('keeps the store hidden when the deployment mode cannot be loaded', async () => {
-    vi.mocked(apiClient.get).mockRejectedValue(new Error('operator unavailable'));
-    const view = showPanel();
-    await waitFor(() => expect(client.getQueryState(['operator'])?.status).toBe('error'));
-    expect(view.container.textContent).toBe('');
-    expect(apiClient.post).not.toHaveBeenCalled();
+  it('shows the document loading state until the private list arrives', async () => {
+    let finish!: (value: unknown) => void;
+    vi.mocked(apiClient.get).mockImplementation(async (url) => {
+      if (url === '/api/v1/documents/')
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      if (url === '/api/investor-classifications/') return { data: { results: [claim] } };
+      return { data: rows[0] };
+    });
+    showPanel();
+    expect(screen.getByText('Loading…')).toBeTruthy();
+    expect(screen.queryByText(/No documents yet/)).toBeNull();
+    await act(async () => finish({ data: { results: rows } }));
+    expect(await screen.findByText('synthetic-payslip.pdf')).toBeTruthy();
+    expect(screen.queryByText('Loading…')).toBeNull();
   });
 
   it('attaches a payslip to the selected existing claim and removes its delete control', async () => {

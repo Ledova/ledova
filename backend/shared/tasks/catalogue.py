@@ -149,7 +149,7 @@ PRINCIPAL_BEARING = {
     "extraction against it. Converted: the principal is a required argument with no default, the "
     "upload passes its uploader and the staff rerun passes None, because a re-extraction is the "
     "operator's action and reaches documents no single customer owns. The whole body runs inside "
-    "that context, which is what puts ExtractionService's three retention rechecks - the initial "
+    "that context, which is what puts the extraction service's three retention rechecks - the initial "
     "locked check, the bytes read and the save - on the alias the enqueue chose, around an "
     "external call no transaction can be held across.",
     "users.tasks.notifications.send_push_notification": "Sends to one user's device tokens. Converted: "

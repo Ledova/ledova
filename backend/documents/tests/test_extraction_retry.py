@@ -13,7 +13,6 @@ from documents.models import (
     DocumentType,
     ExtractionStatus,
 )
-from documents.services.extraction import ExtractionService
 from documents.tasks.extract import extract_document
 from integrations.llm_extract import (
     LlmExtractError,
@@ -49,7 +48,7 @@ class ExtractionFailureReachesTheWorkerTest(TestCase):
             mime_type="application/pdf",
             file=ContentFile(b"%PDF-1.4 synthetic payslip", name="payslip.pdf"),
         )
-        render = patch.object(ExtractionService, "render_first_page", return_value=PAGE)
+        render = patch("documents.services.extraction.render_first_page", return_value=PAGE)
         render.start()
         self.addCleanup(render.stop)
 
@@ -161,7 +160,7 @@ class ExtractionWorkerRetryTest(TransactionTestCase):
         )
         self.addCleanup(self.remove_worker_job, job_id)
         with (
-            patch.object(ExtractionService, "render_first_page", return_value=PAGE),
+            patch("documents.services.extraction.render_first_page", return_value=PAGE),
             patch("documents.services.extraction.LlmExtractClient") as client,
             patch.object(extract_document.retry_strategy, "wait", 0),
             patch.dict(app.periodic_registry.periodic_tasks, {}, clear=True),

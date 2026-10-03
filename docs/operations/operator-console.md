@@ -4,9 +4,9 @@
 
 This guide describes the current implementation. The accepted
 [company-managed register plan](../architecture/company-managed-registers.md)
-retires deployment-mode selection and routine platform-staff register gates.
-The configuration and staff workflows below remain in the code until those
-migrations and replacement company tools are implemented.
+retires routine platform-staff register gates as replacement company tools are
+implemented. Product-mode selection is already removed; the remaining
+configuration and staff workflows below describe current behaviour.
 
 The singleton represents the platform operator organisation and its technical
 configuration; staff accounts are individual people working within its granted
@@ -30,7 +30,6 @@ operations officer and the superuser can open the console.
 | Admin section | Fields |
 | --- | --- |
 | Identity | `name`, `legal_name`, `abn`, `contact_email`, `website` |
-| Deployment | `deployment_mode`: `registry` (default) or `single_issuer` |
 | Payments | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
 | Eligibility | `investor_kyc_required` (default on), `issuer_kyc_required` (default off) |
 
@@ -52,16 +51,14 @@ a warning and reinstating are not affected. Turn it on only with a KYC provider
 configured ([integrations](integrations.md#kyc-providers)): an owner becomes
 verified only through the provider, so with none configured every submission is
 refused.
-Single-issuer mode disables the supporting-payslip store; switching is refused
-while unpurged payslips exist. Classification evidence and review remain available.
-
-These are existing mode behaviours, scheduled for removal. Retirement keeps
-the current registry supporting-evidence behaviour and its private access and
-retention controls; it does not introduce another mode or capability flag.
+Supporting payslips, classification evidence and review are available on every
+instance under the same private-access and retention controls. The legacy mode
+field and evidence-only restrictions are
+[removed](upgrades.md#one-registry-product); no hosting or capability flag replaces them.
 See [eligibility](../architecture/companies-and-eligibility.md) and
 [file retention](../architecture/files-and-retention.md).
 
-The authenticated operator API exposes identity, deployment mode, settlement
+The authenticated operator API exposes identity, settlement
 assets, eligibility flags and `paymentInstructions`. Payment instructions are
 non-null only for staff or investors eligible for at least one company. Anonymous
 requests receive 401. Configure payment fields and investor eligibility together.
@@ -75,8 +72,9 @@ asset set is reported; it leaves only bank-transfer payment available.
 Worklists cover company and classification reviews, offering review/capacity,
 unpaid/paid/unresolved-mint subscriptions, pending company approvals, issuance and capital
 requests, stale deployments and register identity problems. They read the database
-without contacting RPC providers. The page also states deployment mode and who
-keeps each active company's register; it does not assign the legal obligation.
+without contacting RPC providers. The page also states who keeps each active
+company's register; it does not assign the legal obligation. Company keeper
+attribution remains part of the planned register-authority transition.
 
 The two register queues count **completed allotment addresses**, using current
 whitelist/profile identity. They can include former holders and miss transfer-only

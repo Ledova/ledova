@@ -247,8 +247,8 @@ start to expire on chain once the earlier tests ran longer than that.
 
 This procedure belongs to the retired global-registry contract cutover in #648.
 It is not the upgrade procedure for company-managed registers or deployment-mode
-retirement. Those planned changes preserve existing companies, registers,
-documents, approvals and signed history; see [upgrades](upgrades.md#planned-company-managed-register-upgrade).
+retirement. These changes preserve existing companies, registers,
+documents, approvals and signed history; see [upgrades](upgrades.md#remaining-company-managed-register-upgrade).
 
 The per-company registries of [#648](https://github.com/Ledova/ledova/issues/648)
 changed the bytecode of every contract, and a deployed share token can never be
