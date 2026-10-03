@@ -24,6 +24,18 @@ loaded machine after a fresh install, hence the wait and the pair. The runner
 takes up to 20 screenshots and then fails, which is how a window without a
 scene, black but for the status bar, shows up. `ordinary-screen.json` records
 the final measurement.
+On Android it also records the focused window and app (`focus`) from
+`dumpsys window displays`, kept whole in `ordinary-window-displays.txt`; on API 36
+`dumpsys window windows` no longer prints them. It fails when a system
+"Application Not Responding" window holds focus, since that dialog over the app
+passes the content measurement, and when the dump has no `mCurrentFocus` line,
+since focus is then unknown rather than checked. Pass or fail, CI's Android job
+also keeps the emulator's ANR records (`guest-anr-dropbox.txt`,
+`guest-last-anr.txt`), its events and system/crash logs, each collection command's
+exit status (`guest-records-status.txt`), and load and memory samples of the
+runner every 15 seconds (`ledova-host-vmstat.log`) and of the emulator every 30
+(`ledova-guest-load.log`), so a failure can be tied to its time and resource state.
+An empty record is a gap in the evidence, not proof that no ANR happened.
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves

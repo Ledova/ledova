@@ -38,7 +38,7 @@ function fixture(context, behavior, check) {
   fs.mkdirSync(path.join(root, 'scripts'));
   fs.mkdirSync(path.join(root, 'bin'));
   fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
-  for (const module of ['android-test-packages.mjs', 'screen-content.mjs']) {
+  for (const module of ['android-test-packages.mjs', 'screen-content.mjs', 'window-focus.mjs']) {
     fs.copyFileSync(path.join(mobile, 'scripts', module), path.join(root, 'scripts', module));
   }
   let runner = fs.readFileSync(path.join(mobile, 'scripts/native-smoke.mjs'), 'utf8');
