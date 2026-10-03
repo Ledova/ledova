@@ -1,6 +1,5 @@
 import hashlib
 import json
-import logging
 from contextlib import contextmanager
 from datetime import timezone as datetime_timezone
 
@@ -30,8 +29,6 @@ from shared.db import (
 from shared.upload_errors import UploadRejected
 from shared.uploads import read_bounded, validate_upload
 from users.models import UserProfile
-
-logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -111,78 +108,68 @@ def submit_authority_request(
     captured.content_type = getattr(file, "content_type", "")
     file_size, mime_type = validate_upload(captured)
     file_sha256 = hashlib.sha256(raw).hexdigest()
-    retained = None
-    try:
-        with use_operator(), _requester_principal(requester.pk), atomic():
-            actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
-            _require_requester(actor)
-            profile = get_object_or_404(UserProfile.objects.select_for_update(), user=actor)
-            company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner=actor)
-            if company.status != CompanyStatus.DRAFT:
-                raise ValidationError(
-                    {"company": "Initial authority evidence can only be requested for your draft company."}
-                )
-            raw_company, identity, raw_person, person = _snapshots(company, actor, profile)
-            frozen = {
-                "company": str(company.pk),
-                "requester": actor.pk,
-                "requester_profile": str(profile.pk),
-                "purpose": "bootstrap",
-                "company_identity_raw": raw_company,
-                "company_identity": identity,
-                "person_identity_raw": raw_person,
-                "person_identity": person,
-                "requested_capabilities": requested,
-                "delegatable_capabilities": delegatable,
-                "requested_expires_at": (
-                    requested_expires_at.astimezone(datetime_timezone.utc).isoformat() if requested_expires_at else None
-                ),
-                "file_sha256": file_sha256,
-                "file_size": file_size,
-                "mime_type": mime_type,
-                "original_filename": original_filename,
-            }
-            digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-            existing = (
-                CompanyAuthorityRequest.objects.select_related("withdrawal")
-                .filter(requester=actor, idempotency_key=idempotency_key)
-                .first()
+    with use_operator(), _requester_principal(requester.pk), atomic():
+        actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
+        _require_requester(actor)
+        profile = get_object_or_404(UserProfile.objects.select_for_update(), user=actor)
+        company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner=actor)
+        if company.status != CompanyStatus.DRAFT:
+            raise ValidationError(
+                {"company": "Initial authority evidence can only be requested for your draft company."}
             )
-            if existing:
-                if existing.request_digest != digest:
-                    raise AuthorityRequestConflictException()
-                return existing, False
-            if requested_expires_at and requested_expires_at <= timezone.now():
-                raise ValidationError({"requested_expires_at": "Choose a future expiry."})
-            proposal = CompanyAuthorityRequest(
-                company=company,
-                requester=actor,
-                requester_profile=profile,
-                idempotency_key=idempotency_key,
-                company_identity_raw=raw_company,
-                company_identity=identity,
-                person_identity_raw=raw_person,
-                person_identity=person,
-                requested_capabilities=requested,
-                delegatable_capabilities=delegatable,
-                requested_expires_at=requested_expires_at,
-                original_filename=original_filename,
-                file_size=file_size,
-                mime_type=mime_type,
-                file_sha256=file_sha256,
-                request_digest=digest,
-            )
-            proposal.file.save(original_filename, ContentFile(raw), save=False)
-            retained = (proposal.file.storage, proposal.file.name)
-            proposal.save(force_insert=True)
-        return proposal, True
-    except Exception:
-        if retained:
-            try:
-                retained[0].delete(retained[1])
-            except Exception:
-                logger.warning("Authority evidence cleanup deferred for an uncommitted request")
-        raise
+        raw_company, identity, raw_person, person = _snapshots(company, actor, profile)
+        frozen = {
+            "company": str(company.pk),
+            "requester": actor.pk,
+            "requester_profile": str(profile.pk),
+            "purpose": "bootstrap",
+            "company_identity_raw": raw_company,
+            "company_identity": identity,
+            "person_identity_raw": raw_person,
+            "person_identity": person,
+            "requested_capabilities": requested,
+            "delegatable_capabilities": delegatable,
+            "requested_expires_at": (
+                requested_expires_at.astimezone(datetime_timezone.utc).isoformat() if requested_expires_at else None
+            ),
+            "file_sha256": file_sha256,
+            "file_size": file_size,
+            "mime_type": mime_type,
+            "original_filename": original_filename,
+        }
+        digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        existing = (
+            CompanyAuthorityRequest.objects.select_related("withdrawal")
+            .filter(requester=actor, idempotency_key=idempotency_key)
+            .first()
+        )
+        if existing:
+            if existing.request_digest != digest:
+                raise AuthorityRequestConflictException()
+            return existing, False
+        if requested_expires_at and requested_expires_at <= timezone.now():
+            raise ValidationError({"requested_expires_at": "Choose a future expiry."})
+        proposal = CompanyAuthorityRequest(
+            company=company,
+            requester=actor,
+            requester_profile=profile,
+            idempotency_key=idempotency_key,
+            company_identity_raw=raw_company,
+            company_identity=identity,
+            person_identity_raw=raw_person,
+            person_identity=person,
+            requested_capabilities=requested,
+            delegatable_capabilities=delegatable,
+            requested_expires_at=requested_expires_at,
+            original_filename=original_filename,
+            file_size=file_size,
+            mime_type=mime_type,
+            file_sha256=file_sha256,
+            request_digest=digest,
+        )
+        proposal.file.save(original_filename, ContentFile(raw), save=False)
+        proposal.save(force_insert=True)
+    return proposal, True
 
 
 def withdraw_authority_request(*, requester, request_id):
