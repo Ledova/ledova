@@ -86,8 +86,11 @@ and actor match its requester. Ordinary app writes, updates and deletion fail.
 The parent request, snapshots, digest and evidence are unchanged.
 
 Requests and their referenced evidence have no automatic purge in this
-experimental slice. The existing orphan sweep can remove unreferenced interrupted
-uploads; it preserves files referenced by retained requests. Requested appointment
+experimental slice. Submission errors do not immediately delete uploaded bytes:
+a COMMIT acknowledgement or principal-restoration failure can occur after the
+request has committed. The existing orphan sweep removes only unreferenced
+uploads older than its 24-hour grace period; it preserves files referenced by
+retained requests, including after an uncertain submission outcome. Requested appointment
 expiry or request withdrawal does not delete submission evidence. See [files and retention](../../architecture/files-and-retention.md).
 
 Reversal is allowed only while the new table is empty. A populated reversal
