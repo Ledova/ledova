@@ -105,6 +105,8 @@ non-tokenised register member.
 Bootstrap starts with fresh company and participant signup. Establish initial
 company access through verified representative authority and recorded company
 identity/registry results; registration alone does not grant a director mandate.
+The selected [representative verification route](#representative-verification)
+is ASIC officeholder matching, followed by in-app delegation.
 Company activation becomes a validated workflow outcome when its configured
 requirements are met, rather than an unconditional platform-staff approval.
 Company-appointed approvers control offering publication under recorded terms
@@ -118,6 +120,41 @@ verification facts do not automatically approve investing in every company.
 Participant wallet-ownership proof is already self-service. Company-specific
 wallet/whitelist approval is a separate decision that needs company capability
 and provider/check evidence before automated application.
+
+### Representative verification
+
+On 4 October 2026 (Australia/Sydney), the owner
+[selected ASIC officeholder matching](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155).
+The initial representative's verified identity must match a current director or
+secretary of the exact ACN, using an ASIC registry search purchased through a
+data provider. Other representatives receive in-app delegation from a verified
+officeholder, within that person's delegatable company mandate.
+
+The owner [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+on the same day. InfoTrack API access, its documentation and sandbox credentials
+still need to be supplied; credentials belong only in the backend environment,
+never in chat, issues or commits. Its authenticated result contract and
+integration must establish the exact person, company and current officeholder
+role, with attributable evidence bound
+to the retained request. Missing, ambiguous or unavailable verification remains
+unresolved; no mock result, uploaded declaration, KYC result alone or staff
+override establishes the registry match. Preserve private evidence, provenance,
+expiry and revocation checks.
+
+The actual InfoTrack agreement must support the required retained proof and
+permitted user access. Its [published API terms](https://www.infotrack.com.au/legal/APITerms)
+(clauses 5.1(c) and 5.1(f)) limit retention and product access unless expressly
+permitted otherwise. Confirm the applicable agreement before storing provider
+results; this does not change existing request-evidence retention.
+
+This choice does not equate a secretary's role with directorship or resolve the
+capability bundles and company approval policy. An officeholder match establishes
+the selected bootstrap proof; subsequent actions still require their applicable
+company mandate, capability and exact approval. Registration or existing company
+ownership alone grants none of that proof. Effective admission, appointments and
+delegation remain planned; the delivered
+[request lifecycle](../plans/company-managed-registers/authority-requests.md)
+only retains pending proposals and withdrawals.
 
 ## Required self-service workflows
 
@@ -297,8 +334,11 @@ not itself prove any new workflow works.
 
 ## Implementation decisions still needed
 
-Exact capability bundles, bootstrap authority proof, approval policies,
-external-signature capture and provider integrations need detailed design against
-company workflows. Company registration must not imply unverified directorship.
+The bootstrap route and InfoTrack broker are selected above; API access,
+documentation, sandbox credentials and genuine result/proof integration remain
+prerequisites. Exact capability bundles, approval policies, external-signature
+capture and delegation/recovery
+checks need detailed design against company workflows. Company registration
+must not imply unverified directorship.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.
