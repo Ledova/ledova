@@ -12,6 +12,9 @@ identity, payment and eligibility configuration, settlement-asset membership,
 companies, registers, payment records, private files, extraction history and
 read audits are preserved. Supporting evidence uses the same private-access
 and retention controls on every instance; there is no replacement mode flag.
+The migration depends on `tokens/0015_fold_stablecoin_into_asset`, the last
+historical migration reading the operator's old model. Rolling back that fold
+therefore restores the mode column first; no historical migration is rewritten.
 
 Coordinate the API, workers and client release. Retire clients that require
 `deploymentMode` before serving the new response, then stop old API/worker
