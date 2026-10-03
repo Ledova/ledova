@@ -33,6 +33,26 @@ The [company-managed register plan](architecture/company-managed-registers.md)
 defines roles, workflows, migration sequence and acceptance criteria. It is
 accepted direction, not a statement that the code already implements it.
 
+### Company representative verification
+
+On 4 October 2026 (Australia/Sydney), the owner selected
+[ASIC officeholder matching](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
+for the initial representative: the person's verified identity must match a
+current director or secretary of the exact ACN, using an ASIC registry search
+purchased through a data provider. Other representatives receive in-app
+delegation from a verified officeholder.
+
+The owner then [selected InfoTrack as the broker](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
+on the same day. InfoTrack API access, its documentation and sandbox credentials
+remain outstanding. Credentials belong only in the backend environment, never
+in chat, issues or commits. This is the selected future verification route, not
+a delivered admission workflow. Mock or simulated InfoTrack success cannot
+replace genuine verification. Officeholder matching does not grant every
+capability or make a secretary a director;
+company mandates and action-specific approval requirements still apply. The
+[accepted plan](architecture/company-managed-registers.md#representative-verification)
+records the implementation boundary.
+
 ## Eligibility and ownership records
 
 The 3 October [company-managed plan](architecture/company-managed-registers.md#responsibility-and-company-access)

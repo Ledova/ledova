@@ -16,6 +16,15 @@ in both clients, retaining evidence and history. Company appointments and the
 dependent register workflows remain
 to be implemented; submitting evidence grants no authority.
 
+The owner selected
+[ASIC officeholder matching and in-app delegation](../../architecture/company-managed-registers.md#representative-verification)
+on 4 October 2026 (Australia/Sydney), then chose InfoTrack as the broker. InfoTrack
+API access, its documentation and sandbox credentials remain outstanding;
+credentials stay only in the backend environment. Genuine result/proof
+integration must precede effective admission. This decision does not complete
+#862 or its downstream
+dependencies.
+
 The documentation audit covers all 73 Markdown documents tracked at its baseline
 plus the accepted plan: 74 documents, 46 updated and 28 retained as aligned
 technical contracts, historical evidence or a truthful runtime-generated output.
@@ -129,9 +138,9 @@ on-chain mirror preserves the already recorded supply rather than issuing twice.
 ## Existing work and evidence
 
 The closed [earlier programme #645](https://github.com/Ledova/ledova/issues/645)
-and its phase tickets record the delivered foundation. Open
-[#846](https://github.com/Ledova/ledova/issues/846) supports synthetic development
-fixtures, and [#624](https://github.com/Ledova/ledova/issues/624) owns separate
+and its phase tickets record the delivered foundation. Closed
+[#846](https://github.com/Ledova/ledova/issues/846) delivered synthetic development
+fixtures; open [#624](https://github.com/Ledova/ledova/issues/624) owns separate
 physical-device/live-operation release acceptance. Their work does not replace
 fresh company-authority verification.
 
