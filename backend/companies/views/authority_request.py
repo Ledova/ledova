@@ -6,9 +6,14 @@ from rest_framework.response import Response
 
 from companies.models import CompanyAuthorityRequest
 from companies.serializers.authority_request import (
+    CompanyAuthorityRequestAdmissionSerializer,
     CompanyAuthorityRequestSerializer,
     CompanyAuthorityRequestUploadSerializer,
     CompanyAuthorityRequestWithdrawalSerializer,
+)
+from companies.services.authority import (
+    admit_authority_request,
+    revoke_authority_request,
 )
 from companies.services.authority_requests import (
     submit_authority_request,
@@ -36,12 +41,16 @@ class CompanyAuthorityRequestViewSet(
             )
 
     def narrow(self, queryset):
-        return queryset.filter(requester=self.request.user).select_related("withdrawal")
+        return queryset.filter(requester=self.request.user).select_related("withdrawal", "appointment__revocation")
 
     def get_serializer_class(self):
         if self.action == "create":
             return CompanyAuthorityRequestUploadSerializer
         if self.action == "withdraw":
+            return CompanyAuthorityRequestWithdrawalSerializer
+        if self.action == "admit":
+            return CompanyAuthorityRequestAdmissionSerializer
+        if self.action == "revoke":
             return CompanyAuthorityRequestWithdrawalSerializer
         return self.serializer_class
 
@@ -74,4 +83,28 @@ class CompanyAuthorityRequestViewSet(
         serializer.is_valid(raise_exception=True)
         withdrawn = withdraw_authority_request(requester=request.user, request_id=proposal.pk)
         response = CompanyAuthorityRequestSerializer(withdrawn, context=self.get_serializer_context())
+        return Response(response.data)
+
+    @extend_schema(
+        request=CompanyAuthorityRequestAdmissionSerializer, responses={200: CompanyAuthorityRequestSerializer}
+    )
+    @action(detail=True, methods=["post"])
+    def admit(self, request, uuid=None):
+        proposal = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        admitted = admit_authority_request(requester=request.user, request_id=proposal.pk, **serializer.validated_data)
+        response = CompanyAuthorityRequestSerializer(admitted, context=self.get_serializer_context())
+        return Response(response.data)
+
+    @extend_schema(
+        request=CompanyAuthorityRequestWithdrawalSerializer, responses={200: CompanyAuthorityRequestSerializer}
+    )
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, uuid=None):
+        proposal = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        revoked = revoke_authority_request(requester=request.user, request_id=proposal.pk)
+        response = CompanyAuthorityRequestSerializer(revoked, context=self.get_serializer_context())
         return Response(response.data)

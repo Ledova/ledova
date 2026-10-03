@@ -2,9 +2,11 @@ import { useState, useSyncExternalStore } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  admitCompanyAuthorityRequest,
   getCompanies,
   getCompanyAuthorityRequests,
   readEveryPage,
+  revokeCompanyAuthorityAppointment,
   withdrawCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
 } from '@ledova/shared';
@@ -56,15 +58,29 @@ export function CompanyAuthorityScreen() {
     void companies.refetch();
     void requests.refetch();
   };
-  const withdraw = async (request: CompanyAuthorityRequest) => {
+  const changeRequest = async (request: CompanyAuthorityRequest, action: 'withdraw' | 'admit' | 'revoke') => {
     const queryKey = ['company-authority-requests', epoch];
     assertSessionEpoch(epoch);
     await queryClient.cancelQueries({ queryKey, exact: true });
     assertSessionEpoch(epoch);
-    const response = await withdrawCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSessionEpoch: epoch });
+    const send =
+      action === 'admit'
+        ? admitCompanyAuthorityRequest
+        : action === 'revoke'
+          ? revokeCompanyAuthorityAppointment
+          : withdrawCompanyAuthorityRequest;
+    const response = await send(apiClient, request.uuid, { ledovaSessionEpoch: epoch });
     assertSessionEpoch(epoch);
-    if (response.data.uuid !== request.uuid || response.data.status !== 'withdrawn' || !response.data.withdrawnAt)
-      throw new Error('The withdrawal response could not be confirmed. Refresh your requests or retry.');
+    if (
+      response.data.uuid !== request.uuid ||
+      (action === 'withdraw' && (response.data.status !== 'withdrawn' || !response.data.withdrawnAt)) ||
+      (action === 'admit' && (response.data.status !== 'admitted' || !response.data.appointment)) ||
+      (action === 'revoke' &&
+        (response.data.status !== 'admitted' ||
+          response.data.appointment?.status !== 'revoked' ||
+          !response.data.appointment.revokedAt))
+    )
+      throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
     await queryClient.cancelQueries({ queryKey, exact: true });
     assertSessionEpoch(epoch);
     if (queryClient.getQueryState(queryKey)?.status !== 'success') return;
@@ -76,7 +92,7 @@ export function CompanyAuthorityScreen() {
     <Page
       testID="company-authority-screen"
       title="Representative authority"
-      lede="Representative authority verification is not available yet. Requests grant no company authority."
+      lede="Establish your representative appointment by accepting an authorisation declaration. Company information is provided by the company. Submitting evidence alone grants no authority."
       actions={<Action label="Refresh" disabled={refreshing} onPress={refresh} />}
       refreshControl={<RefreshControl refreshing={refreshing && !companies.isLoading} onRefresh={refresh} />}
     >
@@ -132,8 +148,8 @@ export function CompanyAuthorityScreen() {
       </Section>
       <Section title="Your requests">
         <Text style={styles.muted}>
-          Only your own submissions appear here. You can withdraw a pending request. Its history and evidence remain
-          retained.
+          Only your own submissions appear here. You can admit or withdraw a pending request and revoke your own
+          appointment. History and evidence remain retained.
         </Text>
         {requests.isPending ? (
           <Text style={styles.muted}>Loading your requests…</Text>
@@ -153,7 +169,9 @@ export function CompanyAuthorityScreen() {
                 key={`${epoch}:${request.uuid}`}
                 request={request}
                 blocked={requests.isFetching}
-                onWithdraw={() => withdraw(request)}
+                onWithdraw={() => changeRequest(request, 'withdraw')}
+                onAdmit={() => changeRequest(request, 'admit')}
+                onRevoke={() => changeRequest(request, 'revoke')}
               />
             ))}
           </Rows>

@@ -1,5 +1,7 @@
 import { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import { COMPANY_AUTHORITY_DECLARATION_VERSION } from '../constants/business/company-authority';
 import type {
+  CompanyAuthorityAdmission,
   CompanyAuthorityQueryParams,
   CompanyAuthorityRequest,
   CompanyAuthoritySubmission,
@@ -45,3 +47,19 @@ export const withdrawCompanyAuthorityRequest = (
   uuid: string,
   config: AxiosRequestConfig = {},
 ) => apiClient.post<CompanyAuthorityRequest>(`${REQUESTS}${uuid}/withdraw/`, {}, config);
+
+export const admitCompanyAuthorityRequest = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.post<CompanyAuthorityRequest>(
+    `${REQUESTS}${uuid}/admit/`,
+    {
+      declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
+      acceptDeclaration: true,
+    } satisfies CompanyAuthorityAdmission,
+    config,
+  );
+
+export const revokeCompanyAuthorityAppointment = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<CompanyAuthorityRequest>(`${REQUESTS}${uuid}/revoke/`, {}, config);

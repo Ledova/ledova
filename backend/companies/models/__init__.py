@@ -1,3 +1,7 @@
+from companies.models.appointment import (
+    CompanyAppointment,
+    CompanyAppointmentRevocation,
+)
 from companies.models.authority_request import (
     CompanyAuthorityRequest,
     CompanyAuthorityRequestWithdrawal,
@@ -19,6 +23,8 @@ from companies.models.registry_check import (
 
 __all__ = [
     "Company",
+    "CompanyAppointment",
+    "CompanyAppointmentRevocation",
     "CompanyAuthorityRequest",
     "CompanyAuthorityRequestWithdrawal",
     "CompanyCapability",

@@ -4,7 +4,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import axios from 'axios';
-import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  USER_PREFERENCES_QUERY_KEY,
+} from '@ledova/shared';
 import { PageTitle } from '@components/PageTitle';
 import CompanyAuthorityPage from './index';
 
@@ -17,9 +23,9 @@ const companyB = { uuid: 'company-b', name: 'Inland Synthetic Pty Ltd', acn: '00
 const ownerA = { userProfile: 'profile-a', userAccount: { uuid: 'account-a' } };
 const ownerB = { userProfile: 'profile-b', userAccount: { uuid: 'account-b' } };
 const pendingMessage =
-  'Evidence received and awaiting independent verification. Company authority verification is unavailable; this request grants no company authority.';
+  'Evidence retained. Accept the company authorisation declaration to establish initial authority after the required identity and ABR company checks pass. This pending request grants no company authority.';
 const withdrawnMessage =
-  'Request withdrawn. Its evidence and original terms remain retained and accessible; company authority verification is unavailable, and this request grants no company authority.';
+  'Request withdrawn. Its evidence and original terms remain retained and accessible; this request grants no company authority. Submit a new request to declare company authorisation.';
 let client: QueryClient;
 let rows: ReturnType<typeof request>[];
 
@@ -54,6 +60,39 @@ function withdrawn() {
   };
 }
 
+function admissionRequest() {
+  return { ...request(), requestedCapabilities: ['admin', 'prepare'] };
+}
+
+function admitted() {
+  return {
+    ...admissionRequest(),
+    status: 'admitted',
+    verificationStatus: 'self_declared',
+    verificationMessage: 'Your self-declaration and company appointment have been recorded.',
+    appointment: {
+      uuid: 'appointment-a',
+      capabilities: ['admin', 'prepare'],
+      delegatableCapabilities: ['approve'],
+      createdAt: '2026-10-04T01:00:00Z',
+      expiresAt: '2027-01-31T23:59:59Z',
+      revokedAt: null as string | null,
+      status: 'active',
+      isEffective: true,
+      declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
+      declarationText: COMPANY_AUTHORITY_DECLARATION,
+    },
+  };
+}
+
+function revoked() {
+  const result = admitted();
+  return {
+    ...result,
+    appointment: { ...result.appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-04T02:00:00Z' },
+  };
+}
+
 function show() {
   return render(
     <QueryClientProvider client={client}>
@@ -68,6 +107,11 @@ function show() {
 
 async function fill(company = companyA) {
   fireEvent.change(await screen.findByLabelText('Draft company'), { target: { value: company.uuid } });
+  fireEvent.click(
+    within(screen.getByRole('group', { name: 'Actions you request for yourself' })).getByRole('checkbox', {
+      name: 'Manage company team',
+    }),
+  );
   fireEvent.click(
     within(screen.getByRole('group', { name: 'Actions you request permission to delegate' })).getByRole('checkbox', {
       name: 'Approve register changes',
@@ -132,7 +176,7 @@ it('records independently requested delegation as pending with no authority gran
   const file = await fill(companyB);
   fireEvent.click(screen.getByRole('button', { name: 'Submit authority request' }));
   expect(await screen.findByText(/Request recorded: request-a/)).toBeTruthy();
-  expect(screen.getByText('Pending verification')).toBeTruthy();
+  expect(screen.getByText('Pending')).toBeTruthy();
   expect(screen.getAllByText(pendingMessage).length).toBeGreaterThan(0);
   const [url, form, config] = api.post.mock.calls[0];
   expect(url).toBe(endpoint);
@@ -180,7 +224,13 @@ it('retires the previous company file and scope when selection changes', async (
   await fill();
   fireEvent.change(screen.getByLabelText('Draft company'), { target: { value: companyB.uuid } });
   expect((screen.getByLabelText('Representative evidence') as HTMLInputElement).value).toBe('');
-  expect(screen.getAllByRole('checkbox').every((checkbox) => !(checkbox as HTMLInputElement).checked)).toBe(true);
+  expect(
+    (
+      within(screen.getByRole('group', { name: 'Actions you request for yourself' })).getByRole('checkbox', {
+        name: 'Manage company team',
+      }) as HTMLInputElement
+    ).checked,
+  ).toBe(true);
   expect((screen.getByRole('button', { name: 'Submit authority request' }) as HTMLButtonElement).disabled).toBe(true);
   expect(api.post).not.toHaveBeenCalled();
 });
@@ -287,7 +337,7 @@ it('withdraws a pending request, shows the server time and retains evidence acce
   api.post.mockResolvedValueOnce({ data: withdrawn() });
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
-  await waitFor(() => expect(screen.queryByText('Pending verification')).toBeNull());
+  await waitFor(() => expect(screen.queryByText('Pending')).toBeNull());
   expect(screen.getAllByText('Withdrawn').length).toBeGreaterThan(0);
   expect(screen.getByText(withdrawn().verificationMessage)).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Download evidence authority.pdf' })).toBeTruthy();
@@ -310,7 +360,7 @@ it('retries an uncertain withdrawal against the same request without optimistic 
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
   await screen.findByRole('alert');
-  expect(screen.getByText('Pending verification')).toBeTruthy();
+  expect(screen.getByText('Pending')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Withdraw request authority.pdf' }));
   await screen.findByText(withdrawn().verificationMessage);
   expect(api.post.mock.calls.map(([url, body]) => [url, body])).toEqual([
@@ -323,7 +373,7 @@ it('renders a retained withdrawn request with no withdrawal action', async () =>
   rows = [withdrawn()];
   show();
   await screen.findByText(withdrawn().verificationMessage);
-  expect(screen.queryByText('Pending verification')).toBeNull();
+  expect(screen.queryByText('Pending')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Download evidence authority.pdf' })).toBeTruthy();
 });
@@ -362,7 +412,7 @@ it('does not restore a pending state from a stale read after confirmed withdrawa
     expect(client.getQueryState(['company-authority-requests', 'profile-a', 'account-a'])?.fetchStatus).toBe('idle');
     expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([withdrawn()]);
   });
-  expect(screen.queryByText('Pending verification')).toBeNull();
+  expect(screen.queryByText('Pending')).toBeNull();
   expect(screen.getByText(withdrawn().verificationMessage)).toBeTruthy();
 });
 
@@ -415,4 +465,126 @@ it('keeps a refused history hidden after a delayed withdrawal receipt until an e
   fireEvent.click(screen.getByRole('button', { name: 'Retry request history' }));
   await screen.findByText(withdrawn().verificationMessage);
   expect(screen.getByText('request-b')).toBeTruthy();
+});
+
+it('requires explicit declaration acceptance, records exact appointment scope and revokes with retained history', async () => {
+  rows = [admissionRequest()];
+  api.post.mockResolvedValueOnce({ data: admitted() }).mockResolvedValueOnce({ data: revoked() });
+  show();
+  const admit = await screen.findByRole('button', { name: 'Establish appointment authority.pdf' });
+  expect((admit as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText(COMPANY_AUTHORITY_DECLARATION)).toBeTruthy();
+  expect(screen.getByText('Company information (provided by the company)')).toBeTruthy();
+  fireEvent.click(admit);
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('checkbox', { name: `Accept authorisation declaration for ${companyA.name}` }));
+  fireEvent.click(admit);
+  await screen.findByText(admitted().verificationMessage);
+  expect(api.post).toHaveBeenNthCalledWith(
+    1,
+    `${endpoint}request-a/admit/`,
+    { declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    { ledovaSubmissionGuard: expect.any(Function) },
+  );
+  expect(screen.getByText('appointment-a')).toBeTruthy();
+  expect(screen.getByText('active')).toBeTruthy();
+  expect(screen.getByText('Current')).toBeTruthy();
+  expect(screen.getAllByText('Manage company team, Prepare register changes').length).toBeGreaterThan(0);
+  expect(screen.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
+  expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  await screen.findByText('revoked');
+  expect(screen.getByText('Not current')).toBeTruthy();
+  expect(api.post).toHaveBeenNthCalledWith(
+    2,
+    `${endpoint}request-a/revoke/`,
+    {},
+    { ledovaSubmissionGuard: expect.any(Function) },
+  );
+  expect(screen.getByText(COMPANY_AUTHORITY_DECLARATION)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Download evidence authority.pdf' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Revoke appointment authority.pdf' })).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
+});
+
+it('keeps non-administrator proposals pending with a clear initial admission requirement', async () => {
+  rows = [request()];
+  show();
+  await screen.findByText(/Initial admission requires Manage company team in your own requested actions/);
+  expect(screen.queryByRole('button', { name: /Establish appointment/ })).toBeNull();
+  expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('distinguishes a retained active appointment from current company authority', async () => {
+  const result = admitted();
+  const ineffective = { ...result, appointment: { ...result.appointment, isEffective: false } };
+  rows = [ineffective];
+  show();
+  await screen.findByText('active');
+  expect(screen.getByText('Not current')).toBeTruthy();
+  expect(screen.queryByText('Current')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' })).toBeTruthy();
+});
+
+it('rejects an unconfirmed admission and retries the same request without optimistic authority', async () => {
+  rows = [admissionRequest()];
+  api.post
+    .mockResolvedValueOnce({ data: { ...admitted(), uuid: 'other-request' } })
+    .mockResolvedValueOnce({ data: admitted() });
+  show();
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Accept authorisation/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
+  await screen.findByRole('alert');
+  expect(screen.getByText('Pending')).toBeTruthy();
+  expect(screen.queryByText('appointment-a')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
+  await screen.findByText(admitted().verificationMessage);
+  expect(api.post.mock.calls[1]).toEqual(api.post.mock.calls[0]);
+});
+
+it('ignores a delayed admission result after an account switch', async () => {
+  rows = [admissionRequest()];
+  let finish!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Accept authorisation/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  rows = [];
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: ownerB }));
+  await screen.findByText('No authority requests recorded.');
+  await act(async () => finish({ data: admitted() }));
+  expect(screen.queryByText('appointment-a')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
+});
+
+it('keeps refused request history hidden after a delayed admission receipt', async () => {
+  rows = [admissionRequest()];
+  let finish!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Accept authorisation/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  api.get.mockRejectedValueOnce(new Error('Synthetic refused history'));
+  await act(async () => client.invalidateQueries({ queryKey: ['company-authority-requests'] }));
+  await screen.findByText('Your authority requests could not be loaded.');
+  rows = [admitted()];
+  await act(async () => finish({ data: admitted() }));
+  expect(screen.queryByText('appointment-a')).toBeNull();
+  expect(screen.getByText('Your authority requests could not be loaded.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry request history' }));
+  await screen.findByText('appointment-a');
 });

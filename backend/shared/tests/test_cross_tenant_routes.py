@@ -172,6 +172,8 @@ COMPANY_AUTHORITY_ROUTES = {
     "detail": ("get", "/api/v1/company-authority/requests/{uuid}/"),
     "file": ("get", "/api/v1/company-authority/requests/{uuid}/file/"),
     "withdraw": ("post", "/api/v1/company-authority/requests/{uuid}/withdraw/"),
+    "admit": ("post", "/api/v1/company-authority/requests/{uuid}/admit/"),
+    "revoke": ("post", "/api/v1/company-authority/requests/{uuid}/revoke/"),
 }
 
 REGISTER_CORRECTION_ROUTES = {
@@ -798,6 +800,44 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             format="multipart",
         )
         self.assertEqual(refused.status_code, 404, refused.content)
+
+    def test_authority_admission_and_revocation_hide_foreign_requests_from_every_staff_role(self):
+        from companies.services.authority import DECLARATION_VERSION
+        from companies.tests.registry_fixtures import matching_observation
+        from companies.tests.test_authority_requests import authority_fixture
+
+        with self.as_an_operator_would():
+            owner, profile, company = authority_fixture("matrix-admission", "112244668")
+        self.client.force_authenticate(owner)
+        created = self.client.post(
+            COMPANY_AUTHORITY_ROUTES["create"][1],
+            {
+                "company": str(company.pk),
+                "idempotency_key": str(uuid4()),
+                "requested_capabilities": ["admin"],
+                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        proposal_id = created.json()["uuid"]
+        declaration = {"declaration_version": DECLARATION_VERSION, "accept_declaration": True}
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
+            for name, body in (("admit", declaration), ("revoke", {})):
+                path = COMPANY_AUTHORITY_ROUTES[name][1].format(uuid=proposal_id)
+                for actor in self.actors:
+                    self.client.force_authenticate(actor.user)
+                    denied = self.client.post(path, body, format="json")
+                    missing = self.client.post(path.replace(proposal_id, str(uuid4())), body, format="json")
+                    self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                    self.assertEqual(denied.status_code, 404)
+                self.client.force_authenticate(None)
+                self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+                self.client.force_authenticate(owner)
+                response = self.client.post(path, body, format="json")
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual(response.json()["status"], "admitted")
+        self.assertEqual(response.json()["appointment"]["status"], "revoked")
 
     @override_settings(
         STORAGES={

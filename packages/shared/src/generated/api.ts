@@ -799,6 +799,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/requests/{uuid}/admit/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_requests_admit_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/company-authority/requests/{uuid}/file/': {
     parameters: {
       query?: never;
@@ -809,6 +825,22 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_company_authority_requests_file_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/requests/{uuid}/revoke/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_requests_revoke_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2545,7 +2577,21 @@ export interface ApiComponents {
       company: ApiComponents['schemas']['ApplicationStatus'];
       message: string;
     };
+    CompanyAppointment: {
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      createdAt: string;
+      declarationText: string;
+      declarationVersion: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      expiresAt: string | null;
+      isEffective: boolean;
+      revokedAt: string | null;
+      status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
+      uuid: string;
+    };
+    CompanyAppointmentStatusEnum: 'active' | 'expired' | 'revoked';
     CompanyAuthorityRequest: {
+      appointment: ApiComponents['schemas']['CompanyAppointment'] | null;
       company: string;
       companyIdentity: ApiComponents['schemas']['AuthorityCompanyIdentitySnapshot'];
       companyIdentityRaw: ApiComponents['schemas']['AuthorityCompanyIdentitySnapshot'];
@@ -2570,6 +2616,10 @@ export interface ApiComponents {
       verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
       withdrawnAt: string | null;
     };
+    CompanyAuthorityRequestAdmissionRequest: {
+      acceptDeclaration: boolean;
+      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+    };
     CompanyAuthorityRequestUploadRequest: {
       company: string;
       delegatableCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
@@ -2578,8 +2628,8 @@ export interface ApiComponents {
       requestedCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       requestedExpiresAt?: string | null;
     };
-    CompanyAuthorityStatusEnum: 'pending' | 'withdrawn';
-    CompanyAuthorityVerificationStatusEnum: 'unavailable';
+    CompanyAuthorityStatusEnum: 'pending' | 'withdrawn' | 'admitted';
+    CompanyAuthorityVerificationStatusEnum: 'unavailable' | 'self_declared';
     CompanyCapabilityEnum: 'admin' | 'prepare' | 'approve' | 'apply' | 'finance' | 'read_register';
     CompanyDetail: {
       abn?: string;
@@ -2732,6 +2782,7 @@ export interface ApiComponents {
       state?: string;
       tradingName?: string;
     };
+    DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
     };
@@ -6299,6 +6350,33 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_company_authority_requests_admit_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
+        };
+      };
+    };
+  };
   api_v1_company_authority_requests_file_retrieve: {
     parameters: {
       query?: never;
@@ -6316,6 +6394,27 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_revoke_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
         };
       };
     };

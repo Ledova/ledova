@@ -272,7 +272,7 @@ export function Choice({
   selected: boolean;
   onPress: () => void;
   disabled?: boolean;
-  accessibilityRole?: 'button' | 'radio';
+  accessibilityRole?: 'button' | 'radio' | 'checkbox';
   accessibilityLabel?: string;
 }) {
   const styles = useThemedStyles((theme) => ({
@@ -296,7 +296,9 @@ export function Choice({
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
       accessibilityState={
-        accessibilityRole === 'radio' ? { checked: selected, selected, disabled } : { selected, disabled }
+        accessibilityRole === 'radio' || accessibilityRole === 'checkbox'
+          ? { checked: selected, selected, disabled }
+          : { selected, disabled }
       }
       disabled={disabled}
       onPress={onPress}

@@ -1,13 +1,35 @@
 import axios from 'axios';
 import { getCompanies } from '../../src/services/companies';
 import {
+  admitCompanyAuthorityRequest,
   downloadCompanyAuthorityFile,
   getCompanyAuthorityRequests,
+  revokeCompanyAuthorityAppointment,
   submitCompanyAuthorityRequest,
   withdrawCompanyAuthorityRequest,
 } from '../../src/services/company-authority';
 
 afterEach(() => jest.restoreAllMocks());
+
+it('admits the exact retained request using only the accepted declaration version and preserves transport scope', async () => {
+  const api = axios.create();
+  const post = jest.spyOn(api, 'post').mockResolvedValue({ data: { status: 'admitted' } });
+  const config = { timeout: 1000, ledovaSessionEpoch: 4 };
+  await admitCompanyAuthorityRequest(api, 'request-a', config);
+  expect(post).toHaveBeenCalledWith(
+    '/api/v1/company-authority/requests/request-a/admit/',
+    { declarationVersion: '2026-10-04', acceptDeclaration: true },
+    config,
+  );
+});
+
+it('revokes the requester appointment for the exact request without caller authority claims', async () => {
+  const api = axios.create();
+  const post = jest.spyOn(api, 'post').mockResolvedValue({ data: { status: 'admitted' } });
+  const config = { timeout: 1000, ledovaSessionEpoch: 4 };
+  await revokeCompanyAuthorityAppointment(api, 'request-a', config);
+  expect(post).toHaveBeenCalledWith('/api/v1/company-authority/requests/request-a/revoke/', {}, config);
+});
 
 it('withdraws the exact request with no caller claims and preserves the authenticated transport scope', async () => {
   const api = axios.create();

@@ -58,12 +58,14 @@ and [InfoTrack broker choice](https://github.com/Ledova/ledova/issues/862#issuec
 retained as history. No ASIC search, broker, uploaded ASIC extract or InfoTrack
 agreement is required for representative authority; those prerequisites no longer
 block #862–#873. A declaration can establish the initial representative's
-authority in the planned admission workflow. The existing representative identity
+authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
 signed-transaction safeguards. Memberships, scoped capabilities, in-app
 delegation, invitations, revocation and action-specific company approvals remain
-in scope. Self-declaration admission is planned; current requests and withdrawals
-grant no company authority.
+in scope. [Initial self-declaration admission and self-revocation](plans/company-managed-registers/authority-requests.md)
+are implemented for exact retained draft-company requests; pending requests and
+withdrawals grant no company authority. Team invitations, delegation and dependent
+company approvals remain planned.
 
 Do not add impersonation or fraud verification unless a legal duty on Ledova
 requires it. If such a duty is identified, raise it with the owner with its source

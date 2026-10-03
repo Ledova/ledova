@@ -12,7 +12,7 @@ from users.serializers.identity_verification import (
     ExtractedApplicantDataField,
     reasons_for_the_applicant,
 )
-from users.services import IdentityVerificationService
+from users.services import identity
 
 
 class IdentityVerificationViewSet(SetsThePrincipalOnTheConnection, ViewSet):
@@ -33,7 +33,7 @@ class IdentityVerificationViewSet(SetsThePrincipalOnTheConnection, ViewSet):
     @action(detail=False, methods=["post"], url_path="token")
     def token(self, request):
         user_profile = get_object_or_404(UserProfile, user=request.user)
-        session = IdentityVerificationService.get_verification_session(user_profile)
+        session = identity.get_verification_session(user_profile)
         return Response(
             {
                 "provider": session.provider,
@@ -64,6 +64,6 @@ class IdentityVerificationViewSet(SetsThePrincipalOnTheConnection, ViewSet):
     @action(detail=False, methods=["get"], url_path="status")
     def verification_status(self, request):
         user_profile = get_object_or_404(UserProfile, user=request.user)
-        verification = IdentityVerificationService.get_verification_status(user_profile)
+        verification = identity.get_verification_status(user_profile)
         verification["rejectionLabels"] = reasons_for_the_applicant(verification.get("rejectionLabels"))
         return Response(verification, status=status.HTTP_200_OK)

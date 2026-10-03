@@ -42,7 +42,8 @@ request table, requester-only RLS and a guarded creation boundary. Existing
 companies, owners, reviews, register entries and pending instructions are
 preserved. It seeds no appointments and changes no approval or activation.
 The [client workflow](../plans/company-managed-registers/authority-requests.md)
-records pending verification or the requester's withdrawal; neither grants authority.
+retains pending requests and withdrawal history. Initial self-declaration
+admission and self-revocation are added separately by `companies/0015`.
 
 The migration requires the existing role-creation migration and grants only its
 new table; it does not pull the later catalogue grant ahead of the queue schema
@@ -68,11 +69,26 @@ earlier check, so a downgraded database accepts `null` elements again. Only a ra
 insert on the operator connection can supply one: the service refuses
 capabilities that are not listed strings.
 
+`users/0031_protected_identity_results` protects the existing server-owned
+identity provider identifiers/results and configured issuer identity requirement
+from app-connection changes. Provider services record their existing results
+through bounded operator transactions; ordinary profile changes remain available.
+Reversal removes these write guards without changing retained identity data.
+
+`companies/0015_self_declared_company_appointments` adds private initial
+appointments, exact declaration capture, retained ABR check references and
+immutable self-revocation. It also adds the authority-purpose ABR check and
+prevents withdrawal after admission. It seeds no owners, activates no company
+and approves no pending instruction. Empty reversal preserves pending/withdrawn
+requests and their files; populated reversal refuses to discard appointments,
+declarations or revocations. Do not delete authority history to force reversal.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)
-has delivered product-mode retirement above. Company appointments and the
-dependent company-authority workflows remain planned. The historical migrations
+has delivered product-mode retirement and initial self-declared appointments
+above. Multiple appointments, team invitations/delegation, legacy-owner migration
+and dependent company-authority workflows remain planned. The historical migrations
 below remain applied history; do not edit them or reset a database to implement
 the new direction.
 

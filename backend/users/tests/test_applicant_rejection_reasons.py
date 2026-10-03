@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 from integrations.kyc.base import NormalizedVerificationResult
 from shared.models import Country
 from users.models import UserAccount, UserProfile
-from users.services.identity import IdentityVerificationService
+from users.services import identity
 
 User = get_user_model()
 NEUTRAL = "UNABLE_TO_VERIFY"
@@ -88,7 +88,7 @@ class ApplicantRejectionReasonsTest(APITestCase):
             verification_status="completed", review_result="RED", is_verified=False, rejection_labels=list(STORED)
         )
 
-        IdentityVerificationService.update_status_from_normalized(self.profile, rejected)
+        identity.update_status_from_normalized(self.profile, rejected)
 
         pushed = self.push_task.defer.call_args.kwargs
         text = " ".join(str(value) for value in pushed.values()).upper()
