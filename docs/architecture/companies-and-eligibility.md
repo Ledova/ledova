@@ -9,9 +9,12 @@ How company verification and investor eligibility bound access to offers.
 The [accepted plan](company-managed-registers.md#responsibility-and-company-access)
 replaces routine staff activation and classification review with evidenced
 company authority and configured verification/provider outcomes. Bootstrap starts
-at fresh signup: record the company identity and registry result and verify the
-representative's appointment. An owner account or checksum-valid ACN must not
-silently become a director mandate or a passed registry check. Activation is a
+at fresh signup: record the representative's authorisation declaration under the
+[accepted self-declaration decision](company-managed-registers.md#representative-verification),
+retaining the existing representative identity check and ABR company lookup.
+Company details are provided by the company, never verified by Ledova, and the
+terms make the company responsible for them. A declaration or checksum-valid ACN
+does not fabricate success for a separate configured provider check. Activation is a
 validated outcome once the applicable requirements are met, not an unconditional
 staff approval.
 

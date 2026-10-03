@@ -4,16 +4,16 @@
 
 The initial increments of [#862](https://github.com/Ledova/ledova/issues/862) record
 private evidence of a proposed company appointment and let its requester withdraw
-it. A request is **pending verification** until withdrawn; it grants no company
-authority in either state. The repository has no
-configured representative-mandate verifier. The owner has selected a future
-[ASIC officeholder-matching route](../../architecture/company-managed-registers.md#representative-verification);
-its provider integration is not delivered. KYC, company identity checks and
-historical staff attestations do not supply that missing result.
+it. In the current clients, a request is **pending verification** until withdrawn;
+it grants no company authority in either state. That label describes the delivered
+request lifecycle, not an outstanding ASIC/InfoTrack prerequisite. The owner has
+selected [self-declaration admission](../../architecture/company-managed-registers.md#representative-verification);
+effective appointments are not delivered yet. The existing representative identity
+check and ABR company lookup remain unchanged.
 
 Use synthetic people, companies and evidence in this experimental implementation.
 
-## Company user steps
+## Current company user steps
 
 1. Sign up, verify your account email and register a draft company.
 2. Open **Representative authority** from the company details screen on web or
@@ -40,14 +40,14 @@ flowchart LR
     select --> terms[Propose personal and delegation scopes]
     terms --> evidence[Upload private evidence]
     evidence --> capture[Retain exact request and evidence]
-    capture --> pending[Pending independent verification]
+    capture --> pending[Pending request - no authority granted]
     pending --> history[Read own request and evidence]
     pending --> withdraw[Withdraw unwanted request]
     withdraw --> history
 ```
 
 Company appointments, invitation acceptance, effective capabilities, revocation
-and representative recovery remain later increments of #862. Company activation,
+and administrator-change workflows remain later increments of #862. Company activation,
 register decisions and payments retain their current workflows until their
 owning issues replace them. See the [dependency index](README.md#delivery-tracking).
 
@@ -110,22 +110,38 @@ history; its empty reversal preserves existing requests and their evidence.
 The request guard refuses `null` capability elements from `companies/0014`;
 reversing that migration accepts them again, as the upgrade notes describe.
 
-## Remaining verification boundary
+## Planned self-declaration admission
 
-The selected route matches the initial representative's verified identity to a
-current ASIC director or secretary of the exact ACN through a purchased provider
-search. Other representatives receive in-app delegation from a verified
-officeholder. InfoTrack is the selected broker; its API access, documentation and
-sandbox credentials remain outstanding, with credentials only in the backend
-environment. The accepted plan records the required proof and the distinction
-between officeholder matching and action-specific company authority.
+The [owner's self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
+replaces the earlier [ASIC officeholder route](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
+and [InfoTrack selection](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175),
+retained as superseded history. A company provides its company and share
+information; its representative declares that they are authorised to act for it.
+The declaration can establish initial authority in the future admission workflow.
+No ASIC search, broker, uploaded ASIC extract or InfoTrack agreement is needed,
+and those prerequisites no longer block #862–#873. The current upload form above
+does not yet implement declaration-based admission or grant an appointment.
 
-A later admission workflow must bind fresh, attributable identity, entity and
-representative-mandate results to this exact retained request before creating an
-appointment. No successful mock, uploaded declaration or staff override can
-complete that boundary. Missing or unavailable verification stays pending.
-The original #862 completion checks remain open until the actual verification,
-team, delegation, revocation and recovery workflows are demonstrated.
+Under the [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105),
+details are shown as provided by the company, never verified by Ledova; the terms
+make the company responsible for them. The company remains responsible for its
+information, ASIC filings and legal obligations. Ledova changes company
+administrators only through existing company administrators or at the direction
+of a court or regulator. Normal recovery of a person's own account is separate.
+
+Admission must record the declaration for the exact company and representative,
+retaining the existing identity check and ABR lookup. Invitations and in-app
+delegation then grant only the recorded company capabilities and delegatable
+scope, subject to expiry and revocation. Ordinary security, cross-company
+isolation, private evidence and signed-transaction safeguards remain. A declaration
+does not approve a pending share instruction or supply a separate provider result.
+Do not add fraud or impersonation verification unless a legal duty is identified
+on Ledova; cite and raise such a duty with the owner rather than building a check.
+See the dated [legal positions](../../legal/positions.md).
+
+The original #862 completion checks remain open until self-declaration admission,
+memberships, capabilities, invitations, delegation, revocation and the accepted
+administrator-change/account-recovery boundaries are demonstrated.
 
 Future admission must lock the same request and reject a withdrawal before
 creating authority. After an actual admission commits, it must refuse request
