@@ -141,6 +141,12 @@ unresolved; no mock result, uploaded declaration, KYC result alone or staff
 override establishes the registry match. Preserve private evidence, provenance,
 expiry and revocation checks.
 
+The actual InfoTrack agreement must support the required retained proof and
+permitted user access. Its [published API terms](https://www.infotrack.com.au/legal/APITerms)
+(clauses 5.1(c) and 5.1(f)) limit retention and product access unless expressly
+permitted otherwise. Confirm the applicable agreement before storing provider
+results; this does not change existing request-evidence retention.
+
 This choice does not equate a secretary's role with directorship or resolve the
 capability bundles and company approval policy. An officeholder match establishes
 the selected bootstrap proof; subsequent actions still require their applicable
