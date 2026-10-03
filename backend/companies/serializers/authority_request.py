@@ -7,6 +7,10 @@ VERIFICATION_UNAVAILABLE = (
     "Evidence received and awaiting independent verification. Company authority verification is unavailable; "
     "this request grants no company authority."
 )
+WITHDRAWN_MESSAGE = (
+    "Request withdrawn. Its evidence and original terms remain retained and accessible; "
+    "company authority verification is unavailable, and this request grants no company authority."
+)
 
 
 class CompanyAuthorityRequestUploadSerializer(serializers.Serializer):
@@ -35,6 +39,15 @@ class AuthorityCompanyIdentitySnapshotSerializer(serializers.Serializer):
     company_type = serializers.ChoiceField(choices=CompanyType.choices)
 
 
+class CompanyAuthorityRequestWithdrawalSerializer(serializers.Serializer):
+    def to_internal_value(self, data):
+        if data:
+            raise serializers.ValidationError(
+                {"non_field_errors": ["Submit an empty object to withdraw your request."]}
+            )
+        return super().to_internal_value(data)
+
+
 class AuthorityPersonIdentitySnapshotSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     profile_uuid = serializers.UUIDField()
@@ -48,9 +61,12 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
     person_identity_raw = AuthorityPersonIdentitySnapshotSerializer(read_only=True)
     person_identity = AuthorityPersonIdentitySnapshotSerializer(read_only=True)
     file_url = serializers.SerializerMethodField()
-    status = serializers.ChoiceField(choices=["pending"], read_only=True, default="pending")
+    status = serializers.ChoiceField(choices=["pending", "withdrawn"], read_only=True)
+    withdrawn_at = serializers.DateTimeField(
+        source="withdrawal.created_at", read_only=True, allow_null=True, default=None
+    )
     verification_status = serializers.ChoiceField(choices=["unavailable"], read_only=True, default="unavailable")
-    verification_message = serializers.CharField(read_only=True, default=VERIFICATION_UNAVAILABLE)
+    verification_message = serializers.SerializerMethodField()
     requested_capabilities = serializers.ListField(
         child=serializers.ChoiceField(choices=CompanyCapability.choices), read_only=True
     )
@@ -81,6 +97,7 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
             "created_at",
             "file_url",
             "status",
+            "withdrawn_at",
             "verification_status",
             "verification_message",
         ]
@@ -90,3 +107,6 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
         url = reverse("company-authority:requests-file", kwargs={"uuid": obj.pk})
         request = self.context.get("request")
         return request.build_absolute_uri(url) if request else url
+
+    def get_verification_message(self, obj) -> str:
+        return WITHDRAWN_MESSAGE if obj.status == "withdrawn" else VERIFICATION_UNAVAILABLE

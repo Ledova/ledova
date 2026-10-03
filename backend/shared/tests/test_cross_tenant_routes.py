@@ -171,6 +171,7 @@ COMPANY_AUTHORITY_ROUTES = {
     "list": ("get", "/api/v1/company-authority/requests/"),
     "detail": ("get", "/api/v1/company-authority/requests/{uuid}/"),
     "file": ("get", "/api/v1/company-authority/requests/{uuid}/file/"),
+    "withdraw": ("post", "/api/v1/company-authority/requests/{uuid}/withdraw/"),
 }
 
 REGISTER_CORRECTION_ROUTES = {
@@ -769,18 +770,20 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         proposal_id = created.json()["uuid"]
         listing = COMPANY_AUTHORITY_ROUTES["list"][1]
         self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
-        for name in ("detail", "file"):
+        for name in ("detail", "file", "withdraw"):
+            method = COMPANY_AUTHORITY_ROUTES[name][0]
+            operation = getattr(self.client, method)
             path = COMPANY_AUTHORITY_ROUTES[name][1].format(uuid=proposal_id)
-            self.assertEqual(self.client.get(path).status_code, 200)
+            self.assertEqual(operation(path, {}, format="json").status_code, 200)
             for actor in self.actors:
                 self.client.force_authenticate(actor.user)
-                denied = self.client.get(path)
-                missing = self.client.get(path.replace(proposal_id, str(uuid4())))
+                denied = operation(path, {}, format="json")
+                missing = operation(path.replace(proposal_id, str(uuid4())), {}, format="json")
                 self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
                 self.assertEqual(denied.status_code, 404)
                 self.assertEqual(self.rows(self.client.get(listing)), [])
             self.client.force_authenticate(None)
-            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(operation(path, {}, format="json").status_code, 401)
             self.assertEqual(self.client.get(listing).status_code, 401)
             self.client.force_authenticate(owner)
         self.client.force_authenticate(self.actors[0].user)

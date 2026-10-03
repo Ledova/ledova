@@ -815,6 +815,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/requests/{uuid}/withdraw/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_requests_withdraw_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/directory/tokens/': {
     parameters: {
       query?: never;
@@ -2552,6 +2568,7 @@ export interface ApiComponents {
       uuid: string;
       verificationMessage: string;
       verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
+      withdrawnAt: string | null;
     };
     CompanyAuthorityRequestUploadRequest: {
       company: string;
@@ -2561,7 +2578,7 @@ export interface ApiComponents {
       requestedCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       requestedExpiresAt?: string | null;
     };
-    CompanyAuthorityStatusEnum: 'pending';
+    CompanyAuthorityStatusEnum: 'pending' | 'withdrawn';
     CompanyAuthorityVerificationStatusEnum: 'unavailable';
     CompanyCapabilityEnum: 'admin' | 'prepare' | 'approve' | 'apply' | 'finance' | 'read_register';
     CompanyDetail: {
@@ -6299,6 +6316,27 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_company_authority_requests_withdraw_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
         };
       };
     };

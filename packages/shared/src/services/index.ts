@@ -68,6 +68,7 @@ export {
   getCompanyAuthorityRequests,
   submitCompanyAuthorityRequest,
   downloadCompanyAuthorityFile,
+  withdrawCompanyAuthorityRequest,
 } from './company-authority';
 export {
   getCompanyTokens,

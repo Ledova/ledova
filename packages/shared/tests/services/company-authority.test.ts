@@ -4,9 +4,19 @@ import {
   downloadCompanyAuthorityFile,
   getCompanyAuthorityRequests,
   submitCompanyAuthorityRequest,
+  withdrawCompanyAuthorityRequest,
 } from '../../src/services/company-authority';
 
 afterEach(() => jest.restoreAllMocks());
+
+it('withdraws the exact request with no caller claims and preserves the authenticated transport scope', async () => {
+  const api = axios.create();
+  const post = jest.spyOn(api, 'post').mockResolvedValue({ data: { status: 'withdrawn' } });
+  const config = { timeout: 1000, ledovaSessionEpoch: 4 };
+  const response = await withdrawCompanyAuthorityRequest(api, 'request-a', config);
+  expect(post).toHaveBeenCalledWith('/api/v1/company-authority/requests/request-a/withdraw/', {}, config);
+  expect(response.data.status).toBe('withdrawn');
+});
 
 it('preserves existing company reads and requests the selected owned-company page', async () => {
   const api = axios.create();

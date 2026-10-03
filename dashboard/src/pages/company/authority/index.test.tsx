@@ -35,6 +35,7 @@ function request(company = companyA, uuid = 'request-a') {
     requestedCapabilities: ['prepare'],
     delegatableCapabilities: ['approve'],
     createdAt: '2026-10-03T01:00:00Z',
+    withdrawnAt: null as string | null,
     originalFilename: 'authority.pdf',
     mimeType: 'application/pdf',
     fileUrl: 'https://foreign.example.test/private-file',
@@ -43,6 +44,15 @@ function request(company = companyA, uuid = 'request-a') {
 
 function page(results: unknown[], next: string | null = null) {
   return { data: { results, next, count: results.length, previous: null } };
+}
+
+function withdrawn() {
+  return {
+    ...request(),
+    status: 'withdrawn',
+    withdrawnAt: '2026-10-03T02:00:00Z',
+    verificationMessage: 'Request withdrawn. Its evidence is retained and no company authority was granted.',
+  };
 }
 
 function show() {
@@ -271,4 +281,139 @@ it('rejects delayed private file delivery after an account switch', async () => 
   await act(async () => finish({ data: new Uint8Array([1]).buffer }));
   expect(URL.createObjectURL).not.toHaveBeenCalled();
   expect(await screen.findByText('No authority requests recorded.')).toBeTruthy();
+});
+
+it('withdraws a pending request, shows the server time and retains evidence access', async () => {
+  rows = [request()];
+  api.post.mockResolvedValueOnce({ data: withdrawn() });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
+  await waitFor(() => expect(screen.queryByText('Pending verification')).toBeNull());
+  expect(screen.getAllByText('Withdrawn').length).toBeGreaterThan(0);
+  expect(screen.getByText(withdrawn().verificationMessage)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Download evidence authority.pdf' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
+  expect(api.post).toHaveBeenCalledWith(
+    `${endpoint}request-a/withdraw/`,
+    {},
+    {
+      ledovaSubmissionGuard: expect.any(Function),
+    },
+  );
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([withdrawn()]);
+});
+
+it('retries an uncertain withdrawal against the same request without optimistic success', async () => {
+  rows = [request()];
+  api.post
+    .mockRejectedValueOnce(new Error('Synthetic interrupted withdrawal'))
+    .mockResolvedValueOnce({ data: withdrawn() });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
+  await screen.findByRole('alert');
+  expect(screen.getByText('Pending verification')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Withdraw request authority.pdf' }));
+  await screen.findByText(withdrawn().verificationMessage);
+  expect(api.post.mock.calls.map(([url, body]) => [url, body])).toEqual([
+    [`${endpoint}request-a/withdraw/`, {}],
+    [`${endpoint}request-a/withdraw/`, {}],
+  ]);
+});
+
+it('renders a retained withdrawn request with no withdrawal action', async () => {
+  rows = [withdrawn()];
+  show();
+  await screen.findByText(withdrawn().verificationMessage);
+  expect(screen.queryByText('Pending verification')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Download evidence authority.pdf' })).toBeTruthy();
+});
+
+it('does not restore a pending state from a stale read after confirmed withdrawal', async () => {
+  rows = [request()];
+  let finishPost!: (value: unknown) => void;
+  let finishRead!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishPost = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
+  await waitFor(() => expect(finishPost).toBeTypeOf('function'));
+  api.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishRead = resolve;
+      }),
+  );
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.invalidateQueries({ queryKey: ['company-authority-requests'] });
+  });
+  await waitFor(() => expect(finishRead).toBeTypeOf('function'));
+  await act(async () => finishPost({ data: withdrawn() }));
+  await screen.findByText(withdrawn().verificationMessage);
+  await act(async () => {
+    finishRead(page([request()]));
+    await refreshing;
+  });
+  await waitFor(() => {
+    expect(client.getQueryState(['company-authority-requests', 'profile-a', 'account-a'])?.fetchStatus).toBe('idle');
+    expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([withdrawn()]);
+  });
+  expect(screen.queryByText('Pending verification')).toBeNull();
+  expect(screen.getByText(withdrawn().verificationMessage)).toBeTruthy();
+});
+
+it('ignores a delayed withdrawal result after an account switch', async () => {
+  rows = [request()];
+  let finish!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Withdraw request authority.pdf' }));
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  rows = [];
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: ownerB });
+  });
+  await screen.findByText('No authority requests recorded.');
+  await act(async () => finish({ data: withdrawn() }));
+  expect(screen.queryByText(withdrawn().verificationMessage)).toBeNull();
+  expect(screen.getByText('No authority requests recorded.')).toBeTruthy();
+  expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
+});
+
+it('keeps a refused history hidden after a delayed withdrawal receipt until an explicit successful read', async () => {
+  rows = [request(), request(companyB, 'request-b')];
+  let finish!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  const actions = await screen.findAllByRole('button', { name: 'Withdraw request authority.pdf' });
+  fireEvent.click(actions[0]);
+  await waitFor(() => expect(finish).toBeTypeOf('function'));
+  api.get.mockRejectedValueOnce(new Error('Synthetic refused history'));
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['company-authority-requests'] });
+  });
+  await screen.findByText('Your authority requests could not be loaded.');
+  rows = [withdrawn(), request(companyB, 'request-b')];
+  await act(async () => finish({ data: withdrawn() }));
+  expect(screen.getByText('Your authority requests could not be loaded.')).toBeTruthy();
+  expect(screen.queryByText('request-b')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Download evidence authority.pdf' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry request history' }));
+  await screen.findByText(withdrawn().verificationMessage);
+  expect(screen.getByText('request-b')).toBeTruthy();
 });

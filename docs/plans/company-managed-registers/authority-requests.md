@@ -2,9 +2,10 @@
 
 [Implementation index](README.md) · [Accepted plan](../../architecture/company-managed-registers.md)
 
-The first increment of [#862](https://github.com/Ledova/ledova/issues/862) records
-private evidence of a proposed company appointment. Every request remains
-**pending verification** and grants no company authority. The repository has no
+The initial increments of [#862](https://github.com/Ledova/ledova/issues/862) record
+private evidence of a proposed company appointment and let its requester withdraw
+it. A request is **pending verification** until withdrawn; it grants no company
+authority in either state. The repository has no
 configured representative-mandate verifier. KYC, company identity checks and
 historical staff attestations do not supply that missing result.
 
@@ -26,6 +27,9 @@ Use synthetic people, companies and evidence in this experimental implementation
 6. Review **Your requests** and download your retained evidence. A request keeps
    the company name and ACN captured when it was submitted. Retained submissions
    cannot be edited or deleted through the clients.
+7. If a proposal is no longer wanted, choose **Withdraw request** in its history.
+   The recorded state becomes **Withdrawn** with its original withdrawal time.
+   Evidence remains available. Submit a new request to propose authority again.
 
 ```mermaid
 flowchart LR
@@ -36,6 +40,8 @@ flowchart LR
     evidence --> capture[Retain exact request and evidence]
     capture --> pending[Pending independent verification]
     pending --> history[Read own request and evidence]
+    pending --> withdraw[Withdraw unwanted request]
+    withdraw --> history
 ```
 
 Company appointments, invitation acceptance, effective capabilities, revocation
@@ -59,6 +65,13 @@ retained request. Changed evidence, terms, company or captured identity conflict
 submit a new request for changed information. Clients preserve a key for retries
 and replace it when inputs change.
 
+`POST /api/v1/company-authority/requests/{uuid}/withdraw/` accepts an empty body
+and returns the request with its derived `withdrawn` state and `withdrawnAt`.
+Initial and repeated withdrawals return HTTP 200 with the same recorded time.
+Only the original requester can withdraw, including after the company changes
+owner or leaves draft status. A retry of the original submission returns its
+withdrawn record; it cannot reactivate it or upload another copy.
+
 `companies/0012_company_authority_request` adds only the request table, its
 requester-only read policy and immutable database guard. Ordinary app SQL cannot
 insert or change the retained records. Creation uses a bounded service that
@@ -66,14 +79,23 @@ rechecks the exact person/profile/company under locks and carries the person
 explicitly across database aliases. It changes no company owner, activation
 state, historical decision or register entry.
 
+`companies/0013_company_authority_request_withdrawal` adds one immutable,
+requester-private withdrawal record per request. The bounded service locks the
+current person and original request; SQL independently checks that principal
+and actor match its requester. Ordinary app writes, updates and deletion fail.
+The parent request, snapshots, digest and evidence are unchanged.
+
 Requests and their referenced evidence have no automatic purge in this
 experimental slice. The existing orphan sweep can remove unreferenced interrupted
 uploads; it preserves files referenced by retained requests. Requested appointment
-expiry does not delete submission evidence. See [files and retention](../../architecture/files-and-retention.md).
+expiry or request withdrawal does not delete submission evidence. See [files and retention](../../architecture/files-and-retention.md).
 
 Reversal is allowed only while the new table is empty. A populated reversal
 refuses to discard request history and private evidence; retain a database and
 private-storage backup together. Follow [upgrade notes](../../operations/upgrades.md).
+
+Withdrawal migration reversal likewise refuses to discard populated withdrawal
+history; its empty reversal preserves existing requests and their evidence.
 
 ## Remaining verification boundary
 
@@ -83,3 +105,9 @@ appointment. No successful mock, uploaded declaration or staff override can
 complete that boundary. Missing or unavailable verification stays pending.
 The original #862 completion checks remain open until the actual verification,
 team, delegation, revocation and recovery workflows are demonstrated.
+
+Future admission must lock the same request and reject a withdrawal before
+creating authority. After an actual admission commits, it must refuse request
+withdrawal and offer the effective appointment's revocation workflow. This
+increment implements no admission or appointment, so it proves request
+withdrawal, retention and isolation rather than that future admission race.

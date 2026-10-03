@@ -124,7 +124,9 @@ deletion; the existing orphan sweep removes only unreferenced copies. See the
 retain a separate private upload and immutable person/company/terms/content
 snapshot. Only the requester can read the personal API or download its evidence.
 The initial slice records no verified mandate and has no automatic purge;
-requested appointment expiry does not erase the submission. Its referenced file
+requested appointment expiry or withdrawal does not erase the submission.
+Withdrawal adds immutable requester history and leaves the original bytes
+downloadable. Its referenced file
 stays protected by the retained row, while aborted-copy orphans use the ordinary
 sweep. A populated schema reversal refuses to discard those records.
 

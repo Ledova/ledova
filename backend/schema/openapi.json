@@ -1535,7 +1535,6 @@
                 "$ref": "#/components/schemas/CompanyAuthorityStatusEnum"
               }
             ],
-            "default": "pending",
             "readOnly": true
           },
           "uuid": {
@@ -1545,7 +1544,6 @@
             "type": "string"
           },
           "verificationMessage": {
-            "default": "Evidence received and awaiting independent verification. Company authority verification is unavailable; this request grants no company authority.",
             "readOnly": true,
             "type": "string"
           },
@@ -1557,6 +1555,12 @@
             ],
             "default": "unavailable",
             "readOnly": true
+          },
+          "withdrawnAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           }
         },
         "required": [
@@ -1581,7 +1585,8 @@
           "status",
           "uuid",
           "verificationMessage",
-          "verificationStatus"
+          "verificationStatus",
+          "withdrawnAt"
         ],
         "type": "object"
       },
@@ -1625,9 +1630,10 @@
         "type": "object"
       },
       "CompanyAuthorityStatusEnum": {
-        "description": "* `pending` - pending",
+        "description": "* `pending` - pending\n* `withdrawn` - withdrawn",
         "enum": [
-          "pending"
+          "pending",
+          "withdrawn"
         ],
         "type": "string"
       },
@@ -16247,6 +16253,48 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/requests/{uuid}/withdraw/": {
+      "post": {
+        "operationId": "api_v1_company_authority_requests_withdraw_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

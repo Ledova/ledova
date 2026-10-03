@@ -1,11 +1,12 @@
 import { useState, useSyncExternalStore } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  COMPANY_AUTHORITY_PENDING_NOTICE,
   getCompanies,
   getCompanyAuthorityRequests,
   readEveryPage,
+  withdrawCompanyAuthorityRequest,
+  type CompanyAuthorityRequest,
 } from '@ledova/shared';
 import { Action, Choice, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
@@ -17,9 +18,10 @@ import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 
 export function CompanyAuthorityScreen() {
   const styles = useCompanyStyles();
+  const queryClient = useQueryClient();
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
   const [selection, setSelection] = useState<{ epoch: number; uuid: string }>();
-  const [submittedEpoch, setSubmittedEpoch] = useState<number>();
+  const [submitted, setSubmitted] = useState<{ epoch: number; request: CompanyAuthorityRequest }>();
   const companies = useQuery({
     queryKey: ['companies', 'authority-requests', epoch],
     queryFn: () =>
@@ -32,26 +34,49 @@ export function CompanyAuthorityScreen() {
   });
   const requests = useQuery({
     queryKey: ['company-authority-requests', epoch],
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
-        const response = await getCompanyAuthorityRequests(apiClient, undefined, page, { ledovaSessionEpoch: epoch });
+        const response = await getCompanyAuthorityRequests(apiClient, undefined, page, {
+          ledovaSessionEpoch: epoch,
+          signal,
+        });
         assertSessionEpoch(epoch);
         return response;
       }),
   });
   const drafts = companies.data?.filter((company) => company.status === 'draft') ?? [];
   const selected = selection?.epoch === epoch ? drafts.find((company) => company.uuid === selection.uuid) : undefined;
+  const submittedRequest =
+    submitted?.epoch === epoch
+      ? (requests.data?.find((request) => request.uuid === submitted.request.uuid) ?? submitted.request)
+      : undefined;
   const refreshing = companies.isFetching || requests.isFetching;
   const refresh = () => {
     void companies.refetch();
     void requests.refetch();
   };
+  const withdraw = async (request: CompanyAuthorityRequest) => {
+    const queryKey = ['company-authority-requests', epoch];
+    assertSessionEpoch(epoch);
+    await queryClient.cancelQueries({ queryKey, exact: true });
+    assertSessionEpoch(epoch);
+    const response = await withdrawCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSessionEpoch: epoch });
+    assertSessionEpoch(epoch);
+    if (response.data.uuid !== request.uuid || response.data.status !== 'withdrawn' || !response.data.withdrawnAt)
+      throw new Error('The withdrawal response could not be confirmed. Refresh your requests or retry.');
+    await queryClient.cancelQueries({ queryKey, exact: true });
+    assertSessionEpoch(epoch);
+    if (queryClient.getQueryState(queryKey)?.status !== 'success') return;
+    queryClient.setQueryData<CompanyAuthorityRequest[]>(queryKey, (previous) =>
+      previous?.map((existing) => (existing.uuid === request.uuid ? response.data : existing)),
+    );
+  };
   return (
     <Page
       testID="company-authority-screen"
       title="Representative authority"
-      lede={COMPANY_AUTHORITY_PENDING_NOTICE}
+      lede="Representative authority verification is not available yet. Requests grant no company authority."
       actions={<Action label="Refresh" disabled={refreshing} onPress={refresh} />}
       refreshControl={<RefreshControl refreshing={refreshing && !companies.isLoading} onRefresh={refresh} />}
     >
@@ -80,7 +105,7 @@ export function CompanyAuthorityScreen() {
                   disabled={companies.isFetching}
                   onPress={() => {
                     setSelection({ epoch, uuid: company.uuid });
-                    setSubmittedEpoch(undefined);
+                    setSubmitted(undefined);
                   }}
                 />
               ))}
@@ -93,21 +118,22 @@ export function CompanyAuthorityScreen() {
             key={`${epoch}:${selected.uuid}`}
             company={selected}
             blocked={companies.isError || companies.isFetching}
-            onSubmitted={() => {
-              setSubmittedEpoch(epoch);
+            onSubmitted={(request) => {
+              setSubmitted({ epoch, request });
               void requests.refetch();
             }}
           />
         )}
-        {submittedEpoch === epoch && (
+        {submittedRequest && (
           <Text accessibilityRole="alert" style={styles.text}>
-            Your request has been retained. {COMPANY_AUTHORITY_PENDING_NOTICE}
+            Your request has been retained. {submittedRequest.verificationMessage}
           </Text>
         )}
       </Section>
       <Section title="Your requests">
         <Text style={styles.muted}>
-          Only your own submissions appear here. Retained requests cannot be edited or deleted.
+          Only your own submissions appear here. You can withdraw a pending request. Its history and evidence remain
+          retained.
         </Text>
         {requests.isPending ? (
           <Text style={styles.muted}>Loading your requests…</Text>
@@ -123,7 +149,12 @@ export function CompanyAuthorityScreen() {
         ) : (
           <Rows>
             {requests.data.map((request) => (
-              <AuthorityRequestRecord key={request.uuid} request={request} blocked={requests.isFetching} />
+              <AuthorityRequestRecord
+                key={`${epoch}:${request.uuid}`}
+                request={request}
+                blocked={requests.isFetching}
+                onWithdraw={() => withdraw(request)}
+              />
             ))}
           </Rows>
         )}

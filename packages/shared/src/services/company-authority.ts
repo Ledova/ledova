@@ -39,3 +39,9 @@ export const submitCompanyAuthorityRequest = (
 
 export const downloadCompanyAuthorityFile = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<ArrayBuffer>(`${REQUESTS}${uuid}/file/`, { ...config, responseType: 'arraybuffer' });
+
+export const withdrawCompanyAuthorityRequest = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<CompanyAuthorityRequest>(`${REQUESTS}${uuid}/withdraw/`, {}, config);

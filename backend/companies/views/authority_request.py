@@ -8,8 +8,12 @@ from companies.models import CompanyAuthorityRequest
 from companies.serializers.authority_request import (
     CompanyAuthorityRequestSerializer,
     CompanyAuthorityRequestUploadSerializer,
+    CompanyAuthorityRequestWithdrawalSerializer,
 )
-from companies.services.authority_requests import submit_authority_request
+from companies.services.authority_requests import (
+    submit_authority_request,
+    withdraw_authority_request,
+)
 from shared.views import AuthenticatedGenericViewSet, stream_stored_file
 from shared.views.uploads import UploadProtectedView
 
@@ -32,11 +36,13 @@ class CompanyAuthorityRequestViewSet(
             )
 
     def narrow(self, queryset):
-        return queryset.filter(requester=self.request.user)
+        return queryset.filter(requester=self.request.user).select_related("withdrawal")
 
     def get_serializer_class(self):
         if self.action == "create":
             return CompanyAuthorityRequestUploadSerializer
+        if self.action == "withdraw":
+            return CompanyAuthorityRequestWithdrawalSerializer
         return self.serializer_class
 
     @extend_schema(responses={201: CompanyAuthorityRequestSerializer, 200: CompanyAuthorityRequestSerializer})
@@ -57,3 +63,15 @@ class CompanyAuthorityRequestViewSet(
     def file(self, request, uuid=None):
         proposal = self.get_object()
         return stream_stored_file(proposal.file, proposal.mime_type, proposal.original_filename, as_attachment=True)
+
+    @extend_schema(
+        request=CompanyAuthorityRequestWithdrawalSerializer, responses={200: CompanyAuthorityRequestSerializer}
+    )
+    @action(detail=True, methods=["post"])
+    def withdraw(self, request, uuid=None):
+        proposal = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        withdrawn = withdraw_authority_request(requester=request.user, request_id=proposal.pk)
+        response = CompanyAuthorityRequestSerializer(withdrawn, context=self.get_serializer_context())
+        return Response(response.data)
