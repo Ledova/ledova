@@ -7,6 +7,24 @@ tenant isolation. Customer requests and principal-bearing jobs select authority
 at their boundary; product selectors retain narrower issuer, account and
 eligibility rules where database read scopes are wider.
 
+## Company-managed authority boundaries
+
+The [accepted plan](company-managed-registers.md#existing-gates-to-replace)
+extends today's owner-based company scopes to active administrative appointments
+and capabilities. Shareholder membership and a platform staff role must not
+grant those company capabilities. Rework company selectors, writable foreign
+keys, RLS helpers and decision triggers together; preserve participant own-record
+terms and private evidence boundaries rather than widening every company read.
+
+The roles below are PostgreSQL connection roles, not human job titles. Bounded
+privileged services may execute a company-authorised command after exact company
+and commit-time mandate checks; customer requests must never gain unrestricted
+`BYPASSRLS` or direct ledger/projection writes. Enqueued new unsigned work must
+retain and recheck company authority after revocation, while already accepted
+signed work follows its original recovery contract. The policy/job catalogue
+below describes current implementation until those changes are installed and
+proved on existing databases as well as fresh ones.
+
 ## Roles and principal
 
 | Role | Purpose |
@@ -87,8 +105,9 @@ operator, so omitting a scope would widen access.
 The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority
 and bounded operator handoffs. Issuance execution and subscription allotment are
 operator jobs produced by staff admin actions; `executed_by` records the actor
-for audit and does not choose a tenant principal. A future customer execution
-entry point needs a new authority design.
+for audit and does not choose a tenant principal. The planned company execution
+entry points require the explicit company authority and bounded handoff described
+above; changing the enqueueing UI or omitting the principal is insufficient.
 
 Wallet producers insert transaction-screening jobs on their current connection
 inside the wallet transaction. The worker explicitly selects operator authority

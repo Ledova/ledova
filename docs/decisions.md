@@ -4,8 +4,41 @@
 
 These are recorded owner choices and their reasons. Current mechanisms live in
 architecture guides. This page makes no new product, licensing or legal decision.
+Read earlier choices in date order: the 3 October decision below supersedes
+their allocation of routine register work to staff. Quotations and delivered
+mechanisms remain here as history, not requirements to retain those staff gates.
+
+## Company-managed registers and one product
+
+On 3 October 2026 the owner chose one registry product and removed the intended
+distinction between Registry and Single-issuer product modes. Private internal
+instances use the same software and capabilities; self-hosting does not create
+a separately maintained product mode.
+
+**Ledova operates the platform; companies operate their own share registers.**
+Companies and their investors, shareholders or employees handle their share
+relationship and decisions directly. Ledova supplies infrastructure, records,
+workflows, tools and authorised automation. Routine register actions must not
+depend on Ledova staff performing or approving them. Platform operations remain
+for the service and specifically scoped crypto/payment functions; these
+permissions do not substitute for company authority.
+
+This supersedes the earlier allocation of routine register review/entry to
+platform staff and the two-mode product distinction. Historical decisions and
+recordings retain the implementation they described. Authority, evidence,
+isolation, audit and retention controls must be adapted to company actors rather
+than discarded. The software licence and legal positions are not changed.
+
+The [company-managed register plan](architecture/company-managed-registers.md)
+defines roles, workflows, migration sequence and acceptance criteria. It is
+accepted direction, not a statement that the code already implements it.
 
 ## Eligibility and ownership records
+
+The 3 October [company-managed plan](architecture/company-managed-registers.md#responsibility-and-company-access)
+replaces routine staff company activation and classification review with
+evidenced company/provider workflows. The scope, privacy and expiry requirements
+below remain; a reusable identity fact is not approval for every company.
 
 The first offerings target wholesale and sophisticated investors. The four
 classification categories and the deliberately excluded experienced-investor
@@ -48,6 +81,11 @@ suspended company. The owner chose this on 21 September 2026 in
 [eligibility](architecture/companies-and-eligibility.md) owns the mechanism.
 
 ## The stored register
+
+The staff reviewer and admin-only output choices below describe the earlier
+implementation. The [new decision](#company-managed-registers-and-one-product)
+supersedes that responsibility and the API-only client scope. Exact authority,
+evidence, identity, event history and retention controls remain requirements.
 
 Wallets become linked to register members only through documentary authority
 verified by staff: an opening's mapping, or a later reviewed link request. A
@@ -154,6 +192,12 @@ mechanism.
 
 ## Company-scoped approvals
 
+Company-appointed users will authorise company wallet approvals under the
+[new plan](architecture/company-managed-registers.md). The earlier staff-only
+approval choice below is superseded; contract expiry, refresh and recovery
+requirements remain. The historical fresh-start contract deployment is not the
+migration policy for company authority: this transition preserves existing data.
+
 Each company has its own on-chain whitelist registry with an expiry for every
 approved wallet, decided by the owner on 19 September 2026 and settled in detail
 on 22 September in
@@ -204,6 +248,12 @@ the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
 redeploy.
 
 ## Shareholder publications
+
+The [company-managed direction](#company-managed-registers-and-one-product)
+supersedes staff publication, represented-ballot and payment-recording duties
+below. Preserve frozen rolls, member-only reads, ballots, audit and arithmetic
+while authorising company users. Privileged database insertion describes the
+execution mechanism and does not require a Ledova employee's decision.
 
 The owner chose on 23 September 2026, in
 [the design note](https://github.com/Ledova/ledova/issues/649#issuecomment-5789320596),
@@ -330,6 +380,11 @@ reasoning and lists what an implementation issue must still decide.
 
 ## The company pack
 
+The [company-managed plan](architecture/company-managed-registers.md)
+supersedes the staff-only production and no-customer-route choices below.
+Company-scoped preparation and delivery must preserve export privacy, provenance
+and truthful contract ownership and handover instructions.
+
 On 23 September 2026 the owner took every recommendation of
 [the design note](https://github.com/Ledova/ledova/issues/650#issuecomment-5803509874)
 for reporting and portability, recorded in
@@ -374,6 +429,12 @@ each ballot withheld and read counts in place of readers.
 the procedure.
 
 ## Payments and settlement
+
+Under the [3 October plan](architecture/company-managed-registers.md#delivery-sequence),
+primary subscription instructions and receipt/refund decisions become company
+or appointed-provider workflows. Existing instruction snapshots are preserved.
+Secondary market prefunding and atomic settlement below remain separate; the
+plan does not turn a payment receipt into authority to issue shares.
 
 **A secondary buyer funds before placing an offer** (owner decision, 25 September
 2026, on [#645](https://github.com/Ledova/ledova/issues/645)). Buy-order
@@ -455,6 +516,12 @@ The signed-in app is rebuilt around the register; crypto stays supported but is
 no longer the core (owner decisions, 26 September 2026, on
 [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5839112787)).
 This records the target; the steps on #732 build it.
+
+The programme is now shipped. Its staff review, fixed owner-only administration
+and deferred company output access below are historical boundaries superseded
+by [company-managed registers](architecture/company-managed-registers.md).
+Retain personal shareholder menus and the paper interface while adding company
+appointments and actions; signup account type alone must not grant company authority.
 
 - **Menus.** Every account gets _Your shares_: Holdings, Notices and Activity,
   because anyone entered on a register can receive notices and votes, including
@@ -625,7 +692,10 @@ and limits.
 
 ## Tenancy, sessions and deployment
 
-Registry and single-issuer modes share one operator model and tenancy boundary.
+The earlier implementation's registry and single-issuer modes share one operator
+model and tenancy boundary. The 3 October 2026
+[one-product decision](#company-managed-registers-and-one-product) supersedes
+that mode distinction; field and feature-branch removal remain migration work.
 PostgreSQL RLS enforces row isolation; product selectors still distinguish issuer
 management, personal accounts and discovery. See [tenancy](architecture/tenancy.md).
 

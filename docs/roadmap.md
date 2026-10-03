@@ -7,6 +7,18 @@ This page orients the remaining work; the
 [product alignment programme](https://github.com/Ledova/ledova/issues/645) and its
 phase issues record how the shipped work was built.
 
+The accepted direction of 3 October 2026 is one registry product for companies
+and their shareholders, including private self-hosting of the same software.
+Companies make issuer decisions and manage their member registers. Ledova
+operates infrastructure and separately scoped crypto/payment services. The
+[company-managed register plan](architecture/company-managed-registers.md)
+defines this direction and the transition from the current staff-gated workflows.
+The [GitHub programme #860](https://github.com/Ledova/ledova/issues/860) and
+[implementation index](plans/company-managed-registers/README.md) track its 13
+increments, dependencies and verification. The
+[documentation audit](plans/company-managed-registers/documentation-audit.md)
+records alignment of the complete baseline document set.
+
 ## Shipped
 
 - Issuance on chain: share-class deployment, whitelisted recipients, authorized
@@ -53,23 +65,73 @@ Phase 0 verification and the bounded cross-account matcher are recorded in
 
 ## Remaining work
 
+### Priority: company-managed registers
+
+This is accepted target scope; the current company owner account and staff admin
+do not yet provide these delegated company workflows. Preserve their existing
+controls. Follow the plan's [canonical delivery sequence](architecture/company-managed-registers.md#delivery-sequence)
+for dependencies; the priorities below group that work by theme:
+
+- **Remove legacy product modes.** Retire the `Registry`/`Single issuer` field
+   and feature branches through a coordinated API/client migration. Preserve
+   evidence, retention, history and the same capabilities for private hosting.
+- **Company authority and roles.** Give individual company users explicit
+   membership, decision and administration permissions, invitations, delegation
+   and revocation. Record who can approve each issuer action and the authority
+   supporting it. Separate those roles from infrastructure support, technical
+   signing and crypto/payment operations, preserving company isolation.
+- **Company and shareholder relationship.** Provide company-managed member
+   records and shareholder access to their own particulars, evidence, requests
+   and permitted documents. Let the company review changes and retain their
+   history, including authority and consent where the workflow requires them.
+- **Company-directed register actions.** Move openings, imports, member-wallet
+   links, issue and transfer instructions, and corrections into company-scoped
+   proposal and approval workflows. Automate validation, execution and recovery
+   after company approval; retain append-only entries, current authority checks,
+   evidence fingerprints, idempotency, reconciliation and isolation. Routine
+   register work must not depend on Ledova staff making issuer decisions.
+- **Primary issues and company payment evidence.** Replace routine staff offering
+   and subscription decisions with company workflows, configured checks and
+   exact company-authorised issue/allotment instructions. Companies or their
+   payment providers receive primary payments; preserve old instruction snapshots
+   and separate platform market deposit/settlement work. Support employee grants
+   and other supported non-paid issues without manufacturing a payment receipt.
+- **Certificates and register outputs.** Give authorised company users the
+   workflows for certificates, inspection copies, notice figures and company
+   exports, with scoped shareholder requests and access. Preserve the register
+   sequence, evidence, issuance history and output audit trail behind each
+   document. Staff-prepared outputs are the current foundation, not the completed
+   self-service experience.
+- **ASIC reporting preparation.** Prepare reviewable information and change
+   records from company-approved register events, identify supported reporting
+   cases, and track the company's review and submission status. Establish the
+   necessary forms, authority and integration before implementing lodgement.
+   Automatic ASIC filing is not an existing or promised capability.
+
+Verify each stage against company authority, shareholder privacy, withdrawn
+permissions, changed evidence, duplicate actions and technical recovery. Company
+decisions remain company decisions when a background job executes them; support
+and crypto/payment roles must not gain register authority through automation.
+
+### Other follow-ups
+
 - Phase 1 follow-up: tokenising a share class an import opened,
   [built when one first needs to go on chain](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439).
 - Splits and consolidations are
   [designed but not built](architecture/splits-and-consolidations.md); their
   implementation is a later issue.
-- [Follow-ups to the signed-in app](https://github.com/Ledova/ledova/issues/785),
-  carrying out the owner's answers of 28 September 2026
-  ([decisions](decisions.md#the-signed-in-app)).
 - Payment-provider selection and settlement automation when scheduled
   ([the payment decision](decisions.md#payments-and-settlement)).
 - Release checks on physical wallets and devices
-  ([#624](https://github.com/Ledova/ledova/issues/624)) and a signed iOS release
-  ([#779](https://github.com/Ledova/ledova/issues/779)).
+  ([#624](https://github.com/Ledova/ledova/issues/624)). The closed
+  [iOS preparation issue](https://github.com/Ledova/ledova/issues/779) records
+  the earlier preparation, not completion of those physical acceptance checks.
 
 ## Not on the roadmap
 
 No off-ramp, public investor directory, retail offering or mainnet deployment
-configuration is planned for the first releases. Register access remains per
-share class for its issuer and the operator. The [legal positions](legal/positions.md)
-record the unresolved conditions before any real-world use.
+configuration is planned for the first releases. Current register access is per
+share class for its issuer and the operator; the priority work above adds scoped
+company roles and permitted shareholder access, rather than a public investor
+directory. The [legal positions](legal/positions.md) record the unresolved
+conditions before any real-world use.

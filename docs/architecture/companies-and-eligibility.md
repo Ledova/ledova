@@ -4,6 +4,27 @@
 
 How company verification and investor eligibility bound access to offers.
 
+## Company-managed onboarding and decisions
+
+The [accepted plan](company-managed-registers.md#responsibility-and-company-access)
+replaces routine staff activation and classification review with evidenced
+company authority and configured verification/provider outcomes. Bootstrap starts
+at fresh signup: record the company identity and registry result and verify the
+representative's appointment. An owner account or checksum-valid ACN must not
+silently become a director mandate or a passed registry check. Activation is a
+validated outcome once the applicable requirements are met, not an unconditional
+staff approval.
+
+Company-appointed users decide offers and company-specific eligibility within
+their capabilities, using attributable, live verification facts and the relevant
+company/provider decision. Preserve expiry, revocation, amount/context bindings
+and private evidence; company administration does not grant unrestricted access
+to personal financial or identity files. Shareholders and employees can access
+their own records independently of unrelated investment eligibility. Wallet
+ownership proof and company-specific whitelist approval remain separate.
+The predicates, settings and lifecycle gates below describe current code until
+these replacements are implemented and verified.
+
 ## Company identifiers
 
 An ACN and an ABN are checked for their **check digits**, not only their length,

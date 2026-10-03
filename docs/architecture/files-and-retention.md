@@ -6,6 +6,22 @@ Uploaded evidence is private in every storage mode. File ownership and the
 retention clock determine who can read or remove it; a public media URL never
 substitutes for an authenticated route.
 
+## Company-managed evidence access
+
+The [company-managed plan](company-managed-registers.md#responsibility-and-company-access)
+requires company-scoped document and authority workflows in place of routine
+staff review. A company appointment must authorise only the relevant company's
+documents and task; it does not grant access to participants' private identity,
+classification or financial evidence. Provider facts and the company's decision
+must remain attributable and content-bound, with evidence expiry, revocation,
+read audits and retention enforced where applicable.
+
+The serving and retention paths below describe current code. Retiring the legacy
+product modes keeps supporting evidence available with the current registry
+product's private access and review safeguards. Remove the field and mode-only
+branches in a coordinated API/client release; do not purge retained content,
+relax reviewer restrictions or replace the mode with another product flag.
+
 ## Storage and serving
 
 Private `FileField`s declare `storage=private_storage` and `max_length=255`.
@@ -78,8 +94,10 @@ Permitted document-operations staff read attached payslips and extraction histor
 Company owners and company-role accounts do not gain that cross-customer access.
 Every operations page/file/extraction/changelist read records `DocumentRead`;
 an audit write failure refuses delivery. Audit rows survive content purge and
-have no admin mutation path. Single-issuer mode disables supporting payslips;
-conversion is refused while unpurged content remains.
+have no admin mutation path. The current legacy `single_issuer` mode disables
+supporting payslips and refuses conversion while unpurged content remains. That
+mode and its conversion path are to be retired under the plan above; they are
+not a second product to maintain.
 
 A [publication to members](shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
 follows the same read-audit rule for a document a member reads rather than a

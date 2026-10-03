@@ -55,6 +55,27 @@ Rules name reference implementations and enforcement. Existing gate debt is
 counted separately from justified exceptions; counts may shrink and stale pins
 must be removed. Do not add an exception merely to make a check green.
 
+## Company authority
+
+The accepted [company-managed register plan](../architecture/company-managed-registers.md)
+guides changes to company workflows. Company users make issuer decisions within
+recorded appointments; software validates and executes the exact authorised
+instruction. Platform staff permissions, a technical signer and a privileged
+database connection do not establish that company mandate. Shareholder records
+and participant access do not confer company administration rights.
+
+Keep current staff gates until company capabilities and their service, worker,
+RLS and trigger checks are implemented together. Do not replace a staff check
+with unrestricted customer writes on an operator connection. Use bounded commands,
+recheck current authority at the effect boundary and preserve evidence, actor
+history, isolation and recovery for already submitted transactions. Company policy
+defines required approvals; it does not imply a universal Ledova reviewer.
+
+The `registry` / `single_issuer` product-mode distinction is legacy implementation
+pending coordinated removal across schema, API and clients. Private hosting uses
+the same product and company authority model. Mode removal must preserve records
+and private-evidence controls; it does not itself grant new company capabilities.
+
 ## Admin boundaries and external consumers
 
 Custom admin row mutations use `admin_action_path`/`admin_action_re_path`;
@@ -64,9 +85,12 @@ resolve through the admin's queryset. A page over no single row uses
 insufficient.
 See [admin actions](../architecture/backend.md#admin-row-actions).
 
-The operator API is a deliberate external consumer: `IsAdminUser`-gated
+The current operator API is a deliberate external consumer: `IsAdminUser`-gated
 whitelist routes and portfolio add/remove-wallet actions may be driven by
-operator scripts without a bundled UI. Keep them tested and documented.
+operator scripts without a bundled UI. Keep their existing contracts tested and
+documented until an implemented transition changes them. Routine company register
+work needs company-scoped client workflows under the plan above; the existence of
+an operator script is not acceptance evidence for that self-service outcome.
 
 ## Shared TypeScript types
 

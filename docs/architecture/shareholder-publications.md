@@ -12,10 +12,37 @@ and reads no chain. Members read what was published to them through
 [the publications route](#the-members-route), in the dashboard and in the mobile
 app.
 
-Ledova staff publish on the company's written instruction, as inspection copies,
-certificates and notice figures are prepared today. The
-[runbook](../operations/publications.md) is the procedure. Company self-service
-can be added later without changing anything a member sees.
+Currently, Ledova staff publish on the company's written instruction, as
+inspection copies, certificates and notice figures are prepared today. The
+[runbook](../operations/publications.md) is the current procedure.
+
+## Company-managed publication and member actions
+
+The [accepted plan](company-managed-registers.md#required-self-service-workflows)
+requires company-appointed users to publish supported statements, notices,
+resolutions and dividends, enter authorised offline/proxy ballots and record or
+withdraw distribution payment evidence. Replace the service and trigger checks
+that require active staff with exact company capabilities and authority;
+preserve immutable rolls, actor attribution, content-bound evidence, voting
+windows, one ballot per holding, exact calculations and append-only corrections.
+Retain each historical staff-entered flag and actor; a new company-entered event
+must not be mislabelled as a platform staff decision.
+
+Participants retain access to their own records and ballots independently of
+eligibility for other investments. A company appointment grants neither the
+participant's private evidence nor individual ballots beyond the permitted
+policy. Distribution records continue to say what the company recorded, not
+that a bank transfer was independently verified. The existing frozen rolls,
+read audits, privacy and retention constraints remain required.
+
+The remaining sections describe current implementation. Its publication guard
+requires a class on chain, deployed or paused; an imported non-chain register
+cannot currently publish to its members. Supporting non-wallet and
+non-tokenised member administration requires a validated register/identity
+path, without inventing an account from a shared wallet address or forcing a
+wallet where no chain action exists. Non-chain governance needs genuine register
+authority and frozen member identity, not a fabricated deployment or chain
+completion.
 
 ## One record for everything a company publishes
 

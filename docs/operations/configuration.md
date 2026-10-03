@@ -4,6 +4,13 @@
 
 Core environment settings and database roles. Run only with synthetic data on local chains or supported public testnets.
 
+The database roles below are technical service identities. In particular,
+`ledova_operator` and its privileged database access are not a human appointment
+to administer a company's register. The accepted
+[company-managed register plan](../architecture/company-managed-registers.md)
+requires company-scoped user mandates and bounded platform service operations;
+do not grant a customer staff access or a database role as a substitute.
+
 Every backend variable below is read in `backend/ledova_backend/settings/`; the
 client and contract variables have their own sections below.
 `backend/.env.example` is the template; `python3 scripts/init-local-env.py`

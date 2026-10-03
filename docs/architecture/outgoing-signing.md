@@ -9,6 +9,26 @@ admission starts closed. The [deployment flow](contracts-and-issuance.md) binds
 its original receipt to immutable deployment terms; an identifier lookup alone
 leaves the deployment pending for attribution.
 
+## Company decisions and signer authority
+
+Under the [company-managed plan](company-managed-registers.md#existing-gates-to-replace),
+company mandates authorise routine register-related whitelist, issuance,
+capital and lifecycle commands. The technical signer and PostgreSQL operator
+role execute bounded accepted instructions; neither confers a human company
+appointment. The adapter-specific active-staff/admin admission checks below
+describe current code and need coordinated company-capability replacements
+where they block those workflows. Platform settlement-asset/yield-token minting,
+signer admission and infrastructure recovery are not automatically delegated to
+company administrators.
+
+Recheck current company, capability, mandate and exact terms before new unsigned
+work can create its effect. Preserve immutable admission, actor/authority
+provenance, nonce fencing, original bytes and receipt/finality checks. Revocation
+does not permit discarding or replacing already signed transactions: accepted
+work retains its recorded identity and normal bounded recovery. Keep private
+journals inaccessible to customer connections, and do not relax the bootstrap,
+same-key writer drain or cutover requirements as part of company self-service.
+
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
@@ -528,8 +548,10 @@ policy. Private completion, public issuance, request and subscription allotment
 commit atomically. Terminal replay preserves that outcome; a holding refresh uses
 the admitted contract address. Unknown sends reuse the original bytes and nonce.
 Missing receipts or events never permit a fresh attempt. The five-minute sweep
-recovers bounded batches of accepted work. Register event recording remains
-[integration work](register.md) after this finality prerequisite.
+recovers bounded batches of accepted work. Completion calls
+`record_completed_effects` in the same transaction; the
+[register recording rules](register.md) may retain the effect as waiting for
+its opening, wallet link, attribution or applied instruction.
 
 Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
 its fields and mint journal without adoption. New private metadata has no

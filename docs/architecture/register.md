@@ -7,6 +7,37 @@ The current-members register of one share class is its stored register.
 holdings with each member's linked wallets and the identity and allotment
 records, and reads no chain. Former members are stored separately.
 
+## Company-managed target and current limits
+
+The [accepted plan](company-managed-registers.md#required-self-service-workflows)
+makes authorised company users responsible for opening/import, particulars,
+wallet links, exact issues and transfer decisions, corrections and discrepancy
+acknowledgement. Company mandates and approval policy replace the staff-only
+decision gates described below. `RegisterMember` remains a shareholder record,
+not an administrative appointment; an owner, holder or global staff role does
+not by itself supply director approval.
+
+Deliver supported preparation, preview, approval/application and output actions
+on web/mobile. Preserve documentary fingerprints and retained copies, conflict
+rules, exact revision/recipient/quantity bindings, immutable events, atomic
+projections, idempotency and the distinction between settlement, finality and
+the approved register entry. Bounded privileged execution must recheck company
+authority; customers must not receive raw ledger writes or unrestricted
+operator connections. Certificates, inspection copies, exports and due work
+need capability-scoped company routes with the existing provenance and privacy.
+
+The remaining sections describe current implementation, including staff-only
+review and admin-only outputs. An import can open a register and retain members
+with no wallet, but an imported non-chain class currently accepts neither issue
+nor transfer instructions; publications also require a deployed or paused class.
+Supporting non-paid employee grants and other changes to a non-tokenised register
+therefore needs real ledger/workflow work. A wallet is required only when the
+chosen action uses the chain. A non-chain issue or transfer must record its real
+approved ledger effect, never a fabricated chain completion. Later tokenisation
+must mirror existing authorised holdings without issuing those shares again.
+Unsupported tokenisation and corporate actions
+must stay explicit rather than appear available after a permission change.
+
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection
 for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)

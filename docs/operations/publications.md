@@ -2,14 +2,22 @@
 
 [Operations](README.md) · [Shareholder publications](../architecture/shareholder-publications.md)
 
-A company publishes documents to the members of one share class: today the
+A company publishes documents to the members of one share class: the
 annual holding statement, the meeting notice, the resolution put to members
-for a vote and the dividend. Ledova staff publish on the
-company's written instruction, as
+for a vote and the dividend. The current implementation uses Ledova staff to
+publish on the company's written instruction, as
 [inspection copies](register-foundation.md#preparing-an-inspection-copy),
 certificates and notice figures are prepared today (owner decision,
 23 September 2026). The company decides what to publish and when; staff record
 the instruction and make the publication.
+
+That staff workflow remains the runbook below. The accepted
+[company-managed register plan](../architecture/company-managed-registers.md)
+replaces routine staff publication, resolution administration and distribution
+decisions with company-appointed users and company instructions. Platform
+support or payment operations do not provide a standing mandate to publish
+for a company. Existing publication records, member access, votes, privacy and
+retention must survive that transition.
 
 You need an active staff account with **Can change publication**
 (`shareholders.change_publication`) to publish, and **Can view publication**

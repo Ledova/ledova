@@ -2,15 +2,21 @@
 
 [Documentation](README.md)
 
-Updated 19 September 2026 · Agreed product direction, paired with the
+Updated 3 October 2026 · Agreed product direction, paired with the
 [regulatory pathway](regulatory-pathway.md)
 
 ## Purpose
 
-Ledova helps private companies administer their shares and gives investors a
-place to discover companies, acquire shares and sell existing holdings. It
-combines a multi-company share registry, investor marketplace and verifiable
-ownership records on a public blockchain.
+Ledova is a share registry that companies and their shareholders use to manage
+their relationship, company decisions and ownership records. Authorised company
+representatives maintain the register and direct issuance and ownership changes;
+shareholders manage their particulars, evidence, requests and holdings. The
+software records authority, applies approved actions and preserves their history.
+
+The same product also gives investors a place to discover companies, acquire
+shares and sell existing holdings, with verifiable ownership records on a public
+blockchain. Private self-hosting runs this same software and its company access
+boundaries.
 
 **Company discovery, shareholder sale listings, and making or accepting offers
 through Ledova are core features.** The product must preserve them while
@@ -24,26 +30,32 @@ the repository's current implementation of it.
 
 | User | What they can do |
 | --- | --- |
-| Company representatives | Manage company information, share classes, issuance, investor requirements, required approvals, ownership records and shareholder governance. |
-| Investors and shareholders | Discover companies, review opportunities, manage holdings, advertise shares for sale and make or accept offers. The same person may buy and sell. |
-| Platform and compliance staff | Operate the service, administer authorised workflows, review exceptions and support complaints and lawful information requests through controlled access. |
+| Company representatives | Manage the company's shareholder relationships, share classes, membership records, issuance, required approvals and governance under recorded company authority. Company decision-makers approve issuer decisions; authorised company administrators carry them out. |
+| Investors and shareholders | Discover companies, review opportunities, manage their particulars, evidence, requests and holdings, obtain permitted records and certificates, and make or accept sale offers. The same person may buy and sell. |
+| Infrastructure and support staff | Operate hosting, security, integrations and background jobs; recover technical failures and provide controlled support. Routine company register work and issuer decisions belong to the company. |
+| Crypto and payment operations staff | Perform separately authorised crypto, screening and payment operations, including required reviews and reconciliation. These permissions do not grant authority to make issuer decisions or administer a company's member register. |
 
 Companies have isolated private workspaces. Only intentionally published
 profiles and listings are discoverable across the platform.
+
+Roles may support automated execution: the software can validate and apply a
+company-approved instruction without a Ledova staff member operating the register.
+Automation must preserve the named company authority and evidence behind each
+decision. A technical support or signing role cannot supply that authority.
 
 ## 2. Core functionality
 
 | Capability | Intended behaviour |
 | --- | --- |
-| Company onboarding | Register the company, verify representative authority and establish its administration, share classes and initial ownership records. |
+| Company onboarding | Register the company, verify representative authority and establish its authorised users, shareholder relationships, share classes and initial ownership records. |
 | Company discovery | Let investors browse company profiles and available investment opportunities, with appropriate access to offer information. |
-| Share registry and cap table | Record shareholders, share classes, holdings, issuance and ownership changes; reconcile the register with blockchain records. |
+| Share registry and cap table | Let authorised company users maintain membership particulars, approve register openings and changes, and record issuance and ownership changes with their authority and evidence; reconcile the register with blockchain records. |
 | Primary issuance | Let companies present their terms, collect applications, complete checks and approvals, confirm external payment and issue shares. |
 | Shareholder marketplace | Let verified holders list shares, state price and quantity, and propose, accept, reject or withdraw offers under defined rules. |
 | Investor verification | Connect identities to verified wallets and track eligibility, agreements, approvals and restrictions for each company. |
 | Wallets and transfers | Let investors authorise transactions with their own wallets; enforce required transfer rules within the share contracts. |
-| Shareholder administration | Provide documents, communications, voting, corporate actions and a clear history of holdings and transactions. |
-| Reporting and portability | Export company records, transaction evidence and contract information for administration, authorised review or migration. |
+| Shareholder administration | Let the company and its shareholders exchange particulars, evidence and requests, publish documents, communicate, vote and manage corporate actions; provide company-approved certificates and a clear history. |
+| Reporting and portability | Produce authorised register outputs, certificates, company records and transaction evidence for administration, review or migration; prepare company-reviewed information for ASIC reporting where supported. |
 
 Companies set primary-issue terms; buyers and sellers agree secondary-sale
 terms. Ledova does not guarantee prices, liquidity or investment performance.
@@ -161,10 +173,23 @@ operation.
 
 ## 8. Guidance for implementation
 
-Agents updating [RonildoBraga/ledova](https://github.com/RonildoBraga/ledova)
+Agents updating [Ledova/ledova](https://github.com/Ledova/ledova)
 should inspect current code and open work, preserve valid functionality and
 data, reuse relevant issues and keep documentation aligned. Company roles must
 not reintroduce shared personal accounts.
+
+The next product priority is [company-managed registers](architecture/company-managed-registers.md):
+company authority and membership workflows, register actions, shareholder records,
+certificates and ASIC reporting preparation. Replace routine staff gates with
+scoped company workflows while retaining the existing evidence, isolation,
+recovery and audit controls. Company users must make issuer decisions; background
+jobs may execute those decisions under limited technical authority. Keep crypto
+and payment operations permissions separate.
+
+ASIC preparation means producing information for company review and an explicit
+submission workflow. It does not promise automatic filing; required forms,
+authority, integrations and lodgement support must be established before any
+filing capability is described as available.
 
 Demonstrate an incremental flow covering discovery, a seller listing, offer
 acceptance, approvals, simulated external payment, contract-enforced transfer
@@ -182,29 +207,46 @@ Keep architecture, test and migration detail in the repository. Maintain a
 short decision log for blockchain, provider, authority, payment and fee
 choices, using the regulatory pathway where relevant.
 
-## Roles and deployment modes
+<a id="roles-and-deployment-modes"></a>
 
-The repository's terms for the users above, and its two deployment modes:
+## Roles and deployment
+
+The accepted direction is one registry product, used on Ledova-hosted or private
+self-hosted infrastructure. Hosting location does not introduce a separate
+single-issuer product or make Ledova staff the company's routine register
+administrators. A private instance may contain one company or several, using the
+same company access boundaries and authority model.
+
+The repository's current terms for the users above:
 
 | Term | Meaning |
 | --- | --- |
-| Operator | Runs the deployment, Django admin, review queues and operator signer |
+| Operator | Current deployment configuration and staff tooling for Django admin, review queues and the operator signer; target infrastructure and separately scoped crypto/payment operation responsibilities |
 | Issuer | The company offering and issuing shares; “company” names the entity |
 | Investor | A person investing through their account and verified wallets |
 | Account | The person's customer account, linked to one profile |
 | Wallet | An account's address on a specific network; the same EVM address on two networks is two wallet records |
 
-One operator exists per deployment. **Registry** mode hosts multiple companies
-and is the default. **Single issuer** mode represents a company operating its
-own instance. Both use the same tenancy boundary. Single issuer also disables
-supporting-payslip storage and its API/admin surfaces; classification evidence
-and human review remain available. See [operator setup](operations/operator-console.md).
+One operator configuration currently exists per deployment. The code still has
+legacy `Registry` and `Single issuer` settings, including a `Single issuer`
+restriction on supporting-payslip storage and its API/admin surfaces. Those are
+existing implementation details to reconcile with the accepted single-product
+direction, rather than two product offerings. Classification evidence and human
+review remain available in the current implementation. See
+[operator setup](operations/operator-console.md) for existing configuration and
+[company-managed registers](architecture/company-managed-registers.md) for the
+target responsibility and migration plan.
 
 ## Current capability boundaries
 
 This is the repository's experimental implementation of the definition above,
 not a claim that it can operate a real market. Keep all identities, companies,
 payments and assets synthetic.
+
+The company-managed direction above is accepted product scope, not a description
+of capabilities already delivered. Several company and register actions still
+require staff tooling today. Their current gates must remain effective until
+company authority, permissions and replacement workflows are implemented.
 
 | Capability | Current boundary |
 | --- | --- |

@@ -6,6 +6,14 @@ Start with the affected record and its durable evidence. Restart a stopped worke
 with current code and use the existing reconciliation path. A timeout or missing
 provider response does not prove a transaction was never submitted.
 
+These procedures recover the current implementation. Under the accepted
+[company-managed register plan](../architecture/company-managed-registers.md),
+platform support may recover an exact authorised operation but does not decide
+a new issue, transfer, correction or company payment instruction. Preserve the
+original actor, company authority evidence and signed history; a technical
+retry is not a new company mandate. Staff-only confirmation paths below need
+company-facing replacements before the ordinary journey meets that plan.
+
 Base's Flashblocks-enabled RPC can return a provisional transaction receipt with
 an empty block-hash placeholder before the block is sealed. Such a receipt does
 not complete an outgoing operation: recovery retains its signed bytes, claim and

@@ -11,6 +11,23 @@ deployed contracts and the stored register already allow, what they refuse, and
 what an implementation would therefore have to add. See
 [the decision](../decisions.md#splits-and-consolidations).
 
+## Company authority in a later implementation
+
+The [company-managed plan](company-managed-registers.md#required-self-service-workflows)
+supersedes the staff-run approval process this earlier design proposed. Any
+supported corporate action must be prepared and approved by appropriately
+appointed company users under the company's policy and retained authority,
+without routine platform-staff decisions. Technical signing and recovery remain
+bounded infrastructure work. This changes who may instruct a future mechanism;
+it does not add one or make a consolidation executable.
+
+Preserve this design's whole-unit, cap, ratio, register and chain constraints.
+Company authority cannot substitute for holder signatures where the contract
+requires them. Non-chain register changes require their own real ledger path;
+later tokenisation must mirror authorised stored holdings without issuing the
+same shares a second time. Keep unsupported actions explicit while the contract,
+ledger and output designs remain unresolved.
+
 ## What each one is here
 
 A split multiplies every holding in a share class by one ratio; a consolidation
@@ -148,12 +165,14 @@ ratio is entered rather than derived.
 
 ## Who does what, and what the register records
 
-A split is an operator process on the company's instruction, not a company-facing
-action and not an automatic one. It follows the shape the register already uses
-for issues and transfers: the company owner submits an instruction naming the
-approving director, the authority and its evidence; staff review and apply it;
-and the reviewer becomes the recorder of what the register then holds
+The earlier design proposed a staff process on the company's instruction,
+following the shape the current register uses for issues and transfers: the
+company owner submits an instruction naming the approving director, the authority
+and its evidence; staff review and apply it; and the reviewer becomes the
+recorder of what the register then holds
 ([register instructions](../operations/register-foundation.md#register-instructions-for-issues)).
+The company-managed target above replaces that prospective staff dependency;
+the models and guards below remain the current technical constraints.
 `RegisterInstructionKind` has `issue` and `transfer` only
 (`backend/tokens/models/register_instruction.py:12-14`), and its guard enumerates
 the kinds in SQL, so a corporate-action instruction is a new kind plus a
@@ -249,7 +268,9 @@ An implementation issue decides these; this page does not.
   action on the class, and what happens to an order priced in pre-split shares.
 - How holders are told, and what the investor-facing history shows so that a
   holding that multiplied does not read as a gift.
-- Whether the operator may act without a director's instruction in any case.
+- Which company capabilities and approval policy authorise the action, how
+  external director authority is retained, and which exceptional technical
+  recovery actions need a separately recorded support scope.
 
 Next: [contracts and issuance](contracts-and-issuance.md),
 [the register](register.md) and the [register foundation runbook](../operations/register-foundation.md).

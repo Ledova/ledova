@@ -17,6 +17,26 @@ documents with the evidence copies behind its approvals, what the company
 published to its members with each resolution's result and each dividend's
 payment records, and the contract information.
 
+## Company-managed portability
+
+The [accepted plan](company-managed-registers.md#required-self-service-workflows)
+requires company-appointed users to prepare their own permitted records and
+exports without routine staff action. Add a company-capability entry point to
+the pack service, with exact company scoping, instruction/requester provenance
+and audited production. A technical operator connection remains necessary for
+the current snapshot builder, but does not establish a human company mandate.
+The admin-only production path and format below describe current code.
+
+Preserve the snapshot, byte ceilings, evidence digests, immutable export records
+and exclusions: company administration must not expose private participant
+financial/identity evidence, raw signed broadcast capabilities or individual
+ballots. Company-authorised decisions need their actual mandate and actor
+recorded/exported according to the evolving format, while historical staff
+reviewers retain their original attribution. Changes to existing file meanings
+require the format change described below; do not silently relabel past actors.
+The pack's figures and chain evidence remain records with stated limits, not
+proof of a bank payment, current contract ownership or a lodged ASIC filing.
+
 ## Producing and recording
 
 Staff produce a pack in admin, on the company's written instruction naming who

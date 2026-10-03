@@ -2,7 +2,24 @@
 
 [Architecture](README.md) · [Documentation](../README.md)
 
-How an issuer publishes an offering and an operator approves its terms.
+How offering terms, approval and investor publication work in the current code.
+
+## Company-managed offering decisions
+
+The [accepted plan](company-managed-registers.md#required-self-service-workflows)
+puts offering publication, application decisions and deliberate closing with
+company-appointed users, subject to the company's approval policy and live
+configured checks. Add capability-scoped company actions for the current
+admin-only decisions; neither directory opt-in nor a global staff permission
+constitutes approval of offering terms. Preserve the locked economic terms,
+headroom rechecks, one-live-offering constraint and the rule that published
+documents cannot be detached.
+
+Primary payment instructions must name the company or its appointed provider.
+The current operator settlement resolver and staff review paths below remain
+implementation facts until their replacements are delivered; stored payment
+instructions must survive that transition. Platform incident/takedown powers
+must remain distinct from routine company publication authority.
 
 ## Data flow of an offering
 
@@ -47,7 +64,8 @@ How an issuer publishes an offering and an operator approves its terms.
 6. There is no `OPEN` status and no scheduler. Open-now is derived by
    `OfferingQuerySet.open_now()`: approved, `opens_at <= now`, `closes_at` null
    or in the future — nothing is left in flight for a sweep to fix. Reaching
-   the cap does not close an offering; closing is a deliberate operator act.
+   the cap does not close an offering; in current code, closing is a deliberate
+   staff admin act.
 7. The directory publishes exactly that set:
    `ShareTokenQuerySet.with_open_offering()` annotates from `open_now()`, so a
    submitted or under-review offering is invisible to investors and approval

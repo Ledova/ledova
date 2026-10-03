@@ -4,6 +4,33 @@
 
 How dashboard and mobile consume shared TypeScript and design tokens.
 
+## Company-managed client work
+
+This page describes the current clients, including their owner-only company
+selection and read-only staff decision records. The
+[accepted company-managed plan](company-managed-registers.md#required-self-service-workflows)
+requires web and mobile forms for company appointments and the supported
+prepare, preview, approve and apply workflows. Company activation and offering
+publication must show actual required checks and company decisions. Register
+opening/import, links, corrections, exact issues/allotment, payment evidence and
+shareholder administration must not depend on undocumented owner API calls or
+routine admin screens.
+
+The current `company`/`investing` account audience selects navigation, not company
+authority. Add explicit company selection and capability-aware actions for
+appointed users; backend checks remain authoritative. Scope caches and pending
+actions to the selected company and session, retire revoked appointments and
+withhold stale controls after failed reads. Preserve personal Holdings/Notices
+for shareholders and employees independently of eligibility for other offers.
+Wallet signing stays with its holder; no wallet is required for a workflow with
+no chain action.
+
+Regenerate shared API types and release both clients with the removal of the
+legacy deployment-mode field and evidence-visibility branch. Supporting evidence
+keeps private access, retention and review safeguards in the one product; an
+absent field must not hide it. The detailed current screen descriptions below
+do not claim these company-managed controls are shipped.
+
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
 `services`, `utils` and `hooks`; there is no build step and no `dist/`. The

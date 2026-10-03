@@ -8,6 +8,11 @@ and operator actions communicate with the chain and configured providers.
 Smart contracts enforce the share cap and each company's whitelist, with expiry, on both sides of a transfer. Django admin is
 the operator interface.
 
+The [company-managed register plan](company-managed-registers.md) is the accepted
+direction from 3 October 2026: one product, company-scoped decision authority
+and self-service register workflows. The lifecycle guides below describe the
+current implementation, including staff gates that the plan replaces.
+
 ```mermaid
 flowchart LR
   Shared[Shared TypeScript] --> Web[Dashboard]
@@ -53,6 +58,8 @@ shows the main relationships, not every synchronous provider call.
 Corporate actions are not built. [Splits and consolidations](splits-and-consolidations.md)
 is the written design for them: what the deployed contracts and the stored
 register allow, what they refuse, and what an implementation would have to add.
+The company-managed plan changes the decision authority for any supported
+action; it does not make an unsupported action available.
 
 For commands and recovery procedures, continue to [operations](../operations/README.md).
 For exact transaction protocols, use the [reference index](../reference/README.md).
