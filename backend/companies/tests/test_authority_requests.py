@@ -29,7 +29,7 @@ from shared.db import (
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
-from shared.services.orphaned_files import orphaned_files
+from shared.services.orphaned_files import orphaned_files, sweep_orphaned_files
 from shared.tests.upload_fixtures import StubUploadDependencies, image_bytes, pdf_bytes
 from users.models import UserProfile
 
@@ -360,25 +360,97 @@ class AuthorityRequestCases:
             self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
         self.assertEqual(len(self.private_files()), 1)
 
-    def test_a_database_insert_failure_cleans_the_uncommitted_private_upload(self):
-        with patch.object(CompanyAuthorityRequest, "save", side_effect=DatabaseError("synthetic insert failure")):
-            with self.assertRaises(DatabaseError):
-                self.service_submit()
+    def assert_committed_evidence_survives(self):
         with use_operator():
-            self.assertFalse(CompanyAuthorityRequest.objects.exists())
-        self.assertEqual(self.private_files(), [])
-
-    def test_failed_immediate_cleanup_leaves_an_unreferenced_upload_for_the_orphan_sweep(self):
-        from shared.storage import private_storage
-
-        with patch.object(
-            CompanyAuthorityRequest, "save", side_effect=DatabaseError("synthetic insert failure")
-        ), patch.object(type(private_storage()), "delete", side_effect=OSError("synthetic cleanup outage")):
-            with self.assertRaises(DatabaseError):
-                self.service_submit()
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+            proposal = CompanyAuthorityRequest.objects.get(requester=self.user, idempotency_key=self.key)
+            self.assertEqual(proposal.file_sha256, hashlib.sha256(PDF).hexdigest())
+            with proposal.file.open("rb") as source:
+                self.assertEqual(source.read(), PDF)
+            self.assertEqual(sweep_orphaned_files(moment=timezone.now() + timedelta(days=2))["found"], 0)
+        self.assertEqual(len(self.private_files()), 1)
+        retry = self.submit()
+        self.assertEqual(retry.status_code, 200, retry.content)
+        self.assertEqual(retry.json()["uuid"], str(proposal.pk))
+        self.assertEqual(retry.json()["requestDigest"], proposal.request_digest)
+        download = self.client.get(retry.json()["fileUrl"])
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download["Cache-Control"], "private, no-store")
+        self.assertEqual(b"".join(download.streaming_content), PDF)
         self.assertEqual(len(self.private_files()), 1)
         with use_operator():
-            self.assertEqual(len(orphaned_files(moment=timezone.now() + timedelta(days=2))), 1)
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+
+    def test_a_committed_request_keeps_evidence_when_principal_restoration_fails(self):
+        with use_app():
+            reset_principal()
+        with use_operator():
+            reset_principal()
+            alias = current_alias()
+            connection = connections[alias]
+        self.assertFalse(connection.in_atomic_block)
+        self.assertTrue(connection.get_autocommit())
+        failures = []
+
+        def fail_after_committed_reset():
+            reset_principal()
+            if (
+                current_alias() == alias
+                and CompanyAuthorityRequest.objects.filter(requester=self.user, idempotency_key=self.key).exists()
+            ):
+                self.assertFalse(connection.in_atomic_block)
+                self.assertTrue(connection.get_autocommit())
+                failures.append(True)
+                raise DatabaseError("synthetic post-commit principal restoration failure")
+
+        with patch("companies.services.authority_requests.reset_principal", side_effect=fail_after_committed_reset):
+            with self.assertRaisesMessage(DatabaseError, "synthetic post-commit principal restoration failure"):
+                self.service_submit()
+        self.assertEqual(failures, [True])
+        self.assert_committed_evidence_survives()
+
+    def test_a_committed_request_keeps_evidence_when_commit_acknowledgement_is_lost(self):
+        with use_operator():
+            connection = connections[current_alias()]
+        self.assertFalse(connection.in_atomic_block)
+        self.assertTrue(connection.get_autocommit())
+        commit = connection.commit
+        commits = []
+
+        def commit_then_lose_acknowledgement():
+            commit()
+            commits.append(True)
+            raise DatabaseError("synthetic lost commit acknowledgement")
+
+        with patch.object(connection, "commit", side_effect=commit_then_lose_acknowledgement):
+            with self.assertRaisesMessage(DatabaseError, "synthetic lost commit acknowledgement"):
+                self.service_submit()
+        self.assertEqual(commits, [True])
+        self.assert_committed_evidence_survives()
+
+    def test_a_failed_insert_upload_is_swept_only_after_grace_and_without_deleting_referenced_evidence(self):
+        proposal, _ = self.service_submit()
+        with patch.object(CompanyAuthorityRequest, "save", side_effect=DatabaseError("synthetic insert failure")):
+            with self.assertRaisesMessage(DatabaseError, "synthetic insert failure"):
+                submit_authority_request(
+                    requester=self.user,
+                    company_id=self.company.pk,
+                    idempotency_key=uuid4(),
+                    file=evidence(),
+                    requested_capabilities=["admin"],
+                )
+        self.assertEqual(len(self.private_files()), 2)
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+            self.assertEqual(sweep_orphaned_files(), {"found": 0, "deleted": 0, "failed": 0, "names": []})
+            expired = timezone.now() + timedelta(days=2)
+            names = orphaned_files(moment=expired)
+            self.assertEqual(len(names), 1)
+            self.assertNotIn(proposal.file.name, names)
+            self.assertEqual(
+                sweep_orphaned_files(moment=expired), {"found": 1, "deleted": 1, "failed": 0, "names": names}
+            )
+        self.assert_committed_evidence_survives()
 
     def test_service_restores_prior_principals_after_success_and_failure(self):
         with use_app():
