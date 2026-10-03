@@ -25,10 +25,13 @@ const wallet = (uuid: string, name: string) => ({
 });
 const get = apiClient.get as jest.Mock;
 let client: QueryClient;
+const pendingRequests: (() => void)[] = [];
 
 beforeEach(() => {
   AppState.currentState = 'active';
-  client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
+  });
   get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
     if (url !== WALLET_ENDPOINTS.BASE) return { data: { results: [{}], count: 1, next: null, previous: null } };
     return (config?.params?.page ?? 1) === 1
@@ -46,6 +49,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  await act(() => pendingRequests.splice(0).forEach((settle) => settle()));
   client.clear();
   jest.clearAllMocks();
   onlineManager.setOnline(true);
@@ -138,11 +142,18 @@ function pending() {
     settle = resolve;
     refuse = reject;
   });
+  pendingRequests.push(() => settle(page([])));
   return {
     promise,
     settle: (value: Page) => act(async () => settle(value)),
     refuse: (error: Error) => act(async () => refuse(error)),
   };
+}
+
+function pendingWidget() {
+  return new Promise((resolve) => {
+    pendingRequests.push(() => resolve({ data: { url: 'https://provider.example.test/buy' } }));
+  });
 }
 
 function Reopenable({ navigate }: { navigate: (url: string) => void }) {
@@ -293,7 +304,7 @@ describe('Buy crypto acts only on a finished read', () => {
 
   it('holds the wallets it listed before while it reads them again', async () => {
     answer(async () => page([wallet('1', 'First wallet'), wallet('2', 'Second wallet')]));
-    post.mockReturnValue(new Promise(() => {}));
+    post.mockImplementation(pendingWidget);
     const view = await render(<Reopenable navigate={jest.fn()} />);
     await chooseEthereum(view);
     await view.findByRole('button', { name: /Second wallet/ });
@@ -357,7 +368,7 @@ describe('Buy crypto acts only on a finished read', () => {
 
 it('holds every wallet while the chosen one opens the purchase, and marks only that one busy', async () => {
   answer(async () => page([wallet('1', 'First wallet'), wallet('2', 'Second wallet')]));
-  post.mockReturnValue(new Promise(() => {}));
+  post.mockImplementation(pendingWidget);
   const view = await render(<Reopenable navigate={jest.fn()} />);
   await chooseEthereum(view);
   await fireEvent.press(await view.findByRole('button', { name: /Second wallet/ }));

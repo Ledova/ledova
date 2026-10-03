@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { signout } from '@ledova/shared';
 import { notificationsService } from '../services/notificationsService';
@@ -51,6 +51,13 @@ jest.mock('../services/tokenStorage', () => ({ clearTokens: jest.fn() }));
 const account = ['account'];
 let client: QueryClient;
 let events: string[];
+const pendingCompanyReads: (() => void)[] = [];
+
+function readCompanyLater() {
+  return new Promise<ReturnType<typeof companyList>>((resolve) => {
+    pendingCompanyReads.push(() => resolve(companyList([])));
+  });
+}
 
 function cache() {
   return client.getQueryData(account) ? 'kept' : 'cleared';
@@ -60,8 +67,8 @@ beforeEach(() => {
   mockRole = { isCompany: false, isInvestor: true, isLoading: false };
   mockTradingEnabled = false;
   mockProfile = null;
-  mockCompanies.mockReset().mockReturnValue(new Promise(() => {}));
-  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  mockCompanies.mockReset().mockImplementation(readCompanyLater);
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   client.setQueryData(account, { email: 'synthetic@example.test' });
   events = [];
   jest.mocked(notificationsService.unregisterToken).mockImplementation(async () => {
@@ -75,7 +82,9 @@ beforeEach(() => {
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
+  await act(() => pendingCompanyReads.splice(0).forEach((settle) => settle()));
   client.clear();
 });
 
@@ -307,7 +316,6 @@ const groupLabels = (view: Awaited<ReturnType<typeof drawer>>) =>
 
 it("names the company group Company while the company's name is being read", async () => {
   mockRole = { isCompany: true, isInvestor: false, isLoading: false };
-  mockCompanies.mockReturnValue(new Promise(() => {}));
   const view = await drawer();
 
   await waitFor(() => expect(mockCompanies).toHaveBeenCalledTimes(1));
