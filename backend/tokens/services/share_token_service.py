@@ -11,6 +11,7 @@ from web3.exceptions import BadFunctionCallOutput
 
 from assets.models import Asset, AssetType
 from assets.services.identity import free_symbol, verified_contract_asset
+from assets.services.sync import SUPPORTED_ASSETS
 from integrations.base_chain import get_base_chain_client
 from integrations.base_chain.exceptions import (
     BaseChainConnectionError,
@@ -135,6 +136,10 @@ def _share_asset_symbol(token: ShareToken, contract_address: str) -> str:
     if free_symbol(bare, contract_address) == bare:
         return bare
     return f"{bare}.{token.company.acn}" if token.company.acn else bare
+
+
+def reserved_symbol(symbol: str) -> bool:
+    return symbol.upper() in SUPPORTED_ASSETS
 
 
 def get_token_by_identifier(identifier: str) -> Optional[str]:

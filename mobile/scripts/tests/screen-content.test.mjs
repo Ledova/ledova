@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import { crc32, deflateSync } from 'node:zlib';
 import { test } from 'node:test';
 import { decodePng, hasContent, minimumContent, screenContent, waitForContent } from '../screen-content.mjs';
+import { checkFocus } from '../window-focus.mjs';
 
 const mobile = path.resolve(import.meta.dirname, '../..');
 const fixtures = path.join(import.meta.dirname, 'fixtures');
@@ -175,46 +176,95 @@ test('the launch check needs content on two screenshots in a row, so a launch sc
   }
 });
 
-test('the native smoke runner waits ten seconds after launch, fails a black window after twenty screenshots and records a real one', async (context) => {
+const appFocus = [
+  'mCurrentFocus=Window{7d2c1a3 u0 org.example.ledova/org.example.ledova.MainActivity}',
+  'mFocusedApp=ActivityRecord{2f9e3c1 u0 org.example.ledova/.MainActivity t12}',
+];
+
+function ordinaryLaunch(context, frames, focused = { focus: appFocus }) {
   const source = fs.readFileSync(path.join(mobile, 'scripts/native-smoke.mjs'), 'utf8');
   const start = source.indexOf("  await launch('ordinary');");
   const end = source.indexOf("  if (platform === 'android') {", start);
   assert.ok(start > 0 && end > start);
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ledova-launch-'));
   context.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  const launchWith = (frames) => {
-    const events = [];
-    let captures = 0;
-    const fixture = {
-      fs,
-      path,
-      directory,
-      async launch(name) {
-        events.push(`launch ${name}`);
-      },
-      async delay(milliseconds) {
-        events.push(`wait ${milliseconds}`);
-      },
-      async screenshot(name) {
-        events.push(`screenshot ${name}`);
-        fs.copyFileSync(frames[Math.min(captures++, frames.length - 1)], path.join(directory, `${name}.png`));
-      },
-      waitForContent: (capture, file, options) => waitForContent(capture, file, { ...options, interval: 0 }),
-    };
-    const run = vm.compileFunction(
-      `return (async () => { ${source.slice(start, end)} })()`,
-      Object.keys(fixture),
-    )(...Object.values(fixture));
-    return { events, run };
+  const events = [];
+  let captures = 0;
+  const fixture = {
+    fs,
+    path,
+    directory,
+    async launch(name) {
+      events.push(`launch ${name}`);
+    },
+    async delay(milliseconds) {
+      events.push(`wait ${milliseconds}`);
+    },
+    async screenshot(name) {
+      events.push(`screenshot ${name}`);
+      fs.copyFileSync(frames[Math.min(captures++, frames.length - 1)], path.join(directory, `${name}.png`));
+    },
+    waitForContent: (capture, file, options) => waitForContent(capture, file, { ...options, interval: 0 }),
+    markStage(name) {
+      events.push(`stage ${name}`);
+    },
+    focus(name) {
+      events.push(`focus ${name}`);
+      return focused;
+    },
+    checkFocus,
   };
-  const record = path.join(directory, 'ordinary-screen.json');
-  const blank = launchWith([launchScreen, blackWindow]);
+  const run = vm.compileFunction(
+    `return (async () => { ${source.slice(start, end)} })()`,
+    Object.keys(fixture),
+  )(...Object.values(fixture));
+  return { events, run, record: path.join(directory, 'ordinary-screen.json') };
+}
+
+test('the native smoke runner waits ten seconds after launch, fails a black window after twenty screenshots and records a real one', async (context) => {
+  const blank = ordinaryLaunch(context, [launchScreen, blackWindow]);
   await assert.rejects(blank.run, /ordinary\.png did not show content on 2 screenshots in a row within 20:/);
   assert.equal(blank.events.filter((event) => event === 'screenshot ordinary').length, 20);
-  assert.equal(fs.existsSync(record), false);
-  const launched = launchWith([signIn]);
+  assert.equal(blank.events.includes('focus ordinary'), false);
+  assert.equal(fs.existsSync(blank.record), false);
+  const launched = ordinaryLaunch(context, [signIn]);
   await launched.run;
-  assert.deepEqual(launched.events, ['launch ordinary', 'wait 10000', 'screenshot ordinary', 'screenshot ordinary']);
-  const recorded = JSON.parse(fs.readFileSync(record, 'utf8'));
-  assert.deepEqual([recorded.dominant, recorded.attempt], ['#f6f3ec', 2]);
+  assert.deepEqual(launched.events, [
+    'launch ordinary',
+    'wait 10000',
+    'screenshot ordinary',
+    'screenshot ordinary',
+    'stage ordinary-focus',
+    'focus ordinary',
+  ]);
+  const recorded = JSON.parse(fs.readFileSync(launched.record, 'utf8'));
+  assert.deepEqual([recorded.dominant, recorded.attempt, recorded.focus], ['#f6f3ec', 2, appFocus]);
+});
+
+test('a launch screenshot with content still fails while a SystemUI Application Not Responding window holds focus, and its record is kept', async (context) => {
+  const systemUi = [
+    'mCurrentFocus=Window{8633492 u0 Application Not Responding: com.android.systemui}',
+    'mFocusedApp=ActivityRecord{2f9e3c1 u0 org.example.ledova/.MainActivity t12}',
+  ];
+  const blocked = ordinaryLaunch(context, [signIn], { focus: systemUi });
+  await assert.rejects(
+    blocked.run,
+    /^Error: ordinary\.png was taken while a system Application Not Responding window for com\.android\.systemui held focus instead of the app: mCurrentFocus=Window\{8633492 u0 Application Not Responding: com\.android\.systemui\}; mFocusedApp=/,
+  );
+  assert.deepEqual(blocked.events.slice(-2), ['stage ordinary-focus', 'focus ordinary']);
+  const recorded = JSON.parse(fs.readFileSync(blocked.record, 'utf8'));
+  assert.deepEqual([recorded.dominant, recorded.attempt, recorded.focus], ['#f6f3ec', 2, systemUi]);
+  const ios = ordinaryLaunch(context, [signIn], {});
+  await ios.run;
+  assert.equal(JSON.parse(fs.readFileSync(ios.record, 'utf8')).focus, undefined);
+});
+
+test('a launch screenshot whose window dump has no current focus fails as unchecked, and its record is kept', async (context) => {
+  const unknown = ordinaryLaunch(context, [signIn], { focus: [] });
+  await assert.rejects(
+    unknown.run,
+    /^Error: ordinary\.png could not be checked: the window dump has no mCurrentFocus line, so focus is unknown\.$/,
+  );
+  const recorded = JSON.parse(fs.readFileSync(unknown.record, 'utf8'));
+  assert.deepEqual([recorded.dominant, recorded.focus], ['#f6f3ec', []]);
 });
