@@ -77,7 +77,7 @@ jobs:
           sudo chmod a+rw /dev/kvm
           vmstat -t -w 15 > "$RUNNER_TEMP/ledova-host-vmstat.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/ledova-samplers.pid"
-          "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -camera-front emulated -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 2 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -camera-front emulated -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 4 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           timeout 180 bash -c 'until [ "$(adb -s "$ANDROID_SERIAL" shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 1; done'
@@ -88,6 +88,21 @@ jobs:
             done
           ) > "$RUNNER_TEMP/ledova-guest-load.log" 2>&1 &
           echo $! >> "$RUNNER_TEMP/ledova-samplers.pid"
+          since=$(date +%s)
+          {
+            printf 'boot completed at %s\n' "$(date -u +%FT%TZ)"
+            timeout 120 adb -s "$ANDROID_SERIAL" shell am wait-for-broadcast-idle || echo "wait-for-broadcast-idle exited with status $?"
+            printf 'broadcast wait ended after %ss\n' "$(( $(date +%s) - since ))"
+            load=unknown
+            until load=$(timeout 10 adb -s "$ANDROID_SERIAL" shell cat /proc/loadavg | cut -d ' ' -f 1 | tr -d '\r') && awk -v l="$load" 'BEGIN { exit !(l ~ /^[0-9.]+$/ && l + 0 < 4) }'; do
+              if [ $(( $(date +%s) - since )) -ge 300 ]; then
+                echo "not settled within 300s; the build starts with the guest still busy"
+                break
+              fi
+              sleep 10
+            done
+            printf 'settle ended at %s after %ss with 1-minute load %s\n' "$(date -u +%FT%TZ)" "$(( $(date +%s) - since ))" "$load"
+          } > "$RUNNER_TEMP/ledova-guest-settle.log" 2>&1
       - name: Generate and check Debug and Release policy
         working-directory: mobile
         run: |
@@ -128,6 +143,7 @@ jobs:
             ${{ runner.temp }}/ledova-emulator.log
             ${{ runner.temp }}/ledova-host-vmstat.log
             ${{ runner.temp }}/ledova-guest-load.log
+            ${{ runner.temp }}/ledova-guest-settle.log
       - name: Remove the owned emulator
         if: always()
         run: |

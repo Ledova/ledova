@@ -36,6 +36,14 @@ exit status (`guest-records-status.txt`), and load and memory samples of the
 runner every 15 seconds (`ledova-host-vmstat.log`) and of the emulator every 30
 (`ledova-guest-load.log`), so a failure can be tied to its time and resource state.
 An empty record is a gap in the evidence, not proof that no ANR happened.
+Before the first build, the job gives the emulator up to 300 seconds to settle
+after boot, waiting for its broadcast queues to go idle and its 1-minute load to
+fall below 4, so post-boot work does not compete with the heaviest build.
+`ledova-guest-settle.log` records how long that took; a guest that does not
+settle in time is recorded there as a gap, not a failure. The emulator gets the
+runner's four vCPUs. With two, its own post-boot work saturated the guest, and a
+Google Play services broadcast ANR followed within a minute of boot in every
+attributed run, even with no build running; with four, none did.
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves
