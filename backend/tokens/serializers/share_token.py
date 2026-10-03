@@ -1,9 +1,11 @@
 from rest_framework import serializers
 
 from companies.models import Company
+from tokens.constants import RESERVED_SYMBOL
 from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
 from tokens.services.register_inclusions import ISSUE, TRANSFER, WAITING_REASONS
+from tokens.services.share_token_service import reserved_symbol
 from whitelist.models import HolderType
 
 SHARES_ARE_WHOLE = (
@@ -133,6 +135,8 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Symbol must contain only letters.")
         if len(value) < 3 or len(value) > 5:
             raise serializers.ValidationError("Symbol must be 3-5 characters.")
+        if reserved_symbol(value):
+            raise serializers.ValidationError(RESERVED_SYMBOL.format(symbol=value.upper()))
         return value.upper()
 
     def validate_total_supply(self, value):
