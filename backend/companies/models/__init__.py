@@ -1,5 +1,6 @@
 from companies.models.authority_request import (
     CompanyAuthorityRequest,
+    CompanyAuthorityRequestWithdrawal,
     CompanyCapability,
 )
 from companies.models.company import Company, CompanyStatus, CompanyType
@@ -19,6 +20,7 @@ from companies.models.registry_check import (
 __all__ = [
     "Company",
     "CompanyAuthorityRequest",
+    "CompanyAuthorityRequestWithdrawal",
     "CompanyCapability",
     "CompanyStatus",
     "CompanyType",

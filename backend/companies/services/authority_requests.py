@@ -15,6 +15,7 @@ from companies.identity import company_identity, registered_name
 from companies.models import (
     Company,
     CompanyAuthorityRequest,
+    CompanyAuthorityRequestWithdrawal,
     CompanyCapability,
     CompanyStatus,
 )
@@ -142,7 +143,11 @@ def submit_authority_request(
                 "original_filename": original_filename,
             }
             digest = hashlib.sha256(json.dumps(frozen, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-            existing = CompanyAuthorityRequest.objects.filter(requester=actor, idempotency_key=idempotency_key).first()
+            existing = (
+                CompanyAuthorityRequest.objects.select_related("withdrawal")
+                .filter(requester=actor, idempotency_key=idempotency_key)
+                .first()
+            )
             if existing:
                 if existing.request_digest != digest:
                     raise AuthorityRequestConflictException()
@@ -178,3 +183,17 @@ def submit_authority_request(
             except Exception:
                 logger.warning("Authority evidence cleanup deferred for an uncommitted request")
         raise
+
+
+def withdraw_authority_request(*, requester, request_id):
+    _require_requester(requester)
+    with use_app(), _requester_principal(requester.pk):
+        get_object_or_404(CompanyAuthorityRequest.objects.filter(requester=requester), pk=request_id)
+    with use_operator(), _requester_principal(requester.pk), atomic():
+        actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
+        _require_requester(actor)
+        proposal = get_object_or_404(
+            CompanyAuthorityRequest.objects.select_for_update(), pk=request_id, requester=actor
+        )
+        CompanyAuthorityRequestWithdrawal.objects.get_or_create(request=proposal, defaults={"withdrawn_by": actor})
+        return CompanyAuthorityRequest.objects.select_related("withdrawal").get(pk=proposal.pk)

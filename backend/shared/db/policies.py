@@ -191,6 +191,10 @@ POLICIES = {
     ),
     "companies_companyregistrycheck": ("false", "false"),
     "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
+    "companies_companyauthorityrequestwithdrawal": (
+        f"request_id IN (SELECT uuid FROM companies_companyauthorityrequest WHERE requester_id = {PRINCIPAL})",
+        "false",
+    ),
     "offerings_offering": (
         _company_or_public("company_id"),
         _company("company_id", MANAGEABLE_COMPANIES),

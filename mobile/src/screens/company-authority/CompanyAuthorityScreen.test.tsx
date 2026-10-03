@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import { COMPANY_AUTHORITY_PENDING_NOTICE } from '@ledova/shared';
+import { COMPANY_AUTHORITY_PENDING_NOTICE, formatDateTime } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
@@ -29,12 +29,20 @@ const record = {
   originalFilename: 'retained.pdf',
   createdAt: '2026-10-03T00:00:00Z',
   status: 'pending',
+  withdrawnAt: null as string | null,
   verificationStatus: 'unavailable',
   verificationMessage: COMPANY_AUTHORITY_PENDING_NOTICE,
   requestedCapabilities: ['prepare'],
   delegatableCapabilities: ['approve'],
   requestedExpiresAt: null,
   fileSha256: 'a'.repeat(64),
+};
+const withdrawn = {
+  ...record,
+  status: 'withdrawn',
+  withdrawnAt: '2026-10-03T02:15:00Z',
+  verificationMessage:
+    'This request has been withdrawn. Its history and evidence remain retained. No authority was granted.',
 };
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -45,6 +53,7 @@ let companyReadFailure: boolean;
 let historyReadFailure: boolean;
 let nextKey: number;
 let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData['append']>>;
+const pendingResponses: (() => void)[] = [];
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -60,12 +69,15 @@ function field(form: unknown, key: string) {
   return parts(form).find(([name]) => name === key)?.[1];
 }
 
-function deferred<T>() {
+function deferred<T>(fallback: T) {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((yes) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((yes, no) => {
     resolve = yes;
+    reject = no;
   });
-  return { promise, resolve };
+  pendingResponses.push(() => resolve(fallback));
+  return { promise, resolve, reject };
 }
 
 beforeEach(() => {
@@ -107,6 +119,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  await act(() => pendingResponses.splice(0).forEach((settle) => settle()));
   client.clear();
 });
 
@@ -222,7 +235,7 @@ it('reads every own-history page and displays frozen identity, pending status an
   expect(await view.findByText('Frozen Company A')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Request retained.pdf' }));
   expect(view.getByText(a.acn)).toBeTruthy();
-  expect(view.getAllByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toHaveLength(2);
+  expect(view.getByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
   await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
   expect(get).toHaveBeenCalledWith(`${REQUESTS}${record.uuid}/file/`, {
@@ -260,7 +273,7 @@ it('clears private history and selected evidence as soon as the authenticated se
 });
 
 it('suppresses a previous session submission result and retains active upload bytes until it settles', async () => {
-  const response = deferred<{ data: typeof record }>();
+  const response = deferred({ data: record });
   post.mockReturnValue(response.promise);
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
@@ -277,7 +290,7 @@ it('suppresses a previous session submission result and retains active upload by
 
 it('does not share a private download that completes after sign-out', async () => {
   history = [record];
-  const response = deferred<{ data: ArrayBuffer; headers: { 'content-type': string } }>();
+  const response = deferred({ data: new ArrayBuffer(2), headers: { 'content-type': 'application/pdf' } });
   const previous = get.getMockImplementation()!;
   get.mockImplementation((url, config) =>
     url === `${REQUESTS}${record.uuid}/file/` ? response.promise : previous(url, config),
@@ -291,4 +304,189 @@ it('does not share a private download that completes after sign-out', async () =
   await act(() => response.resolve({ data: new ArrayBuffer(2), headers: { 'content-type': 'application/pdf' } }));
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
   expect([...files.keys()].some((uri) => uri.includes('ledova-document-views'))).toBe(false);
+});
+
+it('withdraws only after the server confirms it and retains access to the original evidence', async () => {
+  history = [record];
+  const response = deferred({ data: withdrawn });
+  post.mockReturnValue(response.promise);
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  const epoch = getSessionEpoch();
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith(`${REQUESTS}${record.uuid}/withdraw/`, {}, { ledovaSessionEpoch: epoch }),
+  );
+  expect(view.getByText(`Pending · ${formatDateTime(record.createdAt)}`)).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Withdrawing…' })).toBeDisabled();
+  expect(view.queryByText(withdrawn.verificationMessage)).toBeNull();
+  await act(() => response.resolve({ data: withdrawn }));
+  expect(await view.findByText(`Withdrawn · ${formatDateTime(withdrawn.withdrawnAt)}`)).toBeTruthy();
+  expect(view.getByText(formatDateTime(withdrawn.withdrawnAt))).toBeTruthy();
+  expect(view.getByText(withdrawn.verificationMessage)).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', epoch])).toEqual([withdrawn]);
+  await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
+  await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
+  expect(view.queryByRole('button', { name: /approve request|activate company|delete request/i })).toBeNull();
+});
+
+it('shows a withdrawal refusal and retries the same request to receive its original withdrawal outcome', async () => {
+  history = [record];
+  post.mockRejectedValueOnce({ response: { data: { detail: 'Withdrawal response interrupted' } } });
+  post.mockResolvedValue({ data: withdrawn });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  expect(await view.findByText('Withdrawal response interrupted')).toBeTruthy();
+  expect(view.getByText(`Pending · ${formatDateTime(record.createdAt)}`)).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Withdraw request' })).toBeEnabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await view.findByText(withdrawn.verificationMessage);
+  expect(post.mock.calls[1]).toEqual(post.mock.calls[0]);
+  expect(view.queryByText('Withdrawal response interrupted')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
+});
+
+it('offers retained evidence for an already withdrawn record without another withdrawal action', async () => {
+  history = [withdrawn];
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  expect(view.getByText(`Withdrawn · ${formatDateTime(withdrawn.withdrawnAt)}`)).toBeTruthy();
+  expect(view.getByText(formatDateTime(withdrawn.withdrawnAt))).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
+  expect(view.queryByText(COMPANY_AUTHORITY_PENDING_NOTICE)).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'View retained evidence' }));
+  await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('reconciles an interrupted withdrawal through history without retaining its stale error', async () => {
+  history = [record];
+  post.mockRejectedValue({ response: { data: { detail: 'Withdrawal response interrupted' } } });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await view.findByText('Withdrawal response interrupted');
+  history = [withdrawn];
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await view.findByText(withdrawn.verificationMessage);
+  expect(view.queryByText('Withdrawal response interrupted')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
+});
+
+it('shows the server withdrawal outcome when retrying the original evidence submission', async () => {
+  history = [withdrawn];
+  post.mockResolvedValue({ data: withdrawn });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await selectAndPick(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
+  expect(await view.findByText(`Your request has been retained. ${withdrawn.verificationMessage}`)).toBeTruthy();
+  expect(view.queryByText(`Your request has been retained. ${COMPANY_AUTHORITY_PENDING_NOTICE}`)).toBeNull();
+});
+
+it('refuses an unconfirmed withdrawal response and keeps the pending request available to retry', async () => {
+  history = [record];
+  post.mockResolvedValue({ data: { ...withdrawn, uuid: 'another-request' } });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await view.findByText('The withdrawal could not be confirmed. Retry the same request or refresh.');
+  expect(view.getByRole('button', { name: 'Withdraw request' })).toBeEnabled();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([record]);
+});
+
+it('cancels a stale history read so it cannot restore pending after a confirmed withdrawal', async () => {
+  history = [record];
+  const response = deferred({ data: withdrawn });
+  post.mockReturnValue(response.promise);
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const stale = deferred({ data: { results: [record], count: 1, next: null } });
+  const previous = get.getMockImplementation()!;
+  get.mockImplementation((url, config) => (url === REQUESTS ? stale.promise : previous(url, config)));
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await waitFor(() => expect(get.mock.calls.filter(([url]) => url === REQUESTS)).toHaveLength(2));
+  const config = get.mock.calls.filter(([url]) => url === REQUESTS)[1][1];
+  expect(config?.signal?.aborted).toBe(false);
+  await act(() => response.resolve({ data: withdrawn }));
+  await view.findByText(withdrawn.verificationMessage);
+  expect(config?.signal?.aborted).toBe(true);
+  await act(() => stale.resolve({ data: { results: [record], count: 1, next: null } }));
+  await waitFor(() =>
+    expect(client.getQueryState(['company-authority-requests', getSessionEpoch()])?.fetchStatus).toBe('idle'),
+  );
+  expect(view.getByText(`Withdrawn · ${formatDateTime(withdrawn.withdrawnAt)}`)).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([withdrawn]);
+});
+
+it('keeps refused history hidden when a withdrawal response arrives and recovers through an explicit retry', async () => {
+  const other = {
+    ...record,
+    uuid: 'request-b',
+    companyIdentityRaw: { ...record.companyIdentityRaw, name: 'Other private company' },
+    originalFilename: 'other.pdf',
+  };
+  history = [record, other];
+  const response = deferred({ data: withdrawn });
+  post.mockReturnValue(response.promise);
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  historyReadFailure = true;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await view.findByText('Your requests could not be loaded.');
+  await act(() => response.resolve({ data: withdrawn }));
+  expect(client.getQueryState(['company-authority-requests', getSessionEpoch()])?.status).toBe('error');
+  expect(view.getByText('Your requests could not be loaded.')).toBeTruthy();
+  expect(view.queryByText('Frozen Company A')).toBeNull();
+  expect(view.queryByText('Other private company')).toBeNull();
+  historyReadFailure = false;
+  history = [withdrawn, other];
+  await fireEvent.press(view.getByRole('button', { name: 'Retry requests' }));
+  expect(await view.findByText(`Withdrawn · ${formatDateTime(withdrawn.withdrawnAt)}`)).toBeTruthy();
+  expect(view.getByText('Other private company')).toBeTruthy();
+  expect(post).toHaveBeenCalledTimes(1);
+});
+
+it.each(['success', 'refusal'])('suppresses a previous session withdrawal %s', async (outcome) => {
+  history = [record];
+  const response = deferred({ data: withdrawn });
+  post.mockReturnValue(response.promise);
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw request' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  history = [];
+  await act(() => invalidateSessionScope());
+  await view.findByText('You have not submitted an authority request.');
+  await act(() => {
+    if (outcome === 'success') response.resolve({ data: withdrawn });
+    else response.reject({ response: { data: { detail: 'Earlier session withdrawal refused' } } });
+  });
+  expect(view.queryByText('Frozen Company A')).toBeNull();
+  expect(view.queryByText(withdrawn.verificationMessage)).toBeNull();
+  expect(view.queryByText('Earlier session withdrawal refused')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([]);
+});
+
+it('cancels the previous session history transport and hides its late private records', async () => {
+  const stale = deferred({ data: { results: [record], count: 1, next: null } });
+  const previous = get.getMockImplementation()!;
+  get.mockImplementation((url, config) => (url === REQUESTS ? stale.promise : previous(url, config)));
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await waitFor(() => expect(get).toHaveBeenCalledWith(REQUESTS, expect.any(Object)));
+  const config = get.mock.calls.find(([url]) => url === REQUESTS)![1];
+  get.mockImplementation(previous);
+  await act(() => invalidateSessionScope());
+  expect(await view.findByText('You have not submitted an authority request.')).toBeTruthy();
+  expect(config?.signal?.aborted).toBe(true);
+  await act(() => stale.resolve({ data: { results: [record], count: 1, next: null } }));
+  expect(view.queryByText('Frozen Company A')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([]);
 });

@@ -40,8 +40,17 @@ class CompanyAuthorityRequest(BaseModel):
     file_sha256 = models.CharField(max_length=64, editable=False)
     request_digest = models.CharField(max_length=64, editable=False)
 
+    @property
+    def status(self):
+        return "withdrawn" if getattr(self, "withdrawal", None) else "pending"
+
     class Meta:
         ordering = ["-created_at", "-uuid"]
         constraints = [
             models.UniqueConstraint(fields=["requester", "idempotency_key"], name="company_authority_request_key"),
         ]
+
+
+class CompanyAuthorityRequestWithdrawal(BaseModel):
+    request = models.OneToOneField(CompanyAuthorityRequest, on_delete=models.PROTECT, related_name="withdrawal")
+    withdrawn_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")

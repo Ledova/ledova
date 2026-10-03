@@ -4,7 +4,8 @@
 
 **Status:** Accepted product direction; phase 1 product-mode retirement delivered.
 Unverified [representative authority requests](../plans/company-managed-registers/authority-requests.md)
-can be submitted in both clients. Effective appointments and the dependent
+can be submitted and withdrawn in both clients, retaining evidence and history.
+Effective appointments and the dependent
 company-authority workflows remain an implementation plan.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.

@@ -42,7 +42,7 @@ request table, requester-only RLS and a guarded creation boundary. Existing
 companies, owners, reviews, register entries and pending instructions are
 preserved. It seeds no appointments and changes no approval or activation.
 The [client workflow](../plans/company-managed-registers/authority-requests.md)
-always remains pending verification.
+records pending verification or the requester's withdrawal; neither grants authority.
 
 The migration requires the existing role-creation migration and grants only its
 new table; it does not pull the later catalogue grant ahead of the queue schema
@@ -52,6 +52,13 @@ migration with the required ordinary/scoped and role/catalogue checks.
 Reversal succeeds only with an empty request table. Once requests exist it
 refuses, preserving request history and its referenced private files. Back up
 database and private storage together; do not delete requests to force a downgrade.
+
+`companies/0013_company_authority_request_withdrawal` adds immutable withdrawal
+history without changing the existing requests, snapshots or file references.
+Its requester-only policy and guarded insert restore each connection's prior
+principal. Empty reversal preserves the original requests; populated reversal
+refuses to discard cancellation history. Back up database and private storage
+together before upgrading or reversing either migration.
 
 ## Remaining company-managed register upgrade
 
