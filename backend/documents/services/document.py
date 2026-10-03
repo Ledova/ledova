@@ -6,7 +6,6 @@ from rest_framework.exceptions import ValidationError
 
 from documents.models import Document, DocumentType
 from documents.models.document import document_upload_path
-from documents.services.access import require_documents_enabled
 from documents.tasks.extract import extract_document
 from shared.db import atomic, on_commit
 from users.models import InvestorClassification, InvestorClassificationStatus
@@ -22,7 +21,6 @@ def _delete_obsolete_upload(storage, name, document_uuid):
 
 
 def create_document(uploaded_by, validated_data) -> Document:
-    require_documents_enabled()
     retained_copy = None
     try:
         with atomic():
@@ -47,7 +45,6 @@ def create_document(uploaded_by, validated_data) -> Document:
 
 
 def attach_document(document, classification_uuid):
-    require_documents_enabled()
     copied = None
     storage = document.file.storage
     try:
@@ -81,7 +78,6 @@ def attach_document(document, classification_uuid):
 
 @atomic()
 def delete_document(document):
-    require_documents_enabled()
     document = get_object_or_404(
         Document.objects.with_matching_claim_owner().select_for_update(of=("self",)), pk=document.pk
     )

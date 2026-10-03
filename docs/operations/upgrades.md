@@ -4,21 +4,45 @@
 
 Apply only the migration notes relevant to the database you are upgrading. Schema reversibility does not guarantee data restoration.
 
-## Planned company-managed register upgrade
+## One registry product
+
+`operators/0002_remove_operator_deployment_mode` removes only the legacy
+`deployment_mode` column. The initial migration remains unchanged. Operator
+identity, payment and eligibility configuration, settlement-asset membership,
+companies, registers, payment records, private files, extraction history and
+read audits are preserved. Supporting evidence uses the same private-access
+and retention controls on every instance; there is no replacement mode flag.
+The migration depends on `tokens/0015_fold_stablecoin_into_asset`, the last
+historical migration reading the operator's old model. Rolling back that fold
+therefore restores the mode column first; no historical migration is rewritten.
+
+Coordinate the API, workers and client release. Retire clients that require
+`deploymentMode` before serving the new response, then stop old API/worker
+processes before applying the migration and restarting with the new code. The
+new clients do not query the operator to decide whether evidence is available.
+The generated OpenAPI snapshot and shared types no longer contain the field or
+its enum. This retirement requires no contract deployment or signer activation.
+
+Rehearse against a restored database with its private storage. From `backend/`,
+the ordinary suite includes `operators.tests.test_product_mode_migration`,
+which upgrades historical models from both old mode values and verifies
+configuration, evidence bytes, extraction/read history, payment records and
+register entries before and after reversal. Run the required
+[ordinary/scoped suites and role/catalogue checks](../development/testing.md#commands)
+before release.
+
+Reversal recreates the column with the historical `registry` default for every
+row. It cannot reconstruct a removed `single_issuer` choice. Restore a backup
+to recover that choice; coordinate old code and clients with schema reversal.
+
+## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)
-is not a shipped migration. The historical migrations below remain applied
-history; do not edit them or reset a database to implement the new direction.
+has delivered product-mode retirement above. Company appointments and the
+dependent company-authority workflows remain planned. The historical migrations
+below remain applied history; do not edit them or reset a database to implement
+the new direction.
 
-- Remove the operator's deployment-mode field with a new schema migration,
-  preserving companies, registers, memberships, documents, provider attempts,
-  reviews and signed operation history. A rollback may restore the default
-  registry value, but cannot reconstruct a removed historical mode choice.
-- Coordinate the API schema and backend change with every client consuming
-  `deploymentMode`. Removing the field before retiring client equality checks
-  can hide supporting-document tools. Keep the registry supporting-evidence
-  behaviour, private access and retention; do not replace the removed mode
-  with another capability flag or purge its files.
 - Replace global staff gates with company appointments and scoped service,
   row-level-security and database admission checks. An existing company owner
   may seed a company administrator, but must not thereby acquire a director
@@ -29,8 +53,8 @@ history; do not edit them or reset a database to implement the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
-Once implemented, add the actual migration identifiers, coordinated release
-order, rollback limits and verification commands here. These notes do not
+As each remaining phase lands, add its actual migration identifiers, coordinated
+release order, rollback limits and verification commands here. These notes do not
 authorise staff to manufacture company appointments or approvals while the
 company tools are missing.
 

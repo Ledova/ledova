@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getInvestorClassifications, getOperator } from '@ledova/shared';
+import { getInvestorClassifications } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import {
   attachDocument,
@@ -13,11 +13,6 @@ import type { Document } from '../types/document';
 
 const DOCUMENTS_KEY = ['documents'] as const;
 const documentKey = (uuid: string) => ['document', uuid] as const;
-
-export function useDocumentsEnabled() {
-  const operator = useQuery({ queryKey: ['operator'], queryFn: () => getOperator(apiClient) });
-  return !operator.isError && operator.data?.data?.deploymentMode === 'registry';
-}
 
 export function useDocumentClaims() {
   return useQuery({

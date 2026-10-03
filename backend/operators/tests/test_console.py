@@ -418,7 +418,7 @@ class ConsolePageTest(TestCase):
         self.assertContains(with_orders, orders)
         self.assertNotContains(with_orders, settlements)
 
-    def test_the_console_states_the_deployment_mode_and_who_keeps_each_register(self):
+    def test_the_console_states_who_keeps_each_register(self):
         owner = User.objects.create_user(email="listed@example.test", password="pw-12345678")
         Company.objects.create(owner=owner, name="Listed Pty Ltd", acn="777888999", status=CompanyStatus.ACTIVE)
         operator = Operator.get()
@@ -427,7 +427,7 @@ class ConsolePageTest(TestCase):
 
         response = self.client.get(reverse("admin:operators_operator_changelist"))
 
-        self.assertContains(response, "Registry (many companies on one instance)")
+        self.assertContains(response, "Company registers")
         self.assertContains(response, "Listed Pty Ltd")
         self.assertContains(response, "777888999")
         self.assertContains(response, "Ledova Operator Pty Ltd")

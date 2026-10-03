@@ -14,11 +14,6 @@ STABLECOIN_ONLY = {"asset_type": AssetType.STABLECOIN.value}
 NOT_A_STABLECOIN = "{symbol} is not a stablecoin asset."
 
 
-class DeploymentMode(models.TextChoices):
-    SINGLE_ISSUER = "single_issuer", "Single issuer (one company on its own instance)"
-    REGISTRY = "registry", "Registry (many companies on one instance)"
-
-
 class ReceivingChain(models.TextChoices):
     ETHEREUM = BLOCKCHAIN_ETHEREUM, "Ethereum"
     BASE = BLOCKCHAIN_BASE, "Base"
@@ -37,8 +32,6 @@ class Operator(models.Model):
     abn = models.CharField(max_length=14, blank=True)
     contact_email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
-
-    deployment_mode = models.CharField(max_length=20, choices=DeploymentMode.choices, default=DeploymentMode.REGISTRY)
 
     bank_account_name = models.CharField(max_length=255, blank=True)
     bank_bsb = models.CharField(max_length=7, blank=True)

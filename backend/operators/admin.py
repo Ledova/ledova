@@ -4,7 +4,6 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import render
 from django.urls import reverse
 
-from documents.services.access import deployment_mode_error
 from operators.models import Operator
 from operators.services import (
     REGISTRANT_NOTE,
@@ -25,9 +24,6 @@ class OperatorForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        mode_error = deployment_mode_error(cleaned.get("deployment_mode"))
-        if mode_error:
-            self.add_error("deployment_mode", mode_error)
         chain = cleaned.get("receiving_wallet_chain")
         if not chain:
             return cleaned
@@ -51,16 +47,6 @@ class OperatorAdmin(admin.ModelAdmin):
     filter_horizontal = ["supported_settlement_assets"]
     fieldsets = [
         ("Identity", {"fields": ["name", "legal_name", "abn", "contact_email", "website"]}),
-        (
-            "Deployment",
-            {
-                "fields": ["deployment_mode"],
-                "description": (
-                    "Single issuer: one company runs this instance for its own shares. "
-                    "Registry: a provider hosts many companies."
-                ),
-            },
-        ),
         (
             "Payments",
             {
@@ -96,7 +82,6 @@ class OperatorAdmin(admin.ModelAdmin):
             "configuration_url": reverse("admin:operators_operator_change", args=[operator.pk]),
             "worklist": worklist(),
             "health": configuration_health(),
-            "deployment_mode": operator.get_deployment_mode_display(),
             "registrants": registrants(),
             "registrant_note": REGISTRANT_NOTE,
             "market_pages": self._market_pages(request),

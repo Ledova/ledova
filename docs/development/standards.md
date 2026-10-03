@@ -71,10 +71,12 @@ recheck current authority at the effect boundary and preserve evidence, actor
 history, isolation and recovery for already submitted transactions. Company policy
 defines required approvals; it does not imply a universal Ledova reviewer.
 
-The `registry` / `single_issuer` product-mode distinction is legacy implementation
-pending coordinated removal across schema, API and clients. Private hosting uses
-the same product and company authority model. Mode removal must preserve records
-and private-evidence controls; it does not itself grant new company capabilities.
+The `registry` / `single_issuer` product-mode distinction is retired across the
+model, API, schema and clients. Preserve its historical initial migration;
+[`operators/0002`](../operations/upgrades.md#one-registry-product) removes the field.
+Private hosting uses the same product and company authority model. Mode removal
+preserves records and private-evidence controls; it does not itself grant new
+company capabilities.
 
 ## Admin boundaries and external consumers
 

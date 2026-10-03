@@ -3,7 +3,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -163,12 +162,13 @@ class UploadRendererTest(SimpleTestCase):
                     self.assertLessEqual(max(image.size), 1600)
                     self.assertGreater(min(image.size), 0)
 
-    def test_stored_mime_and_filename_cannot_select_the_wrong_decoder(self):
-        from documents.services.extraction import ExtractionService
+    def test_the_extraction_renderer_scans_and_decodes_the_actual_bytes(self):
+        from documents.services.extraction import render_first_page
 
-        document = SimpleNamespace(mime_type="application/pdf", original_filename="document.pdf")
-        with patch("documents.services.extraction.scan_upload"):
-            rendered = ExtractionService.render_first_page(document, image_bytes())
+        raw = image_bytes()
+        with patch("documents.services.extraction.scan_upload") as scan:
+            rendered = render_first_page(raw)
+        scan.assert_called_once_with(raw)
 
         with Image.open(io.BytesIO(rendered)) as image:
             self.assertEqual(image.size, (32, 24))

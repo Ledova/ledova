@@ -2,6 +2,9 @@
 
 How to set up, what the gates are, and what a pull request has to look like.
 
+[AGENTS.md](AGENTS.md) records the owner's standing implementation and cleanup
+instructions for assistants resuming work on this repository.
+
 Ledova is an early-stage, experimental, unaudited, testnet-only reference
 implementation, so contributions that make it more correct, more secure, better
 tested and better documented are especially welcome. Please read this whole page

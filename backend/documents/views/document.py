@@ -5,7 +5,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from documents.models import Document
-from documents.permissions import DocumentsEnabled
 from documents.serializers.document import (
     DocumentAttachmentSerializer,
     DocumentSerializer,
@@ -32,7 +31,7 @@ class DocumentViewSet(
     viewsets.GenericViewSet,
 ):
 
-    permission_classes = [IsAuthenticated, DocumentsEnabled]
+    permission_classes = [IsAuthenticated]
     lookup_field = "uuid"
     serializer_class = DocumentSerializer
 

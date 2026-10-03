@@ -7,7 +7,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
-from operators.models import SINGLETON_PK, DeploymentMode, Operator, ReceivingChain
+from operators.models import SINGLETON_PK, Operator, ReceivingChain
 from operators.serializers import OperatorSerializer
 from shared.tests.tenants import make_associated, make_eligible, make_tenant
 from shared.tests.test_admin_row_actions import grant, staff_user
@@ -26,7 +26,6 @@ PUBLIC_KEYS = {
     "abn",
     "contact_email",
     "website",
-    "deployment_mode",
     "supported_settlement_assets",
     "issued_stablecoin",
     "investor_kyc_required",
@@ -39,7 +38,6 @@ PUBLIC_JSON_KEYS = {
     "abn",
     "contactEmail",
     "website",
-    "deploymentMode",
     "supportedSettlementAssets",
     "issuedStablecoin",
     "investorKycRequired",
@@ -64,7 +62,7 @@ class OperatorModelTest(TestCase):
         operator = Operator.get()
 
         self.assertEqual((operator.pk, operator.name), (SINGLETON_PK, "Acme Registry"))
-        self.assertEqual((operator.deployment_mode, operator.receiving_wallet_chain), ("registry", "base"))
+        self.assertEqual(operator.receiving_wallet_chain, "base")
         self.assertEqual((operator.investor_kyc_required, operator.issuer_kyc_required), (True, False))
         operator.name = "Renamed"
         operator.save(update_fields=["name"])
@@ -140,7 +138,7 @@ class OperatorAdminTest(TestCase):
         self.assertContains(response, change_url)
         page = self.client.get(change_url)
         self.assertEqual(page.status_code, 200)
-        for legend in ("Identity", "Deployment", "Payments", "Eligibility"):
+        for legend in ("Identity", "Payments", "Eligibility"):
             self.assertContains(page, legend)
 
     def test_add_is_offered_only_while_no_row_exists_and_delete_never(self):
@@ -174,7 +172,6 @@ class OperatorAdminTest(TestCase):
         payload = {
             "name": "Acme",
             "contact_email": "ops@acme.test",
-            "deployment_mode": DeploymentMode.SINGLE_ISSUER,
             "bank_bsb": "12345",
             "receiving_wallet_chain": ReceivingChain.BASE,
             "supported_settlement_assets": [str(other.pk)],
@@ -191,7 +188,7 @@ class OperatorAdminTest(TestCase):
         response = self.client.post(change_url, payload)
         self.assertRedirects(response, self.changelist_url, fetch_redirect_response=False)
         operator.refresh_from_db()
-        self.assertEqual((operator.bank_bsb, operator.deployment_mode), ("062000", "single_issuer"))
+        self.assertEqual(operator.bank_bsb, "062000")
         self.assertEqual(list(operator.supported_settlement_assets.all()), [audy])
         self.assertEqual(operator.issued_stablecoin, audy)
 
@@ -203,7 +200,6 @@ class OperatorAdminTest(TestCase):
         payload = {
             "name": "Acme",
             "contact_email": "ops@acme.test",
-            "deployment_mode": DeploymentMode.REGISTRY,
             "receiving_wallet_chain": ReceivingChain.BASE,
             "supported_settlement_assets": [str(audy.pk), str(elsewhere.pk)],
             "investor_kyc_required": "on",
@@ -226,7 +222,6 @@ class OperatorAdminTest(TestCase):
         change_url = reverse("admin:operators_operator_change", args=[Operator.get().pk])
         payload = {
             "name": "Acme",
-            "deployment_mode": DeploymentMode.REGISTRY,
             "receiving_wallet_chain": ReceivingChain.BASE,
             "issued_stablecoin": str(audy.pk),
             "investor_kyc_required": "on",
@@ -255,7 +250,6 @@ class OperatorAdminTest(TestCase):
         change_url = reverse("admin:operators_operator_change", args=[operator.pk])
         payload = {
             "name": "Acme",
-            "deployment_mode": DeploymentMode.REGISTRY,
             "receiving_wallet_chain": ReceivingChain.BASE,
             "payment_reference_prefix": "LEDOVAPAYMENT",
             "investor_kyc_required": "on",
@@ -372,7 +366,6 @@ class OperatorApiTest(APITestCase):
         self.assertEqual(body["issuedStablecoin"], expected_asset)
         self.assertEqual(body["supportedSettlementAssets"], [expected_asset])
         self.assertEqual((body["investorKycRequired"], body["issuerKycRequired"]), (True, False))
-        self.assertEqual(body["deploymentMode"], "registry")
 
     def test_payment_instructions_carry_only_the_rails_that_are_set(self):
         operator = Operator.get()

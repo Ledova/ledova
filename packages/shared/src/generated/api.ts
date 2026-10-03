@@ -2623,7 +2623,6 @@ export interface ApiComponents {
     DeletedAccountResponse: {
       message: string;
     };
-    DeploymentModeEnum: 'single_issuer' | 'registry';
     DeviceToken: {
       createdAt: string;
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
@@ -3094,7 +3093,6 @@ export interface ApiComponents {
     Operator: {
       abn: string;
       contactEmail: string;
-      deploymentMode: ApiComponents['schemas']['DeploymentModeEnum'];
       investorKycRequired: boolean;
       issuedStablecoin: ApiComponents['schemas']['SettlementAsset'] | null;
       issuerKycRequired: boolean;

@@ -47,7 +47,6 @@ class OperatorSerializer(serializers.ModelSerializer):
             "abn",
             "contact_email",
             "website",
-            "deployment_mode",
             "supported_settlement_assets",
             "issued_stablecoin",
             "investor_kyc_required",
