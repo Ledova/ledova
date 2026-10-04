@@ -548,7 +548,7 @@ it('rejects an unconfirmed admission and retries the same request without optimi
 });
 
 it.each([
-  ['a pending status', () => admissionRequest()],
+  ['a pending status', () => ({ ...admitted(), status: 'pending' })],
   ['no appointment', () => ({ ...admitted(), appointment: undefined })],
 ])('rejects an admission receipt with %s without recording authority', async (_shape, receipt) => {
   rows = [admissionRequest()];
@@ -568,7 +568,13 @@ it.each([
 });
 
 it.each([
-  ['an active appointment', () => admitted()],
+  [
+    'an active appointment',
+    () => {
+      const result = revoked();
+      return { ...result, appointment: { ...result.appointment, status: 'active' } };
+    },
+  ],
   [
     'no revocation time',
     () => {
@@ -576,6 +582,7 @@ it.each([
       return { ...result, appointment: { ...result.appointment, revokedAt: null } };
     },
   ],
+  ['a withdrawn request status', () => ({ ...revoked(), status: 'withdrawn' })],
 ])('rejects a revocation receipt with %s and keeps the appointment revocable', async (_shape, receipt) => {
   rows = [admitted()];
   api.post.mockResolvedValueOnce({ data: receipt() });

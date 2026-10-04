@@ -604,7 +604,7 @@ it('refuses an unconfirmed admission response and retries the same declaration w
 });
 
 it.each([
-  ['a pending status', admissionRequest],
+  ['a pending status', { ...admitted, status: 'pending' }],
   ['no appointment', { ...admitted, appointment: undefined }],
 ])('refuses an admission response with %s and keeps the declaration available to retry', async (_shape, receipt) => {
   history = [admissionRequest];
@@ -620,8 +620,9 @@ it.each([
 });
 
 it.each([
-  ['an active appointment', admitted],
+  ['an active appointment', { ...revoked, appointment: { ...revoked.appointment, status: 'active' } }],
   ['no revocation time', { ...revoked, appointment: { ...revoked.appointment, revokedAt: null } }],
+  ['a withdrawn request status', { ...revoked, status: 'withdrawn' }],
 ])('refuses a revocation response with %s and keeps the appointment revocable', async (_shape, receipt) => {
   history = [admitted];
   post.mockResolvedValue({ data: receipt });

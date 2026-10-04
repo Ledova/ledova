@@ -197,7 +197,7 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
     def test_expired_proposal_and_mismatched_expiry_are_refused_on_insert(self):
         with self.subTest(expiry="mismatched"):
             self.assert_refused(expires_at=timezone.now() + timedelta(days=1))
-        expiry = timezone.now() + timedelta(seconds=1)
+        expiry = timezone.now() + timedelta(seconds=3)
         expiring = self.submit(requested_expires_at=expiry)
         time.sleep(max(0.0, (expiry - timezone.now()).total_seconds()) + 0.05)
         with self.subTest(expiry="passed"):
