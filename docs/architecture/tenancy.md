@@ -220,8 +220,9 @@ fetching public market prices for already admitted tokens, and reading the
 documents attached to the approved offerings of a share class the caller's
 directory admits ([offerings](offerings.md)). Each resolves what the caller may
 see under the app role first and bounds one operator query to it. They do not
-expose private orders or wallets, and the company document policy stays
-owner-only.
+expose private orders or wallets. The basic company document policy permits reads
+for current personal administration or the bounded unrooted-draft setup exception;
+app writes remain closed.
 
 Order creation authorizes the exact submission in app scope, then rechecks its
 owner and wallet under locks in one bounded operator transaction. Challenge spend,

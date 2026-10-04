@@ -253,8 +253,9 @@ storage together.
 The [company information guide](company-information.md) describes the current
 client selection, edit and document workflow.
 
-Company list/detail/basic PATCH and company-document upload, private-file reads
-and deletion now require current personal `admin` for that exact company. Initial,
+Basic company PATCH and company-document upload, private-file reads and deletion
+require current personal `admin` for that exact company or the bounded draft setup
+exception below. Initial,
 invited and legacy appointments use the same live account, verified-email,
 configured identity, expiry and revocation checks. Personal capabilities remain
 six independent values; delegatable scope supplies no basic administration.
