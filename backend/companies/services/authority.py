@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -74,7 +75,11 @@ def _require_initial_admission(actor, profile, company, proposal):
 
 
 def _existing_admission(company, proposal):
-    appointment = CompanyAppointment.objects.filter(company=company, request__isnull=False).first()
+    appointment = (
+        CompanyAppointment.objects.filter(company=company)
+        .filter(Q(request__isnull=False) | Q(legacy_owner__isnull=False))
+        .first()
+    )
     if appointment and appointment.request_id != proposal.pk:
         raise AuthorityAdmissionConflictException(
             "Initial authority is already recorded. Use company administrator changes."

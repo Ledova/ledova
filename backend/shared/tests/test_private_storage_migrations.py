@@ -17,6 +17,7 @@ from companies.models import DocumentType as CompanyDocumentType
 from documents.models import Document, DocumentType
 from shared.tests.schema import restore_every_migration
 from shared.utils.migrations import UploadRelocationError
+from users.models import UserProfile
 
 User = get_user_model()
 
@@ -86,6 +87,7 @@ class PrivateStorageMigrationRoundTripTest(TransactionTestCase):
 
     def make_company_document(self, label, acn, filename="constitution.pdf"):
         owner = User.objects.create_user(email=f"{label}@example.test", password="pw-12345678")
+        UserProfile.objects.create(user=owner, full_name=f"{label} owner")
         company = Company.objects.create(
             owner=owner,
             name=f"{label} Pty Ltd",

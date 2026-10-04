@@ -196,6 +196,75 @@ it('requires an authenticated account before reading or presenting team forms', 
   expect(get).not.toHaveBeenCalled();
 });
 
+it.each(['active', 'expired'] as const)(
+  'retains and revokes %s legacy-owner history without inventing a declaration',
+  async (status) => {
+    const legacy: OwnCompanyAppointment = {
+      ...a,
+      source: 'legacy_owner',
+      declarationVersion: null,
+      declarationText: null,
+      status,
+      isEffective: status === 'active',
+      expiresAt: status === 'expired' ? '2020-01-01T00:00:00Z' : null,
+    };
+    history = [legacy, b];
+    const view = await screen();
+    await fireEvent.press(view.getByRole('button', { name: 'Your appointment appointment-a' }));
+    const record = within(view.getByRole('button', { name: 'Your appointment appointment-a' }));
+    expect(record.getByText(/Legacy company owner/)).toBeTruthy();
+    expect(view.getAllByText(COMPANY_AUTHORITY_DECLARATION)).toHaveLength(1);
+    expect(view.queryByText(/Recorded declaration version/)).toBeNull();
+    if (status === 'active') {
+      await chooseSource(view, legacy);
+      expect(view.getByRole('radio', { name: `Select source appointment ${legacy.uuid}` })).toHaveTextContent(
+        /Legacy owner appointment/,
+      );
+    }
+    const revoked = { ...legacy, status: 'revoked' as const, isEffective: false, revokedAt: '2026-10-04T01:00:00Z' };
+    post.mockImplementationOnce(async (url, _, config) => {
+      config?.ledovaSubmissionGuard?.();
+      expect(url).toBe(`${APPOINTMENTS}${legacy.uuid}/revoke/`);
+      history = history.map((item) => (item.uuid === legacy.uuid ? revoked : item));
+      return { data: revoked };
+    });
+    await fireEvent.press(view.getByRole('button', { name: 'Revoke your appointment appointment-a' }));
+    expect(jest.mocked(Alert.alert).mock.calls.at(-1)![1]).toContain(
+      'Another initial self-declaration cannot replace it',
+    );
+    expect(jest.mocked(Alert.alert).mock.calls.at(-1)![1]).not.toContain('Its declaration');
+    await act(alertButtons()[1].onPress!);
+    await waitFor(() => expect(record.getByText(/revoked · Not current · Legacy company owner/)).toBeTruthy());
+    expect(view.queryByText(/Recorded declaration version/)).toBeNull();
+    expect(view.getAllByText(COMPANY_AUTHORITY_DECLARATION)).toHaveLength(1);
+  },
+);
+
+it('labels a bounded legacy-owner team record without attributing a declaration', async () => {
+  teamHistory = [{ ...other, source: 'legacy_owner' }];
+  const view = await screen();
+  await fireEvent.press(view.getByRole('radio', { name: `Select company ${a.companyName}` }));
+  await fireEvent.press(await view.findByRole('button', { name: 'Team appointment appointment-other' }));
+  const record = within(view.getByRole('button', { name: 'Team appointment appointment-other' }));
+  expect(record.getByText(/Legacy company owner/)).toBeTruthy();
+  expect(view.getByText(other.email)).toBeTruthy();
+  expect(view.queryByText(/Recorded declaration version/)).toBeNull();
+  expect(view.getAllByText(COMPANY_AUTHORITY_DECLARATION)).toHaveLength(1);
+});
+
+it('refuses a legacy-owner response from invitation acceptance', async () => {
+  const view = await screen();
+  await fireEvent.changeText(view.getByLabelText('Invitation code'), code);
+  await fireEvent.press(view.getByRole('checkbox', { name: 'Accept authorisation declaration' }));
+  post.mockResolvedValueOnce({
+    data: { ...a, source: 'legacy_owner', declarationVersion: null, declarationText: null },
+  });
+  await fireEvent.press(view.getByRole('button', { name: 'Accept invitation' }));
+  await view.findByText('The invitation could not be accepted. Check the code and account requirements, then retry.');
+  expect(view.queryByText(/Appointment recorded for/)).toBeNull();
+  expect(view.getByLabelText('Invitation code').props.value).toBe(code);
+});
+
 it('retains expired and non-current own history without offering either as a delegation source', async () => {
   history = [
     { ...a, isEffective: false },

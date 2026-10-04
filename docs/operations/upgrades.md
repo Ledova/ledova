@@ -115,19 +115,46 @@ This migration also aligns initial admission with company-first locking and
 checks expiry against actual time after lock waits. It seeds no owner, changes
 no register decision and approves no pending instruction. Backend and generated
 API types provide the new invitation/team operations; the existing initial
-request clients remain compatible while team screens are a later increment.
+request clients remain compatible. Both clients now provide the team workflow.
 Any retained invitation, including an unaccepted one, or non-self administrator
 revocation prevents reversal. Supported empty or initial/self-revocation
 reversal restores the preceding guard bodies and policies exactly. Do not purge
 history to force a rollback. Apply only through the separately authorised upgrade
 process with the database and private storage preserved together.
 
+`companies/0019_legacy_owner_appointments` records retained legacy sources and
+administrator appointments for existing companies without an initial-request or
+legacy-owner root. It skips existing roots even when expired or revoked, and
+preserves requests, evidence, owners, reviews, pending instructions and historical
+actors. Each source binds the actual company, owner account and owner profile at
+upgrade time. A missing owner profile refuses the atomic upgrade before seeding;
+repair the actual retained profile through its supported workflow before retrying.
+The upgrade records its own provenance and time, with no invented declaration,
+provider result, director authority, activation or instruction approval.
+
+Legacy owners receive personal `admin` and onward delegation of the six existing
+capabilities; current account, email and configured identity checks still apply.
+The source table has forced RLS denying app reads/writes, and database guards
+refuse source changes or new legacy records after the upgrade. New companies and
+later owner changes are not seeded. Revocation never reopens initial admission.
+
+Coordinate this atomic migration with company and authority writers: it locks
+existing companies before owner accounts, profiles and appointment schema changes.
+The backend schema, generated types and both clients must ship together because
+appointment history adds `legacy_owner` and its declaration fields are null;
+initial/invited records keep their exact declarations. Rehearse the historical
+upgrade and a fresh migration with ordinary/scoped tests, roles/catalogue and
+migration drift checks. Back up the database and private storage together.
+Reversal refuses while any legacy source or appointment remains, including a
+revoked appointment or retained source alone. Supported empty reversal restores
+the preceding guard and constraints. Do not delete history to force a downgrade.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)
 has delivered product-mode retirement and initial self-declared appointments
-above, plus the invitation/team API. Team web/mobile screens, legacy-owner
-migration and dependent company-authority workflows remain planned. The historical migrations
+above, plus the invitation/team API, both client team screens and the legacy-owner
+upgrade. Dependent company-authority workflows remain planned. The historical migrations
 below remain applied history; do not edit them or reset a database to implement
 the new direction.
 

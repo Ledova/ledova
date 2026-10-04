@@ -94,9 +94,11 @@ class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
         fields = [*CompanyAppointmentSerializer.Meta.fields, "company", "company_name", "source"]
         read_only_fields = fields
 
-    @extend_schema_field(serializers.ChoiceField(choices=["initial", "invitation"]))
+    @extend_schema_field(serializers.ChoiceField(choices=["initial", "invitation", "legacy_owner"]))
     def get_source(self, obj) -> str:
-        return "initial" if obj.request_id else "invitation"
+        if obj.request_id:
+            return "initial"
+        return "legacy_owner" if obj.legacy_owner_id else "invitation"
 
 
 class CompanyTeamAppointmentSerializer(OwnCompanyAppointmentSerializer):

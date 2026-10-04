@@ -23,6 +23,7 @@ from companies.tests.test_document_file_access import (
 )
 from shared.db import atomic, current_alias
 from shared.tests.schema import migrate_to, restore_every_migration
+from users.models import UserProfile
 
 
 def review_fixture():
@@ -282,11 +283,12 @@ class CompanyDocumentReviewMigrationTest(TransactionTestCase):
 
     def test_upgrade_does_not_invent_verification_and_downgrade_refuses_bound_evidence(self):
         owner, company, reviewer, document = review_fixture()
+        UserProfile.objects.create(user=owner, full_name="Legacy document owner")
         previous = [("companies", "0008_company_registry_verification")]
         historical = migrate_to(previous)
         old_document = historical.get_model("companies", "CompanyDocument")
         old_document.objects.filter(pk=document.pk).update(is_verified=True, verified_by_id=reviewer.pk)
-        restore_every_migration()
+        migrate_to([("companies", "0017_company_team_invitations")])
         document.refresh_from_db()
         self.assertTrue(document.is_verified)
         self.assertEqual(document.verified_fingerprint, "")

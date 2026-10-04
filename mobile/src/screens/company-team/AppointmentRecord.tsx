@@ -87,7 +87,7 @@ export function AppointmentRecord({
     };
     Alert.alert(
       'Revoke appointment permanently?',
-      `Permanently remove ${own ? 'your' : "this person's"} appointment for ${companyName}? This appointment loses company authority and cannot be restored. ${appointment.source === 'initial' ? 'Another initial self-declaration cannot replace it. ' : ''}Its declaration and history remain retained.`,
+      `Permanently remove ${own ? 'your' : "this person's"} appointment for ${companyName}? This appointment loses company authority and cannot be restored. ${appointment.source !== 'invitation' ? 'Another initial self-declaration cannot replace it. ' : ''}Its history remains retained.`,
       [
         { text: 'Cancel', style: 'cancel', onPress: cancel },
         {
@@ -114,7 +114,11 @@ export function AppointmentRecord({
           <Text style={styles.heading}>{person}</Text>
           <Text style={styles.muted}>
             {appointment.status} · {appointment.isEffective ? 'Current authority' : 'Not current'} ·{' '}
-            {appointment.source === 'initial' ? 'Initial declaration' : 'Invitation'}
+            {appointment.source === 'initial'
+              ? 'Initial declaration'
+              : appointment.source === 'legacy_owner'
+                ? 'Legacy company owner'
+                : 'Invitation'}
           </Text>
           <Text style={styles.muted}>{scopeLabels(appointment.capabilities) || 'No personal permissions'}</Text>
         </View>
@@ -133,12 +137,15 @@ export function AppointmentRecord({
             {appointment.uuid}
           </Row>
         </Rows>
-        {'declarationText' in appointment && (
-          <>
-            <Text style={styles.text}>{appointment.declarationText}</Text>
-            <Text style={styles.muted}>Recorded declaration version {appointment.declarationVersion}</Text>
-          </>
-        )}
+        {appointment.source !== 'legacy_owner' &&
+          'declarationText' in appointment &&
+          appointment.declarationText &&
+          appointment.declarationVersion && (
+            <>
+              <Text style={styles.text}>{appointment.declarationText}</Text>
+              <Text style={styles.muted}>Recorded declaration version {appointment.declarationVersion}</Text>
+            </>
+          )}
         {appointment.status !== 'revoked' && (
           <Action
             label={sending ? 'Revoking…' : 'Revoke appointment'}
