@@ -131,7 +131,7 @@ def an_account(label, **fields):
     return UserAccount.objects.create(user_profile=a_profile(label), **fields)
 
 
-def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
+def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classification_model=InvestorClassification):
     number = next(_sequence)
     refs = reference_data()
     email = f"{label}@tenants.example.test"
@@ -173,8 +173,8 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
     with use_migrate():
-        investor_classification = InvestorClassification.objects.create(
-            user_account=account,
+        investor_classification = classification_model.objects.create(
+            user_account_id=account.pk,
             category=InvestorCategory.PROFESSIONAL_INVESTOR,
             declaration_accepted=True,
             declaration_text="Declared",

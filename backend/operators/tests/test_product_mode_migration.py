@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.core.files.base import ContentFile
 from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django.utils import timezone
 
@@ -52,7 +53,11 @@ class ProductModeMigrationTest(TransactionTestCase):
 
     def preserves_existing_data(self, mode):
         historical = migrate_to(BEFORE).get_model("operators", "Operator")
-        tenant = make_tenant(f"mode-{mode}", with_swap=False)
+        loader = MigrationExecutor(connection).loader
+        applied = loader.project_state(list(loader.applied_migrations)).apps
+        tenant = make_tenant(
+            f"mode-{mode}", with_swap=False, classification_model=applied.get_model("users", "InvestorClassification")
+        )
         operator = historical.objects.create(
             name="Synthetic platform",
             legal_name="Synthetic Platform Pty Ltd",
@@ -73,7 +78,7 @@ class ProductModeMigrationTest(TransactionTestCase):
         operator.supported_settlement_assets.add(tenant.refs.stablecoin.pk)
         supporting = Document.objects.create(
             uploaded_by=tenant.user,
-            classification=tenant.investor_classification,
+            classification_id=tenant.investor_classification.pk,
             attached_at=timezone.now(),
             original_filename="retained.pdf",
             file=ContentFile(b"Synthetic private supporting evidence", name="retained.pdf"),
@@ -100,7 +105,7 @@ class ProductModeMigrationTest(TransactionTestCase):
         )
         Document.objects.create(
             uploaded_by=tenant.user,
-            classification=tenant.investor_classification,
+            classification_id=tenant.investor_classification.pk,
             attached_at=timezone.now(),
             purged_at=timezone.now(),
         )
