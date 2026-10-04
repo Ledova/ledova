@@ -40,7 +40,11 @@ from blockchain.models import (
 from blockchain.tests.test_outgoing_processes import finish
 from companies.models import Company, CompanyStatus
 from companies.services.document_review import prepare_document_review, verify_document
-from companies.tests.test_document_file_access import attach_file, make_document
+from companies.tests.test_document_file_access import (
+    admit_company_administrator,
+    attach_file,
+    make_document,
+)
 from feature_flags.models import FeatureFlag
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
@@ -190,8 +194,10 @@ class ChainTestMixin:
         super().setUpClass()
         reset_chain_client()
 
-    def setUp(self):
+    def setUp(self, *, company_administration=False):
         self.tenant = make_tenant("chain")
+        if company_administration:
+            admit_company_administrator(self.tenant.company)
         Company.objects.filter(pk=self.tenant.company.pk).update(
             status=CompanyStatus.ACTIVE, acn=f"{secrets.randbelow(10**9):09d}"
         )
@@ -514,7 +520,10 @@ class SettlementChainMixin(ChainTestMixin):
 @override_settings(**CHAIN_SETTINGS)
 class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
     def setUp(self):
-        super().setUp()
+        super().setUp(
+            company_administration=self._testMethodName
+            == "test_a_real_settlement_is_entered_only_once_its_transfer_instruction_applies"
+        )
         self.settlement_parties()
         self._deployed()
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
