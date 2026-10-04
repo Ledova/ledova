@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyDocument
+from companies.tests.test_document_file_access import admit_company_administrator
 from offerings.models import Offering
 from offerings.tests.test_directory_documents import offer_document, publish
 from offerings.tests.test_published_documents_stay import ADD, STAYS, attached
@@ -19,6 +20,7 @@ class ScopedPublishedDocumentsStayTest(RunsOnTheScopedConnection, APITransaction
             self.supplement = offer_document(self.issuer.company, name="Supplementary memorandum")
             self.issuer.offering.documents.add(self.memorandum)
             publish(self.issuer.offering)
+        admit_company_administrator(self.issuer.company)
         self.offering = self.issuer.offering
         self.client.force_authenticate(self.issuer.user)
 

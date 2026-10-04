@@ -1,16 +1,13 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ApiClientProvider, OFFER_DOCUMENT_COPY } from '@ledova/shared';
+import { ApiClientProvider, OFFER_DOCUMENT_COPY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
+import { companyDetail, companyPreferences, companyQueryClient } from '../../testSupport/companyAdministration';
 import { OfferingsScreen } from './OfferingsScreen';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 
 let mockRole = 'company';
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
-}));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
@@ -33,6 +30,7 @@ const SUBSCRIPTIONS = '/api/v1/offerings/offering-a/subscriptions/';
 const OPERATOR = '/api/operator/';
 const TOKENS = '/api/v1/tokens/';
 const company = {
+  ...companyDetail({ name: 'Example Company' }),
   uuid: 'company-a',
   name: 'Example Company',
   status: 'active',
@@ -98,9 +96,7 @@ beforeEach(() => {
   current = { ...company };
   detail = { ...draft };
   listed = { ...draft };
-  client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
-  });
+  client = companyQueryClient();
   get.mockReset();
   patch.mockReset();
   post.mockReset();
@@ -109,10 +105,13 @@ beforeEach(() => {
   post.mockResolvedValue({ data: {} });
   remove.mockResolvedValue({ data: {} });
   get.mockImplementation(async (url, config) => {
+    if (url === '/api/auth/verify/') return { data: { valid: true } };
+    if (url === '/api/user-preferences/')
+      return { data: companyPreferences(mockRole as Parameters<typeof companyPreferences>[0]) };
     if (url === failure) throw new Error('Synthetic read refusal');
     const number = (config?.params as { page?: number } | undefined)?.page ?? 1;
     if (url === badPage && number === 2) throw new Error('Second page refused');
-    if (url === '/api/v1/companies/') return { data: { results: [{ uuid: current.uuid, name: 'Incomplete' }] } };
+    if (url === '/api/v1/companies/') return { data: { results: [{ ...current, name: 'Incomplete' }], next: null } };
     if (url === COMPANY) return { data: { ...current } };
     if (url === OPERATOR) return { data: { name: 'Example Operator', supportedSettlementAssets: [] } };
     if (url === TOKENS)
@@ -214,8 +213,9 @@ it('puts Your offerings first, then its applications, the directory switch and w
   ]);
 });
 
-it('makes no company or offering read for a member account', async () => {
-  mockRole = 'member';
+it('makes no company or offering read for an investor account', async () => {
+  mockRole = 'investor';
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('investor') });
   const view = await render(<OfferingsScreen />, { wrapper });
   expect(view.getByText('Verify your company access before opening Offerings.')).toBeTruthy();
   expect(get).not.toHaveBeenCalled();
@@ -245,9 +245,14 @@ it('suppresses stale list actions after failed reads while preserving an edit dr
   await waitFor(() => expect(view.getByRole('button', { name: 'Save changes' })).toBeEnabled());
   await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
   await waitFor(() =>
-    expect(patch).toHaveBeenCalledWith(OFFERING, expect.objectContaining({ summary: 'Retained draft' }), {
-      ledovaSessionEpoch: getSessionEpoch(),
-    }),
+    expect(patch).toHaveBeenCalledWith(
+      OFFERING,
+      expect.objectContaining({ summary: 'Retained draft' }),
+      expect.objectContaining({
+        ledovaSessionEpoch: getSessionEpoch(),
+        ledovaSubmissionGuard: expect.any(Function),
+      }),
+    ),
   );
 });
 
@@ -314,7 +319,7 @@ it('blocks Directory visibility when company refresh fails and reports a refused
   expect(patch).toHaveBeenLastCalledWith(
     COMPANY,
     { isOpenToInvestors: true },
-    { ledovaSessionEpoch: getSessionEpoch() },
+    expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) }),
   );
 });
 
@@ -330,7 +335,7 @@ it('holds the directory switch while its change is saving', async () => {
     expect(view.getByLabelText('Show this company to eligible investors').props.value).toBe(false);
   } finally {
     current = { ...current, isOpenToInvestors: true };
-    await act(() => saving.resolve({ data: {} }));
+    await act(() => saving.resolve({ data: { ...current } }));
   }
   await waitFor(() => {
     expect(view.getByLabelText('Show this company to eligible investors').props.disabled).toBe(false);
@@ -368,13 +373,39 @@ it('uses issuer action contracts, refuses duplicate pending actions and retains 
   expect(post).toHaveBeenCalledWith(
     '/api/v1/offerings/offering-a/submit/',
     {},
-    { ledovaSessionEpoch: getSessionEpoch() },
+    expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) }),
   );
   expect(post).toHaveBeenCalledTimes(1);
   await act(() => pending.reject(new Error('Refused')));
   expect(await view.findByText('The request could not be completed. Try again.')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Delete Ordinary shares offering' }));
-  await waitFor(() => expect(remove).toHaveBeenCalledWith(OFFERING, { ledovaSessionEpoch: getSessionEpoch() }));
+  await waitFor(() =>
+    expect(remove).toHaveBeenCalledWith(
+      OFFERING,
+      expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) }),
+    ),
+  );
+});
+
+it('refuses synchronous repeats of the same retained offering action callback', async () => {
+  const view = await start();
+  const saving = deferred<{ data: object }>();
+  post.mockReturnValue(saving.promise);
+  const button = view.getByRole('button', { name: 'Submit for review Ordinary shares' });
+  let fiber: typeof button.unstable_fiber | null = button.unstable_fiber;
+  while (fiber && typeof fiber.memoizedProps?.onPress !== 'function') fiber = fiber.return;
+  const press = fiber?.memoizedProps.onPress;
+  expect(typeof press).toBe('function');
+  try {
+    await act(() => {
+      press();
+      press();
+    });
+    expect(post).toHaveBeenCalledTimes(1);
+  } finally {
+    await act(() => saving.reject(new Error('Synthetic refusal')));
+  }
+  expect(await view.findByText('The request could not be completed. Try again.')).toBeTruthy();
 });
 
 it('creates a bounded draft through the existing API and retains all inputs on refusal', async () => {
@@ -413,12 +444,12 @@ it('creates a bounded draft through the existing API and retains all inputs on r
       acceptsBankTransfer: true,
       settlementAssets: [],
     }),
-    { ledovaSessionEpoch: getSessionEpoch() },
+    expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) }),
   );
 });
 
 it.each(['success', 'refusal'])(
-  'keeps an old editor draft and suppresses callbacks after session retirement on %s',
+  'retires an old editor and suppresses callbacks after session retirement on %s',
   async (outcome) => {
     const view = await edit();
     await fireEvent.changeText(view.getByLabelText('Summary'), 'Retained old draft');
@@ -427,15 +458,18 @@ it.each(['success', 'refusal'])(
     const epoch = getSessionEpoch();
     await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith(OFFERING, expect.any(Object), { ledovaSessionEpoch: epoch }),
+      expect(patch).toHaveBeenCalledWith(
+        OFFERING,
+        expect.any(Object),
+        expect.objectContaining({ ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) }),
+      ),
     );
     const refresh = jest.spyOn(client, 'invalidateQueries');
     await act(() => {
       invalidateSessionScope();
     });
     await act(() => (outcome === 'success' ? pending.resolve({ data: {} }) : pending.reject(new Error('Old refusal'))));
-    await waitFor(() => expect(view.getByRole('button', { name: 'Save changes' })).toBeEnabled());
-    expect(view.getByLabelText('Summary').props.value).toBe('Retained old draft');
+    await waitFor(() => expect(view.queryByLabelText('Summary')).toBeNull());
     expect(view.queryByRole('alert')).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
   },
@@ -459,7 +493,9 @@ it.each([
   if (action === 'directory') await fireEvent(view.getByLabelText(label), 'valueChange', true);
   else await fireEvent.press(view.getByRole('button', { name: label }));
   await waitFor(() => expect(method).toHaveBeenCalledTimes(1));
-  expect(method.mock.calls[0].at(-1)).toEqual({ ledovaSessionEpoch: epoch });
+  expect(method.mock.calls[0].at(-1)).toEqual(
+    expect.objectContaining({ ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) }),
+  );
   const refresh = jest.spyOn(client, 'invalidateQueries');
   await act(() => {
     invalidateSessionScope();
@@ -472,7 +508,16 @@ it.each([
 
 const DOCUMENTS = `${OFFERING}documents/`;
 function companyDocument(uuid: string, documentType: string, documentTypeDisplay: string) {
-  return { uuid, name: `${uuid}.pdf`, documentType, documentTypeDisplay };
+  return {
+    uuid,
+    company: company.uuid,
+    name: `${uuid}.pdf`,
+    documentType,
+    documentTypeDisplay,
+    isVerified: false,
+    verifiedAt: null,
+    createdAt: '2026-10-04T00:00:00Z',
+  };
 }
 function publish(status: 'approved' | 'closed') {
   listed = { ...draft, status, statusDisplay: status, canBeEdited: false, canBeDeleted: false };
@@ -511,7 +556,7 @@ it.each(['approved', 'closed'] as const)(
     expect(post).toHaveBeenCalledWith(
       DOCUMENTS,
       { documents: ['supplement'] },
-      { ledovaSessionEpoch: getSessionEpoch() },
+      expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) }),
     );
   },
 );
@@ -547,15 +592,18 @@ it.each(['success', 'refusal'])(
     await fireEvent(view.getByLabelText('Attach supplement.pdf'), 'valueChange', true);
     await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
     await waitFor(() =>
-      expect(post).toHaveBeenCalledWith(DOCUMENTS, { documents: ['supplement'] }, { ledovaSessionEpoch: epoch }),
+      expect(post).toHaveBeenCalledWith(
+        DOCUMENTS,
+        { documents: ['supplement'] },
+        expect.objectContaining({ ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) }),
+      ),
     );
     const refresh = jest.spyOn(client, 'invalidateQueries');
     await act(() => {
       invalidateSessionScope();
     });
     await act(() => (outcome === 'success' ? pending.resolve({ data: {} }) : pending.reject(new Error('Old refusal'))));
-    await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeEnabled());
-    expect(view.getByLabelText('Attach supplement.pdf')).toBeTruthy();
+    await waitFor(() => expect(view.queryByLabelText('Attach supplement.pdf')).toBeNull());
     expect(view.queryByRole('alert')).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
   },
@@ -584,4 +632,50 @@ it('sends nothing once the offering leaves approved or closed with a document al
   expect(view.getByRole('button', { name: 'Add documents' })).toBeDisabled();
   await fireEvent.press(view.getByRole('button', { name: 'Add documents' }));
   expect(post).not.toHaveBeenCalled();
+});
+
+it('waits for all owned companies and requires selection before reading business records, then retires the old offering draft', async () => {
+  const second = companyDetail({ uuid: 'company-b', name: 'Second Company', status: 'active', canIssueTokens: true });
+  const originalRead = get.getMockImplementation()!;
+  get.mockImplementation((url, config) => {
+    if (url === '/api/v1/companies/')
+      return Promise.resolve(
+        page(
+          (config?.params as { page?: number } | undefined)?.page === 2 ? [second] : [current],
+          (config?.params as { page?: number } | undefined)?.page ?? 1,
+        ),
+      );
+    if (url === '/api/v1/companies/company-b/') return Promise.resolve({ data: second });
+    return originalRead(url, config);
+  });
+  const view = await render(<OfferingsScreen />, { wrapper });
+  await view.findByRole('button', { name: 'Select company Second Company' });
+  expect(get.mock.calls.some(([url]) => [TOKENS, OFFERINGS, OPERATOR, COMPANY].includes(url))).toBe(false);
+  await fireEvent.press(view.getByRole('button', { name: 'Select company Example Company' }));
+  await view.findByText('Your offerings (1)');
+  await fireEvent.press(view.getByRole('button', { name: 'Edit Ordinary shares offering' }));
+  await view.findByLabelText('Summary');
+  await fireEvent.changeText(view.getByLabelText('Summary'), 'Company A only draft');
+  await fireEvent.press(view.getByRole('button', { name: 'Select company Second Company' }));
+  await waitFor(() => expect(view.queryByLabelText('Summary')).toBeNull());
+  expect(patch).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('requires current personal admin for a directory company edit even when the legacy owner can still read offerings', async () => {
+  current = { ...current, administrativeAccess: { capabilities: [], draftSetup: false } };
+  const view = await start();
+  expect(view.getByLabelText('Show this company to eligible investors').props.disabled).toBe(true);
+  await fireEvent(view.getByLabelText('Show this company to eligible investors'), 'valueChange', true);
+  expect(patch).not.toHaveBeenCalled();
+});
+
+it('does not invalidate selected company caches for an unrelated directory edit receipt', async () => {
+  const view = await start();
+  patch.mockResolvedValueOnce({ data: companyDetail({ uuid: 'company-b', isOpenToInvestors: true }) });
+  const invalidated = jest.spyOn(client, 'invalidateQueries');
+  await fireEvent(view.getByLabelText('Show this company to eligible investors'), 'valueChange', true);
+  await view.findByText('Directory visibility could not be changed. Try again.');
+  expect(invalidated).not.toHaveBeenCalled();
+  expect(view.getByLabelText('Show this company to eligible investors').props.value).toBe(false);
 });

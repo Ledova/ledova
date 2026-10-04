@@ -23,13 +23,18 @@ from companies.models import (
     CompanyStatus,
     CompanyTeamInvitation,
 )
+from companies.services.documents import delete_document
 from companies.tests.registry_fixtures import DECLARATION
-from companies.tests.test_document_file_access import attach_file, make_document
+from companies.tests.test_document_file_access import (
+    attach_file,
+    legacy_company_administrators,
+    make_document,
+)
 from feature_flags.models import FeatureFlag
 from integrations.abr.client import RegistryObservation
 from offerings.models import Offering, OfferingStatus, Subscription
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import SYNTHETIC_SETTLEMENT_CONTRACT
 from shared.tests.tenants import (
@@ -82,23 +87,26 @@ ALLOWANCE = {
 
 
 def _activate_company(tenant):
-    Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
 
 
 def _request_company_info(tenant):
-    Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.INFO_REQUIRED)
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.INFO_REQUIRED)
 
 
 def _upload_listing_documents(tenant):
-    for document_type in LISTING_REQUIRED_DOCUMENTS:
-        CompanyDocument.objects.create(
-            company=tenant.company,
-            document_type=document_type,
-            name=document_type.label,
-            external_url=f"https://docs.example.test/{tenant.label}/{document_type}",
-            file_size=1,
-            mime_type="application/pdf",
-        )
+    with use_migrate():
+        for document_type in LISTING_REQUIRED_DOCUMENTS:
+            CompanyDocument.objects.create(
+                company=tenant.company,
+                document_type=document_type,
+                name=document_type.label,
+                external_url=f"https://docs.example.test/{tenant.label}/{document_type}",
+                file_size=1,
+                mime_type="application/pdf",
+            )
 
 
 def _clear_subscriptions(tenant):
@@ -482,10 +490,26 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         return ROUTES
 
     @contextmanager
-    def undone_before_the_next_case(self):
+    def undone_before_the_next_case(self, route=None, actor=None):
+        if route and route.method == "post" and route.path == "/api/v1/companies/{company}/documents/":
+            with self.committed_document_upload(actor):
+                yield
+            return
         with atomic():
             yield
             transaction.set_rollback(True, using=current_alias())
+
+    @contextmanager
+    def committed_document_upload(self, actor):
+        with self.as_an_operator_would():
+            retained = set(CompanyDocument.objects.filter(company=actor.company).values_list("pk", flat=True))
+        try:
+            yield
+        finally:
+            with self.as_an_operator_would():
+                new_documents = list(CompanyDocument.objects.filter(company=actor.company).exclude(pk__in=retained))
+            for document in new_documents:
+                delete_document(document, actor=actor.user)
 
     @contextmanager
     def as_an_operator_would(self):
@@ -561,6 +585,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     effective_on=DAY,
                     recorded_by=tenant.user,
                 )
+        legacy_company_administrators(*(tenant.company for tenant in (*self.actors, self.other)))
 
     def _patch(self, target, **kwargs):
         patcher = patch(target, **kwargs)
@@ -634,7 +659,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             for route in ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
 
-                    with self.undone_before_the_next_case():
+                    with self.undone_before_the_next_case(route, actor):
                         context = dict(own)
                         if route.prepare:
                             with self.as_whoever_may_write_the_fixture(route, own, actor, actor):
@@ -651,7 +676,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.force_authenticate(actor.user)
             for route in OPERATOR_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
-                    with self.undone_before_the_next_case():
+                    with self.undone_before_the_next_case(route, actor):
                         if route.prepare:
                             with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                                 route.prepare(self.other)
@@ -674,7 +699,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.force_authenticate(actor.user)
             for route in DIRECTORY_ROUTES + MARKET_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
-                    with self.undone_before_the_next_case():
+                    with self.undone_before_the_next_case(route, actor):
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                             open_to_investors(self.other)
                             if route.prepare:
@@ -692,7 +717,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.force_authenticate(actor.user)
             for route in MARKET_ROUTES + DIRECTORY_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
-                    with self.undone_before_the_next_case():
+                    with self.undone_before_the_next_case(route, actor):
                         if route.prepare:
                             with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                                 route.prepare(self.other)
@@ -707,7 +732,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.force_authenticate(actor.user)
             for route in DIRECTORY_ROUTES + MARKET_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
-                    with self.undone_before_the_next_case():
+                    with self.undone_before_the_next_case(route, actor):
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
                             open_to_investors(self.other)
                             if route.prepare:
@@ -953,7 +978,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         )
         with self.as_an_operator_would():
             self.assertEqual(CompanyTeamInvitation.objects.count(), 1)
-            self.assertEqual(CompanyAppointment.objects.count(), 2)
+            self.assertEqual(CompanyAppointment.objects.filter(legacy_owner__isnull=True).count(), 2)
             self.assertFalse(CompanyAppointmentRevocation.objects.exists())
         accepted = self.client.post(accept_url, declaration, format="json")
         self.assertEqual(accepted.status_code, 200, accepted.content)
@@ -1005,13 +1030,15 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             {foreign_initial},
         )
 
-        with self.as_an_operator_would():
+        with use_migrate():
             Company.objects.filter(pk=company.pk).update(owner=self.actors[0].user)
         for actor in self.actors:
             self.client.force_authenticate(actor.user)
             with self.subTest(actor=actor.label):
                 self.assertEqual(self.rows(self.client.get(invitation_url)), [])
-                self.assertEqual(self.rows(self.client.get(own_url)), [])
+                history = self.rows(self.client.get(own_url))
+                self.assertEqual(len(history), 1)
+                self.assertEqual((history[0]["company"], history[0]["source"]), (str(actor.company.pk), "legacy_owner"))
                 denied = self.client.post(invitation_url, payload, format="json")
                 absent = self.client.post(
                     invitation_url, {**payload, "inviter_appointment": str(uuid4())}, format="json"
@@ -1029,7 +1056,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     self.assertEqual(denied.status_code, 404)
                 self.assertEqual(self.client.post(accept_url, declaration, format="json").status_code, 400)
         with self.as_an_operator_would():
-            self.assertEqual(CompanyAppointment.objects.count(), 3)
+            self.assertEqual(CompanyAppointment.objects.filter(legacy_owner__isnull=True).count(), 3)
             self.assertFalse(CompanyAppointmentRevocation.objects.exists())
 
         self.client.force_authenticate(owner)
@@ -1082,7 +1109,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.assertEqual({row["uuid"] for row in self.rows(self.client.get(own_url))}, {foreign_initial, child_id})
         with self.as_an_operator_would():
             self.assertEqual(CompanyTeamInvitation.objects.count(), 1)
-            self.assertEqual(CompanyAppointment.objects.count(), 3)
+            self.assertEqual(CompanyAppointment.objects.filter(legacy_owner__isnull=True).count(), 3)
             self.assertEqual(CompanyAppointmentRevocation.objects.count(), 2)
             self.assertEqual(CompanyAppointmentRevocation.objects.get(appointment_id=child_id).revoked_by_id, owner.pk)
 
@@ -1553,7 +1580,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 self.client.force_login(actor.user)
                 for action, predecessor, successor in REGISTRY_ADMIN_ROUTES:
                     with self.subTest(actor=actor.label, action=action):
-                        with self.as_an_operator_would():
+                        with use_migrate():
                             Company.objects.filter(pk=self.other.company.pk).update(status=predecessor)
                             before = CompanyRegistryCheck.objects.count()
                         path = reverse("admin:companies_company_transition", args=[self.other.company.pk, action])

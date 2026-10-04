@@ -35,6 +35,7 @@ from companies.services.authority_requests import (
     submit_authority_request,
     withdraw_authority_request,
 )
+from companies.services.editing import update_company
 from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_authority_requests import (
     PDF,
@@ -51,7 +52,7 @@ from integrations.kyc.base import (
     VerificationSession,
 )
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.models import RegisterMemberWallet, ShareToken
 from tokens.services.register_events import create_member, open_register
@@ -113,6 +114,13 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
                 **changes,
             }
         )
+
+    def change_snapshot_fixture(self, model, identity, changes):
+        if model is Company and set(changes) == {"name"}:
+            update_company(self.company, changes, actor=self.user)
+            return
+        with use_migrate() if model is Company else use_operator():
+            model.objects.filter(pk=identity).update(**changes)
 
     def appointment(self):
         with use_operator():
@@ -252,14 +260,13 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
             with self.subTest(model=model, changes=changes):
                 with use_operator():
                     original = model.objects.values(*changes).get(pk=identity)
-                    model.objects.filter(pk=identity).update(**changes)
+                self.change_snapshot_fixture(model, identity, changes)
                 try:
                     response = self.admit()
                     self.assertEqual(response.status_code, 409, response.content)
                     self.assert_no_appointment()
                 finally:
-                    with use_operator():
-                        model.objects.filter(pk=identity).update(**original)
+                    self.change_snapshot_fixture(model, identity, original)
         expiry = timezone.now() + timedelta(seconds=1)
         proposal, _ = self.submit(idempotency_key=uuid4(), requested_expires_at=expiry)
         with patch("companies.services.authority.timezone.now", return_value=expiry):
@@ -281,8 +288,7 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
                     original = model.objects.values(*changes).get(pk=identity)
 
                 def change_then_return(**kwargs):
-                    with use_operator():
-                        model.objects.filter(pk=identity).update(**changes)
+                    self.change_snapshot_fixture(model, identity, changes)
                     return matching_observation(self.company)
 
                 self.provider.side_effect = change_then_return
@@ -291,8 +297,7 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
                     self.assertEqual(response.status_code, expected, response.content)
                     self.assert_no_appointment()
                 finally:
-                    with use_operator():
-                        model.objects.filter(pk=identity).update(**original)
+                    self.change_snapshot_fixture(model, identity, original)
         self.provider.side_effect = None
         self.assertEqual(self.admit().status_code, 200)
 
@@ -313,8 +318,9 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
             )
         self.assertEqual(replay.status_code, 200, replay.content)
         self.assertEqual(replay.json(), response.json())
-        with use_operator():
-            Company.objects.filter(pk=self.company.pk).update(name="Changed after admission Pty Ltd", owner=self.other)
+        update_company(self.company, {"name": "Changed after admission Pty Ltd"}, actor=self.user)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(owner=self.other)
         self.provider.reset_mock()
         self.provider.side_effect = RuntimeError("provider must not run on a retained admission")
         repeated = self.admit()
@@ -427,6 +433,7 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
             with use_operator():
                 get_user_model().objects.filter(pk=self.other.pk).update(is_staff=staff, is_superuser=superuser)
                 self.other.refresh_from_db()
+            with use_migrate():
                 Company.objects.filter(pk=self.company.pk).update(owner=self.other)
             self.client.force_authenticate(self.other)
             for url, body in ((self.url, self.declaration()), (self.revoke_url, {})):
@@ -441,7 +448,7 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
             self.assertFalse(
                 has_company_capability(requester=self.other, company_id=self.company.pk, capability="admin")
             )
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(owner=self.user)
         self.client.force_authenticate(None)
         self.assertEqual(self.admit().status_code, 401)

@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import {
-  formatDate,
-  formatMoney,
-  formatShareCount,
-  REGISTER_COPY,
-  useOfferingSubscriptions,
-  type OfferingListItem,
-} from '@ledova/shared';
+import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
 import { Rows, Row, Section, Status } from '@components/Ledger';
 import { OfferingReadNotice } from './OfferingReadNotice';
+import { useCompanyOfferingSubscriptions } from './useOffering';
+import type { CompanyActionRead } from '../CompanyState';
 
 export function SubscriptionsLedger({
   offerings,
   operatorName,
+  companyUuid,
+  companyRead,
 }: {
   offerings: OfferingListItem[];
   operatorName: string;
+  companyUuid: string;
+  companyRead: CompanyActionRead;
 }) {
   const [selected, setSelected] = useState('');
   const offering = offerings.find((row) => row.uuid === selected) ?? offerings[0];
-  const read = useOfferingSubscriptions(offering?.uuid);
+  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead);
   if (!offering) return null;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>

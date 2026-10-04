@@ -17,12 +17,14 @@ evidence and history. Initial scoped appointments require the existing configure
 identity and ABR checks. Both clients and the API support invitations, scoped team
 delegation, appointment history, administrator team reads and retained revocation.
 The legacy-owner upgrade records retained owner provenance and administrator
-appointments without declarations or approvals. Dependent register workflows
-remain to be implemented; submitting evidence alone grants no authority.
+appointments without declarations or approvals. Current administrators and draft
+owners can manage bounded [company information and documents](company-information.md)
+through both clients and the guarded API. Dependent register workflows remain to
+be implemented; submitting evidence alone grants no authority.
 
 The owner's [4 October 2026 self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
 and [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
-set the planned [representative authority route](../../architecture/company-managed-registers.md#representative-verification).
+set the accepted [representative authority route](../../architecture/company-managed-registers.md#representative-verification).
 The company supplies its information and the representative declares their
 authorisation. Company details are shown as provided by the company, never
 verified by Ledova; the terms assign responsibility to the company. Companies

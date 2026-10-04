@@ -99,8 +99,8 @@ export function AuthorityRequestRecord({
             </div>
           ) : (
             <p className="text-sm text-text-muted">
-              Initial admission requires Manage company team in your own requested actions. Submit a new request with
-              that permission to establish your appointment.
+              Initial admission requires Manage company information and team in your own requested actions. Submit a new
+              request with that permission to establish your appointment.
             </p>
           )}
           <p className="text-sm text-text-muted">Withdrawing retires this request and retains its evidence.</p>

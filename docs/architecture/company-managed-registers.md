@@ -10,7 +10,10 @@ capabilities, expiry and self-revocation after the existing configured identity 
 ABR checks. Both clients and the API support invitations, scoped team delegation,
 appointment history, administrator team reads and retained revocation. The upgrade
 records existing owners as administrators with retained legacy provenance;
-dependent company workflows remain planned.
+current administrators and draft owners can manage bounded
+[company information and documents](../plans/company-managed-registers/company-information.md)
+through both clients and the guarded API. Dependent register workflows remain
+planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

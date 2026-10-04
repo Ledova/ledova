@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
+import { ApiClientProvider, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
+import { companyDetail, companyPreferences, companyQueryClient } from '../../testSupport/companyAdministration';
 import { ListingScreen } from '.';
 
 const mockNavigate = jest.fn();
@@ -12,10 +14,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useUserPreferences: () => ({ userAccount: { role: mockRole }, isLoading: false, isError: false }),
-}));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }));
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -23,12 +21,16 @@ const remove = jest.mocked(apiClient.delete);
 const LIST = '/api/v1/companies/';
 const DETAIL = '/api/v1/companies/company-a/';
 const base = {
+  ...companyDetail({ name: 'Fictional Company' }),
   uuid: 'company-a',
   name: 'Fictional Company',
   status: 'draft',
   statusDisplay: 'Draft',
   documents: REQUIRED_DOCUMENTS.map(({ type }, index) => ({
     uuid: 'document-' + index,
+    company: 'company-a',
+    documentTypeDisplay: type,
+    verifiedAt: null,
     documentType: type,
     name: `document-${index}.pdf`,
     createdAt: '2026-09-01',
@@ -44,22 +46,27 @@ let company = { ...base };
 let client: QueryClient;
 let failure: string | null;
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 beforeEach(() => {
   mockRole = 'company';
   failure = null;
   company = { ...base };
-  client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
-  });
+  client = companyQueryClient();
   get.mockReset();
   post.mockReset();
   remove.mockReset();
   mockNavigate.mockReset();
   get.mockImplementation(async (url) => {
+    if (url === '/api/auth/verify/') return { data: { valid: true } };
+    if (url === '/api/user-preferences/')
+      return { data: companyPreferences(mockRole as Parameters<typeof companyPreferences>[0]) };
     if (url === failure) throw new Error('Read refused');
-    if (url === LIST) return { data: { results: [{ uuid: company.uuid }] } };
+    if (url === LIST) return { data: { results: [{ ...company }], next: null } };
     if (url === DETAIL) return { data: { ...company } };
     if (url === '/api/operator/') return { data: { name: 'Fictional Operator' } };
     throw new Error(`Unexpected ${url}`);
@@ -68,6 +75,40 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+});
+
+function retainedPress(view: Awaited<ReturnType<typeof render>>, name: string) {
+  const button = view.getByRole('button', { name });
+  let fiber: typeof button.unstable_fiber | null = button.unstable_fiber;
+  while (fiber && typeof fiber.memoizedProps?.onPress !== 'function') fiber = fiber.return;
+  const callback = fiber?.memoizedProps.onPress;
+  expect(typeof callback).toBe('function');
+  return callback;
+}
+
+it('retires a cancelled withdrawal when the same company confirmation is reopened', async () => {
+  company = { ...base, status: 'submitted', statusDisplay: 'Submitted' };
+  post.mockImplementation(async () => {
+    company = { ...company, status: 'withdrawn', statusDisplay: 'Withdrawn' };
+    return { data: {} };
+  });
+  const view = await render(<ListingScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Withdraw application' }));
+  await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Previous reason');
+  const old = retainedPress(view, 'Confirm withdrawal');
+  await fireEvent.press(view.getByRole('button', { name: 'Close dialog' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Withdraw application' }));
+  await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Current reason');
+  await act(() => old());
+  expect(post).not.toHaveBeenCalled();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm withdrawal' }));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm withdrawal' })).toBeNull());
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(post).toHaveBeenCalledWith(
+    DETAIL + 'withdraw/',
+    { reason: 'Current reason' },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('renders every supplied document, including duplicates and other records, without a truncated documents request', async () => {
@@ -149,7 +190,11 @@ it('keeps a resubmission response after refusal and locks it while pending', asy
   await act(() => refuse(new Error('Resubmission refused')));
   expect(await view.findByText('Resubmission refused')).toBeTruthy();
   expect(view.getByLabelText('Response to the operator').props.value).toBe('New documents supplied');
-  expect(post).toHaveBeenCalledWith(DETAIL + 'resubmit/', { response: 'New documents supplied' });
+  expect(post).toHaveBeenCalledWith(
+    DETAIL + 'resubmit/',
+    { response: 'New documents supplied' },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
   failure = DETAIL;
   await act(() => client.invalidateQueries({ queryKey: ['company'] }));
   failure = null;
@@ -187,7 +232,11 @@ it('keeps a withdrawal reason on refusal and refuses stale, reviewing and pendin
   await act(() => refuse(new Error('Withdrawal refused')));
   expect(await view.findByText('Withdrawal refused')).toBeTruthy();
   expect(view.getByLabelText('Reason (optional)').props.value).toBe('Fictional withdrawal');
-  expect(post).toHaveBeenCalledWith(DETAIL + 'withdraw/', { reason: 'Fictional withdrawal' });
+  expect(post).toHaveBeenCalledWith(
+    DETAIL + 'withdraw/',
+    { reason: 'Fictional withdrawal' },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('keeps a document removal confirmation after refusal instead of claiming it was removed', async () => {
@@ -197,11 +246,15 @@ it('keeps a document removal confirmation after refusal instead of claiming it w
   await fireEvent.press(view.getByRole('button', { name: 'Confirm removal' }));
   expect(await view.findByText('Removal refused')).toBeTruthy();
   expect(view.getByRole('button', { name: 'Confirm removal' })).toBeEnabled();
-  expect(remove).toHaveBeenCalledWith(DETAIL + 'documents/document-0/');
+  expect(remove).toHaveBeenCalledWith(
+    DETAIL + 'documents/document-0/',
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
-it('makes no company, operator or application reads for member-only accounts', async () => {
-  mockRole = 'member';
+it('makes no company, operator or application reads for investor-only accounts', async () => {
+  mockRole = 'investor';
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('investor') });
   const view = await render(<ListingScreen />, { wrapper });
   expect(view.getByText('Verify your company access before opening Application.')).toBeTruthy();
   expect(get).not.toHaveBeenCalled();

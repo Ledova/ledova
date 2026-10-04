@@ -21,7 +21,7 @@ from companies.services.document_review import prepare_document_review, verify_d
 from companies.tests.test_document_file_access import DOCUMENT_BYTES, attach_file
 from offerings.tests.factories import allottable_subscription
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
@@ -125,15 +125,16 @@ DECIDED = {"status": "applied", "asic_issued_total": 100, "asic_member_count": 2
 
 
 def verified_document(company, reviewer, document_type, name):
-    document = attach_file(
-        CompanyDocument.objects.create(
-            company=company,
-            document_type=document_type,
-            name=name,
-            file_size=len(DOCUMENT_BYTES),
-            mime_type="application/pdf",
+    with use_migrate():
+        document = attach_file(
+            CompanyDocument.objects.create(
+                company=company,
+                document_type=document_type,
+                name=name,
+                file_size=len(DOCUMENT_BYTES),
+                mime_type="application/pdf",
+            )
         )
-    )
     _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
     return verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
 

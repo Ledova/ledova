@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -19,33 +19,53 @@ import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
-import { CompanyUpload } from './CompanyUpload';
-import { DocumentEntry } from './DocumentEntry';
+import { CompanyUpload } from '../company/CompanyUpload';
+import { CompanySelection } from '../company/CompanySelection';
+import { DocumentEntry } from '../company/DocumentEntry';
 import { useCompanyDocuments } from './useCompanyDocuments';
 
 const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export function ListingScreen() {
+  const data = useCompanyDocuments();
+  return <ListingDetails key={`${data.scopeKey}/${data.companyUuid ?? 'unselected'}`} data={data} />;
+}
+
+function ListingDetails({ data }: { data: ReturnType<typeof useCompanyDocuments> }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
-  const data = useCompanyDocuments();
   const { company, documents, canEdit, deletion, submission, resubmission, withdrawal } = data;
   const [upload, setUpload] = useState<{ company: string; type: DocumentType; label: string } | null>(null);
-  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{ company: string } | null>(null);
   const [withdrawReason, setWithdrawReason] = useState('');
   const [removing, setRemoving] = useState<{ company: string; document: CompanyDocument } | null>(null);
   const [response, setResponse] = useState('');
   const [responseCompany, setResponseCompany] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  const removal = useRef<typeof removing>(null);
+  const withdrawalTarget = useRef<typeof withdrawing>(null);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      removal.current = null;
+      withdrawalTarget.current = null;
+    },
+    [],
+  );
+  const assertOpen = () => {
+    if (!mounted.current) throw new Error('This application is no longer open.');
+  };
   const operator = useQuery({
     queryKey: ['operator'],
     queryFn: () => getOperator(apiClient),
     staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-    enabled: data.access.allowed,
+    enabled: data.ownerBusiness,
   });
   const operatorName = operator.isError ? 'The operator' : operator.data?.data.name || 'The operator';
   const busy = deletion.isPending || submission.isPending || resubmission.isPending || withdrawal.isPending;
-  const ready = !!company && !data.error && !data.isRefreshing;
+  const ready = !!company && data.ownerBusiness && !data.error && !data.isRefreshing;
   const canWithdraw = company?.status === 'submitted' || company?.status === 'info_required';
   const missing = REQUIRED_DOCUMENTS.filter(
     ({ type }) => !documents.some((document) => document.documentType === type),
@@ -72,39 +92,93 @@ export function ListingScreen() {
         .sort((a, b) => a.at.localeCompare(b.at))
     : [];
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || pending.current || !mounted.current) return;
+    pending.current = true;
     setActionError(null);
     try {
-      await submission.mutateAsync(company.uuid);
+      await submission.mutateAsync({ companyUuid: company.uuid, assertCurrent: assertOpen });
     } catch (error) {
       setActionError(getErrorMessage(error, ACTION_ERROR));
+      pending.current = false;
     }
   };
   const resubmit = async () => {
-    if (!canResubmit) return;
+    if (!canResubmit || pending.current || !mounted.current) return;
+    pending.current = true;
     setActionError(null);
     try {
-      await resubmission.mutateAsync({ companyUuid: company.uuid, response: response.trim() });
+      await resubmission.mutateAsync({
+        companyUuid: company.uuid,
+        response: response.trim(),
+        assertCurrent: assertOpen,
+      });
       setResponse('');
       setResponseCompany(null);
     } catch (error) {
       setActionError(getErrorMessage(error, ACTION_ERROR));
+      pending.current = false;
     }
   };
   const withdraw = async () => {
-    if (!ready || !canWithdraw || !withdrawing || company.uuid !== withdrawing || busy) return;
+    if (
+      !ready ||
+      !canWithdraw ||
+      !withdrawing ||
+      company.uuid !== withdrawing.company ||
+      busy ||
+      pending.current ||
+      withdrawalTarget.current !== withdrawing
+    )
+      return;
+    pending.current = true;
+    const target = withdrawing;
+    const guard = () => {
+      assertOpen();
+      if (withdrawalTarget.current !== target) throw new Error('This withdrawal is no longer open.');
+    };
     try {
-      await withdrawal.mutateAsync({ companyUuid: withdrawing, reason: withdrawReason.trim() });
+      await withdrawal.mutateAsync({
+        companyUuid: withdrawing.company,
+        reason: withdrawReason.trim(),
+        assertCurrent: guard,
+      });
+      withdrawalTarget.current = null;
       setWithdrawing(null);
       setWithdrawReason('');
-    } catch {}
+    } catch {
+    } finally {
+      pending.current = false;
+    }
   };
   const remove = async () => {
-    if (!ready || !canEdit || !removing || company.uuid !== removing.company || busy) return;
+    if (
+      !ready ||
+      !canEdit ||
+      !removing ||
+      company.uuid !== removing.company ||
+      busy ||
+      pending.current ||
+      removal.current !== removing
+    )
+      return;
+    pending.current = true;
+    const target = removing;
+    const guard = () => {
+      assertOpen();
+      if (removal.current !== target) throw new Error('This removal is no longer open.');
+    };
     try {
-      await deletion.mutateAsync({ companyUuid: removing.company, documentUuid: removing.document.uuid });
+      await deletion.mutateAsync({
+        companyUuid: removing.company,
+        documentUuid: removing.document.uuid,
+        assertCurrent: guard,
+      });
+      removal.current = null;
       setRemoving(null);
-    } catch {}
+    } catch {
+    } finally {
+      pending.current = false;
+    }
   };
   const documentSection = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
     <Section title={title}>
@@ -118,11 +192,15 @@ export function ListingScreen() {
               <DocumentEntry
                 key={document.uuid}
                 document={document}
+                read={data}
+                companyUuid={company!.uuid}
                 editable={canEdit}
                 removable={ready && !busy}
                 onRemove={() => {
                   deletion.reset();
-                  setRemoving({ company: company!.uuid, document });
+                  const target = { company: company!.uuid, document };
+                  removal.current = target;
+                  setRemoving(target);
                 }}
               />
             ))}
@@ -162,6 +240,7 @@ export function ListingScreen() {
         }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void data.refetch()} />}
       >
+        <CompanySelection read={data} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -213,7 +292,9 @@ export function ListingScreen() {
                   disabled={!ready || busy}
                   onPress={() => {
                     withdrawal.reset();
-                    setWithdrawing(company.uuid);
+                    const target = { company: company.uuid };
+                    setWithdrawing(target);
+                    withdrawalTarget.current = target;
                     setWithdrawReason('');
                   }}
                 />
@@ -302,21 +383,24 @@ export function ListingScreen() {
           visible
           title="Withdraw application"
           onClose={() => {
-            if (!withdrawal.isPending) setWithdrawing(null);
+            if (!pending.current) {
+              withdrawalTarget.current = null;
+              setWithdrawing(null);
+            }
           }}
           busy={withdrawal.isPending}
           actions={
             <Action
               label="Confirm withdrawal"
               primary
-              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
+              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing.company || busy}
               onPress={() => void withdraw()}
             />
           }
         >
           <View style={styles.group}>
             <CompanyReadNotice read={data} />
-            {(!canWithdraw || company?.uuid !== withdrawing) && !data.error && !data.isRefreshing && (
+            {(!canWithdraw || company?.uuid !== withdrawing.company) && !data.error && !data.isRefreshing && (
               <Text accessibilityRole="alert" style={styles.error}>
                 This application can no longer be withdrawn.
               </Text>
@@ -346,7 +430,10 @@ export function ListingScreen() {
           visible
           title="Remove document"
           onClose={() => {
-            if (!deletion.isPending) setRemoving(null);
+            if (!pending.current) {
+              removal.current = null;
+              setRemoving(null);
+            }
           }}
           busy={deletion.isPending}
           actions={

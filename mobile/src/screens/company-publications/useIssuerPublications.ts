@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
+import type { CompanyActionRead } from '../company/CompanyState';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 function openingFailure(error: unknown) {
@@ -21,9 +22,12 @@ function openingFailure(error: unknown) {
     : PUBLICATION_COPY.FAILED;
 }
 
-export function useIssuerPublications(companyUuid: string | undefined, enabled: boolean, ready: boolean) {
+export function useIssuerPublications(read: CompanyActionRead) {
+  const companyUuid = read.companyUuid;
+  const enabled = read.access.allowed && read.ownerBusiness && !read.error;
+  const ready = !read.isRefreshing;
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
-  const scope = `${epoch}:${companyUuid ?? ''}`;
+  const scope = `${read.scopeKey}:${epoch}:${companyUuid ?? ''}`;
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -32,14 +36,16 @@ export function useIssuerPublications(companyUuid: string | undefined, enabled: 
     };
   }, []);
   const listing = useQuery({
-    queryKey: ['publications', 'issuer', companyUuid, epoch],
+    queryKey: ['publications', 'issuer', companyUuid, epoch, read.scopeKey],
     enabled: enabled && !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     queryFn: () =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
+        read.assertCurrent(companyUuid!, 'owner');
         const response = await getPublications(apiClient, page, { issuer: companyUuid! });
         assertSessionEpoch(epoch);
+        read.assertCurrent(companyUuid!, 'owner');
         return response;
       }),
   });
@@ -53,8 +59,21 @@ export function useIssuerPublications(companyUuid: string | undefined, enabled: 
   const [failure, setFailure] = useState<{ scope: string; message: string }>();
 
   const open = async (uuid: string) => {
-    const isCurrent = () =>
-      mounted.current && epoch === getSessionEpoch() && current.current.scope === scope && current.current.canOpen;
+    const isCurrent = () => {
+      if (
+        !mounted.current ||
+        epoch !== getSessionEpoch() ||
+        current.current.scope !== scope ||
+        !current.current.canOpen
+      )
+        return false;
+      try {
+        read.assertCurrent(companyUuid!, 'owner');
+        return true;
+      } catch {
+        return false;
+      }
+    };
     if (!isCurrent() || pending.current === scope || !listing.data?.some((row) => row.uuid === uuid)) return;
     pending.current = scope;
     setOpening({ scope, uuid });
@@ -70,7 +89,13 @@ export function useIssuerPublications(companyUuid: string | undefined, enabled: 
         epoch,
         async () => {
           if (!isCurrent()) throw new Error('The publication view changed.');
-          const response = await downloadPublication(apiClient, uuid, { ledovaSessionEpoch: epoch });
+          const response = await downloadPublication(apiClient, uuid, {
+            ...read.requestConfig(companyUuid!, 'owner'),
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: () => {
+              if (!isCurrent()) throw new Error('The publication view changed.');
+            },
+          });
           if (!isCurrent()) throw new Error('The publication view changed.');
           const type = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
           return { name: publicationFilename(uuid, type), type, bytes: new Uint8Array(response.data) };

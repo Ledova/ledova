@@ -1,12 +1,16 @@
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 
 from companies.identity import company_identity, registered_name
 from companies.models import (
     Company,
     CompanyRegistryCheck,
+    CompanyStatus,
     CompanyType,
+    RegistryCheckPurpose,
     RegistryCheckStatus,
 )
+from companies.services.administration import company_operation, lock_company_actor
 from companies.validators import digits_of
 from integrations.abr import lookup_company
 from shared.db import atomic
@@ -19,6 +23,26 @@ ABR_COMPANY_TYPES = {
 
 
 def begin_registry_check(company, purpose, initiated_by):
+    with company_operation(initiated_by, company.pk, "registry"), atomic():
+        current, actor, _profile, _operator = lock_company_actor(initiated_by, company.pk)
+        if (
+            not actor.is_active
+            or (
+                purpose == RegistryCheckPurpose.AUTHORITY
+                and (
+                    not actor.is_email_verified or current.owner_id != actor.pk or current.status != CompanyStatus.DRAFT
+                )
+            )
+            or (purpose != RegistryCheckPurpose.AUTHORITY and not actor.is_staff)
+        ):
+            raise PermissionDenied("The registry check requires its current company owner or staff reviewer.")
+        check = _begin_registry_check(current, purpose, actor)
+        for field in REGISTRY_FIELDS:
+            setattr(company, field, getattr(current, field))
+        return check
+
+
+def _begin_registry_check(company, purpose, initiated_by):
     check = CompanyRegistryCheck.objects.create(
         company=company,
         initiated_by=initiated_by,
@@ -85,7 +109,7 @@ def observation_result(check, observation):
 
 
 def complete_registry_check(check, observation):
-    with atomic(durable=True):
+    with company_operation(check.initiated_by, check.company_id, "registry"), atomic(durable=True):
         company = Company.objects.select_for_update().get(pk=check.company_id)
         check = CompanyRegistryCheck.objects.select_for_update().get(pk=check.pk)
         if check.completed_at is not None:

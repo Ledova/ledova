@@ -1,39 +1,49 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   DESTINATIONS,
-  OPTIONAL_DOCUMENTS,
   REQUIRED_DOCUMENTS,
-  deleteCompanyDocument,
-  formatDate,
   getErrorMessage,
+  createUserFriendlyError,
   getOperator,
   resubmitApplication,
   submitApplication,
   withdrawApplication,
-  type CompanyDocument,
-  type DocumentType,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
+import { Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
 import { useCompany } from '../hooks/useCompany';
 import { CompanyReadNotice, CompanyStatusMark } from '../CompanyState';
-import { UploadModal } from './UploadModal';
+import { CompanyDocuments } from '../CompanyDocuments';
+import { CompanySelection } from '../CompanySelection';
 import { FIELD_CLASS } from '@components/fieldClass';
 
 const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export default function ListingPage() {
+  const data = useCompany({ ownedOnly: true });
+  return <CompanyApplication key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
+}
+
+function CompanyApplication({ data }: { data: ReturnType<typeof useCompany> }) {
   const navigate = useNavigate();
-  const data = useCompany();
   const { company } = data;
   const client = useQueryClient();
-  const [upload, setUpload] = useState<{ company: string; type: DocumentType; label: string } | null>(null);
-  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{ uuid: string; identity: symbol } | null>(null);
+  const confirmation = useRef<typeof withdrawing>(null);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      confirmation.current = null;
+    };
+  }, []);
   const [withdrawReason, setWithdrawReason] = useState('');
   const [response, setResponse] = useState('');
   const [responseCompany, setResponseCompany] = useState<string | null>(null);
@@ -48,43 +58,80 @@ export default function ListingPage() {
   const operatorName = operator.isError ? 'The operator' : operator.data?.data.name || 'The operator';
   const refresh = () =>
     Promise.all([
-      client.invalidateQueries({ queryKey: ['company'] }),
-      client.invalidateQueries({ queryKey: ['companies'] }),
+      client.invalidateQueries({ queryKey: data.companyKey }),
+      client.invalidateQueries({ queryKey: data.companiesKey }),
     ]);
+  const action = (uuid: string) => {
+    const assertCurrent = data.assertCurrent;
+    const companyKey = data.companyKey;
+    const companiesKey = data.companiesKey;
+    const guard = () => {
+      if (!mounted.current) throw createUserFriendlyError('This company action is closed.');
+      assertCurrent(uuid, 'owner');
+    };
+    guard();
+    return {
+      uuid,
+      guard,
+      config: { ...data.requestConfig(uuid, 'owner'), ledovaSubmissionGuard: guard },
+      refresh: async () => {
+        guard();
+        await Promise.all([
+          client.invalidateQueries({ queryKey: companyKey }),
+          client.invalidateQueries({ queryKey: companiesKey }),
+        ]);
+        guard();
+      },
+    };
+  };
+  type Action = ReturnType<typeof action>;
+  const settle = () => {
+    pending.current = false;
+  };
   const submit = useMutation({
-    mutationFn: (uuid: string) => submitApplication(apiClient, uuid),
-    onSuccess: refresh,
+    mutationFn: async ({ uuid, guard, config }: Action) => {
+      guard();
+      const result = await submitApplication(apiClient, uuid, config);
+      guard();
+      return result;
+    },
+    onSuccess: (_, value) => value.refresh(),
     onMutate: startAction,
     onError: refuseAction,
+    onSettled: settle,
   });
   const resubmit = useMutation({
     onMutate: startAction,
     onError: refuseAction,
-    mutationFn: ({ uuid, text }: { uuid: string; text: string }) =>
-      resubmitApplication(apiClient, uuid, { response: text }),
-    onSuccess: async () => {
-      await refresh();
+    onSettled: settle,
+    mutationFn: async ({ uuid, text, guard, config }: Action & { text: string }) => {
+      guard();
+      const result = await resubmitApplication(apiClient, uuid, { response: text }, config);
+      guard();
+      return result;
+    },
+    onSuccess: async (_, value) => {
+      await value.refresh();
       setResponse('');
       setResponseCompany(null);
     },
   });
   const withdraw = useMutation({
-    mutationFn: ({ uuid, reason }: { uuid: string; reason: string }) =>
-      withdrawApplication(apiClient, uuid, { reason }),
-    onSuccess: async () => {
-      await refresh();
+    mutationFn: async ({ uuid, reason, guard, config }: Action & { reason: string }) => {
+      guard();
+      const result = await withdrawApplication(apiClient, uuid, { reason }, config);
+      guard();
+      return result;
+    },
+    onSuccess: async (_, value) => {
+      await value.refresh();
+      confirmation.current = null;
       setWithdrawing(null);
       setWithdrawReason('');
     },
+    onSettled: settle,
   });
-  const remove = useMutation({
-    onMutate: startAction,
-    onError: refuseAction,
-    mutationFn: ({ uuid, document }: { uuid: string; document: string }) =>
-      deleteCompanyDocument(apiClient, uuid, document),
-    onSuccess: refresh,
-  });
-  const busy = submit.isPending || resubmit.isPending || withdraw.isPending || remove.isPending;
+  const busy = submit.isPending || resubmit.isPending || withdraw.isPending;
   const ready = !!company && !data.error && !data.isRefreshing;
   const editable = company?.status === 'draft' || company?.status === 'info_required';
   const canWithdraw = company?.status === 'submitted' || company?.status === 'info_required';
@@ -113,68 +160,13 @@ export default function ListingPage() {
         .flatMap(([label, at]) => (at ? [{ label: label!, at }] : []))
         .sort((a, b) => a.at.localeCompare(b.at))
     : [];
-  const showDocuments = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
-    <Section title={title}>
-      <ul className="divide-y divide-border-subtle">
-        {types.map(({ type, label }) => {
-          const matches = documents.filter((document) => document.documentType === type);
-          return (
-            <li key={type} className="space-y-3 py-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-sm font-medium text-text-primary">{label}</h3>
-                <Status tone={matches.length ? 'done' : 'waiting'}>
-                  {matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}
-                </Status>
-              </div>
-              {matches.map((document: CompanyDocument) => (
-                <div key={document.uuid} className="space-y-2 text-sm">
-                  <p className="break-all text-text-primary">{document.name}</p>
-                  <p className="text-text-muted">
-                    Uploaded {formatDate(document.createdAt)} · {document.isVerified ? 'Verified' : 'Not verified'}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 break-all">
-                    {document.fileUrl && (
-                      <a
-                        href={document.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-brand-light underline"
-                      >
-                        View {document.name}
-                      </a>
-                    )}
-                    {editable && (
-                      <PageAction
-                        label={`Remove ${document.name}`}
-                        onClick={() => {
-                          if (ready && editable && !busy)
-                            remove.mutate({ uuid: company!.uuid, document: document.uuid });
-                        }}
-                        disabled={!ready || busy}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-              {editable && matches.length === 0 && type !== 'other' && (
-                <PageAction
-                  label={`Upload ${label}`}
-                  onClick={() => setUpload({ company: company!.uuid, type, label })}
-                  disabled={!ready || busy}
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </Section>
-  );
   return (
     <>
       <Page
         loading={data.isLoading}
         actions={<PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />}
       >
+        <CompanySelection read={data} />
         {data.error ? (
           <CompanyReadNotice read={data} />
         ) : !company ? (
@@ -227,7 +219,9 @@ export default function ListingPage() {
                   label="Withdraw application"
                   onClick={() => {
                     withdraw.reset();
-                    setWithdrawing(company.uuid);
+                    const value = { uuid: company.uuid, identity: Symbol() };
+                    confirmation.current = value;
+                    setWithdrawing(value);
                     setWithdrawReason('');
                   }}
                   disabled={!ready || busy}
@@ -239,8 +233,6 @@ export default function ListingPage() {
                 {actionError}
               </p>
             )}
-            {showDocuments('Required documents', REQUIRED_DOCUMENTS, true)}
-            {showDocuments('Optional documents', OPTIONAL_DOCUMENTS, false)}
             {company.status === 'info_required' && (
               <Section title="Your response">
                 <p className="text-sm text-text-muted">
@@ -267,7 +259,15 @@ export default function ListingPage() {
                 <PageAction
                   label={resubmit.isPending ? 'Resubmitting…' : 'Resubmit application'}
                   onClick={() => {
-                    if (canResubmit) resubmit.mutate({ uuid: company.uuid, text: response.trim() });
+                    if (canResubmit && !pending.current) {
+                      try {
+                        const value = action(company.uuid);
+                        pending.current = true;
+                        resubmit.mutate({ ...value, text: response.trim() });
+                      } catch (error) {
+                        refuseAction(error);
+                      }
+                    }
                   }}
                   disabled={!canResubmit}
                 />
@@ -277,7 +277,15 @@ export default function ListingPage() {
               <PageAction
                 label={submit.isPending ? 'Submitting…' : 'Submit application'}
                 onClick={() => {
-                  if (canSubmit) submit.mutate(company.uuid);
+                  if (canSubmit && !pending.current) {
+                    try {
+                      const value = action(company.uuid);
+                      pending.current = true;
+                      submit.mutate(value);
+                    } catch (error) {
+                      refuseAction(error);
+                    }
+                  }
                 }}
                 disabled={!canSubmit}
               />
@@ -305,6 +313,16 @@ export default function ListingPage() {
             </Section>
           </>
         )}
+        {data.retainedCompany && (
+          <CompanyDocuments
+            key={`${data.scopeKey}/${data.retainedCompany.uuid}`}
+            company={data.retainedCompany}
+            read={data}
+            editable={editable && data.canAdmin && !busy}
+            refresh={refresh}
+            onAction={startAction}
+          />
+        )}
       </Page>
       {withdrawing && (
         <Modal
@@ -313,13 +331,43 @@ export default function ListingPage() {
           showFooter
           confirmLabel="Withdraw application"
           confirmLoading={withdraw.isPending}
-          confirmDisabled={!ready || !canWithdraw || company?.uuid !== withdrawing || busy}
+          confirmDisabled={!ready || !canWithdraw || company?.uuid !== withdrawing.uuid || busy}
           onConfirm={() => {
-            if (ready && canWithdraw && company.uuid === withdrawing && !busy)
-              withdraw.mutate({ uuid: withdrawing, reason: withdrawReason.trim() });
+            if (
+              ready &&
+              canWithdraw &&
+              company.uuid === withdrawing.uuid &&
+              !busy &&
+              !pending.current &&
+              confirmation.current === withdrawing
+            ) {
+              try {
+                const value = action(withdrawing.uuid);
+                confirmation.current = null;
+                pending.current = true;
+                withdraw.mutate(
+                  { ...value, reason: withdrawReason.trim() },
+                  {
+                    onError: () => {
+                      try {
+                        value.guard();
+                        const next = { uuid: value.uuid, identity: Symbol() };
+                        confirmation.current = next;
+                        setWithdrawing(next);
+                      } catch {}
+                    },
+                  },
+                );
+              } catch (error) {
+                refuseAction(error);
+              }
+            }
           }}
           onClose={() => {
-            if (!withdraw.isPending) setWithdrawing(null);
+            if (!withdraw.isPending) {
+              confirmation.current = null;
+              setWithdrawing(null);
+            }
           }}
         >
           <fieldset disabled={withdraw.isPending} className="space-y-4">
@@ -348,17 +396,6 @@ export default function ListingPage() {
             </label>
           </fieldset>
         </Modal>
-      )}
-      {upload && (
-        <UploadModal
-          companyUuid={upload.company}
-          documentType={upload.type}
-          label={upload.label}
-          canUpload={!!company && company.uuid === upload.company && editable}
-          read={data}
-          onClose={() => setUpload(null)}
-          onSuccess={refresh}
-        />
       )}
     </>
   );

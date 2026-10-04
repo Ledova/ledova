@@ -15,6 +15,7 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from companies.models import Company, CompanyType
+from shared.db import use_migrate
 from shared.tests.tenants import a_profile, an_account, an_acn
 from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.models import (
@@ -73,12 +74,14 @@ def a_verified_claim(account, expires_at, *, company=None, reviewed_by=None):
 
 
 def change_company(label="whitelist-change"):
-    return Company.objects.create(
-        owner=a_profile(label).user,
-        name=f"{label} Pty Ltd",
-        company_type=CompanyType.PROPRIETARY,
-        acn=an_acn(next(_companies)),
-    )
+    owner = a_profile(label).user
+    with use_migrate():
+        return Company.objects.create(
+            owner=owner,
+            name=f"{label} Pty Ltd",
+            company_type=CompanyType.PROPRIETARY,
+            acn=an_acn(next(_companies)),
+        )
 
 
 class WhitelistNode:

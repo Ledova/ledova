@@ -14,7 +14,7 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from companies.models import Company, CompanyStatus
-from shared.db import current_alias, use_operator
+from shared.db import current_alias, use_migrate, use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import TokenDeployment
 from tokens.services import deployment
@@ -25,8 +25,9 @@ CREATED = Web3.to_checksum_address("0x" + "c0ffee" + "0" * 34)
 
 def deployment_token(name="deployment"):
     tenant = make_tenant(name)
-    Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
-    tenant.company.refresh_from_db()
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+        tenant.company.refresh_from_db()
     with patch("tokens.tasks.deploy_share_token_task.defer"):
         deployment.start_deployment(tenant.token, principal_id=tenant.user.pk)
     return tenant

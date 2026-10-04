@@ -21,7 +21,7 @@ from companies.tests.test_document_file_access import (
     make_company,
     make_document,
 )
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_migrate
 from shared.tests.schema import migrate_to, restore_every_migration
 from users.models import UserProfile
 
@@ -85,7 +85,8 @@ class CompanyDocumentReviewTest(TestCase):
             with self.subTest(field=field):
                 self.verify()
                 confirmation = self.preview()
-                CompanyDocument.objects.filter(pk=self.document.pk).update(**{field: value})
+                with use_migrate():
+                    CompanyDocument.objects.filter(pk=self.document.pk).update(**{field: value})
                 self.document.refresh_from_db()
                 self.assertFalse(self.document.is_verified)
                 self.assertEqual(self.document.verified_fingerprint, "")
@@ -97,10 +98,12 @@ class CompanyDocumentReviewTest(TestCase):
 
     def test_notes_do_not_revoke_verification_but_rejection_does(self):
         self.verify()
-        CompanyDocument.objects.filter(pk=self.document.pk).update(notes="Staff follow-up")
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(notes="Staff follow-up")
         self.document.refresh_from_db()
         self.assertTrue(self.document.is_verified)
-        CompanyDocument.objects.filter(pk=self.document.pk).update(rejection_reason="Authority not established")
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(rejection_reason="Authority not established")
         self.document.refresh_from_db()
         self.assertFalse(self.document.is_verified)
         with self.assertRaises(ValidationError):
@@ -117,7 +120,8 @@ class CompanyDocumentReviewTest(TestCase):
             with self.subTest(field=field):
                 self.verify()
                 confirmation = self.preview()
-                Company.objects.filter(pk=self.company.pk).update(**{field: value})
+                with use_migrate():
+                    Company.objects.filter(pk=self.company.pk).update(**{field: value})
                 self.document.refresh_from_db()
                 self.assertFalse(self.document.is_verified)
                 self.assertEqual(self.document.verified_fingerprint, "")
@@ -128,7 +132,8 @@ class CompanyDocumentReviewTest(TestCase):
     def test_legacy_null_reviewer_verification_survives_a_notes_only_update(self):
         historical = make_document(self.company, is_verified=True, verified_at=timezone.now())
         self.assertIsNone(historical.verified_by_id)
-        CompanyDocument.objects.filter(pk=historical.pk).update(notes="Historical review remains unattributed")
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=historical.pk).update(notes="Historical review remains unattributed")
         historical.refresh_from_db()
         self.assertTrue(historical.is_verified)
         self.assertIsNotNone(historical.verified_at)
@@ -143,14 +148,16 @@ class CompanyDocumentReviewTest(TestCase):
         for fields in ({"file": ""}, {"file_size": 1}, {"file_size": 0}):
             with self.subTest(fields=fields):
                 document = attach_file(make_document(self.company))
-                CompanyDocument.objects.filter(pk=document.pk).update(**fields)
+                with use_migrate():
+                    CompanyDocument.objects.filter(pk=document.pk).update(**fields)
                 with self.assertRaises(ValidationError):
                     prepare_document_review(document_id=document.pk, reviewer=self.reviewer)
 
     def test_validity_is_rechecked_when_confirmed(self):
         today = timezone.localdate()
         self.document.valid_until = today
-        self.document.save()
+        with use_migrate():
+            self.document.save()
         confirmation = self.preview()
         with patch("companies.services.document_review.timezone.localdate", return_value=today + timedelta(days=1)):
             with self.assertRaises(ValidationError):
@@ -270,7 +277,8 @@ class CompanyDocumentReviewAdminTest(TestCase):
 
     def test_changed_evidence_redirects_with_no_verification(self):
         confirmation = self.client.get(self.url).context["form"].initial["confirmation"]
-        CompanyDocument.objects.filter(pk=self.document.pk).update(name="Changed")
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(name="Changed")
         response = self.client.post(self.url, {"confirmation": confirmation, "reviewed": "on"}, follow=True)
         self.assertContains(response, "changed after review began")
         self.document.refresh_from_db()

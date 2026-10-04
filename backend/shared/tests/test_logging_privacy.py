@@ -10,6 +10,7 @@ from companies.models import LISTING_REQUIRED_DOCUMENTS, Company, CompanyDocumen
 from companies.services.company import submit_application
 from integrations.expo_push import ExpoPushClient, ExpoPushError
 from integrations.sumsub.client import SumSubService
+from shared.db import use_migrate
 from users.models import DeviceToken, UserProfile
 from users.services.notifications import NotificationService
 from users.services.setup import ensure_defaults
@@ -148,17 +149,18 @@ class NotificationLoggingTest(LoggingPrivacyTestCase):
 
 class CompanyLoggingTest(LoggingPrivacyTestCase):
     def test_submitting_an_application_logs_the_submitter_key(self):
-        owner = User.objects.create_user(email=EMAIL, password=PASSWORD, is_active=True)
-        company = Company.objects.create(owner=owner, name="Draft Pty Ltd", acn="123456789")
-        for document_type in LISTING_REQUIRED_DOCUMENTS:
-            CompanyDocument.objects.create(
-                company=company,
-                document_type=document_type,
-                name=document_type.label,
-                external_url="https://files.example.test/doc",
-                file_size=10,
-                mime_type="application/pdf",
-            )
+        owner = User.objects.create_user(email=EMAIL, password=PASSWORD, is_active=True, is_email_verified=True)
+        with use_migrate():
+            company = Company.objects.create(owner=owner, name="Draft Pty Ltd", acn="123456789")
+            for document_type in LISTING_REQUIRED_DOCUMENTS:
+                CompanyDocument.objects.create(
+                    company=company,
+                    document_type=document_type,
+                    name=document_type.label,
+                    external_url="https://files.example.test/doc",
+                    file_size=10,
+                    mime_type="application/pdf",
+                )
 
         with patch("companies.services.company.send_push_notification"):
             with self.capture() as captured:

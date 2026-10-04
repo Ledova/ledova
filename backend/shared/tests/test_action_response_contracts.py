@@ -435,7 +435,7 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(present.json()["primaryContact"], {"fullName": self.owner.profile.full_name})
 
         unprofiled = get_user_model().objects.create_user(
-            email="no-profile@schema.example.test", password="pw-12345678"
+            email="no-profile@schema.example.test", password="pw-12345678", is_active=True, is_email_verified=True
         )
         company = Company.objects.create(
             owner=unprofiled,

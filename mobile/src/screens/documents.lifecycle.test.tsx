@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
+import { companyDetail } from '../testSupport/companyAdministration';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -36,7 +37,7 @@ beforeEach(() => {
   submitClaim.mockReset();
   upload.mockReset();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   jest.mocked(useInvestorEligibility).mockReturnValue({
     eligibility: { account: 'account-a', isEligible: false, reasons: [] },
     classifications: [],
@@ -47,8 +48,15 @@ beforeEach(() => {
     isDeleting: false,
   } as unknown as ReturnType<typeof useInvestorEligibility>);
   jest.mocked(useCompanyDocuments).mockReturnValue({
-    company: { uuid: 'company-a', status: 'draft', name: 'Synthetic company' },
+    company: companyDetail(),
+    companyKey: ['company', 'company-a', 'lifecycle'],
+    requestConfig: () => ({ ledovaSessionEpoch: getSessionEpoch() }),
     companyUuid: 'company-a',
+    scopeKey: 'lifecycle',
+    companies: [],
+    canAdmin: true,
+    ownerBusiness: true,
+    assertCurrent: () => {},
     access: { allowed: true, isLoading: false, isError: false },
     error: null,
     isRefreshing: false,
@@ -146,6 +154,8 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
         refuse = reject;
       }),
   );
+  const read = useCompanyDocuments();
+  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
   const view = await render(<ListingScreen />, { wrapper });
   let pressed!: Promise<void>;
   await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
@@ -176,7 +186,13 @@ it('shares a viewed listing document from one private copy, and downloads nothin
   jest.mocked(useCompanyDocuments).mockReturnValue({
     ...useCompanyDocuments(),
     documents: [
-      { uuid: 'document-a', documentType: 'cert_inc', name: 'a.pdf', fileUrl: '/documents/document-a/file/' },
+      {
+        uuid: 'document-a',
+        company: 'company-a',
+        documentType: 'cert_inc',
+        name: 'a.pdf',
+        fileUrl: '/documents/document-a/file/',
+      },
     ],
     uploadedTypes: new Set(['cert_inc']),
   } as unknown as ReturnType<typeof useCompanyDocuments>);
@@ -190,6 +206,8 @@ it('shares a viewed listing document from one private copy, and downloads nothin
     );
   jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
   jest.mocked(Sharing.shareAsync).mockResolvedValueOnce(undefined);
+  const read = useCompanyDocuments();
+  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
   const view = await render(<ListingScreen />, { wrapper });
 
   await fireEvent.press(view.getByLabelText('View a.pdf'));
@@ -206,6 +224,7 @@ it('shares a viewed listing document from one private copy, and downloads nothin
   expect(apiClient.get).toHaveBeenCalledWith('/documents/document-a/file/', {
     responseType: 'arraybuffer',
     ledovaSessionEpoch: getSessionEpoch(),
+    ledovaSubmissionGuard: expect.any(Function),
   });
   expect(files.get(copy)?.content).toBe('%PDF');
   expect(files.has(earlier)).toBe(false);
@@ -215,7 +234,13 @@ it('downloads nothing and stays silent when the session changes before a view st
   jest.mocked(useCompanyDocuments).mockReturnValue({
     ...useCompanyDocuments(),
     documents: [
-      { uuid: 'document-a', documentType: 'cert_inc', name: 'a.pdf', fileUrl: '/documents/document-a/file/' },
+      {
+        uuid: 'document-a',
+        company: 'company-a',
+        documentType: 'cert_inc',
+        name: 'a.pdf',
+        fileUrl: '/documents/document-a/file/',
+      },
     ],
     uploadedTypes: new Set(['cert_inc']),
   } as unknown as ReturnType<typeof useCompanyDocuments>);
@@ -223,6 +248,8 @@ it('downloads nothing and stays silent when the session changes before a view st
     invalidateSessionScope();
     return true;
   });
+  const read = useCompanyDocuments();
+  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
   const view = await render(<ListingScreen />, { wrapper });
   let pressed!: Promise<void>;
   await act(async () => {
@@ -240,6 +267,8 @@ it('downloads nothing and stays silent when the session changes before a view st
 it('keeps a selected company upload through refusal and failed company reads until retry succeeds', async () => {
   pick.mockResolvedValue(pickedFile());
   upload.mockRejectedValueOnce(new Error('Upload refused')).mockResolvedValueOnce({});
+  const read = useCompanyDocuments();
+  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
   const view = await render(<ListingScreen />, { wrapper });
   await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));

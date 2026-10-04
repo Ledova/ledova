@@ -3,6 +3,7 @@ from rest_framework import serializers
 from companies.models import Company
 from tokens.constants import RESERVED_SYMBOL
 from tokens.models import ShareToken
+from tokens.services.creation import create_share_token
 from tokens.services.market_data_service import market_summaries
 from tokens.services.register_inclusions import ISSUE, TRANSFER, WAITING_REASONS
 from tokens.services.share_token_service import reserved_symbol
@@ -129,6 +130,11 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         fields["company"].queryset = Company.objects.owned_by(getattr(request, "user", None))
         return fields
+
+    def create(self, validated_data):
+        company = validated_data.pop("company")
+        request = self.context.get("request")
+        return create_share_token(actor=getattr(request, "user", None), company_id=company.pk, data=validated_data)
 
     def validate_symbol(self, value):
         if not value.isalpha():
