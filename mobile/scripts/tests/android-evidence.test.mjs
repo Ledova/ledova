@@ -80,14 +80,14 @@ if (command[0] === 'logcat' && !command.includes('-d')) {
     output,
     helper,
     environment,
-    run(mode) {
+    run(mode, expectedStatus = 0) {
       const result = spawnSync(process.execPath, [helper, mode, output], {
         env: environment,
         encoding: 'utf8',
         timeout: 10000,
       });
       assert.equal(result.error, undefined);
-      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.status, expectedStatus, result.stderr);
       return result;
     },
     calls() {
@@ -110,6 +110,27 @@ async function waitUntil(check) {
 }
 
 const waitFor = (file) => waitUntil(() => fs.existsSync(file));
+
+function failOneInventory(control) {
+  const executable = execFileSync('which', ['ps'], { encoding: 'utf8', timeout: 1000 }).trim();
+  const armed = path.join(control.root, 'inventory-fault-armed');
+  const failed = path.join(control.root, 'inventory-fault-fired');
+  fs.writeFileSync(
+    path.join(control.root, 'bin/ps'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const { execFileSync } = require('node:child_process');
+if (fs.existsSync(${JSON.stringify(armed)}) && !fs.existsSync(${JSON.stringify(failed)})) {
+  fs.writeFileSync(${JSON.stringify(failed)}, 'failed inventory');
+  process.stderr.write('synthetic inventory unavailable\\n');
+  process.exit(17);
+}
+process.stdout.write(execFileSync(${JSON.stringify(executable)}, process.argv.slice(2), {timeout: 1000}));
+`,
+    { mode: 0o700 },
+  );
+  return { arm: () => fs.writeFileSync(armed, 'armed'), failed };
+}
 
 function noLiveGroup(pid) {
   const rows = execFileSync('ps', ['-axo', 'pid=,pgid=,stat='], { encoding: 'utf8', timeout: 1000 })
@@ -247,5 +268,85 @@ return;
   assert.match(fs.readFileSync(path.join(control.output, 'guest-live.log'), 'utf8'), /partial before cancel/);
   assert.match(fs.readFileSync(path.join(control.output, 'guest-load.log'), 'utf8'), /partial before cancel/);
   assert.ok(control.statuses().some(({ interrupted, complete }) => interrupted === 'SIGTERM' && !complete));
+  for (const { pid } of control.calls()) noLiveGroup(pid);
+});
+
+test('a failed inventory during cancellation retains cleanup failure and settles every owned child without signalling an unrelated child', async (context) => {
+  const control = fixture(
+    context,
+    `if (command[0] === 'logcat' || command[1]?.includes('/proc/loadavg')) {
+process.stdout.write('partial before inventory failure\\n');
+spawn(process.execPath, ['-e', "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);"], {stdio: 'ignore'});
+process.on('SIGTERM', () => {});
+setInterval(() => {}, 1000);
+return;
+}`,
+  );
+  const inventory = failOneInventory(control);
+  const unrelated = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
+  context.after(() => unrelated.kill());
+  const watcher = spawn(process.execPath, [control.helper, 'watch', control.output], {
+    env: control.environment,
+    stdio: 'pipe',
+  });
+  let stderr = '';
+  watcher.stderr.on('data', (chunk) => {
+    stderr += chunk;
+  });
+  const closed = new Promise((resolve) => watcher.once('close', (code) => resolve(code)));
+  context.after(() => watcher.kill());
+  await waitFor(path.join(control.output, 'watcher-ready.txt'));
+  await waitUntil(() =>
+    ['guest-live.log', 'guest-load.log'].every((name) =>
+      fs.readFileSync(path.join(control.output, name), 'utf8').includes('partial before inventory failure'),
+    ),
+  );
+  await waitFor(path.join(control.output, 'guest-records-status.jsonl'));
+  await waitUntil(() => control.statuses().filter(({ code }) => code === 0).length >= 2);
+  inventory.arm();
+  watcher.kill('SIGTERM');
+  const exit = await closed;
+  assert.ok(fs.existsSync(inventory.failed));
+  for (const { pid } of control.calls()) noLiveGroup(pid);
+  assert.doesNotThrow(() => process.kill(unrelated.pid, 0));
+  assert.equal(exit, 143, stderr);
+  assert.doesNotMatch(stderr, /UnhandledPromiseRejection|triggerUncaughtException/);
+  const summary = JSON.parse(fs.readFileSync(path.join(control.output, 'watcher-complete.json'), 'utf8'));
+  assert.equal(summary.complete, false);
+  assert.ok(
+    summary.results.some(
+      ({ cleanupErrors, complete }) => cleanupErrors?.some(({ status }) => status === 17) && !complete,
+    ),
+  );
+  assert.match(
+    fs.readFileSync(path.join(control.output, 'guest-live.log'), 'utf8'),
+    /partial before inventory failure/,
+  );
+  assert.match(
+    fs.readFileSync(path.join(control.output, 'guest-load.log'), 'utf8'),
+    /partial before inventory failure/,
+  );
+});
+
+test('an inventory failure after command exit retains status and cannot claim completion of unattempted work', (context) => {
+  const control = fixture(context);
+  const inventory = failOneInventory(control);
+  inventory.arm();
+  const result = control.run('collect', 1);
+  assert.ok(fs.existsSync(inventory.failed));
+  const summary = JSON.parse(fs.readFileSync(path.join(control.output, 'collection-complete.json'), 'utf8'));
+  assert.equal(summary.complete, false);
+  assert.equal(summary.reachedEnd, false);
+  assert.equal(summary.deadlineExpired, false);
+  assert.doesNotMatch(result.stderr, /UnhandledPromiseRejection|triggerUncaughtException/);
+  const failed = control.statuses().find(({ file }) => file === 'guest-anr-dropbox.txt');
+  assert.equal(failed.code, 0);
+  assert.equal(failed.complete, false);
+  assert.ok(failed.cleanupErrors.some(({ status }) => status === 17));
+  assert.ok(summary.results.some(({ started, complete }) => started === false && !complete));
+  assert.match(
+    fs.readFileSync(path.join(control.output, 'guest-anr-dropbox.txt'), 'utf8'),
+    /system_server_anr complete-record/,
+  );
   for (const { pid } of control.calls()) noLiveGroup(pid);
 });

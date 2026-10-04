@@ -36,6 +36,12 @@ function status(result) {
   return entry;
 }
 
+function failCollector(error) {
+  process.exitCode ||= 1;
+  cancellation.abort();
+  return status({ collectorError: error.message.slice(0, 1000), complete: false });
+}
+
 async function stopChild(child) {
   if (!child.pid) return;
   const closed = children.get(child);
@@ -55,24 +61,38 @@ async function stopChild(child) {
     );
     return members.length > 0;
   };
+  const errors = [];
   for (const signal of ['SIGTERM', 'SIGKILL']) {
-    if (!liveGroup()) break;
     try {
-      process.kill(-child.pid, signal);
+      if (!liveGroup()) break;
+      try {
+        process.kill(-child.pid, signal);
+      } catch (error) {
+        if (error.code !== 'ESRCH' && !(error.code === 'EPERM' && !liveGroup())) throw error;
+      }
+      if (signal === 'SIGTERM') await Promise.race([closed, delay(2000, undefined, { ref: false })]);
     } catch (error) {
-      if (error.code !== 'ESRCH' && !(error.code === 'EPERM' && !liveGroup())) throw error;
+      errors.push(error);
     }
-    if (signal === 'SIGTERM') await Promise.race([closed, delay(2000, undefined, { ref: false })]);
   }
-  await Promise.race([
-    closed,
-    delay(2000, undefined, { ref: false }).then(() => {
-      throw new Error('An owned evidence child did not close.');
-    }),
-  ]);
-  const deadline = Date.now() + 2000;
-  while (liveGroup() && Date.now() < deadline) await delay(50);
-  assert.ok(!liveGroup(), 'An owned evidence child group did not stop.');
+  try {
+    await Promise.race([
+      closed,
+      delay(2000, undefined, { ref: false }).then(() => {
+        throw new Error('An owned evidence child did not close.');
+      }),
+    ]);
+  } catch (error) {
+    errors.push(error);
+  }
+  try {
+    const deadline = Date.now() + 2000;
+    while (liveGroup() && Date.now() < deadline) await delay(50);
+    assert.ok(!liveGroup(), 'An owned evidence child group did not stop.');
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) throw new AggregateError(errors, 'Owned evidence cleanup failed.');
 }
 
 async function record(file, executable, args, timeout = commandTimeout, onLine) {
@@ -102,11 +122,32 @@ async function record(file, executable, args, timeout = commandTimeout, onLine) 
       for (const line of lines) onLine(line);
     });
   }
-  const closed = new Promise((resolve) => child.once('close', (code, signal) => resolve({ code, signal })));
+  let reaped = false;
+  const closed = new Promise((resolve) =>
+    child.once('close', (code, signal) => {
+      reaped = true;
+      resolve({ code, signal });
+    }),
+  );
   children.set(child, closed);
+  let cleanupFailed;
+  const failedCleanup = new Promise((resolve) => {
+    cleanupFailed = resolve;
+  });
+  let cleanupErrors = [];
   let stopping;
   const stop = () => {
-    stopping ||= stopChild(child);
+    stopping ||= stopChild(child).catch((error) => {
+      cleanupErrors = (error.errors || [error]).map(({ message, code, status }) => ({
+        message: message.slice(0, 1000),
+        code,
+        status,
+      }));
+      process.exitCode ||= 1;
+      cancellation.abort();
+      cleanupFailed({ code: child.exitCode, signal: child.signalCode });
+    });
+    return stopping;
   };
   const timer = setTimeout(() => {
     timedOut = true;
@@ -114,8 +155,8 @@ async function record(file, executable, args, timeout = commandTimeout, onLine) 
   }, timeout);
   cancellation.signal.addEventListener('abort', stop, { once: true });
   try {
-    const { code, signal } = await closed;
-    await (stopping || stopChild(child));
+    const { code, signal } = await Promise.race([closed, failedCleanup]);
+    await stop();
     return status({
       file,
       executable,
@@ -126,12 +167,18 @@ async function record(file, executable, args, timeout = commandTimeout, onLine) 
       failure,
       timedOut,
       interrupted,
-      complete: code === 0 && !failure && !timedOut && !cancellation.signal.aborted,
+      reaped,
+      cleanupErrors,
+      complete: code === 0 && !failure && !timedOut && !cleanupErrors.length && !cancellation.signal.aborted,
     });
   } finally {
     clearTimeout(timer);
     cancellation.signal.removeEventListener('abort', stop);
     children.delete(child);
+    if (!reaped) {
+      child.stdout?.destroy();
+      child.unref();
+    }
     fs.closeSync(descriptor);
   }
 }
@@ -159,12 +206,12 @@ async function watch() {
     (line) => {
       if (firstAnr || !/\bam_anr\s*:/.test(line)) return;
       fs.writeFileSync(path.join(directory, 'first-anr-event.txt'), `${line}\n`);
-      firstAnr = Promise.all([
-        guest('first-anr-window.txt', ['shell', 'dumpsys', 'window', 'displays']),
-        guest('first-anr.png', ['exec-out', 'screencap', '-p']),
+      firstAnr = Promise.allSettled([
+        guest('first-anr-window.txt', ['shell', 'dumpsys', 'window', 'displays']).catch(failCollector),
+        guest('first-anr.png', ['exec-out', 'screencap', '-p']).catch(failCollector),
       ]);
     },
-  );
+  ).catch(failCollector);
   const samples = (async () => {
     while (!cancellation.signal.aborted) {
       fs.appendFileSync(path.join(directory, 'guest-load.log'), `== ${new Date().toISOString()}\n`);
@@ -174,7 +221,7 @@ async function watch() {
       ]);
       await delay(30000, undefined, { signal: cancellation.signal }).catch(() => {});
     }
-  })();
+  })().catch(failCollector);
   fs.writeFileSync(path.join(directory, 'watcher-ready.txt'), id);
   const stopTimer = setInterval(() => {
     const request = path.join(directory, 'watcher-stop.txt');
@@ -188,7 +235,10 @@ async function watch() {
     55 * 60 * 1000,
   );
   try {
-    await Promise.all([record('host-nproc.txt', 'nproc', []), guest('guest-properties.txt', ['shell', 'getprop'])]);
+    await Promise.allSettled([
+      record('host-nproc.txt', 'nproc', []).catch(failCollector),
+      guest('guest-properties.txt', ['shell', 'getprop']).catch(failCollector),
+    ]);
     await live;
     if (!cancellation.signal.aborted) {
       status({ liveStreamEnded: true, complete: false });
@@ -196,14 +246,16 @@ async function watch() {
     }
     await samples;
     await firstAnr;
+  } catch (error) {
+    failCollector(error);
   } finally {
     cancellation.abort();
     clearInterval(stopTimer);
     clearTimeout(deadline);
-    await Promise.all([live, samples, firstAnr]);
+    await Promise.allSettled([live, samples, firstAnr]);
     fs.writeFileSync(
       path.join(directory, 'watcher-complete.json'),
-      JSON.stringify({ id, interrupted, results }, null, 2),
+      JSON.stringify({ id, complete: false, interrupted, results }, null, 2),
     );
   }
 }
@@ -226,8 +278,13 @@ async function stop() {
 }
 
 async function collect() {
-  const deadline = setTimeout(() => cancellation.abort(), collectionTimeout);
+  let deadlineExpired = false;
+  const deadline = setTimeout(() => {
+    deadlineExpired = true;
+    cancellation.abort();
+  }, collectionTimeout);
   let remainingTraces = [];
+  let reachedEnd = false;
   try {
     await guest('guest-anr-dropbox.txt', ['shell', 'dumpsys', 'dropbox', '--print'], 60000);
     await guest('guest-last-anr.txt', ['shell', 'dumpsys', 'window', 'lastanr']);
@@ -246,15 +303,19 @@ async function collect() {
       const name = remainingTraces.shift();
       await guest(`guest-anr-traces/${name}.txt`, ['exec-out', 'cat', `/data/anr/${name}`]);
     }
+    reachedEnd = !cancellation.signal.aborted && remainingTraces.length === 0;
+  } catch (error) {
+    failCollector(error);
   } finally {
     clearTimeout(deadline);
     fs.writeFileSync(
       path.join(directory, 'collection-complete.json'),
       JSON.stringify(
         {
-          complete: results.every((result) => result.complete) && !cancellation.signal.aborted,
+          complete: reachedEnd && results.every((result) => result.complete) && !cancellation.signal.aborted,
+          reachedEnd,
           interrupted,
-          deadlineExpired: cancellation.signal.aborted && !interrupted,
+          deadlineExpired,
           remainingTraces,
           results,
         },

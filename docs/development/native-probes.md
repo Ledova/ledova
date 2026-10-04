@@ -44,8 +44,9 @@ screenshot, without dismissing a dialog or replacing native focus validation.
 Final collection retains the complete printed dropbox, window-manager last ANR,
 events/system/crash snapshots, the ANR directory listing and raw trace files
 named by that listing or dropbox. Each bounded command records its exit code,
-signal, timeout or interruption in `guest-records-status.jsonl`, alongside any
-partial output. `collection-complete.json` explicitly marks incomplete collection;
+signal, timeout, interruption, direct-child reap state and cleanup errors in
+`guest-records-status.jsonl`, alongside any partial output. `collection-complete.json`
+requires collection to reach its end and explicitly marks incomplete collection;
 permission-denied trace output is not a successfully captured trace. Diagnostic
 permission failures remain evidence gaps and do not override the native probe's
 focus, camera or transport outcome. No adbd restart or root escalation is used.
@@ -55,7 +56,9 @@ The watcher has a 55-minute observation bound. Collection has a two-minute total
 budget, with ten-second commands and a 60-second dropbox bound. Stop requests
 are bound to that watcher's generated identity; cancellation and timeouts stop
 its owned child groups and reap direct children. Partial files survive those
-paths and are uploaded even when setup or a build fails. A runner loss or
+paths and are uploaded even when setup or a build fails. Inventory or signalling
+errors retain an incomplete cleanup status; unverified groups are not signalled
+and an unreaped child is recorded as such. A runner loss or
 uncatchable kill can still prevent final collection or upload. These collectors
 improve observation; they do not establish the original SystemUI cause or close #880.
 Before the first build, the job attempts to let the emulator settle after boot,
