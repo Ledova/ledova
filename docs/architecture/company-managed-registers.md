@@ -8,8 +8,9 @@ can be submitted, withdrawn or admitted through explicit self-declaration in bot
 clients, retaining private evidence and history. Initial appointments record scoped
 capabilities, expiry and self-revocation after the existing configured identity and
 ABR checks. Both clients and the API support invitations, scoped team delegation,
-appointment history, administrator team reads and retained revocation. Legacy-owner
-migration and dependent company workflows remain planned.
+appointment history, administrator team reads and retained revocation. The upgrade
+records existing owners as administrators with retained legacy provenance;
+dependent company workflows remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -169,9 +170,10 @@ is implemented with the dependent domain workflows. The delivered
 [initial appointment lifecycle](../plans/company-managed-registers/authority-requests.md)
 records exact self-declaration admission, scope, expiry and self-revocation.
 The invitation API and web/mobile screens support team delegation, acceptance,
-administrator reads and retained revocation. Legacy-owner migration and dependent
-domain actions remain planned. Pending proposals and withdrawals retain their
-original history.
+administrator reads and retained revocation. The legacy-owner upgrade records
+administrator appointments for existing companies without an initial appointment,
+without inventing declarations or approvals. Dependent domain actions remain
+planned. Pending proposals and withdrawals retain their original history.
 
 ## Required self-service workflows
 

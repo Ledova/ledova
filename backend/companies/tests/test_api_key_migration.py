@@ -6,6 +6,7 @@ from companies.models import Company
 from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn
+from users.models import UserProfile
 
 BEFORE = [("companies", "0010_company_pack")]
 AFTER = [("companies", "0011_remove_company_api_key")]
@@ -23,6 +24,7 @@ class CompanyApiKeyMigrationTest(TransactionTestCase):
 
     def test_the_columns_go_and_a_reversal_issues_every_company_its_own_fresh_key(self):
         owner = get_user_model().objects.create_user(email="keys@migration.example.test", password="pw-12345678")
+        UserProfile.objects.create(user=owner, full_name="Legacy key owner")
         names = [f"Keyed {number} Pty Ltd" for number in range(3)]
         for number, name in enumerate(names):
             Company.objects.create(owner=owner, name=name, acn=an_acn(81000000 + number))
