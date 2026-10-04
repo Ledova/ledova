@@ -31,6 +31,13 @@ export function TermsOfService() {
             </p>
           </div>
           <div>
+            <h2 className="font-display text-2xl text-ink">Company responsibility</h2>
+            <p className="mt-2">
+              Company and share information is provided by the company. The company remains responsible for the
+              information it provides, its ASIC filings and legal obligations.
+            </p>
+          </div>
+          <div>
             <h2 className="font-display text-2xl text-ink">No deployment representation</h2>
             <p className="mt-2">
               The repository does not identify or recommend live contracts, providers, reserves, legal entities, or

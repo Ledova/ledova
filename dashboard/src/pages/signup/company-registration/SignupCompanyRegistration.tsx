@@ -51,7 +51,9 @@ export function SignupCompanyRegistration() {
           </div>
         </div>
         <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Company Details</h1>
-        <p className="text-sm text-text-muted mt-1">Enter your company&apos;s basic information</p>
+        <p className="text-sm text-text-muted mt-1">
+          Enter your company&apos;s basic information. Company information is provided by the company.
+        </p>
       </div>
 
       {loadError && (
