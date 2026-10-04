@@ -103,7 +103,9 @@ register command is introduced here.
 ## Database and upgrade boundaries
 
 The app connection reads only its principal's requests, appointments and retained
-outcomes. It cannot create or alter these authority records directly. Bounded
+outcomes. An appointment names its appointee and their profile; initial admission
+records the request's requester as the appointee, and a company has one such
+bootstrap appointment. It cannot create or alter these authority records directly. Bounded
 operator services carry and restore the individual principal, lock and recheck
 identities and exact scopes. Database triggers protect admission, withdrawal,
 revocation and immutable history. Existing identity-provider results and the

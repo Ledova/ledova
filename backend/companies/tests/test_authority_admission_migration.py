@@ -31,7 +31,6 @@ from shared.db import use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 
 OLD = ("companies", "0014_authority_request_capabilities_refuse_null")
-NEW = ("companies", "0015_self_declared_company_appointments")
 
 
 class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, TransactionTestCase):
@@ -78,7 +77,7 @@ class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, Transaction
             self.assertEqual({field.attname: getattr(before, field.attname) for field in before._meta.fields}, original)
             with before.file.open("rb") as source:
                 self.assertEqual(source.read(), PDF)
-        MigrationExecutor(connection).migrate([NEW])
+        self.latest()
         with use_operator():
             self.assertFalse(CompanyAppointment.objects.exists())
             self.assertFalse(CompanyAppointmentRevocation.objects.exists())

@@ -86,6 +86,21 @@ and approves no pending instruction. Empty reversal preserves pending/withdrawn
 requests and their files; populated reversal refuses to discard appointments,
 declarations or revocations. Do not delete authority history to force reversal.
 
+`companies/0016_appointee_keyed_appointments` keys company appointments on the
+appointee. It adds non-null `appointee` and `appointee_profile` columns backfilled
+from each appointment's bootstrap request inside the migration transaction, the
+only moment the appointment immutability trigger is disabled; the trigger is
+re-enabled before the transaction commits and afterwards also refuses an appointee
+other than the request's requester. `company` becomes a plain foreign key with a
+partial unique index that keeps the self-declaration bootstrap at one per company,
+and the appointment read policy is reinstalled on `appointee_id`, which admits the
+same rows. A fresh install leaves the appointment table denied to the app role
+between `0015` and this migration, because its term names the new column. It
+creates no table, adds no endpoint and seeds no appointment. Reversal restores
+the request-keyed policy and the earlier trigger body before dropping the
+columns, and refuses when any appointment's appointee differs from its request's
+requester, which no delivered path can produce.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)

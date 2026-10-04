@@ -74,7 +74,7 @@ def _require_initial_admission(actor, profile, company, proposal):
 
 
 def _existing_admission(company, proposal):
-    appointment = CompanyAppointment.objects.filter(company=company).first()
+    appointment = CompanyAppointment.objects.filter(company=company, request__isnull=False).first()
     if appointment and appointment.request_id != proposal.pk:
         raise AuthorityAdmissionConflictException(
             "Initial authority is already recorded. Use company administrator changes."
@@ -117,6 +117,8 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
                 raise ValidationError({"company": "A current matching ABR company lookup must pass. Retry admission."})
             CompanyAppointment.objects.create(
                 company=company,
+                appointee_id=proposal.requester_id,
+                appointee_profile_id=proposal.requester_profile_id,
                 request=proposal,
                 registry_check=check,
                 capabilities=proposal.requested_capabilities,

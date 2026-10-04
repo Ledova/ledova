@@ -47,6 +47,16 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
     | {"shareholders_publicationevent": ("shareholders", "0003_resolutions")}
 )
 
+TERM_COLUMNS_ADDED_AFTER_CREATION = {
+    "companies_companyappointment": ("appointee_id",),
+}
+
+HAS_COLUMNS = """
+    SELECT count(*) = cardinality(%s::text[])
+      FROM pg_attribute
+     WHERE attrelid = %s::regclass AND attname = ANY(%s::text[]) AND NOT attisdropped
+"""
+
 NOT_YET_CREATED = (
     "The catalogue says the app role reaches {tables}, and the grant ran before they existed. "
     "Default privileges now deny them, so leaving this silent would take the role's access away "
@@ -116,6 +126,10 @@ def install_tables(schema_editor, tables):
                 continue
             cursor.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
             cursor.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
+            columns = list(TERM_COLUMNS_ADDED_AFTER_CREATION.get(table, ()))
+            cursor.execute(HAS_COLUMNS, [columns, table, columns])
+            if not cursor.fetchone()[0]:
+                continue
             for suffix in SUFFIXES:
                 cursor.execute(f"DROP POLICY IF EXISTS {table}_{suffix} ON {table}")
             cursor.execute(f"CREATE POLICY {table}_read ON {table} FOR SELECT USING ({ADMITTED} AND ({readable}))")
