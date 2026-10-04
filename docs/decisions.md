@@ -64,8 +64,11 @@ signed-transaction safeguards. Memberships, scoped capabilities, in-app
 delegation, invitations, revocation and action-specific company approvals remain
 in scope. [Initial self-declaration admission and self-revocation](plans/company-managed-registers/authority-requests.md)
 are implemented for exact retained draft-company requests; pending requests and
-withdrawals grant no company authority. Team invitations, delegation and dependent
-company approvals remain planned.
+withdrawals grant no company authority. The
+[team API](plans/company-managed-registers/authority-requests.md#team-invitation-api)
+also supports scoped invitations, acceptance, administrator team reads and retained
+revocation. Team web/mobile screens, legacy-owner migration and dependent company
+approvals remain planned.
 
 Do not add impersonation or fraud verification unless a legal duty on Ledova
 requires it. If such a duty is identified, raise it with the owner with its source
