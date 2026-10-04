@@ -30,12 +30,37 @@ On Android it also records the focused window and app (`focus`) from
 "Application Not Responding" window holds focus, since that dialog over the app
 passes the content measurement, and when the dump has no `mCurrentFocus` line,
 since focus is then unknown rather than checked. Pass or fail, CI's Android job
-also keeps the emulator's ANR records (`guest-anr-dropbox.txt`,
-`guest-last-anr.txt`), its events and system/crash logs, each collection command's
-exit status (`guest-records-status.txt`), and load and memory samples of the
-runner every 15 seconds (`ledova-host-vmstat.log`) and of the emulator every 30
-(`ledova-guest-load.log`), so a failure can be tied to its time and resource state.
-An empty record is a gap in the evidence, not proof that no ANR happened.
+retains a separate `ledova-native-android-records` directory. The
+[Android evidence collector](../../mobile/scripts/android-evidence.mjs) starts
+continuous [main/events/system/crash logcat retention](https://developer.android.com/tools/logcat#alternativeBuffers) at the first usable adb
+connection, before waiting for boot or building. It samples guest load, CPU and
+memory immediately and then every 30 seconds (`guest-load.log`), records host
+CPU/parallelism and `nproc`, and retains actual guest properties including the
+system-image fingerprint. `ledova-emulator.log` records the actual emulator
+version and any RAM adjustment; `ledova-host-vmstat.log` samples the host every
+15 seconds. The first recorded `am_anr` event also triggers one window dump and
+screenshot, without dismissing a dialog or replacing native focus validation.
+
+Final collection retains the complete printed dropbox, window-manager last ANR,
+events/system/crash snapshots, the ANR directory listing and raw trace files
+named by that listing or dropbox. Each bounded command records its exit code,
+signal, timeout, interruption, direct-child reap state and cleanup errors in
+`guest-records-status.jsonl`, alongside any partial output. `collection-complete.json`
+requires collection to reach its end and explicitly marks incomplete collection;
+permission-denied trace output is not a successfully captured trace. Diagnostic
+permission failures remain evidence gaps and do not override the native probe's
+focus, camera or transport outcome. No adbd restart or root escalation is used.
+An empty record is not proof that no ANR happened.
+
+The watcher has a 55-minute observation bound. Collection has a two-minute total
+budget, with ten-second commands and a 60-second dropbox bound. Stop requests
+are bound to that watcher's generated identity; cancellation and timeouts stop
+its owned child groups and reap direct children. Partial files survive those
+paths and are uploaded even when setup or a build fails. Inventory or signalling
+errors retain an incomplete cleanup status; unverified groups are not signalled
+and an unreaped child is recorded as such. A runner loss or
+uncatchable kill can still prevent final collection or upload. These collectors
+improve observation; they do not establish the original SystemUI cause or close #880.
 Before the first build, the job attempts to let the emulator settle after boot,
 within 300 seconds and without gating the run (`mobile/scripts/emulator-settle.mjs`).
 It waits for the broadcast queues to go idle, then polls the guest's 1-minute
