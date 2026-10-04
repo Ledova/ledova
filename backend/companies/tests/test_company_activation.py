@@ -13,11 +13,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import (
-    Company,
-    CompanyAppointmentRevocation,
-    CompanyRegistryCheck,
-)
+from companies.models import Company, CompanyRegistryCheck
 from companies.services.activation import activate_company
 from companies.services.administration import company_operation
 from companies.services.authority import (
@@ -27,7 +23,11 @@ from companies.services.authority import (
 )
 from companies.services.authority_requests import submit_authority_request
 from companies.services.company import register_company, transition_company
-from companies.services.team import accept_team_invitation, issue_team_invitation
+from companies.services.team import (
+    accept_team_invitation,
+    issue_team_invitation,
+    revoke_company_appointment,
+)
 from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_authority_requests import (
     STORAGES,
@@ -249,21 +249,22 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
                     Company.objects.filter(pk=self.company.pk).update(name=self.company.name, lifecycle_revision=0)
 
                 def observe(**kwargs):
-                    with use_migrate():
-                        if change == "revoked":
-                            CompanyAppointmentRevocation.objects.create(appointment=self.source, revoked_by=self.user)
-                        elif change == "inactive":
-                            get_user_model().objects.filter(pk=self.user.pk).update(is_active=False)
-                        elif change == "email":
-                            get_user_model().objects.filter(pk=self.user.pk).update(is_email_verified=False)
-                        elif change == "kyc":
-                            UserProfile.objects.filter(pk=self.profile.pk).update(is_id_verified=False)
-                        elif change == "configuration":
-                            Operator.objects.filter(pk=1).update(issuer_kyc_required=True)
-                        else:
-                            Company.objects.filter(pk=self.company.pk).update(
-                                name="Changed company", lifecycle_revision=4
-                            )
+                    if change == "revoked":
+                        revoke_company_appointment(requester=self.user, appointment_id=self.source.pk)
+                    else:
+                        with use_migrate():
+                            if change == "inactive":
+                                get_user_model().objects.filter(pk=self.user.pk).update(is_active=False)
+                            elif change == "email":
+                                get_user_model().objects.filter(pk=self.user.pk).update(is_email_verified=False)
+                            elif change == "kyc":
+                                UserProfile.objects.filter(pk=self.profile.pk).update(is_id_verified=False)
+                            elif change == "configuration":
+                                Operator.objects.filter(pk=1).update(issuer_kyc_required=True)
+                            else:
+                                Company.objects.filter(pk=self.company.pk).update(
+                                    name="Changed company", lifecycle_revision=4
+                                )
                     return matching_observation(self.company)
 
                 self.provider.side_effect = observe
