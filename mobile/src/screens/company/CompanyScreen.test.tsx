@@ -83,6 +83,7 @@ afterEach(async () => {
 it('uses complete company detail and every class page with exact quantities and working destinations', async () => {
   const view = await render(<CompanyScreen />, { wrapper });
   expect(await view.findByRole('header', { name: 'Fictional Company' })).toBeTruthy();
+  expect(view.getByText('Company information is provided by the company.')).toBeTruthy();
   expect(view.getAllByText('Fictional Company')).toHaveLength(1);
   expect(view.queryByText('Company details')).toBeNull();
   expect(await view.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
@@ -98,6 +99,8 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(mockNavigate).toHaveBeenCalledWith('CompanyPublications');
   await fireEvent.press(view.getByText('Representative authority'));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyAuthority');
+  await fireEvent.press(view.getByRole('button', { name: 'Company team' }));
+  expect(mockNavigate).toHaveBeenCalledWith('CompanyTeam');
 });
 
 it('offers Edit company under the page title rather than inside the company card', async () => {

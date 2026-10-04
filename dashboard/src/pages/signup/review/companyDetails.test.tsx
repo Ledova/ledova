@@ -64,10 +64,12 @@ it('renders a separately fetched ABN after retrying the real review error screen
   const view = page();
   await waitFor(() => expect(view.getByText('Detail unavailable')).toBeTruthy());
   expect(view.queryByText(detailA.abn)).toBeNull();
+  expect(view.queryByText(/provided by the company/i)).toBeNull();
   expect(api.patch).not.toHaveBeenCalled();
   companyA = () => Promise.resolve({ data: detailA });
   fireEvent.click(view.getByRole('button', { name: 'Try Again' }));
   await waitFor(() => expect(view.getByText(detailA.abn)).toBeTruthy());
+  expect(view.getAllByText(/provided by the company/i)).toHaveLength(1);
   expect(view.queryByText('Detail unavailable')).toBeNull();
 });
 

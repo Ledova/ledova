@@ -32,8 +32,11 @@ export function useSubmissionOwner(session?: OrderSubmissionSession) {
     return {
       get,
       subscribe: (listener: () => void) => {
+        let notified = get();
         const changed = () => {
-          get();
+          const next = get();
+          if (next === notified) return;
+          notified = next;
           listener();
         };
         const unsubscribeQuery = queryClient.getQueryCache().subscribe(changed);

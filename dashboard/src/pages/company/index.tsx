@@ -77,6 +77,7 @@ export default function CompanyPage() {
               <div className="divide-y divide-border-subtle">
                 <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
                 <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
+                <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
                 <LinkRow to={DESTINATIONS.companyPublications.path} label={DESTINATIONS.companyPublications.title} />
               </div>
             </Section>

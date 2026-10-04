@@ -7,9 +7,9 @@
 can be submitted, withdrawn or admitted through explicit self-declaration in both
 clients, retaining private evidence and history. Initial appointments record scoped
 capabilities, expiry and self-revocation after the existing configured identity and
-ABR checks. The API also supports invitations, scoped team delegation,
-administrator team reads and retained revocation. Team web/mobile screens,
-legacy-owner migration and dependent company workflows remain planned.
+ABR checks. Both clients and the API support invitations, scoped team delegation,
+appointment history, administrator team reads and retained revocation. Legacy-owner
+migration and dependent company workflows remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -168,8 +168,8 @@ an issue or payment. Appointments use flat capabilities; company approval policy
 is implemented with the dependent domain workflows. The delivered
 [initial appointment lifecycle](../plans/company-managed-registers/authority-requests.md)
 records exact self-declaration admission, scope, expiry and self-revocation.
-The invitation API supports team delegation, acceptance, administrator reads and
-retained revocation. Team web/mobile screens, legacy-owner migration and dependent
+The invitation API and web/mobile screens support team delegation, acceptance,
+administrator reads and retained revocation. Legacy-owner migration and dependent
 domain actions remain planned. Pending proposals and withdrawals retain their
 original history.
 
