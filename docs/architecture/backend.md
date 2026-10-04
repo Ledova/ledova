@@ -6,10 +6,12 @@ Where backend code belongs and how its layers interact.
 
 ## Company-managed implementation direction
 
-The app and layer catalogue below describes current code. The
-[accepted plan](company-managed-registers.md#delivery-sequence) adds company
-administrative appointments, capabilities, invitations and mandates; no such
-membership model is implemented by `Company.owner` or `RegisterMember` today.
+The app and layer catalogue below describes current code. Company authority is
+recorded by retained requests, scoped appointments, invitations and revocations in
+`companies`; `Company.owner` and `RegisterMember` do not substitute for these
+appointments. The [accepted plan](company-managed-registers.md#delivery-sequence)
+extends that authority to dependent register workflows. Team web/mobile screens,
+legacy-owner migration and action-specific company approvals remain planned.
 Place company authority with the company concern and pass an explicit actor and
 company command into shared workflow services. Client actions and exceptional
 admin support must call those services rather than duplicate decision logic.
@@ -32,7 +34,7 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `operators` | The single `Operator` configuration row, `GET /api/operator/`, and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view` |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes |
 | `users` | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, `InvestorClassification` and the investor-eligibility predicate |
-| `companies` | `Company`, its application lifecycle, and company `Document` records |
+| `companies` | `Company`, its application lifecycle, `CompanyDocument`, and representative-authority request, appointment, invitation and retained revocation records |
 | `tokens` | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, and the trading models |
 | `shareholders` | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records |
 | `offerings` | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/` |
