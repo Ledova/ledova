@@ -223,6 +223,7 @@ it('retires the previous company file and scope when selection changes', async (
   show();
   await fill();
   fireEvent.change(screen.getByLabelText('Draft company'), { target: { value: companyB.uuid } });
+  expect(screen.getByText(/representative role at Inland Synthetic Pty Ltd, then accept/)).toBeTruthy();
   expect((screen.getByLabelText('Representative evidence') as HTMLInputElement).value).toBe('');
   expect(
     (
@@ -486,6 +487,8 @@ it('requires explicit declaration acceptance, records exact appointment scope an
     { declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
     { ledovaSubmissionGuard: expect.any(Function) },
   );
+  expect(screen.getByText('Status').nextElementSibling?.textContent).toBe('Admitted');
+  expect(screen.queryByText('Pending')).toBeNull();
   expect(screen.getByText('appointment-a')).toBeTruthy();
   expect(screen.getByText('active')).toBeTruthy();
   expect(screen.getByText('Current')).toBeTruthy();
@@ -542,6 +545,58 @@ it('rejects an unconfirmed admission and retries the same request without optimi
   fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
   await screen.findByText(admitted().verificationMessage);
   expect(api.post.mock.calls[1]).toEqual(api.post.mock.calls[0]);
+});
+
+it.each([
+  ['a pending status', () => ({ ...admitted(), status: 'pending' })],
+  ['no appointment', () => ({ ...admitted(), appointment: undefined })],
+])('rejects an admission receipt with %s without recording authority', async (_shape, receipt) => {
+  rows = [admissionRequest()];
+  api.post.mockResolvedValueOnce({ data: receipt() });
+  show();
+  fireEvent.click(await screen.findByRole('checkbox', { name: /Accept authorisation/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Establish appointment authority.pdf' }));
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'The request outcome could not be confirmed. Refresh your requests or retry.',
+  );
+  expect(screen.getByText('Pending')).toBeTruthy();
+  expect(screen.queryByText('appointment-a')).toBeNull();
+  expect(
+    (screen.getByRole('button', { name: 'Establish appointment authority.pdf' }) as HTMLButtonElement).disabled,
+  ).toBe(false);
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admissionRequest()]);
+});
+
+it.each([
+  [
+    'an active appointment',
+    () => {
+      const result = revoked();
+      return { ...result, appointment: { ...result.appointment, status: 'active' } };
+    },
+  ],
+  [
+    'no revocation time',
+    () => {
+      const result = revoked();
+      return { ...result, appointment: { ...result.appointment, revokedAt: null } };
+    },
+  ],
+  ['a withdrawn request status', () => ({ ...revoked(), status: 'withdrawn' })],
+])('rejects a revocation receipt with %s and keeps the appointment revocable', async (_shape, receipt) => {
+  rows = [admitted()];
+  api.post.mockResolvedValueOnce({ data: receipt() });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  expect((await screen.findByRole('alert')).textContent).toBe(
+    'The request outcome could not be confirmed. Refresh your requests or retry.',
+  );
+  expect(screen.getByText('active')).toBeTruthy();
+  expect(screen.queryByText('revoked')).toBeNull();
+  expect((screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
 });
 
 it('ignores a delayed admission result after an account switch', async () => {

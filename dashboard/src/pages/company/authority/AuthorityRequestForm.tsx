@@ -90,7 +90,7 @@ export function AuthorityRequestForm({
       }}
     >
       <p className="text-sm text-text-muted">
-        Company information is provided by the company. Submit a private request for your own representative role at
+        Company information is provided by the company. Submit a private request for your own representative role at{' '}
         {company.name}, then accept the authorisation declaration to establish your appointment. Submitting evidence
         alone grants no authority and does not activate the company.
       </p>

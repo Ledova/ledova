@@ -73,7 +73,10 @@ capabilities that are not listed strings.
 identity provider identifiers/results and configured issuer identity requirement
 from app-connection changes. Provider services record their existing results
 through bounded operator transactions; ordinary profile changes remain available.
-Reversal removes these write guards without changing retained identity data.
+Deploy the backend that ships this migration before or together with applying
+it: earlier binaries save provider identifiers and results on the app connection,
+which the installed trigger refuses. Reversal removes these write guards without
+changing retained identity data.
 
 `companies/0015_self_declared_company_appointments` adds private initial
 appointments, exact declaration capture, retained ABR check references and
