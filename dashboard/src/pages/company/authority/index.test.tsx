@@ -565,6 +565,59 @@ it('refuses a confirmation when the signed-in account changes before its effect'
   expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
 });
 
+it.each(['cancel', 'escape'])(
+  'refuses the retained confirmation immediately after %s during modal closure',
+  async (action) => {
+    rows = [admitted()];
+    api.post.mockResolvedValue({ data: revoked() });
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: 'Permanently revoke appointment' });
+    if (action === 'cancel') fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    else fireEvent.keyDown(dialog, { key: 'Escape', code: 'Escape' });
+    expect(confirm.isConnected).toBe(true);
+    fireEvent.click(confirm);
+    await act(() => Promise.resolve());
+    expect(api.post).not.toHaveBeenCalled();
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Permanently revoke appointment' }),
+    );
+    await screen.findByText('revoked');
+    expect(api.post).toHaveBeenCalledOnce();
+  },
+);
+
+it('consumes one confirmation before a second click during modal closure', async () => {
+  rows = [admitted()];
+  let finish!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const confirm = within(await screen.findByRole('dialog')).getByRole('button', {
+    name: 'Permanently revoke appointment',
+  });
+  await act(async () => {
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+  });
+  expect(api.post).toHaveBeenCalledOnce();
+  expect((confirm as HTMLButtonElement).disabled).toBe(true);
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
+  await act(async () => finish({ data: revoked() }));
+  await screen.findByText('revoked');
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
+});
+
 it('requires confirmation again after a failed revocation and records only its confirmed retry', async () => {
   rows = [admitted()];
   api.post

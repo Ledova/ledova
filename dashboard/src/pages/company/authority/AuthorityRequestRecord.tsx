@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
   COMPANY_AUTHORITY_DECLARATION,
@@ -39,8 +39,13 @@ export function AuthorityRequestRecord({
   onRevoke: () => void;
 }) {
   const [accepted, setAccepted] = useState(false);
-  const [confirmingRevocation, setConfirmingRevocation] = useState(false);
+  const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
+  const revocationConfirmation = useRef<symbol | null>(null);
   const appointment = request.appointment;
+  const closeRevocationConfirmation = () => {
+    revocationConfirmation.current = null;
+    setConfirmingRevocation(null);
+  };
   return (
     <li className="space-y-2 py-3">
       <Rows>
@@ -134,18 +139,30 @@ export function AuthorityRequestRecord({
             <PageAction
               label={`${action === 'revoke' ? 'Revoking' : 'Revoke'} appointment ${request.originalFilename}`}
               disabled={blocked}
-              onClick={() => setConfirmingRevocation(true)}
+              onClick={() => {
+                if (blocked || revocationConfirmation.current) return;
+                const confirmation = Symbol();
+                revocationConfirmation.current = confirmation;
+                setConfirmingRevocation(confirmation);
+              }}
             />
           )}
           <Modal
-            isOpen={confirmingRevocation}
-            onClose={() => setConfirmingRevocation(false)}
+            isOpen={!!confirmingRevocation}
+            onClose={closeRevocationConfirmation}
             title="Revoke appointment permanently?"
             showFooter
             confirmLabel="Permanently revoke appointment"
-            confirmDisabled={blocked || appointment.status === 'revoked'}
+            confirmDisabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
             onConfirm={() => {
-              setConfirmingRevocation(false);
+              if (
+                !confirmingRevocation ||
+                revocationConfirmation.current !== confirmingRevocation ||
+                blocked ||
+                appointment.status === 'revoked'
+              )
+                return;
+              closeRevocationConfirmation();
               onRevoke();
             }}
           >
