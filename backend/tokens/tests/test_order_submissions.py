@@ -16,7 +16,7 @@ from rest_framework.test import APITransactionTestCase
 from assets.models import AssetChainDeployment
 from companies.models import Company, CompanyStatus
 from operators.settlement import require_deployment
-from shared.db import acting_for, atomic, current_alias, use_operator
+from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.utils.typed_data import signable_message, typed_data_digest
@@ -467,7 +467,10 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
     def test_a_paused_class_leaves_the_market_and_the_directory_and_takes_no_new_order(self):
         with use_operator():
             issuer = make_tenant("submission-paused-issuer")
-            Company.objects.filter(pk=issuer.company.pk).update(status=CompanyStatus.ACTIVE, is_open_to_investors=True)
+            with use_migrate():
+                Company.objects.filter(pk=issuer.company.pk).update(
+                    status=CompanyStatus.ACTIVE, is_open_to_investors=True
+                )
         token = str(issuer.deployed_token.pk)
 
         def listed(route):

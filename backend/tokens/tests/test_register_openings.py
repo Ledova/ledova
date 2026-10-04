@@ -20,16 +20,18 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
-from companies.models import CompanyDocument
+from companies.models import Company, CompanyDocument, CompanyStatus
 from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_document_file_access import (
     ADMIN_STORAGES,
+    admit_company_administrator,
     attach_file,
     make_document,
 )
 from integrations.base_chain.exceptions import BaseChainConnectionError
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_migrate
 from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.tenants import make_tenant
 from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
     RegisterEntry,
@@ -57,7 +59,6 @@ from tokens.tests.deployment_fixtures import (
     KEY,
     DeploymentNode,
     admitted_signer,
-    deployment_token,
 )
 from tokens.tests.test_register_corrections import correction_fixture
 from tokens.tests.test_register_events import DAY, register_fixture
@@ -75,7 +76,13 @@ SETTINGS = dict(
 
 
 def opening_fixture():
-    tenant = deployment_token("opening")
+    tenant = make_tenant("opening")
+    admit_company_administrator(tenant.company)
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+        tenant.company.refresh_from_db()
+    with patch("tokens.tasks.deploy_share_token_task.defer"):
+        deployment.start_deployment(tenant.token, principal_id=tenant.user.pk)
     deployment_node = DeploymentNode()
     admitted_signer()
     with (
@@ -256,7 +263,8 @@ class RegisterOpeningTest(TransactionTestCase):
             self.submit(authority="court_order")
         with self.assertRaises(NotFound):
             self.submit(document_id=uuid4())
-        CompanyDocument.objects.filter(pk=self.document.pk).update(is_verified=False)
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(is_verified=False)
         with self.assertRaises(ValidationError):
             self.submit(operation_id=uuid4())
         _, _, foreign_document, _ = correction_fixture()
@@ -384,7 +392,8 @@ class RegisterOpeningTest(TransactionTestCase):
                     decision="apply",
                     client=self.node.client,
                 )
-        self.document.delete()
+        with use_migrate():
+            self.document.delete()
         with self.assertRaises(ValidationError):
             decide_opening(
                 proposal_id=proposal.pk,

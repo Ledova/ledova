@@ -49,6 +49,8 @@ COMPANY_DETAIL_KEYS = {
     "documents",
     "created_at",
     "updated_at",
+    "is_owner",
+    "administrative_access",
 }
 
 APPLICATION_STATUS_KEYS = {

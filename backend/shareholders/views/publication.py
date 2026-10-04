@@ -22,12 +22,21 @@ class PublicationViewSet(AuthenticatedListViewSet):
     lookup_field = "uuid"
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
+    operator_actions = frozenset({"list", "file"})
+    operator_actions_because = (
+        "Retained publication reads stay with the exact company owner or named recipient after a share-class "
+        "pause, independently of current basic company administration. The queryset binds that reader before "
+        "personal annotations and file lookup. The file service retains its existing reader audit and staff checks. "
+        "Ballots retain app-role policies."
+    )
 
     def get_throttles(self):
         self.throttle_scope = "ballot" if self.action == "ballot" else None
         return super().get_throttles()
 
     def narrow(self, queryset):
+        if self.action in self.operator_actions:
+            queryset = queryset.for_reader(self.request.user)
         return queryset.seen_by(self.request.user.pk)
 
     def filter_queryset(self, queryset):
@@ -38,7 +47,7 @@ class PublicationViewSet(AuthenticatedListViewSet):
     @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["get"])
     def file(self, request, uuid=None):
-        publication, _ = read_publication(request.user, uuid)
+        publication, _ = read_publication(request.user, self.get_object().pk)
         return stream_stored_file(publication.file, publication.mime_type, as_attachment=True)
 
     @extend_schema(request=BallotSerializer, responses={200: PublicationSerializer})

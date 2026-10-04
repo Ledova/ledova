@@ -5,6 +5,14 @@ from django.db.models.functions import Coalesce
 
 
 class PublicationQuerySet(models.QuerySet):
+    def for_reader(self, user):
+        from shareholders.models.recipient import PublicationRecipient
+
+        if user is None or not user.is_authenticated:
+            return self.none()
+        recipient = PublicationRecipient.objects.filter(publication_id=models.OuterRef("pk"), user_id=user.pk)
+        return self.filter(models.Q(company__owner_id=user.pk) | models.Q(models.Exists(recipient)))
+
     def addressed_to(self, user_id):
         from shareholders.models.recipient import PublicationRecipient
 

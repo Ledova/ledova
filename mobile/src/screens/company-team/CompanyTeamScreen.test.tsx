@@ -361,7 +361,9 @@ it('offers admin from a delegating source when a separate current personal appoi
   history = [a, delegated];
   const view = await screen();
   await chooseSource(view, delegated);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to delegate: Manage company team' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', { name: 'Permissions to delegate: Manage company information and team' }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   await view.findByLabelText('One-time invitation code');
   expect(post).toHaveBeenCalledWith(
@@ -528,8 +530,12 @@ it('uses the explicit company/source and allows onward delegation without person
 it('offers only the source delegation scope and hides team administration when personal admin is absent', async () => {
   const view = await screen();
   await chooseSource(view, b);
-  expect(view.queryByRole('checkbox', { name: 'Permissions to exercise: Manage company team' })).toBeNull();
-  expect(view.queryByRole('checkbox', { name: 'Permissions to delegate: Manage company team' })).toBeNull();
+  expect(
+    view.queryByRole('checkbox', { name: 'Permissions to exercise: Manage company information and team' }),
+  ).toBeNull();
+  expect(
+    view.queryByRole('checkbox', { name: 'Permissions to delegate: Manage company information and team' }),
+  ).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' })).toBeNull();
   expect(view.getByRole('checkbox', { name: 'Permissions to exercise: Manage company payments' })).toBeTruthy();
   expect(get.mock.calls.some(([url]) => url === `${APPOINTMENTS}team/`)).toBe(false);

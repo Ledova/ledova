@@ -14,6 +14,8 @@ PRINCIPAL_PROFILES = "app_principal_profile_ids"
 VISIBLE_COMPANIES = "app_visible_company_ids"
 MANAGEABLE_COMPANIES = "app_manageable_company_ids"
 PUBLIC_COMPANIES = "app_public_company_ids"
+ADMINISTRABLE_COMPANIES = "app_company_administration_ids"
+DISCOVERABLE_COMPANIES = "app_company_discovery_ids"
 OPEN_TO_INVESTORS = "status = 'active' AND is_open_to_investors"
 
 
@@ -41,11 +43,41 @@ HELPERS = {
     VISIBLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
     MANAGEABLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
     PUBLIC_COMPANIES: f"SELECT uuid FROM companies_company WHERE {OPEN_TO_INVESTORS}",
+    DISCOVERABLE_COMPANIES: (
+        f"SELECT uuid FROM companies_company WHERE {ADMITTED} "
+        f"AND (({OPEN_TO_INVESTORS}) OR {HAS_A_TOKEN_ON_THE_MARKET})"
+    ),
+    ADMINISTRABLE_COMPANIES: f"""
+        SELECT issuer.uuid FROM companies_company issuer
+        JOIN authentication_customuser actor ON actor.id = {PRINCIPAL}
+        WHERE actor.is_active AND actor.is_email_verified AND (
+            (issuer.owner_id = actor.id AND issuer.status = 'draft'
+                AND NOT EXISTS (SELECT 1 FROM companies_companylegacyownersource source
+                    WHERE source.company_id = issuer.uuid)
+                AND NOT EXISTS (SELECT 1 FROM companies_companyappointment root
+                    WHERE root.company_id = issuer.uuid AND root.request_id IS NOT NULL))
+            OR EXISTS (SELECT 1 FROM companies_companyappointment appointment
+                JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
+                WHERE appointment.company_id = issuer.uuid AND appointment.appointee_id = actor.id
+                    AND profile.user_id = actor.id AND appointment.capabilities @> '["admin"]'::jsonb
+                    AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
+                    AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revoked
+                        WHERE revoked.appointment_id = appointment.uuid)
+                    AND (NOT COALESCE((SELECT issuer_kyc_required FROM operators_operator WHERE id = 1), false)
+                        OR profile.is_id_verified)))
+    """,
 }
 
 IDENTICAL_TODAY = (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
 
-BYPASSES_THE_POLICIES = (PRINCIPAL_PROFILES, PRINCIPAL_ACCOUNTS)
+BYPASSES_THE_POLICIES = (
+    PRINCIPAL_PROFILES,
+    PRINCIPAL_ACCOUNTS,
+    ADMINISTRABLE_COMPANIES,
+    DISCOVERABLE_COMPANIES,
+    VISIBLE_COMPANIES,
+    MANAGEABLE_COMPANIES,
+)
 
 OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 
@@ -144,8 +176,8 @@ A_PARTY_TO_THE_SWAP = (
 
 POLICIES = {
     "companies_company": (
-        f"owner_id = {PRINCIPAL} OR ({OPEN_TO_INVESTORS}) OR {HAS_A_TOKEN_ON_THE_MARKET}",
-        f"owner_id = {PRINCIPAL}",
+        f"uuid IN (SELECT {ADMINISTRABLE_COMPANIES}()) OR uuid IN (SELECT {DISCOVERABLE_COMPANIES}())",
+        "false",
     ),
     "users_userprofile": (f"user_id = {PRINCIPAL} OR {A_SUBSCRIBING_HOLDER}", f"user_id = {PRINCIPAL}"),
     "documents": (f"uploaded_by_id = {PRINCIPAL}", f"uploaded_by_id = {PRINCIPAL}"),
@@ -186,8 +218,8 @@ POLICIES = {
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
     "tokens_orderactionsubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
     "companies_companydocument": (
-        _company("company_id", VISIBLE_COMPANIES),
-        _company("company_id", MANAGEABLE_COMPANIES),
+        _company("company_id", ADMINISTRABLE_COMPANIES),
+        "false",
     ),
     "companies_companyregistrycheck": ("false", "false"),
     "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
@@ -298,6 +330,24 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
 }
 
 READS_WIDER_THAN_OWNERSHIP = {
+    "Public company discovery": (
+        "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
+        "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
+        "active/open or deployed/nonempty-address public terms. It stops company-token policy recursion "
+        "without admitting private company documents, profiles or basic administration.",
+        "companies/tests/test_company_administration.py exercises marketed/open reads, owned draft token reads, "
+        "foreign private resources, empty deployments, draft listings and a missing principal; "
+        "shared/tests/test_rls_catalogue.py checks the definer boundary.",
+    ),
+    "Current personal company administration": (
+        "companies/querysets/company.py administrable_by; companies/services/administration.py company_contact",
+        "The principal-bound definer returns only company UUIDs for current personal admin appointments or genuine "
+        "unrooted owner drafts. It sees retained initial and legacy roots regardless of their RLS visibility. Basic "
+        "responses expose only the existing contact name and email, without admitting raw profiles or accounts.",
+        "companies/tests/test_company_administration.py exercises actual admission, delegated scope, revocation, "
+        "foreign identifiers and private files; shared/tests/test_rls_catalogue.py checks the "
+        "fixed-search-path definer.",
+    ),
     "Company.active for an associated-person claim": (
         "users/services/classification_issuer.py active_issuer_for_claim",
         "The operator validates only the supplied UUID against active issuers and returns only that key. "
@@ -323,7 +373,7 @@ READS_WIDER_THAN_OWNERSHIP = {
         "closed offering of a share class the caller's directory admits. The token resolves through the directory "
         "selector and the offerings through their own policy, under the app role, before one operator query "
         "bounded to those offering UUIDs and the class's own company. No unattached document, no other company's "
-        "document and no external link is returned, and the company document policy stays owner-only",
+        "document and no external link is returned; basic company documents require current personal administration",
         "offerings/tests/test_directory_documents_scoped.py - ScopedDirectoryDocumentsTest proves one operator "
         "read bounded to the published offering and its company, the row still hidden on the app role, and no "
         "operator read for an unpublished, ineligible or unknown request",
@@ -439,16 +489,12 @@ PUBLIC_TERM = {
     "subscriptions reads the subscriber's profile. The account is visible to that issuer already and "
     "user_profile_id is not nullable, so without this term select_related would delete the account row and "
     "the subscription with it. The term is the same subscription predicate, one link further.",
-    "companies_company": "Two reasons past ownership, and both were measured rather than argued. The "
-    "directory reads companies through open_to_investors(), so an owner-only "
-    "policy empties the browse surface every investor starts on. And the secondary market joins the company "
-    "with select_related, which is an INNER JOIN, so a company this policy hides deletes the token row that "
-    "points at it - count() disagrees with the page, because Django strips the join for count(). The EXISTS "
-    "term reads tokens_sharetoken, which is safe in both directions: today that table carries no policy, and "
-    "after tokens/0024 its policy is a leaf on owner_id, so neither reads back into this one. This term is the "
-    "exact dual of the market term the token policy will carry: a company is visible because a token of its is "
-    "on the market, and that token is visible because it is on the market. Removing either one leaves a row "
-    "whose parent or child is hidden, which is the R13 failure.",
+    "companies_company": "Public discovery preserves active companies open to investors and companies with a "
+    "deployed token carrying a nonempty contract address. Directory and secondary-market joins require these "
+    "parents independently of private basic administration. The fixed-search-path discovery definer returns "
+    "only company UUIDs under an admitted principal; its token check avoids the Company-to-token-to-invoker "
+    "owner-helper policy cycle. Current personal administration and genuine unrooted draft setup use their "
+    "separate UUID helper, while customer basic selectors remain narrower than public discovery.",
     "shareholders_publication": "A publication is the first investor-readable projection of the register, so its "
     "read term has to reach past the company that made it: without the recipient term a member could never open "
     "the statement or notice addressed to them, which is the whole point of the table. The term is a member's own "

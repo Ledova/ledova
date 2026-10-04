@@ -1,14 +1,18 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  createUserFriendlyError,
   PUBLICATION_COPY,
   getPublications,
   openPublication,
   publicationFilename,
   readEveryPage,
   type UserFriendlyError,
+  type Publication,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import type { CompanyActionRead } from '../CompanyState';
 
 function saveACopy(document_: Blob, filename: string) {
   const url = URL.createObjectURL(document_);
@@ -28,22 +32,63 @@ function openingFailure(error: unknown) {
     : PUBLICATION_COPY.FAILED;
 }
 
-export function useIssuerPublications(companyUuid?: string) {
+export function useIssuerPublications(companyUuid: string | undefined, read: CompanyActionRead) {
+  const client = useQueryClient();
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const key = ['publications', 'issuer', companyUuid, read.scopeKey];
+  const guard = () => {
+    if (!mounted.current) throw createUserFriendlyError('This company document action is closed.');
+    read.assertCurrent(companyUuid!, 'owner');
+  };
   const listing = useQuery({
-    queryKey: ['publications', 'issuer', companyUuid],
+    queryKey: key,
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    queryFn: () => readEveryPage((page) => getPublications(apiClient, page, { issuer: companyUuid! })),
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const result = await getPublications(apiClient, page, { issuer: companyUuid! });
+        guard();
+        return result;
+      }),
   });
   const opening = useMutation({
     mutationFn: async (uuid: string) => {
-      const { data } = await openPublication(apiClient, uuid);
-      saveACopy(data, publicationFilename(uuid, data.type));
+      const current = () => {
+        guard();
+        const state = client.getQueryState<Publication[]>(key);
+        if (
+          state?.status !== 'success' ||
+          state.fetchStatus !== 'idle' ||
+          !state.data?.some((item) => item.uuid === uuid)
+        )
+          throw createUserFriendlyError('Refresh company publications before continuing.');
+      };
+      try {
+        current();
+        const { data } = await openPublication(apiClient, uuid);
+        current();
+        saveACopy(data, publicationFilename(uuid, data.type));
+      } finally {
+        pending.current = false;
+      }
     },
   });
   return {
     listing,
-    open: opening.mutate,
+    open: (uuid: string) => {
+      if (!pending.current) {
+        pending.current = true;
+        opening.mutate(uuid);
+      }
+    },
     openingUuid: opening.isPending ? opening.variables : undefined,
     openError: opening.isError ? openingFailure(opening.error) : undefined,
   };

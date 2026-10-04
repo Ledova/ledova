@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -16,9 +16,10 @@ import {
 import { Action, Row, Rows, Section, SwitchRow } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
-import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
+import { getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { CompanyReadNotice } from '../company/CompanyState';
+import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyStyles } from '../company-register/styles';
 import { useOfferingActions, useOfferings } from './useOfferings';
 import { OfferingReadNotice } from './OfferingReadNotice';
@@ -112,49 +113,82 @@ function OfferingRecord({
 }
 
 export function OfferingsScreen() {
+  const companyRead = useCompanyProfile({ ownedOnly: true });
+  return <OfferingDetails key={`${companyRead.scopeKey}:${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />;
+}
+
+function OfferingDetails({ companyRead }: { companyRead: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
-  const companyRead = useCompanyProfile();
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
   const { company } = companyRead;
-  const data = useOfferings(companyRead.access.allowed ? company?.uuid : undefined);
+  const data = useOfferings(companyRead);
   const client = useQueryClient();
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
   const [documentsEditor, setDocumentsEditor] = useState<{ company: string; uuid: string } | null>(null);
   const [actionError, setActionError] = useState<{ uuid: string | null; message: string } | null>(null);
-  const actions = useOfferingActions(data.refresh);
+  const actions = useOfferingActions(companyRead, data.refresh);
   const listing = useMutation({
-    mutationFn: async ({ uuid, isOpen, epoch }: { uuid: string; isOpen: boolean; epoch: number }) => {
-      assertSessionEpoch(epoch);
-      const response = await updateCompany(
-        apiClient,
-        uuid,
-        { isOpenToInvestors: isOpen },
-        { ledovaSessionEpoch: epoch },
-      );
-      assertSessionEpoch(epoch);
+    mutationFn: async ({
+      uuid,
+      isOpen,
+      guard,
+      config,
+    }: {
+      uuid: string;
+      isOpen: boolean;
+      guard: () => void;
+      config: ReturnType<typeof companyRead.requestConfig>;
+    }) => {
+      guard();
+      const response = await updateCompany(apiClient, uuid, { isOpenToInvestors: isOpen }, config);
+      guard();
+      if (
+        response.data.uuid !== uuid ||
+        !Array.isArray(response.data.documents) ||
+        response.data.isOpenToInvestors !== isOpen
+      )
+        throw new Error('Directory visibility could not be confirmed. Refresh before retrying.');
       return response;
     },
-    onSuccess: async (_, { epoch }) => {
-      assertSessionEpoch(epoch);
-      await client.invalidateQueries({ queryKey: ['company'] });
-      assertSessionEpoch(epoch);
+    onSuccess: async (_, { guard }) => {
+      guard();
+      await client.invalidateQueries({ queryKey: companyRead.companyKey });
+      guard();
     },
     onMutate: () => setActionError(null),
-    onError: (error, { epoch }) =>
-      epoch === getSessionEpoch() &&
+    onError: (error) =>
+      mounted.current &&
       setActionError({
         uuid: null,
         message: apiErrorSentence(error, 'Directory visibility could not be changed. Try again.'),
       }),
+    onSettled: () => {
+      pending.current = false;
+    },
   });
   const busy = actions.submit.isPending || actions.withdraw.isPending || actions.remove.isPending || listing.isPending;
   const ready =
-    !!company && !companyRead.error && !companyRead.isRefreshing && !data.error && !data.isRefreshing && !busy;
+    companyRead.ownerBusiness &&
+    !!company &&
+    !companyRead.error &&
+    !companyRead.isRefreshing &&
+    !data.error &&
+    !data.isRefreshing &&
+    !busy;
   const run = async (action: 'submit' | 'withdraw' | 'remove', uuid: string) => {
     const offering = data.offerings.find((row) => row.uuid === uuid);
-    if (!ready || !offering) return;
+    if (!ready || !offering || pending.current || !mounted.current) return;
     if (action === 'submit' && !offering.canBeEdited) return;
     if (action === 'remove' && !offering.canBeDeleted) return;
     if (action === 'withdraw' && !OFFERING_WITHDRAWABLE_STATUSES.includes(offering.status)) return;
+    pending.current = true;
     const epoch = getSessionEpoch();
     setActionError(null);
     try {
@@ -163,15 +197,18 @@ export function OfferingsScreen() {
     } catch (error) {
       if (epoch !== getSessionEpoch()) return;
       setActionError({ uuid, message: apiErrorSentence(error, 'The request could not be completed. Try again.') });
+    } finally {
+      pending.current = false;
     }
   };
-  const refresh = () =>
-    Promise.all([
-      companyRead.refetch(),
+  const refresh = async () => {
+    await companyRead.refetch();
+    return Promise.all([
       data.refetch(),
       client.invalidateQueries({ queryKey: ['offering'] }),
       client.invalidateQueries({ queryKey: ['offering-subscriptions'] }),
     ]);
+  };
   if (!companyRead.access.allowed)
     return (
       <Page title="Offerings">
@@ -203,6 +240,7 @@ export function OfferingsScreen() {
           <RefreshControl refreshing={companyRead.isRefreshing || data.isRefreshing} onRefresh={() => void refresh()} />
         }
       >
+        <CompanySelection read={companyRead} />
         {companyRead.isLoading || data.isLoading ? (
           <Text style={styles.muted}>Loading offering information…</Text>
         ) : companyRead.error ? (
@@ -242,7 +280,11 @@ export function OfferingsScreen() {
                     </Text>
                   )}
                 </Section>
-                <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
+                <SubscriptionsLedger
+                  offerings={data.offerings}
+                  operatorName={data.operatorName}
+                  companyRead={companyRead}
+                />
               </>
             )}
             <Section title="Investor Directory">
@@ -254,10 +296,21 @@ export function OfferingsScreen() {
               <SwitchRow
                 label="Show this company to eligible investors"
                 checked={company.isOpenToInvestors ?? false}
-                disabled={!ready || !company.canIssueTokens}
+                disabled={!ready || !companyRead.canAdmin || !company.canIssueTokens}
                 onChange={(isOpen) => {
-                  if (ready && company.canIssueTokens)
-                    listing.mutate({ uuid: company.uuid, isOpen, epoch: getSessionEpoch() });
+                  if (!ready || !companyRead.canAdmin || !company.canIssueTokens || pending.current) return;
+                  const authority = companyRead.assertCurrent;
+                  const guard = () => {
+                    if (!mounted.current) throw new Error('This company view is no longer open.');
+                    authority(company.uuid);
+                  };
+                  pending.current = true;
+                  listing.mutate({
+                    uuid: company.uuid,
+                    isOpen,
+                    guard,
+                    config: { ...companyRead.requestConfig(company.uuid), ledovaSubmissionGuard: guard },
+                  });
                 }}
               />
               {!company.canIssueTokens && (

@@ -1,13 +1,11 @@
 from django import forms
 from django.contrib import admin, messages
-from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 
-from companies.admin.document import OFFERED_DOCUMENT
 from companies.models import (
     Company,
     CompanyDocument,
@@ -15,6 +13,7 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.services import transition_company
+from companies.services.administration import company_administrative_access
 from companies.services.editing import EDITABLE_FIELDS, update_company
 from shared.utils.admin_actions import admin_action_re_path
 from shared.utils.admin_display import action_buttons
@@ -197,21 +196,17 @@ class CompanyRegistryCheckInline(admin.TabularInline):
         return request.user.has_perm("companies.view_company")
 
 
-class KeepsOfferedDocuments(BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        deleting = [form.instance.pk for form in self.forms if form.instance.pk and self._should_delete_form(form)]
-        offered = CompanyDocument.objects.filter(pk__in=deleting).offered()
-        if offered:
-            raise forms.ValidationError([OFFERED_DOCUMENT.format(document=document) for document in offered])
-
-
 class CompanyDocumentInline(admin.TabularInline):
     model = CompanyDocument
-    formset = KeepsOfferedDocuments
     extra = 0
     fields = ["document_type", "name", "file_link", "is_verified", "created_at"]
-    readonly_fields = ["file_link", "is_verified", "created_at"]
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def file_link(self, obj):
         if obj.pk is not None and obj.file:
@@ -454,7 +449,9 @@ class CompanyAdmin(admin.ModelAdmin):
         readonly = list(super().get_readonly_fields(request, obj))
         if obj is None:
             return readonly
-
+        access = company_administrative_access(obj, request.user)
+        if "admin" not in access["capabilities"] and not access["draft_setup"]:
+            readonly.extend(EDITABLE_FIELDS)
         readonly.append("owner")
         if obj.status != CompanyStatus.DRAFT:
             readonly.extend(IMMUTABLE_AFTER_DRAFT)
@@ -470,15 +467,19 @@ class CompanyAdmin(admin.ModelAdmin):
         return queryset
 
     def save_model(self, request, obj, form, change):
-        if not change:
-            return super().save_model(request, obj, form, change)
-        update_company(
-            obj, {field: form.cleaned_data[field] for field in form.changed_data if field in EDITABLE_FIELDS}
-        )
+        changes = {field: form.cleaned_data[field] for field in form.changed_data if field in EDITABLE_FIELDS}
+        if changes:
+            update_company(obj, changes, actor=request.user)
         obj.refresh_from_db()
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_form(self, request, obj=None, **kwargs):
-        request._operator_wallet_owner = obj.owner if obj is not None else None
+        request._operator_wallet_owner = request.user if obj is not None else None
         return super().get_form(request, obj, **kwargs)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -547,7 +548,9 @@ class CompanyAdmin(admin.ModelAdmin):
         }
 
         try:
-            company = transition_company(company, spec["method"], actor=request.user, declaration=declaration, **kwargs)
+            company = transition_company(
+                company, spec["method"], actor=request.user, declaration=declaration, admin_review=True, **kwargs
+            )
         except APIException as exc:
             messages.error(request, str(exc.detail))
         else:

@@ -11,6 +11,7 @@ from shared.db import (
     OPERATOR_ALIAS,
     current_alias,
     principal_of,
+    use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -40,7 +41,7 @@ class ScopedCompanyAuthorityRequestTest(RunsOnTheScopedConnection, cases.Authori
 
     def test_public_company_and_staff_visibility_never_grant_request_or_file_access(self):
         created = self.submit()
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="active", is_open_to_investors=True)
             self.other.is_staff = True
             self.other.is_superuser = True
@@ -70,7 +71,7 @@ class ScopedCompanyAuthorityRequestTest(RunsOnTheScopedConnection, cases.Authori
         validate = authority_requests.validate_upload
 
         def change_then_validate(upload):
-            with use_operator():
+            with use_migrate():
                 Company.objects.filter(pk=self.company.pk).update(name="Changed during upload Pty Ltd")
             return validate(upload)
 
@@ -85,7 +86,7 @@ class ScopedCompanyAuthorityRequestTest(RunsOnTheScopedConnection, cases.Authori
         validate = authority_requests.validate_upload
 
         def change_then_validate(upload):
-            with use_operator():
+            with use_migrate():
                 Company.objects.filter(pk=self.company.pk).update(owner=self.other)
             return validate(upload)
 

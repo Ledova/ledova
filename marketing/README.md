@@ -25,14 +25,14 @@ at the repository root. Do not edit it: CI regenerates it and fails on drift.
 
 ## Commands
 
-| Command | Does |
-| --- | --- |
-| `make install` | Install dependencies |
-| `make dev` | Start the Vite dev server |
-| `make build` | Production build into `dist/` |
-| `make preview` | Serve the built `dist/` locally |
-| `make typecheck` | `tsc --noEmit` |
-| `make lint` | ESLint |
+| Command          | Does                            |
+| ---------------- | ------------------------------- |
+| `make install`   | Install dependencies            |
+| `make dev`       | Start the Vite dev server       |
+| `make build`     | Production build into `dist/`   |
+| `make preview`   | Serve the built `dist/` locally |
+| `make typecheck` | `tsc --noEmit`                  |
+| `make lint`      | ESLint                          |
 
 `npm run format` and `npm run format:check` run Prettier over the package.
 

@@ -34,6 +34,7 @@ from shared.db import (
     principal_of,
     set_principal,
     use_app,
+    use_migrate,
     use_operator,
 )
 from shared.tests.upload_fixtures import StubUploadDependencies
@@ -156,7 +157,7 @@ class CompanyAuthorityRequestWithdrawalTest(StubUploadDependencies, APITransacti
         self.assertEqual(self.client.post(self.url).status_code, 200)
 
     def test_original_requester_can_withdraw_after_company_owner_and_status_change(self):
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(
                 owner=self.other, status="active", is_open_to_investors=True
             )

@@ -3,9 +3,9 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { OFFER_DOCUMENT_COPY, type Company, type Offering } from '@ledova/shared';
+import { OFFER_DOCUMENT_COPY, USER_PREFERENCES_QUERY_KEY, type Company, type Offering } from '@ledova/shared';
 import OfferingPage from '.';
-import { companyRecord, documentRecord, renderCompanyPage } from '../testSupport';
+import { companyRecord, companyPreferences, documentRecord, renderCompanyPage } from '../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -101,7 +101,9 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   api.get.mockImplementation(async (url: string) => {
     if (url === failed) throw new Error('Unavailable');
-    if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: [{ uuid: company.uuid }] } };
+    if (url === '/api/auth/verify/') return { data: { valid: true } };
+    if (url === '/api/user-preferences/') return { data: companyPreferences() };
+    if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: [company] } };
     if (url === COMPANY) return { data: { ...company } };
     if (url === TOKENS) return { data: { ...EMPTY, results: [token] } };
     if (url === OPERATOR) return { data: { name: 'Example Operator', supportedSettlementAssets: [] } };
@@ -276,7 +278,11 @@ it('refreshes directory visibility after the existing PATCH and retains the valu
   expect(control.getAttribute('aria-checked')).toBe('false');
   fireEvent.click(control);
   await waitFor(() => expect(control.getAttribute('aria-checked')).toBe('true'));
-  expect(api.patch).toHaveBeenLastCalledWith(COMPANY, { isOpenToInvestors: true });
+  expect(api.patch).toHaveBeenLastCalledWith(
+    COMPANY,
+    { isOpenToInvestors: true },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('holds the directory switch while its change is saving', async () => {
@@ -333,6 +339,7 @@ it('creates a draft through the existing endpoint, keeps the exact decimal, and 
       capShares: 200,
       summary: 'A fictional tranche',
     }),
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
   );
 });
 
@@ -422,7 +429,11 @@ it.each([COMPANY, BASE, TOKENS, OPERATOR, DETAIL])(
     );
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
-      expect(api.patch).toHaveBeenCalledWith(DETAIL, expect.objectContaining({ summary: 'Keep this draft' })),
+      expect(api.patch).toHaveBeenCalledWith(
+        DETAIL,
+        expect.objectContaining({ summary: 'Keep this draft' }),
+        expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+      ),
     );
   },
 );
@@ -511,7 +522,11 @@ it('submits again without recreating the rejected offering, preserving rejection
   fireEvent.click(screen.getByRole('button', { name: 'Submit again' }));
   await screen.findByText('Submitted');
   expect(screen.queryByText('Rejected: Explain the exemption.')).toBeNull();
-  expect(api.post).toHaveBeenCalledWith(DETAIL + 'submit/', {});
+  expect(api.post).toHaveBeenCalledWith(
+    DETAIL + 'submit/',
+    {},
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
   expect(api.post).toHaveBeenCalledTimes(1);
 });
 
@@ -542,7 +557,11 @@ it('withdraws an editable rejected record and retains its previous reason after 
   expect(screen.getByText('Closed: Withdrawn by the issuer')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Withdraw' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
-  expect(api.post).toHaveBeenCalledWith(DETAIL + 'withdraw/', { reason: 'Withdrawn by the issuer' });
+  expect(api.post).toHaveBeenCalledWith(
+    DETAIL + 'withdraw/',
+    { reason: 'Withdrawn by the issuer' },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it.each([
@@ -570,7 +589,10 @@ it('shows the latest action refusal and refreshes after deleting a draft', async
   expect(screen.queryByText('Submission refused.')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
   await screen.findByRole('heading', { name: 'Your offerings (0)' });
-  expect(api.delete).toHaveBeenLastCalledWith(DETAIL);
+  expect(api.delete).toHaveBeenLastCalledWith(
+    DETAIL,
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('keeps approved offerings read-only except the existing withdrawal rule', async () => {
@@ -609,7 +631,11 @@ it('adds documents to an approved or closed offering and never offers to remove 
     fireEvent.click(within(dialog).getByLabelText('Attach document-two.pdf'));
     fireEvent.click(add);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(api.post).toHaveBeenCalledExactlyOnceWith(BASE + 'offering-one/documents/', { documents: ['document-two'] });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(
+      BASE + 'offering-one/documents/',
+      { documents: ['document-two'] },
+      expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+    );
     cleanup();
     client.clear();
   }
@@ -679,3 +705,224 @@ it('sends nothing once the offering leaves approved or closed with a document al
   fireEvent.click(add);
   expect(api.post).not.toHaveBeenCalled();
 });
+
+it('keeps an owner without personal administration from changing directory information', async () => {
+  company.administrativeAccess = { capabilities: ['prepare'], draftSetup: false };
+  show();
+  const control = await screen.findByRole('switch', { name: 'Show this company to eligible investors' });
+  expect(control).toHaveProperty('disabled', true);
+  fireEvent.click(control);
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(screen.getByRole('button', { name: 'New offering' })).toHaveProperty('disabled', false);
+});
+
+it('rejects a foreign directory receipt without invalidating company information', async () => {
+  api.patch.mockResolvedValue({ data: { ...company, uuid: 'foreign-company', isOpenToInvestors: true } });
+  show();
+  const control = await screen.findByRole('switch', { name: 'Show this company to eligible investors' });
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  fireEvent.click(control);
+  expect(await screen.findByText('Directory visibility could not be confirmed. Refresh before retrying.')).toBeTruthy();
+  expect(invalidate).not.toHaveBeenCalled();
+  expect(control.getAttribute('aria-checked')).toBe('false');
+});
+
+it('retires an old directory transport and ignores its delayed receipt after an account change', async () => {
+  let release!: (value: unknown) => void;
+  api.patch.mockImplementation(
+    () =>
+      new Promise((done) => {
+        release = done;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('switch', { name: 'Show this company to eligible investors' }));
+  await waitFor(() => expect(api.patch).toHaveBeenCalledOnce());
+  const guard = api.patch.mock.calls[0][2].ledovaSubmissionGuard;
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: 'profile-two', userAccount: { uuid: 'account-two', role: 'investor' } },
+    }),
+  );
+  expect(guard).toThrow();
+  await act(async () => release({ data: { ...company, isOpenToInvestors: true } }));
+  expect(invalidate).not.toHaveBeenCalled();
+});
+
+function ownedCompanies() {
+  const second = companyRecord({
+    uuid: 'company-two',
+    name: 'Second Example Pty Ltd',
+    status: 'active',
+    statusDisplay: 'Active',
+    canIssueTokens: true,
+  });
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: { params?: { company_uuid?: string } }) => {
+    if (url === '/api/v1/companies/') return Promise.resolve({ data: { ...EMPTY, results: [company, second] } });
+    if (url === '/api/v1/companies/company-two/') return Promise.resolve({ data: second });
+    if (url === TOKENS && config?.params?.company_uuid === 'company-two')
+      return Promise.resolve({
+        data: { ...EMPTY, results: [{ ...token, uuid: 'token-two', companyUuid: second.uuid }] },
+      });
+    if (url === BASE)
+      return Promise.resolve({
+        data: {
+          ...EMPTY,
+          results: [offering, record({ uuid: 'offering-two', tokenUuid: 'token-two', tokenName: 'Second shares' })],
+        },
+      });
+    return original(url, config);
+  });
+}
+
+it('retires a selected-company offering draft and its held transport after choosing another company', async () => {
+  ownedCompanies();
+  let release!: (result: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+  );
+  show();
+  fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'company-one' } });
+  const dialog = await openEditor();
+  fill(dialog);
+  const submit = within(dialog).getByRole('button', { name: 'Create draft offering' });
+  fireEvent.click(submit);
+  fireEvent.click(submit);
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const held = api.post.mock.calls[0][2].ledovaSubmissionGuard;
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  fireEvent.change(screen.getByLabelText('Company'), { target: { value: 'company-two' } });
+  expect(held).toThrow();
+  expect(await screen.findByRole('heading', { name: 'Second shares (ORD)' })).toBeTruthy();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByDisplayValue('A fictional tranche')).toBeNull();
+  await act(async () => release({ data: record({ uuid: 'new-offering' }) }));
+  expect(invalidate).not.toHaveBeenCalled();
+  expect(api.post).toHaveBeenCalledOnce();
+});
+
+it('does not cache a held offering list for an account that has retired', async () => {
+  let release!: (result: unknown) => void;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === BASE
+      ? new Promise((resolve) => {
+          release = resolve;
+        })
+      : original(url, config),
+  );
+  show();
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === BASE)).toBe(true));
+  const old = client
+    .getQueryCache()
+    .findAll({ queryKey: ['offerings'] })
+    .find((query) => query.queryKey[1] === company.uuid)!;
+  act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: anotherActingAccount() }));
+  await act(async () => release({ data: { ...EMPTY, results: [record({ tokenName: 'Retired account shares' })] } }));
+  await waitFor(() => expect(client.getQueryState(old.queryKey)?.status).toBe('error'));
+  expect(client.getQueryData(old.queryKey)).toBeUndefined();
+  expect(screen.queryByText('Retired account shares (ORD)')).toBeNull();
+});
+
+it('retires a held current-offering read when company selection changes', async () => {
+  ownedCompanies();
+  let release!: (result: unknown) => void;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === DETAIL
+      ? new Promise((resolve) => {
+          release = resolve;
+        })
+      : original(url, config),
+  );
+  show();
+  fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'company-one' } });
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+  await screen.findByRole('dialog');
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === DETAIL)).toBe(true));
+  const old = client.getQueryCache().findAll({ queryKey: ['offering', company.uuid] })[0]!;
+  fireEvent.change(screen.getByLabelText('Company'), { target: { value: 'company-two' } });
+  await screen.findByRole('heading', { name: 'Second shares (ORD)' });
+  await act(async () => release({ data: { ...offering, summary: 'Retired edit response' } }));
+  await waitFor(() => expect(client.getQueryState(old.queryKey)?.status).toBe('error'));
+  expect(client.getQueryData(old.queryKey)).toBeUndefined();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByDisplayValue('Retired edit response')).toBeNull();
+});
+
+it('refuses duplicate offering actions synchronously and ignores a held response after an account change', async () => {
+  let release!: (result: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+  );
+  show();
+  const submit = await screen.findByRole('button', { name: 'Submit for review' });
+  fireEvent.click(submit);
+  fireEvent.click(submit);
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const held = api.post.mock.calls[0][2].ledovaSubmissionGuard;
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: anotherActingAccount() }));
+  expect(held).toThrow();
+  await act(async () => release({ data: { ...offering, status: 'submitted' } }));
+  expect(invalidate).not.toHaveBeenCalled();
+  expect(api.post).toHaveBeenCalledOnce();
+});
+
+it('does not cache a held class list after owner access retires', async () => {
+  let release!: (result: unknown) => void;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === TOKENS
+      ? new Promise((resolve) => {
+          release = resolve;
+        })
+      : original(url, config),
+  );
+  show();
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === TOKENS)).toBe(true));
+  const old = client.getQueryCache().findAll({ queryKey: ['tokens', 'company', company.uuid] })[0]!;
+  act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: anotherActingAccount() }));
+  await act(async () => release({ data: { ...EMPTY, results: [{ ...token, name: 'Retired private class' }] } }));
+  await waitFor(() => expect(client.getQueryState(old.queryKey)?.status).toBe('error'));
+  expect(client.getQueryData(old.queryKey)).toBeUndefined();
+  expect(screen.queryByText('Retired private class')).toBeNull();
+});
+
+it('discards a held member application list after changing selected company', async () => {
+  ownedCompanies();
+  let release!: (result: unknown) => void;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === SUBSCRIPTIONS
+      ? new Promise((resolve) => {
+          release = resolve;
+        })
+      : original(url, config),
+  );
+  show();
+  fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'company-one' } });
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === SUBSCRIPTIONS)).toBe(true));
+  const old = client.getQueryCache().findAll({ queryKey: ['offering-subscriptions', company.uuid] })[0]!;
+  fireEvent.change(screen.getByLabelText('Company'), { target: { value: 'company-two' } });
+  await screen.findByRole('heading', { name: 'Second shares (ORD)' });
+  await act(async () =>
+    release({ data: { ...EMPTY, results: [{ uuid: 'retired-application', investorName: 'Retired private member' }] } }),
+  );
+  await waitFor(() => expect(client.getQueryState(old.queryKey)?.status).toBe('error'));
+  expect(client.getQueryData(old.queryKey)).toBeUndefined();
+  expect(screen.queryByText('Retired private member')).toBeNull();
+});
+
+function anotherActingAccount() {
+  const preferences = companyPreferences('investor');
+  return { ...preferences, userAccount: { ...preferences.userAccount!, uuid: 'account-two' } };
+}

@@ -17,6 +17,7 @@ from shared.db import (
     OPERATOR_ALIAS,
     current_alias,
     principal_of,
+    use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -289,7 +290,7 @@ class NotificationTasksUseRecipientRolesTest(RunsOnTheScopedConnection, Transact
         self.addCleanup(self.delete_jobs, [job_id])
         name, args = self.queued_rows()[job_id]
         self.assertEqual((name, args), (send_push_notification.name, payload))
-        with use_operator():
+        with use_migrate():
             User.objects.filter(pk=identifier).delete()
         result = self.run_task(app.tasks[name], **args)
         self.assertEqual(result, {"status": "error", "error": "User not found"})

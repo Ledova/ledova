@@ -17,7 +17,8 @@ from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
 from companies.models import Company
-from shared.db import use_operator
+from companies.tests.test_document_file_access import admit_company_administrator
+from shared.db import use_migrate, use_operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterEntry,
@@ -437,11 +438,14 @@ class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
         super().setUp()
         with use_operator():
             self.owner = get_user_model().objects.create_user(
-                email=f"settled-issuer-{uuid4()}@example.test", is_active=True
+                email=f"settled-issuer-{uuid4()}@example.test", is_active=True, is_email_verified=True
             )
-            Company.objects.filter(pk=self.swap.share_token.company_id).update(owner=self.owner)
+            with use_migrate():
+                Company.objects.filter(pk=self.swap.share_token.company_id).update(owner=self.owner)
+            company = Company.objects.get(pk=self.swap.share_token.company_id)
+            admit_company_administrator(company)
             self.reviewer = instruction_reviewer()
-            self.document = verified_authority(Company.objects.get(pk=self.swap.share_token.company_id), self.reviewer)
+            self.document = verified_authority(company, self.reviewer)
 
     def open_register(self, *, one_member=False, link_buyer=True, held=None):
         with use_operator():

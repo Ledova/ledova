@@ -98,7 +98,13 @@ def selector(signature):
 @override_settings(**CHAIN_SETTINGS)
 class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase):
     def setUp(self):
-        super().setUp()
+        super().setUp(
+            company_administration=self._testMethodName
+            in (
+                "test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform",
+                "test_another_tenant_reaches_none_of_the_journeys_records",
+            )
+        )
         self.settlement_parties()
         self.staff.user_permissions.add(
             *Permission.objects.filter(codename__in=("change_whitelistentry", "change_asset"))

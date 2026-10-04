@@ -17,6 +17,7 @@ from companies.services import transition_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_registry_verification import PROVIDER, STORAGES
 from operators.models import Operator
+from shared.db import use_migrate, use_operator
 from users.models import UserProfile
 
 User = get_user_model()
@@ -25,10 +26,15 @@ User = get_user_model()
 @override_settings(STORAGES=STORAGES, ABR_AUTH_GUID="")
 class IssuerIdentityGateTest(TransactionTestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="gate-owner@example.test", password="pw-12345678")
+        self.owner = User.objects.create_user(
+            email="gate-owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
         self.profile = UserProfile.objects.create(user=self.owner, full_name="Gate Owner")
-        self.operator = User.objects.create_superuser(email="gate-operator@example.test", password="pw-12345678")
-        self.company = Company.objects.create(owner=self.owner, name="Gate Example Pty Ltd", acn="123456780")
+        self.operator = User.objects.create_superuser(
+            email="gate-operator@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Gate Example Pty Ltd", acn="123456780")
         self.lookup = patch(PROVIDER, return_value=matching_observation(self.company)).start()
         patch("companies.services.company.send_push_notification").start()
         self.addCleanup(patch.stopall)
@@ -39,14 +45,16 @@ class IssuerIdentityGateTest(TransactionTestCase):
         operator.save(update_fields=["issuer_kyc_required"])
 
     def verify(self, verified):
-        UserProfile.objects.filter(pk=self.profile.pk).update(is_id_verified=verified)
+        with use_operator():
+            UserProfile.objects.filter(pk=self.profile.pk).update(is_id_verified=verified)
 
     def set_status(self, status):
-        Company.objects.filter(pk=self.company.pk).update(status=status)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
     def transition(self, method, **kwargs):
-        actor = self.operator if method not in ("submit", "resubmit") else None
+        actor = self.owner if method in ("submit", "resubmit", "withdraw") else self.operator
         return transition_company(self.company, method, actor=actor, declaration=DECLARATION, **kwargs)
 
     def test_an_unverified_owner_cannot_submit_or_resubmit_while_the_switch_is_on(self):
@@ -121,14 +129,15 @@ class IssuerIdentityGateTest(TransactionTestCase):
     def test_the_api_names_the_refusal(self):
         self.require(True)
         for document_type in LISTING_REQUIRED_DOCUMENTS:
-            CompanyDocument.objects.create(
-                company=self.company,
-                document_type=document_type,
-                name=document_type.label,
-                external_url="https://files.example.test/doc",
-                file_size=10,
-                mime_type="application/pdf",
-            )
+            with use_migrate():
+                CompanyDocument.objects.create(
+                    company=self.company,
+                    document_type=document_type,
+                    name=document_type.label,
+                    external_url="https://files.example.test/doc",
+                    file_size=10,
+                    mime_type="application/pdf",
+                )
         client = APIClient()
         client.force_authenticate(self.owner)
         response = client.post(f"/api/v1/companies/{self.company.pk}/submit/", {"confirm": True}, format="json")

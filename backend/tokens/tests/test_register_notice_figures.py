@@ -24,7 +24,7 @@ from offerings.models import (
     Subscription,
     SubscriptionStatus,
 )
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
 from tokens.models import (
@@ -191,7 +191,8 @@ def inserted(token, owner, **columns):
 class NoticeFiguresTest(TestCase):
     def setUp(self):
         self.owner = User.objects.create_user(email="notices-owner@example.test", password="pw-12345678")
-        self.company = Company.objects.create(owner=self.owner, name="Synthetic Notices Pty Ltd", acn="123456789")
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Synthetic Notices Pty Ltd", acn="123456789")
         self.token = ShareToken.objects.create(
             company=self.company, name="Synthetic ordinary shares", symbol="NTC", total_supply="1000"
         )

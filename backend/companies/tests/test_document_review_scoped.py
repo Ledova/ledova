@@ -9,13 +9,14 @@ from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company, CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
+from companies.services.editing import update_company
 from companies.tests.test_document_file_access import (
     attach_file,
     make_company,
     make_document,
 )
 from companies.tests.test_document_review import review_fixture
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 
 
@@ -57,11 +58,14 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
             self.assertTrue(self.verify().is_verified)
         self.assertTrue(CompanyDocument.objects.get(pk=self.document.pk).is_verified)
 
-    def test_metadata_edit_revokes_verification_on_the_real_app_connection(self):
+    def test_app_refuses_raw_metadata_edit_and_historical_change_revokes_verification(self):
         with use_operator():
             self.verify()
         self.the_principal_the_middleware_would_set(self.owner)
-        self.assertEqual(CompanyDocument.objects.filter(pk=self.document.pk).update(name="New name"), 1)
+        with self.assertRaises(DatabaseError), atomic():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(name="New name")
+        with use_migrate():
+            self.assertEqual(CompanyDocument.objects.filter(pk=self.document.pk).update(name="New name"), 1)
         document = CompanyDocument.objects.get(pk=self.document.pk)
         self.assertFalse(document.is_verified)
         self.assertEqual(document.verified_fingerprint, "")
@@ -71,11 +75,14 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
     def test_private_documents_remain_isolated_and_unset_principal_sees_nothing(self):
         self.the_principal_the_middleware_would_set(self.other)
         self.assertEqual(set(CompanyDocument.objects.values_list("pk", flat=True)), {self.other_document.pk})
-        self.assertEqual(CompanyDocument.objects.filter(pk=self.document.pk).update(name="Wrong owner"), 0)
+        with self.assertRaises(DatabaseError), atomic():
+            CompanyDocument.objects.filter(pk=self.document.pk).update(name="Wrong owner")
+        self.assertFalse(CompanyDocument.objects.filter(pk=self.document.pk).exists())
         self.no_principal_is_set()
         self.assertFalse(CompanyDocument.objects.exists())
         self.the_principal_the_middleware_would_set(self.owner)
         self.assertEqual(set(CompanyDocument.objects.values_list("pk", flat=True)), {self.document.pk})
+        self.assertEqual(CompanyDocument.objects.get(pk=self.document.pk).name, self.document.name)
 
     def test_operator_verification_rolls_back_on_its_actual_connection(self):
         with self.assertRaises(RuntimeError), use_operator(), atomic():
@@ -90,7 +97,7 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
         with use_operator():
             self.verify()
         self.the_principal_the_middleware_would_set(self.owner)
-        self.assertEqual(Company.objects.filter(pk=self.company.pk).update(name="New registered name"), 1)
+        update_company(self.company, {"name": "New registered name"}, actor=self.owner)
         self.assertFalse(CompanyDocument.objects.get(pk=self.document.pk).is_verified)
         with use_operator(), self.assertRaisesMessage(ValidationError, "changed"):
             self.verify()
@@ -109,7 +116,7 @@ class ScopedCompanyDocumentReviewTest(RunsOnTheScopedConnection, APITransactionT
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=1) as pool:
-            with use_operator(), atomic():
+            with use_migrate(), atomic():
                 model, pk = (Company, self.company.pk) if company else (CompanyDocument, self.document.pk)
                 model.objects.select_for_update().get(pk=pk)
                 future = pool.submit(confirm)
