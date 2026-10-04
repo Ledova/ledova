@@ -6,7 +6,7 @@ from django.db import DatabaseError, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
 
-from companies.models import CompanyAppointment
+from companies.models import Company, CompanyAppointment
 from companies.services.authority import (
     DECLARATION_VERSION,
     admit_authority_request,
@@ -136,7 +136,10 @@ class AppointeeKeyedAppointmentsMigrationTest(StubUploadDependencies, Transactio
                 declaration_text=admitted.declaration_text,
             )
         with use_operator():
-            self.assertEqual(list(CompanyAppointment.objects.values_list("pk", flat=True)), [admitted.pk])
+            self.assertEqual(
+                list(CompanyAppointment.objects.filter(company=self.company).values_list("pk", flat=True)),
+                [admitted.pk],
+            )
 
     def test_empty_reversal_restores_request_keyed_reads_and_can_be_reapplied(self):
         MigrationExecutor(connection).migrate([OLD])
@@ -144,11 +147,17 @@ class AppointeeKeyedAppointmentsMigrationTest(StubUploadDependencies, Transactio
         self.assertIn("requester_id = ", self.installed(READ_TERM))
         self.assertNotIn("appointee", self.installed(GUARD_BODY))
         self.assertIsNone(self.installed("SELECT to_regclass(%s)", [ONE_PER_COMPANY]))
-        self.latest()
+        MigrationExecutor(connection).migrate([NEW])
         self.assertLessEqual({"appointee_id", "appointee_profile_id"}, self.columns())
         self.assertIn("appointee_id = ", self.installed(READ_TERM))
         self.assertIn(APPOINTEE_CHECK, self.installed(GUARD_BODY))
         self.assertIsNotNone(self.installed("SELECT to_regclass(%s)", [ONE_PER_COMPANY]))
+        self.latest()
+        with use_operator():
+            self.company = Company.objects.create(
+                owner=self.user, name="Fresh after appointee migration Pty Ltd", acn="446688002"
+            )
+        self.proposal = self.submit()
         appointment = self.admit()
         self.assertEqual((appointment.appointee_id, appointment.appointee_profile_id), (self.user.pk, self.profile.pk))
 

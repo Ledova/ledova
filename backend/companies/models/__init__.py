@@ -14,6 +14,7 @@ from companies.models.document import (
     CompanyDocument,
     DocumentType,
 )
+from companies.models.legacy_owner import CompanyLegacyOwnerSource
 from companies.models.pack import CompanyPack
 from companies.models.registry_check import (
     CompanyRegistryCheck,
@@ -29,6 +30,7 @@ __all__ = [
     "CompanyAuthorityRequest",
     "CompanyAuthorityRequestWithdrawal",
     "CompanyCapability",
+    "CompanyLegacyOwnerSource",
     "CompanyTeamInvitation",
     "CompanyStatus",
     "CompanyType",

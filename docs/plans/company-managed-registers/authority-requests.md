@@ -57,9 +57,9 @@ flowchart LR
 ```
 
 Team invitations, acceptance, appointment history, administrator team reads and
-revocation are available on web and mobile and through the API below. Legacy-owner
-migration remains a later increment of #862. Company activation, register decisions
-and payments follow their owning issues in the
+revocation are available on web and mobile and through the API below. The upgrade
+records existing company owners as administrators under the legacy source below.
+Company activation, register decisions and payments follow their owning issues in the
 [dependency index](README.md#delivery-tracking).
 
 ## Company team on web and mobile
@@ -92,7 +92,7 @@ appointments.
    team appointment. Confirm the permanent action in the web dialog or native
    mobile alert. Cancelled, reused or stale confirmations cannot submit a new
    effect; a failed or unconfirmed result requires fresh confirmation. An initial
-   appointment cannot be replaced through another bootstrap declaration.
+   or legacy-owner appointment cannot be replaced through another bootstrap declaration.
 
 Refresh failures hide unavailable authority and team results. Account changes
 invalidate pending submissions and late receipts. Company details are attributed
@@ -146,7 +146,7 @@ The following authenticated operations supplement the initial-request workflow:
 | `GET /api/v1/company-authority/invitations/` | Paginated history of invitations issued by the caller |
 | `POST /api/v1/company-authority/invitations/` | Issue an invitation from the caller's selected current company appointment |
 | `POST /api/v1/company-authority/invitations/accept/` | Accept a code with the exact current declaration, creating one appointment |
-| `GET /api/v1/company-authority/appointments/` | Paginated history of the caller's own initial and invited appointments |
+| `GET /api/v1/company-authority/appointments/`                     | Paginated history of the caller's own initial, invited and legacy-owner appointments                         |
 | `GET /api/v1/company-authority/appointments/team/?company={uuid}` | Read that company's team as a current company administrator |
 | `POST /api/v1/company-authority/appointments/{uuid}/revoke/` | Permanently revoke one's own appointment or, as a current administrator, another appointment in that company |
 
@@ -201,7 +201,7 @@ revocation and immutable history. Existing identity-provider results and the
 configured issuer check remain server-owned; ordinary profile changes keep their
 existing account scope.
 
-An appointment has exactly one initial-request or invitation source. Company
+An appointment has exactly one initial-request, invitation or legacy-owner source. Company
 locks precede actor locks in submission, admission, invitation and revocation
 services. Invitation guards check possession of the code through a temporary
 transaction setting and restore any prior setting after successful acceptance;
@@ -212,6 +212,33 @@ reversal restores the preceding guards and policies exactly. Guard-only migratio
 `0018` protects new invitation admissions without changing prior appointments,
 invitations, revocations or actors; reversing it restores the exact preceding
 invitation guard.
+
+### Existing owner appointments
+
+`companies/0019_legacy_owner_appointments` records one administrator appointment
+for each existing company that has no initial-request or legacy-owner appointment.
+An expired or revoked initial appointment still counts, so upgrading cannot
+restore it. The source retains the company's actual owner account and profile at
+upgrade time, the migration identifier and the time recorded by the upgrade.
+It does not fabricate a signed declaration, ABR result, director mandate,
+activation or approval of a pending instruction. Existing records and actors
+remain unchanged.
+
+Legacy appointments have personal `admin` and may delegate the six existing
+capabilities. Normal active-account, verified-email and configured identity
+requirements still determine current authority. Web/mobile history identifies
+the legacy source; the own-record API returns `source: "legacy_owner"` and null
+declaration fields. Initial and invited appointments retain their exact signed
+declarations. Bounded team reads continue to exclude private evidence.
+
+New companies and later owner changes do not create legacy appointments. A
+legacy root remains consumed after revocation or expiry; administrators use
+invitations for subsequent appointments. Revocation is permanent and does not
+cascade to an already accepted child appointment. Raw app, operator and migration
+connection writes cannot create another legacy source or appointment after the
+upgrade, change the retained source or erase its history. Populated reversal
+refuses before discarding any source or appointment; empty reversal restores the
+preceding guards and constraints.
 
 Supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
 Migration reversal refuses to discard populated admission/revocation history;
@@ -233,9 +260,8 @@ it supplies no appointment to a replacement administrator. Initial admission and
 self-revocation implement neither disputed-access replacement nor a court-order
 processing route.
 
-Original #862 completion checks remain open for legacy-owner migration and the
-remaining company authority boundaries; the team API and web/mobile screens are
-available.
+Original #862 completion checks remain open for the remaining company authority
+boundaries; the team API, web/mobile screens and legacy-owner upgrade are available.
 Later domain issues must convert their API/service/worker/RLS/trigger authority
 boundaries together. No new fraud or impersonation verification is added. Any
 identified legal duty on Ledova must be cited and raised with the owner before

@@ -58,6 +58,15 @@ appointees can revoke their own. These services lock the company before actors,
 restore the caller principal and check expiry after lock waits. No new company
 visibility helper or global staff mandate is introduced.
 
+The legacy-owner upgrade records existing owners as administrator appointees
+without widening the company helpers. Its immutable source table denies app
+reads and writes; own appointment history exposes the legacy source and null
+declaration fields, while bounded team reads retain the same privacy limits.
+Only the atomic upgrade can seed these rows. Installed guards refuse later
+legacy source/appointment inserts and source mutation, including through operator
+or migration connections. Existing initial or legacy roots remain consumed after
+expiry/revocation, and later owner changes supply no appointment.
+
 | Role | Purpose |
 | --- | --- |
 | App | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS` |

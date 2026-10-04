@@ -1440,10 +1440,12 @@
             "type": "string"
           },
           "declarationText": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "declarationVersion": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1500,10 +1502,11 @@
         "type": "object"
       },
       "CompanyAppointmentSourceEnum": {
-        "description": "* `initial` - initial\n* `invitation` - invitation",
+        "description": "* `initial` - initial\n* `invitation` - invitation\n* `legacy_owner` - legacy_owner",
         "enum": [
           "initial",
-          "invitation"
+          "invitation",
+          "legacy_owner"
         ],
         "type": "string"
       },
@@ -6187,10 +6190,12 @@
             "type": "string"
           },
           "declarationText": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "declarationVersion": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },

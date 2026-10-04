@@ -249,7 +249,7 @@ function CompanyTeam({
               .map((record) => (
                 <Choice
                   key={record.uuid}
-                  label={`${record.source === 'initial' ? 'Initial' : 'Invited'} appointment ${record.uuid}`}
+                  label={`${record.source === 'initial' ? 'Initial' : record.source === 'legacy_owner' ? 'Legacy owner' : 'Invited'} appointment ${record.uuid}`}
                   accessibilityLabel={`Select source appointment ${record.uuid}`}
                   accessibilityRole="radio"
                   selected={sourceId === record.uuid}
