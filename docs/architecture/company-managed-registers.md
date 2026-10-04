@@ -2,7 +2,9 @@
 
 [Product](../product.md) · [Decisions](../decisions.md#company-managed-registers-and-one-product) · [Roadmap](../roadmap.md)
 
-**Status:** Accepted product direction; phase 1 product-mode retirement delivered.
+**Status:** Accepted product direction; phases 1 and 2 delivered.
+The company-authority foundation is delivered by [PR #911](https://github.com/Ledova/ledova/pull/911)
+at commit `13684719c5245f1d61809d46e37a904f833e1c6d`.
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
 can be submitted, withdrawn or admitted through explicit self-declaration in both
 clients, retaining private evidence and history. Initial appointments record scoped
@@ -12,8 +14,16 @@ appointment history, administrator team reads and retained revocation. The upgra
 records existing owners as administrators with retained legacy provenance;
 current administrators and draft owners can manage bounded
 [company information and documents](../plans/company-managed-registers/company-information.md)
-through both clients and the guarded API. Dependent register workflows remain
-planned.
+through both clients and the guarded API. Administrative changes and private
+company-document access require current personal `admin` for the exact company,
+with bounded setup for the current active, email-verified owner of an unrooted
+draft. Retained
+initial or legacy-owner appointment history closes that exception permanently.
+Expiry and revocation block new administrative effects; API, service and database
+controls enforce company isolation and reject SQL/ORM forgery.
+Current owners retain bounded metadata reads and their existing domain conditions;
+this read access supplies no administrative capability or private document access.
+Dependent domain workflows in #863–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -76,14 +86,14 @@ legal, signature or filing requirements resolved.
 
 ## Responsibility and company access
 
-| Party | Target responsibility |
-| --- | --- |
-| Company | Share structure, register, offers, eligibility requirements, decisions, issues, transfers, corrections, corporate actions, certificates and filing preparation |
-| Authorised company users | Prepare/approve within recorded company mandates, using individual accounts |
-| Investor, shareholder or employee | Supply particulars, inspect permitted records, apply/accept, sign and authorise their own payments and wallet actions |
-| Company's appointed adviser/provider | Explicitly delegated tasks within that company's capability scope |
-| Platform staff | Availability, security, support, incidents and specifically assigned payment/crypto functions; no standing mandate for ordinary company register decisions or entries |
-| Automation | Validate/execute exact authorised instructions, retain provenance, reconcile and expose failures without inventing approval |
+| Party                                | Target responsibility                                                                                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company                              | Share structure, register, offers, eligibility requirements, decisions, issues, transfers, corrections, corporate actions, certificates and filing preparation        |
+| Authorised company users             | Prepare/approve within recorded company mandates, using individual accounts                                                                                           |
+| Investor, shareholder or employee    | Supply particulars, inspect permitted records, apply/accept, sign and authorise their own payments and wallet actions                                                 |
+| Company's appointed adviser/provider | Explicitly delegated tasks within that company's capability scope                                                                                                     |
+| Platform staff                       | Availability, security, support, incidents and specifically assigned payment/crypto functions; no standing mandate for ordinary company register decisions or entries |
+| Automation                           | Validate/execute exact authorised instructions, retain provenance, reconcile and expose failures without inventing approval                                           |
 
 Introduce active company administrative memberships, scoped capabilities,
 invitations, mandates and revocation. Proposed bundles are company administrator,
@@ -180,18 +190,18 @@ planned. Pending proposals and withdrawals retain their original history.
 
 ## Required self-service workflows
 
-| Workflow | Company | Participant | Tools/automation |
-| --- | --- | --- | --- |
-| Setup | Provide company/share information, declare representative authorisation and invite team | Verify account and accept invitation | Existing identity/ABR checks; record declaration and scoped appointments |
-| Opening/import | Import particulars/structure, resolve differences and approve initial records | Confirm particulars when requested | Validate totals/duplicates, retain source and apply exact opening |
-| Issue/employee grant | Prepare terms/resolution, select recipients and approve exact issue | Apply/accept, supply information and sign | Validate authority/limits; record effect and tokenise when the selected workflow requires it |
-| Paid subscription | Publish terms, decide applications, issue instructions, reconcile receipts and authorise allotment | Apply, inspect instructions and pay company/provider | References, reconciliation evidence and exactly-once authorised allotment |
-| Member/wallet link | Resolve identity and approve mapping | Confirm particulars and prove wallet control when needed | Conflicts/duplicates checks and retained proof |
-| Transfer | Record required company decision; accept/refuse register change | Agree terms and sign respective instruments/actions | Holdings/restrictions checks; separate settlement status and approved entry |
-| Correction/reconciliation | Investigate and authorise reasoned correction | Request correction and provide evidence | Detect discrepancies and append correction without overwriting history |
-| Certificates/access | Prepare/approve certificates, inspection copies and exports | Read own certificate/permitted records; request updates | Issuer identity, version, provenance and access controls |
-| Resolutions/distributions | Publish to correct roll; record decisions and payment evidence | Read, acknowledge, vote or receive | Frozen roll, calculations, notices and history |
-| Corporate actions/filings | Authorise supported action, review figures and record filing outcome | Review resulting holdings/rights/notices | Checked preparation and clear gap/failure statuses |
+| Workflow                  | Company                                                                                            | Participant                                              | Tools/automation                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Setup                     | Provide company/share information, declare representative authorisation and invite team            | Verify account and accept invitation                     | Existing identity/ABR checks; record declaration and scoped appointments                     |
+| Opening/import            | Import particulars/structure, resolve differences and approve initial records                      | Confirm particulars when requested                       | Validate totals/duplicates, retain source and apply exact opening                            |
+| Issue/employee grant      | Prepare terms/resolution, select recipients and approve exact issue                                | Apply/accept, supply information and sign                | Validate authority/limits; record effect and tokenise when the selected workflow requires it |
+| Paid subscription         | Publish terms, decide applications, issue instructions, reconcile receipts and authorise allotment | Apply, inspect instructions and pay company/provider     | References, reconciliation evidence and exactly-once authorised allotment                    |
+| Member/wallet link        | Resolve identity and approve mapping                                                               | Confirm particulars and prove wallet control when needed | Conflicts/duplicates checks and retained proof                                               |
+| Transfer                  | Record required company decision; accept/refuse register change                                    | Agree terms and sign respective instruments/actions      | Holdings/restrictions checks; separate settlement status and approved entry                  |
+| Correction/reconciliation | Investigate and authorise reasoned correction                                                      | Request correction and provide evidence                  | Detect discrepancies and append correction without overwriting history                       |
+| Certificates/access       | Prepare/approve certificates, inspection copies and exports                                        | Read own certificate/permitted records; request updates  | Issuer identity, version, provenance and access controls                                     |
+| Resolutions/distributions | Publish to correct roll; record decisions and payment evidence                                     | Read, acknowledge, vote or receive                       | Frozen roll, calculations, notices and history                                               |
+| Corporate actions/filings | Authorise supported action, review figures and record filing outcome                               | Review resulting holdings/rights/notices                 | Checked preparation and clear gap/failure statuses                                           |
 
 ASIC tools begin with checked figures, supporting documents, reminders and
 recorded submission outcomes. A generated draft is not a lodged filing. Direct
@@ -217,17 +227,17 @@ flowchart LR
 
 ## Existing gates to replace
 
-| Current implementation | Change needed |
-| --- | --- |
-| Staff company approval/activation, offering publication and classification review | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
-| `Company.owner`, global staff groups and model permissions | Company memberships/capabilities, mandates and revocation |
-| Owner proposal APIs, several without forms | Company prepare/preview/approve/apply client actions |
-| Staff evidence review and register-opening/link/instruction/import/correction guards | Company authority at API, service, worker, policy and trigger boundaries |
-| Staff-only DB decision/issuance triggers; customer ledger writes refused | Bounded company-authorised commands, preserving guarded system execution |
-| Operator payment settings and staff subscription/allotment actions | Company payment settings/decisions with exact company issue authority |
-| Staff whitelist, issuance and reconciliation acknowledgement | Company capabilities for dependent actions, preserving eligibility/finality and exact discrepancy checks |
-| Admin-only outputs and staff publication/ballot/payment workflows | Company tools and participant read/response flows |
-| Operator console names the platform as every company's register keeper | Attribute company administration and each actual decision maker correctly |
+| Current implementation                                                               | Change needed                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Staff company approval/activation, offering publication and classification review    | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
+| `Company.owner`, global staff groups and model permissions                           | Company memberships/capabilities, mandates and revocation                                                                                                                      |
+| Owner proposal APIs, several without forms                                           | Company prepare/preview/approve/apply client actions                                                                                                                           |
+| Staff evidence review and register-opening/link/instruction/import/correction guards | Company authority at API, service, worker, policy and trigger boundaries                                                                                                       |
+| Staff-only DB decision/issuance triggers; customer ledger writes refused             | Bounded company-authorised commands, preserving guarded system execution                                                                                                       |
+| Operator payment settings and staff subscription/allotment actions                   | Company payment settings/decisions with exact company issue authority                                                                                                          |
+| Staff whitelist, issuance and reconciliation acknowledgement                         | Company capabilities for dependent actions, preserving eligibility/finality and exact discrepancy checks                                                                       |
+| Admin-only outputs and staff publication/ballot/payment workflows                    | Company tools and participant read/response flows                                                                                                                              |
+| Operator console names the platform as every company's register keeper               | Attribute company administration and each actual decision maker correctly                                                                                                      |
 
 Relevant existing sources include
 [register reviewers](../../backend/tokens/services/register_openings.py),
@@ -363,9 +373,10 @@ not itself prove any new workflow works.
 ## Implementation decisions still needed
 
 Self-declaration is the selected bootstrap route; ASIC/InfoTrack prerequisites
-are superseded. Exact capability bundles, approval policies, declaration and
-terms capture, external-signature capture and delegation need detailed design
-against company workflows. Implement administrator changes under the accepted
-existing-administrator or court/regulator rule, separate from own-account recovery.
+are superseded. Flat personal and delegatable capabilities, initial declaration
+capture and in-app delegation are delivered. Domain-specific approval policies,
+action terms and external-signature capture remain to be implemented with their
+company workflows. Administrator changes follow the accepted existing-administrator
+or court/regulator rule, separate from own-account recovery.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.
