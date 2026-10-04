@@ -1,4 +1,3 @@
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -7,12 +6,7 @@ from rest_framework.response import Response
 
 from companies.exceptions import InvalidStatusTransitionException
 from companies.filters import CompanyFilter
-from companies.models import (
-    Company,
-    CompanyAppointment,
-    CompanyCapability,
-    CompanyStatus,
-)
+from companies.models import Company, CompanyStatus
 from companies.serializers import (
     CompanyActivateSerializer,
     CompanyActivationAttemptSerializer,
@@ -173,15 +167,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
         if self.action == "activate":
-            sources = CompanyAppointment.objects.current_for(
-                self.request.user,
-                self.kwargs.get("uuid"),
-                at=timezone.now(),
-                identity_required=False,
-            )
-            return queryset.filter(
-                pk__in=sources.filter(capabilities__contains=[CompanyCapability.ADMIN]).values("company_id")
-            )
+            return queryset.for_activation(self.request.user, self.kwargs.get("uuid"))
         if self.action == "partial_update":
             return queryset.administrable_by(self.request.user)
         return queryset.owned_by(self.request.user)

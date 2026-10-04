@@ -1,5 +1,6 @@
 from django.db.models import Q, QuerySet
 from django.db.models.expressions import RawSQL
+from django.utils import timezone
 
 
 def administrable_company(actor, company_id):
@@ -9,6 +10,12 @@ def administrable_company(actor, company_id):
 
 
 class CompanyQuerySet(QuerySet):
+
+    def for_activation(self, user, company_id):
+        from companies.models import CompanyAppointment, CompanyCapability
+
+        sources = CompanyAppointment.objects.current_for(user, company_id, at=timezone.now(), identity_required=False)
+        return self.filter(pk__in=sources.filter(capabilities__contains=[CompanyCapability.ADMIN]).values("company_id"))
 
     def readable_by(self, user):
         if user is None or not user.is_authenticated:
