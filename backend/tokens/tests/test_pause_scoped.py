@@ -17,6 +17,7 @@ from shared.db import (
     atomic,
     current_alias,
     principal_of,
+    use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -111,7 +112,8 @@ class ScopedPauseRecoveryTest(RunsOnTheScopedConnection, TransactionTestCase):
             with patch.object(pause_changes, "project", side_effect=SystemExit):
                 with self.assertRaises(SystemExit):
                     pause_recovery.recover(self.change.pk)
-            Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
+            with use_migrate():
+                Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
             with self.assertRaises(PauseChangeConflict):
                 pause_recovery.recover(self.change.pk)
             self.token.refresh_from_db()
@@ -119,7 +121,8 @@ class ScopedPauseRecoveryTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.assertEqual(
                 (self.token.status, self.change.status, self.change.completed_at), ("deployed", "confirmed", None)
             )
-            Company.objects.filter(pk=self.token.company_id).update(owner=self.tenant.user)
+            with use_migrate():
+                Company.objects.filter(pk=self.token.company_id).update(owner=self.tenant.user)
             self.assertIsNotNone(pause_recovery.recover(self.change.pk).completed_at)
 
     def test_real_scoped_api_replay_reads_only_its_authorized_submission(self):

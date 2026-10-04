@@ -1380,6 +1380,26 @@
         ],
         "type": "object"
       },
+      "CompanyAdministrativeAccess": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "draftSetup": {
+            "readOnly": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "capabilities",
+          "draftSetup"
+        ],
+        "type": "object"
+      },
       "CompanyApplicationResubmitted": {
         "properties": {
           "company": {
@@ -1804,6 +1824,14 @@
             "maxLength": 255,
             "type": "string"
           },
+          "administrativeAccess": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAdministrativeAccess"
+              }
+            ],
+            "readOnly": true
+          },
           "approvedAt": {
             "format": "date-time",
             "nullable": true,
@@ -1850,6 +1878,7 @@
           },
           "email": {
             "format": "email",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1885,6 +1914,10 @@
             "description": "Show this company's share classes in the investor directory.",
             "type": "boolean"
           },
+          "isOwner": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "isPendingReview": {
             "readOnly": true,
             "type": "boolean"
@@ -1894,8 +1927,8 @@
             "type": "string"
           },
           "operatorWallet": {
-            "description": "Unique identifier (primary key)",
             "format": "uuid",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1984,6 +2017,7 @@
           "acn",
           "activatedAt",
           "additionalInfoResponse",
+          "administrativeAccess",
           "approvedAt",
           "canIssueTokens",
           "companyTypeDisplay",
@@ -1995,6 +2029,7 @@
           "infoRequestedAt",
           "isActive",
           "isApproved",
+          "isOwner",
           "isPendingReview",
           "name",
           "operatorWallet",
@@ -2014,6 +2049,11 @@
       },
       "CompanyDocument": {
         "properties": {
+          "company": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
@@ -2058,6 +2098,7 @@
           }
         },
         "required": [
+          "company",
           "createdAt",
           "documentType",
           "documentTypeDisplay",
@@ -2132,6 +2173,14 @@
             "readOnly": true,
             "type": "string"
           },
+          "administrativeAccess": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAdministrativeAccess"
+              }
+            ],
+            "readOnly": true
+          },
           "city": {
             "readOnly": true,
             "type": "string"
@@ -2169,6 +2218,10 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "isOwner": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "name": {
             "readOnly": true,
             "type": "string"
@@ -2202,6 +2255,7 @@
         },
         "required": [
           "acn",
+          "administrativeAccess",
           "city",
           "companyType",
           "companyTypeDisplay",
@@ -2210,6 +2264,7 @@
           "industry",
           "isActive",
           "isApproved",
+          "isOwner",
           "name",
           "state",
           "status",
@@ -2666,75 +2721,6 @@
           "unlisted"
         ],
         "type": "string"
-      },
-      "CompanyUpdate": {
-        "properties": {
-          "abn": {
-            "maxLength": 14,
-            "type": "string"
-          },
-          "acn": {
-            "maxLength": 11,
-            "type": "string"
-          },
-          "addressLine1": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "addressLine2": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "city": {
-            "maxLength": 100,
-            "type": "string"
-          },
-          "companyType": {
-            "$ref": "#/components/schemas/CompanyTypeEnum"
-          },
-          "description": {
-            "type": "string"
-          },
-          "industry": {
-            "maxLength": 100,
-            "type": "string"
-          },
-          "isOpenToInvestors": {
-            "description": "Show this company's share classes in the investor directory.",
-            "type": "boolean"
-          },
-          "name": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "operatorWallet": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "phone": {
-            "maxLength": 20,
-            "type": "string"
-          },
-          "postcode": {
-            "maxLength": 10,
-            "type": "string"
-          },
-          "state": {
-            "maxLength": 50,
-            "type": "string"
-          },
-          "tradingName": {
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": [
-          "acn",
-          "name"
-        ],
-        "type": "object"
       },
       "DeclarationVersionEnum": {
         "description": "* `2026-10-04` - 2026-10-04",
@@ -16427,7 +16413,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CompanyUpdate"
+                  "$ref": "#/components/schemas/CompanyDetail"
                 }
               }
             },

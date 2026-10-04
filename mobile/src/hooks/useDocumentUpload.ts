@@ -7,6 +7,7 @@ export interface DocumentSubmission {
   file: UploadFile;
   owner: string;
   sessionEpoch: number;
+  assertCurrent: () => void;
 }
 
 export function useDocumentUpload(owner?: string | null) {
@@ -96,7 +97,15 @@ export function useDocumentUpload(owner?: string | null) {
     scope.submitting = true;
     render();
     try {
-      await consume({ file: copy.file, owner, sessionEpoch: scope.epoch });
+      await consume({
+        file: copy.file,
+        owner,
+        sessionEpoch: scope.epoch,
+        assertCurrent: () => {
+          if (!isCurrent() || scope.copy !== copy || scope.generation !== generation)
+            throw new Error('This document selection is no longer open.');
+        },
+      });
       const current = isCurrent() && scope.copy === copy && scope.generation === generation;
       if (scope.copy === copy) scope.copy = null;
       copy.retire();

@@ -1,17 +1,35 @@
 from django.conf import settings
 
 from shared.db.policies import (
+    ADMINISTRABLE_COMPANIES,
     ADMITTED,
     AWAITING_RLS,
     BYPASSES_THE_POLICIES,
+    DISCOVERABLE_COMPANIES,
     FRAMEWORK,
+    HAS_A_TOKEN_ON_THE_MARKET,
     HELPERS,
+    MANAGEABLE_COMPANIES,
     NOT_TENANCY,
+    OPEN_TO_INVESTORS,
     POLICIES,
+    PRINCIPAL,
     REACHED_DESPITE_OPERATOR_ONLY,
+    VISIBLE_COMPANIES,
 )
 
 SUFFIXES = ("read", "insert", "update", "delete")
+
+PRE_ADMINISTRATION_POLICIES = {
+    "companies_company": (
+        f"owner_id = {PRINCIPAL} OR ({OPEN_TO_INVESTORS}) OR {HAS_A_TOKEN_ON_THE_MARKET}",
+        f"owner_id = {PRINCIPAL}",
+    ),
+    "companies_companydocument": (
+        f"company_id IN (SELECT {VISIBLE_COMPANIES}())",
+        f"company_id IN (SELECT {MANAGEABLE_COMPANIES}())",
+    ),
+}
 
 TABLE_CREATION_AFTER_INITIAL_GRANTS = (
     {
@@ -50,6 +68,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
 )
 
 TERM_COLUMNS_ADDED_AFTER_CREATION = {
+    "portfolios": ("user_account_id",),
     "companies_companyappointment": ("appointee_id",),
 }
 
@@ -72,7 +91,18 @@ def install(schema_editor):
 
     with schema_editor.connection.cursor() as cursor:
         for name, body in HELPERS.items():
-            reading = "SECURITY DEFINER SET search_path = pg_catalog, public" if name in BYPASSES_THE_POLICIES else ""
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'companies' "
+                "AND name = '0020_company_administration')"
+            )
+            administration_installed = cursor.fetchone()[0]
+            if name in (ADMINISTRABLE_COMPANIES, DISCOVERABLE_COMPANIES):
+                if not administration_installed:
+                    continue
+            bypasses = (name in BYPASSES_THE_POLICIES and name not in (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)) or (
+                administration_installed and name in (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
+            )
+            reading = "SECURITY DEFINER SET search_path = pg_catalog, public" if bypasses else "SECURITY INVOKER"
             cursor.execute(
                 f"CREATE OR REPLACE FUNCTION {name}() RETURNS SETOF uuid "
                 f"LANGUAGE sql STABLE {reading} AS $${body}$$"
@@ -123,6 +153,10 @@ def install_tables(schema_editor, tables):
     with schema_editor.connection.cursor() as cursor:
         for table in tables:
             readable, writable = POLICIES[table]
+            if table in PRE_ADMINISTRATION_POLICIES:
+                cursor.execute("SELECT to_regprocedure('app_company_administration_ids()') IS NOT NULL")
+                if not cursor.fetchone()[0]:
+                    readable, writable = PRE_ADMINISTRATION_POLICIES[table]
             cursor.execute("SELECT to_regclass(%s) IS NOT NULL", [table])
             if not cursor.fetchone()[0]:
                 continue

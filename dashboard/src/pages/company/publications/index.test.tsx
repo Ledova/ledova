@@ -3,9 +3,9 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { PUBLICATION_COPY, type Publication } from '@ledova/shared';
+import { PUBLICATION_COPY, USER_PREFERENCES_QUERY_KEY, type Publication } from '@ledova/shared';
 import IssuerPublicationsPage from '.';
-import { companyRecord, renderCompanyPage } from '../testSupport';
+import { companyRecord, companyPreferences, renderCompanyPage } from '../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -53,7 +53,7 @@ beforeEach(() => {
   read = async () => ({ data: { ...EMPTY, count: rows.length, results: rows } });
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number; issuer?: string } }) => {
     if (url === fail) throw new Error('Unavailable');
-    if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: [{ uuid: 'company-one' }] } };
+    if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: [companyRecord()] } };
     if (url === COMPANY) return { data: companyRecord() };
     if (url === BASE) {
       if (config?.params?.issuer !== 'company-one')
@@ -289,3 +289,83 @@ it.each([503, 500])('surfaces a file HTTP %s refusal and retries the same stored
   expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
   expect(api.get).toHaveBeenCalledWith(`${BASE}statement-one/file/`, { responseType: 'blob' });
 });
+
+it('refuses synchronous duplicate opens and discards a held copy after an account change', async () => {
+  let release!: (value: unknown) => void;
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url.endsWith('/file/')
+      ? new Promise((resolve) => {
+          release = resolve;
+        })
+      : original(url, config),
+  );
+  show();
+  const open = await screen.findByRole('button', { name: PUBLICATION_COPY.OPEN });
+  fireEvent.click(open);
+  fireEvent.click(open);
+  await waitFor(() => expect(api.get.mock.calls.filter(([url]) => String(url).endsWith('/file/'))).toHaveLength(1));
+  act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: anotherActingAccount() }));
+  await act(async () => release({ data: new Blob(['retired account copy'], { type: 'application/pdf' }) }));
+  expect(URL.createObjectURL).not.toHaveBeenCalled();
+  expect(downloads).toEqual([]);
+});
+
+it('uses a fresh issuer cache for another acting account and refuses a delayed old list', async () => {
+  let release!: (value: unknown) => void;
+  read = () =>
+    new Promise((resolve) => {
+      release = resolve;
+    });
+  show();
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === BASE)).toBe(true));
+  const old = client.getQueryCache().findAll({ queryKey: ['publications', 'issuer', 'company-one'] })[0]!;
+  read = async () => ({ data: { ...EMPTY, results: [{ ...statement, title: 'Current account publication' }] } });
+  const preferences = companyPreferences();
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { ...preferences, userAccount: { ...preferences.userAccount!, uuid: 'account-two' } },
+    }),
+  );
+  expect(await screen.findByText('Current account publication')).toBeTruthy();
+  await act(async () =>
+    release({ data: { ...EMPTY, results: [{ ...statement, title: 'Retired account publication' }] } }),
+  );
+  await waitFor(() => expect(client.getQueryState(old.queryKey)?.status).toBe('error'));
+  expect(client.getQueryData(old.queryKey)).toBeUndefined();
+  expect(screen.queryByText('Retired account publication')).toBeNull();
+});
+
+it('discards a held stored copy when another company is selected', async () => {
+  let release!: (value: unknown) => void;
+  const second = companyRecord({ uuid: 'company-two', name: 'Second Example Pty Ltd' });
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: { params?: { issuer?: string } }) => {
+    if (url === '/api/v1/companies/')
+      return Promise.resolve({ data: { ...EMPTY, results: [companyRecord(), second] } });
+    if (url === '/api/v1/companies/company-two/') return Promise.resolve({ data: second });
+    if (url === BASE && config?.params?.issuer === second.uuid)
+      return Promise.resolve({
+        data: { ...EMPTY, results: [{ ...statement, uuid: 'second-statement', title: 'Second company statement' }] },
+      });
+    if (url.endsWith('/file/'))
+      return new Promise((resolve) => {
+        release = resolve;
+      });
+    return original(url, config);
+  });
+  show();
+  fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'company-one' } });
+  fireEvent.click(await screen.findByRole('button', { name: PUBLICATION_COPY.OPEN }));
+  await waitFor(() => expect(api.get.mock.calls.some(([url]) => String(url).endsWith('/file/'))).toBe(true));
+  fireEvent.change(screen.getByLabelText('Company'), { target: { value: 'company-two' } });
+  expect(await screen.findByText('Second company statement')).toBeTruthy();
+  await act(async () => release({ data: new Blob(['first-company copy'], { type: 'application/pdf' }) }));
+  expect(URL.createObjectURL).not.toHaveBeenCalled();
+  expect(downloads).toEqual([]);
+});
+
+function anotherActingAccount() {
+  const preferences = companyPreferences('investor');
+  return { ...preferences, userAccount: { ...preferences.userAccount!, uuid: 'account-two' } };
+}

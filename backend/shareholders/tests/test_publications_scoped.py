@@ -1,12 +1,14 @@
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.db import DatabaseError
+from django.conf import settings
+from django.db import DatabaseError, connections
 from django.test import override_settings
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import acting_for, atomic, use_operator
+from companies.models import CompanyAppointment
+from shared.db import OPERATOR_ALIAS, acting_for, atomic, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, staff_user
 from shared.tests.upload_fixtures import StubUploadDependencies
@@ -90,6 +92,93 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
 
         self.assertEqual(rows, sorted(holder.user.pk for holder in self.here.members))
 
+    def test_paused_issuer_keeps_its_publications_without_basic_company_administration(self):
+        with use_operator():
+            the_class_is_paused(self.here)
+            self.assertFalse(CompanyAppointment.objects.filter(company=self.here.company).exists())
+        self.client.force_authenticate(self.here.owner)
+
+        listed = self.client.get(LISTING, {"issuer": self.here.company.pk})
+        self.assertEqual(listed.status_code, 200, listed.content)
+        self.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(self.mine.pk)])
+        served = self.client.get(f"{LISTING}{self.mine.pk}/file/")
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(b"".join(served.streaming_content), PUBLICATION_BYTES)
+        self.assertEqual(self.client.get(f"/api/v1/companies/{self.here.company.pk}/").status_code, 404)
+        with use_operator():
+            self.assertEqual(
+                list(PublicationRead.objects.values_list("actor_id", "publication_uuid", "kind")),
+                [(self.here.owner.pk, self.mine.pk, "company")],
+            )
+        for company, publication in ((self.there.company.pk, self.theirs.pk), (uuid4(), uuid4())):
+            refused = self.client.get(LISTING, {"issuer": company})
+            self.assertEqual(refused.status_code, 400, refused.content)
+            self.assertEqual(self.client.get(f"{LISTING}{publication}/file/").status_code, 404)
+        with use_operator():
+            self.assertEqual(PublicationRead.objects.count(), 1)
+
+    def test_paused_issuer_file_read_keeps_company_audit_without_administration(self):
+        with use_operator():
+            the_class_is_paused(self.here)
+            self.assertFalse(CompanyAppointment.objects.filter(company=self.here.company).exists())
+        self.client.force_authenticate(self.here.owner)
+
+        served = self.client.get(f"{LISTING}{self.mine.pk}/file/")
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(b"".join(served.streaming_content), PUBLICATION_BYTES)
+        self.assertEqual(self.client.get(f"/api/v1/companies/{self.here.company.pk}/").status_code, 404)
+        with use_operator():
+            self.assertEqual(
+                list(PublicationRead.objects.values_list("actor_id", "publication_uuid", "kind")),
+                [(self.here.owner.pk, self.mine.pk, "company")],
+            )
+
+    def test_paused_owner_addressee_keeps_frozen_holding_with_issuer_filter(self):
+        with use_operator():
+            owned = a_company_with_members("scoped-paused-owner-member", owner_holds_first=True)
+            paper = published(owned)
+            the_class_is_paused(owned)
+            self.assertFalse(CompanyAppointment.objects.filter(company=owned.company).exists())
+        self.client.force_authenticate(owned.owner)
+
+        for query in ({"issuer": owned.company.pk}, {"issuer": owned.company.pk, "addressed": "me"}):
+            with self.subTest(query=query):
+                response = self.client.get(LISTING, query)
+                self.assertEqual(response.status_code, 200, response.content)
+                self.assertEqual([row["uuid"] for row in response.json()["results"]], [str(paper.pk)])
+                self.assertEqual(response.json()["results"][0]["shares"], str(owned.members[0].shares))
+        served = self.client.get(f"{LISTING}{paper.pk}/file/")
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(b"".join(served.streaming_content), PUBLICATION_BYTES)
+        with use_operator():
+            self.assertEqual(PublicationRead.objects.get().kind, "member")
+        self.assertEqual(self.client.get(f"/api/v1/companies/{owned.company.pk}/").status_code, 404)
+
+    def test_existing_staff_read_service_does_not_grant_customer_publication_or_company_access(self):
+        staff = self.here.staff
+        self.client.force_authenticate(staff)
+
+        listed = self.client.get(LISTING)
+        self.assertEqual(listed.status_code, 200, listed.content)
+        self.assertEqual(listed.json()["results"], [])
+        refused = self.client.get(f"{LISTING}{self.mine.pk}/file/")
+        absent = self.client.get(f"{LISTING}{uuid4()}/file/")
+        self.assertEqual(refused.status_code, 404)
+        self.assertEqual(absent.status_code, 404)
+        self.assertEqual((refused.status_code, refused.content), (absent.status_code, absent.content))
+        self.assertEqual(self.client.get(f"/api/v1/companies/{self.here.company.pk}/").status_code, 404)
+        with use_operator():
+            self.assertFalse(PublicationRead.objects.exists())
+        publication, recipient = read_publication(staff, self.mine.pk)
+        self.assertIsNone(recipient)
+        self.assertEqual(publication.pk, self.mine.pk)
+        publication.file.close()
+        with use_operator():
+            self.assertEqual(
+                list(PublicationRead.objects.values_list("actor_id", "publication_uuid", "kind")),
+                [(staff.pk, self.mine.pk, "staff")],
+            )
+
     def test_the_app_role_can_neither_write_nor_delete_a_publication_or_its_roll(self):
         holder = self.here.members[0]
         self.as_principal(holder.user)
@@ -130,15 +219,31 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
         with self.assertRaises(PermissionDenied), atomic():
             published(self.here)
 
-    def test_the_route_lists_only_what_the_policies_admit_on_the_real_app_connection(self):
+    def test_the_route_binds_its_reader_on_the_real_operator_connection(self):
         holder = self.here.members[0]
         self.client.force_authenticate(holder.user)
 
-        listed = self.client.get(LISTING)
+        reads = []
+
+        def record(execute, sql, params, many, context):
+            if 'FROM "shareholders_publication"' in sql:
+                connection = context["connection"]
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT current_user")
+                    role = cursor.fetchone()[0]
+                reads.append((connection.alias, role, sql, params))
+            return execute(sql, params, many, context)
+
+        with connections[OPERATOR_ALIAS].execute_wrapper(record):
+            listed = self.client.get(LISTING)
 
         self.assertEqual(listed.status_code, 200)
         self.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(self.mine.pk)])
         self.assertEqual(listed.json()["results"][0]["shares"], str(holder.shares))
+        self.assertTrue(reads)
+        for alias, role, sql, params in reads:
+            self.assertEqual((alias, role), (OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS]))
+            self.assertIn(holder.user.pk, params)
 
     def test_a_member_of_a_paused_class_reads_and_votes_on_what_was_published_after_the_pause(self):
         holder = self.here.members[0]
@@ -161,7 +266,7 @@ class ScopedPublicationTest(RunsOnTheScopedConnection, StubUploadDependencies, A
         with acting_for(holder.user.pk):
             self.assertFalse(ShareToken.objects.filter(pk=self.here.token.pk).exists())
 
-    def test_the_issuer_filter_is_owned_company_only_on_the_real_app_connection(self):
+    def test_the_issuer_filter_is_owned_company_only_on_the_bounded_operator_connection(self):
         owner = self.there.members[0].user
         with use_operator():
             owned = a_company_with_members("scoped-owner-invests", owner=owner)

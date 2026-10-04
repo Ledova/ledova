@@ -25,6 +25,7 @@ from documents.models import Document
 from offerings.models import Offering, OfferingExemption, Subscription
 from portfolios.models import Portfolio
 from shared.constants import BLOCKCHAIN_BASE
+from shared.db import use_migrate
 from shared.models import Country
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -135,7 +136,7 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     refs = reference_data()
     email = f"{label}@tenants.example.test"
     if superuser:
-        user = User.objects.create_superuser(email=email, password=PASSWORD)
+        user = User.objects.create_superuser(email=email, password=PASSWORD, is_email_verified=True)
     else:
         user = User.objects.create_user(
             email=email, password=PASSWORD, is_staff=staff, is_active=True, is_email_verified=True
@@ -185,24 +186,25 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         f"{label}-evidence.pdf", ContentFile(f"evidence for {label}".encode()), save=True
     )
 
-    company = Company.objects.create(
-        owner=user,
-        name=f"{label} Pty Ltd",
-        company_type=CompanyType.PROPRIETARY,
-        acn=an_acn(number),
-        operator_wallet=wallet,
-    )
-    company_document = CompanyDocument.objects.create(
-        company=company,
-        document_type=DocumentType.ASIC_EXTRACT,
-        name=f"{label} ASIC extract",
-        external_url=f"https://docs.example.test/{label}",
-        file_size=1,
-        mime_type="application/pdf",
-    )
-    company_document.file.save(
-        f"{label}-asic-extract.pdf", ContentFile(f"asic extract for {label}".encode()), save=True
-    )
+    with use_migrate():
+        company = Company.objects.create(
+            owner=user,
+            name=f"{label} Pty Ltd",
+            company_type=CompanyType.PROPRIETARY,
+            acn=an_acn(number),
+            operator_wallet=wallet,
+        )
+        company_document = CompanyDocument.objects.create(
+            company=company,
+            document_type=DocumentType.ASIC_EXTRACT,
+            name=f"{label} ASIC extract",
+            external_url=f"https://docs.example.test/{label}",
+            file_size=1,
+            mime_type="application/pdf",
+        )
+        company_document.file.save(
+            f"{label}-asic-extract.pdf", ContentFile(f"asic extract for {label}".encode()), save=True
+        )
     token = ShareToken.objects.create(company=company, name=f"{label} draft shares", symbol="DRF", total_supply="1000")
     deployed_token = ShareToken.objects.create(
         company=company,
@@ -353,7 +355,8 @@ def make_associated(tenant, company):
 
 
 def open_to_investors(tenant):
-    Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE, is_open_to_investors=True)
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE, is_open_to_investors=True)
 
 
 def _rows(tenant):

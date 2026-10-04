@@ -6,6 +6,8 @@ from rest_framework.exceptions import ValidationError
 
 from companies.models import Company, CompanyStatus, CompanyType
 from companies.serializers.company import CompanyUpdateSerializer
+from companies.tests.test_document_file_access import admit_company_administrator
+from shared.db import use_migrate
 
 User = get_user_model()
 PASSWORD = "pw-12345678"
@@ -41,16 +43,28 @@ def a_changed_payload(company, name):
 class TheAdminIsNotMorePermissiveThanTheApiTest(TestCase):
 
     def setUp(self):
-        self.superuser = User.objects.create_superuser(email="company-admin@example.test", password=PASSWORD)
-        self.owner = User.objects.create_user(email="company-owner@example.test", password=PASSWORD)
-        self.company = Company.objects.create(
-            owner=self.owner,
-            name="Immutable Pty Ltd",
-            company_type=CompanyType.PROPRIETARY,
-            acn=ACN,
-            abn=ABN,
-            status=CompanyStatus.ACTIVE,
+        self.superuser = User.objects.create_superuser(
+            email="company-admin@example.test", password=PASSWORD, is_active=True, is_email_verified=True
         )
+        self.owner = User.objects.create_user(
+            email="company-owner@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(
+                owner=self.owner,
+                name="Immutable Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=ACN,
+                abn=ABN,
+                status=CompanyStatus.ACTIVE,
+            )
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.DRAFT)
+        self.company.refresh_from_db()
+        admit_company_administrator(self.company, self.superuser)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
+        self.company.refresh_from_db()
         self.model_admin = admin.site._registry[Company]
 
     def admin_editable(self, company):
@@ -100,54 +114,68 @@ class TheAdminIsNotMorePermissiveThanTheApiTest(TestCase):
         self.assertEqual(immutable & self.admin_editable(self.company), set())
 
     def test_a_draft_company_keeps_the_fields_the_api_still_allows(self):
-        draft = Company.objects.create(
-            owner=self.owner,
-            name="Draft Pty Ltd",
-            company_type=CompanyType.PROPRIETARY,
-            acn=OTHER_ACN,
-            abn=OTHER_ABN,
-            status=CompanyStatus.DRAFT,
-        )
+        with use_migrate():
+            draft = Company.objects.create(
+                owner=self.owner,
+                name="Draft Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=OTHER_ACN,
+                abn=OTHER_ABN,
+                status=CompanyStatus.DRAFT,
+            )
 
+        admit_company_administrator(draft, self.superuser)
         self.assertLessEqual(self.immutable_after_draft(draft), self.admin_editable(draft))
 
     def test_the_owner_is_never_editable_on_an_existing_company(self):
         self.assertNotIn("owner", self.admin_editable(self.company))
-        self.assertNotIn(
-            "owner",
-            self.admin_editable(
-                Company.objects.create(
-                    owner=self.owner,
-                    name="Draft Owner Pty Ltd",
-                    company_type=CompanyType.PROPRIETARY,
-                    acn="555666772",
-                    status=CompanyStatus.DRAFT,
-                )
-            ),
-        )
+        with use_migrate():
+            draft = Company.objects.create(
+                owner=self.owner,
+                name="Draft Owner Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn="555666772",
+                status=CompanyStatus.DRAFT,
+            )
+        self.assertNotIn("owner", self.admin_editable(draft))
 
-    def test_the_add_form_still_asks_for_an_owner(self):
+    def test_staff_cannot_register_a_company_through_the_admin(self):
         request = RequestFactory().get("/")
         request.user = self.superuser
 
-        self.assertIn("owner", set(self.model_admin.get_form(request, obj=None)().fields))
+        self.assertFalse(self.model_admin.has_add_permission(request))
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
 class TheChangePageRefusesTheLockedFieldsTest(TestCase):
 
     def setUp(self):
-        self.owner = User.objects.create_user(email="post-owner@example.test", password=PASSWORD)
-        self.other = User.objects.create_user(email="post-other@example.test", password=PASSWORD)
-        self.company = Company.objects.create(
-            owner=self.owner,
-            name="Posted Pty Ltd",
-            company_type=CompanyType.PROPRIETARY,
-            acn=ACN,
-            abn=ABN,
-            status=CompanyStatus.ACTIVE,
+        self.owner = User.objects.create_user(
+            email="post-owner@example.test", password=PASSWORD, is_active=True, is_email_verified=True
         )
-        self.client.force_login(User.objects.create_superuser(email="post-admin@example.test", password=PASSWORD))
+        self.other = User.objects.create_user(
+            email="post-other@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(
+                owner=self.owner,
+                name="Posted Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=ACN,
+                abn=ABN,
+                status=CompanyStatus.ACTIVE,
+            )
+        actor = User.objects.create_superuser(
+            email="post-admin@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.DRAFT)
+        self.company.refresh_from_db()
+        admit_company_administrator(self.company, actor)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
+        self.company.refresh_from_db()
+        self.client.force_login(actor)
 
     def change_post(self, **changes):
         url = reverse("admin:companies_company_change", args=[self.company.pk])
@@ -181,3 +209,14 @@ class TheChangePageRefusesTheLockedFieldsTest(TestCase):
         self.assertEqual(self.company.acn, ACN)
         self.assertEqual(self.company.abn, ABN)
         self.assertEqual(self.company.company_type, CompanyType.PROPRIETARY)
+
+    def test_unappointed_staff_cannot_edit_basic_company_details(self):
+        actor = User.objects.create_superuser(email="unappointed-admin@example.test", password=PASSWORD)
+        self.client.force_login(actor)
+        original = self.company.trading_name
+        response = self.change_post(trading_name="Forbidden staff edit", owner=self.other.pk, acn=OTHER_ACN)
+        self.assertEqual(response.status_code, 302)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.trading_name, original)
+        self.assertEqual(self.company.owner_id, self.owner.pk)
+        self.assertEqual(self.company.acn, ACN)

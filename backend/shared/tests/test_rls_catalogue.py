@@ -8,9 +8,11 @@ from django.db import connection
 from django.test import TransactionTestCase
 
 from shared.db.policies import (
+    ADMINISTRABLE_COMPANIES,
     AWAITING_R0,
     BYPASSES_THE_POLICIES,
     DERIVED_FROM_A_MUTABLE_ATTRIBUTE,
+    DISCOVERABLE_COMPANIES,
     HELPERS,
     LEAF_TABLES,
     POLICIES,
@@ -112,12 +114,20 @@ class EveryTenantTableIsScopedByAPolicyTest(TransactionTestCase):
 
                 self.assertEqual(checks[f"{table}_update"], quals[f"{table}_delete"])
 
-    def test_the_tables_an_invoker_helper_reads_carry_leaf_policies(self):
+    def test_invoker_company_reads_stop_at_the_bounded_definers(self):
         for table in LEAF_TABLES:
             with self.subTest(table=table):
                 for _, qual, check in self._ask(POLICY_EXPRESSIONS, table):
-                    self.assertNotIn("app_", qual or "")
-                    self.assertNotIn("app_", check or "")
+                    for expression in (qual or "", check or ""):
+                        self.assertNotIn(
+                            "app_", expression.replace(ADMINISTRABLE_COMPANIES, "").replace(DISCOVERABLE_COMPANIES, "")
+                        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT prosecdef, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
+                [[ADMINISTRABLE_COMPANIES, DISCOVERABLE_COMPANIES]],
+            )
+            self.assertEqual(cursor.fetchall(), [(True, ["search_path=pg_catalog, public"])] * 2)
 
     def test_no_tenancy_predicate_is_written_as_a_negation(self):
         for table in sorted(POLICIES):

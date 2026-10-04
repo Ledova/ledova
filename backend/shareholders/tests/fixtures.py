@@ -71,12 +71,13 @@ def a_treasury_address(label):
 
 
 def a_share_class(label, owner):
-    company = Company.objects.create(
-        owner=owner,
-        name=f"{label} Pty Ltd",
-        company_type=CompanyType.PROPRIETARY,
-        acn=str(uuid4())[:8],
-    )
+    with use_migrate():
+        company = Company.objects.create(
+            owner=owner,
+            name=f"{label} Pty Ltd",
+            company_type=CompanyType.PROPRIETARY,
+            acn=str(uuid4())[:8],
+        )
     token = ShareToken.objects.create(
         company=company,
         name=f"{label} ordinary shares",

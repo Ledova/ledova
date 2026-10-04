@@ -26,8 +26,10 @@ export const getCompanies = (apiClient: AxiosInstance, page?: number, config?: A
 export const registerCompany = (apiClient: AxiosInstance, data: CompanyRegistration) =>
   apiClient.post<CompanyRegistrationResponse>(COMPANY_ENDPOINTS.BASE, data);
 
-export const getCompany = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<Company>(COMPANY_ENDPOINTS.DETAIL(uuid));
+export const getCompany = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  config === undefined
+    ? apiClient.get<Company>(COMPANY_ENDPOINTS.DETAIL(uuid))
+    : apiClient.get<Company>(COMPANY_ENDPOINTS.DETAIL(uuid), config);
 
 export const updateCompany = (
   apiClient: AxiosInstance,
@@ -56,14 +58,37 @@ export const uploadCompanyDocument = (
   });
 };
 
-export const deleteCompanyDocument = (apiClient: AxiosInstance, companyUuid: string, documentUuid: string) =>
-  apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid));
+export const deleteCompanyDocument = (
+  apiClient: AxiosInstance,
+  companyUuid: string,
+  documentUuid: string,
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid))
+    : apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid), config);
 
-export const submitApplication = (apiClient: AxiosInstance, companyUuid: string) =>
-  apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.SUBMIT(companyUuid), { confirm: true });
+export const submitApplication = (apiClient: AxiosInstance, companyUuid: string, config?: AxiosRequestConfig) =>
+  config === undefined
+    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.SUBMIT(companyUuid), { confirm: true })
+    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.SUBMIT(companyUuid), { confirm: true }, config);
 
-export const resubmitApplication = (apiClient: AxiosInstance, companyUuid: string, data: ApplicationResubmit) =>
-  apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.RESUBMIT(companyUuid), data);
+export const resubmitApplication = (
+  apiClient: AxiosInstance,
+  companyUuid: string,
+  data: ApplicationResubmit,
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.RESUBMIT(companyUuid), data)
+    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.RESUBMIT(companyUuid), data, config);
 
-export const withdrawApplication = (apiClient: AxiosInstance, companyUuid: string, data: ApplicationWithdraw = {}) =>
-  apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.WITHDRAW(companyUuid), data);
+export const withdrawApplication = (
+  apiClient: AxiosInstance,
+  companyUuid: string,
+  data: ApplicationWithdraw = {},
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.WITHDRAW(companyUuid), data)
+    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.WITHDRAW(companyUuid), data, config);

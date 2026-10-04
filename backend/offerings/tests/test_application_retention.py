@@ -15,7 +15,7 @@ from offerings.tests.factories import (
     forget_fixture_subscriptions,
     open_offering,
 )
-from shared.db import APP_ALIAS, acting_for, atomic, use_operator
+from shared.db import APP_ALIAS, acting_for, atomic, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -43,9 +43,10 @@ class ApplicationRetentionCases:
             configure_operator()
             self.offering = open_offering(self.issuer)
             eligible_subscriber(self.investor)
-            Company.objects.filter(pk=self.issuer.company.pk).update(
-                trading_name="Synthetic retained company", is_open_to_investors=True, status=CompanyStatus.ACTIVE
-            )
+            with use_migrate():
+                Company.objects.filter(pk=self.issuer.company.pk).update(
+                    trading_name="Synthetic retained company", is_open_to_investors=True, status=CompanyStatus.ACTIVE
+                )
             self.offering = Offering.objects.with_relations().get(pk=self.offering.pk)
             self.application = draft_subscription(self.investor, offering=self.offering)
             submit(self.application, submitted_by=self.investor.user)
@@ -56,12 +57,13 @@ class ApplicationRetentionCases:
 
     def visibility(self, state):
         with self.operator():
-            Company.objects.filter(pk=self.issuer.company.pk).update(
-                is_open_to_investors=state not in ("closed", "paused_closed"),
-                status={"warning": CompanyStatus.WARNING, "suspended": CompanyStatus.SUSPENDED}.get(
-                    state, CompanyStatus.ACTIVE
-                ),
-            )
+            with use_migrate():
+                Company.objects.filter(pk=self.issuer.company.pk).update(
+                    is_open_to_investors=state not in ("closed", "paused_closed"),
+                    status={"warning": CompanyStatus.WARNING, "suspended": CompanyStatus.SUSPENDED}.get(
+                        state, CompanyStatus.ACTIVE
+                    ),
+                )
             ShareToken.objects.filter(pk=self.offering.token_id).update(
                 status=ShareTokenStatus.PAUSED if state in ("paused", "paused_closed") else ShareTokenStatus.DEPLOYED
             )
@@ -74,7 +76,7 @@ class ApplicationRetentionCases:
         self.assertEqual(row["offeringUuid"], str(self.offering.uuid))
 
     def test_creation_captures_identity_including_the_legal_name_fallback(self):
-        with self.operator():
+        with use_migrate():
             Company.objects.filter(pk=self.issuer.company.pk).update(trading_name="")
         response = self.client.post(
             BASE,
@@ -158,9 +160,10 @@ class ApplicationRetentionCases:
 
     def test_parent_renames_and_currency_changes_do_not_rewrite_existing_applications(self):
         with self.operator():
-            Company.objects.filter(pk=self.issuer.company.pk).update(
-                name="Renamed legal company", trading_name="New name"
-            )
+            with use_migrate():
+                Company.objects.filter(pk=self.issuer.company.pk).update(
+                    name="Renamed legal company", trading_name="New name"
+                )
             ShareToken.objects.filter(pk=self.offering.token_id).update(name="New class", symbol="NEW")
             Offering.objects.filter(pk=self.offering.pk).update(price_currency="USD", price_per_share=Decimal("9.00"))
         response = self.client.post(f"{BASE}{self.draft.uuid}/submit/", {})
@@ -219,7 +222,8 @@ class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedC
         with self.operator():
             other_offering = open_offering(self.bystander)
             other = draft_subscription(self.investor, offering=other_offering)
-            Company.objects.filter(pk=self.bystander.company.pk).update(is_open_to_investors=False)
+            with use_migrate():
+                Company.objects.filter(pk=self.bystander.company.pk).update(is_open_to_investors=False)
         self.visibility("closed")
         with acting_for(self.investor.user.pk):
             with connections[APP_ALIAS].cursor() as cursor:

@@ -12,28 +12,39 @@ import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyReadNotice } from './CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
+import { CompanyDocuments } from './CompanyDocuments';
+import { CompanySelection } from './CompanySelection';
 
 export function CompanyScreen() {
+  const data = useCompanyProfile();
+  return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? 'unselected'}`} data={data} />;
+}
+
+function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<CompanyStackParamList & BottomTabParamList>>();
-  const data = useCompanyProfile();
   const { company } = data;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
   const [creating, setCreating] = useState<Company | null>(null);
   const classes = useQuery({
-    queryKey: ['company-tokens', 'company', company?.uuid],
-    enabled: data.access.allowed && !!company && !data.error,
-    queryFn: async () =>
-      (await readEveryPage((page) => getCompanyTokens(apiClient, { page }))).filter(
-        (token) => token.companyUuid === company!.uuid,
-      ),
+    queryKey: ['company-tokens', 'company', data.companyUuid, data.scopeKey],
+    enabled: data.ownerBusiness && !!company && !data.error,
+    queryFn: async () => {
+      const rows = await readEveryPage(async (page) => {
+        data.assertCurrent(company!.uuid, 'owner');
+        const result = await getCompanyTokens(apiClient, { page });
+        data.assertCurrent(company!.uuid, 'owner');
+        return result;
+      });
+      return rows.filter((token) => token.companyUuid === company!.uuid);
+    },
   });
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['company'] }),
-      queryClient.invalidateQueries({ queryKey: ['companies'] }),
-      queryClient.invalidateQueries({ queryKey: ['company-tokens'] }),
+      queryClient.invalidateQueries({ queryKey: data.companyKey }),
+      queryClient.invalidateQueries({ queryKey: data.companiesKey }),
+      queryClient.invalidateQueries({ queryKey: ['company-tokens', 'company', data.companyUuid, data.scopeKey] }),
     ]);
   const address = company
     ? [
@@ -45,34 +56,26 @@ export function CompanyScreen() {
         .filter(Boolean)
         .join(', ')
     : '';
-  if (!data.access.allowed)
-    return (
-      <Page title="Company">
-        <Text style={styles.muted}>
-          {data.access.isLoading
-            ? 'Loading your company access…'
-            : 'Verify your company access before opening Company.'}
-        </Text>
-        {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </Page>
-    );
   return (
     <>
       <Page
         testID="company-screen"
         title="Company"
         actions={
-          !data.error &&
+          data.canAdmin &&
           company && <Action label="Edit company" onPress={() => setEditing(company)} disabled={data.isRefreshing} />
         }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void refresh()} />}
       >
+        <CompanySelection read={data} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
           <CompanyReadNotice read={data} />
         ) : !company ? (
-          <Text style={styles.muted}>No company information available.</Text>
+          <Text style={styles.muted}>
+            {data.companies.length > 0 ? 'Choose a company above.' : 'No company administration available.'}
+          </Text>
         ) : (
           <>
             <Section title={company.name}>
@@ -83,55 +86,63 @@ export function CompanyScreen() {
                 <Row label="Type">{company.companyTypeDisplay}</Row>
                 <Row label="ACN">{company.acn}</Row>
                 {company.abn && <Row label="ABN">{company.abn}</Row>}
-                {company.email && <Row label="Email">{company.email}</Row>}
+                {data.canAdmin && company.email && <Row label="Email">{company.email}</Row>}
                 {company.phone && <Row label="Phone">{company.phone}</Row>}
                 {!!address && <Row label="Address">{address}</Row>}
               </Rows>
               <Rows>
-                <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />
+                {data.ownerBusiness && <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />}
                 <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
                 <LinkRow label="Company team" onPress={() => navigation.navigate('CompanyTeam')} />
-                <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
+                {data.ownerBusiness && (
+                  <LinkRow
+                    label="Published to your members"
+                    onPress={() => navigation.navigate('CompanyPublications')}
+                  />
+                )}
               </Rows>
             </Section>
-            <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
-              {classes.isPending ? (
-                <Text style={styles.muted}>Loading share classes…</Text>
-              ) : classes.isError ? (
-                <View style={styles.group}>
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    Share classes could not be loaded.
-                  </Text>
-                  <Action
-                    label="Retry share classes"
-                    disabled={classes.isFetching}
-                    onPress={() => void classes.refetch()}
-                  />
-                </View>
-              ) : classes.data.length === 0 ? (
-                <Text style={styles.muted}>No share classes yet.</Text>
-              ) : (
-                <Rows>
-                  {classes.data.map((token) => (
-                    <LinkRow
-                      key={token.uuid}
-                      label={token.name}
-                      onPress={() => navigation.navigate('TokenDetail', { uuid: token.uuid })}
-                    >
-                      <Text style={styles.text}>{token.statusDisplay}</Text>
-                      <Text style={styles.muted}>
-                        {token.symbol} · {token.tokenTypeDisplay}
-                      </Text>
-                      <Text style={styles.muted}>{formatShareCount(token.totalSupply)} authorised shares</Text>
-                    </LinkRow>
-                  ))}
-                  <LinkRow label="Register" onPress={() => navigation.navigate('CompanyMain')} />
-                </Rows>
-              )}
-              <Action label="Create share class" disabled={data.isRefreshing} onPress={() => setCreating(company)} />
-            </Section>
+            {data.ownerBusiness && (
+              <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
+                {classes.isPending ? (
+                  <Text style={styles.muted}>Loading share classes…</Text>
+                ) : classes.isError ? (
+                  <View style={styles.group}>
+                    <Text accessibilityRole="alert" style={styles.error}>
+                      Share classes could not be loaded.
+                    </Text>
+                    <Action
+                      label="Retry share classes"
+                      disabled={classes.isFetching}
+                      onPress={() => void classes.refetch()}
+                    />
+                  </View>
+                ) : classes.data.length === 0 ? (
+                  <Text style={styles.muted}>No share classes yet.</Text>
+                ) : (
+                  <Rows>
+                    {classes.data.map((token) => (
+                      <LinkRow
+                        key={token.uuid}
+                        label={token.name}
+                        onPress={() => navigation.navigate('TokenDetail', { uuid: token.uuid })}
+                      >
+                        <Text style={styles.text}>{token.statusDisplay}</Text>
+                        <Text style={styles.muted}>
+                          {token.symbol} · {token.tokenTypeDisplay}
+                        </Text>
+                        <Text style={styles.muted}>{formatShareCount(token.totalSupply)} authorised shares</Text>
+                      </LinkRow>
+                    ))}
+                    <LinkRow label="Register" onPress={() => navigation.navigate('CompanyMain')} />
+                  </Rows>
+                )}
+                <Action label="Create share class" disabled={data.isRefreshing} onPress={() => setCreating(company)} />
+              </Section>
+            )}
           </>
         )}
+        {data.retainedCompany && <CompanyDocuments read={data} />}
       </Page>
       {editing && (
         <EditCompanyForm

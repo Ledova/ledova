@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from companies.models import Company
+from companies.services.administration import company_owner_operation
 from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import ShareTokenFilter
 from tokens.models import ShareIssuance, ShareToken
@@ -47,8 +48,26 @@ class ShareTokenViewSet(
     ordering_fields = ["created_at", "name", "symbol", "status", "token_type"]
 
     scoped_model = ShareToken
-    operator_actions = frozenset({"holders", "register_export", "register_waiting"})
+    operator_actions = frozenset(
+        {
+            "create",
+            "list",
+            "retrieve",
+            "deploy",
+            "pause",
+            "unpause",
+            "pause_submission",
+            "issue",
+            "issuances",
+            "holders",
+            "register_export",
+            "register_waiting",
+        }
+    )
     operator_actions_because = (
+        "Share-class creation and owned reads keep their exact current-owner condition while basic company "
+        "administration remains separately scoped; its company selector and locked insertion "
+        "remain bound to that owner. "
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
@@ -94,7 +113,8 @@ class ShareTokenViewSet(
     @action(detail=True, methods=["post"])
     def deploy(self, request, uuid=None):
         token = self.get_object()
-        deployment.start_deployment(token, principal_id=request.user.pk)
+        with company_owner_operation(request.user, token.company_id):
+            deployment.start_deployment(token, principal_id=request.user.pk)
         return Response({"message": "Token deployment initiated.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
@@ -159,9 +179,11 @@ class ShareTokenViewSet(
         token = self.get_object()
         serializer = ShareIssuanceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        issuance_request = share_token_service.create_issuance_request(
-            token=token, user=request.user, **serializer.validated_data
-        )
+        with company_owner_operation(request.user, token.company_id):
+            token.refresh_from_db()
+            issuance_request = share_token_service.create_issuance_request(
+                token=token, user=request.user, **serializer.validated_data
+            )
         return Response(
             {
                 "message": "Share issuance request submitted for approval.",

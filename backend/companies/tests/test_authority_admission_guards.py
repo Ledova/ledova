@@ -38,7 +38,7 @@ from companies.tests.test_authority_requests import (
 )
 from integrations.abr.client import RegistryObservation
 from operators.models import Operator
-from shared.db import atomic, current_alias, reset_principal, use_operator
+from shared.db import atomic, current_alias, reset_principal, use_migrate, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
@@ -94,7 +94,14 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
 
     def registry_check(self, purpose=RegistryCheckPurpose.AUTHORITY, observation=None):
         with use_operator():
-            check = begin_registry_check(self.company, purpose, self.user)
+            actor = (
+                self.user
+                if purpose == RegistryCheckPurpose.AUTHORITY
+                else get_user_model().objects.create_user(
+                    email="guard-reviewer@example.test", is_active=True, is_staff=True
+                )
+            )
+            check = begin_registry_check(self.company, purpose, actor)
             return complete_registry_check(check, observation or matching_observation(self.company))
 
     def row(self, **changes):
@@ -166,13 +173,13 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
         return appointment
 
     def change(self, model, identity, changes):
-        with use_operator():
+        with use_migrate() if model is Company else use_operator():
             original = model.objects.values(*changes).get(pk=identity)
             model.objects.filter(pk=identity).update(**changes)
         return original
 
     def restore(self, model, identity, original):
-        with use_operator():
+        with use_migrate() if model is Company else use_operator():
             model.objects.filter(pk=identity).update(**original)
 
     def test_matching_operator_sql_insert_records_the_appointment(self):
@@ -234,17 +241,17 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
         for check in (activation, failed):
             with self.subTest(purpose=check.purpose, status=check.status):
                 self.assert_refused(registry_check_id=check.pk)
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(lifecycle_revision=F("lifecycle_revision") + 1)
         with self.subTest(lifecycle_revision="stale"):
             self.assert_refused()
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(lifecycle_revision=F("lifecycle_revision") - 1)
         self.admitted()
 
     def test_service_admission_refuses_a_lifecycle_revision_changed_while_the_provider_ran(self):
         def bump_then_return(**kwargs):
-            with use_operator():
+            with use_migrate():
                 Company.objects.filter(pk=self.company.pk).update(lifecycle_revision=F("lifecycle_revision") + 1)
             return matching_observation(self.company)
 

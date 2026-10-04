@@ -1,7 +1,39 @@
 from django.db.models import Q, QuerySet
+from django.db.models.expressions import RawSQL
+
+
+def administrable_company(actor, company_id):
+    from companies.models import Company
+
+    return Company.objects.administrable_by(actor).filter(pk=company_id).first()
 
 
 class CompanyQuerySet(QuerySet):
+
+    def readable_by(self, user):
+        if user is None or not user.is_authenticated:
+            return self.none()
+        return self.filter(
+            Q(owner=user, owner__is_active=True)
+            | Q(
+                pk__in=RawSQL(
+                    "SELECT app_company_administration_ids() WHERE "
+                    "NULLIF(current_setting('app.user_id', true), '')::bigint = %s",
+                    [user.pk],
+                )
+            )
+        )
+
+    def administrable_by(self, user):
+        if user is None or not user.is_authenticated:
+            return self.none()
+        return self.filter(
+            pk__in=RawSQL(
+                "SELECT app_company_administration_ids() WHERE "
+                "NULLIF(current_setting('app.user_id', true), '')::bigint = %s",
+                [user.pk],
+            )
+        )
 
     def owned_by(self, user):
         if user is None or not user.is_authenticated:

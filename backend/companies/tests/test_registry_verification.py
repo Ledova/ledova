@@ -28,8 +28,12 @@ from companies.services import transition_company
 from companies.services.editing import update_company
 from companies.services.registry import begin_registry_check, complete_registry_check
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
+from companies.tests.test_document_file_access import (
+    invite_company_administrator,
+    legacy_company_administrators,
+)
 from integrations.abr.client import RegistryObservation, lookup_company
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_migrate
 
 User = get_user_model()
 PROVIDER = "companies.services.registry.lookup_company"
@@ -48,11 +52,16 @@ ACTIVE_ENTRIES = (
 @override_settings(STORAGES=STORAGES, ABR_AUTH_GUID="")
 class CompanyRegistryVerificationTest(TransactionTestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="registry-owner@example.test")
+        self.owner = User.objects.create_user(
+            email="registry-owner@example.test", is_active=True, is_email_verified=True
+        )
         self.operator = User.objects.create_superuser(
             email="registry-operator@example.test", password="synthetic-password"
         )
-        self.company = Company.objects.create(owner=self.owner, name="Synthetic Example Pty Ltd", acn="123456780")
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Synthetic Example Pty Ltd", acn="123456780")
+        appointment = legacy_company_administrators(self.company)[0]
+        invite_company_administrator(self.company, appointment, self.operator)
         self.client = APIClient()
         self.lookup = patch(PROVIDER, return_value=matching_observation(self.company)).start()
         patch("companies.services.company.send_push_notification").start()
@@ -61,11 +70,17 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.admin_url = reverse("admin:companies_company_change", args=[self.company.pk])
 
     def set_status(self, status):
-        Company.objects.filter(pk=self.company.pk).update(status=status)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
     def transition(self, method, **kwargs):
-        self.company = transition_company(self.company, method, actor=self.operator, **kwargs)
+        self.company = transition_company(
+            self.company,
+            method,
+            actor=self.owner if method in ("submit", "resubmit", "withdraw") else self.operator,
+            **kwargs,
+        )
         return self.company
 
     def approve(self):
@@ -229,7 +244,8 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             (CompanyType.UNLISTED_PUBLIC, "PUB", "PRV"),
         ):
             with self.subTest(company_type=company_type):
-                Company.objects.filter(pk=self.company.pk).update(company_type=company_type)
+                with use_migrate():
+                    Company.objects.filter(pk=self.company.pk).update(company_type=company_type)
                 self.approve()
                 observation = matching_observation(self.company)
                 self.lookup.return_value = replace(observation, entity_type=contradictory)
@@ -273,9 +289,10 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
 
     def test_a_bulk_review_post_performs_no_lookups_and_individual_review_still_works(self):
         self.set_status(CompanyStatus.SUBMITTED)
-        second = Company.objects.create(
-            owner=self.owner, name="Second Pty Ltd", acn="987654320", status=CompanyStatus.SUBMITTED
-        )
+        with use_migrate():
+            second = Company.objects.create(
+                owner=self.owner, name="Second Pty Ltd", acn="987654320", status=CompanyStatus.SUBMITTED
+            )
         self.client.force_login(self.operator)
         changelist = reverse("admin:companies_company_changelist")
         response = self.client.post(
@@ -283,7 +300,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             {"action": "start_review_action", "_selected_action": [str(self.company.pk), str(second.pk)], "index": 0},
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
         self.lookup.assert_not_called()
         self.company.refresh_from_db()
         second.refresh_from_db()
@@ -312,7 +329,8 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertEqual(self.company.abn, "")
         self.assertEqual(self.company.registry_check.registry_abn, "99123456780")
         self.set_status(CompanyStatus.APPROVED)
-        Company.objects.filter(pk=self.company.pk).update(abn="98123456780")
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(abn="98123456780")
         self.company.refresh_from_db()
         with self.assertRaises(RegistryVerificationRequiredException):
             self.transition("activate", declaration=DECLARATION)
@@ -336,8 +354,8 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.set_status(CompanyStatus.INFO_REQUIRED)
         with atomic():
             check = begin_registry_check(self.company, RegistryCheckPurpose.RETRY, self.operator)
-        update_company(self.company, {"name": "Correction Pty Ltd"})
-        update_company(self.company, {"name": self.company.name})
+        update_company(self.company, {"name": "Correction Pty Ltd"}, actor=self.owner)
+        update_company(self.company, {"name": self.company.name}, actor=self.owner)
         complete_registry_check(check, matching_observation(self.company))
         self.company.refresh_from_db()
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
@@ -350,7 +368,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
 
         def observe(**kwargs):
             current = Company.objects.get(pk=self.company.pk)
-            transition_company(current, "delist", reason="Concurrent decision")
+            transition_company(current, "delist", actor=self.operator, reason="Concurrent decision")
             return matching_observation(current)
 
         self.lookup.side_effect = observe
@@ -381,7 +399,8 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         previous_identity = matching_observation(self.company)
 
         def observe(**kwargs):
-            Company.objects.filter(pk=self.company.pk).update(name="Changed during lookup Pty Ltd")
+            with use_migrate():
+                Company.objects.filter(pk=self.company.pk).update(name="Changed during lookup Pty Ltd")
             return previous_identity
 
         self.lookup.side_effect = observe
@@ -418,7 +437,12 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.transition("activate")
         stale_api = Company.objects.get(pk=self.company.pk)
         stale_admin = Company.objects.get(pk=self.company.pk)
-        serializer = CompanyUpdateSerializer(stale_api, data={"description": "API description"}, partial=True)
+        serializer = CompanyUpdateSerializer(
+            stale_api,
+            data={"description": "API description"},
+            partial=True,
+            context={"request": SimpleNamespace(user=self.owner)},
+        )
         serializer.is_valid(raise_exception=True)
         self.transition("suspend", reason="Concurrent suspension")
         self.lookup.return_value = RegistryObservation(reason="timeout")
@@ -434,7 +458,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         serializer.save()
         model_admin = CompanyAdmin(Company, AdminSite())
         model_admin.save_model(
-            None,
+            SimpleNamespace(user=self.operator),
             stale_admin,
             SimpleNamespace(changed_data=["description"], cleaned_data={"description": "Admin description"}),
             True,
@@ -449,7 +473,12 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         )
 
     def test_stale_draft_api_and_admin_identity_edits_are_refused_after_review(self):
-        serializer = CompanyUpdateSerializer(self.company, data={"name": "Edited Pty Ltd"}, partial=True)
+        serializer = CompanyUpdateSerializer(
+            self.company,
+            data={"name": "Edited Pty Ltd"},
+            partial=True,
+            context={"request": SimpleNamespace(user=self.owner)},
+        )
         serializer.is_valid(raise_exception=True)
         stale = Company.objects.get(pk=self.company.pk)
         self.transition("submit", submitted_by=self.owner)
@@ -459,12 +488,15 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         model_admin = CompanyAdmin(Company, AdminSite())
         with self.assertRaises(ValidationError):
             model_admin.save_model(
-                None, stale, SimpleNamespace(changed_data=["name"], cleaned_data={"name": "Edited Pty Ltd"}), True
+                SimpleNamespace(user=self.operator),
+                stale,
+                SimpleNamespace(changed_data=["name"], cleaned_data={"name": "Edited Pty Ltd"}),
+                True,
             )
         self.company.refresh_from_db()
         self.assertEqual(self.company.name, "Synthetic Example Pty Ltd")
         self.transition("request_info", reason="Correct the registered name")
-        updated = update_company(stale, {"name": "Edited Pty Ltd"})
+        updated = update_company(stale, {"name": "Edited Pty Ltd"}, actor=self.owner)
         self.assertEqual(updated.name, "Edited Pty Ltd")
         self.assertEqual(updated.registry_status, RegistryCheckStatus.PENDING)
 
@@ -494,7 +526,8 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             action = method.replace("_", "-")
             with self.subTest(action=action):
                 self.set_status(predecessor)
-                Company.objects.filter(pk=self.company.pk).update(officeholder_attestation={})
+                with use_migrate():
+                    Company.objects.filter(pk=self.company.pk).update(officeholder_attestation={})
                 page = self.client.get(self.admin_action(action))
                 self.assertContains(page, "Named officeholder making the declaration")
                 self.assertEqual(Company.objects.get(pk=self.company.pk).status, predecessor)

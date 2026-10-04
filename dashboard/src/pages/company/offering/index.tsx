@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   OFFERING_EXEMPTION_LABELS,
@@ -6,6 +6,7 @@ import {
   OFFERING_WITHDRAWABLE_STATUSES,
   OFFER_DOCUMENT_COPY,
   apiErrorSentence,
+  createUserFriendlyError,
   formatDate,
   formatMoney,
   formatShareCount,
@@ -16,6 +17,7 @@ import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import apiClient from '@services/apiClient';
 import { useCompany } from '../hooks/useCompany';
+import { CompanySelection } from '../CompanySelection';
 import { CompanyReadNotice } from '../CompanyState';
 import { useOfferingActions, useOfferings } from './useOffering';
 import { OfferingReadNotice } from './OfferingReadNotice';
@@ -105,23 +107,85 @@ function OfferingRecord({
 }
 
 export default function OfferingPage() {
-  const companyRead = useCompany();
+  const companyRead = useCompany({ ownedOnly: true });
+  return (
+    <CompanyOfferings key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
+  );
+}
+
+function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useCompany> }) {
   const { company } = companyRead;
-  const data = useOfferings(company?.uuid);
+  const data = useOfferings(companyRead.retainedCompany?.uuid, companyRead);
   const client = useQueryClient();
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
   const [documentsEditor, setDocumentsEditor] = useState<{ company: string; uuid: string } | null>(null);
   const [actionError, setActionError] = useState<{ listing: boolean; message: string } | null>(null);
-  const actions = useOfferingActions(data.refresh);
+  const listingPending = useRef(false);
+  const actionPending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const ownerGuard = () => {
+    if (!mounted.current || !company) throw createUserFriendlyError('This company action is closed.');
+    companyRead.assertCurrent(company.uuid, 'owner');
+  };
+  const actions = useOfferingActions(
+    async () => {
+      ownerGuard();
+      await data.refresh();
+      ownerGuard();
+    },
+    (uuid, action) => {
+      const guard = () => {
+        ownerGuard();
+        data.assertOffering(uuid, action);
+      };
+      return { ...companyRead.requestConfig(company!.uuid, 'owner'), ledovaSubmissionGuard: guard };
+    },
+  );
   const listing = useMutation({
-    mutationFn: ({ uuid, isOpen }: { uuid: string; isOpen: boolean }) =>
-      updateCompany(apiClient, uuid, { isOpenToInvestors: isOpen }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['company'] }),
+    mutationFn: async ({
+      uuid,
+      isOpen,
+      guard,
+      config,
+    }: {
+      uuid: string;
+      isOpen: boolean;
+      guard: () => void;
+      config: ReturnType<typeof companyRead.requestConfig>;
+    }) => {
+      guard();
+      const result = await updateCompany(apiClient, uuid, { isOpenToInvestors: isOpen }, config);
+      guard();
+      if (
+        result.data.uuid !== uuid ||
+        result.data.isOpenToInvestors !== isOpen ||
+        !Array.isArray(result.data.documents)
+      )
+        throw createUserFriendlyError('Directory visibility could not be confirmed. Refresh before retrying.');
+      return result;
+    },
+    onSuccess: async (_, { guard }) => {
+      guard();
+      await client.invalidateQueries({ queryKey: companyRead.companyKey });
+    },
+    onSettled: () => {
+      listingPending.current = false;
+    },
     onMutate: () => setActionError(null),
     onError: (error) =>
       setActionError({
         listing: true,
-        message: apiErrorSentence(error, 'Directory visibility could not be changed. Try again.'),
+        message: apiErrorSentence(
+          error,
+          'Directory visibility could not be changed. Try again.',
+          'Directory visibility could not be confirmed. Refresh before retrying.',
+        ),
       }),
   });
   const busy = actions.submit.isPending || actions.withdraw.isPending || actions.remove.isPending || listing.isPending;
@@ -129,12 +193,14 @@ export default function OfferingPage() {
     !!company && !companyRead.error && !companyRead.isRefreshing && !data.error && !data.isRefreshing && !busy;
   const run = async (action: 'submit' | 'withdraw' | 'remove', uuid: string) => {
     const offering = data.offerings.find((row) => row.uuid === uuid);
-    if (!ready || !offering) return;
+    if (!ready || !offering || actionPending.current) return;
     if (action === 'submit' && !offering.canBeEdited) return;
     if (action === 'remove' && !offering.canBeDeleted) return;
     if (action === 'withdraw' && !OFFERING_WITHDRAWABLE_STATUSES.includes(offering.status)) return;
     setActionError(null);
+    actionPending.current = true;
     try {
+      ownerGuard();
       if (action === 'withdraw') await actions.withdraw.mutateAsync({ uuid, reason: 'Withdrawn by the issuer' });
       else await actions[action].mutateAsync(uuid);
     } catch (error) {
@@ -142,6 +208,8 @@ export default function OfferingPage() {
         listing: false,
         message: apiErrorSentence(error, 'The request could not be completed. Try again.'),
       });
+    } finally {
+      actionPending.current = false;
     }
   };
   return (
@@ -158,6 +226,7 @@ export default function OfferingPage() {
           />
         }
       >
+        <CompanySelection read={companyRead} />
         {companyRead.error ? (
           <CompanyReadNotice read={companyRead} />
         ) : !company ? (
@@ -203,7 +272,12 @@ export default function OfferingPage() {
                     </p>
                   )}
                 </Section>
-                <SubscriptionsLedger offerings={data.offerings} operatorName={data.operatorName} />
+                <SubscriptionsLedger
+                  offerings={data.offerings}
+                  operatorName={data.operatorName}
+                  companyUuid={company.uuid}
+                  companyRead={companyRead}
+                />
               </>
             )}
             <Section title="Investor Directory">
@@ -215,9 +289,23 @@ export default function OfferingPage() {
               <SwitchRow
                 label="Show this company to eligible investors"
                 checked={company.isOpenToInvestors ?? false}
-                disabled={!ready || !company.canIssueTokens}
+                disabled={!ready || !company.canIssueTokens || !companyRead.canAdmin}
                 onChange={(isOpen) => {
-                  if (ready && company.canIssueTokens) listing.mutate({ uuid: company.uuid, isOpen });
+                  if (ready && company.canIssueTokens && companyRead.canAdmin && !listingPending.current) {
+                    const uuid = company.uuid;
+                    const assertCurrent = companyRead.assertCurrent;
+                    const guard = () => {
+                      if (!mounted.current) throw createUserFriendlyError('This company action is closed.');
+                      assertCurrent(uuid);
+                    };
+                    listingPending.current = true;
+                    listing.mutate({
+                      uuid,
+                      isOpen,
+                      guard,
+                      config: { ...companyRead.requestConfig(uuid), ledovaSubmissionGuard: guard },
+                    });
+                  }
                 }}
               />
               {!company.canIssueTokens && (
@@ -264,7 +352,7 @@ export default function OfferingPage() {
           targetCompany={documentsEditor.company}
           company={company}
           companyRead={companyRead}
-          refresh={data.refresh}
+          data={data}
           onClose={() => setDocumentsEditor(null)}
         />
       )}

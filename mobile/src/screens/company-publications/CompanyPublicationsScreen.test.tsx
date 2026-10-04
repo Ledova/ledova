@@ -2,7 +2,8 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
-import { PUBLICATION_COPY } from '@ledova/shared';
+import { ApiClientProvider, PUBLICATION_COPY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
+import { companyDetail, companyPreferences, companyQueryClient } from '../../testSupport/companyAdministration';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
@@ -18,12 +19,6 @@ jest.mock('@ledova/shared', () => {
   const actual = jest.requireActual<typeof import('@ledova/shared')>('@ledova/shared');
   return {
     ...actual,
-    useUserPreferences: () => ({
-      userAccount: { role: mockRole },
-      isLoading: false,
-      isError: mockAccessError,
-      refetch: mockRetryAccess,
-    }),
     readEveryPage: (read: Parameters<typeof actual.readEveryPage>[0]) =>
       actual.readEveryPage((page) => {
         if (page > 1) {
@@ -87,7 +82,11 @@ function deferred<T>() {
   return { promise, resolve };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 beforeEach(() => {
   resetFiles();
@@ -96,15 +95,21 @@ beforeEach(() => {
   mockBetweenPages = undefined;
   rows = [statement];
   pages = async () => listed(rows);
-  company = async () => ({ data: { uuid: 'company-one', name: 'Synthetic Company' } });
+  company = async () => ({ data: companyDetail({ uuid: 'company-one' }) });
   document = async () => ({
     data: Uint8Array.from('%PDF', (character) => character.charCodeAt(0)).buffer,
     headers: { 'content-type': 'application/pdf; charset=binary' },
   });
-  client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  client = companyQueryClient();
   get.mockReset();
   get.mockImplementation(async (url, config) => {
-    if (url === '/api/v1/companies/') return listed([{ uuid: 'company-one' }]);
+    if (url === '/api/auth/verify/') return { data: { valid: true } };
+    if (url === '/api/user-preferences/') {
+      mockRetryAccess();
+      if (mockAccessError) throw new Error('Synthetic account read refusal');
+      return { data: companyPreferences(mockRole as Parameters<typeof companyPreferences>[0]) };
+    }
+    if (url === '/api/v1/companies/') return listed([companyDetail({ uuid: 'company-one' })]);
     if (url === COMPANY) return company();
     if (url === LIST) return pages((config?.params as { page?: number } | undefined)?.page ?? 1);
     if (url === FILE) return document();
@@ -257,7 +262,11 @@ it('distinguishes an owned company with no publications from a missing company',
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
   await cleanup();
   client.clear();
-  get.mockResolvedValue(listed([]));
+  client = companyQueryClient();
+  const originalRead = get.getMockImplementation()!;
+  get.mockImplementation((url, config) =>
+    url === '/api/v1/companies/' ? Promise.resolve(listed([])) : originalRead(url, config),
+  );
   const missing = await render(<CompanyPublicationsScreen />, { wrapper });
   expect(await missing.findByText('No company information available.')).toBeTruthy();
   expect(missing.queryByText("Nothing has been published to this company's members yet.")).toBeNull();
@@ -266,13 +275,19 @@ it('distinguishes an owned company with no publications from a missing company',
 it.each(['investor', 'company-error'])('refuses issuer reads and documents for %s access', async (mode) => {
   mockRole = mode === 'investor' ? 'investor' : 'company';
   mockAccessError = mode === 'company-error';
+  if (mockAccessError)
+    client
+      .getQueryCache()
+      .find({ queryKey: USER_PREFERENCES_QUERY_KEY })!
+      .setState({ status: 'error', error: new Error('Synthetic account read refusal') });
+  else client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('investor') });
   const view = await render(<CompanyPublicationsScreen />, { wrapper });
   expect(view.getByText('Verify your company access before opening Company.')).toBeTruthy();
   expect(get).not.toHaveBeenCalled();
   expect(view.queryByText(PUBLICATION_COPY.OPEN)).toBeNull();
   if (mockAccessError) {
     await fireEvent.press(view.getByText('Retry company access'));
-    expect(mockRetryAccess).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockRetryAccess).toHaveBeenCalledTimes(1));
   }
 });
 
@@ -288,7 +303,7 @@ it('hides stale records when the company refresh fails and rechecks that company
   await act(async () => pending.resolve(Promise.reject(new Error('Company unavailable'))));
   expect(await view.findByText('Company information could not be loaded. Try again before continuing.')).toBeTruthy();
   expect(view.queryByText(statement.title)).toBeNull();
-  company = async () => ({ data: { uuid: 'company-one', name: 'Synthetic Company' } });
+  company = async () => ({ data: companyDetail({ uuid: 'company-one' }) });
   await fireEvent.press(view.getByText('Retry company information'));
   expect(await view.findByText(statement.title)).toBeTruthy();
 });
@@ -378,7 +393,14 @@ it('uses the audited file endpoint, captured session, MIME filename and managed 
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(copy, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' }),
   );
-  expect(get).toHaveBeenCalledWith(FILE, { ledovaSessionEpoch: getSessionEpoch(), responseType: 'arraybuffer' });
+  expect(get).toHaveBeenCalledWith(
+    FILE,
+    expect.objectContaining({
+      ledovaSessionEpoch: getSessionEpoch(),
+      ledovaSubmissionGuard: expect.any(Function),
+      responseType: 'arraybuffer',
+    }),
+  );
   expect(files.get(copy)?.content).toBe('%PDF');
 });
 
@@ -436,6 +458,7 @@ it.each(['session', 'role', 'unmount'])(
     if (change === 'session') await act(async () => invalidateSessionScope());
     if (change === 'role') {
       mockRole = 'investor';
+      await act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('investor') }));
       await view.rerender(<CompanyPublicationsScreen />);
     }
     if (change === 'unmount') await view.unmount();

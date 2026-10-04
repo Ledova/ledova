@@ -39,7 +39,7 @@ from companies.models import (
 from companies.services.document_review import prepare_document_review, verify_document
 from documents.models import Document
 from offerings.models import Subscription, SubscriptionStatus
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.models import Country
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
@@ -174,14 +174,15 @@ def evidence_of(label):
 
 def authority_document(company, label, reviewer):
     content = evidence_of(label)
-    document = CompanyDocument.objects.create(
-        company=company,
-        document_type=DocumentType.OTHER,
-        name=f"Synthetic {label} board resolution",
-        file_size=len(content),
-        mime_type="application/pdf",
-    )
-    document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
+    with use_migrate():
+        document = CompanyDocument.objects.create(
+            company=company,
+            document_type=DocumentType.OTHER,
+            name=f"Synthetic {label} board resolution",
+            file_size=len(content),
+            mime_type="application/pdf",
+        )
+        document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
     _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
     return verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
 
@@ -429,14 +430,15 @@ def pack_company(label):
     members = {role: member_of(company, address) for role, address in addresses.items()}
     reviewer = pack_reviewer(label)
     document = authority_document(company, label, reviewer)
-    CompanyDocument.objects.create(
-        company=company,
-        document_type=DocumentType.CONSTITUTION,
-        name=f"Synthetic {label} constitution",
-        external_url=f"https://docs.example.test/{label}/constitution",
-        file_size=2048,
-        mime_type="application/pdf",
-    )
+    with use_migrate():
+        CompanyDocument.objects.create(
+            company=company,
+            document_type=DocumentType.CONSTITUTION,
+            name=f"Synthetic {label} constitution",
+            external_url=f"https://docs.example.test/{label}/constitution",
+            file_size=2048,
+            mime_type="application/pdf",
+        )
     registry = "0x" + sha256(label.encode())[:40]
     for role, expires_at in (("founder", None), ("holder", LAPSED_AT)):
         WhitelistApproval.objects.create(
@@ -1108,7 +1110,8 @@ class CompanyPackTest(ProducesPacks, TestCase):
         )
 
     def test_a_refused_request_records_nothing_and_says_why(self):
-        empty = Company.objects.create(owner=self.a.company.owner, name="Synthetic Empty Pty Ltd", acn="999999999")
+        with use_migrate():
+            empty = Company.objects.create(owner=self.a.company.owner, name="Synthetic Empty Pty Ltd", acn="999999999")
 
         for request, company, refusal in (
             ({}, empty, "This company has no share classes, so there is no register to put in a pack."),
@@ -1897,7 +1900,8 @@ class CompanyPackSnapshotTest(TransactionTestCase):
 
     def test_the_company_is_read_with_its_registers_and_not_taken_from_the_callers_copy(self):
         stale = Company.objects.get(pk=self.company.pk)
-        Company.objects.filter(pk=self.company.pk).update(name="Synthetic Renamed Pty Ltd")
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(name="Synthetic Renamed Pty Ltd")
 
         files = files_of(self.produce(stale))
 
@@ -1915,14 +1919,15 @@ class ScopedCompanyPackTest(RunsOnTheScopedConnection, APITransactionTestCase):
         with use_operator():
             member = member_of(self.company, wallet_of("Synthetic Scoped Pack Member", "6 Synthetic Street"))
             entered(self.opening.register, "issue", (member, 5))
-            document = CompanyDocument.objects.create(
-                company=self.company,
-                document_type=DocumentType.CONSTITUTION,
-                name="Synthetic scoped constitution",
-                file_size=len(b"Synthetic scoped constitution"),
-                mime_type="application/pdf",
-            )
-            document.file.save("constitution.pdf", ContentFile(b"Synthetic scoped constitution"), save=True)
+            with use_migrate():
+                document = CompanyDocument.objects.create(
+                    company=self.company,
+                    document_type=DocumentType.CONSTITUTION,
+                    name="Synthetic scoped constitution",
+                    file_size=len(b"Synthetic scoped constitution"),
+                    mime_type="application/pdf",
+                )
+                document.file.save("constitution.pdf", ContentFile(b"Synthetic scoped constitution"), save=True)
             staff = pack_staff("scoped-company-pack")
             self.client.force_login(staff)
 

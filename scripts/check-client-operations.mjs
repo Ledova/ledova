@@ -303,7 +303,7 @@ export function checkClientOperations(root, document) {
     if (
       !node ||
       path.relative(root, node.getSourceFile().fileName) !==
-        "mobile/src/screens/listing/DocumentEntry.tsx"
+        "mobile/src/screens/company/DocumentEntry.tsx"
     )
       return false;
     const components =
