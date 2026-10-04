@@ -3,9 +3,9 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { REQUIRED_DOCUMENTS, type Company } from '@ledova/shared';
+import { REQUIRED_DOCUMENTS, USER_PREFERENCES_QUERY_KEY, type Company } from '@ledova/shared';
 import ListingPage from '.';
-import { companyRecord, documentRecord, renderCompanyPage } from '../testSupport';
+import { companyRecord, companyPreferences, documentRecord, renderCompanyPage } from '../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -34,13 +34,17 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   api.get.mockImplementation(async (url: string) => {
     if (url === failed) throw new Error('Unavailable');
-    if (url === '/api/v1/companies/') return { data: { results: [{ uuid: company.uuid }] } };
+    if (url === '/api/v1/companies/') return { data: { results: [company] } };
     if (url === COMPANY) return { data: { ...company } };
     if (url === '/api/operator/') return { data: { name: 'Example Registry' } };
     throw new Error(`Unexpected request: ${url}`);
   });
-  api.post.mockResolvedValue({ data: {} });
-  api.delete.mockResolvedValue({});
+  api.post.mockImplementation(async (url, form) =>
+    url === DOCUMENTS
+      ? { data: { ...documentRecord('cert_inc', 'uploaded-document'), name: form.get('name') } }
+      : { data: {} },
+  );
+  api.delete.mockResolvedValue({ status: 204 });
 });
 afterEach(() => {
   cleanup();
@@ -99,9 +103,18 @@ it('requires every required type before sending submission and refreshes the res
   });
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   fireEvent.click(submit);
-  await waitFor(() => expect(api.post).toHaveBeenCalledWith(COMPANY + 'submit/', { confirm: true }));
+  await waitFor(() =>
+    expect(api.post).toHaveBeenCalledWith(
+      COMPANY + 'submit/',
+      { confirm: true },
+      expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+    ),
+  );
   expect(await screen.findByText(/waiting for Example Registry/)).toBeTruthy();
-  expect(invalidate.mock.calls).toEqual([[{ queryKey: ['company'] }], [{ queryKey: ['companies'] }]]);
+  expect(invalidate.mock.calls).toEqual([
+    [{ queryKey: expect.arrayContaining(['company', company.uuid]) }],
+    [{ queryKey: expect.arrayContaining(['companies']) }],
+  ]);
   expect(screen.queryByRole('button', { name: 'Submit application' })).toBeNull();
 });
 
@@ -150,7 +163,11 @@ it('retains review evidence, recorded dates and a failed response for retry', as
   expect((screen.getByLabelText('Response to the operator') as HTMLTextAreaElement).value).toBe(
     '  Replaced the extract  ',
   );
-  expect(api.post).toHaveBeenCalledWith(COMPANY + 'resubmit/', { response: 'Replaced the extract' });
+  expect(api.post).toHaveBeenCalledWith(
+    COMPANY + 'resubmit/',
+    { response: 'Replaced the extract' },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Resubmit application' }));
   await waitFor(() =>
     expect((screen.getByLabelText('Response to the operator') as HTMLTextAreaElement).value).toBe(''),
@@ -224,7 +241,9 @@ it('keeps an in-flight upload open through Escape and outside clicks and avoids 
   expect(within(dialog).getByText('incorporation.pdf')).toBeTruthy();
   fireEvent.click(within(dialog).getByRole('button', { name: 'Loading...' }));
   expect(api.post).toHaveBeenCalledTimes(1);
-  await act(async () => resolveUpload({ data: {} }));
+  await act(async () =>
+    resolveUpload({ data: { ...documentRecord('cert_inc', 'uploaded-document'), name: 'incorporation.pdf' } }),
+  );
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
 
@@ -252,6 +271,7 @@ it('shows the latest action refusal instead of an older submission failure', asy
   fireEvent.click(await screen.findByRole('button', { name: 'Submit application' }));
   expect(await screen.findByText('Submission was refused.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Remove cert_inc.pdf' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Remove document' }));
   expect(await screen.findByText('Removal was refused.')).toBeTruthy();
   expect(screen.queryByText('Submission was refused.')).toBeNull();
 });
@@ -263,15 +283,19 @@ it('shows removal failure without losing the document, and refreshes after succe
   );
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Remove cert_inc.pdf' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Remove document' }));
   expect(await screen.findByText('Document is retained for review.')).toBeTruthy();
   expect(screen.getByText('cert_inc.pdf')).toBeTruthy();
   api.delete.mockImplementation(async () => {
     company.documents = [];
-    return {};
+    return { status: 204 };
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Remove cert_inc.pdf' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Remove document' }));
   await waitFor(() => expect(screen.queryByText('cert_inc.pdf')).toBeNull());
-  expect(api.delete).toHaveBeenCalledWith(DOCUMENTS + 'cert_inc/');
+  expect(api.delete).toHaveBeenCalledWith(
+    DOCUMENTS + 'cert_inc/',
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('retains a withdrawal reason after refusal and disables the draft when review begins', async () => {
@@ -314,4 +338,55 @@ it.each(['rejected', 'withdrawn'] as const)('shows a recorded %s outcome and rea
       status === 'rejected' ? 'Rejection reason: Missing authority.' : 'Withdrawal reason: Correcting our application.',
     ),
   ).toBeTruthy();
+});
+
+it('retires a held owner submission transport and ignores its delayed old-account outcome', async () => {
+  fullDocuments();
+  let release!: (value: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((done) => {
+        release = done;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Submit application' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const guard = api.post.mock.calls[0][2].ledovaSubmissionGuard;
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: 'profile-two', userAccount: { uuid: 'account-two', role: 'investor' } },
+    }),
+  );
+  expect(guard).toThrow();
+  await act(async () => release({ data: {} }));
+  expect(invalidate).not.toHaveBeenCalled();
+});
+
+it('requires a fresh owner role at the held application dispatch boundary', async () => {
+  company.status = 'submitted';
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Withdraw application' }));
+  const dialog = screen.getByRole('dialog');
+  let release!: (value: unknown) => void;
+  api.post.mockImplementation(
+    () =>
+      new Promise((done) => {
+        release = done;
+      }),
+  );
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Withdraw application' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const guard = api.post.mock.calls[0][2].ledovaSubmissionGuard;
+  const invalidate = vi.spyOn(client, 'invalidateQueries');
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { ...companyPreferences(), userAccount: { ...companyPreferences().userAccount!, role: 'investor' } },
+    }),
+  );
+  expect(guard).toThrow();
+  await act(async () => release({ data: {} }));
+  expect(invalidate).not.toHaveBeenCalled();
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import {
@@ -14,7 +14,7 @@ import { CustomModal } from '../../components/modal';
 import { Choice } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { useCompanyStyles } from '../company-register/styles';
-import { CompanyReadNotice, type CompanyRead } from './CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
 
 const FIELDS = [
   ['name', 'Company name'],
@@ -30,7 +30,7 @@ type Draft = Record<(typeof FIELDS)[number][0], string>;
 interface Props {
   target: Company;
   company: Company | null;
-  read: CompanyRead;
+  read: CompanyActionRead;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }
@@ -39,22 +39,53 @@ export function EditCompanyForm({ target, company, read, onClose, onSuccess }: P
   const styles = useCompanyStyles();
   const initial = Object.fromEntries(FIELDS.map(([key]) => [key, target[key] ?? ''])) as Draft;
   const [draft, setDraft] = useState(initial);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  const [authority] = useState(() => read.assertCurrent);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [guard] = useState(() => () => {
+    if (!mounted.current) throw new Error('This company draft is no longer open.');
+    authority(target.uuid);
+  });
+  const [config] = useState(() => ({ ...read.requestConfig(target.uuid), ledovaSubmissionGuard: guard }));
   const changes = Object.fromEntries(
     Object.entries(draft).filter(([key, value]) => value !== initial[key as keyof Draft]),
   ) as CompanyUpdate;
   const canChangeName = company?.status === 'draft' || company?.status === 'info_required';
   const valid =
     company?.uuid === target.uuid &&
+    read.canAdmin &&
     !read.error &&
     !read.isRefreshing &&
     Object.keys(changes).length > 0 &&
     (!changes.name || canChangeName) &&
     draft.name.trim() !== '';
   const save = useMutation({
-    mutationFn: () => updateCompany(apiClient, target.uuid, changes),
+    mutationFn: async (input: CompanyUpdate) => {
+      guard();
+      const response = await updateCompany(apiClient, target.uuid, input, config);
+      guard();
+      if (
+        response.data.uuid !== target.uuid ||
+        !Array.isArray(response.data.documents) ||
+        Object.entries(input).some(([key, value]) => response.data[key as keyof typeof response.data] !== value)
+      )
+        throw new Error('The company changes could not be confirmed. Refresh before retrying.');
+      return response;
+    },
     onSuccess: async () => {
+      guard();
       await onSuccess();
+      guard();
       onClose();
+    },
+    onSettled: () => {
+      pending.current = false;
     },
   });
   const close = () => {
@@ -68,7 +99,10 @@ export function EditCompanyForm({ target, company, read, onClose, onSuccess }: P
       busy={save.isPending}
       showFooter
       onConfirm={() => {
-        if (valid && !save.isPending) save.mutate();
+        if (valid && mounted.current && !pending.current) {
+          pending.current = true;
+          save.mutate(changes);
+        }
       }}
       confirmLabel="Save changes"
       confirmDisabled={!valid || save.isPending}
@@ -114,8 +148,23 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
   const [tokenType, setTokenType] = useState<TokenType>('ordinary');
   const [totalSupply, setTotalSupply] = useState('');
   const quantity = wholeShares(totalSupply);
+  const mounted = useRef(true);
+  const [authority] = useState(() => read.assertCurrent);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [guard] = useState(() => () => {
+    if (!mounted.current) throw new Error('This share class draft is no longer open.');
+    authority(target.uuid, 'owner');
+  });
+  const [config] = useState(() => ({ ...read.requestConfig(target.uuid, 'owner'), ledovaSubmissionGuard: guard }));
+  const pending = useRef(false);
   const valid =
     company?.uuid === target.uuid &&
+    read.ownerBusiness &&
     !read.error &&
     !read.isRefreshing &&
     name.trim() !== '' &&
@@ -123,17 +172,30 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
     quantity !== null &&
     quantity > 0n;
   const create = useMutation({
-    mutationFn: () =>
-      createCompanyToken(apiClient, {
-        company: target.uuid,
-        name: name.trim(),
-        symbol: symbol.trim(),
-        tokenType,
-        totalSupply,
-      }),
+    mutationFn: async () => {
+      guard();
+      const result = await createCompanyToken(
+        apiClient,
+        {
+          company: target.uuid,
+          name: name.trim(),
+          symbol: symbol.trim(),
+          tokenType,
+          totalSupply,
+        },
+        config,
+      );
+      guard();
+      return result;
+    },
     onSuccess: async () => {
+      guard();
       await onSuccess();
+      guard();
       onClose();
+    },
+    onSettled: () => {
+      pending.current = false;
     },
   });
   const close = () => {
@@ -147,7 +209,10 @@ export function CreateClassForm({ target, company, read, onClose, onSuccess }: P
       busy={create.isPending}
       showFooter
       onConfirm={() => {
-        if (valid && !create.isPending) create.mutate();
+        if (valid && mounted.current && !pending.current) {
+          pending.current = true;
+          create.mutate();
+        }
       }}
       confirmLabel="Create share class"
       confirmDisabled={!valid || create.isPending}

@@ -164,9 +164,9 @@ export function InvitationForm({
         </View>
       ))}
       <Text style={styles.muted}>
-        At least one permission is required. Manage company team is offered only while you have current personal
-        administration for this company and the selected source may delegate it. The server rechecks current authority
-        before each effect.
+        At least one permission is required. Manage company information and team is offered only while you have current
+        personal administration for this company and the selected source may delegate it. The server rechecks current
+        authority before each effect.
       </Text>
       <InvitationDateField
         label="Acceptance deadline"

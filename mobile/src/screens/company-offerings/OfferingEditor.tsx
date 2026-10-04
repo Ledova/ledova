@@ -1,21 +1,15 @@
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
-import {
-  apiErrorSentence,
-  createOffering,
-  updateOffering,
-  useOfferingUnderEdit,
-  type Company,
-  type OfferingInput,
-} from '@ledova/shared';
+import { apiErrorSentence, createOffering, updateOffering, type Company, type OfferingInput } from '@ledova/shared';
 import { CustomModal } from '../../components/modal';
-import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { OfferingForm } from './OfferingForm';
 import { OfferingReadNotice } from './OfferingReadNotice';
-import type { useOfferings } from './useOfferings';
+import { useOwnedOffering, type useOfferings } from './useOfferings';
 
 export function OfferingEditor({
   uuid,
@@ -28,12 +22,29 @@ export function OfferingEditor({
   uuid?: string;
   targetCompany: string;
   company: Company | null;
-  companyRead: CompanyRead;
+  companyRead: CompanyActionRead;
   data: ReturnType<typeof useOfferings>;
   onClose: () => void;
 }) {
   const styles = useCompanyStyles();
-  const detail = useOfferingUnderEdit(uuid);
+  const detail = useOwnedOffering(companyRead, uuid);
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+  const [authority] = useState(() => companyRead.assertCurrent);
+  const [guard] = useState(() => () => {
+    if (!mounted.current) throw new Error('This offering draft is no longer open.');
+    authority(targetCompany, 'owner');
+  });
+  const [config] = useState(() => ({
+    ...companyRead.requestConfig(targetCompany, 'owner'),
+    ledovaSubmissionGuard: guard,
+  }));
   const belongs = company?.uuid === targetCompany;
   const editable =
     !uuid || (detail.data?.canBeEdited && data.tokens.some((token) => token.uuid === detail.data?.tokenUuid));
@@ -48,18 +59,25 @@ export function OfferingEditor({
   const request = useMutation({
     mutationFn: async ({ input, epoch }: { input: OfferingInput; epoch: number }) => {
       assertSessionEpoch(epoch);
-      const config = { ledovaSessionEpoch: epoch };
+      guard();
+      const requestConfig = { ...config, ledovaSessionEpoch: epoch };
       const response = await (uuid
-        ? updateOffering(apiClient, uuid, input, config)
-        : createOffering(apiClient, input, config));
+        ? updateOffering(apiClient, uuid, input, requestConfig)
+        : createOffering(apiClient, input, requestConfig));
       assertSessionEpoch(epoch);
+      guard();
       return response;
     },
     onSuccess: async (_, { epoch }) => {
       assertSessionEpoch(epoch);
+      guard();
       await data.refresh();
       assertSessionEpoch(epoch);
+      guard();
       onClose();
+    },
+    onSettled: () => {
+      pending.current = false;
     },
   });
   const close = () => {
@@ -103,7 +121,10 @@ export function OfferingEditor({
             operatorName={data.operatorName}
             editing={uuid ? detail.data : undefined}
             onSubmit={(input) => {
-              if (!blocked && !request.isPending) request.mutate({ input, epoch: getSessionEpoch() });
+              if (!blocked && mounted.current && !pending.current) {
+                pending.current = true;
+                request.mutate({ input, epoch: getSessionEpoch() });
+              }
             }}
             onClose={close}
           />

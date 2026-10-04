@@ -1,29 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { getCompanies, getCompany } from '@ledova/shared';
+import { useCompanySelection } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 import { useCompanyAccess } from '../screens/company-register/useCompanyRegister';
 
-export function useCompanyProfile() {
+export function useCompanyProfile({ ownedOnly = false }: { ownedOnly?: boolean } = {}) {
   const access = useCompanyAccess();
-  const companies = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: access.allowed,
-  });
-  const companyUuid = companies.data?.data.results[0]?.uuid;
-  const detail = useQuery({
-    queryKey: ['company', companyUuid],
-    queryFn: () => getCompany(apiClient, companyUuid!).then(({ data }) => data),
-    enabled: access.allowed && !!companyUuid && !companies.isError,
-  });
-  const refetch = () => Promise.all([companies.refetch(), ...(companyUuid ? [detail.refetch()] : [])]);
-  return {
-    access,
-    company: detail.data ?? null,
-    companyUuid,
-    isLoading: companies.isLoading || detail.isLoading,
-    isRefreshing: companies.isFetching || detail.isFetching,
-    error: companies.error || detail.error,
-    refetch,
-  };
+  const selection = useCompanySelection(apiClient, { ownedOnly, session: orderSubmissionSession });
+  return { ...selection, access };
 }

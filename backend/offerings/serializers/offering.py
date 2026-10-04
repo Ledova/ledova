@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from assets.models import Asset
-from companies.models import OFFER_DOCUMENT_TYPES, CompanyDocument
+from companies.models import OFFER_DOCUMENT_TYPES, Company, CompanyDocument
 from offerings.models import Offering
 from operators.settlement import settlement_assets
 from tokens.models import ShareToken
@@ -121,7 +121,9 @@ class OfferingWriteSerializer(serializers.ModelSerializer):
         user = getattr(self.context.get("request"), "user", None)
         fields["token"].queryset = ShareToken.objects.issued_by(user)
         fields["settlement_assets"].child_relation.queryset = settlement_assets()
-        fields["documents"].child_relation.queryset = CompanyDocument.objects.all()
+        fields["documents"].child_relation.queryset = CompanyDocument.objects.filter(
+            company__in=Company.objects.administrable_by(user)
+        )
         return fields
 
     def _value(self, attrs, name):
@@ -170,7 +172,10 @@ class OfferingDocumentsSerializer(serializers.Serializer):
 
     def get_fields(self):
         fields = super().get_fields()
-        fields["documents"].child_relation.queryset = CompanyDocument.objects.all()
+        user = getattr(self.context.get("request"), "user", None)
+        fields["documents"].child_relation.queryset = CompanyDocument.objects.filter(
+            company__in=Company.objects.administrable_by(user)
+        )
         return fields
 
     def validate_documents(self, documents):

@@ -355,7 +355,10 @@ function OwnTeam({
                 )}
               </>
             ) : (
-              <p>Current personal Manage company team authority is required to read or change other appointments.</p>
+              <p>
+                Current personal Manage company information and team authority is required to read or change other
+                appointments.
+              </p>
             )}
           </>
         )}

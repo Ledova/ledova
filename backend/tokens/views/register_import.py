@@ -15,6 +15,11 @@ class RegisterImportViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterImport.objects.none()
     serializer_class = RegisterImportSerializer
     scoped_model = RegisterImport
+    operator_actions = frozenset({"list", "retrieve", "file"})
+    operator_actions_because = (
+        "Retained import reads require this request's exact current company owner independently of basic "
+        "company administration. The queryset explicitly binds every proposal and file to that owner."
+    )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 

@@ -141,14 +141,14 @@ register command is introduced here.
 
 The following authenticated operations supplement the initial-request workflow:
 
-| Operation | Scope and outcome |
-| --- | --- |
-| `GET /api/v1/company-authority/invitations/` | Paginated history of invitations issued by the caller |
-| `POST /api/v1/company-authority/invitations/` | Issue an invitation from the caller's selected current company appointment |
-| `POST /api/v1/company-authority/invitations/accept/` | Accept a code with the exact current declaration, creating one appointment |
+| Operation                                                         | Scope and outcome                                                                                            |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `GET /api/v1/company-authority/invitations/`                      | Paginated history of invitations issued by the caller                                                        |
+| `POST /api/v1/company-authority/invitations/`                     | Issue an invitation from the caller's selected current company appointment                                   |
+| `POST /api/v1/company-authority/invitations/accept/`              | Accept a code with the exact current declaration, creating one appointment                                   |
 | `GET /api/v1/company-authority/appointments/`                     | Paginated history of the caller's own initial, invited and legacy-owner appointments                         |
-| `GET /api/v1/company-authority/appointments/team/?company={uuid}` | Read that company's team as a current company administrator |
-| `POST /api/v1/company-authority/appointments/{uuid}/revoke/` | Permanently revoke one's own appointment or, as a current administrator, another appointment in that company |
+| `GET /api/v1/company-authority/appointments/team/?company={uuid}` | Read that company's team as a current company administrator                                                  |
+| `POST /api/v1/company-authority/appointments/{uuid}/revoke/`      | Permanently revoke one's own appointment or, as a current administrator, another appointment in that company |
 
 Issuance requires `company`, `inviter_appointment`, a caller-scoped
 `idempotency_key`, and personal `capabilities`. Optional
@@ -247,6 +247,80 @@ empty reversal preserves the earlier request and withdrawal lifecycle. Follow
 storage together.
 
 ## Accepted decision and remaining work
+
+### Basic company administration
+
+The [company information guide](company-information.md) describes the current
+client selection, edit and document workflow.
+
+Company list/detail/basic PATCH and company-document upload, private-file reads
+and deletion now require current personal `admin` for that exact company. Initial,
+invited and legacy appointments use the same live account, verified-email,
+configured identity, expiry and revocation checks. Personal capabilities remain
+six independent values; delegatable scope supplies no basic administration.
+Company responses expose `is_owner` and
+`administrative_access: {capabilities, draft_setup}`. Ownership is retained
+relationship metadata for still-unconverted workflows. PATCH returns the complete
+company detail, and document responses include their read-only company UUID.
+
+Before a root exists, the current active, email-verified owner can edit their draft
+and upload its documents. Any retained initial appointment sourced by an admitted
+request, or any legacy-owner source, permanently closes that setup exception.
+Revoked/expired roots, hidden roots and later owner changes cannot reopen it.
+A pending request leaves the draft editable so admission still checks its exact
+retained identity snapshots against the current company.
+
+Persistence locks company first, then the live actor, profile, configured identity
+row and appointments, followed by the affected document, wallet and attached
+offerings. Checks use the
+actual time after waiting. Raw app writes are closed, and operator guards reject
+missing/wrong principals, foreign company bindings, ineffective personal scope
+and protected-field changes. Existing company identifiers and status controls,
+private storage, offered-document retention and document verification invalidation
+remain. Document update/delete statements and command-scoped association removals
+lock the declared company before their rows. For `document_delete`, statement
+guards lock all offerings of the declared company before either document or
+association rows and recheck authority after that wait. The deletion service permits foreign-key
+attachment checks while holding the document, then locks offerings and rechecks
+retention and authority. Public discovery retains its original terms through a
+separate UUID helper without granting private resource access.
+A failed upload removes only its newly written object. File reads open the
+private handle under the checked boundary, then stream with `private, no-store`.
+
+Company API metadata reads admit the exact current active owner alongside current
+personal administration. An owner without that administration receives no contact
+name/email or private document inventory, and cannot edit company information or
+files. Raw Company access retains the separate administration/public policy.
+Existing owner-domain reads and writes remain independent of personal
+administration: `app_visible_company_ids()` and `app_manageable_company_ids()` keep
+their exact owner UUID bodies and become fixed-search-path definers only after
+migration 0020. Child, participant, subscriber, profile, account and wallet policy
+terms remain unchanged. Historical installation and reversal restore the original
+invoker attributes. Owner API selectors bind the actual request owner; offering
+and capital effects recheck the live owner and active actor under company-first
+locks. Private documents supplied to offering actions separately require current
+personal administration. Offering updates and document attachment lock the exact
+offering before that check, so expiry during the row wait prevents a new private
+document reference. Share-class creation accepts only its existing validated
+fields and rechecks its selected owner and active actor under the same lock order.
+Personal administration supplies no mandate for these retained owner workflows.
+Historical policy installation waits for required columns, and the new
+administration migration reverses before the earlier policy installer is removed.
+
+The existing provider projection, owner submission and staff lifecycle/content
+review callers retain their specific permissions through bounded commands. The
+status API requires current active staff; admin row review additionally requires
+the existing model change permission, and document review retains its own model
+permission and exact content confirmation. Staff
+status alone does not authorise basic metadata or document management. Generic
+admin add/delete and document metadata paths are closed. Activation, offering,
+register, finance, publication and worker authority conversions remain in their
+own dependent increments; this foundation supplies no company approval or provider
+result for them. Retained publication lists and files explicitly select the
+current company owner or named recipient on the operator connection, preserving
+paused-class reads independently of basic administration. Public file lookup
+excludes unrelated staff while the existing direct staff read service retains its
+audited access; ballots and summaries keep their app-role paths.
 
 The [owner's self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
 and [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)

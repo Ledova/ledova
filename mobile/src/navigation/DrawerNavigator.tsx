@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, ScrollView, Pressable } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   HouseIcon,
@@ -18,7 +18,7 @@ import {
   NewspaperIcon,
   ShieldCheckIcon,
 } from 'phosphor-react-native';
-import { signout, describeFailure, DESTINATIONS, getCompanies, useNotifications } from '@ledova/shared';
+import { signout, describeFailure, DESTINATIONS, useNotifications } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
@@ -61,7 +61,6 @@ const SHARE_MENU_ITEMS: MenuItem[] = [
 const COMPANY_MENU_ITEMS: MenuItem[] = [
   { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'Register' },
   { label: DESTINATIONS.companyOffering.title, icon: MegaphoneIcon, action: 'tab', target: 'CompanyOfferings' },
-  { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
 ];
 
 const INVEST_MENU_ITEMS: MenuItem[] = [
@@ -77,6 +76,7 @@ const INVEST_MENU_ITEMS: MenuItem[] = [
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
   { label: DESTINATIONS.companyTeam.title, icon: BuildingsIcon, action: 'tab', target: 'CompanyTeam' },
   { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
   { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
@@ -185,12 +185,6 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading } = useRole();
-  const companies = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: isCompany,
-  });
-  const companyName = companies.data?.data.results[0]?.name || DESTINATIONS.company.title;
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
   const insets = useSafeAreaInsets();
@@ -239,7 +233,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   );
 
   const groups = [
-    ...(isCompany ? [{ id: 'company', label: companyName, items: COMPANY_MENU_ITEMS }] : []),
+    ...(isCompany ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY_MENU_ITEMS }] : []),
     { id: 'shares', label: 'Your shares', items: SHARE_MENU_ITEMS },
     ...(isInvestor
       ? [

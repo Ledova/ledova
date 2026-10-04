@@ -93,7 +93,11 @@ class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection
             super().setUp()
 
     @contextmanager
-    def undone_before_the_next_case(self):
+    def undone_before_the_next_case(self, route=None, actor=None):
+        if route and route.method == "post" and route.path == "/api/v1/companies/{company}/documents/":
+            with self.committed_document_upload(actor):
+                yield
+            return
         with atomic(), transaction.atomic(using=OPERATOR_ALIAS):
             yield
             transaction.set_rollback(True, using=current_alias())

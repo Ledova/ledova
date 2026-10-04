@@ -9,7 +9,8 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from companies.constants import DOCUMENT_REVIEW_MAX_AGE
-from companies.models import Company, CompanyDocument
+from companies.models import CompanyDocument
+from companies.services.administration import company_operation, lock_company_actor
 from shared.db import APP_ALIAS, atomic, current_alias
 
 
@@ -107,9 +108,10 @@ def verify_document(*, document_id, reviewer, confirmation):
         raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
     if preview["document"] != str(document_id) or preview["reviewer"] != reviewer.pk:
         raise ValidationError("The review confirmation belongs to another document or reviewer.")
-    with atomic():
-        company_id = CompanyDocument.objects.values_list("company_id", flat=True).get(pk=document_id)
-        company = Company.objects.select_for_update(no_key=True).get(pk=company_id)
+    company_id = CompanyDocument.objects.values_list("company_id", flat=True).get(pk=document_id)
+    with company_operation(reviewer, company_id, "document_review"), atomic():
+        company, reviewer, _profile, _operator = lock_company_actor(reviewer, company_id)
+        reviewer = _reviewer(reviewer)
         document = CompanyDocument.objects.select_for_update().get(pk=document_id)
         if document.company_id != company.pk:
             raise ValidationError("The document changed after review began. Review the current file again.")

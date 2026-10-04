@@ -11,6 +11,8 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
+from companies.tests.test_document_file_access import admit_company_administrator
+from shared.db import use_migrate
 from users.models import UserProfile
 
 User = get_user_model()
@@ -21,24 +23,33 @@ class ApplicationLifecycleTest(APITestCase):
     def setUp(self):
         patch(TASK).start()
         self.addCleanup(patch.stopall)
-        self.owner = User.objects.create_user(email="owner@example.test", password="pw-12345678")
-        self.other = User.objects.create_user(email="other@example.test", password="pw-12345678")
-        self.staff = User.objects.create_user(email="staff@example.test", password="pw-12345678", is_staff=True)
-        self.company = Company.objects.create(owner=self.owner, name="Draft Pty Ltd", acn="123456780")
+        self.owner = User.objects.create_user(
+            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        self.other = User.objects.create_user(
+            email="other@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        self.staff = User.objects.create_user(
+            email="staff@example.test", password="pw-12345678", is_staff=True, is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Draft Pty Ltd", acn="123456780")
+        admit_company_administrator(self.company)
         patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)).start()
         self.url = f"/api/v1/companies/{self.company.uuid}/"
 
     def upload_required_documents(self, company=None):
         company = company or self.company
         for doc_type in LISTING_REQUIRED_DOCUMENTS:
-            CompanyDocument.objects.create(
-                company=company,
-                document_type=doc_type,
-                name=doc_type.label,
-                external_url="https://files.example.test/doc",
-                file_size=10,
-                mime_type="application/pdf",
-            )
+            with use_migrate():
+                CompanyDocument.objects.create(
+                    company=company,
+                    document_type=doc_type,
+                    name=doc_type.label,
+                    external_url="https://files.example.test/doc",
+                    file_size=10,
+                    mime_type="application/pdf",
+                )
 
     def set_status(self, new_status, reason="", expect=200):
         self.client.force_authenticate(self.staff)
@@ -198,7 +209,8 @@ class ApplicationLifecycleTest(APITestCase):
 
     def test_rejection_requires_a_reason(self):
         self.company.status = CompanyStatus.SUBMITTED
-        self.company.save(update_fields=["status"])
+        with use_migrate():
+            self.company.save(update_fields=["status"])
 
         response = self.set_status("rejected", expect=400)
         self.assertIn("reason", response.data)
@@ -217,7 +229,11 @@ class ApplicationLifecycleTest(APITestCase):
         self.assertEqual(self.company.status, CompanyStatus.WITHDRAWN)
         self.assertEqual(self.company.withdrawal_reason, "")
 
-        submitted = Company.objects.create(owner=self.owner, name="Second", acn="222222228", status="submitted")
+        with use_migrate():
+            submitted = Company.objects.create(owner=self.owner, name="Second", acn="222222228")
+        admit_company_administrator(submitted)
+        with use_migrate():
+            Company.objects.filter(pk=submitted.pk).update(status="submitted")
         response = self.client.post(
             f"/api/v1/companies/{submitted.uuid}/withdraw/", {"reason": "Changed plans"}, format="json"
         )
@@ -233,7 +249,8 @@ class ApplicationLifecycleTest(APITestCase):
         self.assertEqual(str(response.data["detail"]), "Cannot transition from 'Draft' to 'Submitted for Review'.")
 
         self.company.status = CompanyStatus.ACTIVE
-        self.company.save(update_fields=["status"])
+        with use_migrate():
+            self.company.save(update_fields=["status"])
         response = self.client.post(f"{self.url}withdraw/", {"reason": "too late"}, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertEqual(str(response.data["detail"]), "Cannot transition from 'Active' to 'Withdrawn'.")

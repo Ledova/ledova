@@ -27,6 +27,52 @@ proved on existing databases as well as fresh ones.
 
 ## Roles and principal
 
+Basic Company and CompanyDocument API selectors admit current personal `admin`
+appointments, including initial, invited and legacy sources, or a genuine
+unrooted draft owned by the current active, email-verified actor. The narrow
+principal-bound `app_company_administration_ids()` definer sees retained roots
+regardless of their app visibility and exposes only company UUIDs. A retained
+request-sourced initial appointment or legacy-owner source closes draft setup
+permanently; a pending authority request keeps the draft editable. Expiry,
+revocation, configured identity and current account checks determine appointment
+effectiveness. Delegatable scopes never count as personal authority.
+
+The Company read policy retains its existing public discovery and market terms;
+its customer list/detail selectors remain narrower. App writes to Company and
+CompanyDocument are denied, with exact actor-bound operator services and database
+guards for permitted effects. CompanyDocument responses name the company UUID,
+and private-file handles open while the effect-time resource checks are held.
+Published-offering document reads retain their existing offering/class eligibility
+service and retention boundary. No generic participant, subscriber, profile,
+account or wallet policy predicate is widened. Company contact name/email is a bounded response rather than
+new access to the owner's raw profile or financial records.
+Company API metadata reads admit the exact current active owner alongside current
+personal administration. An owner without that administration receives no contact
+name/email or private document inventory, and cannot edit company information or
+files. Raw Company access retains the separate administration/public policy.
+Existing owner-domain reads and writes remain independent of personal
+administration: `app_visible_company_ids()` and `app_manageable_company_ids()` keep
+their exact owner UUID bodies and become fixed-search-path definers only after
+migration 0020. Child, participant, subscriber, profile, account and wallet policy
+terms remain unchanged. Historical installation and reversal restore the original
+invoker attributes. Owner API selectors bind the actual request owner; offering
+and capital effects recheck the live owner and active actor under company-first
+locks. Private documents supplied to offering actions separately require current
+personal administration. Offering updates and document attachment lock the exact
+offering before that check, so expiry during the row wait prevents a new private
+document reference. Share-class creation accepts only its existing validated
+fields and rechecks its selected owner and active actor under the same lock order.
+Personal administration supplies no mandate for these retained owner workflows.
+Historical policy installation waits for required columns, and the new
+administration migration reverses before the earlier policy installer is removed.
+
+Publication list and file selectors separately bind the exact retained company
+owner or named recipient on the operator connection before returning frozen
+publication data. Pausing a class does not require a new basic-admin appointment
+to read its publications. Customer file lookup excludes unrelated staff; the
+existing direct staff read service and its audit remain available. Ballot and
+summary paths keep their app-role policies.
+
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
 are requester-private and company appointments appointee-private
 boundaries: the app reads its principal's own requests and the appointments that
@@ -67,11 +113,11 @@ legacy source/appointment inserts and source mutation, including through operato
 or migration connections. Existing initial or legacy roots remain consumed after
 expiry/revocation, and later owner changes supply no appointment.
 
-| Role | Purpose |
-| --- | --- |
-| App | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS` |
+| Role     | Purpose                                                                              |
+| -------- | ------------------------------------------------------------------------------------ |
+| App      | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS`             |
 | Operator | Admin, explicit administrative jobs and bounded privileged services; has `BYPASSRLS` |
-| Migrate | Owns the schema and applies migrations |
+| Migrate  | Owns the schema and applies migrations                                               |
 
 The app alias uses `CONN_MAX_AGE=0`. The principal is a session-level
 `app.user_id`, set after DRF authentication by `SetsThePrincipalOnTheConnection`
@@ -107,9 +153,13 @@ Important invariants:
   their company and offering identifiers after those parents become hidden. Their
   route reads stored names and currency without joining those parents; hidden
   drafts cannot be submitted, while reads and guarded withdrawals remain available.
-- The profile/account helpers are the explicitly enumerated `SECURITY DEFINER`
-  functions that define principal membership. Invoker helpers read leaf
-  policies, avoiding circular policy evaluation.
+- The profile/account helpers define principal membership. The bounded company
+  administration and public-discovery helpers return UUIDs through fixed-search-path
+  `SECURITY DEFINER` functions. Public discovery retains the existing active/open
+  and deployed/nonempty-address terms and requires a principal; it supplies no
+  private document, profile or basic administration access. These explicit
+  boundaries prevent circular company/token policy evaluation. Other invoker
+  helpers and participant scopes retain their existing terms.
 - Issuers may read subscriber accounts, wallets and profiles for their own
   offerings. Personal API surfaces still select the caller's own records.
   A company's nullable operator-wallet link does not expose its owner's profile

@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { apiErrorSentence, uploadCompanyDocument, type DocumentType } from '@ledova/shared';
+import { apiErrorSentence, createUserFriendlyError, uploadCompanyDocument, type DocumentType } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { CompanyReadNotice, type CompanyRead } from '../CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '../CompanyState';
 
 export function UploadModal({
   companyUuid,
@@ -19,18 +19,57 @@ export function UploadModal({
   documentType: DocumentType;
   label: string;
   canUpload: boolean;
-  read: CompanyRead;
+  read: CompanyActionRead;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const [assertCurrent] = useState(() => read.assertCurrent);
+  const guard = (uuid: string) => {
+    if (!mounted.current) throw createUserFriendlyError('This upload is closed. Reopen it before continuing.');
+    assertCurrent(uuid);
+  };
+  const [config] = useState(() => read.requestConfig(companyUuid));
   const valid = !!file && canUpload && !read.error && !read.isRefreshing;
   const upload = useMutation({
-    mutationFn: () => uploadCompanyDocument(apiClient, companyUuid, { documentType, name: file!.name, file: file! }),
+    mutationFn: async () => {
+      guard(companyUuid);
+      const result = await uploadCompanyDocument(
+        apiClient,
+        companyUuid,
+        { documentType, name: file!.name, file: file! },
+        { ...config, ledovaSubmissionGuard: () => guard(companyUuid) },
+      );
+      guard(companyUuid);
+      if (
+        !result.data.uuid ||
+        result.data.company !== companyUuid ||
+        result.data.documentType !== documentType ||
+        result.data.name !== file!.name ||
+        !result.data.fileUrl
+      )
+        throw createUserFriendlyError(
+          'The upload outcome could not be confirmed. Refresh the documents before retrying.',
+        );
+      return result;
+    },
     onSuccess: async () => {
+      guard(companyUuid);
       await onSuccess();
+      guard(companyUuid);
       onClose();
+    },
+    onSettled: () => {
+      pending.current = false;
     },
   });
   return (
@@ -42,7 +81,10 @@ export function UploadModal({
       confirmLoading={upload.isPending}
       confirmDisabled={!valid || upload.isPending}
       onConfirm={() => {
-        if (valid && !upload.isPending) upload.mutate();
+        if (valid && !pending.current) {
+          pending.current = true;
+          upload.mutate();
+        }
       }}
       onClose={() => {
         if (!upload.isPending) onClose();
@@ -52,12 +94,16 @@ export function UploadModal({
         <CompanyReadNotice read={read} />
         {!canUpload && !read.error && !read.isRefreshing && (
           <p role="alert" className="text-sm text-text-muted">
-            Documents can be changed only for the selected company&apos;s draft or information request.
+            Current company administration is required to upload documents for the selected company.
           </p>
         )}
         {upload.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(upload.error, 'The document could not be uploaded. Try again.')}
+            {apiErrorSentence(
+              upload.error,
+              'The document could not be uploaded. Try again.',
+              'The upload outcome could not be confirmed. Refresh the documents before retrying.',
+            )}
           </p>
         )}
         {file ? (

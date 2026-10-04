@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyDocument, DocumentType
 from offerings.models import Offering, OfferingExemption, OfferingStatus
+from shared.db import use_migrate
 from shared.tests.tenants import (
     make_associated,
     make_eligible,
@@ -49,14 +50,15 @@ def file_of(token, document):
 
 
 def offer_document(company, name="Information memorandum", document_type=DocumentType.PROSPECTUS, content=MEMORANDUM):
-    document = CompanyDocument.objects.create(
-        company=company,
-        document_type=document_type,
-        name=name,
-        file_size=len(content),
-        mime_type="application/pdf",
-    )
-    document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
+    with use_migrate():
+        document = CompanyDocument.objects.create(
+            company=company,
+            document_type=document_type,
+            name=name,
+            file_size=len(content),
+            mime_type="application/pdf",
+        )
+        document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
     return document
 
 
@@ -195,14 +197,15 @@ class OfferingDocumentsTest(APITestCase):
 
     def test_a_document_without_a_stored_file_is_not_offered(self):
         publish(self.issuer.offering)
-        linked = CompanyDocument.objects.create(
-            company=self.issuer.company,
-            document_type=DocumentType.BUSINESS_PLAN,
-            name="Linked plan",
-            external_url="https://docs.example.test/plan.pdf",
-            file_size=1,
-            mime_type="application/pdf",
-        )
+        with use_migrate():
+            linked = CompanyDocument.objects.create(
+                company=self.issuer.company,
+                document_type=DocumentType.BUSINESS_PLAN,
+                name="Linked plan",
+                external_url="https://docs.example.test/plan.pdf",
+                file_size=1,
+                mime_type="application/pdf",
+            )
         self.issuer.offering.documents.add(linked)
 
         self.assertEqual(self.listed(), [str(self.memorandum.uuid)])
@@ -223,16 +226,18 @@ class OfferingDocumentsTest(APITestCase):
             closes_at=timezone.now() - timedelta(days=60),
         )
         risks = offer_document(self.issuer.company, name="Risk disclosure", document_type=DocumentType.RISK_DISCLOSURE)
-        CompanyDocument.objects.filter(pk=risks.pk).update(created_at=timezone.now() + timedelta(minutes=5))
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=risks.pk).update(created_at=timezone.now() + timedelta(minutes=5))
         earlier.documents.add(self.memorandum, risks)
 
         self.assertEqual(self.listed(), [str(risks.uuid), str(self.memorandum.uuid)])
 
     def test_the_payload_describes_the_document_and_nothing_private(self):
         publish(self.issuer.offering)
-        CompanyDocument.objects.filter(pk=self.memorandum.pk).update(
-            notes="Internal note", rejection_reason="Old rejection", external_url="https://docs.example.test/im"
-        )
+        with use_migrate():
+            CompanyDocument.objects.filter(pk=self.memorandum.pk).update(
+                notes="Internal note", rejection_reason="Old rejection", external_url="https://docs.example.test/im"
+            )
 
         response = self.client.get(documents_of(self.token))
         [row] = response.json()
@@ -293,7 +298,8 @@ class OfferingDocumentsFollowTheDirectoryTest(APITestCase):
 
     def test_a_company_that_is_not_open_to_investors_shares_nothing(self):
         make_eligible(self.investor)
-        Company.objects.filter(pk=self.issuer.company.pk).update(is_open_to_investors=False)
+        with use_migrate():
+            Company.objects.filter(pk=self.issuer.company.pk).update(is_open_to_investors=False)
 
         self.assert_a_phantom(self.token)
 

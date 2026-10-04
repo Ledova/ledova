@@ -15,6 +15,11 @@ class RegisterCorrectionViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterCorrection.objects.none()
     serializer_class = RegisterCorrectionSerializer
     scoped_model = RegisterCorrection
+    operator_actions = frozenset({"list", "retrieve", "file"})
+    operator_actions_because = (
+        "Retained correction reads require this request's exact current company owner independently of "
+        "basic company administration. The queryset explicitly binds every proposal and file to that owner."
+    )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 

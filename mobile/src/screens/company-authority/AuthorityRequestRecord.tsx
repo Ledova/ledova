@@ -213,8 +213,8 @@ export function AuthorityRequestRecord({
               </>
             ) : (
               <Text style={styles.muted}>
-                Initial admission requires Manage company team in your own requested permissions. Submit a new request
-                with that permission to establish your appointment.
+                Initial admission requires Manage company information and team in your own requested permissions. Submit
+                a new request with that permission to establish your appointment.
               </Text>
             )}
             <Text style={styles.muted}>
