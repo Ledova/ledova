@@ -3,7 +3,7 @@ from unittest import skipUnless
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import ProgrammingError, connections
+from django.db import IntegrityError, connections
 from django.test import TestCase
 
 from companies.identity import company_identity
@@ -72,11 +72,25 @@ class RegistryHistoryIsOperatorOnlyTest(TestCase):
         self.assertEqual(list(CompanyRegistryCheck.objects.all()), [self.check])
 
     def test_an_owner_cannot_insert_update_or_delete_registry_evidence(self):
-        with self.as_app(self.owner):
-            with self.assertRaisesMessage(ProgrammingError, "row-level security"):
-                with atomic():
-                    CompanyRegistryCheck.objects.create(**self.fields)
-            self.assertEqual(CompanyRegistryCheck.objects.filter(pk=self.check.pk).update(status="passed"), 0)
+        with self.as_app(self.owner), connections[current_alias()].cursor() as cursor:
+            operations = (
+                ("insert", lambda: CompanyRegistryCheck.objects.create(**self.fields)),
+                ("update", lambda: CompanyRegistryCheck.objects.filter(pk=self.check.pk).update(status="passed")),
+                (
+                    "delete",
+                    lambda: cursor.execute(
+                        "DELETE FROM companies_companyregistrycheck WHERE uuid = %s", [self.check.pk]
+                    ),
+                ),
+            )
+            for name, operation in operations:
+                with self.subTest(operation=name):
+                    with self.assertRaisesMessage(
+                        IntegrityError, "Registry statements require their exact declared company and actor command"
+                    ) as raised:
+                        with atomic():
+                            operation()
+                    self.assertEqual(raised.exception.__cause__.sqlstate, "23514")
             self.assertEqual(CompanyRegistryCheck.objects.filter(pk=self.check.pk).delete()[0], 0)
         self.check.refresh_from_db()
         self.assertEqual(self.check.status, "pending")
