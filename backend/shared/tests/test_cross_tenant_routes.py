@@ -58,6 +58,7 @@ from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_openings import SETTINGS
 from users.models import UserProfile
 from users.models.investor_classification import InvestorClassification
+from users.tests.test_company_eligibility_requests import CompanyEligibilityCases
 
 
 def _classification_payload():
@@ -71,7 +72,8 @@ def _classification_payload():
 
 
 def _clear_open_classifications(tenant):
-    InvestorClassification.objects.filter(user_account=tenant.account).delete()
+    with use_migrate():
+        InvestorClassification.objects.filter(user_account=tenant.account).delete()
 
 
 SIGNATURE = "0x" + "ab" * 65
@@ -1715,4 +1717,74 @@ class OrderActionRouteMatrixTest(OrderActionRouteChecks, APITransactionTestCase)
 
 
 class ScopedOrderActionRouteMatrixTest(RunsOnTheScopedConnection, OrderActionRouteChecks, APITransactionTestCase):
+    pass
+
+
+ELIGIBILITY_ROUTES = (
+    Route("get", "/api/v1/company-eligibility/requests/{eligibility_request}/"),
+    Route("post", "/api/v1/company-eligibility/requests/{eligibility_request}/withdraw/"),
+    Route("get", "/api/v1/companies/{company}/eligibility-requests/{eligibility_request}/"),
+    Route("post", "/api/v1/companies/{company}/eligibility-requests/{eligibility_request}/decision-preview/"),
+    Route("post", "/api/v1/companies/{company}/eligibility-requests/{eligibility_request}/decide/"),
+    Route("post", "/api/v1/companies/{company}/eligibility-requests/{eligibility_request}/revoke/"),
+)
+
+
+class CompanyEligibilityRouteChecks(CompanyEligibilityCases, StubUploadDependencies):
+    def setUp(self):
+        super().setUp()
+        self.proposal, _ = self.created_request()
+
+    def request_eligibility_route(self, route, *, missing=False):
+        context = {
+            "company": str(self.company.pk),
+            "eligibility_request": str(uuid4() if missing else self.proposal.pk),
+        }
+        if route.method == "get":
+            return self.client.get(route.path.format_map(context))
+        body = {"idempotency_key": str(uuid4())}
+        if "/eligibility-requests/" in route.path:
+            body = {**body, **self.decision_terms(), "preview_digest": "a" * 64}
+        return self.client.post(route.path.format_map(context), body, format="json")
+
+    def test_every_retained_eligibility_detail_and_action_hides_foreign_and_missing_rows(self):
+        for staff, superuser in ((False, False), (True, False), (True, True)):
+            with use_migrate():
+                self.other.is_staff = staff
+                self.other.is_superuser = superuser
+                self.other.save(update_fields=["is_staff", "is_superuser"])
+            self.client.force_authenticate(self.other)
+            for route in ELIGIBILITY_ROUTES:
+                with self.subTest(staff=staff, superuser=superuser, path=route.path):
+                    foreign = self.request_eligibility_route(route)
+                    missing = self.request_eligibility_route(route, missing=True)
+                    self.assertEqual(foreign.status_code, 404, foreign.content)
+                    self.assertEqual(missing.status_code, 404, missing.content)
+                    self.assertEqual(foreign.json(), missing.json())
+        with use_operator():
+            self.proposal.refresh_from_db()
+            self.assertIsNone(getattr(self.proposal, "decision", None))
+            self.assertIsNone(getattr(self.proposal, "withdrawal", None))
+        self.client.force_authenticate(self.participant)
+        self.assertEqual(self.client.get(f"/api/v1/company-eligibility/requests/{self.proposal.pk}/").status_code, 200)
+
+    def test_every_eligibility_detail_and_action_refuses_anonymous_and_recovers_with_authority(self):
+        self.client.force_authenticate(None)
+        for route in ELIGIBILITY_ROUTES:
+            with self.subTest(path=route.path):
+                response = self.request_eligibility_route(route)
+                self.assertEqual(response.status_code, 401, response.content)
+        self.client.force_authenticate(self.approver)
+        response = self.decision_preview(self.proposal)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(response.json()["canDecide"])
+
+
+class CompanyEligibilityRouteMatrixTest(CompanyEligibilityRouteChecks, APITransactionTestCase):
+    pass
+
+
+class ScopedCompanyEligibilityRouteMatrixTest(
+    RunsOnTheScopedConnection, CompanyEligibilityRouteChecks, APITransactionTestCase
+):
     pass

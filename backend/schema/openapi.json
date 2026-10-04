@@ -2163,6 +2163,657 @@
         ],
         "type": "object"
       },
+      "CompanyEligibilityDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "requestDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "revocation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilityRevocation"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "digest",
+          "expiresAt",
+          "idempotencyKey",
+          "outcome",
+          "reason",
+          "requestDigest",
+          "revocation",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityDecisionCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "outcome",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityDecisionOutcomeEnum": {
+        "description": "* `accepted` - Accepted by the company\n* `refused` - Refused by the company",
+        "enum": [
+          "accepted",
+          "refused"
+        ],
+        "type": "string"
+      },
+      "CompanyEligibilityDecisionPreviewRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityDecisionPreviewResult": {
+        "properties": {
+          "canDecide": {
+            "type": "boolean"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "canDecide",
+          "previewDigest",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequest": {
+        "properties": {
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CategoryEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decision": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilityDecision"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceHash": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestOutcomeEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "sharedSummary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilitySharedSummary"
+              }
+            ],
+            "readOnly": true
+          },
+          "source": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "sourceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "userAccount": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "version": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "withdrawal": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawal"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "required": [
+          "category",
+          "company",
+          "decision",
+          "digest",
+          "evidenceHash",
+          "idempotencyKey",
+          "outcome",
+          "requestedExpiresAt",
+          "sharedSummary",
+          "source",
+          "sourceFingerprint",
+          "submittedAt",
+          "submittedBy",
+          "userAccount",
+          "uuid",
+          "version",
+          "withdrawal"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequestCreateRequest": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "declarationAccepted": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "offering": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sharingAccepted": {
+            "type": "boolean"
+          },
+          "source": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "declarationAccepted",
+          "idempotencyKey",
+          "previewDigest",
+          "requestedExpiresAt",
+          "sharingAccepted",
+          "source"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequestOutcomeEnum": {
+        "description": "* `pending` - pending\n* `accepted` - accepted\n* `refused` - refused\n* `withdrawn` - withdrawn\n* `revoked` - revoked\n* `expired` - expired",
+        "enum": [
+          "pending",
+          "accepted",
+          "refused",
+          "withdrawn",
+          "revoked",
+          "expired"
+        ],
+        "type": "string"
+      },
+      "CompanyEligibilityRequestPreviewRequest": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "offering": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "quantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedExpiresAt",
+          "source"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequestPreviewResult": {
+        "properties": {
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "evidenceHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "sharedSummary": {
+            "$ref": "#/components/schemas/CompanyEligibilitySharedSummary"
+          },
+          "sourceFingerprint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canSubmit",
+          "evidenceHash",
+          "previewDigest",
+          "sharedSummary",
+          "sourceFingerprint",
+          "unmetRequirements",
+          "version"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequestWithdrawal": {
+        "properties": {
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "withdrawnAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "withdrawnBy": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "digest",
+          "idempotencyKey",
+          "uuid",
+          "withdrawnAt",
+          "withdrawnBy"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRequestWithdrawalCreateRequest": {
+        "properties": {
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRevocation": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "revokedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "digest",
+          "idempotencyKey",
+          "reason",
+          "revokedAt",
+          "revokedBy",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilityRevocationCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "idempotencyKey",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "CompanyEligibilitySharedSummary": {
+        "properties": {
+          "amountAud": {
+            "format": "decimal",
+            "type": "string"
+          },
+          "associatedCompany": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryEnum"
+          },
+          "certificateIssuedAt": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "certifierBody": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CertifierBodyEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              }
+            ]
+          },
+          "certifierMembershipNumber": {
+            "type": "string"
+          },
+          "certifierName": {
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "declarationText": {
+            "type": "string"
+          },
+          "offering": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "offeringTerms": {},
+          "offeringTermsDigest": {
+            "type": "string"
+          },
+          "priceCurrency": {
+            "type": "string"
+          },
+          "pricePerShare": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,16}(?:\\.\\d{0,2})?$",
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "requestedExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userAccount": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "company",
+          "declarationText",
+          "requestedExpiresAt",
+          "source",
+          "submittedAt",
+          "userAccount"
+        ],
+        "type": "object"
+      },
       "CompanyList": {
         "properties": {
           "acn": {
@@ -6337,6 +6988,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/CompanyAuthorityRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedCompanyEligibilityRequestList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyEligibilityRequest"
             },
             "type": "array"
           }
@@ -16342,6 +17024,325 @@
         ]
       }
     },
+    "/api/v1/companies/{company_uuid}/eligibility-requests/": {
+      "get": {
+        "operationId": "api_v1_companies_eligibility_requests_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyEligibilityRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_companies_eligibility_requests_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_companies_eligibility_requests_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_companies_eligibility_requests_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewResult"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/revoke/": {
+      "post": {
+        "operationId": "api_v1_companies_eligibility_requests_revoke_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "company_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/companies/{uuid}/": {
       "get": {
         "operationId": "api_v1_companies_retrieve",
@@ -17174,6 +18175,264 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyAuthorityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-eligibility/requests/": {
+      "get": {
+        "operationId": "api_v1_company_eligibility_requests_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyEligibilityRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_company_eligibility_requests_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-eligibility/requests/preview/": {
+      "post": {
+        "operationId": "api_v1_company_eligibility_requests_preview_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewResult"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-eligibility/requests/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_company_eligibility_requests_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-eligibility/requests/{uuid}/withdraw/": {
+      "post": {
+        "operationId": "api_v1_company_eligibility_requests_withdraw_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
                 }
               }
             },

@@ -10,6 +10,8 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from shared.db import use_migrate
+from shared.tests.evidence_retention import installed_evidence_retention_policy
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from users.admin.investor_classification import InvestorClassificationAdmin
 from users.exceptions import InvalidClassificationTransitionException
@@ -44,18 +46,19 @@ class _EvidenceCase(StubUploadDependencies):
         return sorted(str(p.relative_to(self.root.name)) for p in Path(self.root.name).rglob("*") if p.is_file())
 
     def a_claim(self, status=InvestorClassificationStatus.SUBMITTED):
-        return InvestorClassification.objects.create(
-            user_account=self.account,
-            category="product_value",
-            status=status,
-            declaration_accepted=True,
-            declaration_text="Declared",
-            declared_basis="Holdings above the threshold.",
-            evidence_file=ContentFile(PDF, name="evidence.pdf"),
-            evidence_file_size=len(PDF),
-            evidence_mime_type="application/pdf",
-            submitted_at=timezone.now(),
-        )
+        with use_migrate():
+            return InvestorClassification.objects.create(
+                user_account=self.account,
+                category="product_value",
+                status=status,
+                declaration_accepted=True,
+                declaration_text="Declared",
+                declared_basis="Holdings above the threshold.",
+                evidence_file=ContentFile(PDF, name="evidence.pdf"),
+                evidence_file_size=len(PDF),
+                evidence_mime_type="application/pdf",
+                submitted_at=timezone.now(),
+            )
 
 
 class TheMemberWithdrawsRatherThanDeletesTest(_EvidenceCase, APITestCase):
@@ -72,6 +75,8 @@ class TheMemberWithdrawsRatherThanDeletesTest(_EvidenceCase, APITestCase):
         self.assertEqual(response.status_code, 204)
         claim.refresh_from_db()
         self.assertEqual(claim.status, InvestorClassificationStatus.WITHDRAWN)
+        self.assertEqual(claim.withdrawn_by_id, self.user.pk)
+        self.assertIsNone(claim.reviewed_by_id)
         self.assertEqual(InvestorClassification.objects.count(), 1)
         self.assertEqual(self.stored_files(), stored)
         self.assertTrue(claim.evidence_file)
@@ -139,22 +144,27 @@ class WithdrawnEvidenceStillHasARetentionClockTest(_EvidenceCase, TestCase):
     @override_settings(CLASSIFICATION_EVIDENCE_RETENTION_DAYS=30)
     def test_a_withdrawn_claim_is_purgeable_once_its_horizon_passes(self):
         claim = self.a_claim()
-        claim.withdraw()
+        claim.withdraw(withdrawn_by=self.user)
 
         self.assertIsNotNone(claim.evidence_horizon)
         self.assertTrue(claim.evidence_retained)
         self.assertNotIn(claim, InvestorClassification.objects.evidence_purgeable(timezone.now()))
 
-        past_horizon = timezone.now() + timedelta(days=31)
+        with use_migrate():
+            InvestorClassification.objects.filter(pk=claim.pk).update(reviewed_at=timezone.now() - timedelta(days=31))
+        claim.refresh_from_db()
 
-        self.assertIn(claim, InvestorClassification.objects.evidence_purgeable(past_horizon))
+        self.assertIn(claim, InvestorClassification.objects.evidence_purgeable(timezone.now()))
+        self.assertFalse(claim.evidence_retained)
 
     @override_settings(CLASSIFICATION_EVIDENCE_RETENTION_DAYS=30)
     def test_the_purge_removes_a_withdrawn_claims_evidence_and_keeps_the_row(self):
         claim = self.a_claim()
-        claim.withdraw()
-
-        result = purge_expired_evidence(timezone.now() + timedelta(days=31), 10)
+        claim.withdraw(withdrawn_by=self.user)
+        with use_migrate():
+            InvestorClassification.objects.filter(pk=claim.pk).update(reviewed_at=timezone.now() - timedelta(days=31))
+        with installed_evidence_retention_policy():
+            result = purge_expired_evidence(timezone.now(), 10)
 
         claim.refresh_from_db()
         self.assertEqual((result["purged"], result["failed"]), (1, 0))

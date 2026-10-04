@@ -16,6 +16,7 @@ MANAGEABLE_COMPANIES = "app_manageable_company_ids"
 PUBLIC_COMPANIES = "app_public_company_ids"
 ADMINISTRABLE_COMPANIES = "app_company_administration_ids"
 DISCOVERABLE_COMPANIES = "app_company_discovery_ids"
+ELIGIBILITY_COMPANIES = "app_company_eligibility_ids"
 OPEN_TO_INVESTORS = "status = 'active' AND is_open_to_investors"
 
 
@@ -66,6 +67,20 @@ HELPERS = {
                     AND (NOT COALESCE((SELECT issuer_kyc_required FROM operators_operator WHERE id = 1), false)
                         OR profile.is_id_verified)))
     """,
+    ELIGIBILITY_COMPANIES: f"""
+        SELECT DISTINCT appointment.company_id FROM companies_companyappointment appointment
+        JOIN authentication_customuser actor ON actor.id = appointment.appointee_id
+        JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
+        JOIN operators_operator configuration ON configuration.id = 1
+        WHERE actor.id = {PRINCIPAL} AND actor.is_active AND actor.is_email_verified
+            AND profile.user_id = actor.id
+            AND (appointment.capabilities @> '["prepare"]'::jsonb
+                OR appointment.capabilities @> '["approve"]'::jsonb)
+            AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
+            AND (NOT configuration.issuer_kyc_required OR profile.is_id_verified)
+            AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revoked
+                WHERE revoked.appointment_id = appointment.uuid)
+    """,
 }
 
 IDENTICAL_TODAY = (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
@@ -77,6 +92,7 @@ BYPASSES_THE_POLICIES = (
     DISCOVERABLE_COMPANIES,
     VISIBLE_COMPANIES,
     MANAGEABLE_COMPANIES,
+    ELIGIBILITY_COMPANIES,
 )
 
 OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
@@ -175,6 +191,25 @@ A_PARTY_TO_THE_SWAP = (
 
 
 POLICIES = {
+    "users_companyeligibilityrequest": (
+        f"{_owned('user_account_id')} OR {_company('company_id', ELIGIBILITY_COMPANIES)}",
+        "false",
+    ),
+    "users_companyeligibilitydecision": (
+        "EXISTS (SELECT 1 FROM users_companyeligibilityrequest request "
+        "WHERE request.uuid = users_companyeligibilitydecision.request_id)",
+        "false",
+    ),
+    "users_companyeligibilityrequestwithdrawal": (
+        "EXISTS (SELECT 1 FROM users_companyeligibilityrequest request "
+        "WHERE request.uuid = users_companyeligibilityrequestwithdrawal.request_id)",
+        "false",
+    ),
+    "users_companyeligibilityrevocation": (
+        "EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
+        "WHERE decision.uuid = users_companyeligibilityrevocation.decision_id)",
+        "false",
+    ),
     "companies_company": (
         f"uuid IN (SELECT {ADMINISTRABLE_COMPANIES}()) OR uuid IN (SELECT {DISCOVERABLE_COMPANIES}())",
         "false",
@@ -330,6 +365,17 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
 }
 
 READS_WIDER_THAN_OWNERSHIP = {
+    "Exact company eligibility preparation": (
+        "users/services/company_eligibility.py company_eligibility_requests and _request_context; "
+        "shared/db/policies.py app_company_eligibility_ids",
+        "The exact known active issuer or approved offering resolves without a company directory. The operator "
+        "validates only the actual participant's source and exact command. Current personal prepare or approve "
+        "appointments admit deliberately shared records through a UUID-only definer and immutable parent joins; "
+        "no source, identity, financial file or private document policy is expanded.",
+        "users/tests/test_company_eligibility_requests.py exercises genuine own submissions, exact company scope, "
+        "foreign identifiers and no staff/admin/delegation-only authority; "
+        "users/tests/test_company_eligibility_scoped.py proves actual role routing and raw private-source refusal.",
+    ),
     "Public company discovery": (
         "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
         "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
