@@ -304,7 +304,7 @@ export function CompanyRegistrationScreen() {
                 />
               }
               title="Company Details"
-              subtitle="Enter your company's basic information"
+              subtitle="Enter your company's basic information. Company information is provided by the company."
             />
 
             <View style={styles.formContainer}>

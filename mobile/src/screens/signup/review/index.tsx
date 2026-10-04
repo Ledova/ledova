@@ -306,6 +306,7 @@ export function ReviewScreen() {
               <View style={styles.cardContent}>
                 {company ? (
                   <View style={styles.infoList}>
+                    <Text style={styles.infoLabel}>Company information is provided by the company.</Text>
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Company:</Text>
                       <Text style={styles.infoValue}>{company.name}</Text>

@@ -113,6 +113,7 @@ export function SignupReview() {
           <Section title="Company Information">
             {company ? (
               <div className="space-y-4">
+                <p className="text-sm text-text-muted">Company information is provided by the company.</p>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">Company Name:</span>
                   <span className="text-sm text-text-primary font-medium">{company.name}</span>

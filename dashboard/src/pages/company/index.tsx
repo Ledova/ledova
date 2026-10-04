@@ -49,6 +49,7 @@ export default function CompanyPage() {
         ) : (
           <>
             <Section title={company.name}>
+              <p className="text-sm text-text-muted">Company information is provided by the company.</p>
               <Rows>
                 <Row label="Status">
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
