@@ -1,4 +1,7 @@
+import hashlib
+import secrets
 import tempfile
+from datetime import timedelta
 from importlib import import_module
 from unittest.mock import patch
 from uuid import uuid4
@@ -6,19 +9,18 @@ from uuid import uuid4
 from django.db import DatabaseError, connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
+from django.utils import timezone
 
 from companies.models import (
-    CompanyAppointment,
     CompanyAuthorityRequest,
     CompanyCapability,
 )
 from companies.services.authority import DECLARATION_VERSION, admit_authority_request
-from companies.services.authority_requests import submit_authority_request
-from companies.services.team import (
-    accept_team_invitation,
-    issue_team_invitation,
-    revoke_company_appointment,
+from companies.services.authority_requests import (
+    _requester_principal,
+    submit_authority_request,
 )
+from companies.services.team import accept_team_invitation
 from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_authority_requests import (
     STORAGES,
@@ -27,7 +29,7 @@ from companies.tests.test_authority_requests import (
 )
 from companies.tests.test_team_invitations import raw_team_appointment
 from operators.models import Operator
-from shared.db import use_operator
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
@@ -72,7 +74,9 @@ class CompanyTeamInvitationGuardMigrationTest(StubUploadDependencies, Transactio
         self.migrate(OLD)
 
     def migrate(self, target):
-        MigrationExecutor(connection).migrate([target])
+        executor = MigrationExecutor(connection)
+        executor.migrate([target])
+        self.apps = executor.loader.project_state([target]).apps
 
     def latest(self):
         executor = MigrationExecutor(connection)
@@ -163,15 +167,22 @@ class CompanyTeamInvitationGuardMigrationTest(StubUploadDependencies, Transactio
         self.assertFalse(set(before["migrations"]) - set(after["migrations"]))
 
     def issue(self, actor=None, source=None, capabilities=("prepare",), delegatable=("approve",)):
-        invitation, code, created = issue_team_invitation(
-            requester=actor or self.owner,
-            company_id=self.company.pk,
-            inviter_appointment_id=(source or self.initial).pk,
-            idempotency_key=uuid4(),
-            capabilities=list(capabilities),
-            delegatable_capabilities=list(delegatable),
-        )
-        self.assertTrue(created)
+        actor = actor or self.owner
+        code = secrets.token_urlsafe(32)
+        model = self.apps.get_model("companies", "CompanyTeamInvitation")
+        with use_operator(), _requester_principal(actor.pk), atomic():
+            invitation = model.objects.using(current_alias()).create(
+                company_id=self.company.pk,
+                company_name=self.company.name,
+                inviter_id=actor.pk,
+                inviter_appointment_id=(source or self.initial).pk,
+                idempotency_key=uuid4(),
+                capabilities=list(capabilities),
+                delegatable_capabilities=list(delegatable),
+                acceptance_deadline=timezone.now() + timedelta(days=7),
+                appointment_expires_at=None,
+                code_sha256=hashlib.sha256(code.encode()).hexdigest(),
+            )
         return invitation, code
 
     def old_admissions(self):
@@ -180,14 +191,19 @@ class CompanyTeamInvitationGuardMigrationTest(StubUploadDependencies, Transactio
             invitation=first, code=first_code, actor=self.invitee, profile=self.invitee_profile
         )
         with use_operator():
-            child = CompanyAppointment.objects.get(pk=child_id)
+            child = (
+                self.apps.get_model("companies", "CompanyAppointment").objects.using(current_alias()).get(pk=child_id)
+            )
         own, own_code = self.issue(actor=self.invitee, source=child, capabilities=("approve",), delegatable=())
         own_id = raw_team_appointment(invitation=own, code=own_code, actor=self.invitee, profile=self.invitee_profile)
         overlapping, overlapping_code = self.issue(capabilities=("finance",), delegatable=())
         overlapping_id = raw_team_appointment(
             invitation=overlapping, code=overlapping_code, actor=self.invitee, profile=self.invitee_profile
         )
-        revoke_company_appointment(requester=self.invitee, appointment_id=own_id)
+        with use_operator(), _requester_principal(self.invitee.pk), atomic():
+            self.apps.get_model("companies", "CompanyAppointmentRevocation").objects.using(current_alias()).create(
+                appointment_id=own_id, revoked_by_id=self.invitee.pk
+            )
         return own_code, own_id, overlapping_code, overlapping_id
 
     def test_populated_upgrade_retains_old_self_and_overlap_admissions_and_private_evidence(self):
@@ -196,6 +212,13 @@ class CompanyTeamInvitationGuardMigrationTest(StubUploadDependencies, Transactio
         self.migrate(NEW)
         upgraded = self.state()
         self.assert_only_invited_guard_changed(before, upgraded)
+        invitation, code = self.issue(capabilities=("apply",), delegatable=())
+        history = self.state()
+        with self.assertRaises(DatabaseError):
+            raw_team_appointment(invitation=invitation, code=code, actor=self.invitee, profile=self.invitee_profile)
+        self.assertEqual(self.state(), history)
+        self.latest()
+        latest = self.state()
         for code, identifier in ((own_code, own_id), (overlapping_code, overlapping_id)):
             retained = accept_team_invitation(
                 requester=self.invitee,
@@ -204,12 +227,7 @@ class CompanyTeamInvitationGuardMigrationTest(StubUploadDependencies, Transactio
                 accept_declaration=True,
             )
             self.assertEqual(retained.pk, identifier)
-        self.assertEqual(self.state(), upgraded)
-        invitation, code = self.issue(capabilities=("apply",), delegatable=())
-        history = self.state()
-        with self.assertRaises(DatabaseError):
-            raw_team_appointment(invitation=invitation, code=code, actor=self.invitee, profile=self.invitee_profile)
-        self.assertEqual(self.state(), history)
+        self.assertEqual(self.state(), latest)
 
     def test_populated_reversal_restores_exact_prior_schema_and_guard_and_can_reapply(self):
         self.old_admissions()
