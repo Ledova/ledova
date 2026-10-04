@@ -27,8 +27,10 @@ export const getCompanyTokens = (
 export const getCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid));
 
-export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate) =>
-  apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data);
+export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate, config?: AxiosRequestConfig) =>
+  config === undefined
+    ? apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data)
+    : apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data, config);
 
 export const deployCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.post<CompanyTokenActionResponse>(COMPANY_TOKEN_ENDPOINTS.DEPLOY(uuid));

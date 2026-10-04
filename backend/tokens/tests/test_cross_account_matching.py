@@ -16,7 +16,7 @@ from rest_framework.test import APITransactionTestCase
 from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
 from operators.models import Operator
-from shared.db import atomic, configured, current_alias, use_operator
+from shared.db import atomic, configured, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
@@ -41,7 +41,8 @@ class CrossAccountMatchingFixtures(SubmissionFixtures):
             self.buyer = make_tenant("matching-buyer", with_swap=False)
             make_eligible(self.tenant)
             make_eligible(self.buyer)
-            Company.objects.filter(pk=self.tenant.company.pk).update(status="active", is_open_to_investors=True)
+            with use_migrate():
+                Company.objects.filter(pk=self.tenant.company.pk).update(status="active", is_open_to_investors=True)
             self.buyer_wallet = Wallet.objects.create(
                 user_account=self.buyer.account,
                 address=COUNTERPARTY.address,

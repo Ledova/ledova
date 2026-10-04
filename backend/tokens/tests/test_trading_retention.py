@@ -7,7 +7,7 @@ from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.db import APP_ALIAS, acting_for, use_operator
+from shared.db import APP_ALIAS, acting_for, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import (
@@ -152,7 +152,7 @@ class TradingRetentionTest(APITransactionTestCase):
     def test_company_directory_and_compliance_states_keep_owned_records(self):
         for status, opened in (("active", False), ("warning", True), ("suspended", True)):
             with self.subTest(status=status, opened=opened):
-                with use_operator():
+                with use_migrate():
                     Company.objects.filter(pk=self.issuer.company.pk).update(status=status, is_open_to_investors=opened)
                 self.assertEqual(self.orders()["count"], 2)
                 self.assertEqual(self.row()["tokenSymbol"], self.original["tokenSymbol"])

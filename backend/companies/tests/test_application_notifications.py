@@ -16,6 +16,8 @@ from companies.models import (
 )
 from companies.services import APPLICANT_NOTIFICATIONS, transition_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
+from companies.tests.test_document_file_access import admit_company_administrator
+from shared.db import use_migrate
 from users.models import Notification
 from users.tasks.notifications import send_push_notification as run_task
 
@@ -71,29 +73,38 @@ SILENT = [
 
 def upload_required_documents(company):
     for doc_type in LISTING_REQUIRED_DOCUMENTS:
-        CompanyDocument.objects.create(
-            company=company,
-            document_type=doc_type,
-            name=doc_type.label,
-            external_url="https://files.example.test/doc",
-            file_size=10,
-            mime_type="application/pdf",
-        )
+        with use_migrate():
+            CompanyDocument.objects.create(
+                company=company,
+                document_type=doc_type,
+                name=doc_type.label,
+                external_url="https://files.example.test/doc",
+                file_size=10,
+                mime_type="application/pdf",
+            )
 
 
 class ApplicationNotificationProducerTest(TestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="owner@example.test", password="pw-12345678")
-        self.reviewer = User.objects.create_user(email="reviewer@example.test", is_staff=True)
-        self.bystander = User.objects.create_user(email="bystander@example.test", password="pw-12345678")
-        self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
+        self.owner = User.objects.create_user(
+            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        self.reviewer = User.objects.create_user(
+            email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
+        )
+        self.bystander = User.objects.create_user(
+            email="bystander@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
         patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)).start()
         self.task = patch(TASK).start()
         self.task.defer.side_effect = run_task
         self.addCleanup(patch.stopall)
 
     def _set_status(self, status):
-        Company.objects.filter(pk=self.company.pk).update(status=status)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
     def rows(self, user):
@@ -110,7 +121,11 @@ class ApplicationNotificationProducerTest(TestCase):
                 Notification.objects.all().delete()
 
                 self.company = transition_company(
-                    self.company, method, actor=self.reviewer, declaration=DECLARATION, **kwargs
+                    self.company,
+                    method,
+                    actor=self.owner if method in ("submit", "resubmit", "withdraw") else self.reviewer,
+                    declaration=DECLARATION,
+                    **kwargs,
                 )
 
                 self.task.defer.assert_called_once_with(
@@ -134,7 +149,11 @@ class ApplicationNotificationProducerTest(TestCase):
             with self.subTest(method=method):
                 self._set_status(start)
                 self.company = transition_company(
-                    self.company, method, actor=self.reviewer, declaration=DECLARATION, **kwargs
+                    self.company,
+                    method,
+                    actor=self.owner if method in ("submit", "resubmit", "withdraw") else self.reviewer,
+                    declaration=DECLARATION,
+                    **kwargs,
                 )
         self.task.defer.assert_not_called()
         self.assertFalse(Notification.objects.exists())
@@ -161,17 +180,26 @@ class ApplicationNotificationProducerTest(TestCase):
 class ApplicationNotificationEntryPointsTest(APITestCase):
 
     def setUp(self):
-        self.owner = User.objects.create_user(email="owner@example.test", password="pw-12345678")
-        self.reviewer = User.objects.create_user(email="reviewer@example.test", is_staff=True)
-        self.staff = User.objects.create_superuser(email="staff@example.test", password="pw-12345678")
-        self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
+        self.owner = User.objects.create_user(
+            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        self.reviewer = User.objects.create_user(
+            email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
+        )
+        self.staff = User.objects.create_superuser(
+            email="staff@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
+        admit_company_administrator(self.company)
         patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)).start()
         self.task = patch(TASK).start()
         self.task.defer.side_effect = run_task
         self.addCleanup(patch.stopall)
 
     def _set_status(self, status):
-        Company.objects.filter(pk=self.company.pk).update(status=status)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
     def _titles(self):
@@ -190,7 +218,8 @@ class ApplicationNotificationEntryPointsTest(APITestCase):
 
     def test_admin_individual_start_review_notifies_only_after_confirmation(self):
         self._set_status(CompanyStatus.SUBMITTED)
-        draft = Company.objects.create(owner=self.owner, name="Still draft", acn="333333333")
+        with use_migrate():
+            draft = Company.objects.create(owner=self.owner, name="Still draft", acn="333333333")
         self.client.force_login(self.staff)
         url = reverse("admin:companies_company_transition", args=[self.company.uuid, "start-review"])
         self.assertEqual(self.client.get(url).status_code, 200)
@@ -234,11 +263,16 @@ class ApplicationNotificationEntryPointsTest(APITestCase):
 class ApplicationNotificationJobRowTest(TestCase):
 
     def setUp(self):
-        self.owner = User.objects.create_user(email="owner@example.test", password="pw-12345678")
-        self.reviewer = User.objects.create_user(email="reviewer@example.test", is_staff=True)
-        self.company = Company.objects.create(
-            owner=self.owner, name="Acme Pty Ltd", acn="123456789", status=CompanyStatus.REVIEW
+        self.owner = User.objects.create_user(
+            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
         )
+        self.reviewer = User.objects.create_user(
+            email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
+        )
+        with use_migrate():
+            self.company = Company.objects.create(
+                owner=self.owner, name="Acme Pty Ltd", acn="123456789", status=CompanyStatus.REVIEW
+            )
 
     def job_rows(self):
         return ProcrastinateJob.objects.filter(task_name=run_task.name)

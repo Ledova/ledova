@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 from django import forms
+from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from companies.admin.document import OFFERED_DOCUMENT
@@ -180,7 +181,8 @@ class CompanyDocumentAdminKeepsOfferedDocumentsTest(TestCase):
         self.tenant.offering.documents.add(self.memorandum)
         self.loose = offer_document(self.tenant.company, name="Loose plan", document_type=DocumentType.BUSINESS_PLAN)
         publish(self.tenant.offering)
-        self.client.force_login(User.objects.create_superuser(email="kept-operator@example.test", password="pw-1234"))
+        self.staff = User.objects.create_superuser(email="kept-operator@example.test", password="pw-1234")
+        self.client.force_login(self.staff)
 
     def exists(self, document):
         return CompanyDocument.objects.filter(pk=document.pk).exists()
@@ -188,28 +190,29 @@ class CompanyDocumentAdminKeepsOfferedDocumentsTest(TestCase):
     def test_its_delete_page_refuses_an_offered_document(self):
         url = reverse("admin:companies_companydocument_delete", args=[self.memorandum.pk])
 
-        page = self.client.get(url)
-        self.client.post(url, {"post": "yes"})
-
-        self.assertContains(page, OFFERED_DOCUMENT.format(document=self.memorandum))
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 403)
+        request = RequestFactory().get(url)
+        request.user = self.staff
+        protected = admin.site._registry[CompanyDocument].get_deleted_objects([self.memorandum], request)[3]
+        self.assertIn(OFFERED_DOCUMENT.format(document=self.memorandum), protected)
         self.assertTrue(self.exists(self.memorandum))
 
     def test_the_bulk_delete_refuses_a_selection_holding_an_offered_document(self):
         url = reverse("admin:companies_companydocument_changelist")
         selection = {"action": "delete_selected", "_selected_action": [self.memorandum.pk, self.loose.pk]}
 
-        page = self.client.post(url, selection)
+        self.assertIsNone(self.client.get(url).context["action_form"])
+        self.client.post(url, selection)
         self.client.post(url, {**selection, "post": "yes"})
-
-        self.assertContains(page, OFFERED_DOCUMENT.format(document=self.memorandum))
         self.assertTrue(self.exists(self.memorandum))
         self.assertTrue(self.exists(self.loose))
 
-    def test_a_document_no_published_offering_carries_is_still_deleted(self):
+    def test_staff_cannot_generically_delete_an_unpublished_document(self):
         url = reverse("admin:companies_companydocument_delete", args=[self.loose.pk])
 
-        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 302)
-        self.assertFalse(self.exists(self.loose))
+        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 403)
+        self.assertTrue(self.exists(self.loose))
 
     def test_an_offered_document_keeps_its_company(self):
         url = reverse("admin:companies_companydocument_change", args=[self.memorandum.pk])
@@ -221,18 +224,19 @@ class CompanyDocumentAdminKeepsOfferedDocumentsTest(TestCase):
         page = self.client.get(url)
         payload = posted(page.context["adminform"].form)
         for inline in page.context["inline_admin_formsets"]:
+            for form in inline.formset.forms:
+                self.assertNotIn("DELETE", form.fields)
             payload.update(inline_payload(inline.formset, deleting=(document.pk,)))
         return self.client.post(url, payload)
 
     def test_the_company_page_refuses_to_delete_an_offered_document(self):
         response = self.company_page_deleting(self.memorandum)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, OFFERED_DOCUMENT.format(document=self.memorandum))
+        self.assertEqual(response.status_code, 302)
         self.assertTrue(self.exists(self.memorandum))
 
-    def test_the_company_page_still_deletes_a_document_no_published_offering_carries(self):
+    def test_the_company_page_cannot_delete_an_unpublished_document(self):
         response = self.company_page_deleting(self.loose)
 
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(self.exists(self.loose))
+        self.assertTrue(self.exists(self.loose))

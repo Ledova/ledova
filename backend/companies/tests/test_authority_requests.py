@@ -22,6 +22,7 @@ from companies.services.authority_requests import (
     submit_authority_request,
     withdraw_authority_request,
 )
+from companies.services.editing import update_company
 from shared.db import (
     atomic,
     current_alias,
@@ -29,6 +30,7 @@ from shared.db import (
     reset_principal,
     set_principal,
     use_app,
+    use_migrate,
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
@@ -51,7 +53,8 @@ def authority_fixture(label="authority", acn="123456789"):
         email=f"{label}@example.test", password="pw-12345678", is_active=True, is_email_verified=True
     )
     profile = UserProfile.objects.create(user=user, full_name=f"{label} representative")
-    company = Company.objects.create(owner=user, name=f"{label} Pty Ltd", acn=acn)
+    with use_migrate():
+        company = Company.objects.create(owner=user, name=f"{label} Pty Ltd", acn=acn)
     return user, profile, company
 
 
@@ -204,10 +207,10 @@ class AuthorityRequestCases:
         self.assertEqual(self.private_files(), [])
 
     def test_only_a_currently_owned_draft_company_accepts_a_request(self):
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="submitted")
         self.assertEqual(self.submit().status_code, 400)
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="draft", owner=self.other)
         self.assertEqual(self.submit().status_code, 404)
         self.assertEqual(self.private_files(), [])
@@ -294,7 +297,7 @@ class AuthorityRequestCases:
                 self.assertEqual(recorded.json()["status"], "withdrawn")
             for change in ({"status": "submitted"}, {"owner": self.other}, {"status": "active", "owner": self.other}):
                 with self.subTest(withdrawn=withdrawn, change=change):
-                    with use_operator():
+                    with use_migrate():
                         Company.objects.filter(pk=self.company.pk).update(**change)
                     with (
                         patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner,
@@ -307,7 +310,7 @@ class AuthorityRequestCases:
                     self.assertEqual(repeated.status_code, 200, repeated.content)
                     self.assertEqual(repeated.json(), recorded.json())
                     scanner.assert_not_called()
-                    with use_operator():
+                    with use_migrate():
                         self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
                         Company.objects.filter(pk=self.company.pk).update(owner=self.user, status="draft")
         self.assertEqual(len(self.private_files()), 1)
@@ -346,7 +349,7 @@ class AuthorityRequestCases:
     def test_company_identity_changes_still_conflict_after_ownership_is_lost(self):
         created = self.submit()
         self.assertEqual(created.status_code, 201, created.content)
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(owner=self.other, name="Changed by new owner Pty Ltd")
         with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
             refused = self.submit()
@@ -412,10 +415,10 @@ class AuthorityRequestCases:
             unavailable = self.submit(idempotency_key=str(uuid4()))
             self.assertEqual(unavailable.status_code, 503, unavailable.content)
             scanner.assert_called_once_with(PDF)
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="submitted")
         self.assertEqual(self.submit(idempotency_key=str(uuid4())).status_code, 400)
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="draft", owner=self.other)
         with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
             self.assertEqual(self.submit(idempotency_key=str(uuid4())).status_code, 404)
@@ -450,7 +453,7 @@ class AuthorityRequestCases:
 
     def test_changed_company_file_scope_and_expiry_conflict_under_one_key(self):
         self.assertEqual(self.submit().status_code, 201)
-        with use_operator():
+        with use_migrate():
             another = Company.objects.create(owner=self.user, name="Another Pty Ltd", acn="333444555")
         for change in (
             {"company": str(another.pk)},
@@ -474,13 +477,19 @@ class AuthorityRequestCases:
             with self.subTest(model=model.__name__):
                 with use_operator():
                     original = model.objects.values(*change).get(pk=pk)
-                    model.objects.filter(pk=pk).update(**change)
+                    if model is Company:
+                        update_company(self.company, change, actor=self.user)
+                    else:
+                        model.objects.filter(pk=pk).update(**change)
                 with patch("shared.uploads.scan_upload", side_effect=UploadUnavailable()) as scanner:
                     refused = self.submit()
                 self.assertEqual(refused.status_code, 409, refused.content)
                 scanner.assert_not_called()
                 with use_operator():
-                    model.objects.filter(pk=pk).update(**original)
+                    if model is Company:
+                        update_company(self.company, original, actor=self.user)
+                    else:
+                        model.objects.filter(pk=pk).update(**original)
         proposal = self.stored(created)
         self.assertEqual(proposal.company_identity_raw["name"], "authority Pty Ltd")
         self.assertEqual(proposal.person_identity_raw["email"], "authority@example.test")
@@ -498,13 +507,13 @@ class AuthorityRequestCases:
 
     def test_owned_history_filters_by_company_and_remains_after_company_ownership_changes(self):
         created = self.submit()
-        with use_operator():
+        with use_migrate():
             another = Company.objects.create(owner=self.user, name="History Pty Ltd", acn="333444555")
         second = self.submit(company=str(another.pk), idempotency_key=str(uuid4()))
         self.assertEqual(second.status_code, 201)
         listing = self.client.get(URL, {"company": str(self.company.pk)})
         self.assertEqual([row["uuid"] for row in listing.json()["results"]], [created.json()["uuid"]])
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(owner=self.other)
         self.assertEqual(self.client.get(created.json()["fileUrl"]).status_code, 200)
         self.client.force_authenticate(self.other)

@@ -12,6 +12,7 @@ from shared.db import (
     acting_for,
     current_alias,
     principal_of,
+    use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -28,13 +29,14 @@ class ScopedClassificationIssuerTest(RunsOnTheScopedConnection, StubUploadDepend
         with use_operator():
             self.user, self.account = make_investor("claimant")
             owner, _ = make_investor("unlisted-issuer")
-            self.company = Company.objects.create(
-                owner=owner,
-                name="Unlisted Active Issuer",
-                company_type=CompanyType.PROPRIETARY,
-                acn="555666777",
-                status=CompanyStatus.ACTIVE,
-            )
+            with use_migrate():
+                self.company = Company.objects.create(
+                    owner=owner,
+                    name="Unlisted Active Issuer",
+                    company_type=CompanyType.PROPRIETARY,
+                    acn="555666777",
+                    status=CompanyStatus.ACTIVE,
+                )
         self.client.force_authenticate(self.user)
         self.statements = []
 
@@ -83,14 +85,15 @@ class ScopedClassificationIssuerTest(RunsOnTheScopedConnection, StubUploadDepend
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
     def test_inactive_unknown_and_malformed_issuers_are_refused_before_an_active_issuer_succeeds(self):
-        with use_operator():
+        with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.DRAFT)
         for company in (self.company.pk, uuid4(), "not-a-uuid"):
             with self.subTest(company=company):
                 self.assertEqual(self.submit(company).status_code, 400)
         with use_operator():
             self.assertFalse(InvestorClassification.objects.filter(user_account=self.account).exists())
-            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
+            with use_migrate():
+                Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
         self.assertEqual(self.submit(self.company.pk).status_code, 201)
 
     def test_the_lookup_requires_an_authenticated_applicant_and_restores_their_context(self):

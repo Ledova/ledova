@@ -265,12 +265,13 @@ def _reader(user, publication, recipient):
 
 
 def read_publication(user, publication_id):
-    publication = Publication.objects.filter(pk=publication_id).first()
-    if publication is None:
-        raise NotFound(NO_PUBLICATION)
-    recipient = PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).first()
-    deliver_publication(user, publication, recipient, _reader(user, publication, recipient))
-    return publication, recipient
+    with use_operator():
+        publication = Publication.objects.filter(pk=publication_id).first()
+        if publication is None:
+            raise NotFound(NO_PUBLICATION)
+        recipient = PublicationRecipient.objects.filter(publication=publication, user_id=user.pk).first()
+        deliver_publication(user, publication, recipient, _reader(user, publication, recipient))
+        return publication, recipient
 
 
 def notify_the_roll(publication_id) -> int:

@@ -48,7 +48,7 @@ from companies.tests.test_authority_requests import (
     evidence,
 )
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
@@ -448,6 +448,7 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
             with use_operator():
                 get_user_model().objects.filter(pk=self.other.pk).update(is_staff=staff, is_superuser=superuser)
                 self.other.refresh_from_db()
+            with use_migrate():
                 Company.objects.filter(pk=self.company.pk).update(owner=self.other)
             self.client.force_authenticate(self.other)
             self.assertEqual(self.client.get(INVITATIONS).json()["results"], [])

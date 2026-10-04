@@ -15,7 +15,7 @@ from django.test import TestCase
 from rest_framework.exceptions import ValidationError
 
 from companies.models import Company
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_migrate
 from shared.db.policy_sql import grant_reachable_tables
 from tokens.exceptions import RegisterChangeConflict, RegisterIntegrityError
 from tokens.models import (
@@ -38,9 +38,10 @@ DAY = date(2026, 9, 20)
 
 def register_fixture():
     actor = get_user_model().objects.create_user(
-        email=f"register-{uuid4()}@example.test", is_staff=True, is_active=True
+        email=f"register-{uuid4()}@example.test", is_staff=True, is_active=True, is_email_verified=True
     )
-    company = Company.objects.create(owner=actor, name="Synthetic register company", acn=str(uuid4())[:8])
+    with use_migrate():
+        company = Company.objects.create(owner=actor, name="Synthetic register company", acn=str(uuid4())[:8])
     token = ShareToken.objects.create(company=company, name="Synthetic shares", symbol="REG", total_supply="1000")
     member = create_member(company_id=company.pk, member_id=uuid4())
     other = create_member(company_id=company.pk, member_id=uuid4())

@@ -4,10 +4,12 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyStatus, CompanyType, DocumentType
+from companies.tests.test_document_file_access import admit_company_administrator
 from offerings.models import Offering, OfferingStatus
 from offerings.serializers.offering import FOREIGN_DOCUMENT
 from offerings.services.offering import ALREADY_LIVE
 from offerings.tests.test_directory_documents import offer_document
+from shared.db import use_migrate
 from shared.tests.tenants import an_acn, make_tenant
 
 BASE = "/api/v1/offerings/"
@@ -32,7 +34,13 @@ class OfferingApiTest(APITestCase):
         self.addCleanup(patch.stopall)
         self.tenant = make_tenant("issuer")
         self.other = make_tenant("outsider")
-        Company.objects.filter(pk=self.tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+        with use_migrate():
+            Company.objects.filter(pk=self.tenant.company.pk).update(status=CompanyStatus.DRAFT)
+        self.tenant.company.refresh_from_db()
+        admit_company_administrator(self.tenant.company)
+        with use_migrate():
+            Company.objects.filter(pk=self.tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+        self.tenant.company.refresh_from_db()
         self.client.force_authenticate(self.tenant.user)
 
     def _detail(self, offering=None):
@@ -114,9 +122,13 @@ class OfferingApiTest(APITestCase):
 
     def test_an_offering_attaches_only_documents_of_the_company_that_issues_its_share_class(self):
         own = offer_document(self.tenant.company)
-        sibling = Company.objects.create(
-            owner=self.tenant.user, name="Sibling Pty Ltd", company_type=CompanyType.PROPRIETARY, acn=an_acn(9_000_001)
-        )
+        with use_migrate():
+            sibling = Company.objects.create(
+                owner=self.tenant.user,
+                name="Sibling Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=an_acn(9_000_001),
+            )
         stray = offer_document(sibling, name="Sibling memorandum", document_type=DocumentType.PROSPECTUS)
         payload = {"token": str(self.tenant.token.uuid), **PAYLOAD}
 

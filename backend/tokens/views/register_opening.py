@@ -17,6 +17,11 @@ class RegisterOpeningViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterOpening.objects.none()
     serializer_class = RegisterOpeningSerializer
     scoped_model = RegisterOpening
+    operator_actions = frozenset({"list", "retrieve", "file"})
+    operator_actions_because = (
+        "Retained opening reads require this request's exact current company owner independently of basic "
+        "company administration. The queryset explicitly binds every proposal and file to that owner."
+    )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 
@@ -41,6 +46,11 @@ class RegisterWalletLinkViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterWalletLink.objects.none()
     serializer_class = RegisterWalletLinkSerializer
     scoped_model = RegisterWalletLink
+    operator_actions = frozenset({"list", "retrieve", "file"})
+    operator_actions_because = (
+        "Retained wallet-link reads require this request's exact current company owner independently of "
+        "basic company administration. The queryset explicitly binds every proposal and file to that owner."
+    )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 

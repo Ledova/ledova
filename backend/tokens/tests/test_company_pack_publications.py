@@ -14,7 +14,7 @@ from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
-from shared.db import use_operator
+from shared.db import use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
@@ -93,14 +93,15 @@ def numbered(number, label, role, **flags):
 
 def an_authority(company, staff, width):
     content = pdf_bytes(width=width)
-    document = CompanyDocument.objects.create(
-        company=company,
-        document_type="other",
-        name="Synthetic board resolution",
-        file_size=len(content),
-        mime_type="application/pdf",
-    )
-    document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
+    with use_migrate():
+        document = CompanyDocument.objects.create(
+            company=company,
+            document_type="other",
+            name="Synthetic board resolution",
+            file_size=len(content),
+            mime_type="application/pdf",
+        )
+        document.file.save(f"{document.uuid}.pdf", ContentFile(content), save=True)
     _, confirmation = prepare_document_review(document_id=document.pk, reviewer=staff)
     return verify_document(document_id=document.pk, reviewer=staff, confirmation=confirmation)
 

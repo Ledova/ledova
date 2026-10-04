@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AUTH_ENDPOINTS, canOpen, COMPANY_ENDPOINTS, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
+import { AUTH_ENDPOINTS, canOpen, DESTINATIONS, landingFor, type AccountRole } from '@ledova/shared';
 import { MARKETING_URL } from '@utils/marketingUrl';
 
 import { Sidebar } from '.';
@@ -124,7 +124,7 @@ function menu() {
 const YOUR_SHARES = { label: 'Your shares', items: ['Holdings', 'Notices', 'Activity'] };
 const INVEST = { label: 'Invest', items: ['Directory', 'Applications', 'Market', 'Verification'] };
 const YOURS = { label: null, items: ['Wallets', 'Profile', 'Settings'] };
-const COMPANY = { label: 'Harbour Robotics Pty Ltd', items: ['Register', 'Offerings', 'Company'] };
+const COMPANY = { label: 'Company', items: ['Register', 'Offerings', 'Company'] };
 
 describe('the groups the sidebar shows', () => {
   beforeEach(() => {
@@ -139,20 +139,20 @@ describe('the groups the sidebar shows', () => {
   it("gives an investor Your shares, then Invest, then the account's own pages", () => {
     show('investor');
 
-    expect(menu()).toEqual([YOUR_SHARES, INVEST, YOURS]);
+    expect(menu()).toEqual([YOUR_SHARES, INVEST, { ...YOURS, items: ['Company', ...YOURS.items] }]);
   });
 
   it("puts a company's own group first, named after the company, and still gives it Your shares", async () => {
     show('company');
 
-    expect(await screen.findByText(COMPANY.label)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: COMPANY.label })).toBeTruthy();
     expect(menu()).toEqual([COMPANY, YOUR_SHARES, YOURS]);
   });
 
   it('gives an account with both roles the company group, Your shares and Invest', async () => {
     show('both');
 
-    expect(await screen.findByText(COMPANY.label)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: COMPANY.label })).toBeTruthy();
     expect(menu()).toEqual([COMPANY, YOUR_SHARES, INVEST, YOURS]);
   });
 
@@ -170,35 +170,14 @@ describe('the groups the sidebar shows', () => {
     expect(menu()[0]).toEqual({ label: 'Company', items: COMPANY.items });
   });
 
-  it.each([
-    ['no company', []],
-    ['a company with a blank name', [{ uuid: 'company', name: '' }]],
-  ])('names the company group Company when the list holds %s', async (_, results) => {
-    api.get.mockResolvedValue({ data: { results, count: results.length, next: null, previous: null } });
-    const client = show('company');
-
-    await waitFor(() => expect(client.getQueryState(['companies'])?.status).toBe('success'));
-
-    expect(menu()[0].label).toBe('Company');
-  });
-
-  it('asks for the company only for an account with a company role', async () => {
-    show('investor');
-    show('company');
-
-    expect(await screen.findByText(COMPANY.label)).toBeTruthy();
-    expect(api.get.mock.calls.filter(([url]) => url === COMPANY_ENDPOINTS.BASE)).toHaveLength(1);
-  });
-
-  it('shows a long company name in full, wrapping it rather than cutting it short', async () => {
-    const name = 'HARBOUR ROBOTICS AND AUTONOMOUS MARINE SYSTEMS HOLDINGS PTY LTD';
-    api.get.mockResolvedValue({ data: { results: [{ uuid: 'company', name }], count: 1, next: null, previous: null } });
-    show('company');
-
-    const label = await screen.findByText(name);
-    expect(label.classList.contains('truncate')).toBe(false);
-    expect(label.classList.contains('break-words')).toBe(true);
-  });
+  it.each(['investor', 'company', 'both'] as const)(
+    'offers basic company information to %s without guessing a first company',
+    (role) => {
+      show(role);
+      expect(screen.getByRole('button', { name: 'Company' })).toBeTruthy();
+      expect(api.get).not.toHaveBeenCalled();
+    },
+  );
 
   it("marks the current page's item, and only that one", () => {
     show('investor', DESTINATIONS.directory.path);

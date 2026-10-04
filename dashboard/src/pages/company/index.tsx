@@ -7,18 +7,24 @@ import { useCompany } from './hooks/useCompany';
 import { useTokensList } from './hooks/useTokens';
 import { CompanyReadNotice, CompanyStatusMark } from './CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
+import { CompanyDocuments } from './CompanyDocuments';
+import { CompanySelection } from './CompanySelection';
 
 export default function CompanyPage() {
   const data = useCompany();
+  return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
+}
+
+function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
   const { company } = data;
-  const classes = useTokensList(!data.error && company ? company.uuid : undefined);
+  const classes = useTokensList(data.ownerBusiness && !data.error && company ? company.uuid : undefined, data);
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
   const [creating, setCreating] = useState<Company | null>(null);
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['company'] }),
-      queryClient.invalidateQueries({ queryKey: ['companies'] }),
+      queryClient.invalidateQueries({ queryKey: data.companyKey, exact: true }),
+      queryClient.invalidateQueries({ queryKey: data.companiesKey, exact: true }),
       queryClient.invalidateQueries({ queryKey: ['tokens'] }),
     ]);
   const address = company
@@ -37,15 +43,17 @@ export default function CompanyPage() {
         loading={data.isLoading}
         actions={
           !data.error &&
+          data.canAdmin &&
           company && (
             <PageAction label="Edit company" onClick={() => setEditing(company)} disabled={data.isRefreshing} />
           )
         }
       >
+        <CompanySelection read={data} />
         {data.error ? (
           <CompanyReadNotice read={data} />
         ) : !company ? (
-          <p className="text-sm text-text-muted">No company information available.</p>
+          <p className="text-sm text-text-muted">Select a company with current administration or owner access.</p>
         ) : (
           <>
             <Section title={company.name}>
@@ -62,7 +70,7 @@ export default function CompanyPage() {
                 <Row label="Type">{company.companyTypeDisplay}</Row>
                 <Row label="ACN">{company.acn}</Row>
                 {company.abn && <Row label="ABN">{company.abn}</Row>}
-                {company.email && (
+                {data.canAdmin && company.email && (
                   <Row label="Email">
                     <span className="break-all">{company.email}</span>
                   </Row>
@@ -75,70 +83,92 @@ export default function CompanyPage() {
                 )}
               </Rows>
               <div className="divide-y divide-border-subtle">
-                <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
-                <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
+                {data.ownerBusiness && (
+                  <>
+                    <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
+                    <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
+                  </>
+                )}
                 <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
-                <LinkRow to={DESTINATIONS.companyPublications.path} label={DESTINATIONS.companyPublications.title} />
+                {data.ownerBusiness && (
+                  <LinkRow to={DESTINATIONS.companyPublications.path} label={DESTINATIONS.companyPublications.title} />
+                )}
               </div>
             </Section>
-            <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
-              {classes.isPending ? (
-                <p role="status" className="text-sm text-text-muted">
-                  Loading share classes…
-                </p>
-              ) : classes.isError ? (
-                <div role="alert" className="space-y-2 text-sm text-text-muted">
-                  <p>Share classes could not be loaded.</p>
-                  <PageAction
-                    label="Retry share classes"
-                    onClick={() => void classes.refetch()}
-                    disabled={classes.isFetching}
-                  />
-                </div>
-              ) : (classes.data ?? []).length === 0 ? (
-                <p className="text-sm text-text-muted">No share classes yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {classes.data!.map((token) => (
-                    <li key={token.uuid}>
-                      <LinkRow
-                        to={DESTINATIONS.companyClass.path.replace(':uuid', token.uuid)}
-                        label={token.name}
-                        aside={
-                          <Status
-                            tone={
-                              token.status === 'deployed' ? 'done' : token.status === 'deploying' ? 'moving' : 'waiting'
-                            }
-                          >
-                            {token.statusDisplay}
-                          </Status>
-                        }
-                      >
-                        <p className="text-text-muted">
-                          {token.symbol} · {token.tokenTypeDisplay}
-                        </p>
-                        <p className="break-all text-text-muted">
-                          {formatShareCount(token.totalSupply)} authorised shares
-                        </p>
-                      </LinkRow>
+            {data.ownerBusiness && (
+              <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
+                {classes.isPending ? (
+                  <p role="status" className="text-sm text-text-muted">
+                    Loading share classes…
+                  </p>
+                ) : classes.isError ? (
+                  <div role="alert" className="space-y-2 text-sm text-text-muted">
+                    <p>Share classes could not be loaded.</p>
+                    <PageAction
+                      label="Retry share classes"
+                      onClick={() => void classes.refetch()}
+                      disabled={classes.isFetching}
+                    />
+                  </div>
+                ) : (classes.data ?? []).length === 0 ? (
+                  <p className="text-sm text-text-muted">No share classes yet.</p>
+                ) : (
+                  <ul className="divide-y divide-border-subtle">
+                    {classes.data!.map((token) => (
+                      <li key={token.uuid}>
+                        <LinkRow
+                          to={DESTINATIONS.companyClass.path.replace(':uuid', token.uuid)}
+                          label={token.name}
+                          aside={
+                            <Status
+                              tone={
+                                token.status === 'deployed'
+                                  ? 'done'
+                                  : token.status === 'deploying'
+                                    ? 'moving'
+                                    : 'waiting'
+                              }
+                            >
+                              {token.statusDisplay}
+                            </Status>
+                          }
+                        >
+                          <p className="text-text-muted">
+                            {token.symbol} · {token.tokenTypeDisplay}
+                          </p>
+                          <p className="break-all text-text-muted">
+                            {formatShareCount(token.totalSupply)} authorised shares
+                          </p>
+                        </LinkRow>
+                      </li>
+                    ))}
+                    <li>
+                      <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title} />
                     </li>
-                  ))}
-                  <li>
-                    <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title} />
-                  </li>
-                </ul>
-              )}
-              <PageAction
-                label="Create share class"
-                onClick={() => setCreating(company)}
-                disabled={data.isRefreshing}
-              />
-            </Section>
+                  </ul>
+                )}
+                <PageAction
+                  label="Create share class"
+                  onClick={() => setCreating(company)}
+                  disabled={data.isRefreshing}
+                />
+              </Section>
+            )}
           </>
+        )}
+        {data.retainedCompany && (
+          <CompanyDocuments
+            key={`${data.scopeKey}/${data.retainedCompany.uuid}`}
+            company={data.retainedCompany}
+            read={data}
+            editable={data.canAdmin}
+            refresh={refresh}
+          />
         )}
       </Page>
       {editing && (
         <EditCompanyForm
+          key={`${data.scopeKey}/${editing.uuid}`}
           target={editing}
           company={company}
           read={data}
@@ -148,6 +178,7 @@ export default function CompanyPage() {
       )}
       {creating && (
         <CreateClassForm
+          key={`${data.scopeKey}/${creating.uuid}`}
           target={creating}
           company={company}
           read={data}

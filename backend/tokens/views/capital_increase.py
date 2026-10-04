@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from companies.services.administration import company_owner_operation
 from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import CapitalIncreaseFilter
 from tokens.models import CapitalIncreaseRequest, ShareToken
@@ -24,6 +25,11 @@ class CapitalIncreaseViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, Aut
     ordering_fields = ["created_at", "status", "additional_shares"]
 
     scoped_model = CapitalIncreaseRequest
+    operator_actions = frozenset({"create", "list", "submit"})
+    operator_actions_because = (
+        "Existing capital requests retain the exact current company's owner scope. The queryset explicitly "
+        "requires that request actor, and creation/submission recheck the same owner under the company lock."
+    )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -33,7 +39,9 @@ class CapitalIncreaseViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, Aut
         return CapitalIncreaseDetailSerializer
 
     def narrow(self, queryset):
-        return queryset.with_relations()
+        if not self.request.user.is_authenticated:
+            return queryset.none()
+        return queryset.filter(company__owner=self.request.user).with_relations()
 
     def filter_queryset(self, queryset):
         if self.action == "list":
@@ -49,7 +57,8 @@ class CapitalIncreaseViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, Aut
 
         serializer = self.get_serializer(data=request.data, context={**self.get_serializer_context(), "token": token})
         serializer.is_valid(raise_exception=True)
-        capital_increase = serializer.save(token=token)
+        with company_owner_operation(request.user, token.company_id):
+            capital_increase = serializer.save(token=token)
         return Response(CapitalIncreaseDetailSerializer(capital_increase).data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
@@ -61,7 +70,8 @@ class CapitalIncreaseViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, Aut
     @action(detail=True, methods=["post"])
     def submit(self, request, uuid=None):
         capital_increase = self.get_object()
-        submit_capital_increase(capital_increase, request.user)
+        with company_owner_operation(request.user, capital_increase.company_id):
+            submit_capital_increase(capital_increase, request.user)
         return Response(
             {
                 "message": "Capital increase request submitted for review.",

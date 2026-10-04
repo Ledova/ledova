@@ -15,6 +15,11 @@ class RegisterInstructionViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterInstruction.objects.none()
     serializer_class = RegisterInstructionSerializer
     scoped_model = RegisterInstruction
+    operator_actions = frozenset({"list", "retrieve", "file"})
+    operator_actions_because = (
+        "Retained instruction reads require this request's exact current company owner independently of "
+        "basic company administration. The queryset explicitly binds every proposal and file to that owner."
+    )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 

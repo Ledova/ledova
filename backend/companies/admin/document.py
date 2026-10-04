@@ -63,10 +63,25 @@ class CompanyDocumentAdmin(admin.ModelAdmin):
         return format_html('<a href="{}" target="_blank">Open document</a>', url)
 
     def get_readonly_fields(self, request, obj=None):
-        readonly = list(super().get_readonly_fields(request, obj))
-        if obj is not None and CompanyDocument.objects.filter(pk=obj.pk).offered().exists():
-            readonly.append("company")
-        return readonly
+        return [
+            *super().get_readonly_fields(request, obj),
+            "company",
+            "document_type",
+            "name",
+            "external_url",
+            "file_size",
+            "mime_type",
+            "valid_from",
+            "valid_until",
+            "notes",
+            "rejection_reason",
+        ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def get_deleted_objects(self, objs, request):
         deleted, counts, permissions, protected = super().get_deleted_objects(objs, request)
