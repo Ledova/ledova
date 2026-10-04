@@ -541,6 +541,49 @@ it('invalidates declaration agreement when the code changes and refuses a mismat
   expect(view.queryByText(/Appointment recorded for/)).toBeNull();
 });
 
+it('keeps acceptance acknowledgment historical after the accepted appointment is revoked and refreshed', async () => {
+  const original = post.getMockImplementation()!;
+  post.mockImplementation(async (url, input, config) => {
+    if (url === `${APPOINTMENTS}accepted-appointment/revoke/`) {
+      config?.ledovaSubmissionGuard?.();
+      const accepted = history.find((record) => record.uuid === 'accepted-appointment')!;
+      const revoked = {
+        ...accepted,
+        status: 'revoked' as const,
+        isEffective: false,
+        revokedAt: '2026-10-04T01:00:00Z',
+      };
+      history = history.map((record) => (record.uuid === revoked.uuid ? revoked : record));
+      return { data: revoked };
+    }
+    return original(url, input, config);
+  });
+  const view = await screen();
+  await fireEvent.changeText(view.getByLabelText('Invitation code'), code);
+  await fireEvent.press(view.getByRole('checkbox', { name: 'Accept authorisation declaration' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Accept invitation' }));
+  await view.findByText(/Appointment recorded for Synthetic Company B/);
+  await fireEvent.press(await view.findByRole('button', { name: 'Your appointment accepted-appointment' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke your appointment accepted-appointment' }));
+  await act(alertButtons()[1].onPress!);
+  await waitFor(() =>
+    expect(view.queryByRole('button', { name: 'Revoke your appointment accepted-appointment' })).toBeNull(),
+  );
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh' })).not.toBeDisabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh' })).not.toBeDisabled());
+  const record = within(view.getByRole('button', { name: 'Your appointment accepted-appointment' }));
+  expect(record.getByText(/revoked · Not current · Invitation/)).toBeTruthy();
+  expect(view.getByText(/Appointment recorded for Synthetic Company B/)).not.toHaveTextContent(
+    /\bactive\b|Current authority/,
+  );
+  expect(view.getByText(/Appointment recorded for Synthetic Company B/)).toHaveTextContent(/accepted-appointment/);
+  expect(post.mock.calls.map(([url]) => url)).toEqual([
+    `${INVITATIONS}accept/`,
+    `${APPOINTMENTS}accepted-appointment/revoke/`,
+  ]);
+});
+
 it('suppresses duplicate acceptance and retires its code and late receipt on an account change', async () => {
   const view = await screen();
   await fireEvent.changeText(view.getByLabelText('Invitation code'), code);

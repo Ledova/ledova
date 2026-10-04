@@ -129,8 +129,7 @@ export function AcceptInvitation({
       {receipt && (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.text}>
-            Appointment recorded for {receipt.companyName}: {receipt.status} ·{' '}
-            {receipt.isEffective ? 'Current authority' : 'Not current'}
+            Appointment recorded for {receipt.companyName}: {receipt.uuid}
           </Text>
           <Text style={styles.muted}>Permissions to exercise: {scopeLabels(receipt.capabilities) || 'None'}</Text>
           <Text style={styles.muted}>

@@ -427,6 +427,48 @@ it('requires fresh declaration agreement after editing an invitation code', asyn
   );
 });
 
+it('keeps acceptance acknowledgment historical after the accepted appointment is revoked and refreshed', async () => {
+  const accepted = appointment({ source: 'invitation', uuid: 'accepted-a' });
+  const revokedAccepted = {
+    ...accepted,
+    status: 'revoked' as const,
+    isEffective: false,
+    revokedAt: '2026-10-04T03:00:00Z',
+  };
+  api.post.mockImplementation(async (url: string) => {
+    if (url === `${invitationsUrl}accept/`) {
+      rows = [...rows, accepted];
+      return { data: accepted };
+    }
+    if (url === `${appointmentsUrl}${accepted.uuid}/revoke/`) {
+      rows = rows.map((record) => (record.uuid === accepted.uuid ? revokedAccepted : record));
+      return { data: revokedAccepted };
+    }
+    throw new Error(`Unexpected write ${url}`);
+  });
+  show();
+  await screen.findByRole('button', { name: 'Revoke appointment appointment-a' });
+  fireEvent.change(screen.getByLabelText('Invitation code'), { target: { value: code } });
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  await screen.findByText(/Appointment recorded for Harbour Synthetic Pty Ltd: accepted-a/);
+  fireEvent.click(await openRevoke(accepted.uuid));
+  await waitFor(() => expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[1].status).toBe('revoked'));
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh appointments' }));
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Refresh appointments' }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  const history = within(screen.getByText(accepted.uuid).closest('li')!);
+  expect(history.getByText('revoked')).toBeTruthy();
+  expect(history.getByText('Not current')).toBeTruthy();
+  const receipt = screen.getByText(/Appointment recorded for Harbour Synthetic Pty Ltd: accepted-a/);
+  expect(receipt.textContent).not.toMatch(/\bactive\b|\bcurrent\b/i);
+  expect(api.post.mock.calls.map(([url]) => url)).toEqual([
+    `${invitationsUrl}accept/`,
+    `${appointmentsUrl}${accepted.uuid}/revoke/`,
+  ]);
+});
+
 it('retains the code and declaration selection after configured account or identity refusal', async () => {
   api.post.mockRejectedValueOnce(new Error('Complete the configured identity check'));
   show();
