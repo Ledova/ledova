@@ -85,5 +85,6 @@ it('renders a separately fetched ABN after retrying the real review error screen
   companyA = () => Promise.resolve({ data: detailA });
   await fireEvent.press(view.getByText('Try Again'));
   await waitFor(() => expect(view.getByText(detailA.abn)).toBeTruthy());
+  expect(view.getByText('Company information is provided by the company.')).toBeTruthy();
   expect(view.queryByText('Detail unavailable')).toBeNull();
 });

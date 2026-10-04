@@ -59,6 +59,8 @@ afterEach(() => {
 it('shows company details, exact draft share classes and the class/application destinations', async () => {
   show();
   await screen.findByText(company.name);
+  expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
+  expect(screen.getByRole('link', { name: /Company team/ }).getAttribute('href')).toBe('/company/team');
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
   expect(await screen.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Ordinary shares' }).getAttribute('href')).toBe(

@@ -77,6 +77,7 @@ const INVEST_MENU_ITEMS: MenuItem[] = [
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.companyTeam.title, icon: BuildingsIcon, action: 'tab', target: 'CompanyTeam' },
   { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
   { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
   { label: 'Settings', icon: GearIcon, action: 'screen', target: 'Settings' },
@@ -200,6 +201,8 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       let params;
       if (item.target === 'Home') {
         params = { screen: 'Home', params: { screen: 'HomeMain' } };
+      } else if (item.target === 'CompanyTeam') {
+        params = { screen: 'Home', params: { screen: 'CompanyTeam' } };
       } else if (item.target === 'Directory') {
         params = { screen: 'Directory', params: { screen: 'DirectoryMain' } };
       } else if (item.target === 'Applications') {

@@ -56,11 +56,47 @@ flowchart LR
     revoke --> history
 ```
 
-Team invitations, acceptance, administrator team reads and revocation are
-available through the API described below. Their web and mobile screens and
-legacy-owner migration remain later increments of #862. Company activation,
-register decisions and payments follow their owning issues in the
+Team invitations, acceptance, appointment history, administrator team reads and
+revocation are available on web and mobile and through the API below. Legacy-owner
+migration remains a later increment of #862. Company activation, register decisions
+and payments follow their owning issues in the
 [dependency index](README.md#delivery-tracking).
+
+## Company team on web and mobile
+
+Open **Company team** from company details, web **Settings → Profile and security**
+or the mobile drawer. The settings/drawer entry is available to investor-only
+accounts too; a company tab is not required to accept an invitation or read your
+appointments.
+
+1. To invite someone, select the company and one of your current delegating
+   appointments. Select personal permissions and onward delegation separately,
+   within that appointment's recorded delegation scope. Offering administration
+   also requires a current personal administrator appointment for that company.
+   Optional appointment expiry and invitation deadline are explicit.
+2. Create the invitation and privately share its displayed one-time code. The
+   code stays in the open form and disappears when you leave or change account or
+   source. It is not available from history. An unchanged interrupted retry keeps
+   its idempotency key; a confirmed retry can return the retained invitation with
+   no retrievable code. Create another invitation if you did not retain the code.
+3. To accept, enter the code and agree to the displayed authorisation and company
+   responsibility declaration. Your own account, verified email and configured
+   identity checks apply. Editing the code clears agreement; failed acceptance
+   retains the input for a deliberate retry.
+4. Read your appointment's actual source, scope, expiry and current status. Read
+   invitations you issued and their recorded acceptance outcome. These histories
+   retain expired and revoked records. Current company administrators can also
+   read the selected company's bounded team name, email, scope and status.
+5. Revoke your own appointment or, as a current company administrator, a selected
+   team appointment. Confirm the permanent action in the web dialog or native
+   mobile alert. Cancelled, reused or stale confirmations cannot submit a new
+   effect; a failed or unconfirmed result requires fresh confirmation. An initial
+   appointment cannot be replaced through another bootstrap declaration.
+
+Refresh failures hide unavailable authority and team results. Account changes
+invalidate pending submissions and late receipts. Company details are attributed
+to the company; team access does not expose another person's private declaration,
+identity/financial evidence or bootstrap file.
 
 ## API and retained records
 
@@ -197,7 +233,8 @@ self-revocation implement neither disputed-access replacement nor a court-order
 processing route.
 
 Original #862 completion checks remain open for legacy-owner migration and the
-web/mobile invitation, acceptance and company team administration screens.
+remaining company authority boundaries; the team API and web/mobile screens are
+available.
 Later domain issues must convert their API/service/worker/RLS/trigger authority
 boundaries together. No new fraud or impersonation verification is added. Any
 identified legal duty on Ledova must be cited and raised with the owner before

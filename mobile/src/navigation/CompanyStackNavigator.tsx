@@ -6,6 +6,7 @@ import { CompanyScreen } from '../screens/company';
 import { CompanyPublicationsScreen } from '../screens/company-publications/CompanyPublicationsScreen';
 import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
 import { CompanyAuthorityScreen } from '../screens/company-authority/CompanyAuthorityScreen';
+import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
 import { useAppTheme } from '../contexts';
 import { getMainHeaderStyle } from './headers/MainHeader';
 import { MainHeader } from './headers';
@@ -16,6 +17,7 @@ export type CompanyStackParamList = {
   CompanyPublications: undefined;
   CompanyOfferings: undefined;
   CompanyAuthority: undefined;
+  CompanyTeam: undefined;
   TokenDetail: { uuid: string; name?: string };
 };
 
@@ -49,6 +51,11 @@ export function CompanyStackNavigator({
       <Stack.Screen
         name="CompanyAuthority"
         component={CompanyAuthorityScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="CompanyTeam"
+        component={CompanyTeamScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen

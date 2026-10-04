@@ -148,6 +148,9 @@ export function SettingsPage() {
           <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
             <p className="text-text-muted">View your personal information and identity check.</p>
           </LinkRow>
+          <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
+            <p className="text-text-muted">Accept a company invitation and read or manage your appointments.</p>
+          </LinkRow>
           <ActionRow
             description="Choose a new password for your account."
             label="Change password"

@@ -14,9 +14,9 @@ planned changes except phase 1: product-mode retirement is delivered by #861.
 The initial #862 increments provide [authority requests, self-declaration admission
 and self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured
-identity and ABR checks. The API also supports invitations, scoped team delegation,
-administrator team reads and retained revocation. Team web/mobile screens,
-legacy-owner migration and dependent register workflows remain to be implemented; submitting evidence alone
+identity and ABR checks. Both clients and the API support invitations, scoped team delegation,
+appointment history, administrator team reads and retained revocation. Legacy-owner
+migration and dependent register workflows remain to be implemented; submitting evidence alone
 grants no authority.
 
 The owner's [4 October 2026 self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)

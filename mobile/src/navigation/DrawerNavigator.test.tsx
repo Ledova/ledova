@@ -286,6 +286,21 @@ const companyList = (results: { uuid: string; name: string }[]) => ({
   data: { results, count: results.length, next: null, previous: null },
 });
 
+it('opens Company team through Home for an investor while the company work group is hidden', async () => {
+  const view = await render(
+    <QueryClientProvider client={client}>
+      <DrawerNavigator />
+    </QueryClientProvider>,
+  );
+  expect(view.queryByRole('button', { name: 'Register' })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Company team' }));
+  expect(mockNavigate).toHaveBeenCalledWith('MainApp', {
+    screen: 'Main',
+    params: { screen: 'Home', params: { screen: 'CompanyTeam' } },
+  });
+  expect(mockCompanies).not.toHaveBeenCalled();
+});
+
 function drawer() {
   return render(
     <QueryClientProvider client={client}>

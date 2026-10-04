@@ -111,6 +111,10 @@ export function SignupReview() {
 
         {isCompany ? (
           <Section title="Company Information">
+            <p className="text-sm text-text-muted">
+              Provided by the company. The company is responsible for its information, ASIC filings and legal
+              obligations.
+            </p>
             {company ? (
               <div className="space-y-4">
                 <p className="text-sm text-text-muted">Company information is provided by the company.</p>

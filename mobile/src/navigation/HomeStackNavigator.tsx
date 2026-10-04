@@ -1,11 +1,13 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/home';
+import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
 export type HomeStackParamList = {
   HomeMain: undefined;
+  CompanyTeam: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -34,6 +36,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
         options={() => ({
           title: '',
         })}
+      />
+      <Stack.Screen
+        name="CompanyTeam"
+        component={CompanyTeamScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>
   );
