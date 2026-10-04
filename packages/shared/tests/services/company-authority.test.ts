@@ -1,4 +1,10 @@
 import axios from 'axios';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+} from '../../src/constants/business/company-authority';
 import { getCompanies } from '../../src/services/companies';
 import {
   admitCompanyAuthorityRequest,
@@ -10,6 +16,18 @@ import {
 } from '../../src/services/company-authority';
 
 afterEach(() => jest.restoreAllMocks());
+
+it('shows the same declaration version and text that the server records on admission', () => {
+  const source = readFileSync(resolve(__dirname, '../../../../backend/companies/services/authority.py'), 'utf8');
+  const version = source.match(/^DECLARATION_VERSION = ("(?:\\.|[^"\\])*")$/m);
+  const declaration = source.match(/^DECLARATION_TEXT = \(\n((?: {4}"(?:\\.|[^"\\])*"\n)+)\)/m);
+  expect(version).not.toBeNull();
+  expect(declaration).not.toBeNull();
+  expect(JSON.parse(version![1]!)).toBe(COMPANY_AUTHORITY_DECLARATION_VERSION);
+  expect([...declaration![1]!.matchAll(/"(?:\\.|[^"\\])*"/g)].map(([literal]) => JSON.parse(literal)).join('')).toBe(
+    COMPANY_AUTHORITY_DECLARATION,
+  );
+});
 
 it('admits the exact retained request using only the accepted declaration version and preserves transport scope', async () => {
   const api = axios.create();

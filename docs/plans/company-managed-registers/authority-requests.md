@@ -37,9 +37,11 @@ evidence in this experimental implementation.
    not activate the company.
 7. Read the appointment's personal and delegatable capabilities, expiry and
    current status. Download the retained evidence from your request history.
-8. Withdraw an unwanted pending request. After admission, use appointment
-   revocation instead; its original declaration and evidence remain available.
-   Revocation is permanent for this appointment. It does not admit a replacement
+8. Withdraw an unwanted pending request. After admission, choose **Revoke
+   appointment** and review the permanent loss of this appointment's company
+   authority. Cancel to keep it, or confirm permanent revocation; its original
+   declaration and evidence remain available. Another initial self-declaration
+   cannot restore the appointment. Revocation does not admit a replacement
    representative or reopen initial admission.
 
 ```mermaid
