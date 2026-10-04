@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import {
   apiErrorSentence,
@@ -49,6 +49,7 @@ export function AuthorityRequestRecord({
   const ready = useRef(!blocked);
   const pending = useRef(false);
   const changePending = useRef(false);
+  const revocationConfirmation = useRef<symbol | null>(null);
   const appointment = request.appointment;
   const recordedAt =
     request.status === 'withdrawn' ? request.withdrawnAt : (appointment?.createdAt ?? request.createdAt);
@@ -121,6 +122,34 @@ export function AuthorityRequestRecord({
       changePending.current = false;
       if (current()) setChanging(null);
     }
+  };
+  const confirmRevocation = () => {
+    if (blocked || changePending.current || revocationConfirmation.current || !appointment) return;
+    if (appointment.status === 'revoked') return;
+    const epoch = getSessionEpoch();
+    const confirmation = Symbol();
+    revocationConfirmation.current = confirmation;
+    const cancel = () => {
+      if (revocationConfirmation.current === confirmation) revocationConfirmation.current = null;
+    };
+    Alert.alert(
+      'Revoke appointment permanently?',
+      `Permanently remove your appointment for ${request.companyIdentityRaw.name}? You will lose this appointment's company authority and cannot restore it by making another initial self-declaration. Its declaration and evidence remain retained.`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: cancel },
+        {
+          text: 'Permanently revoke',
+          style: 'destructive',
+          onPress: () => {
+            if (revocationConfirmation.current !== confirmation) return;
+            revocationConfirmation.current = null;
+            if (!mounted.current || !ready.current || epoch !== getSessionEpoch()) return;
+            void change('revoke');
+          },
+        },
+      ],
+      { cancelable: true, onDismiss: cancel },
+    );
   };
   return (
     <Disclosure
@@ -218,14 +247,17 @@ export function AuthorityRequestRecord({
             <Text style={styles.text}>{appointment.declarationText}</Text>
             <Text style={styles.muted}>
               This is your recorded self-declaration. Company information is provided by the company. An appointment
-              does not activate the company or approve any register action. Revocation retains its declaration and
-              evidence.
+              does not activate the company or approve any register action.
+            </Text>
+            <Text style={styles.muted}>
+              Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
+              another initial self-declaration. Its declaration and evidence remain retained.
             </Text>
             {appointment.status !== 'revoked' && (
               <Action
                 label={changing === 'revoke' ? 'Revoking…' : 'Revoke appointment'}
                 disabled={blocked || !!changing}
-                onPress={() => void change('revoke')}
+                onPress={confirmRevocation}
               />
             )}
           </View>

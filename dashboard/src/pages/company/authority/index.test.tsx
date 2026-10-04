@@ -497,6 +497,10 @@ it('requires explicit declaration acceptance, records exact appointment scope an
   expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  expect(api.post).toHaveBeenCalledTimes(1);
+  fireEvent.click(
+    within(await screen.findByRole('dialog')).getByRole('button', { name: 'Permanently revoke appointment' }),
+  );
   await screen.findByText('revoked');
   expect(screen.getByText('Not current')).toBeTruthy();
   expect(api.post).toHaveBeenNthCalledWith(
@@ -518,6 +522,71 @@ it('keeps non-administrator proposals pending with a clear initial admission req
   expect(screen.queryByRole('button', { name: /Establish appointment/ })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
+});
+
+it('explains permanent revocation and sends nothing when the confirmation is cancelled', async () => {
+  rows = [admitted()];
+  api.post.mockResolvedValue({ data: revoked() });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText(/cannot restore it by making another initial self-declaration/)).toBeTruthy();
+  expect(within(dialog).getByText(new RegExp(companyA.name))).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(api.post).not.toHaveBeenCalled();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
+  fireEvent.click(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  fireEvent.click(
+    within(await screen.findByRole('dialog')).getByRole('button', { name: 'Permanently revoke appointment' }),
+  );
+  await screen.findByText('revoked');
+  expect(api.post).toHaveBeenCalledOnce();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
+});
+
+it('refuses a confirmation when the signed-in account changes before its effect', async () => {
+  rows = [admitted()];
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const confirm = within(await screen.findByRole('dialog')).getByRole('button', {
+    name: 'Permanently revoke appointment',
+  });
+  rows = [];
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: ownerB });
+    fireEvent.click(confirm);
+  });
+  await screen.findByText('No authority requests recorded.');
+  expect(api.post).not.toHaveBeenCalled();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
+  expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
+});
+
+it('requires confirmation again after a failed revocation and records only its confirmed retry', async () => {
+  rows = [admitted()];
+  api.post
+    .mockRejectedValueOnce(new Error('Synthetic revocation interruption'))
+    .mockResolvedValueOnce({ data: revoked() });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  fireEvent.click(
+    within(await screen.findByRole('dialog')).getByRole('button', { name: 'Permanently revoke appointment' }),
+  );
+  await screen.findByRole('alert');
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(screen.getByText('active')).toBeTruthy();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
+  fireEvent.click(screen.getByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const dialog = await screen.findByRole('dialog');
+  expect(api.post).toHaveBeenCalledTimes(1);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Permanently revoke appointment' }));
+  await screen.findByText('revoked');
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post.mock.calls[1]).toEqual(api.post.mock.calls[0]);
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
 });
 
 it('distinguishes a retained active appointment from current company authority', async () => {
@@ -588,6 +657,10 @@ it.each([
   api.post.mockResolvedValueOnce({ data: receipt() });
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(
+    within(await screen.findByRole('dialog')).getByRole('button', { name: 'Permanently revoke appointment' }),
+  );
   expect((await screen.findByRole('alert')).textContent).toBe(
     'The request outcome could not be confirmed. Refresh your requests or retry.',
   );

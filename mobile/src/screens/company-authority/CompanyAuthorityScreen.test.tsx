@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -107,6 +108,7 @@ function deferred<T>(fallback: T) {
 }
 
 beforeEach(() => {
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   append = jest.spyOn(FormData.prototype, 'append');
   resetFiles();
   history = [];
@@ -147,12 +149,28 @@ afterEach(async () => {
   await cleanup();
   await act(() => pendingResponses.splice(0).forEach((settle) => settle()));
   client.clear();
+  jest.restoreAllMocks();
 });
 
 async function selectAndPick(view: Awaited<ReturnType<typeof render>>, company = 'Draft B') {
   await fireEvent.press(await view.findByRole('radio', { name: company }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose evidence' }));
   await view.findByRole('button', { name: 'Replace evidence' });
+}
+
+function revocationAlert() {
+  const call = jest.mocked(Alert.alert).mock.calls.at(-1)!;
+  expect(call[0]).toBe('Revoke appointment permanently?');
+  expect(call[1]).toContain('cannot restore it by making another initial self-declaration');
+  expect(call[1]).toContain(admitted.companyIdentityRaw.name);
+  return call;
+}
+
+async function confirmRevocation() {
+  const button = revocationAlert()[2]!.find((choice) => choice.text === 'Permanently revoke')!;
+  expect(button.style).toBe('destructive');
+  expect(button.onPress).toEqual(expect.any(Function));
+  await act(() => button.onPress!());
 }
 
 it('reads every owned-company page, requires explicit selection and submits separate permission scopes', async () => {
@@ -546,6 +564,8 @@ it('requires declaration acceptance, records the appointment and revokes while r
   expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  expect(post).toHaveBeenCalledTimes(1);
+  await confirmRevocation();
   await view.findByText('revoked');
   expect(view.getByText('Not current')).toBeTruthy();
   expect(post).toHaveBeenNthCalledWith(
@@ -572,6 +592,68 @@ it('keeps non-admin proposals pending and explains the initial admission require
   expect(view.queryByRole('button', { name: 'Establish appointment' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
   expect(post).not.toHaveBeenCalled();
+});
+
+it.each(['cancel', 'dismiss'])('sends no revocation after %s and permits a later confirmed action', async (outcome) => {
+  history = [admitted];
+  post.mockResolvedValue({ data: revoked });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  const alert = revocationAlert();
+  expect(post).not.toHaveBeenCalled();
+  const cancelledConfirm = alert[2]!.find((button) => button.text === 'Permanently revoke')!.onPress!;
+  if (outcome === 'cancel') await act(() => alert[2]!.find((button) => button.text === 'Cancel')!.onPress!());
+  else await act(() => alert[3]!.onDismiss!());
+  await act(() => cancelledConfirm());
+  expect(post).not.toHaveBeenCalled();
+  expect(view.getByText('active')).toBeTruthy();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([admitted]);
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  expect(Alert.alert).toHaveBeenCalledTimes(2);
+  await confirmRevocation();
+  await view.findByText('revoked');
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
+});
+
+it('refuses an open revocation confirmation after the authenticated session changes', async () => {
+  history = [admitted];
+  const originalEpoch = getSessionEpoch();
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  const confirm = revocationAlert()[2]!.find((button) => button.text === 'Permanently revoke')!.onPress!;
+  history = [];
+  await act(() => invalidateSessionScope());
+  await view.findByText('You have not submitted an authority request.');
+  await act(() => confirm());
+  expect(post).not.toHaveBeenCalled();
+  expect(view.queryByText('appointment-a')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', originalEpoch])).toEqual([admitted]);
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([]);
+});
+
+it('requires another confirmation after a failed revocation and retains the exact appointment until retry succeeds', async () => {
+  history = [admitted];
+  post
+    .mockRejectedValueOnce({ response: { data: { detail: 'Synthetic revocation interruption' } } })
+    .mockResolvedValueOnce({ data: revoked });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  await confirmRevocation();
+  await view.findByText('Synthetic revocation interruption');
+  expect(view.getByText('active')).toBeTruthy();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([admitted]);
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  expect(post).toHaveBeenCalledTimes(1);
+  await confirmRevocation();
+  await view.findByText('revoked');
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(post.mock.calls[1]).toEqual(post.mock.calls[0]);
+  expect(view.queryByText('Synthetic revocation interruption')).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
 });
 
 it('distinguishes a retained active appointment from current company authority', async () => {
@@ -629,6 +711,8 @@ it.each([
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
   await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  expect(post).not.toHaveBeenCalled();
+  await confirmRevocation();
   await view.findByText('The request outcome could not be confirmed. Retry the same request or refresh.');
   expect(view.getByText('active')).toBeTruthy();
   expect(view.queryByText('revoked')).toBeNull();

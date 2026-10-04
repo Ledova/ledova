@@ -9,6 +9,7 @@ import {
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { Row, Rows, Status } from '@components/Ledger';
+import { Modal } from '@components/Modal';
 
 function scopeLabels(values: CompanyCapability[]) {
   return (
@@ -38,6 +39,7 @@ export function AuthorityRequestRecord({
   onRevoke: () => void;
 }) {
   const [accepted, setAccepted] = useState(false);
+  const [confirmingRevocation, setConfirmingRevocation] = useState(false);
   const appointment = request.appointment;
   return (
     <li className="space-y-2 py-3">
@@ -122,15 +124,37 @@ export function AuthorityRequestRecord({
           <p className="text-sm text-text-primary">{appointment.declarationText}</p>
           <p className="text-sm text-text-muted">
             This is your recorded self-declaration. Company information is provided by the company. An appointment does
-            not activate the company or approve any register action. Revocation retains its declaration and evidence.
+            not activate the company or approve any register action.
+          </p>
+          <p className="text-sm text-text-muted">
+            Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
+            another initial self-declaration. Its declaration and evidence remain retained.
           </p>
           {appointment.status !== 'revoked' && (
             <PageAction
               label={`${action === 'revoke' ? 'Revoking' : 'Revoke'} appointment ${request.originalFilename}`}
               disabled={blocked}
-              onClick={onRevoke}
+              onClick={() => setConfirmingRevocation(true)}
             />
           )}
+          <Modal
+            isOpen={confirmingRevocation}
+            onClose={() => setConfirmingRevocation(false)}
+            title="Revoke appointment permanently?"
+            showFooter
+            confirmLabel="Permanently revoke appointment"
+            confirmDisabled={blocked || appointment.status === 'revoked'}
+            onConfirm={() => {
+              setConfirmingRevocation(false);
+              onRevoke();
+            }}
+          >
+            <p className="text-sm text-text-primary">
+              Permanently remove your appointment for {request.companyIdentityRaw.name}? You will lose this
+              appointment&apos;s company authority and cannot restore it by making another initial self-declaration. Its
+              declaration and evidence remain retained.
+            </p>
+          </Modal>
         </>
       )}
     </li>
