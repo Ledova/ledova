@@ -12,7 +12,6 @@ from companies.models import (
 )
 from companies.services.authority import (
     DECLARATION_VERSION,
-    has_company_capability,
     is_company_appointment_effective,
 )
 
@@ -175,9 +174,7 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
 
     def get_verification_message(self, obj) -> str:
         if obj.status == "admitted":
-            active = has_company_capability(
-                requester=obj.requester, company_id=obj.company_id, capability=CompanyCapability.ADMIN
-            )
+            active = is_company_appointment_effective(obj.appointment)
             return (
                 "Authorisation declared by the company representative. Company information is provided by the company. "
                 + ("Your company appointment is current." if active else "Your company appointment is not current.")
