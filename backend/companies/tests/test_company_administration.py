@@ -1018,23 +1018,35 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
         self.assertIsNone(document.verified_by_id)
         self.assertIsNone(document.verified_at)
 
-    def test_existing_staff_api_review_does_not_acquire_basic_or_admin_model_authority(self):
-        transition_company(self.company, "submit", actor=self.owner)
+    def test_staff_technical_recovery_does_not_acquire_basic_or_admin_model_authority(self):
+        with self.assertRaises(PermissionDenied):
+            transition_company(self.company, "submit", actor=self.owner)
         reviewer, _profile = self.account("foundation-api-reviewer")
         with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status="active")
             get_user_model().objects.filter(pk=reviewer.pk).update(is_staff=True)
             reviewer.refresh_from_db()
         self.assertFalse(reviewer.has_perm("companies.change_company"))
         with self.assertRaises(PermissionDenied):
-            transition_company(self.company, "start_review", actor=reviewer, admin_review=True)
+            transition_company(
+                self.company, "issue_warning", actor=reviewer, admin_review=True, reason="Technical warning"
+            )
         with self.assertRaises(DatabaseError), self.role(reviewer, "operator"):
             with company_operation(reviewer, self.company.pk, "admin_workflow"):
-                Company.objects.filter(pk=self.company.pk).update(status="review", lifecycle_revision=1)
+                with atomic():
+                    Company.objects.filter(pk=self.company.pk).update(
+                        status="warning",
+                        lifecycle_revision=1,
+                        warning_issued_at=timezone.now(),
+                        warning_reason="Forged",
+                    )
         self.client.force_authenticate(reviewer)
-        with patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)):
-            response = self.client.post(f"{self.url}status/", {"status": "review"}, format="json")
+        self.assertEqual(self.client.post(f"{self.url}status/", {"status": "review"}, format="json").status_code, 400)
+        response = self.client.post(
+            f"{self.url}status/", {"status": "warning", "reason": "Technical warning"}, format="json"
+        )
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["company"]["status"], "review")
+        self.assertEqual(response.json()["company"]["status"], "warning")
         self.assertEqual(response.json()["company"]["email"], self.owner.email)
         self.assertEqual(response.json()["company"]["administrativeAccess"]["capabilities"], [])
         self.assertEqual(self.client.patch(self.url, {"phone": "forbidden"}, format="json").status_code, 404)
@@ -1042,22 +1054,80 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             permission = Permission.objects.get(content_type__app_label="companies", codename="change_company")
             reviewer.user_permissions.add(permission)
             reviewer = get_user_model().objects.get(pk=reviewer.pk)
-        updated = transition_company(self.company, "request_info", actor=reviewer, admin_review=True, reason="Clarify")
-        self.assertEqual(updated.status, "info_required")
+        updated = transition_company(
+            self.company, "suspend", actor=reviewer, admin_review=True, reason="Technical recovery"
+        )
+        self.assertEqual(updated.status, "suspended")
+        self.assertEqual(updated.lifecycle_revision, 2)
+        self.assertEqual(updated.warning_reason, "Technical warning")
+        self.assertEqual(updated.suspension_reason, "Technical recovery")
+        self.assertIsNotNone(updated.warning_issued_at)
+        self.assertIsNotNone(updated.suspended_at)
+        self.assertIsNone(updated.approved_by_id)
+        self.assertIsNone(updated.activated_at)
 
-    def test_raw_workflow_requires_current_active_staff_or_the_exact_owner_submission(self):
-        transition_company(self.company, "submit", actor=self.owner)
+    def test_raw_technical_workflow_requires_current_active_staff_and_bound_provenance(self):
+        with self.assertRaises(PermissionDenied):
+            transition_company(self.company, "submit", actor=self.owner)
+        with self.assertRaises(DatabaseError), self.role(self.owner, "operator"):
+            with company_operation(self.owner, self.company.pk, "workflow"):
+                with atomic():
+                    Company.objects.filter(pk=self.company.pk).update(
+                        status="submitted", lifecycle_revision=1, submitted_at=timezone.now(), submitted_by=self.owner
+                    )
         reviewer, _profile = self.account("foundation-inactive-reviewer")
         with use_migrate():
+            Company.objects.filter(pk__in=[self.company.pk, self.foreign.pk]).update(status="active")
             get_user_model().objects.filter(pk=reviewer.pk).update(is_staff=True, is_active=False)
+            permission = Permission.objects.get(content_type__app_label="companies", codename="change_company")
+            reviewer.user_permissions.add(permission)
             reviewer.refresh_from_db()
-        for actor in (reviewer, self.other):
+        for actor in (reviewer, self.other, self.owner):
             with self.subTest(actor=actor.pk):
                 with self.assertRaises(PermissionDenied):
-                    transition_company(self.company, "reject", actor=actor, reason="Forged")
-                with self.assertRaises(DatabaseError), self.role(actor, "operator"):
-                    with company_operation(actor, self.company.pk, "workflow"):
-                        Company.objects.filter(pk=self.company.pk).update(status="rejected", lifecycle_revision=2)
+                    transition_company(self.company, "issue_warning", actor=actor, reason="Forged")
+                for operation in ("workflow", "admin_workflow"):
+                    with self.subTest(operation=operation):
+                        with self.assertRaises(DatabaseError), self.role(actor, "operator"):
+                            with company_operation(actor, self.company.pk, operation):
+                                with atomic():
+                                    Company.objects.filter(pk=self.company.pk).update(
+                                        status="warning",
+                                        lifecycle_revision=1,
+                                        warning_issued_at=timezone.now(),
+                                        warning_reason="Forged",
+                                    )
+        with use_migrate():
+            get_user_model().objects.filter(pk=reviewer.pk).update(is_active=True)
+            reviewer.refresh_from_db()
+        for operation in ("workflow", "admin_workflow"):
+            with self.subTest(operation=operation):
+                with self.assertRaisesRegex(DatabaseError, "Use the exact actor-bound company command"), self.role(
+                    reviewer, "operator"
+                ):
+                    with company_operation(reviewer, self.foreign.pk, operation):
+                        with atomic():
+                            Company.objects.filter(pk=self.company.pk).update(
+                                status="warning",
+                                lifecycle_revision=1,
+                                warning_issued_at=timezone.now(),
+                                warning_reason="Forged",
+                            )
+                for changes in ({"approved_by": self.other}, {"officeholder_attested_by": self.other}):
+                    with self.subTest(changes=changes):
+                        with self.assertRaisesRegex(
+                            DatabaseError, "Retain technical company recovery and its current provider safeguards"
+                        ), self.role(reviewer, "operator"):
+                            with company_operation(reviewer, self.company.pk, operation):
+                                with atomic():
+                                    Company.objects.filter(pk=self.company.pk).update(**changes)
+        with use_operator():
+            self.company.refresh_from_db()
+        self.assertEqual(self.company.status, "active")
+        self.assertEqual(self.company.lifecycle_revision, 0)
+        self.assertIsNone(self.company.submitted_by_id)
+        self.assertIsNone(self.company.approved_by_id)
+        self.assertIsNone(self.company.officeholder_attested_by_id)
 
     def test_raw_depth_one_verification_or_company_scope_forgery_is_not_an_invalidation(self):
         self.admit()
