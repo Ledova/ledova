@@ -1,6 +1,7 @@
 import json
 import tempfile
 from datetime import timedelta
+from importlib import import_module
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -39,7 +40,7 @@ from shared.db import atomic, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
-OLD = ("companies", "0017_company_team_invitations")
+OLD = ("companies", "0018_team_invitation_admission_guards")
 NEW = ("companies", "0019_legacy_owner_appointments")
 PROVENANCE = "companies.0019_legacy_owner_appointments"
 SOURCE = "companies_companylegacyownersource"
@@ -195,10 +196,14 @@ class CompanyLegacyOwnerMigrationTest(StubUploadDependencies, TransactionTestCas
             Company.objects.filter(pk=self.other_company.pk).update(status="suspended", suspended_at=timezone.now())
         self.migrate(OLD)
         before = self.records()
+        invited_guard = self.query("SELECT pg_get_functiondef('companies_validate_invited_appointment'::regproc)")
         earliest = timezone.now()
         with patch("companies.services.registry.lookup_company", side_effect=AssertionError("migration called ABR")):
             self.migrate(NEW)
         latest = timezone.now()
+        self.assertEqual(
+            self.query("SELECT pg_get_functiondef('companies_validate_invited_appointment'::regproc)"), invited_guard
+        )
         self.assert_existing_records_retained(before)
         with use_operator():
             sources = CompanyLegacyOwnerSource.objects.in_bulk(field_name="company_id")
@@ -320,13 +325,22 @@ class CompanyLegacyOwnerMigrationTest(StubUploadDependencies, TransactionTestCas
         self.assertEqual(self.records(), before_records)
         self.assert_private_bytes_retained()
 
-    def test_empty_reversal_restores_exact_0017_guards_policies_grants_constraints_indexes_and_records(self):
+    def test_empty_reversal_restores_exact_0018_guards_policies_grants_constraints_indexes_and_records(self):
         self.admit(self.owner, self.company, self.pending)
         self.admit(self.other, self.other_company)
         self.migrate(OLD)
         old_schema, old_records = self.schema(), self.records()
+        invited_guard = next(
+            row for row in old_schema["functions"] if row[0] == "companies_validate_invited_appointment"
+        )
+        guard_migration = import_module("companies.migrations.0018_team_invitation_admission_guards")
+        self.assertEqual(invited_guard[1].count(guard_migration.NEW_CLAUSE), 1)
         self.migrate(NEW)
         new_schema, new_records = self.schema(), self.records()
+        self.assertEqual(
+            next(row for row in new_schema["functions"] if row[0] == "companies_validate_invited_appointment"),
+            invited_guard,
+        )
         with use_operator():
             self.assertFalse(CompanyLegacyOwnerSource.objects.exists())
         self.migrate(OLD)

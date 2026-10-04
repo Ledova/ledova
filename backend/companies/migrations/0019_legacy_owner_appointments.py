@@ -150,7 +150,7 @@ def remove_legacy_guards(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("companies", "0017_company_team_invitations"),
+        ("companies", "0018_team_invitation_admission_guards"),
         ("users", "0031_protected_identity_results"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

@@ -64,7 +64,6 @@ class CompanyTeamInvitationMigrationTest(StubUploadDependencies, TransactionTest
         )
         self.assertTrue(created)
         self.addCleanup(self.latest)
-        self.migrate(NEW)
 
     def migrate(self, target):
         MigrationExecutor(connection).migrate([target])

@@ -1,5 +1,6 @@
 import tempfile
 from datetime import timedelta
+from time import monotonic, sleep
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -38,6 +39,7 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
+from companies.tests import test_team_invitations as invitation_cases
 from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_authority_requests import (
     STORAGES,
@@ -52,6 +54,7 @@ from companies.tests.test_legacy_owner_migration import (
     PROVENANCE,
     SOURCE,
 )
+from companies.tests.test_team_invitations import raw_team_appointment
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
@@ -63,6 +66,9 @@ INVITATIONS = "/api/v1/company-authority/invitations/"
 
 class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTestCase):
     app_as = AuthorityRequestCases.app_as
+    concurrent = invitation_cases.CompanyTeamInvitationTest.concurrent
+    declaration = invitation_cases.CompanyTeamInvitationTest.declaration
+    retained_history = invitation_cases.CompanyTeamInvitationTest.retained_history
 
     def setUp(self):
         super().setUp()
@@ -127,6 +133,105 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
             **{field.attname: getattr(self.initial, field.attname) for field in self.initial._meta.fields},
             "uuid": uuid4(),
         }
+
+    def legacy_history(self):
+        with use_operator():
+            sources = list(CompanyLegacyOwnerSource.objects.order_by("uuid").values())
+        return self.retained_history(), sources
+
+    def test_legacy_delegation_cannot_become_personal_authority_by_self_acceptance_at_api_or_raw_guard(self):
+        invitation, code, _ = self.issue(capabilities=["approve"], delegatable_capabilities=[])
+        before = self.legacy_history()
+        response = self.client.post(f"{INVITATIONS}accept/", self.declaration(code), format="json")
+        self.assertEqual(response.status_code, 400, response.content)
+        with self.assertRaises(DatabaseError):
+            raw_team_appointment(invitation=invitation, code=code, actor=self.owner, profile=self.profile)
+        self.assertFalse(has_company_capability(requester=self.owner, company_id=self.company.pk, capability="approve"))
+        self.assertEqual(self.legacy_history(), before)
+
+    def test_legacy_root_blocks_distinct_inviter_overlap_until_revoked_without_reseeding_or_bootstrap(self):
+        _, admin_code, _ = self.issue(capabilities=["admin"], delegatable_capabilities=list(CompanyCapability.values))
+        admin = self.accept(admin_code)
+        invitation, code, _ = self.issue(
+            requester=self.other,
+            inviter_appointment_id=admin.pk,
+            capabilities=["approve"],
+            delegatable_capabilities=[],
+        )
+        before = self.legacy_history()
+        response = self.client.post(f"{INVITATIONS}accept/", self.declaration(code), format="json")
+        self.assertEqual(response.status_code, 400, response.content)
+        with self.assertRaises(DatabaseError):
+            raw_team_appointment(invitation=invitation, code=code, actor=self.owner, profile=self.profile)
+        self.assertEqual(self.legacy_history(), before)
+        revoke_company_appointment(requester=self.other, appointment_id=self.initial.pk)
+        replacement = self.accept(code, requester=self.owner)
+        self.assertEqual((replacement.invitation_id, replacement.legacy_owner_id), (invitation.pk, None))
+        self.assertTrue(has_company_capability(requester=self.owner, company_id=self.company.pk, capability="approve"))
+        retained = self.legacy_history()
+        self.assertEqual(self.accept(admin_code).pk, admin.pk)
+        self.assertEqual(self.accept(code, requester=self.owner).pk, replacement.pk)
+        with patch("companies.services.authority.begin_registry_check") as begin:
+            with self.assertRaises(AuthorityAdmissionConflictException):
+                admit_authority_request(
+                    requester=self.owner,
+                    request_id=self.proposal.pk,
+                    declaration_version=DECLARATION_VERSION,
+                    accept_declaration=True,
+                )
+            begin.assert_not_called()
+        self.assertEqual(self.legacy_history(), retained)
+        self.assertEqual(retained[1], before[1])
+
+    def test_replaced_legacy_child_exact_old_code_retry_retains_revocation_and_new_scope(self):
+        old_invitation, old_code, _ = self.issue(capabilities=["prepare"], delegatable_capabilities=[])
+        original = self.accept(old_code)
+        revoke_company_appointment(requester=self.other, appointment_id=original.pk)
+        new_invitation, new_code, _ = self.issue(capabilities=["approve"], delegatable_capabilities=[])
+        replacement = self.accept(new_code)
+        retained = self.legacy_history()
+        old = self.accept(old_code)
+        self.assertEqual((old.pk, old.invitation_id, old.status), (original.pk, old_invitation.pk, "revoked"))
+        self.assertEqual(self.accept(new_code).pk, replacement.pk)
+        self.assertEqual(replacement.invitation_id, new_invitation.pk)
+        self.assertEqual(self.legacy_history(), retained)
+
+    def test_expired_legacy_child_allows_new_mandate_and_exact_old_retry_retains_actual_expiry(self):
+        expiry = timezone.now() + timedelta(seconds=2)
+        old_invitation, old_code, _ = self.issue(
+            capabilities=["prepare"], delegatable_capabilities=[], appointment_expires_at=expiry
+        )
+        original = self.accept(old_code)
+        limit = monotonic() + 5
+        while timezone.now() <= expiry and monotonic() < limit:
+            sleep(0.01)
+        self.assertGreater(timezone.now(), expiry)
+        new_invitation, new_code, _ = self.issue(capabilities=["approve"], delegatable_capabilities=[])
+        replacement = self.accept(new_code)
+        retained = self.legacy_history()
+        old = self.accept(old_code)
+        self.assertEqual((old.pk, old.invitation_id, old.status), (original.pk, old_invitation.pk, "expired"))
+        self.assertEqual(self.accept(new_code).pk, replacement.pk)
+        self.assertEqual(replacement.invitation_id, new_invitation.pk)
+        self.assertEqual(self.legacy_history(), retained)
+
+    def test_concurrent_distinct_legacy_invitation_codes_deliver_one_mandate_and_keep_exact_retries(self):
+        first, first_code, _ = self.issue()
+        second, second_code, _ = self.issue(capabilities=["approve"], delegatable_capabilities=[])
+        results = self.concurrent([self.other, self.other], [first_code, second_code])
+        self.assertEqual(sum(isinstance(result, tuple) for result in results), 1, results)
+        self.assertIn(400, results)
+        with use_operator():
+            delivered = CompanyAppointment.objects.get(appointee=self.other, company=self.company)
+        self.assertIn(delivered.invitation_id, (first.pk, second.pk))
+        retained = self.legacy_history()
+        for invitation, code in ((first, first_code), (second, second_code)):
+            if invitation.pk == delivered.invitation_id:
+                self.assertEqual(self.accept(code).pk, delivered.pk)
+            else:
+                with self.assertRaises(ValidationError):
+                    self.accept(code)
+        self.assertEqual(self.legacy_history(), retained)
 
     def test_only_personal_administration_is_granted_while_delegation_is_explicit_and_company_bound(self):
         self.assertEqual(self.initial.capabilities, ["admin"])
