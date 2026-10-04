@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import connections
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import get_object_or_404
@@ -166,6 +167,14 @@ def accept_team_invitation(*, requester, code, declaration_version, accept_decla
             invitation.appointment_expires_at is not None and invitation.appointment_expires_at <= now
         ):
             raise ValidationError({"code": "This invitation has expired. Request a new invitation."})
+        if invitation.inviter_id == actor.pk:
+            raise ValidationError({"code": "Another company appointee must invite you."})
+        if (
+            CompanyAppointment.objects.filter(company=company, appointee=actor, revocation__isnull=True)
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .exists()
+        ):
+            raise ValidationError({"code": "You already have an unrevoked, unexpired appointment for this company."})
         if Operator.get().issuer_kyc_required and not profile.is_id_verified:
             raise IssuerIdentityVerificationRequiredException(
                 "Your identity must be verified before accepting a company appointment."

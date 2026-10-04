@@ -1,4 +1,5 @@
 import hashlib
+import json
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -21,6 +22,7 @@ from companies.models import (
     CompanyAppointmentRevocation,
     CompanyAuthorityRequest,
     CompanyCapability,
+    CompanyRegistryCheck,
     CompanyTeamInvitation,
 )
 from companies.services.authority import (
@@ -52,6 +54,36 @@ from users.models import UserProfile
 
 INVITATIONS = "/api/v1/company-authority/invitations/"
 APPOINTMENTS = "/api/v1/company-authority/appointments/"
+
+
+def raw_team_appointment(*, invitation, code, actor, profile):
+    identifier = uuid4()
+    with use_operator(), _requester_principal(actor.pk), atomic():
+        now = timezone.now()
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute("SELECT set_config('app.team_invitation_code', %s, true)", [code])
+            cursor.execute(
+                "INSERT INTO companies_companyappointment "
+                "(uuid, created_at, updated_at, company_id, appointee_id, appointee_profile_id, "
+                "invitation_id, capabilities, delegatable_capabilities, expires_at, "
+                "declaration_version, declaration_text) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s)",
+                [
+                    identifier,
+                    now,
+                    now,
+                    invitation.company_id,
+                    actor.pk,
+                    profile.pk,
+                    invitation.pk,
+                    json.dumps(invitation.capabilities),
+                    json.dumps(invitation.delegatable_capabilities),
+                    invitation.appointment_expires_at,
+                    DECLARATION_VERSION,
+                    DECLARATION_TEXT,
+                ],
+            )
+    return identifier
 
 
 class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
@@ -118,6 +150,240 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
         self.assertEqual(accepted.status_code, 200, accepted.content)
         with use_operator():
             return issued, CompanyAppointment.objects.get(pk=accepted.json()["uuid"])
+
+    def raw_acceptance(self, issued, actor, profile):
+        with use_operator():
+            invitation = CompanyTeamInvitation.objects.get(pk=issued.json()["uuid"])
+        return raw_team_appointment(invitation=invitation, code=issued.json()["code"], actor=actor, profile=profile)
+
+    def retained_history(self):
+        with use_operator():
+            records = {
+                model._meta.label: list(model.objects.order_by("uuid").values())
+                for model in (
+                    CompanyAuthorityRequest,
+                    CompanyRegistryCheck,
+                    CompanyAppointment,
+                    CompanyAppointmentRevocation,
+                    CompanyTeamInvitation,
+                )
+            }
+            files = {}
+            for proposal in CompanyAuthorityRequest.objects.all():
+                with proposal.file.open("rb") as retained:
+                    files[str(proposal.pk)] = retained.read()
+        return records, files
+
+    def test_self_acceptance_cannot_convert_delegatable_approve_into_personal_authority(self):
+        _, delegated = self.issue_and_accept()
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        issued = self.issue(
+            inviter_appointment=str(delegated.pk),
+            idempotency_key=str(uuid4()),
+            capabilities=["approve"],
+            delegatable_capabilities=[],
+        )
+        self.assertEqual(issued.status_code, 201, issued.content)
+        history = self.retained_history()
+        response = self.accept(issued.json()["code"])
+        with use_operator():
+            effects = list(
+                CompanyAppointment.objects.filter(invitation_id=issued.json()["uuid"]).values(
+                    "appointee_id", "capabilities", "delegatable_capabilities"
+                )
+            )
+        self.assertEqual((response.status_code, effects), (400, []))
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        self.assertEqual(self.retained_history(), history)
+
+    def test_distinct_invitation_cannot_add_an_overlapping_live_appointment_for_the_same_person_and_company(self):
+        self.issue_and_accept()
+        self.client.force_authenticate(self.owner)
+        issued = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(issued.status_code, 201, issued.content)
+        history = self.retained_history()
+        response = self.accept(issued.json()["code"])
+        with use_operator():
+            effects = list(
+                CompanyAppointment.objects.filter(invitation_id=issued.json()["uuid"]).values(
+                    "appointee_id", "capabilities", "delegatable_capabilities"
+                )
+            )
+        self.assertEqual((response.status_code, effects), (400, []))
+        self.assertEqual(self.retained_history(), history)
+
+    def test_raw_exact_code_cannot_convert_the_inviters_delegatable_approve_into_personal_authority(self):
+        _, delegated = self.issue_and_accept()
+        issued = self.issue(
+            inviter_appointment=str(delegated.pk),
+            idempotency_key=str(uuid4()),
+            capabilities=["approve"],
+            delegatable_capabilities=[],
+        )
+        self.assertEqual(issued.status_code, 201, issued.content)
+        history = self.retained_history()
+        refused = False
+        try:
+            self.raw_acceptance(issued, self.invitee, self.invitee_profile)
+        except DatabaseError:
+            refused = True
+        with use_operator():
+            effects = list(
+                CompanyAppointment.objects.filter(invitation_id=issued.json()["uuid"]).values(
+                    "appointee_id", "capabilities", "delegatable_capabilities"
+                )
+            )
+        self.assertEqual((refused, effects), (True, []))
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        self.assertEqual(self.retained_history(), history)
+
+    def test_raw_exact_code_cannot_add_an_overlapping_live_appointment_for_the_same_person_and_company(self):
+        self.issue_and_accept()
+        self.client.force_authenticate(self.owner)
+        issued = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(issued.status_code, 201, issued.content)
+        history = self.retained_history()
+        refused = False
+        try:
+            self.raw_acceptance(issued, self.invitee, self.invitee_profile)
+        except DatabaseError:
+            refused = True
+        with use_operator():
+            effects = list(
+                CompanyAppointment.objects.filter(invitation_id=issued.json()["uuid"]).values(
+                    "appointee_id", "capabilities", "delegatable_capabilities"
+                )
+            )
+        self.assertEqual((refused, effects), (True, []))
+        self.assertEqual(self.retained_history(), history)
+
+    def test_distinct_people_and_companies_receive_separate_exact_mandates(self):
+        _, first = self.issue_and_accept()
+        self.client.force_authenticate(self.owner)
+        second = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(second.status_code, 201, second.content)
+        self.assertEqual(self.accept(second.json()["code"], actor=self.other).status_code, 200)
+        proposal, _ = submit_authority_request(
+            requester=self.other,
+            company_id=self.other_company.pk,
+            idempotency_key=uuid4(),
+            file=evidence(),
+            requested_capabilities=["admin"],
+            delegatable_capabilities=list(CompanyCapability.values),
+        )
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(self.other_company)):
+            administrator = admit_authority_request(
+                requester=self.other,
+                request_id=proposal.pk,
+                declaration_version=DECLARATION_VERSION,
+                accept_declaration=True,
+            ).appointment
+        self.client.force_authenticate(self.other)
+        foreign = self.issue(
+            company=str(self.other_company.pk),
+            inviter_appointment=str(administrator.pk),
+            idempotency_key=str(uuid4()),
+            capabilities=["approve"],
+            delegatable_capabilities=[],
+        )
+        self.assertEqual(foreign.status_code, 201, foreign.content)
+        accepted = self.accept(foreign.json()["code"])
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        with use_operator():
+            self.assertEqual(
+                set(CompanyAppointment.objects.filter(appointee=self.invitee).values_list("company_id", flat=True)),
+                {self.company.pk, self.other_company.pk},
+            )
+            self.assertEqual(
+                CompanyAppointment.objects.filter(appointee=self.invitee, company=self.company).get(), first
+            )
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        self.assertTrue(
+            has_company_capability(requester=self.invitee, company_id=self.other_company.pk, capability="approve")
+        )
+
+    def test_new_appointment_after_revocation_keeps_old_code_retry_revoked_without_recreating_authority(self):
+        issued, first = self.issue_and_accept()
+        response = self.client.post(f"{APPOINTMENTS}{first.pk}/revoke/", {}, format="json")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.client.force_authenticate(self.owner)
+        replacement = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(replacement.status_code, 201, replacement.content)
+        accepted = self.accept(replacement.json()["code"])
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertNotEqual(accepted.json()["uuid"], str(first.pk))
+        revoke_company_appointment(requester=self.owner, appointment_id=self.initial.pk)
+        history = self.retained_history()
+        retained = self.accept(issued.json()["code"])
+        self.assertEqual(retained.status_code, 200, retained.content)
+        self.assertEqual(
+            (retained.json()["uuid"], retained.json()["status"], retained.json()["isEffective"]),
+            (str(first.pk), "revoked", False),
+        )
+        self.assertEqual(self.accept(replacement.json()["code"]).json()["uuid"], accepted.json()["uuid"])
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="prepare")
+        )
+        self.assertTrue(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        self.assertEqual(self.retained_history(), history)
+
+    def test_new_appointment_after_actual_expiry_keeps_old_code_retry_expired_without_recreating_authority(self):
+        expires = timezone.now() + timedelta(seconds=2)
+        issued, first = self.issue_and_accept(appointment_expires_at=expires.isoformat())
+        limit = monotonic() + 5
+        while timezone.now() <= expires and monotonic() < limit:
+            sleep(0.01)
+        self.assertGreater(timezone.now(), expires)
+        self.client.force_authenticate(self.owner)
+        replacement = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(replacement.status_code, 201, replacement.content)
+        accepted = self.accept(replacement.json()["code"])
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertNotEqual(accepted.json()["uuid"], str(first.pk))
+        history = self.retained_history()
+        retained = self.accept(issued.json()["code"])
+        self.assertEqual(retained.status_code, 200, retained.content)
+        self.assertEqual(
+            (retained.json()["uuid"], retained.json()["status"], retained.json()["isEffective"]),
+            (str(first.pk), "expired", False),
+        )
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="prepare")
+        )
+        self.assertTrue(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="approve")
+        )
+        self.assertEqual(self.retained_history(), history)
+
+    def test_live_mandate_remains_recorded_while_identity_temporarily_makes_it_ineffective(self):
+        self.issue_and_accept()
+        self.client.force_authenticate(self.owner)
+        issued = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual(issued.status_code, 201, issued.content)
+        with use_operator():
+            UserProfile.objects.filter(pk=self.invitee_profile.pk).update(is_id_verified=False)
+        self.assertFalse(
+            has_company_capability(requester=self.invitee, company_id=self.company.pk, capability="prepare")
+        )
+        history = self.retained_history()
+        response = self.accept(issued.json()["code"])
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn("code", response.json())
+        self.assertEqual(self.retained_history(), history)
+        with use_operator():
+            UserProfile.objects.filter(pk=self.invitee_profile.pk).update(is_id_verified=True)
+        self.assertEqual(self.accept(issued.json()["code"]).status_code, 400)
+        self.assertEqual(self.retained_history(), history)
 
     def test_issue_displays_code_once_keeps_only_hash_and_returns_retained_identical_retry(self):
         issued = self.issue()
@@ -407,11 +673,13 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
 
     def concurrent(self, actors, code):
         barrier = Barrier(len(actors))
+        codes = code if isinstance(code, (list, tuple)) else [code] * len(actors)
 
-        def consume(actor):
+        def consume(arguments):
+            actor, invitation_code = arguments
             try:
                 barrier.wait(timeout=20)
-                appointment = accept_team_invitation(requester=actor, **self.declaration(code))
+                appointment = accept_team_invitation(requester=actor, **self.declaration(invitation_code))
                 return str(appointment.pk), appointment.appointee_id
             except APIException as error:
                 return error.status_code
@@ -419,7 +687,57 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=len(actors)) as pool:
-            return list(pool.map(consume, actors))
+            return list(pool.map(consume, zip(actors, codes)))
+
+    def test_concurrent_distinct_codes_for_the_same_person_deliver_one_live_appointment(self):
+        first = self.issue()
+        second = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual((first.status_code, second.status_code), (201, 201))
+        results = self.concurrent([self.invitee, self.invitee], [first.json()["code"], second.json()["code"]])
+        self.assertEqual(sum(isinstance(result, tuple) for result in results), 1, results)
+        self.assertIn(400, results)
+        with use_operator():
+            delivered = CompanyAppointment.objects.get(appointee=self.invitee, company=self.company)
+            self.assertIn(str(delivered.invitation_id), [first.json()["uuid"], second.json()["uuid"]])
+        history = self.retained_history()
+        for index, result in enumerate(results):
+            issued = (first, second)[index]
+            response = self.accept(issued.json()["code"])
+            self.assertEqual(response.status_code, 200 if isinstance(result, tuple) else 400)
+            if isinstance(result, tuple):
+                self.assertEqual(response.json()["uuid"], str(delivered.pk))
+        self.assertEqual(self.retained_history(), history)
+
+    def test_concurrent_raw_distinct_code_inserts_for_the_same_person_deliver_one_live_appointment(self):
+        first = self.issue()
+        second = self.issue(idempotency_key=str(uuid4()), capabilities=["approve"], delegatable_capabilities=[])
+        self.assertEqual((first.status_code, second.status_code), (201, 201))
+        barrier = Barrier(2)
+
+        def consume(issued):
+            try:
+                barrier.wait(timeout=20)
+                return self.raw_acceptance(issued, self.invitee, self.invitee_profile)
+            except DatabaseError as error:
+                return error
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(consume, [first, second]))
+        self.assertEqual(sum(isinstance(result, DatabaseError) for result in results), 1, results)
+        error = next(result for result in results if isinstance(result, DatabaseError))
+        self.assertIn("Appointment requires the exact current invitation", str(error))
+        with use_operator():
+            delivered = CompanyAppointment.objects.get(appointee=self.invitee, company=self.company)
+            self.assertIn(delivered.pk, results)
+        history = self.retained_history()
+        for issued in (first, second):
+            response = self.accept(issued.json()["code"])
+            self.assertEqual(
+                response.status_code, 200 if issued.json()["uuid"] == str(delivered.invitation_id) else 400
+            )
+        self.assertEqual(self.retained_history(), history)
 
     def test_concurrent_same_actor_acceptance_returns_one_effect(self):
         issued = self.issue()

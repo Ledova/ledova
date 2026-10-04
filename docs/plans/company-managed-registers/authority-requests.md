@@ -128,14 +128,18 @@ Optional `appointment_expires_at` must be in the future. The issuance response
 returns a random code once, with `Cache-Control: private, no-store`. The database
 retains only its SHA256. Identical issuance retries return the original invitation
 and `code: null`; changed company, source, scopes or explicit dates conflict. Send
-the code directly to the intended recipient; it authorises whoever first accepts
-it. No email-delivery service or code-bearing URL is introduced.
+the code directly to the intended recipient; it authorises the first eligible
+accepting account. No email-delivery service or code-bearing URL is introduced.
 
 Acceptance requires `code`, `declaration_version: "2026-10-04"` and
 `accept_declaration: true`. It checks the actual accepting account and profile,
 the configured issuer identity requirement, the invitation deadline and current
-inviter authority before creating the exact offered appointment. No ABR check is
-fabricated for an invitation. Concurrent acceptance creates one effect. The same
+inviter authority before creating the exact offered appointment. An inviter cannot
+accept their own invitation. A new acceptance also refuses an existing unrevoked,
+unexpired appointment for the same person and company, even if that appointment
+is temporarily ineffective. A new invitation can be accepted after the earlier
+appointment expires or is revoked. No ABR check is fabricated for an invitation.
+Concurrent acceptance creates one effect. The same
 accepting account's retry returns its retained appointment, including after
 expiry or revocation; a different account cannot consume it again. Revoking the
 inviter blocks a new acceptance but does not revoke an already accepted child.
@@ -167,7 +171,10 @@ transaction setting and restore any prior setting after successful acceptance;
 rollback also restores the outer transaction. Database expiry checks use actual
 time after waiting for locks. Invitation history and non-self administrator
 revocation prevent reversal of migration `0017`; supported empty/self-revocation
-reversal restores the preceding guards and policies exactly.
+reversal restores the preceding guards and policies exactly. Guard-only migration
+`0018` protects new invitation admissions without changing prior appointments,
+invitations, revocations or actors; reversing it restores the exact preceding
+invitation guard.
 
 Supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
 Migration reversal refuses to discard populated admission/revocation history;
