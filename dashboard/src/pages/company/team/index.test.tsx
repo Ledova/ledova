@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import axios from 'axios';
@@ -164,6 +164,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  focusManager.setFocused(undefined);
   cleanup();
   client.clear();
   vi.restoreAllMocks();
@@ -662,4 +663,66 @@ it('refuses a revocation receipt that changes the frozen scope or expiry', async
   fireEvent.click(await openRevoke());
   await screen.findByText(/revocation outcome could not be confirmed/);
   expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[0].status).toBe('active');
+});
+
+it('retains the displayed one-time code through a default focus refetch', async () => {
+  show();
+  await selectSource();
+  choose('personal', 'Prepare register changes');
+  fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
+  const input = await screen.findByLabelText('One-time invitation code');
+  const refreshed = deferred<ReturnType<typeof page>>();
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === appointmentsUrl ? refreshed.promise : original(url, config),
+  );
+  act(() => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
+  await waitFor(() => expect(client.getQueryState(ownKey)?.fetchStatus).toBe('fetching'));
+  expect(screen.getByLabelText('One-time invitation code')).toBe(input);
+  expect(input).toHaveProperty('value', code);
+  expect(screen.getByRole('button', { name: 'Create another invitation' })).toHaveProperty('disabled', true);
+  await act(async () => refreshed.resolve(page(rows)));
+  await waitFor(() => expect(client.getQueryState(ownKey)?.fetchStatus).toBe('idle'));
+  expect(screen.getByLabelText('One-time invitation code')).toBe(input);
+  expect(api.post).toHaveBeenCalledOnce();
+});
+
+it('retains the interrupted issue key through a focus refetch and replays one recorded invitation', async () => {
+  const outcome = deferred<ReturnType<typeof issued>>();
+  const retained = new Set<string>();
+  api.post.mockImplementation((_url, data: CreateCompanyTeamInvitationRequest) => {
+    const existed = retained.has(data.idempotencyKey);
+    retained.add(data.idempotencyKey);
+    return existed ? Promise.resolve(issued(data, null)) : outcome.promise;
+  });
+  show();
+  await selectSource();
+  choose('personal', 'Prepare register changes');
+  fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const firstKey = api.post.mock.calls[0][1].idempotencyKey;
+  const refreshed = deferred<ReturnType<typeof page>>();
+  const original = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config: unknown) =>
+    url === appointmentsUrl ? refreshed.promise : original(url, config),
+  );
+  act(() => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
+  await waitFor(() => expect(client.getQueryState(ownKey)?.fetchStatus).toBe('fetching'));
+  await act(async () => outcome.resolve(issued(api.post.mock.calls[0][1])));
+  await act(async () => refreshed.resolve(page(rows)));
+  await waitFor(() => expect(client.getQueryState(ownKey)?.fetchStatus).toBe('idle'));
+  const chosen = within(screen.getByRole('group', { name: 'Actions for the appointee' })).getByRole('checkbox', {
+    name: 'Prepare register changes',
+  });
+  if (!(chosen as HTMLInputElement).checked) fireEvent.click(chosen);
+  fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
+  await screen.findByText(/No code is available on this retry/);
+  expect(api.post.mock.calls[1][1].idempotencyKey).toBe(firstKey);
+  expect(retained.size).toBe(1);
 });

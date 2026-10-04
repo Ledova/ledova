@@ -314,12 +314,12 @@ function OwnTeam({
               </select>
             </label>
             {sources.length === 0 && <p>No current appointment can delegate actions for this company.</p>}
-            {source && !own.isFetching && (
+            {source && (
               <TeamInvitationForm
                 key={source.uuid}
                 source={source}
                 available={source.delegatableCapabilities.filter((value) => value !== 'admin' || canAdmin)}
-                disabled={disabled}
+                disabled={disabled || own.isFetching}
                 guard={issueGuard}
                 onBusy={setFormBusy}
                 onRecorded={() => void invitations.refetch()}

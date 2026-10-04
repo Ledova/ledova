@@ -71,8 +71,9 @@ appointments.
 
 1. To invite someone, select the company and one of your current delegating
    appointments. Select personal permissions and onward delegation separately,
-   within that appointment's recorded delegation scope. Offering administration
-   also requires a current personal administrator appointment for that company.
+   within that appointment's recorded delegation scope. Granting company
+   administration also requires a current personal administrator appointment for
+   that company.
    Optional appointment expiry and invitation deadline are explicit.
 2. Create the invitation and privately share its displayed one-time code. The
    code is shown in the current form and disappears when the form is replaced or
