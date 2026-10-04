@@ -19,6 +19,7 @@ from integrations.kyc.constants import (
 from shared.db import atomic, use_operator
 from shared.models.country import Country
 from users.exceptions import VerificationTokenGenerationException
+from users.models.user_account import UserAccount
 from users.models.user_profile import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,9 @@ def get_verification_status(user_profile: UserProfile) -> dict:
 
 def update_status_from_normalized(user_profile: UserProfile, normalized: NormalizedVerificationResult) -> bool:
     with use_operator(), atomic():
+        user_account = (
+            UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=user_profile.pk).first()
+        )
         user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
         previous_result = user_profile.review_result
         user_profile.verification_status = normalized.verification_status
@@ -162,7 +166,7 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
         user_profile.save()
 
         if normalized.review_result == REVIEW_GREEN and not was_verified:
-            _process_verified_customer(user_profile, normalized.pep_data)
+            _process_verified_customer(user_profile, normalized.pep_data, user_account)
 
         message = REVIEW_OUTCOME_MESSAGES.get(normalized.review_result)
         if message and normalized.review_result != previous_result:
@@ -181,7 +185,7 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
     return user_profile.is_id_verified
 
 
-def _process_verified_customer(user_profile, pep_data: Dict[str, Any]) -> None:
+def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_account) -> None:
     from compliance.constants import (
         FATF_BLACKLIST_COUNTRIES,
         PEP_REJECTION_TYPES,
@@ -191,7 +195,6 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any]) -> None:
 
     pep_type = pep_data.get("pep_type", "none")
 
-    user_account = getattr(user_profile, "user_account", None)
     if not user_account:
         logger.warning(f"No user_account found for user_profile {user_profile.uuid}")
         return

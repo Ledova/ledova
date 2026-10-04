@@ -64,6 +64,7 @@ from tokens.models import (
 from tokens.services.creation import create_share_token
 from tokens.services.register_openings import submit_link
 from users.models import UserAccount, UserProfile
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 
@@ -1289,7 +1290,10 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
         with use_migrate():
             account = UserAccount.objects.create(user_profile=self.profile, account_number="CORE-WALLET")
             wallet = Wallet.objects.create(
-                user_account=account, address="0x" + "a" * 40, chain="base", verification_status="verified"
+                user_account=account,
+                address="0x" + "a" * 40,
+                chain="base",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
         self.admit(requested_expires_at=timezone.now() + timedelta(seconds=2))
         started = Event()

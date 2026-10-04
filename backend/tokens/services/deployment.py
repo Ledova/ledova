@@ -12,7 +12,7 @@ from web3.logs import DISCARD
 
 from blockchain.models import OutgoingOperation, OutgoingStatus
 from blockchain.services import outgoing
-from companies.models import CompanyStatus
+from companies.models import Company, CompanyStatus
 from companies.services.company import primary_wallet_for
 from integrations.base_chain import get_base_chain_client
 from shared.db import atomic, use_operator
@@ -53,7 +53,7 @@ def start_deployment(token, *, principal_id):
     from tokens.tasks import deploy_share_token_task
 
     with atomic():
-        current = ShareToken.objects.select_for_update().select_related("company").get(pk=token.pk)
+        current = deployment_journal.lock_token(token.pk, token.company_id, None)
         if current.deployment_id is None:
             require_deployable(current)
             if current.deployment_tx_hash or current.deployment_transaction_id:
@@ -308,9 +308,11 @@ def _project(deployment):
     ):
         return ""
     with atomic():
+        company = Company.objects.select_for_update().filter(pk=deployment.company_id).first()
+        if company is None:
+            return ""
         token = (
-            ShareToken.objects.select_for_update()
-            .select_related("company")
+            ShareToken.objects.select_for_update(of=("self",))
             .filter(
                 pk=deployment.token_id,
                 company_id=deployment.company_id,
@@ -321,6 +323,7 @@ def _project(deployment):
         )
         if token is None:
             return ""
+        token.company = company
         if token.contract_address:
             if token.contract_address.lower() != deployment.contract_address.lower():
                 return ""

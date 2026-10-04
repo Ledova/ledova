@@ -58,6 +58,8 @@ def _locks(node, function=None):
 
 def _sites():
     for path in sorted(TOKENS.rglob("*.py")):
+        if path.is_relative_to(TOKENS / "tests"):
+            continue
         tree = ast.parse(path.read_text())
         names = _bindings(tree)
         for function, call in _locks(tree):

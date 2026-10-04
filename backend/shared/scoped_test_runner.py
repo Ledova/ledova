@@ -10,6 +10,7 @@ from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 SCOPED_TEST_LABELS = (
     "companies.tests.test_company_activation_scoped.ScopedCompanyActivationTest",
     "companies.tests.test_company_administration.ScopedCompanyAdministrationTest",
+    "companies.tests.test_wallet_edit_lock_order.ScopedCompanyWalletLockOrderTest",
     "companies.tests.test_legacy_owner_appointments_scoped.ScopedCompanyLegacyOwnerAppointmentTest",
     "companies.tests.test_team_invitations_scoped.ScopedCompanyTeamInvitationTest",
     "companies.tests.test_authority_admission_scoped.ScopedCompanyAuthorityAdmissionTest",
@@ -58,6 +59,7 @@ SCOPED_TEST_LABELS = (
     "compliance.tests.test_identity_screening.ScopedScreeningMatchAlertTest",
     "wallets.tests.test_sync_under_scoped_roles.ScopedWalletSyncTest",
     "tokens.tests.test_deployment_under_scoped_roles.ScopedTokenDeploymentTest",
+    "tokens.tests.test_deployment_lock_order.ScopedDeploymentLockOrderTest",
     "tokens.tests.test_swap_approval_under_scoped_roles.ScopedSwapApprovalTest",
     "tokens.tests.test_operator_execution.OperatorExecutionFromScopedContextTest",
     "tokens.tests.test_market_reads_scoped.ScopedMarketReadsTest",
@@ -73,6 +75,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_swap_approval_submissions.ScopedSwapApprovalSubmissionTest",
     "tokens.tests.test_swap_execution_recovery.ScopedSwapExecutionRecoveryTest",
     "tokens.tests.test_swap_execution_storage.ScopedSwapExecutionAppStorageTest",
+    "tokens.tests.test_swap_authority_lock_order.ScopedSwapAuthorityLockOrderTest",
     "tokens.tests.test_swap_finality.ScopedSwapFinalityTest",
     "tokens.tests.test_swap_process_concurrency.ScopedSwapWorkersUseOneCurrentClaimTest",
     "tokens.tests.test_signature_admission_processes.ScopedSignatureAdmissionProcessesTest",
@@ -113,6 +116,8 @@ SCOPED_TEST_LABELS = (
     "blockchain.tests.test_monitor_scoped.ScopedMonitorObservationsTest",
     "users.tests.test_notification_tasks_scoped.NotificationTasksUseRecipientRolesTest",
     "users.tests.test_identity_apply_race.ScopedIdentityApplyRaceTest",
+    "users.tests.test_identity_lock_order.ScopedIdentityLockOrderTest",
+    "offerings.tests.test_allotment_lock_order.ScopedAllotmentLockOrderTest",
     "documents.tests.test_extraction_under_scoped_roles.ScopedDocumentExtractionTest",
 )
 
