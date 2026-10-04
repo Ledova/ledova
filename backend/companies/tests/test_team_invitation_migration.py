@@ -186,26 +186,31 @@ class CompanyTeamInvitationMigrationTest(StubUploadDependencies, TransactionTest
         self.migrate(NEW)
         self.assertEqual(self.schema(), upgraded)
 
-    def test_reversal_refuses_unaccepted_and_accepted_invitation_history_without_changing_any_record(self):
+    def assert_invitation_reversal_refused(self, accepted):
         appointment = self.admit()
         invitation, code = self.issue(appointment)
-        for accepted in (False, True):
-            with self.subTest(accepted=accepted):
-                if accepted:
-                    child = accept_team_invitation(
-                        requester=self.invitee,
-                        code=code,
-                        declaration_version=DECLARATION_VERSION,
-                        accept_declaration=True,
-                    )
-                    self.assertEqual(child.invitation_id, invitation.pk)
-                    self.assertIsNone(child.request_id)
-                    self.assertIsNone(child.registry_check_id)
-                before_schema, before_records = self.schema(), self.records()
-                with self.assertRaisesMessage(RuntimeError, "Retain company team invitations and appointments"):
-                    self.migrate(OLD)
-                self.assertEqual(self.schema(), before_schema)
-                self.assertEqual(self.records(), before_records)
+        if accepted:
+            child = accept_team_invitation(
+                requester=self.invitee,
+                code=code,
+                declaration_version=DECLARATION_VERSION,
+                accept_declaration=True,
+            )
+            self.assertEqual(child.invitation_id, invitation.pk)
+            self.assertIsNone(child.request_id)
+            self.assertIsNone(child.registry_check_id)
+        self.migrate(NEW)
+        before_schema, before_records = self.schema(), self.records()
+        with self.assertRaisesMessage(RuntimeError, "Retain company team invitations and appointments"):
+            self.migrate(OLD)
+        self.assertEqual(self.schema(), before_schema)
+        self.assertEqual(self.records(), before_records)
+
+    def test_reversal_refuses_unaccepted_invitation_history_without_changing_any_record(self):
+        self.assert_invitation_reversal_refused(False)
+
+    def test_reversal_refuses_accepted_invitation_history_without_changing_any_record(self):
+        self.assert_invitation_reversal_refused(True)
 
     def test_reversal_refuses_retained_revocation_by_another_actor_before_discarding_its_provenance(self):
         appointment = self.admit()
@@ -222,6 +227,7 @@ class CompanyTeamInvitationMigrationTest(StubUploadDependencies, TransactionTest
                 "ALTER TABLE companies_companyappointmentrevocation "
                 "ENABLE TRIGGER companies_appointment_revocation_identity"
             )
+        self.migrate(NEW)
         before_schema, before_records = self.schema(), self.records()
         with self.assertRaisesMessage(RuntimeError, "Retain company administrator revocations"):
             self.migrate(OLD)
@@ -251,6 +257,7 @@ class CompanyTeamInvitationMigrationTest(StubUploadDependencies, TransactionTest
 
     def test_failed_reversal_rolls_back_the_partially_restored_initial_guard_and_keeps_the_upgrade(self):
         self.admit()
+        self.migrate(NEW)
         before_schema, before_records = self.schema(), self.records()
         migration = import_module("companies.migrations.0017_company_team_invitations")
         original_replace = migration.replace_once

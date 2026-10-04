@@ -31,6 +31,7 @@ from shared.db import use_operator
 from shared.tests.upload_fixtures import StubUploadDependencies
 
 OLD = ("companies", "0014_authority_request_capabilities_refuse_null")
+NEW = ("companies", "0015_self_declared_company_appointments")
 
 
 class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, TransactionTestCase):
@@ -77,13 +78,16 @@ class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, Transaction
             self.assertEqual({field.attname: getattr(before, field.attname) for field in before._meta.fields}, original)
             with before.file.open("rb") as source:
                 self.assertEqual(source.read(), PDF)
-        self.latest()
+        executor = MigrationExecutor(connection)
+        executor.migrate([NEW])
+        historical = executor.loader.project_state([NEW]).apps
         with use_operator():
-            self.assertFalse(CompanyAppointment.objects.exists())
-            self.assertFalse(CompanyAppointmentRevocation.objects.exists())
-            rows = CompanyAuthorityRequest.objects.select_related("withdrawal", "appointment").in_bulk(originals)
-            self.assertEqual(rows[self.proposal.pk].status, "pending")
-            self.assertEqual(rows[withdrawn.pk].status, "withdrawn")
+            self.assertFalse(historical.get_model("companies", "CompanyAppointment").objects.exists())
+            self.assertFalse(historical.get_model("companies", "CompanyAppointmentRevocation").objects.exists())
+            rows = historical.get_model("companies", "CompanyAuthorityRequest").objects.in_bulk(originals)
+            withdrawal_model = historical.get_model("companies", "CompanyAuthorityRequestWithdrawal")
+            self.assertFalse(withdrawal_model.objects.filter(request_id=self.proposal.pk).exists())
+            self.assertTrue(withdrawal_model.objects.filter(request_id=withdrawn.pk).exists())
             for identity, original in originals.items():
                 after = rows[identity]
                 self.assertEqual(
@@ -103,10 +107,12 @@ class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, Transaction
         self.assertEqual(retained.request_digest, self.proposal.request_digest)
         with retained.file.open("rb") as source:
             self.assertEqual(source.read(), PDF)
-        self.latest()
+        executor = MigrationExecutor(connection)
+        executor.migrate([NEW])
         self.assertIn("companies_companyappointment", connection.introspection.table_names())
         with use_operator():
-            self.assertFalse(CompanyAppointment.objects.exists())
+            model = executor.loader.project_state([NEW]).apps.get_model("companies", "CompanyAppointment")
+            self.assertFalse(model.objects.exists())
 
     def test_populated_reversal_refuses_and_preserves_declaration_revocation_and_private_evidence(self):
         with patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)):

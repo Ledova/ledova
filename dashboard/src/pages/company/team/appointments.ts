@@ -34,7 +34,7 @@ export function appointmentReceipt(data: OwnCompanyAppointment) {
     typeof data.company === 'string' &&
     !!data.company &&
     typeof data.companyName === 'string' &&
-    ['initial', 'invitation'].includes(data.source) &&
+    ['initial', 'invitation', 'legacy_owner'].includes(data.source) &&
     ['active', 'expired', 'revoked'].includes(data.status) &&
     typeof data.isEffective === 'boolean' &&
     [data.capabilities, data.delegatableCapabilities].every(
@@ -43,8 +43,10 @@ export function appointmentReceipt(data: OwnCompanyAppointment) {
         new Set(values).size === values.length &&
         values.every((value) => COMPANY_AUTHORITY_CAPABILITIES.some((capability) => capability.value === value)),
     ) &&
-    data.declarationVersion === COMPANY_AUTHORITY_DECLARATION_VERSION &&
-    data.declarationText === COMPANY_AUTHORITY_DECLARATION &&
+    (data.source === 'legacy_owner'
+      ? data.declarationVersion === null && data.declarationText === null
+      : data.declarationVersion === COMPANY_AUTHORITY_DECLARATION_VERSION &&
+        data.declarationText === COMPANY_AUTHORITY_DECLARATION) &&
     Number.isFinite(Date.parse(data.createdAt)) &&
     (data.expiresAt === null || Number.isFinite(Date.parse(data.expiresAt))) &&
     (data.revokedAt === null || Number.isFinite(Date.parse(data.revokedAt))) &&
