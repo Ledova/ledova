@@ -164,12 +164,14 @@ Other representatives receive in-app delegation from authorised company users
 within their recorded delegatable scope. Memberships, capabilities, invitations,
 expiry and revocation remain in scope. Subsequent actions require their applicable
 company mandate, capability and exact approval; self-declaration does not approve
-an issue or payment. Capability bundles and company approval policy still need
-implementation design. The delivered
+an issue or payment. Appointments use flat capabilities; company approval policy
+is implemented with the dependent domain workflows. The delivered
 [initial appointment lifecycle](../plans/company-managed-registers/authority-requests.md)
 records exact self-declaration admission, scope, expiry and self-revocation.
-Invitations, team delegation, legacy-owner migration and dependent domain actions
-remain planned. Pending proposals and withdrawals retain their original history.
+The invitation API supports team delegation, acceptance, administrator reads and
+retained revocation. Team web/mobile screens, legacy-owner migration and dependent
+domain actions remain planned. Pending proposals and withdrawals retain their
+original history.
 
 ## Required self-service workflows
 
