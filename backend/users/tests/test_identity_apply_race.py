@@ -62,7 +62,7 @@ class ScopedIdentityApplyRaceTest(RunsOnTheScopedConnection, TransactionTestCase
         process = identity._process_verified_customer
         arrivals, guard, second = [], Lock(), Event()
 
-        def contended(user_profile, pep_data):
+        def contended(user_profile, pep_data, user_account):
             with guard:
                 arrivals.append(user_profile.pk)
                 first = len(arrivals) == 1
@@ -70,7 +70,7 @@ class ScopedIdentityApplyRaceTest(RunsOnTheScopedConnection, TransactionTestCase
                 second.wait(timeout=2)
             else:
                 second.set()
-            return process(user_profile, pep_data)
+            return process(user_profile, pep_data, user_account)
 
         def as_the_webhook():
             with use_operator():

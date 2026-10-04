@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from web3 import Web3
 
+from companies.models import Company
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
     SubscriptionRefusedException,
@@ -30,6 +31,7 @@ from tokens.models import (
     RegisterInstruction,
     RequestStatus,
     ShareIssuanceRequest,
+    ShareToken,
 )
 from tokens.services import share_token_service
 from users.services.eligibility import require_subscription_eligibility
@@ -548,8 +550,10 @@ def allot(subscription: Subscription, operator_user, notes: str = "", headroom=N
 def _admit_allotment(subscription, operator_user, notes, headroom, supply):
     from tokens.services.issuance_execution import admit_allotment
 
-    offering = Offering.objects.select_for_update().select_related("token").get(pk=subscription.offering_id)
+    offering = _lock_offering(subscription.offering_id)
     locked = _locked(subscription)
+    if locked.offering_id != offering.pk:
+        raise SubscriptionRefusedException("The subscription no longer belongs to this offering.")
     refusal = _not_allottable(locked)
     if refusal is not None:
         raise SubscriptionRefusedException(refusal)
@@ -618,7 +622,7 @@ def _allot_ready(offering_id, ready, operator_user, notes, service) -> int:
     observed = Offering.objects.select_related("token").get(pk=offering_id)
     supply = chain_snapshot(observed, service)
     with atomic():
-        offering = Offering.objects.select_for_update().select_related("token").get(pk=offering_id)
+        offering = _lock_offering(offering_id)
         cap_room, chain_room = offering_headroom(offering, supply=supply)
         room = min(cap_room, chain_room)
         total = sum(subscription.allotment_quantity for subscription in ready)
@@ -631,6 +635,16 @@ def _allot_ready(offering_id, ready, operator_user, notes, service) -> int:
         for subscription in ready:
             _admit_allotment(subscription, operator_user, notes, (cap_room, chain_room), None)
     return len(ready)
+
+
+def _lock_offering(offering_id):
+    observed = Offering.objects.values("token_id", "token__company_id").get(pk=offering_id)
+    company = Company.objects.select_for_update().get(pk=observed["token__company_id"])
+    token = ShareToken.objects.select_for_update(of=("self",)).get(pk=observed["token_id"], company_id=company.pk)
+    offering = Offering.objects.select_for_update(of=("self",)).get(pk=offering_id, token_id=token.pk)
+    token.company = company
+    offering.token = token
+    return offering
 
 
 def retry_allotment(subscription: Subscription, operator_user, *, confirmed) -> Subscription:
