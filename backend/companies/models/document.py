@@ -39,18 +39,6 @@ class DocumentType(models.TextChoices):
     OTHER = "other", "Other"
 
 
-LISTING_REQUIRED_DOCUMENTS = [
-    DocumentType.CERTIFICATE_OF_INCORPORATION,
-    DocumentType.ASIC_EXTRACT,
-    DocumentType.CONSTITUTION,
-    DocumentType.SHARE_REGISTER,
-    DocumentType.FINANCIAL_STATEMENTS,
-    DocumentType.DIRECTOR_ID,
-    DocumentType.BENEFICIAL_OWNERSHIP,
-    DocumentType.BUSINESS_PLAN,
-    DocumentType.RISK_DISCLOSURE,
-]
-
 OFFER_DOCUMENT_TYPES = [
     DocumentType.PROSPECTUS,
     DocumentType.RISK_DISCLOSURE,

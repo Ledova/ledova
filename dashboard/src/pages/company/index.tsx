@@ -85,9 +85,11 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
               <div className="divide-y divide-border-subtle">
                 {data.ownerBusiness && (
                   <>
-                    <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
                     <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
                   </>
+                )}
+                {data.canPersonalAdmin && (
+                  <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
                 )}
                 <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
                 {data.ownerBusiness && (

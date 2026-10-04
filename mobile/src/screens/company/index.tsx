@@ -91,7 +91,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
                 {!!address && <Row label="Address">{address}</Row>}
               </Rows>
               <Rows>
-                {data.ownerBusiness && <LinkRow label="Application" onPress={() => navigation.navigate('Listing')} />}
+                {data.canPersonalAdmin && <LinkRow label="Activation" onPress={() => navigation.navigate('Listing')} />}
                 <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
                 <LinkRow label="Company team" onPress={() => navigation.navigate('CompanyTeam')} />
                 {data.ownerBusiness && (

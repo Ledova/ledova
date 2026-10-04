@@ -6,7 +6,8 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient
 
@@ -16,6 +17,7 @@ from companies.exceptions import (
     OfficeholderAttestationRequiredException,
     RegistryVerificationRequiredException,
 )
+from companies.identity import officeholder_declaration
 from companies.models import (
     Company,
     CompanyStatus,
@@ -43,7 +45,6 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 ACTIVE_ENTRIES = (
-    (CompanyStatus.APPROVED, "activate"),
     (CompanyStatus.WARNING, "resolve_warning"),
     (CompanyStatus.SUSPENDED, "reinstate"),
 )
@@ -64,7 +65,6 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         invite_company_administrator(self.company, appointment, self.operator)
         self.client = APIClient()
         self.lookup = patch(PROVIDER, return_value=matching_observation(self.company)).start()
-        patch("companies.services.company.send_push_notification").start()
         self.addCleanup(patch.stopall)
         self.api_url = f"/api/v1/companies/{self.company.pk}/"
         self.admin_url = reverse("admin:companies_company_change", args=[self.company.pk])
@@ -83,9 +83,23 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         )
         return self.company
 
-    def approve(self):
-        self.set_status(CompanyStatus.REVIEW)
-        self.transition("approve", declaration=DECLARATION)
+    def legacy_recovery_fixture(self):
+        self.set_status(CompanyStatus.WARNING)
+        with use_migrate():
+            self.company.declarant_name = DECLARATION["declarant_name"]
+            self.company.board_resolution_reference = DECLARATION["board_resolution_reference"]
+            self.company.officeholder_attested_by = self.operator
+            self.company.officeholder_attested_at = timezone.now()
+            self.company.officeholder_attestation = officeholder_declaration(self.company)
+            self.company.save(
+                update_fields=[
+                    "declarant_name",
+                    "board_resolution_reference",
+                    "officeholder_attested_by",
+                    "officeholder_attested_at",
+                    "officeholder_attestation",
+                ]
+            )
 
     def admin_action(self, action):
         return reverse("admin:companies_company_transition", args=[self.company.pk, action])
@@ -94,42 +108,39 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.client.force_authenticate(self.operator)
         return self.client.post(f"{self.api_url}status/", {"status": status, **data}, format="json")
 
-    def test_start_review_records_input_attempt_and_entity_outside_a_transaction(self):
-        self.set_status(CompanyStatus.SUBMITTED)
+    def test_technical_retry_records_input_attempt_and_entity_outside_a_transaction(self):
+        self.set_status(CompanyStatus.WARNING)
 
         def observe(**inputs):
             self.assertFalse(connections[current_alias()].in_atomic_block)
             current = Company.objects.get(pk=self.company.pk)
-            self.assertEqual(current.status, CompanyStatus.REVIEW)
+            self.assertEqual(current.status, CompanyStatus.WARNING)
             self.assertEqual(current.registry_status, RegistryCheckStatus.PENDING)
             self.assertIsNone(current.registry_check.completed_at)
             self.assertEqual(inputs, {"acn": "123456780", "abn": ""})
             return matching_observation(current)
 
         self.lookup.side_effect = observe
-        response = self.status_post("review")
-
-        self.assertEqual(response.status_code, 200, response.data)
-        self.company.refresh_from_db()
+        self.transition("retry_registry")
         check = self.company.registry_checks.get()
         self.assertEqual(check.status, RegistryCheckStatus.PASSED)
-        self.assertEqual(check.purpose, RegistryCheckPurpose.REVIEW)
+        self.assertEqual(check.purpose, RegistryCheckPurpose.RETRY)
         self.assertEqual(check.initiated_by, self.operator)
         self.assertEqual(check.requested_name, self.company.name)
         self.assertEqual(check.entity_name, self.company.name)
         self.assertEqual(check.entity_status, "Active")
         self.assertGreaterEqual(check.completed_at, check.started_at)
 
-    def test_review_refuses_an_outer_transaction_before_any_attempt_or_http(self):
-        self.set_status(CompanyStatus.SUBMITTED)
+    def test_technical_retry_refuses_an_outer_transaction_before_any_attempt_or_http(self):
+        self.set_status(CompanyStatus.WARNING)
         with self.assertRaises(RuntimeError):
             with atomic():
-                self.transition("start_review")
+                self.transition("retry_registry")
         self.lookup.assert_not_called()
         self.assertFalse(self.company.registry_checks.exists())
 
-    def test_approval_needs_explicit_named_attestation_but_may_precede_registry_pass(self):
-        self.set_status(CompanyStatus.REVIEW)
+    def test_legacy_technical_recovery_needs_exact_attestation_and_a_registry_pass(self):
+        self.set_status(CompanyStatus.WARNING)
         for declaration in (
             {},
             {**DECLARATION, "attest_officeholder": False},
@@ -138,16 +149,17 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         ):
             with self.subTest(declaration=declaration):
                 with self.assertRaises(OfficeholderAttestationRequiredException):
-                    self.transition("approve", declaration=declaration)
+                    self.transition("resolve_warning", declaration=declaration)
                 self.company.refresh_from_db()
-                self.assertEqual(self.company.status, CompanyStatus.REVIEW)
+                self.assertEqual(self.company.status, CompanyStatus.WARNING)
                 self.assertIsNone(self.company.officeholder_attested_at)
-        self.transition("approve", declaration=DECLARATION)
-        self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+        self.lookup.assert_not_called()
+        self.transition("resolve_warning", declaration=DECLARATION)
+        self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
         self.assertEqual(self.company.officeholder_attested_by, self.operator)
         self.assertTrue(self.company.has_officeholder_attestation)
-        self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
-        self.lookup.assert_not_called()
+        self.assertEqual(self.company.registry_status, RegistryCheckStatus.PASSED)
+        self.lookup.assert_called_once()
 
     def test_every_active_entry_requires_fresh_matching_registry_and_attestation(self):
         for predecessor, method in ACTIVE_ENTRIES:
@@ -167,7 +179,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertEqual(self.lookup.call_count, len(ACTIVE_ENTRIES))
 
     def test_timeout_after_a_pass_refuses_activation_and_retains_the_failed_attempt(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         self.transition("retry_registry")
         previous = self.company.registry_check
         self.assertEqual(previous.status, RegistryCheckStatus.PASSED)
@@ -177,7 +189,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
 
         self.assertEqual(response.status_code, 400, response.data)
         self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+        self.assertEqual(self.company.status, CompanyStatus.WARNING)
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
         self.assertEqual(self.company.registry_reason, "timeout")
         self.assertIsNotNone(self.company.registry_check.completed_at)
@@ -189,7 +201,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertEqual(self.status_post("active").status_code, 200)
 
     def test_a_new_pending_retry_immediately_replaces_the_previous_pass(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         self.transition("retry_registry")
 
         def retry(**kwargs):
@@ -202,17 +214,17 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.transition("retry_registry")
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
 
-    def test_unconfigured_review_records_pending_without_http(self):
+    def test_unconfigured_technical_retry_records_pending_without_http(self):
         with patch(PROVIDER, side_effect=lookup_company):
             with patch("integrations.abr.client.requests.post") as http:
-                self.set_status(CompanyStatus.SUBMITTED)
-                self.transition("start_review")
+                self.set_status(CompanyStatus.WARNING)
+                self.transition("retry_registry")
                 http.assert_not_called()
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
         self.assertEqual(self.company.registry_check.reason, "unconfigured")
 
     def test_registry_refusals_have_a_matching_positive_control(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         observation = matching_observation(self.company)
         cases = (
             (replace(observation, acn="987654320"), "failed", "identifier_mismatch"),
@@ -229,12 +241,12 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             with self.subTest(reason=reason, reply=reply):
                 self.lookup.return_value = reply
                 with self.assertRaises(RegistryVerificationRequiredException):
-                    self.transition("activate")
+                    self.transition("resolve_warning")
                 self.company.refresh_from_db()
-                self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+                self.assertEqual(self.company.status, CompanyStatus.WARNING)
                 self.assertEqual((self.company.registry_status, self.company.registry_reason), (status, reason))
         self.lookup.return_value = replace(observation, entity_name="  SYNTHETIC   EXAMPLE pty Ltd  ")
-        self.transition("activate")
+        self.transition("resolve_warning")
         self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
 
     def test_each_company_type_requires_its_corresponding_registry_type_before_activation(self):
@@ -246,25 +258,25 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             with self.subTest(company_type=company_type):
                 with use_migrate():
                     Company.objects.filter(pk=self.company.pk).update(company_type=company_type)
-                self.approve()
+                self.legacy_recovery_fixture()
                 observation = matching_observation(self.company)
                 self.lookup.return_value = replace(observation, entity_type=contradictory)
 
                 with self.assertRaises(RegistryVerificationRequiredException):
-                    self.transition("activate")
+                    self.transition("resolve_warning")
 
                 self.company.refresh_from_db()
-                self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+                self.assertEqual(self.company.status, CompanyStatus.WARNING)
                 self.assertEqual(self.company.registry_status, RegistryCheckStatus.FAILED)
                 self.assertEqual(self.company.registry_reason, "entity_type_mismatch")
                 self.assertEqual(self.company.registry_check.entity_type, contradictory)
                 self.lookup.return_value = replace(observation, entity_type=expected)
-                self.transition("activate")
+                self.transition("resolve_warning")
                 self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
                 self.assertEqual(self.company.registry_check.entity_type, expected)
 
     def test_missing_and_unsupported_registry_types_remain_pending_and_refuse_activation(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         observation = matching_observation(self.company)
         for entity_type, reason in (
             ("", "incomplete_identity"),
@@ -273,21 +285,21 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             ("IND", "unknown_entity_type"),
         ):
             with self.subTest(entity_type=entity_type):
-                self.set_status(CompanyStatus.APPROVED)
+                self.set_status(CompanyStatus.WARNING)
                 self.lookup.return_value = replace(observation, entity_type=entity_type)
                 with self.assertRaises(RegistryVerificationRequiredException):
-                    self.transition("activate")
+                    self.transition("resolve_warning")
                 self.company.refresh_from_db()
-                self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+                self.assertEqual(self.company.status, CompanyStatus.WARNING)
                 self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
                 self.assertEqual(self.company.registry_reason, reason)
                 self.assertEqual(self.company.registry_check.entity_type, entity_type)
-        self.set_status(CompanyStatus.APPROVED)
+        self.set_status(CompanyStatus.WARNING)
         self.lookup.return_value = observation
-        self.transition("activate")
+        self.transition("resolve_warning")
         self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
 
-    def test_a_bulk_review_post_performs_no_lookups_and_individual_review_still_works(self):
+    def test_retired_bulk_and_individual_review_cannot_create_provider_attempts(self):
         self.set_status(CompanyStatus.SUBMITTED)
         with use_migrate():
             second = Company.objects.create(
@@ -299,46 +311,47 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             changelist,
             {"action": "start_review_action", "_selected_action": [str(self.company.pk), str(second.pk)], "index": 0},
         )
-
         self.assertEqual(response.status_code, 200)
-        self.lookup.assert_not_called()
-        self.company.refresh_from_db()
-        second.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.SUBMITTED)
-        self.assertEqual(second.status, CompanyStatus.SUBMITTED)
-        self.assertFalse(self.company.registry_checks.exists())
-        self.assertFalse(second.registry_checks.exists())
         self.assertNotContains(self.client.get(changelist), "Start review for selected submitted applications")
-
-        page = self.client.get(self.admin_action("start-review"))
+        with self.assertRaises(NoReverseMatch):
+            self.admin_action("start-review")
+        for method in ("get", "post"):
+            response = getattr(self.client, method)(
+                f"/admin/companies/company/{self.company.pk}/start-review/", {"confirm": True}
+            )
+            self.assertIn(response.status_code, (302, 404))
+        self.lookup.assert_not_called()
+        for company in (self.company, second):
+            company.refresh_from_db()
+            self.assertEqual(company.status, CompanyStatus.SUBMITTED)
+            self.assertFalse(company.registry_checks.exists())
+        self.set_status(CompanyStatus.WARNING)
+        page = self.client.get(self.admin_action("retry-registry"))
         self.assertEqual(page.status_code, 200)
         self.lookup.assert_not_called()
-        response = self.client.post(self.admin_action("start-review"), {"confirm": True})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.post(self.admin_action("retry-registry"), {"confirm": True}).status_code, 302)
         self.lookup.assert_called_once_with(acn=self.company.acn, abn="")
         self.company.refresh_from_db()
-        second.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.REVIEW)
+        self.assertEqual(self.company.status, CompanyStatus.WARNING)
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PASSED)
-        self.assertEqual(second.status, CompanyStatus.SUBMITTED)
         self.assertFalse(second.registry_checks.exists())
 
     def test_supplied_abn_must_match_and_acn_fallback_does_not_fill_application_abn(self):
-        self.approve()
-        self.transition("activate")
+        self.legacy_recovery_fixture()
+        self.transition("resolve_warning")
         self.assertEqual(self.company.abn, "")
         self.assertEqual(self.company.registry_check.registry_abn, "99123456780")
-        self.set_status(CompanyStatus.APPROVED)
+        self.set_status(CompanyStatus.WARNING)
         with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(abn="98123456780")
         self.company.refresh_from_db()
         with self.assertRaises(RegistryVerificationRequiredException):
-            self.transition("activate", declaration=DECLARATION)
+            self.transition("resolve_warning", declaration=DECLARATION)
         self.company.refresh_from_db()
         self.assertEqual(self.company.registry_reason, "identifier_mismatch")
 
     def test_out_of_order_completion_keeps_the_newer_observation_current(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         with atomic():
             first = begin_registry_check(self.company, RegistryCheckPurpose.RETRY, self.operator)
             second = begin_registry_check(self.company, RegistryCheckPurpose.RETRY, self.operator)
@@ -364,7 +377,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertEqual(check.status, RegistryCheckStatus.PASSED)
 
     def test_concurrent_lifecycle_change_defeats_a_passing_activation_lookup(self):
-        self.approve()
+        self.legacy_recovery_fixture()
 
         def observe(**kwargs):
             current = Company.objects.get(pk=self.company.pk)
@@ -373,14 +386,14 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
 
         self.lookup.side_effect = observe
         with self.assertRaises(InvalidStatusTransitionException):
-            self.transition("activate")
+            self.transition("resolve_warning")
         self.company.refresh_from_db()
         self.assertEqual(self.company.status, CompanyStatus.DELISTED)
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
         self.assertEqual(self.company.registry_check.status, RegistryCheckStatus.PASSED)
 
     def test_attestation_snapshot_refuses_a_changed_declaration_or_identity(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         for field, changed in (
             ("declarant_name", "Other declarant"),
             ("board_resolution_reference", "BR-002"),
@@ -390,12 +403,12 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             setattr(self.company, field, changed)
             self.assertFalse(self.company.has_officeholder_attestation)
             with self.assertRaises(OfficeholderAttestationRequiredException):
-                self.company.activate()
+                self.company.resolve_warning()
             setattr(self.company, field, original)
         self.assertTrue(self.company.has_officeholder_attestation)
 
     def test_concurrent_identity_change_cannot_activate_from_the_previous_name(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         previous_identity = matching_observation(self.company)
 
         def observe(**kwargs):
@@ -405,14 +418,14 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
 
         self.lookup.side_effect = observe
         with self.assertRaises(OfficeholderAttestationRequiredException):
-            self.transition("activate")
+            self.transition("resolve_warning")
         self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+        self.assertEqual(self.company.status, CompanyStatus.WARNING)
         self.assertEqual(self.company.registry_status, RegistryCheckStatus.PENDING)
         self.assertEqual(self.company.registry_check.status, RegistryCheckStatus.PASSED)
 
     def test_admin_status_field_cannot_bypass_activation(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         self.client.force_login(self.operator)
         page = self.client.get(self.admin_url)
         form = page.context["adminform"].form
@@ -429,12 +442,12 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         self.assertEqual(response.status_code, 302)
         self.company.refresh_from_db()
         self.assertEqual(self.company.description, "Description saved")
-        self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+        self.assertEqual(self.company.status, CompanyStatus.WARNING)
         self.assertFalse(self.company.registry_checks.exists())
 
     def test_stale_api_and_admin_description_saves_preserve_suspension_and_new_attestation(self):
-        self.approve()
-        self.transition("activate")
+        self.legacy_recovery_fixture()
+        self.transition("resolve_warning")
         stale_api = Company.objects.get(pk=self.company.pk)
         stale_admin = Company.objects.get(pk=self.company.pk)
         serializer = CompanyUpdateSerializer(
@@ -481,8 +494,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
         )
         serializer.is_valid(raise_exception=True)
         stale = Company.objects.get(pk=self.company.pk)
-        self.transition("submit", submitted_by=self.owner)
-        self.transition("start_review")
+        self.set_status(CompanyStatus.WARNING)
         with self.assertRaises(ValidationError):
             serializer.save()
         model_admin = CompanyAdmin(Company, AdminSite())
@@ -495,7 +507,7 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
             )
         self.company.refresh_from_db()
         self.assertEqual(self.company.name, "Synthetic Example Pty Ltd")
-        self.transition("request_info", reason="Correct the registered name")
+        self.set_status(CompanyStatus.INFO_REQUIRED)
         updated = update_company(stale, {"name": "Edited Pty Ltd"}, actor=self.owner)
         self.assertEqual(updated.name, "Edited Pty Ltd")
         self.assertEqual(updated.registry_status, RegistryCheckStatus.PENDING)
@@ -545,10 +557,10 @@ class CompanyRegistryVerificationTest(TransactionTestCase):
                 self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
 
     def test_review_details_are_private_and_ordinary_writes_cannot_forge_them(self):
-        self.approve()
+        self.legacy_recovery_fixture()
         self.transition("retry_registry")
         self.client.force_login(self.operator)
-        page = self.client.get(self.admin_action("activate"))
+        page = self.client.get(self.admin_action("resolve-warning"))
         self.assertContains(page, self.operator.email)
         self.assertContains(page, self.company.name)
         page = self.client.get(self.admin_url)

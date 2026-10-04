@@ -23,7 +23,9 @@ Expiry and revocation block new administrative effects; API, service and databas
 controls enforce company isolation and reject SQL/ORM forgery.
 Current owners retain bounded metadata reads and their existing domain conditions;
 this read access supplies no administrative capability or private document access.
-Dependent domain workflows in #863–#873 remain planned.
+The [administrator activation increment](../plans/company-managed-registers/company-activation.md)
+adds evidenced company activation without routine staff onboarding. Company-specific
+participant eligibility remains part of #863; dependent workflows #864–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -44,7 +46,7 @@ A private internal instance uses the same software, features
 and authority model. Hosting does not select a separately maintained product.
 This decision does not change the software licence or establish a legal finding.
 
-Today, companies submit proposals that only platform staff can review and apply;
+Several remaining domain workflows submit proposals that only platform staff can review and apply;
 some submissions lack client forms. Staff also handle payment, allotment and
 publication work. Replace these dependencies with explicit company authority
 and participant-facing tools while preserving evidence and durable history.
@@ -229,7 +231,7 @@ flowchart LR
 
 | Current implementation                                                               | Change needed                                                                                                                                                                  |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Staff company approval/activation, offering publication and classification review    | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
+| Staff offering publication and classification review                                 | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
 | `Company.owner`, global staff groups and model permissions                           | Company memberships/capabilities, mandates and revocation                                                                                                                      |
 | Owner proposal APIs, several without forms                                           | Company prepare/preview/approve/apply client actions                                                                                                                           |
 | Staff evidence review and register-opening/link/instruction/import/correction guards | Company authority at API, service, worker, policy and trigger boundaries                                                                                                       |

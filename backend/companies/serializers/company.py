@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from companies.models import Company, CompanyCapability, CompanyDocument, CompanyStatus
 from companies.serializers.document import CompanyDocumentSerializer
+from companies.services.activation import company_activation
 from companies.services.administration import (
     company_administrative_access,
     company_contact,
@@ -82,7 +83,44 @@ class CompanyListSerializer(_CompanyAdministrativeSerializer):
         read_only_fields = fields
 
 
+class CompanyActivationAttemptSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField(read_only=True)
+    idempotency_key = serializers.UUIDField(read_only=True)
+    appointment = serializers.UUIDField(source="initiating_appointment_id", read_only=True)
+    lifecycle_revision = serializers.IntegerField(read_only=True)
+    status = serializers.ChoiceField(choices=["pending", "passed", "failed"], read_only=True)
+    reason = serializers.CharField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True)
+    completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    applied_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    declaration_version = serializers.CharField(read_only=True)
+    declaration_text = serializers.CharField(read_only=True)
+
+
+class CompanyActivationSerializer(serializers.Serializer):
+    appointment = serializers.UUIDField(read_only=True)
+    lifecycle_revision = serializers.IntegerField(read_only=True)
+    declaration_version = serializers.CharField(read_only=True)
+    declaration_text = serializers.CharField(read_only=True)
+    latest_attempt = CompanyActivationAttemptSerializer(read_only=True, allow_null=True)
+
+
+class CompanyActivateSerializer(serializers.Serializer):
+    idempotency_key = serializers.UUIDField()
+    appointment = serializers.UUIDField()
+    lifecycle_revision = serializers.IntegerField(min_value=0)
+    declaration_version = serializers.CharField(max_length=10)
+    accept_declaration = serializers.BooleanField()
+
+
 class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
+
+    activation = serializers.SerializerMethodField()
+
+    @extend_schema_field(CompanyActivationSerializer(allow_null=True))
+    def get_activation(self, obj):
+        readiness = company_activation(obj, getattr(self.context.get("request"), "user", None))
+        return CompanyActivationSerializer(readiness).data if readiness is not None else None
 
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     company_type_display = serializers.CharField(
@@ -170,6 +208,7 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
             "documents",
             "created_at",
             "updated_at",
+            "activation",
             "is_owner",
             "administrative_access",
         ]
@@ -296,7 +335,9 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
 
 class CompanyStatusUpdateSerializer(serializers.Serializer):
 
-    status = serializers.ChoiceField(choices=CompanyStatus.choices)
+    status = serializers.ChoiceField(
+        choices=[CompanyStatus.ACTIVE, CompanyStatus.WARNING, CompanyStatus.SUSPENDED, CompanyStatus.DELISTED]
+    )
     reason = serializers.CharField(required=False, allow_blank=True)
     declarant_name = serializers.CharField(max_length=255, required=False)
     board_resolution_reference = serializers.CharField(max_length=255, required=False)
@@ -306,71 +347,10 @@ class CompanyStatusUpdateSerializer(serializers.Serializer):
         new_status = data["status"]
 
         if new_status in [
-            CompanyStatus.REJECTED,
             CompanyStatus.SUSPENDED,
             CompanyStatus.WARNING,
             CompanyStatus.DELISTED,
-            CompanyStatus.INFO_REQUIRED,
         ] and not data.get("reason"):
             raise serializers.ValidationError({"reason": f"Reason is required when changing status to {new_status}."})
 
         return data
-
-
-class ApplicationSubmitSerializer(serializers.Serializer):
-
-    confirm = serializers.BooleanField(
-        required=True,
-        help_text="Confirm that all information is accurate and complete.",
-    )
-
-    def validate_confirm(self, value):
-        if not value:
-            raise serializers.ValidationError("You must confirm that all information is accurate and complete.")
-        return value
-
-
-class ApplicationResubmitSerializer(serializers.Serializer):
-
-    response = serializers.CharField(
-        required=True,
-        help_text="Response to the information request.",
-    )
-
-
-class ApplicationWithdrawSerializer(serializers.Serializer):
-
-    reason = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        help_text="Optional reason for withdrawal.",
-    )
-
-
-class ApplicationStatusSerializer(serializers.ModelSerializer):
-
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
-
-    class Meta:
-        model = Company
-        fields = [
-            "uuid",
-            "name",
-            "status",
-            "status_display",
-            "submitted_at",
-            "review_started_at",
-            "review_completed_at",
-            "info_requested_at",
-            "info_request_reason",
-            "approved_at",
-            "activated_at",
-            "rejection_reason",
-            "rejection_at",
-            "withdrawn_at",
-            "withdrawal_reason",
-            "is_pending_review",
-            "is_approved",
-            "is_active",
-        ]
-        read_only_fields = fields

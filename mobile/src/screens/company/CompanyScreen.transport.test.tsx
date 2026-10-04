@@ -6,11 +6,12 @@ import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
+import * as Crypto from 'expo-crypto';
 import {
   ApiClientProvider,
   AUTH_ENDPOINTS,
   USER_PREFERENCES_QUERY_KEY,
-  REQUIRED_DOCUMENTS,
+  COMPANY_DOCUMENT_TYPES,
   type CompanyDocument,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -19,6 +20,9 @@ import { invalidateSessionScope } from '../../services/sessionScope';
 import { companyDetail, companyPreferences, companyQueryClient } from '../../testSupport/companyAdministration';
 import { cache, files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyScreen } from '.';
+import { ListingScreen } from '../listing';
+
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: jest.fn() }) }));
 jest.mock('expo-secure-store', () => ({
@@ -47,6 +51,8 @@ let failDetail = false;
 let detailControl: ((config: InternalAxiosRequestConfig) => Promise<ReturnType<typeof response>>) | null;
 let patchControl: ((config: InternalAxiosRequestConfig) => Promise<ReturnType<typeof response>>) | null;
 let fileControl: ((config: InternalAxiosRequestConfig) => Promise<ReturnType<typeof response>>) | null;
+let activationInterceptor: number | undefined;
+let activationControl: ((config: InternalAxiosRequestConfig) => Promise<ReturnType<typeof response>>) | null;
 let refreshControl: ((config: InternalAxiosRequestConfig) => Promise<ReturnType<typeof response>>) | null;
 
 function response(config: InternalAxiosRequestConfig, data: unknown, status = 200, headers = {}) {
@@ -67,6 +73,7 @@ beforeEach(async () => {
   multiple = false;
   wrongUpload = false;
   refuseDelete = false;
+  activationControl = null;
   patchControl = null;
   fileControl = null;
   refreshControl = null;
@@ -126,6 +133,8 @@ beforeEach(async () => {
       current = { ...current, ...JSON.parse(config.data) };
       return response(config, { ...current });
     }
+    if (config.method === 'post' && config.url === `${DETAIL}activate/` && activationControl)
+      return activationControl(config);
     if (config.method === 'post' && config.url === `${DETAIL}documents/`) {
       const input = Object.fromEntries((config.data as FormData).entries());
       const document: CompanyDocument = {
@@ -163,6 +172,8 @@ beforeEach(async () => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  if (activationInterceptor !== undefined) apiClient.interceptors.request.eject(activationInterceptor);
+  activationInterceptor = undefined;
   apiClient.defaults.adapter = originalAdapter;
   apiClient.defaults.baseURL = originalBase;
   if (originalEnvironment === undefined) delete process.env.EXPO_PUBLIC_API_URL;
@@ -308,7 +319,7 @@ it('does not replay a refused PATCH into a changed account after actual bearer r
 
 async function chooseDocument() {
   const view = await screen();
-  await fireEvent.press(view.getByRole('button', { name: `Upload ${REQUIRED_DOCUMENTS[0].label}` }));
+  await fireEvent.press(view.getByRole('button', { name: `Upload ${COMPANY_DOCUMENT_TYPES[0].label}` }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));
   await view.findByText('1.pdf');
   return view;
@@ -601,7 +612,8 @@ it('refuses a held document receipt after list-only admin loss while the same co
   current = { ...current, administrativeAccess: { capabilities: [], draftSetup: false } };
   await act(() => client.invalidateQueries({ queryKey: ['companies'] }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'View 1.pdf' })).toBeNull());
-  expect(view.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Activation' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Representative authority' })).toBeTruthy();
   expect(view.getByRole('button', { name: 'Create share class' })).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Edit company' })).toBeNull();
   expect(client.getQueryCache().findAll({ queryKey: ['company'] })[0]!.state.data).toEqual(cached);
@@ -613,3 +625,98 @@ it('refuses a held document receipt after list-only admin loss while the same co
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
   expect(Array.from(files.keys()).filter((uri) => uri.startsWith(`${cache}ledova-document-views`))).toEqual([]);
 });
+
+async function activationScreen() {
+  jest.mocked(Crypto.randomUUID).mockReturnValue('70000000-0000-4000-8000-000000000001');
+  current = {
+    ...current,
+    activation: {
+      appointment: '80000000-0000-4000-8000-000000000001',
+      lifecycleRevision: 2,
+      declarationVersion: '2026-10-04',
+      declarationText: 'Synthetic current declaration',
+      latestAttempt: null,
+    },
+  };
+  const view = await render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <ListingScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await fireEvent.press(await view.findByRole('button', { name: 'Review activation' }));
+  await fireEvent.press(await view.findByRole('button', { name: 'I accept this declaration for this company.' }));
+  return view;
+}
+
+it('dispatches current appointed-investor activation through actual authenticated Axios and consumes its exact rendered receipt', async () => {
+  activationControl = async (config) => {
+    const request = JSON.parse(config.data);
+    expect(request).toEqual({
+      idempotencyKey: '70000000-0000-4000-8000-000000000001',
+      appointment: '80000000-0000-4000-8000-000000000001',
+      lifecycleRevision: 2,
+      declarationVersion: '2026-10-04',
+      acceptDeclaration: true,
+    });
+    expect(config.headers.Authorization).toBe('Bearer synthetic-access');
+    const attempt = {
+      uuid: '90000000-0000-4000-8000-000000000001',
+      ...request,
+      status: 'failed' as const,
+      reason: 'unconfigured',
+      startedAt: '2026-10-05T01:00:00Z',
+      completedAt: '2026-10-05T01:00:01Z',
+      appliedAt: null,
+      declarationText: 'Synthetic current declaration',
+    };
+    current = { ...current, activation: { ...current.activation!, latestAttempt: attempt } };
+    return response(config, { company: current, attempt });
+  };
+  const view = await activationScreen();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm activation' }));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm activation' })).toBeNull());
+  expect(sent.filter((config) => config.url === `${DETAIL}activate/`)).toHaveLength(1);
+  expect(await view.findByText(/No activation was applied. The ABR lookup is not configured/)).toBeTruthy();
+  expect(view.queryByRole('alert')).toBeNull();
+});
+
+it.each(['appointment', 'list capability', 'session'] as const)(
+  'refuses actual activation dispatch after held %s loss',
+  async (kind) => {
+    const entered = deferred<InternalAxiosRequestConfig>();
+    const held = deferred<void>();
+    activationInterceptor = apiClient.interceptors.request.use(async (config) => {
+      if (config.url === `${DETAIL}activate/`) {
+        entered.resolve(config);
+        await held.promise;
+      }
+      return config;
+    });
+    const writes = jest.spyOn(apiClient, 'post');
+    const view = await activationScreen();
+    await fireEvent.press(view.getByRole('button', { name: 'Confirm activation' }));
+    await entered.promise;
+    await act(() => {
+      if (kind === 'session') invalidateSessionScope();
+      else if (kind === 'list capability')
+        client.setQueryData(client.getQueryCache().findAll({ queryKey: ['companies'] })[0]!.queryKey, [
+          { ...current, administrativeAccess: { capabilities: [], draftSetup: false } },
+        ]);
+      else
+        client.setQueryData(client.getQueryCache().findAll({ queryKey: ['company', current.uuid] })[0]!.queryKey, {
+          ...current,
+          activation: { ...current.activation!, appointment: '80000000-0000-4000-8000-000000000002' },
+        });
+    });
+    const dispatched = writes.mock.results[0]!.value as Promise<unknown>;
+    await act(async () => {
+      held.resolve();
+      await dispatched.catch(() => undefined);
+    });
+    expect(sent.filter((config) => config.url === `${DETAIL}activate/`)).toEqual([]);
+    await expect(dispatched).rejects.toMatchObject({ isUserFriendly: true });
+    writes.mockRestore();
+  },
+);

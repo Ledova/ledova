@@ -4,7 +4,7 @@ import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { apiErrorSentence, createUserFriendlyError, uploadCompanyDocument, type DocumentType } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { CompanyReadNotice, type CompanyActionRead } from '../CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
 
 export function UploadModal({
   companyUuid,

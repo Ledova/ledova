@@ -1,83 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
-import { Text, TextInput, View, RefreshControl } from 'react-native';
+import { useState } from 'react';
+import { Text, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  OPTIONAL_DOCUMENTS,
-  REQUIRED_DOCUMENTS,
-  formatDate,
-  getErrorMessage,
-  getOperator,
-  type CompanyDocument,
-  type DocumentType,
-} from '@ledova/shared';
+import * as Crypto from 'expo-crypto';
+import { companyActivationOutcome, formatDate, useCompanyActivation } from '@ledova/shared';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
+import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
-import { CompanyUpload } from '../company/CompanyUpload';
 import { CompanySelection } from '../company/CompanySelection';
-import { DocumentEntry } from '../company/DocumentEntry';
-import { useCompanyDocuments } from './useCompanyDocuments';
-
-const ACTION_ERROR = 'The request was refused. Please try again.';
 
 export function ListingScreen() {
-  const data = useCompanyDocuments();
-  return <ListingDetails key={`${data.scopeKey}/${data.companyUuid ?? 'unselected'}`} data={data} />;
+  const read = useCompanyProfile({ personalOnly: true });
+  return <ActivationDetails key={`${read.scopeKey}/${read.companyUuid ?? ''}`} read={read} />;
 }
 
-function ListingDetails({ data }: { data: ReturnType<typeof useCompanyDocuments> }) {
+function ActivationDetails({ read }: { read: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
-  const { company, documents, canEdit, deletion, submission, resubmission, withdrawal } = data;
-  const [upload, setUpload] = useState<{ company: string; type: DocumentType; label: string } | null>(null);
-  const [withdrawing, setWithdrawing] = useState<{ company: string } | null>(null);
-  const [withdrawReason, setWithdrawReason] = useState('');
-  const [removing, setRemoving] = useState<{ company: string; document: CompanyDocument } | null>(null);
-  const [response, setResponse] = useState('');
-  const [responseCompany, setResponseCompany] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const mounted = useRef(true);
-  const pending = useRef(false);
-  const removal = useRef<typeof removing>(null);
-  const withdrawalTarget = useRef<typeof withdrawing>(null);
-  useEffect(
-    () => () => {
-      mounted.current = false;
-      removal.current = null;
-      withdrawalTarget.current = null;
-    },
-    [],
-  );
-  const assertOpen = () => {
-    if (!mounted.current) throw new Error('This application is no longer open.');
-  };
-  const operator = useQuery({
-    queryKey: ['operator'],
-    queryFn: () => getOperator(apiClient),
-    staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-    enabled: data.ownerBusiness,
-  });
-  const operatorName = operator.isError ? 'The operator' : operator.data?.data.name || 'The operator';
-  const busy = deletion.isPending || submission.isPending || resubmission.isPending || withdrawal.isPending;
-  const ready = !!company && data.ownerBusiness && !data.error && !data.isRefreshing;
-  const canWithdraw = company?.status === 'submitted' || company?.status === 'info_required';
-  const missing = REQUIRED_DOCUMENTS.filter(
-    ({ type }) => !documents.some((document) => document.documentType === type),
-  );
-  const canSubmit = ready && company.status === 'draft' && missing.length === 0 && !busy;
-  const canResubmit =
-    ready &&
-    company.status === 'info_required' &&
-    missing.length === 0 &&
-    responseCompany === company.uuid &&
-    response.trim() !== '' &&
-    !busy;
+  const action = useCompanyActivation(apiClient, read, () => Crypto.randomUUID());
+  const { company } = read;
   const events = company
     ? [
         ['Submitted', company.submittedAt],
@@ -91,382 +36,142 @@ function ListingDetails({ data }: { data: ReturnType<typeof useCompanyDocuments>
         .flatMap(([label, at]) => (at ? [{ label: label!, at }] : []))
         .sort((a, b) => a.at.localeCompare(b.at))
     : [];
-  const submit = async () => {
-    if (!canSubmit || pending.current || !mounted.current) return;
-    pending.current = true;
-    setActionError(null);
-    try {
-      await submission.mutateAsync({ companyUuid: company.uuid, assertCurrent: assertOpen });
-    } catch (error) {
-      setActionError(getErrorMessage(error, ACTION_ERROR));
-      pending.current = false;
-    }
-  };
-  const resubmit = async () => {
-    if (!canResubmit || pending.current || !mounted.current) return;
-    pending.current = true;
-    setActionError(null);
-    try {
-      await resubmission.mutateAsync({
-        companyUuid: company.uuid,
-        response: response.trim(),
-        assertCurrent: assertOpen,
-      });
-      setResponse('');
-      setResponseCompany(null);
-    } catch (error) {
-      setActionError(getErrorMessage(error, ACTION_ERROR));
-      pending.current = false;
-    }
-  };
-  const withdraw = async () => {
-    if (
-      !ready ||
-      !canWithdraw ||
-      !withdrawing ||
-      company.uuid !== withdrawing.company ||
-      busy ||
-      pending.current ||
-      withdrawalTarget.current !== withdrawing
-    )
-      return;
-    pending.current = true;
-    const target = withdrawing;
-    const guard = () => {
-      assertOpen();
-      if (withdrawalTarget.current !== target) throw new Error('This withdrawal is no longer open.');
-    };
-    try {
-      await withdrawal.mutateAsync({
-        companyUuid: withdrawing.company,
-        reason: withdrawReason.trim(),
-        assertCurrent: guard,
-      });
-      withdrawalTarget.current = null;
-      setWithdrawing(null);
-      setWithdrawReason('');
-    } catch {
-    } finally {
-      pending.current = false;
-    }
-  };
-  const remove = async () => {
-    if (
-      !ready ||
-      !canEdit ||
-      !removing ||
-      company.uuid !== removing.company ||
-      busy ||
-      pending.current ||
-      removal.current !== removing
-    )
-      return;
-    pending.current = true;
-    const target = removing;
-    const guard = () => {
-      assertOpen();
-      if (removal.current !== target) throw new Error('This removal is no longer open.');
-    };
-    try {
-      await deletion.mutateAsync({
-        companyUuid: removing.company,
-        documentUuid: removing.document.uuid,
-        assertCurrent: guard,
-      });
-      removal.current = null;
-      setRemoving(null);
-    } catch {
-    } finally {
-      pending.current = false;
-    }
-  };
-  const documentSection = (title: string, types: { type: DocumentType; label: string }[], required: boolean) => (
-    <Section title={title}>
-      {types.map(({ type, label }, index) => {
-        const matches = documents.filter((document) => document.documentType === type);
-        return (
-          <View key={type} style={[styles.entry, index === types.length - 1 && styles.lastEntry]}>
-            <Text style={styles.heading}>{label}</Text>
-            <Text style={styles.muted}>{matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}</Text>
-            {matches.map((document) => (
-              <DocumentEntry
-                key={document.uuid}
-                document={document}
-                read={data}
-                companyUuid={company!.uuid}
-                editable={canEdit}
-                removable={ready && !busy}
-                onRemove={() => {
-                  deletion.reset();
-                  const target = { company: company!.uuid, document };
-                  removal.current = target;
-                  setRemoving(target);
-                }}
-              />
-            ))}
-            {canEdit && matches.length === 0 && type !== 'other' && (
-              <Action
-                label={`Upload ${label}`}
-                disabled={!ready || busy}
-                onPress={() => setUpload({ company: company!.uuid, type, label })}
-              />
-            )}
-          </View>
-        );
-      })}
-    </Section>
-  );
-  if (!data.access.allowed)
-    return (
-      <Page title="Application">
-        <Text style={styles.muted}>
-          {data.access.isLoading
-            ? 'Loading your company access…'
-            : 'Verify your company access before opening Application.'}
-        </Text>
-        {data.access.isError && <Action label="Retry company access" onPress={() => void data.access.refetch()} />}
-      </Page>
-    );
   return (
     <>
       <Page
-        testID="application-screen"
-        title="Application"
+        title="Activation"
+        testID="activation-screen"
         actions={
           <Action
             label="Back to Company"
             onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })}
           />
         }
-        refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void data.refetch()} />}
+        refreshControl={<RefreshControl refreshing={read.isRefreshing} onRefresh={() => void read.refetch()} />}
       >
-        <CompanySelection read={data} />
-        {data.isLoading ? (
+        <CompanySelection read={read} />
+        {action.busy && (
+          <Text accessibilityRole="alert" style={styles.muted}>
+            Checking activation…
+          </Text>
+        )}
+        {read.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
-        ) : data.error ? (
-          <CompanyReadNotice read={data} />
+        ) : read.error ? (
+          <CompanyReadNotice read={read} />
         ) : !company ? (
-          <Text style={styles.muted}>No company found. Please register your company first.</Text>
+          <Text style={styles.muted}>
+            {read.companies.length
+              ? 'Choose a company above.'
+              : 'A current personal administrator appointment is required to activate a company.'}
+          </Text>
         ) : (
           <>
-            <Section title="Application record">
+            <Section title="Company activation">
               <Text style={styles.text}>{company.name}</Text>
+              <Text style={styles.muted}>
+                Company information is provided by the company. Activation records your declaration and the configured
+                identity and ABR checks. It does not approve an offering, issue shares or approve a wallet.
+              </Text>
               <Rows>
                 <Row label="Status">{company.statusDisplay}</Row>
-                {events.map(({ label, at }) => (
-                  <Row key={label} label={label}>
-                    {formatDate(at)}
-                  </Row>
-                ))}
               </Rows>
-              {company.status === 'submitted' && (
-                <Text style={styles.muted}>Your application is waiting for {operatorName} to start the review.</Text>
-              )}
-              {company.status === 'review' && (
-                <Text style={styles.muted}>
-                  {operatorName} is reviewing your application. Withdrawal is no longer available once review has
-                  started.
-                </Text>
-              )}
-              {!!company.rejectionReason && (
-                <Text style={styles.muted}>Rejection reason: {company.rejectionReason}</Text>
-              )}
-              {!!company.withdrawalReason && (
-                <Text style={styles.muted}>Withdrawal reason: {company.withdrawalReason}</Text>
-              )}
-              {!!company.infoRequestReason && (
+              {company.status === 'active' && <Text style={styles.muted}>This company is active.</Text>}
+              {action.latestAttempt && (
                 <View style={styles.group}>
-                  <Text style={styles.heading}>Information requested</Text>
-                  <Text style={styles.text}>{company.infoRequestReason}</Text>
+                  <Text style={styles.muted}>{companyActivationOutcome(action.latestAttempt)}</Text>
+                  <Text style={styles.muted}>This attempt was recorded from your administrator appointment.</Text>
                 </View>
               )}
-              {!!company.additionalInfoResponse && (
-                <View style={styles.group}>
-                  <Text style={styles.heading}>Your previous response</Text>
-                  <Text style={styles.text}>{company.additionalInfoResponse}</Text>
-                </View>
-              )}
-              {canWithdraw && (
+              {action.canActivate && (
                 <Action
-                  label="Withdraw application"
-                  disabled={!ready || busy}
-                  onPress={() => {
-                    withdrawal.reset();
-                    const target = { company: company.uuid };
-                    setWithdrawing(target);
-                    withdrawalTarget.current = target;
-                    setWithdrawReason('');
-                  }}
+                  label={action.latestAttempt ? 'Try activation again' : 'Review activation'}
+                  primary
+                  disabled={action.busy || read.isRefreshing}
+                  onPress={() => void action.open()}
                 />
               )}
             </Section>
-            {documentSection('Required documents', REQUIRED_DOCUMENTS, true)}
-            {documentSection('Optional documents', OPTIONAL_DOCUMENTS, false)}
-            {company.status === 'info_required' && (
-              <Section title="Your response">
-                <Text style={styles.muted}>
-                  Answer the request, upload the documents it asks for, then resubmit your application.
-                </Text>
-                <Text style={styles.text}>Response to the operator</Text>
-                <TextInput
-                  accessibilityLabel="Response to the operator"
-                  style={styles.input}
-                  multiline
-                  value={response}
-                  editable={!busy}
-                  onChangeText={(value) => {
-                    setResponseCompany(company.uuid);
-                    setResponse(value);
-                  }}
-                />
-                {responseCompany && responseCompany !== company.uuid && (
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    This response belongs to another company. Edit it before continuing.
-                  </Text>
+            {events.length > 0 && (
+              <Section title="Historical record">
+                <Rows>
+                  {events.map(({ label, at }) => (
+                    <Row key={label} label={label}>
+                      {formatDate(at)}
+                    </Row>
+                  ))}
+                </Rows>
+                {!!company.rejectionReason && (
+                  <Text style={styles.muted}>Rejection reason: {company.rejectionReason}</Text>
                 )}
-                {actionError && (
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    {actionError}
-                  </Text>
+                {!!company.withdrawalReason && (
+                  <Text style={styles.muted}>Withdrawal reason: {company.withdrawalReason}</Text>
                 )}
-                <Action
-                  label={resubmission.isPending ? 'Resubmitting…' : 'Resubmit application'}
-                  primary
-                  disabled={!canResubmit}
-                  onPress={() => void resubmit()}
-                />
+                {!!company.infoRequestReason && (
+                  <Text style={styles.muted}>Information requested: {company.infoRequestReason}</Text>
+                )}
+                {!!company.additionalInfoResponse && (
+                  <Text style={styles.muted}>Previous response: {company.additionalInfoResponse}</Text>
+                )}
               </Section>
             )}
-            {company.status === 'draft' && (
-              <View style={styles.group}>
-                {actionError && (
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    {actionError}
-                  </Text>
-                )}
-                <Action
-                  label={submission.isPending ? 'Submitting…' : 'Submit application'}
-                  primary
-                  disabled={!canSubmit}
-                  onPress={() => void submit()}
-                />
-              </View>
-            )}
-            {canEdit && missing.length > 0 && (
-              <Text style={styles.muted}>
-                {missing.length} required document{missing.length === 1 ? '' : 's'} still missing.
-              </Text>
-            )}
-            <Section title="What happens next">
-              <Text style={styles.muted}>
-                {operatorName} reviews the application and may request more information. Approval and activation are
-                separate decisions. Share classes can be deployed once the company is active.
-              </Text>
-              {operator.isError && (
-                <View style={styles.group}>
-                  <Text accessibilityRole="alert" style={styles.error}>
-                    Operator details could not be loaded.
-                  </Text>
-                  <Action
-                    label="Retry operator details"
-                    disabled={operator.isFetching}
-                    onPress={() => void operator.refetch()}
-                  />
-                </View>
-              )}
-            </Section>
+            <Action
+              label="Company information and retained documents"
+              onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })}
+            />
           </>
         )}
+        {!!action.error && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {action.error}
+          </Text>
+        )}
+        <Section title={action.identityRequired ? 'Identity verification required' : 'Your identity'}>
+          <Text style={styles.muted}>
+            Use your own profile to complete the configured identity verification before activation.
+          </Text>
+          <Action label="Open your profile" onPress={() => navigation.navigate('Profile')} />
+        </Section>
       </Page>
-      {withdrawing && (
-        <CustomModal
-          visible
-          title="Withdraw application"
-          onClose={() => {
-            if (!pending.current) {
-              withdrawalTarget.current = null;
-              setWithdrawing(null);
-            }
-          }}
-          busy={withdrawal.isPending}
-          actions={
-            <Action
-              label="Confirm withdrawal"
-              primary
-              disabled={!ready || !canWithdraw || company?.uuid !== withdrawing.company || busy}
-              onPress={() => void withdraw()}
-            />
-          }
-        >
-          <View style={styles.group}>
-            <CompanyReadNotice read={data} />
-            {(!canWithdraw || company?.uuid !== withdrawing.company) && !data.error && !data.isRefreshing && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                This application can no longer be withdrawn.
-              </Text>
-            )}
-            <Text style={styles.muted}>
-              Withdrawal takes the application out of the review queue. You will need to register again to apply later.
-            </Text>
-            {withdrawal.isError && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {getErrorMessage(withdrawal.error, ACTION_ERROR)}
-              </Text>
-            )}
-            <Text style={styles.text}>Reason (optional)</Text>
-            <TextInput
-              accessibilityLabel="Reason (optional)"
-              style={styles.input}
-              multiline
-              value={withdrawReason}
-              onChangeText={setWithdrawReason}
-              editable={!withdrawal.isPending}
-            />
-          </View>
-        </CustomModal>
-      )}
-      {removing && (
-        <CustomModal
-          visible
-          title="Remove document"
-          onClose={() => {
-            if (!pending.current) {
-              removal.current = null;
-              setRemoving(null);
-            }
-          }}
-          busy={deletion.isPending}
-          actions={
-            <Action
-              label="Confirm removal"
-              primary
-              disabled={!ready || !canEdit || company?.uuid !== removing.company || busy}
-              onPress={() => void remove()}
-            />
-          }
-        >
-          <View style={styles.group}>
-            <Text style={styles.text}>{removing.document.name}</Text>
-            <CompanyReadNotice read={data} />
-            {deletion.isError && (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {getErrorMessage(deletion.error, ACTION_ERROR)}
-              </Text>
-            )}
-          </View>
-        </CustomModal>
-      )}
-      {upload && (
-        <CompanyUpload
-          companyUuid={upload.company}
-          type={upload.type}
-          label={upload.label}
-          canUpload={company?.uuid === upload.company && canEdit}
-          read={data}
-          upload={data.upload}
-          onClose={() => setUpload(null)}
-        />
-      )}
+      {action.preview && <ActivationConfirmation action={action} />}
     </>
+  );
+}
+
+function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompanyActivation> }) {
+  const styles = useCompanyStyles();
+  const target = action.preview!;
+  const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
+  const accepted = acceptance === target;
+  return (
+    <CustomModal
+      visible
+      title="Activate company"
+      busy={action.busy}
+      onClose={action.cancel}
+      actions={
+        <Action
+          label="Confirm activation"
+          primary
+          disabled={!accepted || action.busy}
+          onPress={() => {
+            if (accepted) void action.confirm(target);
+          }}
+        />
+      }
+    >
+      <Text style={styles.text}>{target.name}</Text>
+      <Text style={styles.text}>{target.text}</Text>
+      <Choice
+        label="I accept this declaration for this company."
+        selected={accepted}
+        disabled={action.busy}
+        onPress={() => setAcceptance(accepted ? null : target)}
+      />
+      <Text style={styles.muted}>
+        The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains in
+        the record.
+      </Text>
+    </CustomModal>
   );
 }

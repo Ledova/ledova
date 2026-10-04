@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from companies.models import Company, CompanyStatus
-from companies.serializers import ApplicationStatusSerializer, CompanyDetailSerializer
+from companies.serializers import CompanyDetailSerializer
+from shared.db import use_migrate
 
 User = get_user_model()
 
@@ -51,27 +53,7 @@ COMPANY_DETAIL_KEYS = {
     "updated_at",
     "is_owner",
     "administrative_access",
-}
-
-APPLICATION_STATUS_KEYS = {
-    "uuid",
-    "name",
-    "status",
-    "status_display",
-    "submitted_at",
-    "review_started_at",
-    "review_completed_at",
-    "info_requested_at",
-    "info_request_reason",
-    "approved_at",
-    "activated_at",
-    "rejection_reason",
-    "rejection_at",
-    "withdrawn_at",
-    "withdrawal_reason",
-    "is_pending_review",
-    "is_approved",
-    "is_active",
+    "activation",
 }
 
 
@@ -83,29 +65,27 @@ class SerializerContractTest(TestCase):
     def test_company_detail_serializer_key_set(self):
         self.assertEqual(set(CompanyDetailSerializer(self.company).data.keys()), COMPANY_DETAIL_KEYS)
 
-    def test_application_status_serializer_key_set(self):
-        self.assertEqual(set(ApplicationStatusSerializer(self.company).data.keys()), APPLICATION_STATUS_KEYS)
-
     def test_company_detail_serializer_exposes_rejection_outcome(self):
-        self.company.status = CompanyStatus.SUBMITTED
-        self.company.save(update_fields=["status"])
-        self.company.reject("Insufficient documentation.", rejected_by=self.owner)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(
+                status=CompanyStatus.REJECTED,
+                rejection_reason="Insufficient documentation.",
+                rejection_at=timezone.now(),
+                rejected_by=self.owner,
+            )
+        self.company.refresh_from_db()
 
         data = CompanyDetailSerializer(self.company).data
 
         self.assertEqual(data["rejection_reason"], "Insufficient documentation.")
         self.assertIsNotNone(data["rejection_at"])
 
-    def test_application_status_serializer_exposes_withdrawal_outcome(self):
-        self.company.withdraw("Changed our minds.")
-
-        data = ApplicationStatusSerializer(self.company).data
-
-        self.assertEqual(data["withdrawal_reason"], "Changed our minds.")
-        self.assertIsNotNone(data["withdrawn_at"])
-
     def test_company_detail_serializer_exposes_withdrawal_outcome(self):
-        self.company.withdraw("No longer proceeding.")
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(
+                status=CompanyStatus.WITHDRAWN, withdrawal_reason="No longer proceeding.", withdrawn_at=timezone.now()
+            )
+        self.company.refresh_from_db()
 
         data = CompanyDetailSerializer(self.company).data
 

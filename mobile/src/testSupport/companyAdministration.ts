@@ -49,6 +49,7 @@ export function companyDetail(overrides: Partial<Company> = {}): Company {
     postcode: '',
     country: 'AU',
     documents: [],
+    activation: null,
     createdAt: '2026-10-04T00:00:00Z',
     updatedAt: '2026-10-04T00:00:00Z',
     primaryContact: null,

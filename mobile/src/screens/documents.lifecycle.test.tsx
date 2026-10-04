@@ -6,9 +6,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { InvestorEligibilityScreen } from './investor-eligibility';
-import { ListingScreen } from './listing';
+import { CompanyDocuments } from './company/CompanyDocuments';
 import { useInvestorEligibility } from './investor-eligibility/useInvestorEligibility';
-import { useCompanyDocuments } from './listing/useCompanyDocuments';
+import { useCompanyProfile } from '../hooks/useCompanyProfile';
+import { useCompanyDocumentActions } from '../hooks/useCompanyDocumentActions';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { cache, files, pickedFile, resetFiles } from '../testSupport/documentFiles';
@@ -24,7 +25,12 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest
 jest.mock('../services/tokenStorage', () => ({ getAccessToken: jest.fn(async () => 'synthetic-access') }));
 jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn(async () => ({ data: {} })) } }));
 jest.mock('./investor-eligibility/useInvestorEligibility', () => ({ useInvestorEligibility: jest.fn() }));
-jest.mock('./listing/useCompanyDocuments', () => ({ useCompanyDocuments: jest.fn() }));
+jest.mock('../hooks/useCompanyProfile', () => ({ useCompanyProfile: jest.fn() }));
+jest.mock('../hooks/useCompanyDocumentActions', () => ({ useCompanyDocumentActions: jest.fn() }));
+
+function DocumentScreen() {
+  return <CompanyDocuments read={useCompanyProfile()} />;
+}
 
 const pick = jest.mocked(DocumentPicker.getDocumentAsync);
 const submitClaim = jest.fn();
@@ -47,7 +53,7 @@ beforeEach(() => {
     deleteClaim: jest.fn(),
     isDeleting: false,
   } as unknown as ReturnType<typeof useInvestorEligibility>);
-  jest.mocked(useCompanyDocuments).mockReturnValue({
+  jest.mocked(useCompanyProfile).mockReturnValue({
     company: companyDetail(),
     companyKey: ['company', 'company-a', 'lifecycle'],
     requestConfig: () => ({ ledovaSessionEpoch: getSessionEpoch() }),
@@ -61,25 +67,13 @@ beforeEach(() => {
     error: null,
     isRefreshing: false,
     refetch: jest.fn(async () => {}),
-    deletion: { isPending: false, isError: false, reset: jest.fn() },
-    submission: { isPending: false },
-    resubmission: { isPending: false },
-    withdrawal: { isPending: false, isError: false, reset: jest.fn() },
-    documents: [],
-    uploadedTypes: new Set(),
-    canEdit: true,
-    isLoading: false,
+    upload,
+  } as unknown as ReturnType<typeof useCompanyProfile>);
+  jest.mocked(useCompanyDocumentActions).mockReturnValue({
     upload,
     isUploading: false,
-    deleteDocument: jest.fn(),
-    isDeleting: false,
-    submitApplication: jest.fn(),
-    isSubmitting: false,
-    resubmitApplication: jest.fn(),
-    isResubmitting: false,
-    withdrawApplication: jest.fn(),
-    isWithdrawing: false,
-  } as unknown as ReturnType<typeof useCompanyDocuments>);
+    deletion: { isPending: false, isError: false, reset: jest.fn() },
+  } as unknown as ReturnType<typeof useCompanyDocumentActions>);
 });
 
 afterEach(() => {
@@ -142,7 +136,7 @@ it('keeps an edited eligibility draft when its earlier submission succeeds', asy
   expect(files.has(uri)).toBe(false);
 });
 
-it.each(['success', 'refusal'])('retires a listing upload after %s and preserves it while pending', async (outcome) => {
+it.each(['success', 'refusal'])('retires a company upload after %s and preserves it while pending', async (outcome) => {
   const returned = pickedFile();
   pick.mockResolvedValue(returned);
   let finish!: () => void;
@@ -154,9 +148,9 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
         refuse = reject;
       }),
   );
-  const read = useCompanyDocuments();
-  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
-  const view = await render(<ListingScreen />, { wrapper });
+  const read = useCompanyProfile();
+  client.setQueryData(read.companyKey, read.company);
+  const view = await render(<DocumentScreen />, { wrapper });
   let pressed!: Promise<void>;
   await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));
@@ -179,23 +173,28 @@ it.each(['success', 'refusal'])('retires a listing upload after %s and preserves
   expect(Alert.alert).not.toHaveBeenCalled();
 });
 
-it('shares a viewed listing document from one private copy, and downloads nothing when sharing is unavailable', async () => {
+it('shares a viewed company document from one private copy, and downloads nothing when sharing is unavailable', async () => {
   const earlier = `${cache}ledova-document-views-v1/earlier.pdf`;
   const copy = `${cache}ledova-document-views-v1/document-a.pdf`;
   files.set(earlier, { size: 5, content: 'leftover' });
-  jest.mocked(useCompanyDocuments).mockReturnValue({
-    ...useCompanyDocuments(),
-    documents: [
-      {
-        uuid: 'document-a',
-        company: 'company-a',
-        documentType: 'cert_inc',
-        name: 'a.pdf',
-        fileUrl: '/documents/document-a/file/',
-      },
-    ],
-    uploadedTypes: new Set(['cert_inc']),
-  } as unknown as ReturnType<typeof useCompanyDocuments>);
+  jest.mocked(useCompanyProfile).mockReturnValue({
+    ...useCompanyProfile(),
+    company: companyDetail({
+      documents: [
+        {
+          uuid: 'document-a',
+          company: 'company-a',
+          documentType: 'cert_inc',
+          documentTypeDisplay: 'Certificate',
+          createdAt: '2026-10-05',
+          isVerified: false,
+          verifiedAt: null,
+          name: 'a.pdf',
+          fileUrl: '/documents/document-a/file/',
+        },
+      ],
+    }),
+  } as unknown as ReturnType<typeof useCompanyProfile>);
   const bytes = Uint8Array.from('%PDF', (character) => character.charCodeAt(0));
   jest
     .mocked(apiClient.get)
@@ -206,9 +205,9 @@ it('shares a viewed listing document from one private copy, and downloads nothin
     );
   jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
   jest.mocked(Sharing.shareAsync).mockResolvedValueOnce(undefined);
-  const read = useCompanyDocuments();
-  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
-  const view = await render(<ListingScreen />, { wrapper });
+  const read = useCompanyProfile();
+  client.setQueryData(read.companyKey, read.company);
+  const view = await render(<DocumentScreen />, { wrapper });
 
   await fireEvent.press(view.getByLabelText('View a.pdf'));
   await waitFor(() =>
@@ -231,26 +230,31 @@ it('shares a viewed listing document from one private copy, and downloads nothin
 });
 
 it('downloads nothing and stays silent when the session changes before a view starts', async () => {
-  jest.mocked(useCompanyDocuments).mockReturnValue({
-    ...useCompanyDocuments(),
-    documents: [
-      {
-        uuid: 'document-a',
-        company: 'company-a',
-        documentType: 'cert_inc',
-        name: 'a.pdf',
-        fileUrl: '/documents/document-a/file/',
-      },
-    ],
-    uploadedTypes: new Set(['cert_inc']),
-  } as unknown as ReturnType<typeof useCompanyDocuments>);
+  jest.mocked(useCompanyProfile).mockReturnValue({
+    ...useCompanyProfile(),
+    company: companyDetail({
+      documents: [
+        {
+          uuid: 'document-a',
+          company: 'company-a',
+          documentType: 'cert_inc',
+          documentTypeDisplay: 'Certificate',
+          createdAt: '2026-10-05',
+          isVerified: false,
+          verifiedAt: null,
+          name: 'a.pdf',
+          fileUrl: '/documents/document-a/file/',
+        },
+      ],
+    }),
+  } as unknown as ReturnType<typeof useCompanyProfile>);
   jest.mocked(Sharing.isAvailableAsync).mockImplementationOnce(async () => {
     invalidateSessionScope();
     return true;
   });
-  const read = useCompanyDocuments();
-  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
-  const view = await render(<ListingScreen />, { wrapper });
+  const read = useCompanyProfile();
+  client.setQueryData(read.companyKey, read.company);
+  const view = await render(<DocumentScreen />, { wrapper });
   let pressed!: Promise<void>;
   await act(async () => {
     pressed = fireEvent.press(view.getByLabelText('View a.pdf'));
@@ -267,23 +271,23 @@ it('downloads nothing and stays silent when the session changes before a view st
 it('keeps a selected company upload through refusal and failed company reads until retry succeeds', async () => {
   pick.mockResolvedValue(pickedFile());
   upload.mockRejectedValueOnce(new Error('Upload refused')).mockResolvedValueOnce({});
-  const read = useCompanyDocuments();
-  client.setQueryData(read.companyKey, companyDetail({ documents: read.documents }));
-  const view = await render(<ListingScreen />, { wrapper });
+  const read = useCompanyProfile();
+  client.setQueryData(read.companyKey, read.company);
+  const view = await render(<DocumentScreen />, { wrapper });
   await fireEvent.press(view.getByRole('button', { name: 'Upload Certificate of Incorporation' }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose document' }));
   await fireEvent.press(view.getByRole('button', { name: 'Upload document' }));
   await waitFor(() => expect(view.getByText('Upload refused')).toBeTruthy());
   const first = upload.mock.calls[0][0];
   expect(files.has(first.file.uri)).toBe(true);
-  const ready = useCompanyDocuments();
-  jest.mocked(useCompanyDocuments).mockReturnValue({ ...ready, error: new Error('Read refused') });
-  await view.rerender(<ListingScreen />);
+  const ready = useCompanyProfile();
+  jest.mocked(useCompanyProfile).mockReturnValue({ ...ready, error: new Error('Read refused') });
+  await view.rerender(<DocumentScreen />);
   expect(view.getByText('1.pdf')).toBeTruthy();
   expect(view.getByRole('button', { name: 'Upload document' })).toBeDisabled();
   expect(upload).toHaveBeenCalledTimes(1);
-  jest.mocked(useCompanyDocuments).mockReturnValue(ready);
-  await view.rerender(<ListingScreen />);
+  jest.mocked(useCompanyProfile).mockReturnValue(ready);
+  await view.rerender(<DocumentScreen />);
   await fireEvent.press(view.getByRole('button', { name: 'Upload document' }));
   await waitFor(() => expect(view.queryByText('1.pdf')).toBeNull());
   expect(upload.mock.calls[1][0].file).toEqual(first.file);

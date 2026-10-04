@@ -144,7 +144,7 @@ def _transition(plan, step, records, seeded):
     company = Company.objects.get(acn=plan.acn)
     if step.method == "start_review":
         with atomic(), frozen(step.at):
-            company.start_review()
+            _historical_transition(company, status=CompanyStatus.REVIEW, review_started_at=timezone.now())
         _registry_check(company, RegistryCheckPurpose.REVIEW, plan, step.at + timedelta(seconds=1), staff)
         return
     if step.method == "activate":
@@ -157,20 +157,51 @@ def _transition(plan, step, records, seeded):
         _registry_check(company, RegistryCheckPurpose.ACTIVATION, plan, step.at, staff)
         company = Company.objects.get(pk=company.pk)
         with atomic(), frozen(step.at + timedelta(seconds=5)):
-            company.activate()
+            _historical_transition(company, status=CompanyStatus.ACTIVE, activated_at=timezone.now())
         return
     with atomic(), frozen(step.at):
         if step.method == "submit":
-            company.submit(submitted_by=seeded.users[plan.owner])
+            _historical_transition(
+                company,
+                status=CompanyStatus.SUBMITTED,
+                submitted_at=timezone.now(),
+                submitted_by=seeded.users[plan.owner],
+            )
         elif step.method == "request_info":
-            company.request_info(step.reason)
+            _historical_transition(
+                company,
+                status=CompanyStatus.INFO_REQUIRED,
+                info_requested_at=timezone.now(),
+                info_request_reason=step.reason,
+                additional_info_response="",
+            )
             for document in plan.documents:
                 if document.rejection_reason:
                     record = records[document.document_type]
                     record.rejection_reason = document.rejection_reason
                     record.save(update_fields=["rejection_reason", "updated_at"])
         elif step.method == "resubmit":
-            company.resubmit(step.reason)
+            _historical_transition(
+                company,
+                status=CompanyStatus.SUBMITTED,
+                submitted_at=timezone.now(),
+                additional_info_response=step.reason,
+            )
         elif step.method == "approve":
             _attest(company, plan, staff)
-            company.approve(approved_by=staff)
+            _historical_transition(
+                company,
+                status=CompanyStatus.APPROVED,
+                review_completed_at=timezone.now(),
+                approved_at=timezone.now(),
+                approved_by=staff,
+                info_request_reason="",
+                additional_info_response="",
+            )
+
+
+def _historical_transition(company, **fields):
+    for name, value in fields.items():
+        setattr(company, name, value)
+    company.lifecycle_revision += 1
+    company.save(update_fields=[*fields, "lifecycle_revision", "updated_at"])

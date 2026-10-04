@@ -2,11 +2,12 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from companies.admin.company import STATUS_BUTTONS, TRANSITIONS
 from companies.models import Company, CompanyStatus
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
+from shared.db import use_migrate
 
 User = get_user_model()
 
@@ -17,12 +18,7 @@ TEST_STORAGES = {
 REASON_FIELDS = ("info_request_reason", "rejection_reason", "warning_reason", "suspension_reason", "delisting_reason")
 
 CASES = [
-    ("retry-registry", CompanyStatus.REVIEW, CompanyStatus.REVIEW),
-    ("start-review", CompanyStatus.SUBMITTED, CompanyStatus.REVIEW),
-    ("request-info", CompanyStatus.REVIEW, CompanyStatus.INFO_REQUIRED),
-    ("approve", CompanyStatus.REVIEW, CompanyStatus.APPROVED),
-    ("activate", CompanyStatus.APPROVED, CompanyStatus.ACTIVE),
-    ("reject", CompanyStatus.SUBMITTED, CompanyStatus.REJECTED),
+    ("retry-registry", CompanyStatus.WARNING, CompanyStatus.WARNING),
     ("issue-warning", CompanyStatus.ACTIVE, CompanyStatus.WARNING),
     ("resolve-warning", CompanyStatus.WARNING, CompanyStatus.ACTIVE),
     ("suspend", CompanyStatus.ACTIVE, CompanyStatus.SUSPENDED),
@@ -34,7 +30,6 @@ CASES = [
 @override_settings(STORAGES=TEST_STORAGES)
 class CompanyAdminTransitionTest(TestCase):
     def setUp(self):
-        patch("companies.services.company.send_push_notification").start()
         self.addCleanup(patch.stopall)
         self.admin = User.objects.create_superuser(email="admin-companies@example.test", password="pw-12345678")
         self.client.force_login(self.admin)
@@ -47,8 +42,9 @@ class CompanyAdminTransitionTest(TestCase):
         return reverse("admin:companies_company_transition", args=[self.company.uuid, action])
 
     def _set_status(self, status):
-        self.company.status = status
-        self.company.save(update_fields=["status"])
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=status)
+        self.company.refresh_from_db()
 
     def _follow(self, response):
         self.assertRedirects(response, self.change_url, fetch_redirect_response=False)
@@ -89,16 +85,20 @@ class CompanyAdminTransitionTest(TestCase):
                     reasons = {getattr(self.company, field) for field in REASON_FIELDS}
                     self.assertIn(f"because {action}", reasons)
 
-    def test_acting_staff_user_is_recorded(self):
-        self._set_status(CompanyStatus.REVIEW)
-        self.client.post(self._url("approve"), {"confirm": True, **DECLARATION})
-        self.company.refresh_from_db()
-        self.assertEqual(self.company.approved_by, self.admin)
-
-        self._set_status(CompanyStatus.REVIEW)
-        self.client.post(self._url("reject"), {"reason": "no"})
-        self.company.refresh_from_db()
-        self.assertEqual(self.company.rejected_by, self.admin)
+    def test_staff_normal_review_routes_are_retired_without_inventing_historical_actors(self):
+        for action in ("start-review", "request-info", "approve", "reject", "activate"):
+            self._set_status(CompanyStatus.REVIEW)
+            with self.assertRaises(NoReverseMatch):
+                self._url(action)
+            response = self.client.post(
+                f"/admin/companies/company/{self.company.pk}/{action}/",
+                {"confirm": True, "reason": "no", **DECLARATION},
+            )
+            self.assertIn(response.status_code, (302, 404))
+            self.company.refresh_from_db()
+            self.assertEqual(self.company.status, CompanyStatus.REVIEW)
+            self.assertIsNone(self.company.approved_by_id)
+            self.assertIsNone(self.company.rejected_by_id)
 
     def test_wrong_state_is_refused_with_the_model_message(self):
         for action, _, _ in CASES:
@@ -114,16 +114,14 @@ class CompanyAdminTransitionTest(TestCase):
                 self.assertEqual(self.company.status, CompanyStatus.DRAFT)
                 self.assertTrue(message.startswith("Cannot transition from 'Draft' to '"), message)
 
-    def test_blank_reason_re_renders_the_form(self):
-        self._set_status(CompanyStatus.REVIEW)
-
-        response = self.client.post(self._url("reject"), {"reason": ""})
-
+    def test_blank_technical_reason_re_renders_the_form(self):
+        self._set_status(CompanyStatus.ACTIVE)
+        response = self.client.post(self._url("issue-warning"), {"reason": ""})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "admin/companies/company/transition_form.html")
         self.assertContains(response, "This field is required.")
         self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.REVIEW)
+        self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
 
     def test_change_page_offers_the_buttons_for_each_status(self):
         for status, buttons in STATUS_BUTTONS.items():
@@ -136,14 +134,14 @@ class CompanyAdminTransitionTest(TestCase):
                     if slug:
                         self.assertContains(response, self._url(slug))
 
-    def test_change_page_shows_the_applicants_answer_under_application_tracking(self):
-        self._set_status(CompanyStatus.REVIEW)
-        self.client.post(self._url("request-info"), {"reason": "Send the share register"})
-        self.company.refresh_from_db()
-        self.company.resubmit(response="Share register attached as a document")
-
+    def test_change_page_retains_the_historical_applicant_answer(self):
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(
+                status=CompanyStatus.SUBMITTED,
+                info_request_reason="Send the share register",
+                additional_info_response="Share register attached as a document",
+            )
         response = self.client.get(self.change_url)
-
         self.assertContains(response, "Send the share register")
         self.assertContains(response, "Share register attached as a document")
         self.assertNotContains(response, "The company will be notified")

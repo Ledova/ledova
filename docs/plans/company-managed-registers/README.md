@@ -12,7 +12,9 @@ transition and its 13 implementation issues below. GitHub is the working backlog
 this folder records scope, sequencing and documentation traceability. Phases 1
 and 2 are delivered: #861 retired product modes and #862 established company
 authority, with its final foundation delivered by [PR #911](https://github.com/Ledova/ledova/pull/911)
-at commit `13684719c5245f1d61809d46e37a904f833e1c6d`. Issues #863–#873 remain planned and dependency-ordered.
+at commit `13684719c5245f1d61809d46e37a904f833e1c6d`. The [company activation increment](company-activation.md) implements the activation
+part of #863. Company-specific participant eligibility remains in that issue;
+#864–#873 remain planned and dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured
@@ -48,8 +50,9 @@ representative identity/ABR checks, memberships, capabilities, invitations,
 in-app delegation, revocation, isolation and signed-transaction safeguards remain.
 No new anti-impersonation verification is planned without an identified legal
 duty on Ledova, which must be cited and raised with the owner before any check is
-built. The delivered #862 foundation completes phase 2; it does not activate a
-company, approve an issue or payment, or convert the dependent domain workflows.
+built. The delivered #862 foundation completes phase 2. The activation increment uses
+that authority with a distinct declaration and configured activation check. It
+does not approve an issue, payment, offering or participant eligibility decision.
 The dependencies below remain prerequisites.
 
 The documentation audit covers all 73 Markdown documents tracked at its baseline

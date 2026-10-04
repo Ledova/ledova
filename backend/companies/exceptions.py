@@ -12,10 +12,7 @@ class RegistryVerificationRequiredException(APIException):
 
 class IssuerIdentityVerificationRequiredException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = (
-        "The company owner's identity must be verified first. The operator requires this before a company is "
-        "submitted for review or activated."
-    )
+    default_detail = "Your identity must be verified before you can exercise this company appointment."
     default_code = "issuer_identity_verification_required"
     expose_code = True
 
@@ -26,17 +23,6 @@ class OfficeholderAttestationRequiredException(APIException):
         "Record the named officeholder declaration and board-resolution reference, and explicitly attest them."
     )
     default_code = "officeholder_attestation_required"
-
-
-class MissingRequiredDocumentsException(APIException):
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Required documents are missing."
-    default_code = "missing_required_documents"
-
-    def __init__(self, missing_documents: list):
-        detail = f"Missing required documents: {', '.join(missing_documents)}"
-        super().__init__(detail=detail)
 
 
 class InvalidStatusTransitionException(APIException):
@@ -78,4 +64,14 @@ class TeamInvitationConflictException(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "This invitation key already records different terms. Create a new invitation."
     default_code = "team_invitation_conflict"
+    expose_code = True
+
+
+class CompanyActivationConflictException(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = (
+        "This activation request conflicts with its retained company, appointment or terms. "
+        "Refresh and use a new request key."
+    )
+    default_code = "company_activation_conflict"
     expose_code = True

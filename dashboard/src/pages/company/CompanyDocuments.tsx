@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  OPTIONAL_DOCUMENTS,
-  REQUIRED_DOCUMENTS,
+  COMPANY_DOCUMENT_TYPES,
   apiErrorSentence,
   createUserFriendlyError,
   deleteCompanyDocument,
@@ -16,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
 import type { CompanyActionRead } from './CompanyState';
-import { UploadModal } from './listing/UploadModal';
+import { UploadModal } from './UploadModal';
 
 function DocumentRecord({
   document,
@@ -158,10 +157,7 @@ export function CompanyDocuments({
     setRemoving(next);
   };
   const ready = editable && !read.error && !read.isRefreshing && !remove.isPending;
-  const groups = [
-    { title: 'Required documents', types: REQUIRED_DOCUMENTS, required: true },
-    { title: 'Optional documents', types: OPTIONAL_DOCUMENTS, required: false },
-  ];
+  const groups = [{ title: 'Company documents', types: COMPANY_DOCUMENT_TYPES }];
   return (
     <>
       {!read.error && !read.isRefreshing && !read.canAdmin && (
@@ -171,7 +167,7 @@ export function CompanyDocuments({
       )}
       {!read.error &&
         read.canAdmin &&
-        groups.map(({ title, types, required }) => (
+        groups.map(({ title, types }) => (
           <Section key={title} title={title}>
             <ul className="divide-y divide-border-subtle">
               {types.map(({ type, label }) => {
@@ -181,7 +177,7 @@ export function CompanyDocuments({
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <h3 className="text-sm font-medium text-text-primary">{label}</h3>
                       <Status tone={matches.length ? 'done' : 'waiting'}>
-                        {matches.length ? 'Uploaded' : required ? 'Required' : 'Optional'}
+                        {matches.length ? 'Uploaded' : 'No document'}
                       </Status>
                     </div>
                     {matches.map((document) => (

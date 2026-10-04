@@ -42,7 +42,7 @@ def begin_registry_check(company, purpose, initiated_by):
         return check
 
 
-def _begin_registry_check(company, purpose, initiated_by):
+def _begin_registry_check(company, purpose, initiated_by, **provenance):
     check = CompanyRegistryCheck.objects.create(
         company=company,
         initiated_by=initiated_by,
@@ -52,6 +52,7 @@ def _begin_registry_check(company, purpose, initiated_by):
         requested_abn=company.abn,
         identity=company_identity(company),
         lifecycle_revision=company.lifecycle_revision,
+        **provenance,
     )
     company.registry_check = check
     company.registry_status = RegistryCheckStatus.PENDING
@@ -109,7 +110,7 @@ def observation_result(check, observation):
 
 
 def complete_registry_check(check, observation):
-    with company_operation(check.initiated_by, check.company_id, "registry"), atomic(durable=True):
+    with company_operation(check.initiated_by, check.company_id, "registry_result"), atomic(durable=True):
         company = Company.objects.select_for_update().get(pk=check.company_id)
         check = CompanyRegistryCheck.objects.select_for_update().get(pk=check.pk)
         if check.completed_at is not None:
@@ -138,7 +139,8 @@ def complete_registry_check(check, observation):
             company.registry_checked_at = check.completed_at
             company.registry_entity_name = check.entity_name
             company.registry_entity_status = check.entity_status
-            company.save(update_fields=REGISTRY_FIELDS)
+            with company_operation(check.initiated_by, check.company_id, "registry"):
+                company.save(update_fields=REGISTRY_FIELDS)
         return check
 
 

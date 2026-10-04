@@ -2,17 +2,11 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIClient
 
-from companies.exceptions import IssuerIdentityVerificationRequiredException
-from companies.models import (
-    LISTING_REQUIRED_DOCUMENTS,
-    Company,
-    CompanyDocument,
-    CompanyStatus,
-)
-from companies.services import company as company_service
+from companies.models import Company, CompanyStatus
 from companies.services import transition_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_registry_verification import PROVIDER, STORAGES
@@ -24,7 +18,7 @@ User = get_user_model()
 
 
 @override_settings(STORAGES=STORAGES, ABR_AUTH_GUID="")
-class IssuerIdentityGateTest(TransactionTestCase):
+class LegacyTechnicalIdentityGateTest(TransactionTestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
             email="gate-owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
@@ -36,7 +30,6 @@ class IssuerIdentityGateTest(TransactionTestCase):
         with use_migrate():
             self.company = Company.objects.create(owner=self.owner, name="Gate Example Pty Ltd", acn="123456780")
         self.lookup = patch(PROVIDER, return_value=matching_observation(self.company)).start()
-        patch("companies.services.company.send_push_notification").start()
         self.addCleanup(patch.stopall)
 
     def require(self, required):
@@ -53,45 +46,8 @@ class IssuerIdentityGateTest(TransactionTestCase):
             Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
-    def transition(self, method, **kwargs):
-        actor = self.owner if method in ("submit", "resubmit", "withdraw") else self.operator
-        return transition_company(self.company, method, actor=actor, declaration=DECLARATION, **kwargs)
-
-    def test_an_unverified_owner_cannot_submit_or_resubmit_while_the_switch_is_on(self):
+    def test_an_unverified_legacy_owner_does_not_stop_technical_recovery(self):
         self.require(True)
-        for status, method, kwargs in (
-            (CompanyStatus.DRAFT, "submit", {"submitted_by": self.owner}),
-            (CompanyStatus.INFO_REQUIRED, "resubmit", {"response": "Uploaded"}),
-        ):
-            with self.subTest(method=method):
-                self.set_status(status)
-                with self.assertRaises(IssuerIdentityVerificationRequiredException):
-                    self.transition(method, **kwargs)
-                self.company.refresh_from_db()
-                self.assertEqual(self.company.status, status)
-                self.verify(True)
-                self.assertEqual(self.transition(method, **kwargs).status, CompanyStatus.SUBMITTED)
-                self.verify(False)
-
-    def test_activation_refuses_an_unverified_owner_before_the_registry_is_asked(self):
-        self.require(True)
-        for method in ("activate", "set_active"):
-            with self.subTest(method=method):
-                self.set_status(CompanyStatus.APPROVED)
-                asked = self.lookup.call_count
-                with self.assertRaises(IssuerIdentityVerificationRequiredException):
-                    self.transition(method)
-                self.company.refresh_from_db()
-                self.assertEqual((self.company.status, self.lookup.call_count), (CompanyStatus.APPROVED, asked))
-                self.verify(True)
-                self.assertEqual(self.transition(method).status, CompanyStatus.ACTIVE)
-                self.verify(False)
-
-    def test_an_unverified_owner_does_not_stop_a_warning_resolution_or_a_reinstatement(self):
-        self.require(True)
-        self.set_status(CompanyStatus.APPROVED)
-        with self.assertRaises(IssuerIdentityVerificationRequiredException):
-            self.transition("activate")
         for predecessor, method in (
             (CompanyStatus.WARNING, "resolve_warning"),
             (CompanyStatus.SUSPENDED, "reinstate"),
@@ -100,67 +56,47 @@ class IssuerIdentityGateTest(TransactionTestCase):
         ):
             with self.subTest(predecessor=predecessor, method=method):
                 self.set_status(predecessor)
-                self.assertEqual(self.transition(method).status, CompanyStatus.ACTIVE)
+                self.assertEqual(
+                    transition_company(self.company, method, actor=self.operator, declaration=DECLARATION).status,
+                    CompanyStatus.ACTIVE,
+                )
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.is_id_verified)
 
-    def test_verification_withdrawn_during_the_registry_check_still_refuses_activation(self):
-        self.require(True)
+    def test_verified_owner_and_disabled_identity_switch_do_not_restore_staff_initial_activation(self):
+        for required in (False, True):
+            self.require(required)
+            self.verify(True)
+            for predecessor in (
+                CompanyStatus.DRAFT,
+                CompanyStatus.SUBMITTED,
+                CompanyStatus.REVIEW,
+                CompanyStatus.APPROVED,
+            ):
+                self.set_status(predecessor)
+                calls = self.lookup.call_count
+                with self.assertRaises(PermissionDenied):
+                    transition_company(self.company, "activate", actor=self.operator, declaration=DECLARATION)
+                self.company.refresh_from_db()
+                self.assertEqual((self.company.status, self.lookup.call_count), (predecessor, calls))
+
+    def test_staff_initial_activation_is_refused_by_api_and_admin(self):
+        self.require(False)
         self.verify(True)
         self.set_status(CompanyStatus.APPROVED)
-        original = company_service.perform_registry_check
-
-        def withdraw_verification(check):
-            self.verify(False)
-            return original(check)
-
-        with (
-            patch.object(company_service, "perform_registry_check", side_effect=withdraw_verification),
-            self.assertRaises(IssuerIdentityVerificationRequiredException),
-        ):
-            self.transition("activate")
-        self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.APPROVED)
-
-    def test_the_switch_off_leaves_submission_and_activation_unchanged(self):
-        self.require(False)
-        self.assertEqual(self.transition("submit", submitted_by=self.owner).status, CompanyStatus.SUBMITTED)
-        self.set_status(CompanyStatus.APPROVED)
-        self.assertEqual(self.transition("activate").status, CompanyStatus.ACTIVE)
-
-    def test_the_api_names_the_refusal(self):
-        self.require(True)
-        for document_type in LISTING_REQUIRED_DOCUMENTS:
-            with use_migrate():
-                CompanyDocument.objects.create(
-                    company=self.company,
-                    document_type=document_type,
-                    name=document_type.label,
-                    external_url="https://files.example.test/doc",
-                    file_size=10,
-                    mime_type="application/pdf",
-                )
         client = APIClient()
-        client.force_authenticate(self.owner)
-        response = client.post(f"/api/v1/companies/{self.company.pk}/submit/", {"confirm": True}, format="json")
-        self.assertEqual((response.status_code, response.data["code"]), (400, "issuer_identity_verification_required"))
-        self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.DRAFT)
-
-    def test_the_admin_tells_staff_the_owner_must_be_verified_first(self):
-        self.require(True)
-        self.set_status(CompanyStatus.APPROVED)
+        client.force_authenticate(self.operator)
+        response = client.post(
+            f"/api/v1/companies/{self.company.pk}/status/", {"status": "active", **DECLARATION}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
         self.client.force_login(self.operator)
-        change = reverse("admin:companies_company_change", args=[self.company.pk])
+        with self.assertRaises(NoReverseMatch):
+            reverse("admin:companies_company_transition", args=[self.company.pk, "activate"])
         response = self.client.post(
-            reverse("admin:companies_company_transition", args=[self.company.uuid, "activate"]),
-            {"confirm": True, **DECLARATION},
+            f"/admin/companies/company/{self.company.pk}/activate/", {"confirm": True, **DECLARATION}
         )
-        self.assertRedirects(response, change, fetch_redirect_response=False)
-        self.assertEqual(
-            [str(message) for message in self.client.get(change).context["messages"]],
-            [
-                "The company owner's identity must be verified first. The operator requires this before a company "
-                "is submitted for review or activated."
-            ],
-        )
+        self.assertIn(response.status_code, (302, 404))
         self.company.refresh_from_db()
         self.assertEqual(self.company.status, CompanyStatus.APPROVED)
+        self.lookup.assert_not_called()

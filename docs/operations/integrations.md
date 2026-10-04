@@ -6,15 +6,15 @@ Configure only the integrations needed for the test flow you are exercising. Cre
 
 ## Market data and chain providers
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `ALCHEMY_ETH_URL`, `ALCHEMY_BTC_URL`, `ALCHEMY_BASE_URL` | empty | Only for provider-backed sync |
-| `ALCHEMY_WEBHOOK_SIGNING_KEY` | empty | Yes to accept `/webhooks/alchemy/` |
-| `COINGECKO_API_KEY` | empty | No |
-| `COINGECKO_BASE_URL` | `https://api.coingecko.com/api/v3` | No |
-| `COINGECKO_TIMEOUT` | `10` seconds | No |
-| `BLOCKSTREAM_API_URL` | `https://blockstream.info/testnet/api` | No |
-| `BLOCKSTREAM_TIMEOUT` | `30` seconds | No |
+| Variable                                                 | Default                                | Required                           |
+| -------------------------------------------------------- | -------------------------------------- | ---------------------------------- |
+| `ALCHEMY_ETH_URL`, `ALCHEMY_BTC_URL`, `ALCHEMY_BASE_URL` | empty                                  | Only for provider-backed sync      |
+| `ALCHEMY_WEBHOOK_SIGNING_KEY`                            | empty                                  | Yes to accept `/webhooks/alchemy/` |
+| `COINGECKO_API_KEY`                                      | empty                                  | No                                 |
+| `COINGECKO_BASE_URL`                                     | `https://api.coingecko.com/api/v3`     | No                                 |
+| `COINGECKO_TIMEOUT`                                      | `10` seconds                           | No                                 |
+| `BLOCKSTREAM_API_URL`                                    | `https://blockstream.info/testnet/api` | No                                 |
+| `BLOCKSTREAM_TIMEOUT`                                    | `30` seconds                           | No                                 |
 
 Alchemy wallet webhooks must include `event.network`, as supplied by the
 [Address Activity payload](https://www.alchemy.com/docs/reference/address-activity-webhook).
@@ -31,16 +31,16 @@ evidence.
 Disabled until configured. With `KYC_PROVIDER` blank the integration answers
 `503 Service not configured`.
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `KYC_PROVIDER` | empty | Yes to enable identity verification |
-| `KYCAID_API_TOKEN`, `KYCAID_BASE_URL`, `KYCAID_FORM_ID` | empty | Yes for KYCAID |
-| `KYCAID_CRYPTO_MONITORING_ENABLED` | `false` | No |
-| `SUMSUB_API_KEY`, `SUMSUB_SECRET_KEY`, `SUMSUB_BASE_URL` | empty | Yes for Sum&Sub |
-| `SUMSUB_LEVEL_NAME` | `basic-kyc-level` | No |
-| `SUMSUB_WEBHOOK_SECRET` | empty | Yes to accept `/webhooks/sumsub/` |
-| `CRYPTO_RISK_THRESHOLD_MEDIUM` | `0.25` | No |
-| `CRYPTO_RISK_THRESHOLD_HIGH` | `0.6` | No |
+| Variable                                                 | Default           | Required                            |
+| -------------------------------------------------------- | ----------------- | ----------------------------------- |
+| `KYC_PROVIDER`                                           | empty             | Yes to enable identity verification |
+| `KYCAID_API_TOKEN`, `KYCAID_BASE_URL`, `KYCAID_FORM_ID`  | empty             | Yes for KYCAID                      |
+| `KYCAID_CRYPTO_MONITORING_ENABLED`                       | `false`           | No                                  |
+| `SUMSUB_API_KEY`, `SUMSUB_SECRET_KEY`, `SUMSUB_BASE_URL` | empty             | Yes for Sum&Sub                     |
+| `SUMSUB_LEVEL_NAME`                                      | `basic-kyc-level` | No                                  |
+| `SUMSUB_WEBHOOK_SECRET`                                  | empty             | Yes to accept `/webhooks/sumsub/`   |
+| `CRYPTO_RISK_THRESHOLD_MEDIUM`                           | `0.25`            | No                                  |
+| `CRYPTO_RISK_THRESHOLD_HIGH`                             | `0.6`             | No                                  |
 
 Crypto screening never approves without a score. A provider result counts only
 when it is a JSON object whose risk score (`riskScore`, or in a
@@ -84,15 +84,15 @@ Both providers write the same profile fields: `verification_status`, one of
 result (never an empty string); `rejection_labels`; the identity document's
 type and country; and, for an approval, the PEP type the risk policy reads.
 
-| The provider reports | KYCAID | Sum&Sub |
-| --- | --- | --- |
-| Not started | `unused`, recorded as `init` | `init`, from the created webhook |
-| In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
-| Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
-| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook |
-| Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
-| Identity document | the type of the applicant's latest valid identity document; no country | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country |
-| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case |
+| The provider reports   | KYCAID                                                                                                               | Sum&Sub                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Not started            | `unused`, recorded as `init`                                                                                         | `init`, from the created webhook                                                         |
+| In progress, no result | `pending`                                                                                                            | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
+| Finished               | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result                                           | `completed` with its `reviewAnswer`                                                      |
+| A status poll          | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook                      |
+| Reasons                | each check's `decline_reasons` and the applicant's, once each                                                        | `reviewResult.rejectLabels`                                                              |
+| Identity document      | the type of the applicant's latest valid identity document; no country                                               | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country     |
+| PEP evidence           | the applicant's `pep` flag, or a failed `pep` check                                                                  | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case          |
 
 A result counts only once the provider reports the check completed. Sum&Sub says
 so of `reviewAnswer`, so an answer reported beside another status, such as a
@@ -213,12 +213,12 @@ applicant and document objects and database screening; Sum&Sub's
 
 ## Email
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `DEFAULT_FROM_EMAIL` | `noreply@localhost` | No |
-| `SENDGRID_API_KEY` | empty | Yes outside `DEBUG` |
-| `SENDGRID_API_URL` | empty | With SendGrid |
-| `SENDGRID_TIMEOUT` | `10` seconds | No |
+| Variable             | Default             | Required            |
+| -------------------- | ------------------- | ------------------- |
+| `DEFAULT_FROM_EMAIL` | `noreply@localhost` | No                  |
+| `SENDGRID_API_KEY`   | empty               | Yes outside `DEBUG` |
+| `SENDGRID_API_URL`   | empty               | With SendGrid       |
+| `SENDGRID_TIMEOUT`   | `10` seconds        | No                  |
 
 The email backend follows `DEBUG`: the console backend when `DEBUG=true`, SMTP
 otherwise. With `DEBUG=true` the sign-up verification code is printed to the
@@ -226,19 +226,19 @@ backend log.
 
 ## On-ramp
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `TRANSAK_API_KEY`, `TRANSAK_API_SECRET`, `TRANSAK_API_URL`, `TRANSAK_API_GATEWAY_URL` | empty | Yes to enable the widget |
-| `TRANSAK_REFERRER_DOMAIN` | `localhost` | No |
-| `TRANSAK_THEME_COLOR` | `6366f1` | No |
+| Variable                                                                              | Default     | Required                 |
+| ------------------------------------------------------------------------------------- | ----------- | ------------------------ |
+| `TRANSAK_API_KEY`, `TRANSAK_API_SECRET`, `TRANSAK_API_URL`, `TRANSAK_API_GATEWAY_URL` | empty       | Yes to enable the widget |
+| `TRANSAK_REFERRER_DOMAIN`                                                             | `localhost` | No                       |
+| `TRANSAK_THEME_COLOR`                                                                 | `6366f1`    | No                       |
 
 ## Document extraction
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `LLM_BASE_URL` | `http://host.docker.internal:11434/v1` | No |
-| `LLM_MODEL` | `qwen2.5vl:7b` | No |
-| `LLM_EXTRA_HOSTS` | empty | No |
+| Variable          | Default                                | Required |
+| ----------------- | -------------------------------------- | -------- |
+| `LLM_BASE_URL`    | `http://host.docker.internal:11434/v1` | No       |
+| `LLM_MODEL`       | `qwen2.5vl:7b`                         | No       |
+| `LLM_EXTRA_HOSTS` | empty                                  | No       |
 
 **The default points at a service on the host, and a host firewall that drops
 bridge-to-host traffic makes it unreachable from the containers.** `ufw` does
@@ -259,8 +259,8 @@ empty by default.** `_validate_local_base_url` admits `localhost`,
 operator names a hostname in `LLM_EXTRA_HOSTS` — a comma-separated list, so
 `LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1` points
 extraction at a sibling container. **The default is unchanged and the opt-in
-is the whole control**: the allowlist is what makes *a document never leaves
-this machine* true, and a compose service name is a weaker statement than a
+is the whole control**: the allowlist is what makes _a document never leaves
+this machine_ true, and a compose service name is a weaker statement than a
 loopback address, because `ollama` resolves to whatever is on that network.
 Name only hosts you control, and only on a deployment where you know what
 else is on the network. Entries are hostnames — no scheme, no port, no path —
@@ -292,29 +292,30 @@ to be transient.
 
 ## Company registry verification
 
-The review and activation actions below describe the current staff workflow.
-The accepted [company-managed register plan](../architecture/company-managed-registers.md)
-replaces routine platform approval with company bootstrap, authority evidence
-and configured provider checks. That change must preserve attributed attempts
-and unresolved failures: an unavailable provider, a missing declaration or a
-name mismatch must not become an invented successful verification.
+Company activation is instructed by a current personal company administrator in
+web or mobile, using the [activation workflow](../plans/company-managed-registers/company-activation.md).
+It records the representative's exact declaration, appointment, identity snapshot,
+company revision and a distinct ABR activation attempt. Normal owner submission,
+resubmission and withdrawal and staff initial review/approval/activation are
+retired. Existing documents and application history remain readable within their
+current privacy boundaries; the earlier nine listing documents are not new
+activation prerequisites.
 
 `ABR_AUTH_GUID` is blank by default. Obtain the free authentication GUID through
 [ABR Web Services](https://abr.business.gov.au/Tools/WebServices) and configure it
-server-side. With no GUID, review records a pending, unconfigured attempt without
-contacting ABR. All test and development inputs must remain synthetic.
+server-side. Without a GUID, activation retains a pending, unconfigured attempt
+without contacting ABR and leaves the company unchanged. All development inputs
+must remain synthetic.
 
-Start Review uses each company's confirmation page and POST action; bulk review
-is unavailable. Start Review and Retry Registry Check record each ABR attempt,
-its input, time and selected entity response. Lookup uses the application
-ABN, or its ACN when ABN is blank. Each lookup has a 15-second whole-call deadline,
-including DNS and response reads, in a supervised subprocess with a 1 MiB streamed
-response cap. The authentication GUID travels through its input pipe, not its
-command line or inherited application environment. A discovered ABN is recorded
-in the attempt; it does not replace the application identifier. Registered company
-names must match after Unicode, case and whitespace normalization. Trading names and fuzzy
-matches do not establish identity. Suppressed or unknown responses, missing
-records, mismatches, cancelled registrations and provider failures cannot pass.
+Lookup uses the supplied ABN, or its ACN when ABN is blank. Each lookup has a
+15-second whole-call deadline, including DNS and response reads, in a supervised
+subprocess with a 1 MiB streamed response cap. The authentication GUID travels
+through its input pipe, not its command line or inherited application environment.
+A discovered ABN is recorded in the attempt; it does not replace the supplied
+identifier. Registered company names must match after Unicode, case and whitespace
+normalization. Trading names and fuzzy matches do not establish identity.
+Suppressed or unknown responses, missing records, mismatches, cancelled registrations
+and provider failures cannot pass.
 
 Company type must match the [ABR entity-type code](https://abr.business.gov.au/documentation/referencedata):
 Proprietary Limited requires `PRV`; Public Company and Unlisted Public Company
@@ -322,28 +323,32 @@ require `PUB`. ABR does not distinguish listed from unlisted public companies, s
 this check does not verify listing status. Missing, ambiguous or unsupported
 types remain pending; a contradictory `PRV` or `PUB` result fails verification.
 
-Approval requires a named officeholder declaration, board-resolution reference
-and explicit operator attestation. Only operator review pages expose these
-details and attempt history. ABR checks the entity's ABN registration; the
-officeholder declaration is separate. Correct a registered name during DRAFT or
-after Request Information, then resubmit for review. ACN, ABN and company type
-remain editable only in DRAFT.
+The provider runs outside database transactions. Before applying a passing result,
+the service locks and rechecks the exact company, current actor/profile, configured
+identity requirement, personal administrator appointment, company revision and
+attempt. Changed, expired or revoked authority cannot apply a new effect. A
+pending or failed attempt remains an outcome rather than an active company. Retry
+an unconfirmed request with its original idempotency key; a new provider attempt
+uses a new key after reviewing current requirements. There is no manual override
+or stale-pass fallback.
 
-Activate, Resolve Warning and Reinstate each run a fresh lookup outside database
-transactions and require a matching pass. Failure retains the attempt and leaves
-the prior company status in place; retry the action after resolving the cause.
-Legacy APPROVED, WARNING and SUSPENDED companies without an attestation receive
-the declaration fields on the same action form. The staff status API accepts
-`declarant_name`, `board_resolution_reference` and `attest_officeholder` for
-approval and this recovery. Existing ACTIVE companies retain their status when
-the migration runs, and a registry retry does not automatically suspend them.
-There is no manual registry override or stale-pass fallback.
+Platform staff retain technical warning, suspension, delisting, registry retry,
+Resolve Warning and Reinstate controls. A registry retry does not change status.
+Recovery to ACTIVE runs a fresh matching lookup outside transactions. Companies
+activated through the new workflow retain their original applied activation
+provenance; historical companies without that provenance still require a named
+officeholder declaration, board-resolution reference and explicit operator
+attestation. Only the bounded operator recovery form exposes that historical
+attestation and its attempts. A new initial staff approval or activation is
+unavailable. Existing ACTIVE companies, historical actors, documents and attempts
+remain preserved by the upgrade.
 
 ## Notifications and push
 
 The application writes every `Notification` row through
 `NotificationService.notify_user` (`users/services/notifications.py`), from one of
 two tasks in `users/tasks/notifications.py`:
+
 - confirmed and failed transactions defer `send_transaction_notification`;
 - every other sender defers `send_push_notification`.
 
@@ -358,13 +363,13 @@ Staff can also add, change and delete rows in the Django admin
 Each notice names its kind as `type` in its `data`, and the dashboard bell opens
 that kind's page:
 
-| Kind (`data.type`) | Sent by | The bell opens |
-| --- | --- | --- |
-| `company` | `companies/services/company.py`, on each notified application transition | Application |
-| `offering` | `offerings/services/offering.py`, on each notified offering transition | Offerings |
-| `publication` | `shareholders/services/publications.py`, when a publication is announced | Notices |
-| `transaction` | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity |
-| `identity` | `users/services/identity.py`, when the identity check's result changes | Profile |
+| Kind (`data.type`) | Sent by                                                                                  | The bell opens |
+| ------------------ | ---------------------------------------------------------------------------------------- | -------------- |
+| `company`          | `companies/services/company.py`, on each notified application transition                 | Application    |
+| `offering`         | `offerings/services/offering.py`, on each notified offering transition                   | Offerings      |
+| `publication`      | `shareholders/services/publications.py`, when a publication is announced                 | Notices        |
+| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity       |
+| `identity`         | `users/services/identity.py`, when the identity check's result changes                   | Profile        |
 
 A notice of any other kind stays where it is. That includes identity notices
 sent before they carried a type. The mobile inbox opens only publication

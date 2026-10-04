@@ -24,7 +24,7 @@ export const DESTINATIONS = {
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
-  companyListing: { path: '/company/listing', title: 'Application', audience: 'company' },
+  companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
   companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
   companyOffering: { path: '/company/offering', title: 'Offerings', audience: 'company' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },

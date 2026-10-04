@@ -77,9 +77,7 @@ export const COMPANY_ENDPOINTS = {
   DOCUMENTS: (uuid: string) => `/api/v1/companies/${uuid}/documents/` as const,
   DOCUMENT_DETAIL: (companyUuid: string, documentUuid: string) =>
     `/api/v1/companies/${companyUuid}/documents/${documentUuid}/` as const,
-  SUBMIT: (uuid: string) => `/api/v1/companies/${uuid}/submit/` as const,
-  RESUBMIT: (uuid: string) => `/api/v1/companies/${uuid}/resubmit/` as const,
-  WITHDRAW: (uuid: string) => `/api/v1/companies/${uuid}/withdraw/` as const,
+  ACTIVATE: (uuid: string) => `/api/v1/companies/${uuid}/activate/` as const,
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {

@@ -69,7 +69,7 @@ it('shows company details, exact draft share classes and the class/application d
   expect(screen.getByRole('link', { name: 'Ordinary shares' }).getAttribute('href')).toBe(
     '/company/register/class-one',
   );
-  expect(screen.getByRole('link', { name: 'Application' }).getAttribute('href')).toBe('/company/listing');
+  expect(screen.getByRole('link', { name: 'Activation' }).getAttribute('href')).toBe('/company/listing');
   expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
     '/company/publications',
   );
@@ -87,7 +87,8 @@ it('retains owner business entry points without granting administration or sugge
   show();
   await screen.findByText(company.name);
   expect(await screen.findByRole('link', { name: 'Ordinary shares' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Application' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Representative authority' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Published to your members' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Edit company' })).toBeNull();
   expect(screen.queryByRole('button', { name: /^Upload / })).toBeNull();
@@ -292,7 +293,7 @@ it('lets an investor appointed administrator edit company information without lo
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Edit company' }));
   expect(screen.queryByRole('button', { name: 'Create share class' })).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Application' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Activation' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(CLASSES);
   const dialog = await screen.findByRole('dialog');
@@ -439,7 +440,8 @@ it.each(['owner', 'role'])(
     expect(screen.getByRole('dialog')).toBe(dialog);
     expect((within(dialog).getByLabelText('Authorised shares') as HTMLInputElement).value).toBe('1000');
     expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Application' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Activation' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Published to your members' })).toBeNull();
     fireEvent.click(confirm);
     expect(api.post).not.toHaveBeenCalled();
   },
@@ -460,7 +462,8 @@ it('retains an edit draft and owner business while list-only administration loss
   expect(screen.queryByText('company@example.invalid')).toBeNull();
   expect(screen.queryByText('cert_inc.pdf')).toBeNull();
   expect(screen.queryByRole('link', { name: 'View cert_inc.pdf' })).toBeNull();
-  expect(screen.getByRole('link', { name: 'Application' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Representative authority' })).toBeTruthy();
   expect(screen.getByText('Current company administration is required to access company documents.')).toBeTruthy();
   fireEvent.click(confirm);
   expect(api.patch).not.toHaveBeenCalled();
@@ -482,7 +485,8 @@ it('closes a private removal confirmation after list-only administration loss on
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(screen.queryByText(/Remove cert_inc.pdf from/)).toBeNull();
   expect(screen.queryByRole('link', { name: 'View cert_inc.pdf' })).toBeNull();
-  expect(screen.getByRole('link', { name: 'Application' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Representative authority' })).toBeTruthy();
   expect(api.delete).not.toHaveBeenCalled();
   company = { ...company, administrativeAccess };
   await act(async () => client.invalidateQueries({ queryKey: ['companies'] }));

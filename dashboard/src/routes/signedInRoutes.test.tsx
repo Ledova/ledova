@@ -97,7 +97,7 @@ describe('which signed-in pages an account can open', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
 
-  it.each(['home', 'publications', 'company', 'companyTeam'] as const)(
+  it.each(['home', 'publications', 'company', 'companyTeam', 'companyListing'] as const)(
     'lets an investor open %s, a page for everyone',
     (key) => {
       open(key, 'investor');
@@ -117,7 +117,7 @@ describe('which signed-in pages an account can open', () => {
     expect(screen.queryByText('company')).toBeNull();
   });
 
-  it.each(['companyClass', 'companyRegister', 'companyListing', 'companyPublications'] as const)(
+  it.each(['companyClass', 'companyRegister', 'companyPublications'] as const)(
     'sends an investor opening %s to their home instead',
     (key) => {
       open(key, 'investor');
@@ -131,7 +131,7 @@ describe('which signed-in pages an account can open', () => {
     expect(opened(key)).toBe(true);
   });
 
-  it.each(['companyClass', 'companyRegister', 'companyListing', 'companyOffering', 'companyPublications'] as const)(
+  it.each(['companyClass', 'companyRegister', 'companyOffering', 'companyPublications'] as const)(
     'lets a company open %s, a company page',
     (key) => {
       open(key, 'company');
