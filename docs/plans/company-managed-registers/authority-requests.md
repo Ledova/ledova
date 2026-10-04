@@ -75,8 +75,8 @@ appointments.
    also requires a current personal administrator appointment for that company.
    Optional appointment expiry and invitation deadline are explicit.
 2. Create the invitation and privately share its displayed one-time code. The
-   code stays in the open form and disappears when you leave or change account or
-   source. It is not available from history. An unchanged interrupted retry keeps
+   code is shown in the current form and disappears when the form is replaced or
+   your account or selected appointment changes. It is not available from history. An unchanged interrupted retry keeps
    its idempotency key; a confirmed retry can return the retained invitation with
    no retrievable code. Create another invitation if you did not retain the code.
 3. To accept, enter the code and agree to the displayed authorisation and company
