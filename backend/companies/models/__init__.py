@@ -20,6 +20,7 @@ from companies.models.registry_check import (
     RegistryCheckPurpose,
     RegistryCheckStatus,
 )
+from companies.models.team_invitation import CompanyTeamInvitation
 
 __all__ = [
     "Company",
@@ -28,6 +29,7 @@ __all__ = [
     "CompanyAuthorityRequest",
     "CompanyAuthorityRequestWithdrawal",
     "CompanyCapability",
+    "CompanyTeamInvitation",
     "CompanyStatus",
     "CompanyType",
     "CompanyDocument",

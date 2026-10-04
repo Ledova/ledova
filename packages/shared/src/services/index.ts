@@ -71,6 +71,12 @@ export {
   withdrawCompanyAuthorityRequest,
   admitCompanyAuthorityRequest,
   revokeCompanyAuthorityAppointment,
+  getCompanyTeamInvitations,
+  createCompanyTeamInvitation,
+  acceptCompanyTeamInvitation,
+  getOwnCompanyAppointments,
+  getCompanyTeam,
+  revokeCompanyAppointment,
 } from './company-authority';
 export {
   getCompanyTokens,

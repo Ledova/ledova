@@ -767,6 +767,86 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/appointments/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_appointments_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/appointments/{uuid}/revoke/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_appointments_revoke_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/appointments/team/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_appointments_team_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/invitations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_company_authority_invitations_list'];
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_invitations_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/invitations/accept/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_invitations_accept_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/company-authority/requests/': {
     parameters: {
       query?: never;
@@ -2589,6 +2669,7 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
     };
+    CompanyAppointmentSourceEnum: 'initial' | 'invitation';
     CompanyAppointmentStatusEnum: 'active' | 'expired' | 'revoked';
     CompanyAuthorityRequest: {
       appointment: ApiComponents['schemas']['CompanyAppointment'] | null;
@@ -2763,6 +2844,61 @@ export interface ApiComponents {
       declarantName?: string;
       reason?: string;
       status: ApiComponents['schemas']['CompanyStatusEnum'];
+    };
+    CompanyTeamAppointment: {
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      company: string;
+      createdAt: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      email: string;
+      expiresAt: string | null;
+      isEffective: boolean;
+      name: string;
+      revokedAt: string | null;
+      source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
+      status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
+      uuid: string;
+    };
+    CompanyTeamInvitation: {
+      acceptanceDeadline: string;
+      acceptedAt: string | null;
+      appointmentExpiresAt: string | null;
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      company: string;
+      companyName: string;
+      createdAt: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      idempotencyKey: string;
+      inviterAppointment: string;
+      uuid: string;
+    };
+    CompanyTeamInvitationAcceptRequest: {
+      acceptDeclaration: boolean;
+      code: string;
+      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+    };
+    CompanyTeamInvitationCreateRequest: {
+      acceptanceDeadline?: string | null;
+      appointmentExpiresAt?: string | null;
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      company: string;
+      delegatableCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      idempotencyKey: string;
+      inviterAppointment: string;
+    };
+    CompanyTeamInvitationIssued: {
+      acceptanceDeadline: string;
+      acceptedAt: string | null;
+      appointmentExpiresAt: string | null;
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      code: string | null;
+      company: string;
+      companyName: string;
+      createdAt: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      idempotencyKey: string;
+      inviterAppointment: string;
+      uuid: string;
     };
     CompanyTypeEnum: 'pty' | 'public' | 'unlisted';
     CompanyUpdate: {
@@ -3437,6 +3573,21 @@ export interface ApiComponents {
     };
     OrderSubmissionStatusEnum: 'pending' | 'created' | 'refused';
     OutcomeEnum: 'pending' | 'confirmed' | 'reverted' | 'superseded';
+    OwnCompanyAppointment: {
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      company: string;
+      companyName: string;
+      createdAt: string;
+      declarationText: string;
+      declarationVersion: string;
+      delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      expiresAt: string | null;
+      isEffective: boolean;
+      revokedAt: string | null;
+      source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
+      status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
+      uuid: string;
+    };
     PaginatedAssetList: {
       count: number;
       next?: string | null;
@@ -3460,6 +3611,12 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyList'][];
+    };
+    PaginatedCompanyTeamInvitationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['CompanyTeamInvitation'][];
     };
     PaginatedDirectoryTokenListList: {
       count: number;
@@ -3508,6 +3665,12 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['OfferingList'][];
+    };
+    PaginatedOwnCompanyAppointmentList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['OwnCompanyAppointment'][];
     };
     PaginatedPortfolioList: {
       count: number;
@@ -6269,6 +6432,151 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyApplicationWithdrawn'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_appointments_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedOwnCompanyAppointmentList'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_appointments_revoke_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['OwnCompanyAppointment'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_appointments_team_list: {
+    parameters: {
+      query: {
+        company: string;
+        ordering?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyTeamAppointment'][];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_invitations_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedCompanyTeamInvitationList'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_invitations_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyTeamInvitationCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyTeamInvitationCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyTeamInvitationCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyTeamInvitationIssued'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyTeamInvitationIssued'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_invitations_accept_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyTeamInvitationAcceptRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyTeamInvitationAcceptRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyTeamInvitationAcceptRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['OwnCompanyAppointment'];
         };
       };
     };

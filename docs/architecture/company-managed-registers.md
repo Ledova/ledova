@@ -7,7 +7,9 @@
 can be submitted, withdrawn or admitted through explicit self-declaration in both
 clients, retaining private evidence and history. Initial appointments record scoped
 capabilities, expiry and self-revocation after the existing configured identity and
-ABR checks. Team delegation and dependent company workflows remain planned.
+ABR checks. The API also supports invitations, scoped team delegation,
+administrator team reads and retained revocation. Team web/mobile screens,
+legacy-owner migration and dependent company workflows remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

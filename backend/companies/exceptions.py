@@ -72,3 +72,10 @@ class AuthorityAdmissionConflictException(APIException):
     default_detail = "This authority request conflicts with its retained company appointment history."
     default_code = "authority_admission_conflict"
     expose_code = True
+
+
+class TeamInvitationConflictException(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "This invitation key already records different terms. Create a new invitation."
+    default_code = "team_invitation_conflict"
+    expose_code = True

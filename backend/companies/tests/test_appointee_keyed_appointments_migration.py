@@ -82,6 +82,11 @@ class AppointeeKeyedAppointmentsMigrationTest(StubUploadDependencies, Transactio
             row = cursor.fetchone()
         return row[0] if row else None
 
+    def historical_appointment(self, appointment):
+        executor = MigrationExecutor(connection)
+        model = executor.loader.project_state([NEW]).apps.get_model("companies", "CompanyAppointment")
+        return model.objects.using(current_alias()).get(pk=appointment.pk)
+
     def rekey(self, appointment, appointee, profile):
         with connection.cursor() as cursor:
             cursor.execute(f"ALTER TABLE {TABLE} DISABLE TRIGGER {TRIGGER}")
@@ -98,11 +103,12 @@ class AppointeeKeyedAppointmentsMigrationTest(StubUploadDependencies, Transactio
         self.assertEqual(self.installed(f"SELECT request_id FROM {TABLE}"), self.proposal.pk)
         MigrationExecutor(connection).migrate([NEW])
         with use_operator():
-            appointment = CompanyAppointment.objects.get(pk=admitted.pk)
+            appointment = self.historical_appointment(admitted)
         self.assertEqual((appointment.appointee_id, appointment.appointee_profile_id), (self.user.pk, self.profile.pk))
         self.assertEqual(self.installed(TRIGGER_STATE), "O")
         self.assertIn("appointee_id = ", self.installed(READ_TERM))
         self.assertIn(APPOINTEE_CHECK, self.installed(GUARD_BODY))
+        self.latest()
         with (
             use_operator(),
             self.assertRaisesMessage(DatabaseError, "Retain immutable company appointments"),
@@ -153,7 +159,7 @@ class AppointeeKeyedAppointmentsMigrationTest(StubUploadDependencies, Transactio
             MigrationExecutor(connection).migrate([OLD])
         self.assertIn("appointee_id", self.columns())
         with use_operator():
-            appointment = CompanyAppointment.objects.get(pk=admitted.pk)
+            appointment = self.historical_appointment(admitted)
         self.assertEqual(
             (appointment.appointee_id, appointment.appointee_profile_id), (self.other.pk, self.other_profile.pk)
         )
