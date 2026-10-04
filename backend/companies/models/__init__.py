@@ -9,7 +9,6 @@ from companies.models.authority_request import (
 )
 from companies.models.company import Company, CompanyStatus, CompanyType
 from companies.models.document import (
-    LISTING_REQUIRED_DOCUMENTS,
     OFFER_DOCUMENT_TYPES,
     CompanyDocument,
     DocumentType,
@@ -37,7 +36,6 @@ __all__ = [
     "CompanyDocument",
     "CompanyPack",
     "DocumentType",
-    "LISTING_REQUIRED_DOCUMENTS",
     "OFFER_DOCUMENT_TYPES",
     "CompanyRegistryCheck",
     "RegistryCheckPurpose",

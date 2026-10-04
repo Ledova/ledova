@@ -46,10 +46,13 @@ uses the existing private document-copy and share flow with its session cleanup.
 
 ## Workflows that retain their existing boundaries
 
-Share classes, company applications, offerings and publications keep their
-existing owner and account-role conditions until their owning issues replace
-those domain workflows. Basic company administration does not grant authority to
-issue shares, approve a payment, activate a company or publish an offering. The
+Share classes, offerings and publications keep their existing owner and
+account-role conditions until their owning issues replace those domain workflows.
+[Company activation](company-activation.md) has its own current personal
+administrator instruction and configured checks; the old application actions are
+retired. Basic draft preparation does not grant activation authority. Managing company
+information does not itself instruct activation, issue shares, approve a payment
+or publish an offering. The
 [dependency index](README.md#delivery-tracking) records the remaining increments.
 Platform document review and retained identity/provider outcomes keep their
 existing checks and history; platform staff access supplies no company mandate.

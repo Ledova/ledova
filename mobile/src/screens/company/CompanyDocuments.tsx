@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import {
-  getErrorMessage,
-  OPTIONAL_DOCUMENTS,
-  REQUIRED_DOCUMENTS,
-  type CompanyDocument,
-  type DocumentType,
-} from '@ledova/shared';
+import { getErrorMessage, COMPANY_DOCUMENT_TYPES, type CompanyDocument, type DocumentType } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useCompanyDocumentActions } from '../../hooks/useCompanyDocumentActions';
@@ -85,7 +79,7 @@ export function CompanyDocuments({ read }: { read: CompanyActionRead }) {
             />
           ))}
           <View style={styles.choices}>
-            {[...REQUIRED_DOCUMENTS, ...OPTIONAL_DOCUMENTS].map(({ type, label }) => (
+            {COMPANY_DOCUMENT_TYPES.map(({ type, label }) => (
               <Action
                 key={type}
                 label={`Upload ${label}`}

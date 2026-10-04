@@ -97,7 +97,7 @@ it('uses complete company detail and every class page with exact quantities and 
   expect(view.queryByText('Foreign class')).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares' }));
   expect(mockNavigate).toHaveBeenCalledWith('TokenDetail', { uuid: 'class' });
-  await fireEvent.press(view.getByRole('button', { name: 'Application' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Activation' }));
   expect(mockNavigate).toHaveBeenCalledWith('Listing');
   await fireEvent.press(view.getByRole('button', { name: 'Register' }));
   expect(mockNavigate).toHaveBeenCalledWith('CompanyMain');
@@ -119,7 +119,8 @@ it('retains owner business entry points without granting administration or sugge
   };
   const view = await renderCompany();
   expect(await view.findByRole('button', { name: 'Ordinary shares' })).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Activation' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Representative authority' })).toBeTruthy();
   expect(view.getByText('Published to your members')).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Edit company' })).toBeNull();
   expect(view.queryByRole('button', { name: /^Upload / })).toBeNull();
@@ -260,7 +261,7 @@ it('allows an investor with current personal admin to edit basic information wit
   current.isOwner = false;
   const view = await renderCompany();
   expect(await view.findByRole('button', { name: 'Edit company' })).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Application' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Activation' })).toBeTruthy();
   expect(view.queryByText('Share classes')).toBeNull();
   expect(view.queryByRole('button', { name: 'Create share class' })).toBeNull();
   expect(view.queryByText('Published to your members')).toBeNull();
@@ -320,7 +321,8 @@ it('retains the edit draft and owner business after list-only administration los
   expect(view.queryByText('synthetic@example.test')).toBeNull();
   expect(view.queryByText('private.pdf')).toBeNull();
   expect(view.queryByRole('button', { name: 'View private.pdf' })).toBeNull();
-  expect(view.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Activation' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Representative authority' })).toBeTruthy();
   expect(view.getByText('Current company administration is required to access company documents.')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Save changes' }));
   expect(patch).not.toHaveBeenCalled();
@@ -354,7 +356,8 @@ it('closes private document removal after list-only administration loss without 
   await act(() => client.invalidateQueries({ queryKey: ['companies'] }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm removal' })).toBeNull());
   expect(view.queryByText('private.pdf')).toBeNull();
-  expect(view.getByRole('button', { name: 'Application' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Activation' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Representative authority' })).toBeTruthy();
   expect(post).not.toHaveBeenCalled();
   expect(deletion).not.toHaveBeenCalled();
   current = { ...current, administrativeAccess };

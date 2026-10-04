@@ -94,8 +94,12 @@ class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection
 
     @contextmanager
     def undone_before_the_next_case(self, route=None, actor=None):
-        if route and route.method == "post" and route.path == "/api/v1/companies/{company}/documents/":
-            with self.committed_document_upload(actor):
+        if (
+            route
+            and route.method == "post"
+            and route.path in {"/api/v1/companies/{company}/documents/", "/api/v1/companies/{company}/activate/"}
+        ):
+            with super().undone_before_the_next_case(route, actor):
                 yield
             return
         with atomic(), transaction.atomic(using=OPERATOR_ALIAS):

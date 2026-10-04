@@ -343,3 +343,32 @@ it.each(['admin', 'owner'] as const)('refuses list-only %s loss while the detail
     await waitFor(() => expect(result.current.ownerBusiness).toBe(false));
   }
 });
+
+it('keeps basic draft setup separate from activation and redacts a cached declaration after personal capability loss', async () => {
+  const initial = companyRecord({
+    activation: {
+      appointment: '80000000-0000-4000-8000-000000000001',
+      lifecycleRevision: 2,
+      declarationVersion: '2026-10-04',
+      declarationText: 'Private activation declaration',
+      latestAttempt: null,
+    },
+  });
+  api.get.mockImplementation(async (url) => ({
+    data: url === '/api/v1/companies/' ? { results: [initial], next: null } : initial,
+  }));
+  const { result } = renderHook(() => useCompany(), { wrapper });
+  await waitFor(() => expect(result.current.canPersonalAdmin).toBe(true));
+  const held = result.current.requestConfig(initial.uuid, 'personal').ledovaSubmissionGuard!;
+  act(() =>
+    client.setQueryData(result.current.companiesKey, [
+      { ...initial, administrativeAccess: { capabilities: [], draftSetup: true } },
+    ]),
+  );
+  await waitFor(() => expect(result.current.canAdmin).toBe(true));
+  expect(held).toThrow();
+  await waitFor(() => expect(result.current.canPersonalAdmin).toBe(false));
+  expect(result.current.company?.activation).toBeNull();
+  expect(result.current.retainedCompany?.activation).toBeNull();
+  expect(client.getQueryData(result.current.companyKey)).toEqual(initial);
+});

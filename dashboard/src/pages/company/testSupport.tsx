@@ -58,6 +58,7 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
     postcode: '2000',
     country: 'Australia',
     documents: [],
+    activation: null,
     operatorWallet: '',
     submittedAt: null,
     reviewStartedAt: null,

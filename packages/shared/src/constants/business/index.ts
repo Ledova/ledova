@@ -11,3 +11,4 @@ export * from './register';
 export * from './company-documents';
 export * from './company-authority';
 export * from './signup';
+export * from './company-activation';

@@ -82,6 +82,10 @@ The 3 October [company-managed plan](architecture/company-managed-registers.md#r
 replaces routine staff company activation and classification review with
 evidenced company/provider workflows. The scope, privacy and expiry requirements
 below remain; a reusable identity fact is not approval for every company.
+[Company activation](plans/company-managed-registers/company-activation.md) now
+records a current administrator instruction and distinct configured activation
+check. Company-specific participant eligibility conversion remains planned under
+#863.
 
 The first offerings target wholesale and sophisticated investors. The four
 classification categories and the deliberately excluded experienced-investor

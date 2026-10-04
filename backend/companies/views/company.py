@@ -8,28 +8,27 @@ from companies.exceptions import InvalidStatusTransitionException
 from companies.filters import CompanyFilter
 from companies.models import Company, CompanyStatus
 from companies.serializers import (
-    ApplicationResubmitSerializer,
-    ApplicationStatusSerializer,
-    ApplicationSubmitSerializer,
-    ApplicationWithdrawSerializer,
+    CompanyActivateSerializer,
+    CompanyActivationAttemptSerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
     CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
-from companies.services import submit_application, transition_company
+from companies.services import transition_company
+from companies.services.activation import activate_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
     administrative_actions = frozenset({"status_update"})
-    operator_actions = administrative_actions | frozenset({"list", "retrieve", "submit", "resubmit", "withdraw"})
+    operator_actions = administrative_actions | frozenset({"list", "retrieve", "activate"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
-        "Private documents and contact remain separately administration-scoped. Existing application actions "
-        "retain their exact current-owner workflow and actor-bound service checks."
+        "Private documents and contact remain separately administration-scoped. Activation requires "
+        "the exact current personal administrator appointment and actor-bound service checks."
     )
     http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
@@ -40,7 +39,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        if self.action in {"list", "retrieve"}:
+        if self.action in {"list", "retrieve", "activate"}:
             set_principal(request.user.pk)
 
     def get_serializer_class(self):
@@ -50,14 +49,10 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyListSerializer
         if self.action == "partial_update":
             return CompanyUpdateSerializer
+        if self.action == "activate":
+            return CompanyActivateSerializer
         if self.action == "status_update":
             return CompanyStatusUpdateSerializer
-        if self.action == "submit":
-            return ApplicationStatusSerializer
-        if self.action == "resubmit":
-            return ApplicationResubmitSerializer
-        if self.action == "withdraw":
-            return ApplicationWithdrawSerializer
         return CompanyDetailSerializer
 
     def get_permissions(self):
@@ -79,7 +74,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         response_serializer = CompanyDetailSerializer(company, context=self.get_serializer_context())
         return Response(
             {
-                "message": "Company registered successfully. Please complete your application and submit for review.",
+                "message": "Company registered successfully. Establish company authority to activate your register.",
                 "company": response_serializer.data,
             },
             status=status.HTTP_201_CREATED,
@@ -110,11 +105,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         reason = serializer.validated_data.get("reason", "")
 
         transitions = {
-            CompanyStatus.REVIEW: ("start_review", {}),
-            CompanyStatus.INFO_REQUIRED: ("request_info", {"reason": reason}),
-            CompanyStatus.APPROVED: ("approve", {"approved_by": request.user}),
             CompanyStatus.ACTIVE: ("set_active", {}),
-            CompanyStatus.REJECTED: ("reject", {"reason": reason, "rejected_by": request.user}),
             CompanyStatus.WARNING: ("issue_warning", {"reason": reason}),
             CompanyStatus.SUSPENDED: ("suspend", {"reason": reason}),
             CompanyStatus.DELISTED: ("delist", {"reason": reason}),
@@ -142,72 +133,31 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         )
 
     @extend_schema(
+        request=CompanyActivateSerializer,
         responses=inline_serializer(
-            name="CompanyApplicationSubmitted",
-            fields={"message": serializers.CharField(), "company": ApplicationStatusSerializer()},
-        )
+            name="CompanyActivated",
+            fields={
+                "message": serializers.CharField(),
+                "company": CompanyDetailSerializer(),
+                "attempt": CompanyActivationAttemptSerializer(),
+            },
+        ),
     )
     @action(detail=True, methods=["post"])
-    def submit(self, request, uuid=None):
+    def activate(self, request, uuid=None):
         company = self.get_object()
-
-        serializer = ApplicationSubmitSerializer(data=request.data)
+        serializer = CompanyActivateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        company = submit_application(company, submitted_by=request.user)
-
+        company, attempt = activate_company(actor=request.user, company_id=company.pk, **serializer.validated_data)
         return Response(
             {
-                "message": "Application submitted successfully. You will be notified when the review is complete.",
-                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
-            }
-        )
-
-    @extend_schema(
-        responses=inline_serializer(
-            name="CompanyApplicationResubmitted",
-            fields={"message": serializers.CharField(), "company": ApplicationStatusSerializer()},
-        )
-    )
-    @action(detail=True, methods=["post"])
-    def resubmit(self, request, uuid=None):
-        company = self.get_object()
-
-        serializer = ApplicationResubmitSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        company = transition_company(
-            company, "resubmit", actor=request.user, response=serializer.validated_data["response"]
-        )
-
-        return Response(
-            {
-                "message": "Application resubmitted successfully.",
-                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
-            }
-        )
-
-    @extend_schema(
-        responses=inline_serializer(
-            name="CompanyApplicationWithdrawn",
-            fields={"message": serializers.CharField(), "company": ApplicationStatusSerializer()},
-        )
-    )
-    @action(detail=True, methods=["post"])
-    def withdraw(self, request, uuid=None):
-        company = self.get_object()
-
-        serializer = ApplicationWithdrawSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        company = transition_company(
-            company, "withdraw", actor=request.user, reason=serializer.validated_data.get("reason") or ""
-        )
-
-        return Response(
-            {
-                "message": "Application withdrawn successfully.",
-                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
+                "message": (
+                    "Company activated."
+                    if attempt.applied_at
+                    else "Activation check retained. Resolve the reported result and retry with a new request key."
+                ),
+                "company": CompanyDetailSerializer(company, context=self.get_serializer_context()).data,
+                "attempt": CompanyActivationAttemptSerializer(attempt).data,
             }
         )
 
@@ -216,6 +166,8 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return queryset
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
+        if self.action == "activate":
+            return queryset.for_activation(self.request.user, self.kwargs.get("uuid"))
         if self.action == "partial_update":
             return queryset.administrable_by(self.request.user)
         return queryset.owned_by(self.request.user)

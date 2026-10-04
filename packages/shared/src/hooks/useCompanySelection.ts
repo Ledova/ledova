@@ -25,9 +25,17 @@ export function canAdministerCompany(company: Company | CompanyListItem) {
   return (access.draftSetup && company.isOwner && company.status === 'draft') || access.capabilities.includes('admin');
 }
 
+export function canPersonallyAdministerCompany(company: Company | CompanyListItem) {
+  return canAdministerCompany(company) && company.administrativeAccess.capabilities.includes('admin');
+}
+
 export function useCompanySelection(
   apiClient: AxiosInstance,
-  { ownedOnly = false, session }: { ownedOnly?: boolean; session?: OrderSubmissionSession } = {},
+  {
+    ownedOnly = false,
+    personalOnly = false,
+    session,
+  }: { ownedOnly?: boolean; personalOnly?: boolean; session?: OrderSubmissionSession } = {},
 ) {
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
@@ -47,7 +55,11 @@ export function useCompanySelection(
   const ownerBusiness = !!preferences.userAccount?.role && canOpen(preferences.userAccount.role, 'company');
   const enabled = !!owner && !preferences.isError && (!ownedOnly || ownerBusiness);
   const readable = (item: Company | CompanyListItem) =>
-    ownedOnly ? item.isOwner === true : canAdministerCompany(item) || (ownerBusiness && item.isOwner === true);
+    personalOnly
+      ? canPersonallyAdministerCompany(item)
+      : ownedOnly
+        ? item.isOwner === true
+        : canAdministerCompany(item) || (ownerBusiness && item.isOwner === true);
   const ownerGuard = () => {
     if (
       !mounted.current ||
@@ -57,7 +69,7 @@ export function useCompanySelection(
     )
       throw createUserFriendlyError('Your signed-in account changed. Reopen company information.');
   };
-  const companiesKey = ['companies', owner?.userUuid, owner?.ownerAccountUuid, scopeKey, ownedOnly];
+  const companiesKey = ['companies', owner?.userUuid, owner?.ownerAccountUuid, scopeKey, ownedOnly, personalOnly];
   const companies = useQuery({
     queryKey: companiesKey,
     enabled,
@@ -123,11 +135,17 @@ export function useCompanySelection(
   const error = preferences.error || companies.error || (companyUuid ? detail.error : null);
   const administration =
     !!detail.data && !!selectedCompany && canAdministerCompany(detail.data) && canAdministerCompany(selectedCompany);
+  const personalAdministration =
+    !!detail.data &&
+    !!selectedCompany &&
+    canPersonallyAdministerCompany(detail.data) &&
+    canPersonallyAdministerCompany(selectedCompany);
   const retainedCompany =
     enabled && companyUuid && detail.data
       ? {
           ...detail.data,
           isOwner: detail.data.isOwner === true && selectedCompany?.isOwner === true,
+          ...(!personalAdministration && { activation: null }),
           ...(!administration && {
             administrativeAccess:
               selectedCompany && !canAdministerCompany(selectedCompany)
@@ -141,7 +159,7 @@ export function useCompanySelection(
       : null;
   const company = !error ? retainedCompany : null;
   const isRefreshing = preferences.isFetching || companies.isFetching || detail.isFetching;
-  const assertCurrent = (targetUuid: string, mode: 'admin' | 'owner' = 'admin') => {
+  const assertCurrent = (targetUuid: string, mode: 'admin' | 'owner' | 'personal' = 'admin') => {
     ownerGuard();
     const current = client.getQueryData<Company>(companyKey);
     const list = client.getQueryData<CompanyListItem[]>(companiesKey);
@@ -156,9 +174,11 @@ export function useCompanySelection(
       selectedRef.current !== targetUuid ||
       current?.uuid !== targetUuid ||
       !listed ||
-      (mode === 'admin'
-        ? !canAdministerCompany(current) || !canAdministerCompany(listed)
-        : current.isOwner !== true || listed.isOwner !== true || !role || !canOpen(role, 'company'))
+      (mode === 'personal'
+        ? !canPersonallyAdministerCompany(current) || !canPersonallyAdministerCompany(listed)
+        : mode === 'admin'
+          ? !canAdministerCompany(current) || !canAdministerCompany(listed)
+          : current.isOwner !== true || listed.isOwner !== true || !role || !canOpen(role, 'company'))
     )
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
@@ -175,10 +195,11 @@ export function useCompanySelection(
     scopeKey,
     ownerBusiness: company?.isOwner === true && selectedCompany?.isOwner === true && ownerBusiness,
     canAdmin: !!company && !error && !isRefreshing && administration,
+    canPersonalAdmin: !!company && !error && !isRefreshing && personalAdministration,
     companyKey,
     companiesKey,
     assertCurrent,
-    requestConfig: (targetUuid: string, mode: 'admin' | 'owner' = 'admin') => ({
+    requestConfig: (targetUuid: string, mode: 'admin' | 'owner' | 'personal' = 'admin') => ({
       ...session?.requestConfig(),
       ledovaSubmissionGuard: () => assertCurrent(targetUuid, mode),
     }),

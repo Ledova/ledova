@@ -25,8 +25,9 @@ and private evidence; company administration does not grant unrestricted access
 to personal financial or identity files. Shareholders and employees can access
 their own records independently of unrelated investment eligibility. Wallet
 ownership proof and company-specific whitelist approval remain separate.
-The predicates, settings and lifecycle gates below describe current code until
-these replacements are implemented and verified.
+Company activation is delivered by the [administrator activation workflow](../plans/company-managed-registers/company-activation.md).
+Company-specific participant eligibility and its dependent consumer conversions
+remain planned under #863. The investor predicates below describe current code.
 
 ## Company identifiers
 
@@ -54,33 +55,41 @@ cannot quietly disappear.
 
 **A checksum is a typo filter, not verification**: only a registry lookup says a
 number belongs to a real company.
-`companies/services/company.py:_registry_transition` starts
-`companies/services/registry.py:perform_registry_check`, which calls
-`integrations/abr/client.py:lookup_company`, on review, on retry and on every
-activation path. Activation fails closed: `Company._require_activation_check`
-calls `_require_attestation()` first, so a missing or stale officeholder
-attestation raises `OfficeholderAttestationRequiredException`; it then raises
-`RegistryVerificationRequiredException` unless the current check PASSED for the
-ACTIVATION purpose against this `lifecycle_revision` **and this identity**,
-which `companies/identity.py:company_identity` defines as name (NFKC-casefolded,
-whitespace-collapsed), ACN, ABN and `company_type`.
+`companies/services/activation.py:activate_company` records a distinct activation
+attempt and calls `companies/services/registry.py:perform_registry_check`, which
+uses `integrations/abr/client.py:lookup_company`. It requires an exact current
+personal administrator appointment and accepted declaration for the company.
+Owner, draft setup, delegatable capability, staff status and shareholding supply
+no activation authority. Identity uses the representative actually instructing
+the action, rather than assuming the company's owner is the decision maker.
 
-With the operator's `issuer_kyc_required` on, the same service refuses to submit
-or resubmit a company for review, or to activate an approved one, unless the
-owner's profile is identity-verified (`is_id_verified`). The refusal is a 400 with
-code `issuer_identity_verification_required`. Activation checks it before spending
-a registry check and again at the transition. Every later action relies on that
-gate: resolving a warning and reinstating are not refused, so a company made active
-before the switch was turned on can still be restored. With the switch off nothing
-changes.
+With `issuer_kyc_required` on, an otherwise current administrator whose profile
+is not identity-verified receives 400 with
+`issuer_identity_verification_required` before an attempt or provider request.
+The service checks the actor and configured requirement again at the effect.
+The API redacts activation readiness and attempt details when current personal
+administrator access or the configured identity check is absent.
+
+A passing ABR result must match the exact company identity and revision captured
+by the attempt. The initial ACTIVE effect and immutable applied receipt commit
+atomically. Neither a declaration nor an earlier admission/registry pass can
+substitute for this activation check. Same-key retries reuse the recorded attempt;
+changed requests conflict. Provider work runs outside SQL locks and transactions.
+
+Technical warning recovery and reinstatement remain bounded staff functions in
+`companies/services/company.py:_registry_transition`. They require a fresh registry
+pass and either genuine applied initial activation provenance or the retained
+legacy officeholder attestation. They do not reintroduce staff initial activation.
 
 Reference: `backend/companies/validators.py`. Gates:
 `backend/companies/tests/test_identifier_checksums.py`, whose fixtures are the
 **published worked examples** — ASIC's `004 085 616` and the ABR number above —
 not numbers this codebase generated, because expected values taken from the
 implementation under test agree with themselves for any algorithm, including a
-wrong one; and `backend/companies/tests/test_registry_verification.py` for the
-activation gate.
+wrong one; and `backend/companies/tests/test_registry_verification.py` for retained technical
+recovery and `backend/companies/tests/test_company_activation.py`,
+`test_company_activation_scoped.py` and `test_company_activation_migration.py`
+for current activation and upgrade controls.
 
 ## Investor eligibility
 

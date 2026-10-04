@@ -1,90 +1,30 @@
-from unittest import skipUnless
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connection, transaction
-from django.test import TestCase, override_settings
-from django.urls import reverse
-from procrastinate.contrib.django.models import ProcrastinateJob
+from django.db import transaction
+from django.test import TestCase
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITestCase
 
-from companies.models import (
-    LISTING_REQUIRED_DOCUMENTS,
-    Company,
-    CompanyDocument,
-    CompanyStatus,
-)
-from companies.services import APPLICANT_NOTIFICATIONS, transition_company
+from companies.models import Company, CompanyStatus
+from companies.services import transition_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
-from companies.tests.test_document_file_access import admit_company_administrator
 from shared.db import use_migrate
 from users.models import Notification
-from users.tasks.notifications import send_push_notification as run_task
+from users.tasks.notifications import send_push_notification
 
 User = get_user_model()
-TASK = "companies.services.company.send_push_notification"
-TEST_STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
-}
-
-MATRIX = [
-    ("submit", CompanyStatus.DRAFT, {}, "Application submitted", "Acme Pty Ltd was submitted for review."),
-    ("start_review", CompanyStatus.SUBMITTED, {}, "Review started", "The review of Acme Pty Ltd has started."),
-    (
-        "request_info",
-        CompanyStatus.REVIEW,
-        {"reason": "Latest share register"},
-        "More information requested",
-        "More information requested: Latest share register",
-    ),
-    (
-        "resubmit",
-        CompanyStatus.INFO_REQUIRED,
-        {"response": "Uploaded"},
-        "Application resubmitted",
-        "Acme Pty Ltd was resubmitted with your response.",
-    ),
-    ("approve", CompanyStatus.REVIEW, {}, "Application approved", "Acme Pty Ltd has been approved."),
-    (
-        "reject",
-        CompanyStatus.REVIEW,
-        {"reason": "Constitution missing"},
-        "Application rejected",
-        "Acme Pty Ltd was rejected: Constitution missing",
-    ),
-    ("activate", CompanyStatus.APPROVED, {}, "Company activated", "Acme Pty Ltd is now active."),
-    (
-        "withdraw",
-        CompanyStatus.SUBMITTED,
-        {"reason": "Changed plans"},
-        "Application withdrawn",
-        "Acme Pty Ltd was withdrawn.",
-    ),
-]
-SILENT = [
+RETIRED = ("submit", "resubmit", "start_review", "request_info", "approve", "reject", "activate", "withdraw")
+TECHNICAL = (
     ("issue_warning", CompanyStatus.ACTIVE, {"reason": "Late filing"}),
     ("resolve_warning", CompanyStatus.WARNING, {}),
     ("suspend", CompanyStatus.ACTIVE, {"reason": "Investigation"}),
     ("reinstate", CompanyStatus.SUSPENDED, {}),
     ("delist", CompanyStatus.ACTIVE, {"reason": "Wound up"}),
-]
+)
 
 
-def upload_required_documents(company):
-    for doc_type in LISTING_REQUIRED_DOCUMENTS:
-        with use_migrate():
-            CompanyDocument.objects.create(
-                company=company,
-                document_type=doc_type,
-                name=doc_type.label,
-                external_url="https://files.example.test/doc",
-                file_size=10,
-                mime_type="application/pdf",
-            )
-
-
-class ApplicationNotificationProducerTest(TestCase):
+class RetiredApplicationNotificationTest(TestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
             email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
@@ -92,205 +32,82 @@ class ApplicationNotificationProducerTest(TestCase):
         self.reviewer = User.objects.create_user(
             email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
         )
-        self.bystander = User.objects.create_user(
-            email="bystander@example.test", password="pw-12345678", is_active=True, is_email_verified=True
-        )
+        self.bystander = User.objects.create_user(email="bystander@example.test", is_active=True)
         with use_migrate():
-            self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
+            self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456780")
         patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)).start()
-        self.task = patch(TASK).start()
-        self.task.defer.side_effect = run_task
+        self.queue = patch.object(send_push_notification, "defer").start()
         self.addCleanup(patch.stopall)
 
-    def _set_status(self, status):
+    def set_status(self, status):
         with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status=status)
         self.company.refresh_from_db()
 
-    def rows(self, user):
-        return Notification.objects.filter(user=user, notification_type="general")
+    def test_retired_instruction_services_cannot_create_notifications_or_effects(self):
+        for method in RETIRED:
+            for actor in (self.owner, self.reviewer):
+                with self.subTest(method=method, actor=actor.pk):
+                    with self.assertRaises(PermissionDenied):
+                        transition_company(self.company, method, actor=actor, declaration=DECLARATION)
+        self.queue.assert_not_called()
+        self.assertFalse(Notification.objects.exists())
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.status, CompanyStatus.DRAFT)
 
-    def test_matrix_covers_every_notified_transition(self):
-        self.assertEqual({method for method, *_ in MATRIX}, set(APPLICANT_NOTIFICATIONS))
-
-    def test_each_application_event_creates_one_row_and_defers_one_job_for_the_owner(self):
-        for method, start, kwargs, title, body in MATRIX:
+    def test_technical_transitions_do_not_reintroduce_staff_application_notifications(self):
+        for method, status, kwargs in TECHNICAL:
             with self.subTest(method=method):
-                self._set_status(start)
-                self.task.defer.reset_mock()
-                Notification.objects.all().delete()
-
+                self.set_status(status)
                 self.company = transition_company(
-                    self.company,
-                    method,
-                    actor=self.owner if method in ("submit", "resubmit", "withdraw") else self.reviewer,
-                    declaration=DECLARATION,
-                    **kwargs,
+                    self.company, method, actor=self.reviewer, declaration=DECLARATION, **kwargs
                 )
-
-                self.task.defer.assert_called_once_with(
-                    user_id=str(self.owner.pk),
-                    title=title,
-                    body=body,
-                    data={
-                        "type": "company",
-                        "event": method,
-                        "company_id": str(self.company.uuid),
-                        "status": self.company.status,
-                    },
-                    notification_type="general",
-                )
-                row = self.rows(self.owner).get()
-                self.assertEqual((row.title, row.body), (title, body))
-                self.assertFalse(self.rows(self.bystander).exists())
-
-    def test_compliance_transitions_notify_nobody(self):
-        for method, start, kwargs in SILENT:
-            with self.subTest(method=method):
-                self._set_status(start)
-                self.company = transition_company(
-                    self.company,
-                    method,
-                    actor=self.owner if method in ("submit", "resubmit", "withdraw") else self.reviewer,
-                    declaration=DECLARATION,
-                    **kwargs,
-                )
-        self.task.defer.assert_not_called()
+        self.queue.assert_not_called()
         self.assertFalse(Notification.objects.exists())
 
-    def test_a_refused_transition_defers_nothing(self):
-        from companies.exceptions import InvalidStatusTransitionException
-
-        with self.assertRaises(InvalidStatusTransitionException):
+    def test_retained_historical_notifications_survive_a_refused_staff_instruction(self):
+        history = Notification.objects.create(
+            user=self.owner,
+            notification_type="general",
+            title="Application approved",
+            body="Acme Pty Ltd has been approved.",
+            data={"type": "company", "event": "approve", "company_id": str(self.company.pk), "status": "approved"},
+        )
+        before = (history.pk, history.title, history.body, history.data, history.created_at)
+        with self.assertRaises(PermissionDenied):
             transition_company(self.company, "approve", actor=self.reviewer, declaration=DECLARATION)
-        self.task.defer.assert_not_called()
+        history.refresh_from_db()
+        self.assertEqual((history.pk, history.title, history.body, history.data, history.created_at), before)
+        self.assertFalse(Notification.objects.filter(user=self.bystander).exists())
+        self.queue.assert_not_called()
 
-    def test_a_job_that_cannot_be_deferred_rolls_the_transition_back(self):
-        self._set_status(CompanyStatus.REVIEW)
-        self.task.defer.side_effect = RuntimeError("queue down")
-
-        with self.assertRaises(RuntimeError):
-            transition_company(self.company, "approve", approved_by=self.reviewer, declaration=DECLARATION)
-
-        self.company.refresh_from_db()
-        self.assertEqual((self.company.status, self.company.approved_at), (CompanyStatus.REVIEW, None))
-
-
-@override_settings(STORAGES=TEST_STORAGES)
-class ApplicationNotificationEntryPointsTest(APITestCase):
-
-    def setUp(self):
-        self.owner = User.objects.create_user(
-            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
-        )
-        self.reviewer = User.objects.create_user(
-            email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
-        )
-        self.staff = User.objects.create_superuser(
-            email="staff@example.test", password="pw-12345678", is_active=True, is_email_verified=True
-        )
-        with use_migrate():
-            self.company = Company.objects.create(owner=self.owner, name="Acme Pty Ltd", acn="123456789")
-        admit_company_administrator(self.company)
-        patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)).start()
-        self.task = patch(TASK).start()
-        self.task.defer.side_effect = run_task
-        self.addCleanup(patch.stopall)
-
-    def _set_status(self, status):
-        with use_migrate():
-            Company.objects.filter(pk=self.company.pk).update(status=status)
-        self.company.refresh_from_db()
-
-    def _titles(self):
-        return list(Notification.objects.filter(user=self.owner).order_by("created_at").values_list("title", flat=True))
-
-    def test_admin_transition_button(self):
-        self._set_status(CompanyStatus.REVIEW)
-        self.client.force_login(self.staff)
-
-        url = reverse("admin:companies_company_transition", args=[self.company.uuid, "request-info"])
-        self.client.post(url, {"reason": "Share register"})
-
-        self.task.defer.assert_called_once()
-        self.assertEqual(self._titles(), ["More information requested"])
-        self.assertEqual(Notification.objects.get().body, "More information requested: Share register")
-
-    def test_admin_individual_start_review_notifies_only_after_confirmation(self):
-        self._set_status(CompanyStatus.SUBMITTED)
-        with use_migrate():
-            draft = Company.objects.create(owner=self.owner, name="Still draft", acn="333333333")
-        self.client.force_login(self.staff)
-        url = reverse("admin:companies_company_transition", args=[self.company.uuid, "start-review"])
-        self.assertEqual(self.client.get(url).status_code, 200)
-        self.task.defer.assert_not_called()
-        self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.SUBMITTED)
-        self.assertEqual(self.client.post(url, {"confirm": True}).status_code, 302)
-
-        self.task.defer.assert_called_once()
-        self.assertEqual(self._titles(), ["Review started"])
-        draft.refresh_from_db()
-        self.assertEqual(draft.status, CompanyStatus.DRAFT)
-
-    def test_staff_status_route(self):
-        self._set_status(CompanyStatus.SUBMITTED)
-        self.client.force_authenticate(self.staff)
-
-        response = self.client.post(
-            f"/api/v1/companies/{self.company.uuid}/status/", {"status": "rejected", "reason": "No"}, format="json"
-        )
-
-        self.assertEqual(response.status_code, 200, response.data)
-        self.task.defer.assert_called_once()
-        self.assertEqual(self._titles(), ["Application rejected"])
-
-    def test_owner_submit_resubmit_and_withdraw_routes(self):
-        upload_required_documents(self.company)
-        self.client.force_authenticate(self.owner)
-        url = f"/api/v1/companies/{self.company.uuid}/"
-
-        self.assertEqual(self.client.post(f"{url}submit/", {"confirm": True}, format="json").status_code, 200)
-        self._set_status(CompanyStatus.INFO_REQUIRED)
-        self.assertEqual(self.client.post(f"{url}resubmit/", {"response": "Done"}, format="json").status_code, 200)
-        self.assertEqual(self.client.post(f"{url}withdraw/", {}, format="json").status_code, 200)
-
-        self.assertEqual(self.task.defer.call_count, 3)
-        self.assertEqual(self._titles(), ["Application submitted", "Application resubmitted", "Application withdrawn"])
-
-
-@skipUnless(connection.vendor == "postgresql", "procrastinate job rows live in PostgreSQL only")
-class ApplicationNotificationJobRowTest(TestCase):
-
-    def setUp(self):
-        self.owner = User.objects.create_user(
-            email="owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
-        )
-        self.reviewer = User.objects.create_user(
-            email="reviewer@example.test", is_staff=True, is_active=True, is_email_verified=True
-        )
-        with use_migrate():
-            self.company = Company.objects.create(
-                owner=self.owner, name="Acme Pty Ltd", acn="123456789", status=CompanyStatus.REVIEW
-            )
-
-    def job_rows(self):
-        return ProcrastinateJob.objects.filter(task_name=run_task.name)
-
-    def test_approval_writes_one_todo_job_for_the_owner(self):
-        transition_company(self.company, "approve", approved_by=self.reviewer, declaration=DECLARATION)
-
-        row = self.job_rows().get()
-        self.assertEqual(row.status, "todo")
-        self.assertEqual((row.args["user_id"], row.args["title"]), (str(self.owner.pk), "Application approved"))
-
-    def test_a_failure_after_the_defer_rolls_the_job_row_back_with_the_status(self):
+    def test_failure_after_technical_action_rolls_back_status_and_creates_no_job(self):
+        self.set_status(CompanyStatus.ACTIVE)
         with self.assertRaises(RuntimeError):
             with transaction.atomic():
-                transition_company(self.company, "approve", approved_by=self.reviewer, declaration=DECLARATION)
-                self.assertEqual(self.job_rows().count(), 1)
-                raise RuntimeError("after the defer")
-
-        self.assertEqual(self.job_rows().count(), 0)
+                transition_company(self.company, "issue_warning", actor=self.reviewer, reason="Late filing")
+                raise RuntimeError("after the technical action")
         self.company.refresh_from_db()
-        self.assertEqual(self.company.status, CompanyStatus.REVIEW)
+        self.assertEqual(self.company.status, CompanyStatus.ACTIVE)
+        self.assertIsNone(self.company.warning_issued_at)
+        self.queue.assert_not_called()
+
+
+class RetiredApplicationNotificationRouteTest(APITestCase):
+    def test_removed_owner_routes_do_not_emit_notifications(self):
+        owner = User.objects.create_user(email="retired-owner@example.test", is_active=True, is_email_verified=True)
+        with use_migrate():
+            company = Company.objects.create(
+                owner=owner, name="Retained company", acn="123456780", status=CompanyStatus.SUBMITTED
+            )
+        self.client.force_authenticate(owner)
+        with patch.object(send_push_notification, "defer") as queue:
+            for route, payload in (("submit", {"confirm": True}), ("resubmit", {"response": "Done"}), ("withdraw", {})):
+                self.assertEqual(
+                    self.client.post(f"/api/v1/companies/{company.pk}/{route}/", payload, format="json").status_code,
+                    404,
+                )
+        queue.assert_not_called()
+        self.assertFalse(Notification.objects.exists())
+        company.refresh_from_db()
+        self.assertEqual(company.status, CompanyStatus.SUBMITTED)

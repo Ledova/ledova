@@ -38,44 +38,9 @@ STATUS_COLORS = {
 
 
 TRANSITIONS = {
-    "start-review": dict(method="start_review", done="Review started for '{name}'."),
-    "approve": dict(method="approve", actor="approved_by", done="Company '{name}' has been approved."),
-    "activate": dict(method="activate", done="Company '{name}' is now active on the platform."),
     "resolve-warning": dict(method="resolve_warning", done="Warning resolved for '{name}'. Company is now active."),
     "reinstate": dict(method="reinstate", done="Company '{name}' has been reinstated and is now active."),
     "retry-registry": dict(method="retry_registry", done="Registry check recorded for '{name}'."),
-    "request-info": dict(
-        method="request_info",
-        title="Request Information",
-        alert="warning",
-        heading="Information Request",
-        intro=(
-            "You are requesting additional information from {name} (ACN: {acn}). The owner receives an in-app "
-            'notification carrying this request and the application status changes to "Additional Information '
-            'Required"; their answer appears under Application Tracking when they resubmit.'
-        ),
-        legend="Information Request Details",
-        label="Information Requested",
-        help="Describe what additional information is needed from the company.",
-        button=("Request Information", "btn-warning"),
-        done="Additional information requested from '{name}'.",
-    ),
-    "reject": dict(
-        method="reject",
-        actor="rejected_by",
-        title="Reject Application",
-        alert="warning",
-        heading="Warning",
-        intro=(
-            "You are about to reject the company registration for {name} (ACN: {acn}). "
-            "The owner receives an in-app notification carrying this reason."
-        ),
-        legend="Rejection Details",
-        label="Rejection Reason",
-        help="Provide a clear reason for rejecting this company application.",
-        button=("Reject Company", "btn-danger"),
-        done="Company '{name}' application has been rejected.",
-    ),
     "issue-warning": dict(
         method="issue_warning",
         title="Issue Warning",
@@ -135,26 +100,25 @@ for action, spec in TRANSITIONS.items():
     spec.setdefault("legend", "Review confirmation")
     spec.setdefault("button", (title, "btn-primary"))
 
-REJECT = ("✗ Reject", "reject", "#dc3545")
 SUSPEND = ("⏸ Suspend", "suspend", "#dc3545")
 DELIST = ("✗ Delist", "delist", "#343a40")
 STATUS_BUTTONS = {
-    CompanyStatus.SUBMITTED: [("▶ Start Review", "start-review", "#007bff"), REJECT],
-    CompanyStatus.REVIEW: [("? Request Info", "request-info", "#fd7e14"), ("✓ Approve", "approve", "#20c997"), REJECT],
-    CompanyStatus.INFO_REQUIRED: [("⏳ Awaiting Response", None, "#fd7e14")],
-    CompanyStatus.APPROVED: [("✓ Activate Company", "activate", "#28a745")],
+    CompanyStatus.SUBMITTED: [("Historical submission; awaiting company activation", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.REVIEW: [("Historical review; awaiting company activation", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.INFO_REQUIRED: [
+        ("Historical information request; awaiting company activation", None, "#e9ecef", "#6c757d")
+    ],
+    CompanyStatus.APPROVED: [("Historical approval; awaiting company activation", None, "#e9ecef", "#6c757d")],
     CompanyStatus.ACTIVE: [("⚠ Issue Warning", "issue-warning", "#ffc107", "black"), SUSPEND, DELIST],
     CompanyStatus.WARNING: [("✓ Resolve Warning", "resolve-warning", "#28a745"), SUSPEND, DELIST],
     CompanyStatus.SUSPENDED: [("↻ Reinstate", "reinstate", "#28a745"), DELIST],
-    CompanyStatus.DRAFT: [("Draft - Not Submitted", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.DRAFT: [("Awaiting company activation", None, "#e9ecef", "#6c757d")],
     CompanyStatus.REJECTED: [("Application Rejected", None, "#e9ecef", "#6c757d")],
     CompanyStatus.WITHDRAWN: [("Application Withdrawn", None, "#e9ecef", "#6c757d")],
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
 }
 
 for review_status in (
-    CompanyStatus.REVIEW,
-    CompanyStatus.APPROVED,
     CompanyStatus.ACTIVE,
     CompanyStatus.WARNING,
     CompanyStatus.SUSPENDED,
@@ -266,6 +230,8 @@ class CompanyAdmin(admin.ModelAdmin):
         "registry_checked_at",
         "registry_entity_name",
         "registry_entity_status",
+        "declarant_name",
+        "board_resolution_reference",
         "officeholder_attested_by",
         "officeholder_attested_at",
         "officeholder_attestation",
@@ -513,8 +479,10 @@ class CompanyAdmin(admin.ModelAdmin):
     def transition_view(self, request, company, action):
         spec = TRANSITIONS[action]
         change_url = reverse("admin:companies_company_change", args=[company.pk])
-        attestation_required = action == "approve" or (
-            action in ("activate", "resolve-warning", "reinstate") and not company.has_officeholder_attestation
+        attestation_required = (
+            action in ("resolve-warning", "reinstate")
+            and not company.has_officeholder_attestation
+            and not company.has_initial_activation_provenance
         )
         form = TransitionForm(
             request.POST if request.method == "POST" else None,

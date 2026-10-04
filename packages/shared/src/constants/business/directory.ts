@@ -29,14 +29,14 @@ export const OFFER_DOCUMENT_COPY = {
     'Eligible investors can open the documents you attach once the operator approves the offering. Offer ' +
     'documents are listed: prospectus, risk disclosure, business plan, financial statements, auditor report, ' +
     'constitution and shareholder agreement.',
-  ATTACH_NONE: 'Upload offer documents in Application to attach them here.',
+  ATTACH_NONE: 'Upload offer documents in Company information to attach them here.',
   ATTACH: 'Attach',
   ATTACHED: 'Attached',
   ADD: 'Add documents',
   ADD_HELP:
     'Eligible investors can already open what is attached, and it stays attached while the offering is approved or ' +
     'closed. Choose the offer documents to add.',
-  ADD_NONE: 'Every offer document you uploaded is attached. Upload more in Application to add them here.',
+  ADD_NONE: 'Every offer document you uploaded is attached. Upload more in Company information to add them here.',
   ADD_FAILED: 'The documents could not be added. Try again.',
   ADD_UNAVAILABLE: 'This offering is no longer approved or closed, so documents cannot be added here.',
 } as const;

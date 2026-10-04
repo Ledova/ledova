@@ -1,50 +1,46 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { OPTIONAL_DOCUMENTS, REQUIRED_DOCUMENTS } from '@ledova/shared';
+import * as Crypto from 'expo-crypto';
+import { ApiClientProvider, type Company, type CompanyActivationAttempt } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { ApiClientProvider, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
-import { companyDetail, companyPreferences, companyQueryClient } from '../../testSupport/companyAdministration';
+import { invalidateSessionScope } from '../../services/sessionScope';
+import { companyDetail, companyQueryClient } from '../../testSupport/companyAdministration';
 import { ListingScreen } from '.';
 
 const mockNavigate = jest.fn();
-let mockRole = 'company';
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }));
+jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
-const remove = jest.mocked(apiClient.delete);
 const LIST = '/api/v1/companies/';
-const DETAIL = '/api/v1/companies/company-a/';
-const base = {
-  ...companyDetail({ name: 'Fictional Company' }),
-  uuid: 'company-a',
-  name: 'Fictional Company',
-  status: 'draft',
-  statusDisplay: 'Draft',
-  documents: REQUIRED_DOCUMENTS.map(({ type }, index) => ({
-    uuid: 'document-' + index,
-    company: 'company-a',
-    documentTypeDisplay: type,
-    verifiedAt: null,
-    documentType: type,
-    name: `document-${index}.pdf`,
-    createdAt: '2026-09-01',
-    isVerified: false,
-    fileUrl: '/document.pdf',
-  })),
-  submittedAt: null as string | null,
-  reviewStartedAt: null as string | null,
-  infoRequestReason: '',
-  additionalInfoResponse: '',
-};
-let company = { ...base };
+const DETAIL = LIST + 'company-a/';
+const KEY = '70000000-0000-4000-8000-000000000001';
+const SECOND_KEY = '70000000-0000-4000-8000-000000000002';
+const APPOINTMENT = '80000000-0000-4000-8000-000000000001';
+let company: Company;
+let rows: Company[];
 let client: QueryClient;
 let failure: string | null;
+const attempt = (overrides: Partial<CompanyActivationAttempt> = {}): CompanyActivationAttempt => ({
+  uuid: '90000000-0000-4000-8000-000000000001',
+  idempotencyKey: KEY,
+  appointment: APPOINTMENT,
+  lifecycleRevision: 2,
+  status: 'failed',
+  reason: 'unconfigured',
+  startedAt: '2026-10-05T01:00:00Z',
+  completedAt: '2026-10-05T01:00:01Z',
+  appliedAt: null,
+  declarationVersion: '2026-10-04',
+  declarationText: 'Synthetic current declaration',
+  ...overrides,
+});
 function wrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
@@ -53,30 +49,51 @@ function wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 beforeEach(() => {
-  mockRole = 'company';
   failure = null;
-  company = { ...base };
-  client = companyQueryClient();
-  get.mockReset();
-  post.mockReset();
-  remove.mockReset();
-  mockNavigate.mockReset();
-  get.mockImplementation(async (url) => {
-    if (url === '/api/auth/verify/') return { data: { valid: true } };
-    if (url === '/api/user-preferences/')
-      return { data: companyPreferences(mockRole as Parameters<typeof companyPreferences>[0]) };
+  company = companyDetail({
+    isOwner: false,
+    activation: {
+      appointment: APPOINTMENT,
+      lifecycleRevision: 2,
+      declarationVersion: '2026-10-04',
+      declarationText: 'Synthetic current declaration',
+      latestAttempt: null,
+    },
+  });
+  rows = [company];
+  client = companyQueryClient('investor');
+  get.mockReset().mockImplementation(async (url) => {
     if (url === failure) throw new Error('Read refused');
-    if (url === LIST) return { data: { results: [{ ...company }], next: null } };
+    if (url === LIST) return { data: { results: rows, next: null } };
     if (url === DETAIL) return { data: { ...company } };
-    if (url === '/api/operator/') return { data: { name: 'Fictional Operator' } };
     throw new Error(`Unexpected ${url}`);
   });
+  post.mockReset().mockImplementation(async () => {
+    company = { ...company, activation: { ...company.activation!, latestAttempt: attempt() } };
+    rows = [company];
+    return { status: 200, data: { company, attempt: attempt(), message: 'Activation check recorded.' } };
+  });
+  jest.mocked(Crypto.randomUUID).mockReset().mockReturnValue(KEY);
+  mockNavigate.mockReset();
 });
 afterEach(async () => {
   await cleanup();
   client.clear();
 });
-
+function detailKey() {
+  return client.getQueryCache().findAll({ queryKey: ['company', company.uuid] })[0]!.queryKey;
+}
+function listKey() {
+  return client.getQueryCache().findAll({ queryKey: ['companies'] })[0]!.queryKey;
+}
+async function review(view: Awaited<ReturnType<typeof render>>) {
+  await fireEvent.press(await view.findByRole('button', { name: /Review activation|Try activation again/ }));
+  await fireEvent.press(await view.findByRole('button', { name: 'I accept this declaration for this company.' }));
+}
+async function confirm(view: Awaited<ReturnType<typeof render>>) {
+  await review(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm activation' }));
+}
 function retainedPress(view: Awaited<ReturnType<typeof render>>, name: string) {
   const button = view.getByRole('button', { name });
   let fiber: typeof button.unstable_fiber | null = button.unstable_fiber;
@@ -86,191 +103,227 @@ function retainedPress(view: Awaited<ReturnType<typeof render>>, name: string) {
   return callback;
 }
 
-it('retires a cancelled withdrawal when the same company confirmation is reopened', async () => {
-  company = { ...base, status: 'submitted', statusDisplay: 'Submitted' };
-  post.mockImplementation(async () => {
-    company = { ...company, status: 'withdrawn', statusDisplay: 'Withdrawn' };
-    return { data: {} };
-  });
+it('records activation from an investor-role nonowner appointment without operator review or required uploads', async () => {
   const view = await render(<ListingScreen />, { wrapper });
-  await fireEvent.press(await view.findByRole('button', { name: 'Withdraw application' }));
-  await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Previous reason');
-  const old = retainedPress(view, 'Confirm withdrawal');
+  await confirm(view);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(post).toHaveBeenCalledWith(
+    DETAIL + 'activate/',
+    {
+      idempotencyKey: KEY,
+      appointment: APPOINTMENT,
+      lifecycleRevision: 2,
+      declarationVersion: '2026-10-04',
+      acceptDeclaration: true,
+    },
+    expect.objectContaining({ ledovaSessionEpoch: expect.any(Number), ledovaSubmissionGuard: expect.any(Function) }),
+  );
+  expect(await view.findByText(/The ABR lookup is not configured/)).toBeTruthy();
+  expect(view.queryByText('Required documents')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Submit application' })).toBeNull();
+  expect(get.mock.calls.some(([url]) => url === '/api/operator/')).toBe(false);
+  await fireEvent.press(view.getByRole('button', { name: 'Open your profile' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Profile');
+});
+
+it.each([
+  ['draft owner', { capabilities: [], draftSetup: true }, true],
+  ['delegatable-only appointment', { capabilities: [], draftSetup: false }, false],
+  ['owner without appointment', { capabilities: [], draftSetup: false }, true],
+] as const)('refuses %s activation', async (_, access, isOwner) => {
+  company = {
+    ...company,
+    isOwner,
+    administrativeAccess: { capabilities: [...access.capabilities], draftSetup: access.draftSetup },
+    activation: null,
+  };
+  rows = [company];
+  const view = await render(<ListingScreen />, { wrapper });
+  expect(await view.findByText(/A current personal administrator appointment is required/)).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Review activation' })).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('requires explicit selection for multiple companies', async () => {
+  rows = [company, { ...company, uuid: 'company-b', name: 'Second company' }];
+  const view = await render(<ListingScreen />, { wrapper });
+  expect(await view.findByText('Choose a company above.')).toBeTruthy();
+  expect(get.mock.calls.some(([url]) => url === DETAIL)).toBe(false);
+  await fireEvent.press(view.getByRole('button', { name: 'Select company Synthetic Company' }));
+  await confirm(view);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(post.mock.calls[0][0]).toBe(DETAIL + 'activate/');
+});
+
+it.each([LIST, DETAIL])('retains %s read failures and retries without claiming an absent company', async (endpoint) => {
+  failure = endpoint;
+  const view = await render(<ListingScreen />, { wrapper });
+  const retry = await view.findByRole('button', { name: 'Retry company information' });
+  expect(view.queryByText(/A current personal administrator appointment is required/)).toBeNull();
+  expect(view.queryByRole('button', { name: 'Review activation' })).toBeNull();
+  failure = null;
+  await fireEvent.press(retry);
+  expect(await view.findByRole('button', { name: 'Review activation' })).toBeTruthy();
+});
+
+it('preserves historical records without staff review actions', async () => {
+  company = {
+    ...company,
+    status: 'info_required',
+    submittedAt: '2026-09-01T00:00:00Z',
+    infoRequestedAt: '2026-09-03T00:00:00Z',
+    infoRequestReason: 'Retained request',
+    additionalInfoResponse: 'Retained response',
+  };
+  rows = [company];
+  const view = await render(<ListingScreen />, { wrapper });
+  expect(await view.findByText('3 September 2026')).toBeTruthy();
+  expect(view.getByText('Information requested: Retained request')).toBeTruthy();
+  expect(view.getByText('Previous response: Retained response')).toBeTruthy();
+  expect(view.queryByRole('button', { name: /Resubmit application|Withdraw application/ })).toBeNull();
+});
+
+it('retires a cancelled confirmation callback when the same company is reopened, then sends the current callback once', async () => {
+  const view = await render(<ListingScreen />, { wrapper });
+  await review(view);
+  const old = retainedPress(view, 'Confirm activation');
   await fireEvent.press(view.getByRole('button', { name: 'Close dialog' }));
-  await fireEvent.press(view.getByRole('button', { name: 'Withdraw application' }));
-  await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Current reason');
+  await review(view);
   await act(() => old());
   expect(post).not.toHaveBeenCalled();
-  await fireEvent.press(view.getByRole('button', { name: 'Confirm withdrawal' }));
-  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm withdrawal' })).toBeNull());
-  expect(post).toHaveBeenCalledTimes(1);
-  expect(post).toHaveBeenCalledWith(
-    DETAIL + 'withdraw/',
-    { reason: 'Current reason' },
-    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-  );
+  const current = retainedPress(view, 'Confirm activation');
+  await act(() => {
+    current();
+    current();
+  });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
 });
 
-it('renders every supplied document, including duplicates and other records, without a truncated documents request', async () => {
-  company.documents = [
-    ...base.documents,
-    ...Array.from({ length: 55 }, (_, i) => ({
-      ...base.documents[0],
-      uuid: 'extra-' + i,
-      name: `Extra ${i}.pdf`,
-      documentType: 'other' as const,
-    })),
-  ];
-  const view = await render(<ListingScreen />, { wrapper });
-  expect(await view.findByText('Extra 54.pdf')).toBeTruthy();
-  expect(view.getByText('document-0.pdf')).toBeTruthy();
-  expect(view.getAllByText('Not verified', { exact: false })).toHaveLength(64);
-  expect(get.mock.calls.some(([url]) => url.endsWith('/documents/'))).toBe(false);
-  expect(view.getByRole('button', { name: 'Submit application' })).toBeEnabled();
-  await fireEvent.press(view.getByRole('button', { name: 'Back to Company' }));
-  expect(mockNavigate).toHaveBeenCalledWith('Company', { screen: 'CompanyDetails' });
-});
-
-it('ends each documents card on its last entry without a rule above the card edge', async () => {
-  const view = await render(<ListingScreen />, { wrapper });
-  expect((await view.findByText(REQUIRED_DOCUMENTS[0].label)).parent).toHaveStyle({ borderBottomWidth: 1 });
-  expect(view.getByText(REQUIRED_DOCUMENTS.at(-1)!.label).parent).toHaveStyle({ borderBottomWidth: 0 });
-  expect(view.getByText(OPTIONAL_DOCUMENTS[0].label).parent).toHaveStyle({ borderBottomWidth: 1 });
-  expect(view.getByText(OPTIONAL_DOCUMENTS.at(-1)!.label).parent).toHaveStyle({ borderBottomWidth: 0 });
-});
-
-it.each(['submitted', 'review', 'approved', 'active', 'rejected', 'withdrawn'])(
-  'keeps %s application records and documents visible with current actions only',
-  async (status) => {
-    company.status = status;
-    company.statusDisplay = status;
-    company.submittedAt = '2026-09-01';
-    company.reviewStartedAt = status === 'submitted' ? null : '2026-09-02';
+it.each(['appointment', 'lifecycleRevision', 'declarationText', 'declarationVersion'] as const)(
+  'refuses a retained confirm callback after fresh %s changes',
+  async (field) => {
     const view = await render(<ListingScreen />, { wrapper });
-    expect(await view.findByText('document-8.pdf')).toBeTruthy();
-    expect(view.getByText('Submitted')).toBeTruthy();
-    expect(!!view.queryByRole('button', { name: 'Withdraw application' })).toBe(status === 'submitted');
-    expect(view.queryByRole('button', { name: 'Submit application' })).toBeNull();
-    expect(view.queryByLabelText('Remove document-0.pdf')).toBeNull();
-    expect(view.queryByRole('button', { name: 'Upload Certificate of Incorporation' })).toBeNull();
+    await review(view);
+    const old = retainedPress(view, 'Confirm activation');
+    await act(() =>
+      client.setQueryData(detailKey(), {
+        ...company,
+        activation: { ...company.activation!, [field]: field === 'lifecycleRevision' ? 3 : 'changed' },
+      }),
+    );
+    await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm activation' })).toBeNull());
+    await act(() => old());
+    expect(post).not.toHaveBeenCalled();
   },
 );
 
-it('requires all required documents and hides stale application content after a failed read', async () => {
-  company.documents = [];
+it('removes declaration and attempt details after fresh list-only capability loss without resurrecting the old callback on regain', async () => {
+  company.activation!.latestAttempt = attempt();
   const view = await render(<ListingScreen />, { wrapper });
-  expect(await view.findByText('9 required documents still missing.')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Submit application' })).toBeDisabled();
-  failure = DETAIL;
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  expect(await view.findByText('Company information could not be loaded. Try again before continuing.')).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Submit application' })).toBeNull();
-  expect(view.queryByText('No company found. Please register your company first.')).toBeNull();
+  await review(view);
+  const old = retainedPress(view, 'Confirm activation');
+  await act(() =>
+    client.setQueryData(listKey(), [{ ...company, administrativeAccess: { capabilities: [], draftSetup: false } }]),
+  );
+  await waitFor(() => expect(view.queryByText('Synthetic current declaration')).toBeNull());
+  expect(view.queryByText(/The ABR lookup is not configured/)).toBeNull();
+  await act(() => client.setQueryData(listKey(), [company]));
+  await act(() => old());
   expect(post).not.toHaveBeenCalled();
+  await review(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm activation' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
 });
 
-it('keeps a resubmission response after refusal and locks it while pending', async () => {
-  company.status = 'info_required';
-  company.infoRequestReason = 'Supply the missing certification.';
-  company.additionalInfoResponse = 'Earlier response';
-  let refuse!: (error: Error) => void;
+it('retains the same retry key after a lost response but replaces it after actual source terms change', async () => {
+  jest.mocked(Crypto.randomUUID).mockReturnValueOnce(KEY).mockReturnValueOnce(SECOND_KEY);
+  post.mockRejectedValue(new Error('Interrupted response'));
+  const view = await render(<ListingScreen />, { wrapper });
+  await confirm(view);
+  expect(await view.findByText('Interrupted response')).toBeTruthy();
+  await confirm(view);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  expect(post.mock.calls[0][1]).toEqual(post.mock.calls[1][1]);
+  company = { ...company, activation: { ...company.activation!, lifecycleRevision: 3 } };
+  rows = [company];
+  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
+  await confirm(view);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(3));
+  expect(post.mock.calls[2][1]).toMatchObject({ idempotencyKey: SECOND_KEY, lifecycleRevision: 3 });
+});
+
+it.each(['company', 'appointment', 'idempotencyKey', 'lifecycleRevision', 'declarationText'] as const)(
+  'refuses mismatched %s receipt without invalidating current caches',
+  async (field) => {
+    post.mockImplementation(async () => ({
+      status: 200,
+      data: {
+        company: field === 'company' ? { ...company, uuid: 'foreign-company' } : company,
+        attempt: {
+          ...attempt(),
+          ...(field === 'company' ? {} : { [field]: field === 'lifecycleRevision' ? 3 : 'foreign' }),
+        },
+      },
+    }));
+    const view = await render(<ListingScreen />, { wrapper });
+    await review(view);
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+    await fireEvent.press(view.getByRole('button', { name: 'Confirm activation' }));
+    expect(await view.findByText(/The activation outcome could not be confirmed/)).toBeTruthy();
+    expect(invalidate).not.toHaveBeenCalled();
+  },
+);
+
+it('suppresses a delayed outcome after actual session epoch change', async () => {
+  let release!: (value: unknown) => void;
   post.mockImplementation(
     () =>
-      new Promise((_, reject) => {
-        refuse = reject;
+      new Promise((resolve) => {
+        release = resolve;
       }),
   );
   const view = await render(<ListingScreen />, { wrapper });
-  expect(await view.findByText('Supply the missing certification.')).toBeTruthy();
-  expect(view.getByText('Earlier response')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Resubmit application' })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText('Response to the operator'), 'New documents supplied');
-  await fireEvent.press(view.getByRole('button', { name: 'Resubmit application' }));
-  await waitFor(() => expect(view.getByLabelText('Response to the operator').props.editable).toBe(false));
-  await act(() => refuse(new Error('Resubmission refused')));
-  expect(await view.findByText('Resubmission refused')).toBeTruthy();
-  expect(view.getByLabelText('Response to the operator').props.value).toBe('New documents supplied');
-  expect(post).toHaveBeenCalledWith(
-    DETAIL + 'resubmit/',
-    { response: 'New documents supplied' },
-    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-  );
-  failure = DETAIL;
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  failure = null;
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  expect((await view.findByLabelText('Response to the operator')).props.value).toBe('New documents supplied');
+  await confirm(view);
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const guard = post.mock.calls[0][2]!.ledovaSubmissionGuard;
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  await act(() => invalidateSessionScope());
+  expect(guard).toThrow();
+  await act(() => release({ status: 200, data: { company, attempt: attempt() } }));
+  expect(invalidate).not.toHaveBeenCalled();
 });
 
-it('keeps a withdrawal reason on refusal and refuses stale, reviewing and pending withdrawal', async () => {
-  company.status = 'submitted';
+it('shows acting-user identity refusal without claiming success', async () => {
+  post.mockRejectedValueOnce({
+    response: {
+      status: 400,
+      data: { code: 'issuer_identity_verification_required', detail: 'Verify your own identity.' },
+    },
+  });
   const view = await render(<ListingScreen />, { wrapper });
-  await fireEvent.press(await view.findByRole('button', { name: 'Withdraw application' }));
-  await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Fictional withdrawal');
-  failure = DETAIL;
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm withdrawal' })).toBeDisabled());
-  expect(view.getByLabelText('Reason (optional)').props.value).toBe('Fictional withdrawal');
-  failure = null;
-  company.status = 'review';
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  expect(await view.findByText('This application can no longer be withdrawn.')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Confirm withdrawal' })).toBeDisabled();
-  company.status = 'submitted';
-  await act(() => client.invalidateQueries({ queryKey: ['company'] }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm withdrawal' })).toBeEnabled());
-  let refuse!: (error: Error) => void;
-  post.mockImplementation(
-    () =>
-      new Promise((_, reject) => {
-        refuse = reject;
-      }),
-  );
-  await fireEvent.press(view.getByRole('button', { name: 'Confirm withdrawal' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled());
-  expect(view.getByLabelText('Reason (optional)').props.editable).toBe(false);
-  await act(() => refuse(new Error('Withdrawal refused')));
-  expect(await view.findByText('Withdrawal refused')).toBeTruthy();
-  expect(view.getByLabelText('Reason (optional)').props.value).toBe('Fictional withdrawal');
-  expect(post).toHaveBeenCalledWith(
-    DETAIL + 'withdraw/',
-    { reason: 'Fictional withdrawal' },
-    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-  );
+  await confirm(view);
+  expect(await view.findByText('Verify your own identity.')).toBeTruthy();
+  expect(view.getByText('Identity verification required')).toBeTruthy();
+  expect(view.queryByText('This company is active.')).toBeNull();
 });
 
-it('keeps a document removal confirmation after refusal instead of claiming it was removed', async () => {
-  remove.mockRejectedValue(new Error('Removal refused'));
+it('shows actual applied activation with no manufactured staff approval date', async () => {
+  post.mockImplementation(async () => {
+    const applied = attempt({ status: 'passed', reason: 'matched', appliedAt: '2026-10-05T01:00:02Z' });
+    company = {
+      ...company,
+      status: 'active',
+      statusDisplay: 'Active',
+      activatedAt: applied.appliedAt,
+      activation: { ...company.activation!, lifecycleRevision: 3, latestAttempt: applied },
+    };
+    rows = [company];
+    return { status: 200, data: { company, attempt: applied } };
+  });
   const view = await render(<ListingScreen />, { wrapper });
-  await fireEvent.press(await view.findByLabelText('Remove document-0.pdf'));
-  await fireEvent.press(view.getByRole('button', { name: 'Confirm removal' }));
-  expect(await view.findByText('Removal refused')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Confirm removal' })).toBeEnabled();
-  expect(remove).toHaveBeenCalledWith(
-    DETAIL + 'documents/document-0/',
-    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-  );
-});
-
-it('makes no company, operator or application reads for investor-only accounts', async () => {
-  mockRole = 'investor';
-  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('investor') });
-  const view = await render(<ListingScreen />, { wrapper });
-  expect(view.getByText('Verify your company access before opening Application.')).toBeTruthy();
-  expect(get).not.toHaveBeenCalled();
-});
-
-it('keeps operator read failures separate from the application and retries them', async () => {
-  failure = '/api/operator/';
-  const view = await render(<ListingScreen />, { wrapper });
-  expect(await view.findByText('Operator details could not be loaded.')).toBeTruthy();
-  expect(await view.findByText('document-8.pdf')).toBeTruthy();
-  failure = null;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry operator details' }));
-  await waitFor(() => expect(view.queryByText('Operator details could not be loaded.')).toBeNull());
-  expect(
-    view.getByText(
-      'Fictional Operator reviews the application and may request more information. Approval and activation are separate decisions. Share classes can be deployed once the company is active.',
-    ),
-  ).toBeTruthy();
+  await confirm(view);
+  expect(await view.findByText('This company is active.')).toBeTruthy();
+  expect(view.getByText(/Activation was applied/)).toBeTruthy();
+  expect(view.queryByText('Approved')).toBeNull();
+  expect(view.queryByRole('button', { name: /Review activation|Try activation again/ })).toBeNull();
 });

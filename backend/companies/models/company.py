@@ -201,8 +201,13 @@ class Company(BaseModel):
         if not self.has_officeholder_attestation:
             raise OfficeholderAttestationRequiredException()
 
+    @property
+    def has_initial_activation_provenance(self):
+        return self.registry_checks.filter(initiating_appointment__isnull=False, applied_at__isnull=False).exists()
+
     def _require_activation_check(self):
-        self._require_attestation()
+        if not self.has_initial_activation_provenance:
+            self._require_attestation()
         if not (
             self.registry_check_id
             and self.registry_status == RegistryCheckStatus.PASSED
@@ -212,93 +217,6 @@ class Company(BaseModel):
             and self.registry_identity == company_identity(self)
         ):
             raise RegistryVerificationRequiredException()
-
-    def submit(self, submitted_by=None):
-        self._require_status([CompanyStatus.DRAFT], CompanyStatus.SUBMITTED)
-        self.status = CompanyStatus.SUBMITTED
-        self.submitted_at = timezone.now()
-        self.submitted_by = submitted_by
-        self._save_transition(update_fields=["status", "submitted_at", "submitted_by", "updated_at"])
-
-    def start_review(self):
-        self._require_status([CompanyStatus.SUBMITTED], CompanyStatus.REVIEW)
-        self.status = CompanyStatus.REVIEW
-        self.review_started_at = timezone.now()
-        self._save_transition(update_fields=["status", "review_started_at", "updated_at"])
-
-    def request_info(self, reason: str):
-        self._require_status([CompanyStatus.REVIEW], CompanyStatus.INFO_REQUIRED)
-        self.status = CompanyStatus.INFO_REQUIRED
-        self.info_requested_at = timezone.now()
-        self.info_request_reason = reason
-        self.additional_info_response = ""
-        self._save_transition(
-            update_fields=[
-                "status",
-                "info_requested_at",
-                "info_request_reason",
-                "additional_info_response",
-                "updated_at",
-            ]
-        )
-
-    def resubmit(self, response: str = ""):
-        self._require_status([CompanyStatus.INFO_REQUIRED], CompanyStatus.SUBMITTED)
-        self.status = CompanyStatus.SUBMITTED
-        self.submitted_at = timezone.now()
-        self.additional_info_response = response
-        self._save_transition(update_fields=["status", "submitted_at", "additional_info_response", "updated_at"])
-
-    def approve(self, approved_by=None):
-        self._require_status([CompanyStatus.REVIEW], CompanyStatus.APPROVED)
-        self._require_attestation()
-        self.status = CompanyStatus.APPROVED
-        self.review_completed_at = self.approved_at = timezone.now()
-        self.approved_by = approved_by
-        self.info_request_reason = self.additional_info_response = ""
-        self._save_transition(
-            update_fields=[
-                "status",
-                "review_completed_at",
-                "approved_at",
-                "approved_by",
-                "info_request_reason",
-                "additional_info_response",
-                "updated_at",
-            ]
-        )
-
-    def activate(self):
-        self._require_status([CompanyStatus.APPROVED], CompanyStatus.ACTIVE)
-        self._require_activation_check()
-        self.status = CompanyStatus.ACTIVE
-        self.activated_at = timezone.now()
-        self._save_transition(update_fields=["status", "activated_at", "updated_at"])
-
-    def reject(self, reason: str, rejected_by=None):
-        self._require_status([CompanyStatus.REVIEW, CompanyStatus.SUBMITTED], CompanyStatus.REJECTED)
-        self.status = CompanyStatus.REJECTED
-        self.rejection_reason = reason
-        self.rejection_at = self.review_completed_at = timezone.now()
-        self.rejected_by = rejected_by
-        self._save_transition(
-            update_fields=[
-                "status",
-                "rejection_reason",
-                "rejection_at",
-                "rejected_by",
-                "review_completed_at",
-                "updated_at",
-            ]
-        )
-
-    def withdraw(self, reason: str = ""):
-        pending = [CompanyStatus.DRAFT, CompanyStatus.SUBMITTED, CompanyStatus.INFO_REQUIRED]
-        self._require_status(pending, CompanyStatus.WITHDRAWN)
-        self.status = CompanyStatus.WITHDRAWN
-        self.withdrawn_at = timezone.now()
-        self.withdrawal_reason = reason
-        self._save_transition(update_fields=["status", "withdrawn_at", "withdrawal_reason", "updated_at"])
 
     def issue_warning(self, reason: str):
         self._require_status([CompanyStatus.ACTIVE], CompanyStatus.WARNING)
@@ -327,8 +245,9 @@ class Company(BaseModel):
         self._save_transition(update_fields=["status", "updated_at"])
 
     def delist(self, reason: str):
-        never_active = [CompanyStatus.DRAFT, CompanyStatus.REJECTED, CompanyStatus.WITHDRAWN]
-        self._require_status([s for s in CompanyStatus if s not in never_active], CompanyStatus.DELISTED)
+        self._require_status(
+            [CompanyStatus.ACTIVE, CompanyStatus.WARNING, CompanyStatus.SUSPENDED], CompanyStatus.DELISTED
+        )
         self.status = CompanyStatus.DELISTED
         self.delisted_at = timezone.now()
         self.delisting_reason = reason

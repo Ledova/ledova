@@ -4,8 +4,7 @@ from datetime import date, timedelta
 from decimal import ROUND_DOWN, Decimal
 from typing import NamedTuple
 
-from companies.models import LISTING_REQUIRED_DOCUMENTS, DocumentType
-from companies.services.company import APPLICANT_NOTIFICATIONS
+from companies.models import DocumentType
 from shared.seeds.demo import (
     DEMO_ACN,
     DEMO_COMPANY_NAME,
@@ -182,7 +181,28 @@ INFO_REQUESTS = {
         "asic",
     ),
 }
-REQUIRED_TYPES = tuple(document_type.value for document_type in LISTING_REQUIRED_DOCUMENTS)
+HISTORICAL_DOCUMENT_TYPES = (
+    "cert_inc",
+    "asic",
+    "constitution",
+    "share_register",
+    "financials",
+    "director_id",
+    "beneficial_ownership",
+    "business_plan",
+    "risk_disclosure",
+)
+HISTORICAL_APPLICATION_NOTIFICATIONS = {
+    "submit": ("Application submitted", "{name} was submitted for review."),
+    "resubmit": ("Application resubmitted", "{name} was resubmitted with your response."),
+    "start_review": ("Review started", "The review of {name} has started."),
+    "request_info": ("More information requested", "More information requested: {reason}"),
+    "approve": ("Application approved", "{name} has been approved."),
+    "reject": ("Application rejected", "{name} was rejected: {reason}"),
+    "activate": ("Company activated", "{name} is now active."),
+    "withdraw": ("Application withdrawn", "{name} was withdrawn."),
+}
+REQUIRED_TYPES = HISTORICAL_DOCUMENT_TYPES
 OPTIONAL_TYPES = tuple(choice.value for choice in DocumentType if choice.value not in REQUIRED_TYPES)
 
 
@@ -840,7 +860,7 @@ class Story:
         if person.kyc and person.kyc.result in REVIEW_OUTCOME_MESSAGES:
             raw.append(self._identity_note(person.kyc.result, person.kyc.decided_at))
         for step in company_steps:
-            title, body = APPLICANT_NOTIFICATIONS[step.method]
+            title, body = HISTORICAL_APPLICATION_NOTIFICATIONS[step.method]
             data = {
                 "type": "company",
                 "event": step.method,

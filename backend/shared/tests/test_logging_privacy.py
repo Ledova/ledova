@@ -6,11 +6,9 @@ from django.test import TestCase, override_settings
 from rest_framework import serializers
 
 from authentication.services.sessions import SessionService
-from companies.models import LISTING_REQUIRED_DOCUMENTS, Company, CompanyDocument
-from companies.services.company import submit_application
+from companies.services.company import register_company
 from integrations.expo_push import ExpoPushClient, ExpoPushError
 from integrations.sumsub.client import SumSubService
-from shared.db import use_migrate
 from users.models import DeviceToken, UserProfile
 from users.services.notifications import NotificationService
 from users.services.setup import ensure_defaults
@@ -148,26 +146,14 @@ class NotificationLoggingTest(LoggingPrivacyTestCase):
 
 
 class CompanyLoggingTest(LoggingPrivacyTestCase):
-    def test_submitting_an_application_logs_the_submitter_key(self):
+    def test_registering_a_company_does_not_log_the_owner_email(self):
         owner = User.objects.create_user(email=EMAIL, password=PASSWORD, is_active=True, is_email_verified=True)
-        with use_migrate():
-            company = Company.objects.create(owner=owner, name="Draft Pty Ltd", acn="123456789")
-            for document_type in LISTING_REQUIRED_DOCUMENTS:
-                CompanyDocument.objects.create(
-                    company=company,
-                    document_type=document_type,
-                    name=document_type.label,
-                    external_url="https://files.example.test/doc",
-                    file_size=10,
-                    mime_type="application/pdf",
-                )
-
-        with patch("companies.services.company.send_push_notification"):
-            with self.capture() as captured:
-                submit_application(company, owner)
-
+        with self.capture() as captured:
+            company = register_company(
+                owner, "Draft Pty Ltd", "123456780", {"first_name": "Synthetic", "last_name": "Owner"}
+            )
         text = self.assert_private(captured)
-        self.assertIn(f"Application submitted: {company.uuid} (Draft Pty Ltd) by user {owner.pk}", text)
+        self.assertIn(f"Registered new company: {company.name} (ACN: {company.acn})", text)
 
 
 APPLICANT_ID = "app_dossier_0001"

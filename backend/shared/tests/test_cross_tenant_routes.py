@@ -14,7 +14,6 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import (
-    LISTING_REQUIRED_DOCUMENTS,
     Company,
     CompanyAppointment,
     CompanyAppointmentRevocation,
@@ -23,8 +22,9 @@ from companies.models import (
     CompanyStatus,
     CompanyTeamInvitation,
 )
+from companies.services.activation import company_activation
 from companies.services.documents import delete_document
-from companies.tests.registry_fixtures import DECLARATION
+from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_document_file_access import (
     attach_file,
     legacy_company_administrators,
@@ -91,22 +91,15 @@ def _activate_company(tenant):
         Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
 
 
-def _request_company_info(tenant):
+def _prepare_company_activation(tenant):
     with use_migrate():
-        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.INFO_REQUIRED)
-
-
-def _upload_listing_documents(tenant):
-    with use_migrate():
-        for document_type in LISTING_REQUIRED_DOCUMENTS:
-            CompanyDocument.objects.create(
-                company=tenant.company,
-                document_type=document_type,
-                name=document_type.label,
-                external_url=f"https://docs.example.test/{tenant.label}/{document_type}",
-                file_size=1,
-                mime_type="application/pdf",
-            )
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.DRAFT, activated_at=None)
+        company = Company.objects.get(pk=tenant.company.pk)
+    context = company_activation(company, tenant.user)
+    return {
+        "activation_appointment": str(context["appointment"]),
+        "activation_revision": str(context["lifecycle_revision"]),
+    }
 
 
 def _clear_subscriptions(tenant):
@@ -257,9 +250,18 @@ ROUTES = (
     Route("post", "/api/portfolios/{own_portfolio}/remove-wallet/", {"walletUuid": "{wallet}"}),
     Route("get", "/api/v1/companies/{company}/"),
     Route("patch", "/api/v1/companies/{company}/", {"name": "Renamed"}),
-    Route("post", "/api/v1/companies/{company}/submit/", {"confirm": True}, prepare=_upload_listing_documents),
-    Route("post", "/api/v1/companies/{company}/resubmit/", {"response": "Done"}, prepare=_request_company_info),
-    Route("post", "/api/v1/companies/{company}/withdraw/", {}),
+    Route(
+        "post",
+        "/api/v1/companies/{company}/activate/",
+        {
+            "idempotency_key": lambda: str(uuid4()),
+            "appointment": "{activation_appointment}",
+            "lifecycle_revision": "{activation_revision}",
+            "declaration_version": "2026-10-04",
+            "accept_declaration": True,
+        },
+        prepare=_prepare_company_activation,
+    ),
     Route(
         "post",
         "/api/v1/companies/{company}/documents/",
@@ -416,10 +418,7 @@ OPERATOR_ROUTES = (
 )
 
 REGISTRY_ADMIN_ROUTES = (
-    ("start-review", CompanyStatus.SUBMITTED, CompanyStatus.REVIEW),
-    ("retry-registry", CompanyStatus.REVIEW, CompanyStatus.REVIEW),
-    ("approve", CompanyStatus.REVIEW, CompanyStatus.APPROVED),
-    ("activate", CompanyStatus.APPROVED, CompanyStatus.APPROVED),
+    ("retry-registry", CompanyStatus.WARNING, CompanyStatus.WARNING),
     ("resolve-warning", CompanyStatus.WARNING, CompanyStatus.WARNING),
     ("reinstate", CompanyStatus.SUSPENDED, CompanyStatus.SUSPENDED),
 )
@@ -495,6 +494,17 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             with self.committed_document_upload(actor):
                 yield
             return
+        if route and route.path == "/api/v1/companies/{company}/activate/":
+            with use_migrate():
+                before = Company.objects.filter(pk=actor.company.pk).values().get()
+                retained = set(CompanyRegistryCheck.objects.filter(company=actor.company).values_list("pk", flat=True))
+            try:
+                yield
+            finally:
+                with use_migrate():
+                    Company.objects.filter(pk=actor.company.pk).update(**before)
+                    CompanyRegistryCheck.objects.filter(company=actor.company).exclude(pk__in=retained).delete()
+            return
         with atomic():
             yield
             transaction.set_rollback(True, using=current_alias())
@@ -538,7 +548,10 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self._service("wallets.services.verification.verify_wallet_signature", return_value=True)
         self._service("wallets.tasks.sync_wallet").defer.return_value = "job"
         self._service("wallets.views.fiat_purchase.generate_transak_widget_url", return_value="https://widget.test")
-        self._service("companies.services.company.send_push_notification")
+        self._service(
+            "companies.services.registry.lookup_company",
+            side_effect=lambda **inputs: matching_observation(Company.objects.get(acn=inputs["acn"])),
+        )
         self._service("offerings.services.offering.send_push_notification")
         self._service("tokens.tasks.deploy_share_token_task")
         share_tokens = self._service("tokens.views.share_token.share_token_service")
@@ -599,6 +612,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
     def send(self, route, actor, context):
         context = {**context, **{f"own_{key}": value for key, value in route_context(actor).items()}}
+        if route.path == "/api/v1/companies/{company}/activate/":
+            context.setdefault("activation_appointment", str(uuid4()))
+            context.setdefault("activation_revision", "0")
         return self.perform(route, context)
 
     def perform(self, route, context):
@@ -667,6 +683,11 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                                 if isinstance(prepared, dict):
                                     context.update(prepared)
                         response = self.send(route, actor, context)
+                        if route.path == "/api/v1/companies/{company}/activate/":
+                            self.assertEqual(response.status_code, 200, _body(response))
+                            self.assertEqual(response.data["company"]["status"], CompanyStatus.ACTIVE)
+                            self.assertEqual(response.data["attempt"]["appointment"], context["activation_appointment"])
+                            self.assertIsNotNone(response.data["attempt"]["applied_at"])
                     self.assertIn(response.status_code, (200, 201, 202, 204), _body(response))
 
     def test_operator_routes_are_staff_only_and_reach_every_tenant(self):
@@ -1594,12 +1615,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                         with self.as_an_operator_would():
                             current = Company.objects.get(pk=self.other.company.pk)
                             self.assertEqual(current.status, successor if expected == 200 else predecessor)
-                            if expected == 200 and action != "approve":
+                            if expected == 200:
                                 self.assertEqual(CompanyRegistryCheck.objects.count(), before + 1)
                             else:
                                 self.assertEqual(CompanyRegistryCheck.objects.count(), before)
                 self.client.logout()
-            self.assertEqual(provider.call_count, len(REGISTRY_ADMIN_ROUTES) - 1)
+            self.assertEqual(provider.call_count, len(REGISTRY_ADMIN_ROUTES))
 
 
 ACTION_ROUTES = (

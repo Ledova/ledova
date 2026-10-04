@@ -20,14 +20,13 @@ export type CompanyRegistration = ApiRequest<'api_v1_companies_create'>;
 
 export type CompanyRegistrationResponse = ApiResponse<'api_v1_companies_create'>;
 
-export type ApplicationResponse =
-  | ApiResponse<'api_v1_companies_submit_create'>
-  | ApiResponse<'api_v1_companies_resubmit_create'>
-  | ApiResponse<'api_v1_companies_withdraw_create'>;
+export type CompanyActivation = ApiSchema<'CompanyActivation'>;
 
-export type ApplicationResubmit = ApiRequest<'api_v1_companies_resubmit_create'>;
+export type CompanyActivationAttempt = ApiSchema<'CompanyActivationAttempt'>;
 
-export type ApplicationWithdraw = ApiRequest<'api_v1_companies_withdraw_create'>;
+export type CompanyActivate = ApiRequest<'api_v1_companies_activate_create'>;
+
+export type CompanyActivated = ApiResponse<'api_v1_companies_activate_create'>;
 
 export type DocumentUpload = ApiRequest<'api_v1_companies_documents_create'> &
   Required<Pick<ApiRequest<'api_v1_companies_documents_create'>, 'file'>>;

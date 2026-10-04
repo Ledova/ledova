@@ -9,9 +9,8 @@ import type {
   CompanyRegistrationResponse,
   CompanyDocument,
   DocumentUpload,
-  ApplicationResponse,
-  ApplicationResubmit,
-  ApplicationWithdraw,
+  CompanyActivate,
+  CompanyActivated,
   PaginatedResponse,
 } from '../types';
 
@@ -68,27 +67,12 @@ export const deleteCompanyDocument = (
     ? apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid))
     : apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid), config);
 
-export const submitApplication = (apiClient: AxiosInstance, companyUuid: string, config?: AxiosRequestConfig) =>
-  config === undefined
-    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.SUBMIT(companyUuid), { confirm: true })
-    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.SUBMIT(companyUuid), { confirm: true }, config);
-
-export const resubmitApplication = (
+export const activateCompany = (
   apiClient: AxiosInstance,
   companyUuid: string,
-  data: ApplicationResubmit,
+  data: CompanyActivate,
   config?: AxiosRequestConfig,
 ) =>
   config === undefined
-    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.RESUBMIT(companyUuid), data)
-    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.RESUBMIT(companyUuid), data, config);
-
-export const withdrawApplication = (
-  apiClient: AxiosInstance,
-  companyUuid: string,
-  data: ApplicationWithdraw = {},
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.WITHDRAW(companyUuid), data)
-    : apiClient.post<ApplicationResponse>(COMPANY_ENDPOINTS.WITHDRAW(companyUuid), data, config);
+    ? apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data)
+    : apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data, config);

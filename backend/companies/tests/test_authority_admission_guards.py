@@ -5,6 +5,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
 from django.db.models import F
@@ -16,6 +17,7 @@ from companies.models import (
     Company,
     CompanyAppointment,
     CompanyAppointmentRevocation,
+    CompanyStatus,
     RegistryCheckPurpose,
 )
 from companies.services.authority import DECLARATION_TEXT, DECLARATION_VERSION
@@ -92,16 +94,9 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
         self.assertTrue(created)
         return proposal
 
-    def registry_check(self, purpose=RegistryCheckPurpose.AUTHORITY, observation=None):
+    def registry_check(self, observation=None):
         with use_operator():
-            actor = (
-                self.user
-                if purpose == RegistryCheckPurpose.AUTHORITY
-                else get_user_model().objects.create_user(
-                    email="guard-reviewer@example.test", is_active=True, is_staff=True
-                )
-            )
-            check = begin_registry_check(self.company, purpose, actor)
+            check = begin_registry_check(self.company, RegistryCheckPurpose.AUTHORITY, self.user)
             return complete_registry_check(check, observation or matching_observation(self.company))
 
     def row(self, **changes):
@@ -234,7 +229,26 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
             self.assertFalse(UserProfile.objects.get(pk=self.profile.pk).is_id_verified)
 
     def test_registry_check_purpose_status_and_lifecycle_revision_are_bound_on_insert(self):
-        activation = self.registry_check(purpose=RegistryCheckPurpose.ACTIVATION)
+        with use_operator():
+            reviewer = get_user_model().objects.create_user(
+                email="guard-reviewer@example.test", is_active=True, is_staff=True
+            )
+            with atomic():
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute("SELECT quote_ident(%s)", [settings.RLS_ROLES["operator"]])
+                    cursor.execute(f"SET LOCAL ROLE {cursor.fetchone()[0]}")
+                with self.assertRaisesMessage(DatabaseError, "Registry admission requires"), atomic():
+                    begin_registry_check(self.company, RegistryCheckPurpose.ACTIVATION, reviewer)
+        with use_migrate():
+            before_status = Company.objects.values_list("status", flat=True).get(pk=self.company.pk)
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
+        try:
+            with use_operator():
+                activation = begin_registry_check(self.company, RegistryCheckPurpose.ACTIVATION, reviewer)
+                activation = complete_registry_check(activation, matching_observation(self.company))
+        finally:
+            with use_migrate():
+                Company.objects.filter(pk=self.company.pk).update(status=before_status)
         failed = self.registry_check(observation=RegistryObservation(reason="not_found"))
         self.assertEqual((activation.purpose, activation.status), ("activation", "passed"))
         self.assertEqual((failed.purpose, failed.status), ("authority", "failed"))

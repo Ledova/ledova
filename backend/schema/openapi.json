@@ -124,147 +124,6 @@
         ],
         "type": "string"
       },
-      "ApplicationResubmitRequest": {
-        "properties": {
-          "response": {
-            "description": "Response to the information request.",
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "response"
-        ],
-        "type": "object"
-      },
-      "ApplicationStatus": {
-        "properties": {
-          "activatedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "approvedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "infoRequestReason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "infoRequestedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "isActive": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "isApproved": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "isPendingReview": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "name": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "rejectionAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "rejectionReason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewCompletedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewStartedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "statusDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "withdrawalReason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "withdrawnAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "activatedAt",
-          "approvedAt",
-          "infoRequestReason",
-          "infoRequestedAt",
-          "isActive",
-          "isApproved",
-          "isPendingReview",
-          "name",
-          "rejectionAt",
-          "rejectionReason",
-          "reviewCompletedAt",
-          "reviewStartedAt",
-          "status",
-          "statusDisplay",
-          "submittedAt",
-          "uuid",
-          "withdrawalReason",
-          "withdrawnAt"
-        ],
-        "type": "object"
-      },
-      "ApplicationWithdrawRequest": {
-        "properties": {
-          "reason": {
-            "description": "Optional reason for withdrawal.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "ApprovalDataResponse": {
         "oneOf": [
           {
@@ -1380,6 +1239,178 @@
         ],
         "type": "object"
       },
+      "CompanyActivateRequest": {
+        "properties": {
+          "acceptDeclaration": {
+            "type": "boolean"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "declarationVersion": {
+            "maxLength": 10,
+            "minLength": 1,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lifecycleRevision": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "acceptDeclaration",
+          "appointment",
+          "declarationVersion",
+          "idempotencyKey",
+          "lifecycleRevision"
+        ],
+        "type": "object"
+      },
+      "CompanyActivated": {
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/CompanyActivationAttempt"
+          },
+          "company": {
+            "$ref": "#/components/schemas/CompanyDetail"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt",
+          "company",
+          "message"
+        ],
+        "type": "object"
+      },
+      "CompanyActivation": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationText": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationVersion": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "latestAttempt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyActivationAttempt"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "lifecycleRevision": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "appointment",
+          "declarationText",
+          "declarationVersion",
+          "latestAttempt",
+          "lifecycleRevision"
+        ],
+        "type": "object"
+      },
+      "CompanyActivationAttempt": {
+        "properties": {
+          "appliedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointment": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationText": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationVersion": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "lifecycleRevision": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyActivationAttemptStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appliedAt",
+          "appointment",
+          "completedAt",
+          "declarationText",
+          "declarationVersion",
+          "idempotencyKey",
+          "lifecycleRevision",
+          "reason",
+          "startedAt",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyActivationAttemptStatusEnum": {
+        "description": "* `pending` - pending\n* `passed` - passed\n* `failed` - failed",
+        "enum": [
+          "pending",
+          "passed",
+          "failed"
+        ],
+        "type": "string"
+      },
       "CompanyAdministrativeAccess": {
         "properties": {
           "capabilities": {
@@ -1397,51 +1428,6 @@
         "required": [
           "capabilities",
           "draftSetup"
-        ],
-        "type": "object"
-      },
-      "CompanyApplicationResubmitted": {
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/ApplicationStatus"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "message"
-        ],
-        "type": "object"
-      },
-      "CompanyApplicationSubmitted": {
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/ApplicationStatus"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "message"
-        ],
-        "type": "object"
-      },
-      "CompanyApplicationWithdrawn": {
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/ApplicationStatus"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "message"
         ],
         "type": "object"
       },
@@ -1812,6 +1798,15 @@
             "readOnly": true,
             "type": "string"
           },
+          "activation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyActivation"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "additionalInfoResponse": {
             "readOnly": true,
             "type": "string"
@@ -2016,6 +2011,7 @@
         "required": [
           "acn",
           "activatedAt",
+          "activation",
           "additionalInfoResponse",
           "administrativeAccess",
           "approvedAt",
@@ -2364,13 +2360,23 @@
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/CompanyStatusEnum"
+            "$ref": "#/components/schemas/CompanyStatusUpdateStatusEnum"
           }
         },
         "required": [
           "status"
         ],
         "type": "object"
+      },
+      "CompanyStatusUpdateStatusEnum": {
+        "description": "* `active` - active\n* `warning` - warning\n* `suspended` - suspended\n* `delisted` - delisted",
+        "enum": [
+          "active",
+          "warning",
+          "suspended",
+          "delisted"
+        ],
+        "type": "string"
       },
       "CompanyStatusUpdated": {
         "properties": {
@@ -16435,9 +16441,9 @@
         ]
       }
     },
-    "/api/v1/companies/{uuid}/resubmit/": {
+    "/api/v1/companies/{uuid}/activate/": {
       "post": {
-        "operationId": "api_v1_companies_resubmit_create",
+        "operationId": "api_v1_companies_activate_create",
         "parameters": [
           {
             "in": "path",
@@ -16454,17 +16460,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApplicationResubmitRequest"
+                "$ref": "#/components/schemas/CompanyActivateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/ApplicationResubmitRequest"
+                "$ref": "#/components/schemas/CompanyActivateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/ApplicationResubmitRequest"
+                "$ref": "#/components/schemas/CompanyActivateRequest"
               }
             }
           },
@@ -16475,7 +16481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CompanyApplicationResubmitted"
+                  "$ref": "#/components/schemas/CompanyActivated"
                 }
               }
             },
@@ -16538,109 +16544,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyStatusUpdated"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/submit/": {
-      "post": {
-        "operationId": "api_v1_companies_submit_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyApplicationSubmitted"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/withdraw/": {
-      "post": {
-        "operationId": "api_v1_companies_withdraw_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApplicationWithdrawRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/ApplicationWithdrawRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ApplicationWithdrawRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyApplicationWithdrawn"
                 }
               }
             },

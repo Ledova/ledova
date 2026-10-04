@@ -5,7 +5,13 @@ import { ApiClientProvider, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { companyDetail, companyPreferences, companyQueryClient } from '../testSupport/companyAdministration';
-import { useCompanyDocuments } from '../screens/listing/useCompanyDocuments';
+import { useCompanyProfile } from './useCompanyProfile';
+import { useCompanyDocumentActions } from './useCompanyDocumentActions';
+
+function useCompanyDocuments() {
+  const read = useCompanyProfile();
+  return { ...read, ...useCompanyDocumentActions(read) };
+}
 import { useInvestorEligibility } from '../screens/investor-eligibility/useInvestorEligibility';
 
 jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));

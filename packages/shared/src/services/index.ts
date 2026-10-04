@@ -60,9 +60,7 @@ export {
   updateCompany,
   uploadCompanyDocument,
   deleteCompanyDocument,
-  submitApplication,
-  resubmitApplication,
-  withdrawApplication,
+  activateCompany,
 } from './companies';
 export {
   getCompanyAuthorityRequests,

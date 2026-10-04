@@ -703,7 +703,7 @@ export interface ApiPaths {
     patch: ApiOperations['api_v1_companies_partial_update'];
     trace?: never;
   };
-  '/api/v1/companies/{uuid}/resubmit/': {
+  '/api/v1/companies/{uuid}/activate/': {
     parameters: {
       query?: never;
       header?: never;
@@ -712,7 +712,7 @@ export interface ApiPaths {
     };
     get?: never;
     put?: never;
-    post: ApiOperations['api_v1_companies_resubmit_create'];
+    post: ApiOperations['api_v1_companies_activate_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -729,38 +729,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_companies_status_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{uuid}/submit/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_submit_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{uuid}/withdraw/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_withdraw_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2398,32 +2366,6 @@ export interface ApiComponents {
     };
     AccountTypeEnum: 'individual';
     ActionEnum: 'add' | 'remove';
-    ApplicationResubmitRequest: {
-      response: string;
-    };
-    ApplicationStatus: {
-      activatedAt: string | null;
-      approvedAt: string | null;
-      infoRequestedAt: string | null;
-      infoRequestReason: string;
-      isActive: boolean;
-      isApproved: boolean;
-      isPendingReview: boolean;
-      name: string;
-      rejectionAt: string | null;
-      rejectionReason: string;
-      reviewCompletedAt: string | null;
-      reviewStartedAt: string | null;
-      status: ApiComponents['schemas']['CompanyStatusEnum'];
-      statusDisplay: string;
-      submittedAt: string | null;
-      uuid: string;
-      withdrawalReason: string;
-      withdrawnAt: string | null;
-    };
-    ApplicationWithdrawRequest: {
-      reason?: string;
-    };
     ApprovalDataResponse:
       | ApiComponents['schemas']['SettlementSufficientApproval']
       | ApiComponents['schemas']['SettlementApprovalTransaction'];
@@ -2645,21 +2587,42 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    CompanyActivated: {
+      attempt: ApiComponents['schemas']['CompanyActivationAttempt'];
+      company: ApiComponents['schemas']['CompanyDetail'];
+      message: string;
+    };
+    CompanyActivateRequest: {
+      acceptDeclaration: boolean;
+      appointment: string;
+      declarationVersion: string;
+      idempotencyKey: string;
+      lifecycleRevision: number;
+    };
+    CompanyActivation: {
+      appointment: string;
+      declarationText: string;
+      declarationVersion: string;
+      latestAttempt: ApiComponents['schemas']['CompanyActivationAttempt'] | null;
+      lifecycleRevision: number;
+    };
+    CompanyActivationAttempt: {
+      appliedAt: string | null;
+      appointment: string;
+      completedAt: string | null;
+      declarationText: string;
+      declarationVersion: string;
+      idempotencyKey: string;
+      lifecycleRevision: number;
+      reason: string;
+      startedAt: string;
+      status: ApiComponents['schemas']['CompanyActivationAttemptStatusEnum'];
+      uuid: string;
+    };
+    CompanyActivationAttemptStatusEnum: 'pending' | 'passed' | 'failed';
     CompanyAdministrativeAccess: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       draftSetup: boolean;
-    };
-    CompanyApplicationResubmitted: {
-      company: ApiComponents['schemas']['ApplicationStatus'];
-      message: string;
-    };
-    CompanyApplicationSubmitted: {
-      company: ApiComponents['schemas']['ApplicationStatus'];
-      message: string;
-    };
-    CompanyApplicationWithdrawn: {
-      company: ApiComponents['schemas']['ApplicationStatus'];
-      message: string;
     };
     CompanyAppointment: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
@@ -2720,6 +2683,7 @@ export interface ApiComponents {
       abn?: string;
       acn: string;
       activatedAt: string | null;
+      activation: ApiComponents['schemas']['CompanyActivation'] | null;
       additionalInfoResponse: string;
       addressLine1?: string;
       addressLine2?: string;
@@ -2852,8 +2816,9 @@ export interface ApiComponents {
       boardResolutionReference?: string;
       declarantName?: string;
       reason?: string;
-      status: ApiComponents['schemas']['CompanyStatusEnum'];
+      status: ApiComponents['schemas']['CompanyStatusUpdateStatusEnum'];
     };
+    CompanyStatusUpdateStatusEnum: 'active' | 'warning' | 'suspended' | 'delisted';
     CompanyTeamAppointment: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       company: string;
@@ -6326,7 +6291,7 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_companies_resubmit_create: {
+  api_v1_companies_activate_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -6337,9 +6302,9 @@ export interface ApiOperations {
     };
     requestBody: {
       content: {
-        'application/json': ApiComponents['schemas']['ApplicationResubmitRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['ApplicationResubmitRequest'];
-        'multipart/form-data': ApiComponents['schemas']['ApplicationResubmitRequest'];
+        'application/json': ApiComponents['schemas']['CompanyActivateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyActivateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyActivateRequest'];
       };
     };
     responses: {
@@ -6348,7 +6313,7 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['CompanyApplicationResubmitted'];
+          'application/json': ApiComponents['schemas']['CompanyActivated'];
         };
       };
     };
@@ -6376,54 +6341,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyStatusUpdated'];
-        };
-      };
-    };
-  };
-  api_v1_companies_submit_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyApplicationSubmitted'];
-        };
-      };
-    };
-  };
-  api_v1_companies_withdraw_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['ApplicationWithdrawRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['ApplicationWithdrawRequest'];
-        'multipart/form-data': ApiComponents['schemas']['ApplicationWithdrawRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyApplicationWithdrawn'];
         };
       };
     };

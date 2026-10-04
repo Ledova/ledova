@@ -74,7 +74,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     company: 'everyone',
     companyAuthority: 'company',
     companyTeam: 'everyone',
-    companyListing: 'company',
+    companyListing: 'everyone',
     companyOffering: 'company',
     companyPublications: 'company',
   };
@@ -102,7 +102,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       company: 'Company',
       companyAuthority: 'Representative authority',
       companyTeam: 'Company team',
-      companyListing: 'Application',
+      companyListing: 'Activation',
       companyOffering: 'Offerings',
       companyPublications: 'Published to your members',
       userProfile: 'Profile',
