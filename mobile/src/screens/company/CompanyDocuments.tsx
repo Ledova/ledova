@@ -31,9 +31,9 @@ export function CompanyDocuments({ read }: { read: CompanyActionRead }) {
   useEffect(() => {
     if (!read.error && !read.isRefreshing && !read.canAdmin) {
       confirmation.current = null;
-      setRemoving(null);
     }
   }, [read.canAdmin, read.error, read.isRefreshing]);
+  if (removing && !read.error && !read.isRefreshing && !read.canAdmin) setRemoving(null);
   const company = read.company;
   const uuid = read.companyUuid;
   const ready = !!uuid && !!company && read.canAdmin;

@@ -16,7 +16,12 @@ from offerings.serializers import (
     OfferingWithdrawSerializer,
     OfferingWriteSerializer,
 )
-from offerings.services import attach_documents, submit_offering, transition_offering
+from offerings.services import (
+    attach_documents,
+    lock_offering,
+    submit_offering,
+    transition_offering,
+)
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 
@@ -75,7 +80,7 @@ class OfferingViewSet(AuthenticatedModelViewSet):
 
     def perform_update(self, serializer):
         with company_owner_operation(self.request.user, serializer.instance.company_id) as company:
-            serializer.instance = Offering.objects.select_for_update().get(pk=serializer.instance.pk)
+            serializer.instance = lock_offering(serializer.instance)
             if not serializer.instance.can_be_edited:
                 raise OfferingRefusedException("Only a current draft or rejected offering can be edited.")
             require_company_documents(company, self.request.user, serializer.validated_data.get("documents", []))
@@ -120,7 +125,7 @@ class OfferingViewSet(AuthenticatedModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         with company_owner_operation(request.user, offering.company_id) as company:
-            offering = Offering.objects.select_for_update().get(pk=offering.pk)
+            offering = lock_offering(offering)
             require_company_documents(company, request.user, serializer.validated_data["documents"])
             offering = attach_documents(offering, serializer.validated_data["documents"])
         return Response(OfferingDetailSerializer(offering, context=self.get_serializer_context()).data)

@@ -470,7 +470,13 @@ it('closes a private removal confirmation after list-only administration loss on
   company.documents = [documentRecord('cert_inc')];
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'Remove cert_inc.pdf' }));
-  expect(screen.getByRole('dialog')).toBeTruthy();
+  const dialog = screen.getByRole('dialog');
+  const button = within(dialog).getByRole('button', { name: 'Remove document' });
+  const props = Object.entries(button).find(([key]) => key.startsWith('__reactProps$'))?.[1] as
+    { onClick: () => void } | undefined;
+  const confirm = props?.onClick;
+  expect(typeof confirm).toBe('function');
+  const administrativeAccess = company.administrativeAccess;
   company = { ...company, administrativeAccess: { capabilities: [], draftSetup: false } };
   await act(async () => client.invalidateQueries({ queryKey: ['companies'] }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -478,6 +484,24 @@ it('closes a private removal confirmation after list-only administration loss on
   expect(screen.queryByRole('link', { name: 'View cert_inc.pdf' })).toBeNull();
   expect(screen.getByRole('link', { name: 'Application' })).toBeTruthy();
   expect(api.delete).not.toHaveBeenCalled();
+  company = { ...company, administrativeAccess };
+  await act(async () => client.invalidateQueries({ queryKey: ['companies'] }));
+  await screen.findByRole('link', { name: 'View cert_inc.pdf' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  await act(async () => confirm!());
+  expect(api.delete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove cert_inc.pdf' }));
+  const next = screen.getByRole('dialog');
+  expect((within(next).getByRole('button', { name: 'Remove document' }) as HTMLButtonElement).disabled).toBe(false);
+  await act(async () => confirm!());
+  expect(api.delete).not.toHaveBeenCalled();
+  api.delete.mockImplementationOnce(async () => {
+    company = { ...company, documents: [] };
+    return { status: 204 };
+  });
+  fireEvent.click(within(next).getByRole('button', { name: 'Remove document' }));
+  await waitFor(() => expect(api.delete).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
 
 it('retains a disabled local upload draft after list-only administration loss without showing cached private records', async () => {

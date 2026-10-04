@@ -680,7 +680,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
                         client = APIClient()
                         client.force_authenticate(self.owner)
                         try:
-                            with connections["operator"].cursor() as cursor:
+                            with use_operator(), connections[current_alias()].cursor() as cursor:
                                 cursor.execute("SELECT pg_backend_pid()")
                                 worker_pid.append(cursor.fetchone()[0])
                             started.set()
@@ -758,7 +758,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             client = APIClient()
             client.force_authenticate(self.owner)
             try:
-                with connections["operator"].cursor() as cursor:
+                with use_operator(), connections[current_alias()].cursor() as cursor:
                     cursor.execute("SELECT pg_backend_pid()")
                     worker_pid.append(cursor.fetchone()[0])
                 started.set()
@@ -794,7 +794,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             client = APIClient()
             client.force_authenticate(self.owner)
             try:
-                with connections["operator"].cursor() as cursor:
+                with use_operator(), connections[current_alias()].cursor() as cursor:
                     cursor.execute("SELECT pg_backend_pid()")
                     worker_pid.append(cursor.fetchone()[0])
                 started.set()

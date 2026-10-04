@@ -82,7 +82,7 @@ class TheMatrixHoldsWhenTheDatabaseIsTheOnlyThingHoldingItTest(matrix.CrossTenan
         somewhere = "00000000-0000-0000-0000-000000000000"
 
         self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/status/", "post"))
-        self.assertFalse(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/", "get"))
+        self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/", "get"))
         self.assertFalse(runs_on_the_operator_connection("/api/wallets/", "get"))
 
 

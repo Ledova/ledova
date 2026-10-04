@@ -13,10 +13,13 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
-jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patch: jest.fn(), post: jest.fn() } }));
+jest.mock('../../services/apiClient', () => ({
+  apiClient: { get: jest.fn(), patch: jest.fn(), post: jest.fn(), delete: jest.fn() },
+}));
 const get = jest.mocked(apiClient.get);
 const patch = jest.mocked(apiClient.patch);
 const post = jest.mocked(apiClient.post);
+const deletion = jest.mocked(apiClient.delete);
 const LIST = '/api/v1/companies/';
 const DETAIL = '/api/v1/companies/company-a/';
 const company = companyDetail({
@@ -46,6 +49,7 @@ beforeEach(() => {
   mockNavigate.mockReset();
   patch.mockReset();
   post.mockReset();
+  deletion.mockReset();
   get.mockReset();
   get.mockImplementation(async (url, config) => {
     if (url === failure) throw new Error('Refused read');
@@ -340,11 +344,36 @@ it('closes private document removal after list-only administration loss without 
   ];
   const view = await renderCompany();
   await fireEvent.press(await view.findByRole('button', { name: 'Remove private.pdf' }));
-  expect(view.getByRole('button', { name: 'Confirm removal' })).toBeTruthy();
+  const button = view.getByRole('button', { name: 'Confirm removal' });
+  let fiber: typeof button.unstable_fiber | null = button.unstable_fiber;
+  while (fiber && typeof fiber.memoizedProps?.onPress !== 'function') fiber = fiber.return;
+  const confirm = fiber?.memoizedProps.onPress;
+  expect(typeof confirm).toBe('function');
+  const administrativeAccess = current.administrativeAccess;
   current = { ...current, administrativeAccess: { capabilities: [], draftSetup: false } };
   await act(() => client.invalidateQueries({ queryKey: ['companies'] }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm removal' })).toBeNull());
   expect(view.queryByText('private.pdf')).toBeNull();
   expect(view.getByRole('button', { name: 'Application' })).toBeTruthy();
   expect(post).not.toHaveBeenCalled();
+  expect(deletion).not.toHaveBeenCalled();
+  current = { ...current, administrativeAccess };
+  await act(() => client.invalidateQueries({ queryKey: ['companies'] }));
+  await view.findByText('private.pdf');
+  expect(view.queryByRole('button', { name: 'Confirm removal' })).toBeNull();
+  await act(() => confirm());
+  expect(post).not.toHaveBeenCalled();
+  expect(deletion).not.toHaveBeenCalled();
+  await fireEvent.press(view.getByRole('button', { name: 'Remove private.pdf' }));
+  expect(view.getByRole('button', { name: 'Confirm removal' })).toBeEnabled();
+  await act(() => confirm());
+  expect(post).not.toHaveBeenCalled();
+  expect(deletion).not.toHaveBeenCalled();
+  deletion.mockImplementationOnce(async () => {
+    current = { ...current, documents: [] };
+    return { status: 204 };
+  });
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm removal' }));
+  await waitFor(() => expect(deletion).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm removal' })).toBeNull());
 });

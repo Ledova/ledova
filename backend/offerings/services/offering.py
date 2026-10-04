@@ -159,9 +159,13 @@ def submit_offering(offering: Offering, submitted_by) -> Offering:
     return offering
 
 
+def lock_offering(offering: Offering) -> Offering:
+    return Offering.objects.select_for_update().get(pk=offering.pk)
+
+
 def attach_documents(offering, documents):
     with atomic():
-        locked = Offering.objects.select_for_update().get(pk=offering.pk)
+        locked = lock_offering(offering)
         if locked.status not in ATTACHABLE_OFFERING_STATUSES:
             raise OfferingRefusedException(NOT_ATTACHABLE.format(status=locked.get_status_display().lower()))
         locked.documents.add(*documents)

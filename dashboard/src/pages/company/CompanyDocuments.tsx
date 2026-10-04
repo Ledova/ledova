@@ -87,7 +87,6 @@ export function CompanyDocuments({
   useEffect(() => {
     if (!read.error && !read.isRefreshing && !read.canAdmin) {
       confirmation.current = null;
-      setRemoving(null);
     }
   }, [read.canAdmin, read.error, read.isRefreshing]);
   const [assertCurrent] = useState(() => read.assertCurrent);
@@ -142,6 +141,7 @@ export function CompanyDocuments({
       pending.current = false;
     },
   });
+  if (removing && !read.error && !read.isRefreshing && !read.canAdmin) setRemoving(null);
   const viewDocument = (document: CompanyDocument, event: MouseEvent<HTMLAnchorElement>) => {
     try {
       documentGuard(document);
