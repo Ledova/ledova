@@ -399,3 +399,91 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
                 self.assertIn("not current" if revoked else "is current", body["verificationMessage"])
                 self.assertNotIn("verified by ledova", body["verificationMessage"].casefold())
                 self.assertEqual(body["appointment"]["status"], "revoked" if revoked else "active")
+
+    def test_retained_request_receipt_stays_revoked_after_a_distinct_admin_reappoints_the_requester(self):
+        self.proposal = self.submit(delegatable_capabilities=["admin"])
+        declaration = {"declaration_version": DECLARATION_VERSION, "accept_declaration": True}
+        invitations = "/api/v1/company-authority/invitations/"
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(self.company)):
+            admitted = self.client.post(f"{URL}{self.proposal.pk}/admit/", declaration, format="json")
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        initial_id = admitted.json()["appointment"]["uuid"]
+        with use_operator():
+            UserProfile.objects.filter(pk=self.other_profile.pk).update(is_id_verified=True)
+            initial = CompanyAppointment.objects.get(pk=initial_id)
+            initial_values = {field.attname: getattr(initial, field.attname) for field in initial._meta.fields}
+            request_values = {
+                field.attname: getattr(self.proposal, field.attname) for field in self.proposal._meta.fields
+            }
+            with self.proposal.file.open("rb") as retained_file:
+                retained_bytes = retained_file.read()
+        issued = self.client.post(
+            invitations,
+            {
+                "company": str(self.company.pk),
+                "inviter_appointment": initial_id,
+                "idempotency_key": str(uuid4()),
+                "capabilities": ["admin"],
+                "delegatable_capabilities": ["admin"],
+            },
+            format="json",
+        )
+        self.assertEqual(issued.status_code, 201, issued.content)
+        self.client.force_authenticate(self.other)
+        administrator = self.client.post(
+            f"{invitations}accept/", {**declaration, "code": issued.json()["code"]}, format="json"
+        )
+        self.assertEqual(administrator.status_code, 200, administrator.content)
+        self.assertTrue(administrator.json()["isEffective"])
+        self.client.force_authenticate(self.user)
+        revoked = self.client.post(f"{URL}{self.proposal.pk}/revoke/", {}, format="json")
+        self.assertEqual(revoked.status_code, 200, revoked.content)
+        with use_operator():
+            revocation = CompanyAppointmentRevocation.objects.get(appointment=initial)
+            revocation_values = {field.attname: getattr(revocation, field.attname) for field in revocation._meta.fields}
+            self.assertEqual(revocation.revoked_by_id, self.user.pk)
+        self.client.force_authenticate(self.other)
+        replacement = self.client.post(
+            invitations,
+            {
+                "company": str(self.company.pk),
+                "inviter_appointment": administrator.json()["uuid"],
+                "idempotency_key": str(uuid4()),
+                "capabilities": ["admin"],
+            },
+            format="json",
+        )
+        self.assertEqual(replacement.status_code, 201, replacement.content)
+        self.client.force_authenticate(self.user)
+        accepted = self.client.post(
+            f"{invitations}accept/", {**declaration, "code": replacement.json()["code"]}, format="json"
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertEqual((accepted.json()["status"], accepted.json()["source"]), ("active", "invitation"))
+        self.assertTrue(accepted.json()["isEffective"])
+        self.assertEqual(accepted.json()["capabilities"], ["admin"])
+        self.assertNotEqual(accepted.json()["uuid"], initial_id)
+        response = self.client.get(f"{URL}{self.proposal.pk}/")
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual((body["status"], body["verificationStatus"]), ("admitted", "self_declared"))
+        self.assertEqual((body["appointment"]["uuid"], body["appointment"]["status"]), (initial_id, "revoked"))
+        self.assertFalse(body["appointment"]["isEffective"])
+        with use_operator():
+            initial.refresh_from_db()
+            revocation.refresh_from_db()
+            self.proposal.refresh_from_db()
+            self.assertEqual(
+                {field.attname: getattr(initial, field.attname) for field in initial._meta.fields}, initial_values
+            )
+            self.assertEqual(
+                {field.attname: getattr(revocation, field.attname) for field in revocation._meta.fields},
+                revocation_values,
+            )
+            self.assertEqual(
+                {field.attname: getattr(self.proposal, field.attname) for field in self.proposal._meta.fields},
+                request_values,
+            )
+            with self.proposal.file.open("rb") as retained_file:
+                self.assertEqual(retained_file.read(), retained_bytes)
+        self.assertIn("not current", body["verificationMessage"])
