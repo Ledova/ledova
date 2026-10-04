@@ -105,7 +105,7 @@ class CompanyAppointmentSerializer(serializers.ModelSerializer):
 
     def get_is_effective(self, obj) -> bool:
         return has_company_capability(
-            requester=obj.request.requester, company_id=obj.company_id, capability=CompanyCapability.ADMIN
+            requester=obj.appointee, company_id=obj.company_id, capability=CompanyCapability.ADMIN
         )
 
 

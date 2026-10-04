@@ -28,8 +28,9 @@ proved on existing databases as well as fresh ones.
 ## Roles and principal
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
-and initial self-declared appointments are requester-private boundaries: the app
-reads its principal's records and cannot create, update or delete authority rows. A bounded creation service carries and
+are requester-private and initial self-declared appointments appointee-private
+boundaries: the app reads its principal's own requests and the appointments that
+name it as appointee, and cannot create, update or delete authority rows. A bounded creation service carries and
 restores the individual principal on the selected connection, then locks and
 rechecks that person, profile and owned draft company. This does not widen the
 existing company helpers or grant any register capability.
@@ -101,6 +102,10 @@ Important invariants:
   selectors apply the [eligibility rules](companies-and-eligibility.md).
 - A catalogue change needs a migration to reinstall policies for existing
   databases. Fresh installs alone cannot prove an upgrade received the change.
+  A term that names a column added after its table was created is listed in
+  `policy_sql.TERM_COLUMNS_ADDED_AFTER_CREATION`: the creating migration then
+  enables and forces row-level security without policies, denying the app role,
+  and the column's own migration installs the term.
 
 `check_rls_catalogue` compares installed policies and helpers with the installer
 inside a rolled-back transaction. It compares PostgreSQL-normalized expressions,

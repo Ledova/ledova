@@ -46,9 +46,10 @@ ADMISSION_GUARD = "Initial company authority requires"
 REVOCATION_GUARD = "Only the exact active appointee"
 APPOINTMENT_SQL = (
     "INSERT INTO companies_companyappointment "
-    "(uuid, created_at, updated_at, company_id, request_id, registry_check_id, capabilities, "
-    "delegatable_capabilities, expires_at, declaration_version, declaration_text) "
-    "VALUES (%s, statement_timestamp(), statement_timestamp(), %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s)"
+    "(uuid, created_at, updated_at, company_id, appointee_id, appointee_profile_id, request_id, registry_check_id, "
+    "capabilities, delegatable_capabilities, expires_at, declaration_version, declaration_text) "
+    "VALUES (%s, statement_timestamp(), statement_timestamp(), %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, "
+    "%s, %s, %s)"
 )
 REVOCATION_SQL = (
     "INSERT INTO companies_companyappointmentrevocation "
@@ -99,6 +100,8 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
     def row(self, **changes):
         return {
             "company_id": self.company.pk,
+            "appointee_id": self.user.pk,
+            "appointee_profile_id": self.profile.pk,
             "request_id": self.proposal.pk,
             "registry_check_id": self.check.pk,
             "capabilities": self.proposal.requested_capabilities,
@@ -122,6 +125,8 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
                     [
                         uuid4(),
                         row["company_id"],
+                        row["appointee_id"],
+                        row["appointee_profile_id"],
                         row["request_id"],
                         row["registry_check_id"],
                         json.dumps(row["capabilities"]),
@@ -282,6 +287,12 @@ class CompanyAuthorityAdmissionGuardTest(StubUploadDependencies, APITransactionT
                 attempt()
         with use_operator():
             self.assertFalse(CompanyAppointment.objects.exists())
+        self.admitted()
+
+    def test_appointee_and_profile_must_be_the_requester_and_their_profile_on_insert(self):
+        for changes in ({"appointee_id": self.other.pk}, {"appointee_profile_id": self.other_profile.pk}):
+            with self.subTest(changes=changes):
+                self.assert_refused(**changes)
         self.admitted()
 
     def test_revocation_insert_requires_the_matching_principal_and_an_active_actor(self):
