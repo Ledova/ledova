@@ -402,6 +402,31 @@ it('requires the exact declaration checkbox before accepting and suppresses dupl
   expect(client.getMutationCache().getAll()).toHaveLength(0);
 });
 
+it('requires fresh declaration agreement after editing an invitation code', async () => {
+  show();
+  await screen.findByText('Your appointments');
+  const input = screen.getByLabelText('Invitation code');
+  const declaration = screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' });
+  const accept = screen.getByRole('button', { name: 'Accept invitation' });
+  fireEvent.change(input, { target: { value: code } });
+  fireEvent.click(declaration);
+  expect((accept as HTMLButtonElement).disabled).toBe(false);
+  const changedCode = 't'.repeat(43);
+  fireEvent.change(input, { target: { value: changedCode } });
+  expect((declaration as HTMLInputElement).checked).toBe(false);
+  expect((accept as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(accept);
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(declaration);
+  fireEvent.click(accept);
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  expect(api.post).toHaveBeenCalledWith(
+    `${invitationsUrl}accept/`,
+    { code: changedCode, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
+});
+
 it('retains the code and declaration selection after configured account or identity refusal', async () => {
   api.post.mockRejectedValueOnce(new Error('Complete the configured identity check'));
   show();

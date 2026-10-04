@@ -95,6 +95,7 @@ export function AcceptInvitationForm({
           disabled={disabled || busy}
           onChange={(event) => {
             setCode(event.target.value);
+            setAccepted(false);
             setError('');
             setReceipt('');
           }}
