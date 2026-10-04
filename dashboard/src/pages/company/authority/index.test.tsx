@@ -569,6 +569,27 @@ it('refuses a confirmation when the signed-in account changes before its effect'
   expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
 });
 
+it('refuses the open confirmation once a refetch shows the appointment already revoked', async () => {
+  rows = [admitted()];
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const confirm = within(await screen.findByRole('dialog')).getByRole('button', {
+    name: 'Permanently revoke appointment',
+  });
+  rows = [revoked()];
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-authority-requests', 'profile-a', 'account-a'], exact: true });
+  });
+  await screen.findByText('revoked');
+  expect(screen.queryByRole('button', { name: 'Revoke appointment authority.pdf' })).toBeNull();
+  expect(confirm.isConnected).toBe(true);
+  expect((confirm as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(confirm);
+  await act(() => Promise.resolve());
+  expect(api.post).not.toHaveBeenCalled();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
+});
+
 it.each(['cancel', 'escape'])(
   'refuses the retained confirmation immediately after %s during modal closure',
   async (action) => {

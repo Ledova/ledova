@@ -619,6 +619,22 @@ it.each(['cancel', 'dismiss'])('sends no revocation after %s and permits a later
   expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
 });
 
+it('consumes the confirmed callback so reusing it after the revocation settles sends nothing', async () => {
+  history = [admitted];
+  post.mockResolvedValue({ data: revoked });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  const confirm = revocationAlert()[2]!.find((button) => button.text === 'Permanently revoke')!.onPress!;
+  await act(() => confirm());
+  await view.findByText('revoked');
+  expect(post).toHaveBeenCalledTimes(1);
+  await act(() => confirm());
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(view.queryByRole('button', { name: 'Revoke appointment' })).toBeNull();
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
+});
+
 it('refuses an open revocation confirmation after the authenticated session changes', async () => {
   history = [admitted];
   const originalEpoch = getSessionEpoch();
