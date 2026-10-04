@@ -41,7 +41,7 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
         "CompanyAppointmentStatusEnum": ["active", "expired", "revoked"],
-        "CompanyAppointmentSourceEnum": ["initial", "invitation"],
+        "CompanyAppointmentSourceEnum": ["initial", "invitation", "legacy_owner"],
         "CompanyCapabilityEnum": "companies.models.authority_request.CompanyCapability.choices",
         "ApprovalRequiredEnum": [(True, True)],
         "BallotChoiceEnum": "shareholders.models.event.BallotChoice",

@@ -27,7 +27,13 @@ export function AppointmentRecord({
             <Row label="Email">{appointment.email}</Row>
           </>
         )}
-        <Row label="Source">{appointment.source === 'initial' ? 'Initial self-declaration' : 'Company invitation'}</Row>
+        <Row label="Source">
+          {appointment.source === 'initial'
+            ? 'Initial self-declaration'
+            : appointment.source === 'legacy_owner'
+              ? 'Legacy company owner'
+              : 'Company invitation'}
+        </Row>
         <Row label="Status">{appointment.status}</Row>
         <Row label="Current authority">{currentAppointment(appointment) ? 'Current' : 'Not current'}</Row>
         <Row label="Personal actions">{scopeLabels(appointment.capabilities)}</Row>
@@ -36,7 +42,7 @@ export function AppointmentRecord({
         <Row label="Expiry">{appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}</Row>
         {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
       </Rows>
-      {!teamRecord && 'declarationText' in appointment && (
+      {!teamRecord && appointment.source !== 'legacy_owner' && 'declarationText' in appointment && (
         <p className="text-sm text-text-muted">{appointment.declarationText}</p>
       )}
       {appointment.status !== 'revoked' && (
