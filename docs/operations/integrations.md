@@ -365,7 +365,7 @@ that kind's page:
 
 | Kind (`data.type`) | Sent by                                                                                  | The bell opens |
 | ------------------ | ---------------------------------------------------------------------------------------- | -------------- |
-| `company`          | `companies/services/company.py`, on each notified application transition                 | Application    |
+| `company`          | Retained application history; its normal notification sender is retired                  | Activation     |
 | `offering`         | `offerings/services/offering.py`, on each notified offering transition                   | Offerings      |
 | `publication`      | `shareholders/services/publications.py`, when a publication is announced                 | Notices        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity       |
@@ -375,12 +375,11 @@ A notice of any other kind stays where it is. That includes identity notices
 sent before they carried a type. The mobile inbox opens only publication
 notices.
 
-Company transitions notify the owner as: submit, resubmit, start_review,
-request_info (carrying the reason), approve, reject (carrying the reason),
-activate and withdraw. Warning, resolve-warning, suspend, reinstate and delist
-notify nobody. Only the Issue Warning action says so in its admin copy
-(`companies/admin/company.py`); resolve-warning and reinstate have no intro copy
-at all.
+The old company application transitions and their owner-notification producer are
+retired. Existing notices retain their payloads; the dashboard bell opens the
+reused Activation page. Administrator activation returns its retained attempt
+through the API and creates no application notice. Warning, resolve-warning,
+suspend, reinstate and delist remain silent technical transitions.
 
 Push registration needs `extra.eas.projectId` in `mobile/app.json`, which is
 not set in this repository. On Android, remote push is unavailable in Expo Go

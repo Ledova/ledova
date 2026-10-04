@@ -9,7 +9,6 @@ from authentication.services.sessions import SessionService
 from companies.services.company import register_company
 from integrations.expo_push import ExpoPushClient, ExpoPushError
 from integrations.sumsub.client import SumSubService
-from shared.db import use_migrate
 from users.models import DeviceToken, UserProfile
 from users.services.notifications import NotificationService
 from users.services.setup import ensure_defaults
