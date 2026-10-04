@@ -175,6 +175,75 @@ it('offers an account-area entry to investor-only accounts without a company tab
   expect(screen.getByRole('link', { name: /Company team/ }).getAttribute('href')).toBe('/company/team');
 });
 
+it.each(['active', 'expired'] as const)(
+  'retains and revokes %s legacy-owner history without inventing a declaration',
+  async (status) => {
+    const legacy = appointment({
+      source: 'legacy_owner',
+      declarationVersion: null,
+      declarationText: null,
+      status,
+      isEffective: status === 'active',
+      expiresAt: status === 'expired' ? '2020-01-01T00:00:00Z' : null,
+    });
+    rows = [legacy];
+    api.post.mockResolvedValue({ data: revoked(legacy) });
+    show();
+    const record = within((await screen.findByText(legacy.uuid)).closest('li')!);
+    expect(record.getByText('Legacy company owner')).toBeTruthy();
+    expect(record.queryByText(COMPANY_AUTHORITY_DECLARATION)).toBeNull();
+    if (status === 'active') await selectSource();
+    const confirm = await openRevoke();
+    expect(screen.getByText(/revoking an initial or legacy-owner appointment does not reopen admission/)).toBeTruthy();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[0].status).toBe('revoked'));
+    expect(record.getByText('Legacy company owner')).toBeTruthy();
+    expect(record.getByText('Not current')).toBeTruthy();
+    expect(record.queryByText(COMPANY_AUTHORITY_DECLARATION)).toBeNull();
+    expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[0]).toMatchObject({
+      source: 'legacy_owner',
+      declarationVersion: null,
+      declarationText: null,
+    });
+  },
+);
+
+it.each(['initial', 'invitation'] as const)(
+  'refuses a %s revocation receipt with missing declaration fields',
+  async (source) => {
+    rows = [appointment({ source })];
+    api.post.mockResolvedValue({
+      data: revoked(appointment({ source, declarationVersion: null, declarationText: null })),
+    });
+    show();
+    fireEvent.click(await openRevoke());
+    await screen.findByText(/revocation outcome could not be confirmed/);
+    expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[0].status).toBe('active');
+  },
+);
+
+it('refuses fabricated declaration fields on a legacy-owner revocation receipt', async () => {
+  rows = [appointment({ source: 'legacy_owner', declarationVersion: null, declarationText: null })];
+  api.post.mockResolvedValue({ data: revoked(appointment({ source: 'legacy_owner' })) });
+  show();
+  fireEvent.click(await openRevoke());
+  await screen.findByText(/revocation outcome could not be confirmed/);
+  expect(client.getQueryData<OwnCompanyAppointment[]>(ownKey)?.[0].status).toBe('active');
+});
+
+it('refuses a legacy-owner response from invitation acceptance', async () => {
+  api.post.mockResolvedValue({
+    data: appointment({ source: 'legacy_owner', declarationVersion: null, declarationText: null }),
+  });
+  show();
+  fireEvent.change(screen.getByLabelText('Invitation code'), { target: { value: code } });
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  await screen.findByText(/appointment outcome could not be confirmed/);
+  expect(screen.queryByText(/Appointment recorded for/)).toBeNull();
+  expect((screen.getByLabelText('Invitation code') as HTMLInputElement).value).toBe(code);
+});
+
 it('paginates own appointment history and invitations without fetching global company details', async () => {
   const second = appointment({
     uuid: 'historical-b',
@@ -572,7 +641,7 @@ it('hides retained own authority after a failed refresh and prevents invitation 
 it.each(['cancel', 'escape'] as const)('invalidates a retained confirmation immediately after %s', async (action) => {
   show();
   const button = await openRevoke();
-  expect(screen.getByText(/revoking an initial appointment does not reopen admission/)).toBeTruthy();
+  expect(screen.getByText(/revoking an initial or legacy-owner appointment does not reopen admission/)).toBeTruthy();
   if (action === 'cancel') fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   else fireEvent.keyDown(button, { key: 'Escape' });
   expect((button as HTMLButtonElement).disabled).toBe(true);

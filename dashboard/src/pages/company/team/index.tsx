@@ -419,8 +419,9 @@ function OwnTeam({
       >
         <p className="text-sm text-text-primary">
           Permanently remove appointment {confirmation?.appointment.uuid} for {confirmation?.companyName}? This
-          appointment loses its company authority. Its declaration and history remain retained. Another initial
-          self-declaration cannot restore it; revoking an initial appointment does not reopen admission.
+          appointment loses its company authority. Its history remains retained.
+          {confirmation?.appointment.source !== 'invitation' &&
+            ' Another initial self-declaration cannot restore it; revoking an initial or legacy-owner appointment does not reopen admission.'}
         </p>
       </Modal>
     </Page>

@@ -2660,8 +2660,8 @@ export interface ApiComponents {
     CompanyAppointment: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       createdAt: string;
-      declarationText: string;
-      declarationVersion: string;
+      declarationText: string | null;
+      declarationVersion: string | null;
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;
@@ -2669,7 +2669,7 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
     };
-    CompanyAppointmentSourceEnum: 'initial' | 'invitation';
+    CompanyAppointmentSourceEnum: 'initial' | 'invitation' | 'legacy_owner';
     CompanyAppointmentStatusEnum: 'active' | 'expired' | 'revoked';
     CompanyAuthorityRequest: {
       appointment: ApiComponents['schemas']['CompanyAppointment'] | null;
@@ -3578,8 +3578,8 @@ export interface ApiComponents {
       company: string;
       companyName: string;
       createdAt: string;
-      declarationText: string;
-      declarationVersion: string;
+      declarationText: string | null;
+      declarationVersion: string | null;
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;

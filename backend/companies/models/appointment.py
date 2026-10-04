@@ -22,26 +22,55 @@ class CompanyAppointment(BaseModel):
     invitation = models.OneToOneField(
         "companies.CompanyTeamInvitation", on_delete=models.PROTECT, related_name="appointment", null=True
     )
+    legacy_owner = models.OneToOneField(
+        "companies.CompanyLegacyOwnerSource",
+        on_delete=models.PROTECT,
+        related_name="appointment",
+        null=True,
+        editable=False,
+    )
     registry_check = models.ForeignKey(
         "companies.CompanyRegistryCheck", on_delete=models.PROTECT, related_name="+", null=True
     )
     capabilities = models.JSONField(editable=False)
     delegatable_capabilities = models.JSONField(editable=False)
     expires_at = models.DateTimeField(null=True, editable=False)
-    declaration_version = models.CharField(max_length=10, editable=False)
-    declaration_text = models.TextField(editable=False)
+    declaration_version = models.CharField(max_length=10, editable=False, null=True)
+    declaration_text = models.TextField(editable=False, null=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["company"],
-                condition=Q(request__isnull=False),
+                condition=Q(request__isnull=False) | Q(legacy_owner__isnull=False),
                 name="companies_one_initial_appointment_per_company",
             ),
             models.CheckConstraint(
                 condition=(
-                    Q(request__isnull=False, invitation__isnull=True, registry_check__isnull=False)
-                    | Q(request__isnull=True, invitation__isnull=False, registry_check__isnull=True)
+                    Q(
+                        request__isnull=False,
+                        invitation__isnull=True,
+                        legacy_owner__isnull=True,
+                        registry_check__isnull=False,
+                        declaration_version__isnull=False,
+                        declaration_text__isnull=False,
+                    )
+                    | Q(
+                        request__isnull=True,
+                        invitation__isnull=False,
+                        legacy_owner__isnull=True,
+                        registry_check__isnull=True,
+                        declaration_version__isnull=False,
+                        declaration_text__isnull=False,
+                    )
+                    | Q(
+                        request__isnull=True,
+                        invitation__isnull=True,
+                        legacy_owner__isnull=False,
+                        registry_check__isnull=True,
+                        declaration_version__isnull=True,
+                        declaration_text__isnull=True,
+                    )
                 ),
                 name="companies_appointment_exact_source",
             ),
