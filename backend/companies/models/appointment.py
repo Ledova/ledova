@@ -17,9 +17,14 @@ class CompanyAppointment(BaseModel):
         "users.UserProfile", on_delete=models.PROTECT, related_name="+", editable=False
     )
     request = models.OneToOneField(
-        "companies.CompanyAuthorityRequest", on_delete=models.PROTECT, related_name="appointment"
+        "companies.CompanyAuthorityRequest", on_delete=models.PROTECT, related_name="appointment", null=True
     )
-    registry_check = models.ForeignKey("companies.CompanyRegistryCheck", on_delete=models.PROTECT, related_name="+")
+    invitation = models.OneToOneField(
+        "companies.CompanyTeamInvitation", on_delete=models.PROTECT, related_name="appointment", null=True
+    )
+    registry_check = models.ForeignKey(
+        "companies.CompanyRegistryCheck", on_delete=models.PROTECT, related_name="+", null=True
+    )
     capabilities = models.JSONField(editable=False)
     delegatable_capabilities = models.JSONField(editable=False)
     expires_at = models.DateTimeField(null=True, editable=False)
@@ -32,7 +37,14 @@ class CompanyAppointment(BaseModel):
                 fields=["company"],
                 condition=Q(request__isnull=False),
                 name="companies_one_initial_appointment_per_company",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(request__isnull=False, invitation__isnull=True, registry_check__isnull=False)
+                    | Q(request__isnull=True, invitation__isnull=False, registry_check__isnull=True)
+                ),
+                name="companies_appointment_exact_source",
+            ),
         ]
 
     @property

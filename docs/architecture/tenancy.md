@@ -28,7 +28,7 @@ proved on existing databases as well as fresh ones.
 ## Roles and principal
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
-are requester-private and initial self-declared appointments appointee-private
+are requester-private and company appointments appointee-private
 boundaries: the app reads its principal's own requests and the appointments that
 name it as appointee, and cannot create, update or delete authority rows. A bounded creation service carries and
 restores the individual principal on the selected connection, then locks and
@@ -45,6 +45,18 @@ check without activating the company. Self-revocation creates an immutable outco
 expiry/revocation stops current capability checks. The preserved configured issuer
 identity gate consumes server-owned provider results. None of these reads widens
 legacy owner-based company, investor or financial-data scopes.
+
+Invitations are readable only by their inviter through the app role. Bounded
+issuance checks a current selected appointment and its explicit delegatable
+scope; acceptance binds the first code holder's actual account and profile to
+one immutable appointment. The code appears only in the initial response and
+acceptance body; retained rows and history contain no plaintext code. Team reads
+require current administration for that exact company and expose account and
+appointment fields, excluding private identity, financial and authority evidence.
+Company administrators can revoke another appointment within that company, and
+appointees can revoke their own. These services lock the company before actors,
+restore the caller principal and check expiry after lock waits. No new company
+visibility helper or global staff mandate is introduced.
 
 | Role | Purpose |
 | --- | --- |

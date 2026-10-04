@@ -16,9 +16,12 @@ from rest_framework.test import APITransactionTestCase
 from companies.models import (
     LISTING_REQUIRED_DOCUMENTS,
     Company,
+    CompanyAppointment,
+    CompanyAppointmentRevocation,
     CompanyDocument,
     CompanyRegistryCheck,
     CompanyStatus,
+    CompanyTeamInvitation,
 )
 from companies.tests.registry_fixtures import DECLARATION
 from companies.tests.test_document_file_access import attach_file, make_document
@@ -175,6 +178,12 @@ COMPANY_AUTHORITY_ROUTES = {
     "withdraw": ("post", "/api/v1/company-authority/requests/{uuid}/withdraw/"),
     "admit": ("post", "/api/v1/company-authority/requests/{uuid}/admit/"),
     "revoke": ("post", "/api/v1/company-authority/requests/{uuid}/revoke/"),
+    "invitation_create": ("post", "/api/v1/company-authority/invitations/"),
+    "invitation_list": ("get", "/api/v1/company-authority/invitations/"),
+    "invitation_accept": ("post", "/api/v1/company-authority/invitations/accept/"),
+    "appointment_list": ("get", "/api/v1/company-authority/appointments/"),
+    "appointment_team": ("get", "/api/v1/company-authority/appointments/team/?company={company}"),
+    "appointment_revoke": ("post", "/api/v1/company-authority/appointments/{uuid}/revoke/"),
 }
 
 REGISTER_CORRECTION_ROUTES = {
@@ -841,6 +850,254 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 self.assertEqual(response.status_code, 200, response.content)
                 self.assertEqual(response.json()["status"], "admitted")
         self.assertEqual(response.json()["appointment"]["status"], "revoked")
+
+    def initial_team_appointment(self, label, acn):
+        from companies.services.authority import DECLARATION_VERSION
+        from companies.tests.registry_fixtures import matching_observation
+        from companies.tests.test_authority_requests import authority_fixture
+
+        with self.as_an_operator_would():
+            owner, profile, company = authority_fixture(label, acn)
+            UserProfile.objects.filter(pk=profile.pk).update(is_id_verified=True)
+        self.client.force_authenticate(owner)
+        created = self.client.post(
+            COMPANY_AUTHORITY_ROUTES["create"][1],
+            {
+                "company": str(company.pk),
+                "idempotency_key": str(uuid4()),
+                "requested_capabilities": ["admin"],
+                "delegatable_capabilities": ["approve", "prepare"],
+                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
+            admitted = self.client.post(
+                COMPANY_AUTHORITY_ROUTES["admit"][1].format(uuid=created.json()["uuid"]),
+                {"declaration_version": DECLARATION_VERSION, "accept_declaration": True},
+                format="json",
+            )
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        return owner, company, admitted.json()["appointment"]["uuid"], admitted.json()["uuid"]
+
+    def test_team_routes_bind_company_source_and_appointee_without_exposing_foreign_history(self):
+        from companies.services.authority import DECLARATION_VERSION
+
+        owner, company, initial, proposal_id = self.initial_team_appointment("matrix-team", "114455668")
+        invitee, foreign_company, foreign_initial, own_proposal_id = self.initial_team_appointment(
+            "matrix-team-other", "225566779"
+        )
+        invitation_url = COMPANY_AUTHORITY_ROUTES["invitation_create"][1]
+        own_url = COMPANY_AUTHORITY_ROUTES["appointment_list"][1]
+        accept_url = COMPANY_AUTHORITY_ROUTES["invitation_accept"][1]
+        team_url = COMPANY_AUTHORITY_ROUTES["appointment_team"][1]
+        revoke_url = COMPANY_AUTHORITY_ROUTES["appointment_revoke"][1]
+        payload = {
+            "company": str(company.pk),
+            "inviter_appointment": initial,
+            "idempotency_key": str(uuid4()),
+            "capabilities": ["prepare"],
+            "delegatable_capabilities": ["approve"],
+        }
+        self.client.force_authenticate(owner)
+        issued = self.client.post(invitation_url, payload, format="json")
+        self.assertEqual(issued.status_code, 201, issued.content)
+        invitation = issued.json()
+        code = invitation.pop("code")
+        self.assertEqual(issued["Cache-Control"], "private, no-store")
+        invitation_fields = {
+            "uuid",
+            "company",
+            "companyName",
+            "inviterAppointment",
+            "idempotencyKey",
+            "capabilities",
+            "delegatableCapabilities",
+            "acceptanceDeadline",
+            "appointmentExpiresAt",
+            "createdAt",
+            "acceptedAt",
+        }
+        self.assertEqual(set(invitation), invitation_fields)
+        self.assertEqual(self.rows(self.client.get(invitation_url)), [invitation])
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(own_url))], [initial])
+        for foreign, missing in (
+            ({"company": str(foreign_company.pk)}, {"company": str(uuid4())}),
+            ({"inviter_appointment": foreign_initial}, {"inviter_appointment": str(uuid4())}),
+            (
+                {"company": str(foreign_company.pk), "inviter_appointment": foreign_initial},
+                {"company": str(uuid4()), "inviter_appointment": str(uuid4())},
+            ),
+        ):
+            with self.subTest(foreign=foreign):
+                denied = self.client.post(invitation_url, {**payload, **foreign}, format="json")
+                absent = self.client.post(invitation_url, {**payload, **missing}, format="json")
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+                self.assertEqual(denied.status_code, 404)
+
+        self.client.force_authenticate(invitee)
+        declaration = {"code": code, "declaration_version": DECLARATION_VERSION, "accept_declaration": True}
+        for field, foreign in (
+            ("company", str(foreign_company.pk)),
+            ("inviter_appointment", foreign_initial),
+            ("appointee", str(owner.pk)),
+        ):
+            with self.subTest(acceptance_field=field):
+                denied = self.client.post(accept_url, {**declaration, field: foreign}, format="json")
+                absent = self.client.post(accept_url, {**declaration, field: str(uuid4())}, format="json")
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+                self.assertEqual(denied.status_code, 400)
+        self.assertEqual(
+            self.client.post(accept_url, {**declaration, "code": "a" * 43}, format="json").status_code, 404
+        )
+        with self.as_an_operator_would():
+            self.assertEqual(CompanyTeamInvitation.objects.count(), 1)
+            self.assertEqual(CompanyAppointment.objects.count(), 2)
+            self.assertFalse(CompanyAppointmentRevocation.objects.exists())
+        accepted = self.client.post(accept_url, declaration, format="json")
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        child = accepted.json()
+        child_id = child["uuid"]
+        own_fields = {
+            "uuid",
+            "company",
+            "companyName",
+            "capabilities",
+            "delegatableCapabilities",
+            "expiresAt",
+            "createdAt",
+            "revokedAt",
+            "status",
+            "isEffective",
+            "source",
+            "declarationVersion",
+            "declarationText",
+        }
+        self.assertEqual(set(child), own_fields)
+        self.assertEqual(
+            (child["company"], child["source"], child["isEffective"]), (str(company.pk), "invitation", True)
+        )
+        self.assertEqual(child["capabilities"], ["prepare"])
+        self.assertEqual(self.client.post(accept_url, declaration, format="json").json(), child)
+        self.assertEqual({row["uuid"] for row in self.rows(self.client.get(own_url))}, {foreign_initial, child_id})
+        self.assertEqual(self.rows(self.client.get(invitation_url)), [])
+        self.assertEqual(
+            [row["uuid"] for row in self.rows(self.client.get(COMPANY_AUTHORITY_ROUTES["list"][1]))],
+            [own_proposal_id],
+        )
+        for name in ("detail", "file"):
+            path = COMPANY_AUTHORITY_ROUTES[name][1]
+            denied = self.client.get(path.format(uuid=proposal_id))
+            absent = self.client.get(path.format(uuid=uuid4()))
+            self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+            self.assertEqual(denied.status_code, 404)
+        denied = self.client.post(revoke_url.format(uuid=initial), {}, format="json")
+        absent = self.client.post(revoke_url.format(uuid=uuid4()), {}, format="json")
+        self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+        self.assertEqual(denied.status_code, 404)
+        denied = self.client.get(team_url.format(company=company.pk))
+        absent = self.client.get(team_url.format(company=uuid4()))
+        self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+        self.assertEqual(denied.status_code, 404)
+        self.assertEqual(
+            {row["uuid"] for row in self.rows(self.client.get(team_url.format(company=foreign_company.pk)))},
+            {foreign_initial},
+        )
+
+        with self.as_an_operator_would():
+            Company.objects.filter(pk=company.pk).update(owner=self.actors[0].user)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            with self.subTest(actor=actor.label):
+                self.assertEqual(self.rows(self.client.get(invitation_url)), [])
+                self.assertEqual(self.rows(self.client.get(own_url)), [])
+                denied = self.client.post(invitation_url, payload, format="json")
+                absent = self.client.post(
+                    invitation_url, {**payload, "inviter_appointment": str(uuid4())}, format="json"
+                )
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+                self.assertEqual(denied.status_code, 404)
+                denied = self.client.get(team_url.format(company=company.pk))
+                absent = self.client.get(team_url.format(company=uuid4()))
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+                self.assertEqual(denied.status_code, 404)
+                for target in (initial, child_id):
+                    denied = self.client.post(revoke_url.format(uuid=target), {}, format="json")
+                    absent = self.client.post(revoke_url.format(uuid=uuid4()), {}, format="json")
+                    self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+                    self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.client.post(accept_url, declaration, format="json").status_code, 400)
+        with self.as_an_operator_would():
+            self.assertEqual(CompanyAppointment.objects.count(), 3)
+            self.assertFalse(CompanyAppointmentRevocation.objects.exists())
+
+        self.client.force_authenticate(owner)
+        listed = self.rows(self.client.get(invitation_url))
+        self.assertEqual([row["uuid"] for row in listed], [invitation["uuid"]])
+        self.assertEqual(set(listed[0]), invitation_fields)
+        self.assertIsNotNone(listed[0]["acceptedAt"])
+        self.assertNotIn(code, str(listed))
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(own_url))], [initial])
+        team = self.client.get(team_url.format(company=company.pk))
+        self.assertEqual(team.status_code, 200, team.content)
+        team_fields = {
+            "uuid",
+            "company",
+            "name",
+            "email",
+            "capabilities",
+            "delegatableCapabilities",
+            "expiresAt",
+            "createdAt",
+            "revokedAt",
+            "status",
+            "isEffective",
+            "source",
+        }
+        self.assertEqual({row["uuid"] for row in team.json()}, {initial, child_id})
+        self.assertEqual({row["email"] for row in team.json()}, {owner.email, invitee.email})
+        for row in team.json():
+            self.assertEqual(set(row), team_fields)
+            self.assertEqual(row["company"], str(company.pk))
+        denied = self.client.get(team_url.format(company=foreign_company.pk))
+        absent = self.client.get(team_url.format(company=uuid4()))
+        self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+        self.assertEqual(denied.status_code, 404)
+        denied = self.client.post(revoke_url.format(uuid=foreign_initial), {}, format="json")
+        absent = self.client.post(revoke_url.format(uuid=uuid4()), {}, format="json")
+        self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content))
+        self.assertEqual(denied.status_code, 404)
+        revoked = self.client.post(revoke_url.format(uuid=child_id), {}, format="json")
+        self.assertEqual(revoked.status_code, 200, revoked.content)
+        self.assertEqual(revoked.json()["status"], "revoked")
+        self.assertFalse(revoked.json()["isEffective"])
+        self.client.force_authenticate(invitee)
+        retry = self.client.post(revoke_url.format(uuid=child_id), {}, format="json")
+        self.assertEqual(retry.status_code, 200, retry.content)
+        self.assertEqual(retry.json(), revoked.json())
+        own_revoked = self.client.post(revoke_url.format(uuid=foreign_initial), {}, format="json")
+        self.assertEqual(own_revoked.status_code, 200, own_revoked.content)
+        self.assertEqual(own_revoked.json()["status"], "revoked")
+        self.assertEqual({row["uuid"] for row in self.rows(self.client.get(own_url))}, {foreign_initial, child_id})
+        with self.as_an_operator_would():
+            self.assertEqual(CompanyTeamInvitation.objects.count(), 1)
+            self.assertEqual(CompanyAppointment.objects.count(), 3)
+            self.assertEqual(CompanyAppointmentRevocation.objects.count(), 2)
+            self.assertEqual(CompanyAppointmentRevocation.objects.get(appointment_id=child_id).revoked_by_id, owner.pk)
+
+        self.client.force_authenticate(None)
+        for name, body in (
+            ("invitation_create", payload),
+            ("invitation_list", {}),
+            ("invitation_accept", declaration),
+            ("appointment_list", {}),
+            ("appointment_team", {}),
+            ("appointment_revoke", {}),
+        ):
+            method, path = COMPANY_AUTHORITY_ROUTES[name]
+            response = getattr(self.client, method)(path.format(company=company.pk, uuid=child_id), body, format="json")
+            self.assertEqual(response.status_code, 401, response.content)
 
     @override_settings(
         STORAGES={

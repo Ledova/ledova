@@ -10,7 +10,11 @@ from companies.models import (
     CompanyCapability,
     CompanyType,
 )
-from companies.services.authority import DECLARATION_VERSION, has_company_capability
+from companies.services.authority import (
+    DECLARATION_VERSION,
+    has_company_capability,
+    is_company_appointment_effective,
+)
 
 VERIFICATION_UNAVAILABLE = (
     "Evidence retained. Accept the company authorisation declaration to establish initial authority after "
@@ -104,9 +108,7 @@ class CompanyAppointmentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_is_effective(self, obj) -> bool:
-        return has_company_capability(
-            requester=obj.appointee, company_id=obj.company_id, capability=CompanyCapability.ADMIN
-        )
+        return is_company_appointment_effective(obj)
 
 
 class AuthorityPersonIdentitySnapshotSerializer(serializers.Serializer):

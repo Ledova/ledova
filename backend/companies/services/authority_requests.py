@@ -117,6 +117,15 @@ def submit_authority_request(
         file_size, mime_type = validate_upload(captured)
     file_sha256 = hashlib.sha256(raw).hexdigest()
     with use_operator(), _requester_principal(requester.pk), atomic():
+        prior = CompanyAuthorityRequest.objects.filter(
+            requester_id=requester.pk, idempotency_key=idempotency_key
+        ).first()
+        if prior:
+            if str(prior.company_id) != str(company_id):
+                raise AuthorityRequestConflictException()
+            company = get_object_or_404(Company.objects.select_for_update(), pk=prior.company_id)
+        else:
+            company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner_id=requester.pk)
         actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
         _require_requester(actor)
         profile = get_object_or_404(UserProfile.objects.select_for_update(), user=actor)
@@ -128,11 +137,9 @@ def submit_authority_request(
         if existing:
             if str(existing.company_id) != str(company_id):
                 raise AuthorityRequestConflictException()
-            company = get_object_or_404(Company.objects.select_for_update(), pk=existing.company_id)
         else:
             if replay:
                 raise AuthorityRequestConflictException()
-            company = get_object_or_404(Company.objects.select_for_update(), pk=company_id, owner=actor)
             if company.status != CompanyStatus.DRAFT:
                 raise ValidationError(
                     {"company": "Initial authority evidence can only be requested for your draft company."}

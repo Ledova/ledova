@@ -101,12 +101,33 @@ the request-keyed policy and the earlier trigger body before dropping the
 columns, and refuses when any appointment's appointee differs from its request's
 requester, which no delivered path can produce.
 
+`companies/0017_company_team_invitations` adds immutable company invitations and
+their private inviter history. An appointment now has exactly one initial request
+or invitation source; invitation acceptance names the actual accepting account
+and profile without inventing ABR evidence. The initial-root unique index remains
+permanent after expiry or revocation. New guards bind invitation issuance to the
+selected current delegation envelope, acceptance to the code proof and exact
+terms, and non-self revocation to current company administration. The app role
+cannot insert or change these records. Bounded team reads expose permitted
+account/scope fields rather than private authority or identity evidence.
+
+This migration also aligns initial admission with company-first locking and
+checks expiry against actual time after lock waits. It seeds no owner, changes
+no register decision and approves no pending instruction. Backend and generated
+API types provide the new invitation/team operations; the existing initial
+request clients remain compatible while team screens are a later increment.
+Any retained invitation, including an unaccepted one, or non-self administrator
+revocation prevents reversal. Supported empty or initial/self-revocation
+reversal restores the preceding guard bodies and policies exactly. Do not purge
+history to force a rollback. Apply only through the separately authorised upgrade
+process with the database and private storage preserved together.
+
 ## Remaining company-managed register upgrade
 
 The accepted [company-managed register plan](../architecture/company-managed-registers.md)
 has delivered product-mode retirement and initial self-declared appointments
-above. Multiple appointments, team invitations/delegation, legacy-owner migration
-and dependent company-authority workflows remain planned. The historical migrations
+above, plus the invitation/team API. Team web/mobile screens, legacy-owner
+migration and dependent company-authority workflows remain planned. The historical migrations
 below remain applied history; do not edit them or reset a database to implement
 the new direction.
 

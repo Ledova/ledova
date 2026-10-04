@@ -1499,6 +1499,14 @@
         ],
         "type": "object"
       },
+      "CompanyAppointmentSourceEnum": {
+        "description": "* `initial` - initial\n* `invitation` - invitation",
+        "enum": [
+          "initial",
+          "invitation"
+        ],
+        "type": "string"
+      },
       "CompanyAppointmentStatusEnum": {
         "description": "* `active` - active\n* `expired` - expired\n* `revoked` - revoked",
         "enum": [
@@ -2318,6 +2326,332 @@
         "required": [
           "company",
           "message"
+        ],
+        "type": "object"
+      },
+      "CompanyTeamAppointment": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "email": {
+            "format": "email",
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "isEffective": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointmentSourceEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointmentStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "capabilities",
+          "company",
+          "createdAt",
+          "delegatableCapabilities",
+          "email",
+          "expiresAt",
+          "isEffective",
+          "name",
+          "revokedAt",
+          "source",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyTeamInvitation": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointmentExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "inviterAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "acceptedAt",
+          "appointmentExpiresAt",
+          "capabilities",
+          "company",
+          "companyName",
+          "createdAt",
+          "delegatableCapabilities",
+          "idempotencyKey",
+          "inviterAppointment",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyTeamInvitationAcceptRequest": {
+        "properties": {
+          "acceptDeclaration": {
+            "type": "boolean"
+          },
+          "code": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "type": "string",
+            "writeOnly": true
+          },
+          "declarationVersion": {
+            "$ref": "#/components/schemas/DeclarationVersionEnum"
+          }
+        },
+        "required": [
+          "acceptDeclaration",
+          "code",
+          "declarationVersion"
+        ],
+        "type": "object"
+      },
+      "CompanyTeamInvitationCreateRequest": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "appointmentExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "type": "array"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "type": "array"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inviterAppointment": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "capabilities",
+          "company",
+          "idempotencyKey",
+          "inviterAppointment"
+        ],
+        "type": "object"
+      },
+      "CompanyTeamInvitationIssued": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointmentExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "code": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "inviterAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "acceptedAt",
+          "appointmentExpiresAt",
+          "capabilities",
+          "code",
+          "company",
+          "companyName",
+          "createdAt",
+          "delegatableCapabilities",
+          "idempotencyKey",
+          "inviterAppointment",
+          "uuid"
         ],
         "type": "object"
       },
@@ -5828,6 +6162,101 @@
         ],
         "type": "string"
       },
+      "OwnCompanyAppointment": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationText": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationVersion": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "delegatableCapabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyCapabilityEnum"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "isEffective": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointmentSourceEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyAppointmentStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "capabilities",
+          "company",
+          "companyName",
+          "createdAt",
+          "declarationText",
+          "declarationVersion",
+          "delegatableCapabilities",
+          "expiresAt",
+          "isEffective",
+          "revokedAt",
+          "source",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "PaginatedAssetList": {
         "properties": {
           "count": {
@@ -5942,6 +6371,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/CompanyList"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedCompanyTeamInvitationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyTeamInvitation"
             },
             "type": "array"
           }
@@ -6190,6 +6650,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/OfferingList"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedOwnCompanyAppointmentList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OwnCompanyAppointment"
             },
             "type": "array"
           }
@@ -16159,6 +16650,294 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyApplicationWithdrawn"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/appointments/": {
+      "get": {
+        "operationId": "api_v1_company_authority_appointments_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOwnCompanyAppointmentList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/appointments/team/": {
+      "get": {
+        "operationId": "api_v1_company_authority_appointments_team_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyTeamAppointment"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/appointments/{uuid}/revoke/": {
+      "post": {
+        "operationId": "api_v1_company_authority_appointments_revoke_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnCompanyAppointment"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/invitations/": {
+      "get": {
+        "operationId": "api_v1_company_authority_invitations_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyTeamInvitationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_company_authority_invitations_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTeamInvitationIssued"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTeamInvitationIssued"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/invitations/accept/": {
+      "post": {
+        "operationId": "api_v1_company_authority_invitations_accept_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationAcceptRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationAcceptRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyTeamInvitationAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnCompanyAppointment"
                 }
               }
             },

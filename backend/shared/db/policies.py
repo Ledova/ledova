@@ -192,6 +192,7 @@ POLICIES = {
     "companies_companyregistrycheck": ("false", "false"),
     "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
     "companies_companyappointment": (f"appointee_id = {PRINCIPAL}", "false"),
+    "companies_companyteaminvitation": (f"inviter_id = {PRINCIPAL}", "false"),
     "companies_companyappointmentrevocation": (
         "appointment_id IN (SELECT uuid FROM companies_companyappointment)",
         "false",

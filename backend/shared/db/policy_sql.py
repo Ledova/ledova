@@ -29,6 +29,7 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         "companies_companyauthorityrequestwithdrawal": ("companies", "0013_company_authority_request_withdrawal"),
         "companies_companyappointment": ("companies", "0015_self_declared_company_appointments"),
         "companies_companyappointmentrevocation": ("companies", "0015_self_declared_company_appointments"),
+        "companies_companyteaminvitation": ("companies", "0017_company_team_invitations"),
         "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
         "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
         "tokens_registeropening": ("tokens", "0065_register_opening"),

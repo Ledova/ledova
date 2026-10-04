@@ -42,11 +42,11 @@ def _require_declaration(declaration_version, accept_declaration):
 
 
 def _locked_request(requester, request_id):
+    proposal = get_object_or_404(CompanyAuthorityRequest, pk=request_id, requester=requester)
+    company = get_object_or_404(Company.objects.select_for_update(), pk=proposal.company_id)
     actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=requester.pk)
     _require_requester(actor)
     profile = get_object_or_404(UserProfile.objects.select_for_update(), user=actor)
-    proposal = get_object_or_404(CompanyAuthorityRequest, pk=request_id, requester=actor)
-    company = get_object_or_404(Company.objects.select_for_update(), pk=proposal.company_id)
     proposal = get_object_or_404(CompanyAuthorityRequest.objects.select_for_update(), pk=request_id, requester=actor)
     return actor, profile, company, proposal
 
@@ -142,6 +142,20 @@ def has_company_capability(*, requester, company_id, capability):
                 identity_required=Operator.get().issuer_kyc_required,
             )
             .filter(capabilities__contains=[capability])
+            .exists()
+        )
+
+
+def is_company_appointment_effective(appointment):
+    with use_app(), _requester_principal(appointment.appointee_id):
+        return (
+            CompanyAppointment.objects.current_for(
+                appointment.appointee,
+                appointment.company_id,
+                at=timezone.now(),
+                identity_required=Operator.get().issuer_kyc_required,
+            )
+            .filter(pk=appointment.pk)
             .exists()
         )
 
