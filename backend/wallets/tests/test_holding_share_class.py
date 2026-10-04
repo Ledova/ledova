@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase, APITransactionTestCase
 from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import APP_ALIAS, current_alias, use_operator
+from shared.db import APP_ALIAS, current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
@@ -221,7 +221,8 @@ class ScopedHoldingShareClassTest(RunsOnTheScopedConnection, APITransactionTestC
         self.assertEqual(before["shareClass"]["companyName"], "scoped-class-issuer Pty Ltd")
         with use_operator():
             ShareToken.objects.filter(pk=self.token.pk).update(name="Class A ordinary")
-            Company.objects.filter(pk=self.issuer.company.pk).update(name="Renamed synthetic company Pty Ltd")
+            with use_migrate():
+                Company.objects.filter(pk=self.issuer.company.pk).update(name="Renamed synthetic company Pty Ltd")
 
         after = self.holdings_for(self.holder)["KFA"]
 

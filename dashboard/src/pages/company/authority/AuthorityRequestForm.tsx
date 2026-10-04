@@ -95,8 +95,8 @@ export function AuthorityRequestForm({
         alone grants no authority and does not activate the company.
       </p>
       <p className="text-sm text-text-muted">
-        Initial admission requires Manage company team in your own requested actions. Your evidence and request history
-        remain private to your account; no ASIC extract is required.
+        Initial admission requires Manage company information and team in your own requested actions. Your evidence and
+        request history remain private to your account; no ASIC extract is required.
       </p>
       {(['requested', 'delegatable'] as const).map((scope) => {
         const values = scope === 'requested' ? requested : delegatable;

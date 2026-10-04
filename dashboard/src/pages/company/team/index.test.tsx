@@ -290,7 +290,7 @@ it('bounds separate personal and delegatable choices by the selected source', as
   rows = [appointment({ capabilities: ['prepare'], delegatableCapabilities: ['approve'] })];
   show();
   await selectSource();
-  expect(screen.queryByRole('checkbox', { name: 'Manage company team' })).toBeNull();
+  expect(screen.queryByRole('checkbox', { name: 'Manage company information and team' })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: 'Prepare register changes' })).toBeNull();
   choose('delegatable', 'Approve register changes');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
@@ -308,7 +308,7 @@ it('does not offer administrator grants from delegatable admin without personal 
   rows = [appointment({ capabilities: [], delegatableCapabilities: ['admin', 'prepare'] })];
   show();
   await selectSource();
-  expect(screen.queryByRole('checkbox', { name: 'Manage company team' })).toBeNull();
+  expect(screen.queryByRole('checkbox', { name: 'Manage company information and team' })).toBeNull();
   expect(screen.getAllByRole('checkbox', { name: 'Prepare register changes' })).toHaveLength(2);
 });
 
@@ -319,8 +319,8 @@ it('allows an administrator to delegate from a separate current source with admi
   ];
   show();
   await selectSource('source-b');
-  expect(screen.getAllByRole('checkbox', { name: 'Manage company team' })).toHaveLength(2);
-  choose('personal', 'Manage company team');
+  expect(screen.getAllByRole('checkbox', { name: 'Manage company information and team' })).toHaveLength(2);
+  choose('personal', 'Manage company information and team');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByLabelText('One-time invitation code');
   expect(api.post.mock.calls[0][1]).toMatchObject({

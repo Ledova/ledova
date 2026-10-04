@@ -5,9 +5,11 @@ from rest_framework.exceptions import NotFound
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
-from companies.models import Company, CompanyDocument
+from companies.models import CompanyDocument
+from companies.querysets.company import administrable_company
 from companies.serializers import CompanyDocumentSerializer
 from companies.services import delete_document
+from companies.services.documents import document_file
 from shared.views import AuthenticatedGenericViewSet, stream_stored_file
 from shared.views.uploads import UploadProtectedView
 
@@ -27,7 +29,7 @@ class DocumentViewSet(
     scoped_model = CompanyDocument
 
     def _company(self):
-        company = Company.objects.owned_by(self.request.user).filter(uuid=self.kwargs["company_uuid"]).first()
+        company = administrable_company(self.request.user, self.kwargs["company_uuid"])
         if not company:
             raise NotFound("Company not found or permission denied")
         return company
@@ -39,7 +41,8 @@ class DocumentViewSet(
     @action(detail=True, methods=["get"])
     def file(self, request, company_uuid=None, uuid=None):
         document = self.get_object()
-        return stream_stored_file(document.file, document.mime_type)
+        with document_file(company_id=document.company_id, document_id=document.pk, actor=request.user) as stored:
+            return stream_stored_file(*stored)
 
     def create(self, request, *args, **kwargs):
         company = self._company()
@@ -50,5 +53,5 @@ class DocumentViewSet(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
-        delete_document(self.get_object())
+        delete_document(self.get_object(), actor=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)

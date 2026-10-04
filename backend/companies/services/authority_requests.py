@@ -99,7 +99,8 @@ def submit_authority_request(
         raise ValidationError({"requested_capabilities": "Request at least one personal or delegatable capability."})
     with use_app(), _requester_principal(requester.pk):
         replay = CompanyAuthorityRequest.objects.filter(requester=requester, idempotency_key=idempotency_key).exists()
-        if not replay:
+    if not replay:
+        with use_operator(), _requester_principal(requester.pk):
             get_object_or_404(Company.objects.owned_by(requester), pk=company_id)
     file.seek(0)
     try:

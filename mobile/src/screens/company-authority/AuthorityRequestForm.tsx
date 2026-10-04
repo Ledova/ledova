@@ -97,8 +97,8 @@ export function AuthorityRequestForm({
         establish your appointment. Submitting evidence alone does not appoint you or activate the company.
       </Text>
       <Text style={styles.muted}>
-        Initial admission requires Manage company team in your own permissions. Evidence and history remain private to
-        your account; no ASIC extract is required.
+        Initial admission requires Manage company information and team in your own permissions. Evidence and history
+        remain private to your account; no ASIC extract is required.
       </Text>
       {(
         [

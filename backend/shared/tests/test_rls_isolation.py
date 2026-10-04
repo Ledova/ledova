@@ -2,13 +2,17 @@ from unittest import skipUnless
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.db.utils import ProgrammingError
+from django.db.utils import IntegrityError, ProgrammingError
 from django.test import TestCase
+from rest_framework.exceptions import NotFound
 
-from companies.models import Company
+from companies.models import Company, CompanyStatus
+from companies.services.editing import update_company
+from companies.tests.test_document_file_access import admit_company_administrator
 from offerings.models import Subscription
 from portfolios.models import Portfolio
-from shared.db.principal import PRINCIPAL_SETTING
+from shared.db import use_migrate
+from shared.db.principal import PRINCIPAL_SETTING, give_the_role_back, take_the_app_role
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken
 from users.models import UserAccount, UserPreferences, UserProfile
@@ -43,7 +47,8 @@ class ThePolicyScopesWhatTheQuerysetScopedTest(TestCase):
 
     def _withdraw_from_the_market(self, tenant):
         ShareToken.objects.filter(company=tenant.company).update(status="draft", contract_address=None)
-        Company.objects.filter(pk=tenant.company.pk).update(is_open_to_investors=False)
+        with use_migrate():
+            Company.objects.filter(pk=tenant.company.pk).update(is_open_to_investors=False)
 
     def test_a_company_that_has_published_nothing_is_invisible_to_another_principal(self):
         self._withdraw_from_the_market(self.two)
@@ -120,16 +125,23 @@ class APublicRowCanBeLockedAndStillNotWrittenTest(TestCase):
     def setUpTestData(cls):
         cls.one = make_tenant("lockone")
         cls.two = make_tenant("locktwo")
+        with use_migrate():
+            Company.objects.filter(pk=cls.one.company.pk).update(status=CompanyStatus.DRAFT)
+        cls.one.company.refresh_from_db()
+        admit_company_administrator(cls.one.company)
+        with use_migrate():
+            Company.objects.filter(pk=cls.one.company.pk).update(status=CompanyStatus.ACTIVE)
+        cls.one.company.refresh_from_db()
 
     def as_the_app_role_for(self, user):
         self.addCleanup(self.back_to_the_owner)
+        take_the_app_role()
         with connection.cursor() as cursor:
-            cursor.execute(f"SET ROLE {settings.RLS_ROLES['app']}")
             cursor.execute("SELECT set_config(%s, %s, false)", [PRINCIPAL_SETTING, str(user.pk)])
 
     def back_to_the_owner(self):
+        give_the_role_back()
         with connection.cursor() as cursor:
-            cursor.execute("RESET ROLE")
             cursor.execute(f"RESET {PRINCIPAL_SETTING}")
 
     def test_a_row_the_read_policy_admits_can_also_be_locked(self):
@@ -144,14 +156,24 @@ class APublicRowCanBeLockedAndStillNotWrittenTest(TestCase):
     def test_locking_it_still_does_not_let_the_principal_write_it(self):
         self.as_the_app_role_for(self.one.user)
 
-        with self.assertRaises(ProgrammingError) as caught, transaction.atomic():
+        with self.assertRaises(IntegrityError) as caught, transaction.atomic():
             Company.objects.select_for_update().filter(pk=self.two.company.pk).update(trading_name="taken")
 
-        self.assertIn("row-level security policy", str(caught.exception))
+        self.assertIn("Use the exact actor-bound company command", str(caught.exception))
+        with self.assertRaises(NotFound):
+            update_company(self.two.company, {"trading_name": "taken"}, actor=self.one.user)
+        self.two.company.refresh_from_db()
+        self.assertNotEqual(self.two.company.trading_name, "taken")
 
-    def test_the_principal_can_still_write_its_own(self):
+    def test_the_principal_needs_the_bounded_command_even_for_its_own(self):
         self.as_the_app_role_for(self.one.user)
 
-        self.assertEqual(
-            Company.objects.select_for_update().filter(pk=self.one.company.pk).update(trading_name="mine"), 1
-        )
+        with self.assertRaises(IntegrityError) as caught, transaction.atomic():
+            Company.objects.select_for_update().filter(pk=self.one.company.pk).update(trading_name="forged")
+
+        self.assertIn("Use the exact actor-bound company command", str(caught.exception))
+        self.one.company.refresh_from_db()
+        self.assertNotEqual(self.one.company.trading_name, "forged")
+        update_company(self.one.company, {"trading_name": "mine"}, actor=self.one.user)
+        self.one.company.refresh_from_db()
+        self.assertEqual(self.one.company.trading_name, "mine")

@@ -1,5 +1,4 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   HouseIcon,
   WalletIcon,
@@ -15,9 +14,8 @@ import {
   HandCoinsIcon,
   BookOpenIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, getCompanies, useFeatureFlags, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
-import apiClient from '@services/apiClient';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { MARKETING_URL } from '@utils/marketingUrl';
@@ -89,15 +87,6 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
   );
 }
 
-function useCompanyName(isCompany: boolean): string | undefined {
-  const companies = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: isCompany,
-  });
-  return companies.data?.data?.results?.[0]?.name || undefined;
-}
-
 interface SidebarProps {
   onNavigate?: () => void;
   withNotifications?: boolean;
@@ -109,16 +98,18 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
   const { userProfile } = useUserProfile();
-  const companyName = useCompanyName(isCompany);
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
   const groups: NavGroup[] = [
-    ...(isCompany ? [{ id: 'company', label: companyName ?? DESTINATIONS.company.title, items: COMPANY }] : []),
+    ...(isCompany ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY }] : []),
     { id: 'shares', label: 'Your shares', items: YOUR_SHARES },
     ...(isInvestor
       ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
       : []),
-    { id: 'yours', items: YOURS },
+    {
+      id: 'yours',
+      items: [...(!isCompany ? [{ destination: 'company' as const, icon: BuildingsIcon }] : []), ...YOURS],
+    },
   ];
 
   const activePath = groups

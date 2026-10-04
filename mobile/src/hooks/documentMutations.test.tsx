@@ -1,40 +1,39 @@
 import React from 'react';
-import { act, renderHook } from '@testing-library/react-native';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiClientProvider, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
-import { useCompanyProfile } from './useCompanyProfile';
+import { companyDetail, companyPreferences, companyQueryClient } from '../testSupport/companyAdministration';
 import { useCompanyDocuments } from '../screens/listing/useCompanyDocuments';
 import { useInvestorEligibility } from '../screens/investor-eligibility/useInvestorEligibility';
 
-jest.mock('../services/apiClient', () => ({
-  apiClient: { get: jest.fn(async () => ({ data: {} })), post: jest.fn() },
-}));
-jest.mock('./useCompanyProfile', () => ({ useCompanyProfile: jest.fn() }));
-
+jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 const post = jest.mocked(apiClient.post);
 let client: QueryClient;
-
 beforeEach(() => {
-  client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } },
-  });
-  post.mockReset().mockResolvedValue({ data: {} });
+  client = companyQueryClient();
   jest
-    .mocked(useCompanyProfile)
-    .mockReturnValue({ companyUuid: 'company-a', company: { status: 'draft' }, isLoading: false } as ReturnType<
-      typeof useCompanyProfile
-    >);
+    .mocked(apiClient.get)
+    .mockReset()
+    .mockImplementation(async (url) => ({
+      data: url === '/api/v1/companies/' ? { results: [companyDetail()], next: null } : companyDetail(),
+    }));
+  post.mockReset().mockResolvedValue({
+    data: { uuid: 'document', company: 'company-a', documentType: 'cert_inc', name: 'evidence.pdf' },
+  });
 });
-
-afterEach(() => {
+afterEach(async () => {
+  await cleanup();
   client.clear();
 });
-
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
-
 function pauseMutation() {
   let entered!: () => void;
   let resume!: () => void;
@@ -58,67 +57,63 @@ function pauseMutation() {
   return { started, resume };
 }
 
-it('keeps the selected company and session after React Query replaces pending mutation options', async () => {
+it('refuses the original company upload when React Query replaces mutation options after an acting-account change', async () => {
   const pause = pauseMutation();
   const invalidated = jest.spyOn(client, 'invalidateQueries');
   const view = await renderHook(() => useCompanyDocuments(), { wrapper });
-  let pending!: Promise<unknown>;
-  const epoch = getSessionEpoch();
-  await act(async () => {
-    pending = view.result.current!.upload({
-      companyUuid: 'company-a',
-      sessionEpoch: epoch,
-      documentType: 'cert_inc',
-      name: 'evidence.pdf',
-      file: { uri: 'file:///synthetic', name: 'evidence.pdf', type: 'application/pdf' },
-    });
-    await pause.started;
-  });
-  jest
-    .mocked(useCompanyProfile)
-    .mockReturnValue({ companyUuid: 'company-b', company: { status: 'draft' }, isLoading: false } as ReturnType<
-      typeof useCompanyProfile
-    >);
-  await view.rerender({});
-  expect(post).not.toHaveBeenCalled();
-  await act(async () => {
-    pause.resume();
-    await pending;
-  });
-  expect(post).toHaveBeenCalledWith(
-    expect.stringContaining('/company-a/'),
-    expect.any(FormData),
-    expect.objectContaining({ ledovaSessionEpoch: epoch }),
-  );
-  expect(invalidated).toHaveBeenCalledWith({ queryKey: ['company', 'company-a'] });
-  expect(invalidated).not.toHaveBeenCalledWith({ queryKey: ['company', 'company-b'] });
-});
-
-it('does not invalidate a newer session when an old company upload succeeds', async () => {
-  let finish!: () => void;
-  post.mockImplementation(
-    () =>
-      new Promise((resolve) => {
-        finish = () => resolve({ data: {} });
-      }),
-  );
-  const invalidated = jest.spyOn(client, 'invalidateQueries');
-  const view = await renderHook(() => useCompanyDocuments(), { wrapper });
+  await waitFor(() => expect(view.result.current.canAdmin).toBe(true));
   let pending!: Promise<unknown>;
   await act(async () => {
-    pending = view.result.current!.upload({
+    pending = view.result.current.upload({
       companyUuid: 'company-a',
       sessionEpoch: getSessionEpoch(),
       documentType: 'cert_inc',
       name: 'evidence.pdf',
       file: {},
+      assertCurrent: () => {},
+    });
+    await pause.started;
+  });
+  const refused = expect(pending).rejects.toThrow();
+  await act(() => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences('company', 'b') }));
+  await view.rerender({});
+  await act(async () => {
+    pause.resume();
+    await refused;
+  });
+  expect(post).not.toHaveBeenCalled();
+  expect(invalidated).not.toHaveBeenCalled();
+});
+
+it('rejects a late company upload receipt without invalidating a newer session', async () => {
+  let finish!: () => void;
+  post.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = () =>
+          resolve({ data: { uuid: 'document', company: 'company-a', documentType: 'cert_inc', name: 'evidence.pdf' } });
+      }),
+  );
+  const invalidated = jest.spyOn(client, 'invalidateQueries');
+  const view = await renderHook(() => useCompanyDocuments(), { wrapper });
+  await waitFor(() => expect(view.result.current.canAdmin).toBe(true));
+  let pending!: Promise<unknown>;
+  await act(async () => {
+    pending = view.result.current.upload({
+      companyUuid: 'company-a',
+      sessionEpoch: getSessionEpoch(),
+      documentType: 'cert_inc',
+      name: 'evidence.pdf',
+      file: {},
+      assertCurrent: () => {},
     });
   });
+  const refused = expect(pending).rejects.toThrow();
   expect(post).toHaveBeenCalledTimes(1);
   await act(async () => {
     invalidateSessionScope();
     finish();
-    await pending;
+    await refused;
   });
   expect(invalidated).not.toHaveBeenCalled();
 });

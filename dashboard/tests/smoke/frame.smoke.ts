@@ -37,7 +37,8 @@ async function openTheSidebar(page: Page, role: Role) {
   const aside = page.locator('aside').filter({ visible: true });
   await expect(aside).toHaveCount(1);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
-  if (role !== 'investor') await expect(aside.getByText(LONG_NAME)).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Company', exact: true })).toBeVisible();
+  await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;
 }

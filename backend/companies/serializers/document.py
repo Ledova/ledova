@@ -2,10 +2,13 @@ from django.urls import reverse
 from rest_framework import serializers
 
 from companies.models import CompanyDocument
+from companies.services.documents import create_document
 from shared.uploads import validate_upload
 
 
 class CompanyDocumentSerializer(serializers.ModelSerializer):
+
+    company = serializers.UUIDField(source="company_id", read_only=True)
 
     document_type_display = serializers.CharField(
         source="get_document_type_display",
@@ -25,6 +28,7 @@ class CompanyDocumentSerializer(serializers.ModelSerializer):
         model = CompanyDocument
         fields = [
             "uuid",
+            "company",
             "document_type",
             "document_type_display",
             "name",
@@ -37,14 +41,14 @@ class CompanyDocumentSerializer(serializers.ModelSerializer):
             "verified_at",
             "created_at",
         ]
-        read_only_fields = ["uuid", "is_verified", "verified_at", "created_at"]
+        read_only_fields = ["uuid", "company", "is_verified", "verified_at", "created_at"]
 
     def get_file_url(self, obj) -> str:
         if not obj.file:
             return obj.external_url
         url = reverse(
             "companies:documents-file",
-            kwargs={"company_uuid": obj.company.uuid, "uuid": obj.uuid},
+            kwargs={"company_uuid": obj.company_id, "uuid": obj.uuid},
         )
         request = self.context.get("request")
         return request.build_absolute_uri(url) if request else url
@@ -67,16 +71,5 @@ class CompanyDocumentSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        file = validated_data.pop("file", None)
-        external_url = validated_data.pop("external_url", "")
-
-        document = CompanyDocument(
-            **validated_data,
-            external_url=external_url,
-        )
-
-        if file:
-            document.file = file
-
-        document.save()
-        return document
+        company = validated_data.pop("company")
+        return create_document(company_id=company.pk, actor=self.context["request"].user, data=validated_data)

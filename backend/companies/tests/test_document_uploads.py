@@ -4,6 +4,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyDocument, CompanyType, DocumentType
+from companies.tests.test_document_file_access import admit_company_administrator
+from shared.db import use_migrate
 from shared.tests.upload_fixtures import StubUploadDependencies, image_bytes, pdf_bytes
 
 User = get_user_model()
@@ -13,10 +15,14 @@ PDF = pdf_bytes()
 class CompanyDocumentUploadValidationTest(StubUploadDependencies, APITestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(email="doc-owner@example.test", password="pw-12345678")
-        self.company = Company.objects.create(
-            owner=self.user, name="Doc Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="222333444"
+        self.user = User.objects.create_user(
+            email="doc-owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
         )
+        with use_migrate():
+            self.company = Company.objects.create(
+                owner=self.user, name="Doc Pty Ltd", company_type=CompanyType.PROPRIETARY, acn="222333444"
+            )
+        admit_company_administrator(self.company)
         self.client.force_authenticate(self.user)
         self.url = f"/api/v1/companies/{self.company.uuid}/documents/"
 

@@ -2645,6 +2645,10 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    CompanyAdministrativeAccess: {
+      capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
+      draftSetup: boolean;
+    };
     CompanyApplicationResubmitted: {
       company: ApiComponents['schemas']['ApplicationStatus'];
       message: string;
@@ -2719,6 +2723,7 @@ export interface ApiComponents {
       additionalInfoResponse: string;
       addressLine1?: string;
       addressLine2?: string;
+      administrativeAccess: ApiComponents['schemas']['CompanyAdministrativeAccess'];
       approvedAt: string | null;
       canIssueTokens: boolean;
       city?: string;
@@ -2729,7 +2734,7 @@ export interface ApiComponents {
       description?: string;
       displayName: string;
       documents: ApiComponents['schemas']['CompanyDocument'][];
-      email: string;
+      email: string | null;
       foundedYear?: number | null;
       industry?: string;
       infoRequestedAt: string | null;
@@ -2737,9 +2742,10 @@ export interface ApiComponents {
       isActive: boolean;
       isApproved: boolean;
       isOpenToInvestors?: boolean;
+      isOwner: boolean;
       isPendingReview: boolean;
       name: string;
-      operatorWallet: string;
+      operatorWallet: string | null;
       phone?: string;
       postcode?: string;
       primaryContact: ApiComponents['schemas']['_CompanyUserProfile'] | null;
@@ -2757,6 +2763,7 @@ export interface ApiComponents {
       withdrawnAt: string | null;
     };
     CompanyDocument: {
+      company: string;
       createdAt: string;
       documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
       documentTypeDisplay: string;
@@ -2795,6 +2802,7 @@ export interface ApiComponents {
     };
     CompanyList: {
       acn: string;
+      administrativeAccess: ApiComponents['schemas']['CompanyAdministrativeAccess'];
       city: string;
       companyType: ApiComponents['schemas']['CompanyTypeEnum'];
       companyTypeDisplay: string;
@@ -2803,6 +2811,7 @@ export interface ApiComponents {
       industry: string;
       isActive: boolean;
       isApproved: boolean;
+      isOwner: boolean;
       name: string;
       state: string;
       status: ApiComponents['schemas']['CompanyStatusEnum'];
@@ -2901,23 +2910,6 @@ export interface ApiComponents {
       uuid: string;
     };
     CompanyTypeEnum: 'pty' | 'public' | 'unlisted';
-    CompanyUpdate: {
-      abn?: string;
-      acn: string;
-      addressLine1?: string;
-      addressLine2?: string;
-      city?: string;
-      companyType?: ApiComponents['schemas']['CompanyTypeEnum'];
-      description?: string;
-      industry?: string;
-      isOpenToInvestors?: boolean;
-      name: string;
-      operatorWallet?: string | null;
-      phone?: string;
-      postcode?: string;
-      state?: string;
-      tradingName?: string;
-    };
     DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
@@ -6329,7 +6321,7 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['CompanyUpdate'];
+          'application/json': ApiComponents['schemas']['CompanyDetail'];
         };
       };
     };

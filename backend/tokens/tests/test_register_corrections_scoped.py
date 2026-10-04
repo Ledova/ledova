@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
+from companies.services.editing import update_company
 from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterCorrection, RegisterEntry, ShareRegister
@@ -124,7 +125,7 @@ class ScopedRegisterCorrectionTest(RunsOnTheScopedConnection, APITransactionTest
                         recorded_by=self.reviewer,
                     )
                 if mutate:
-                    Company.objects.filter(pk=self.proposal.company_id).update(name="Concurrent identity change")
+                    update_company(self.document.company, {"name": "Concurrent identity change"}, actor=self.owner)
             results = [future.result(timeout=15) for future in futures]
         with use_operator():
             if mutate or register_change:

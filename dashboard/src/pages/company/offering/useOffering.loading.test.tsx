@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { QueryClient } from '@tanstack/react-query';
+import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const never = () => new Promise(() => {});
+const api = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('@services/apiClient', () => ({ default: api }));
+
 const resolved = (results: unknown[]) => () => Promise.resolve({ data: { results } });
 
 vi.mock('@ledova/shared', async () => {
@@ -18,27 +21,36 @@ vi.mock('@ledova/shared', async () => {
 });
 
 const { useOfferings } = await import('./useOffering');
+const { useCompany } = await import('../hooks/useCompany');
+const { companyRecord, renderCompanyPage } = await import('../testSupport');
+let client: QueryClient;
 
 function Probe() {
-  const { offerings, isLoading } = useOfferings('company-one');
+  const read = useCompany({ ownedOnly: true });
+  const { offerings, isLoading } = useOfferings(read.companyUuid, read);
   return (
     <span>
-      offerings:{offerings.length} {isLoading ? 'loading' : 'ready'}
+      offerings:{offerings.length} {isLoading || read.isLoading ? 'loading' : 'ready'}
     </span>
   );
 }
 
 function mount() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <Probe />
-    </QueryClientProvider>,
-  );
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  api.get.mockImplementation(async (url: string) => {
+    if (url === '/api/v1/companies/')
+      return { data: { results: [companyRecord()], count: 1, next: null, previous: null } };
+    if (url === '/api/v1/companies/company-one/') return { data: companyRecord() };
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  return renderCompanyPage(client, <Probe />, 'Company offerings');
 }
 
 describe('useOfferings loading state', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    client.clear();
+  });
 
   it('is still loading after the other queries answer, while the operator has not', async () => {
     mount();

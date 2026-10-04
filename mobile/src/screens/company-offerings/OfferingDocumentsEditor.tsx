@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import {
@@ -7,17 +7,17 @@ import {
   addOfferingDocuments,
   apiErrorSentence,
   attachableDocuments,
-  useOfferingUnderEdit,
   type Company,
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { CustomModal, ModalActions } from '../../components/modal';
-import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { DocumentChoices } from './DocumentChoices';
 import { OfferingReadNotice } from './OfferingReadNotice';
+import { useOwnedOffering } from './useOfferings';
 
 export function OfferingDocumentsEditor({
   uuid,
@@ -30,12 +30,29 @@ export function OfferingDocumentsEditor({
   uuid: string;
   targetCompany: string;
   company: Company | null;
-  companyRead: CompanyRead;
+  companyRead: CompanyActionRead;
   refresh: () => Promise<unknown>;
   onClose: () => void;
 }) {
   const styles = useCompanyStyles();
-  const detail = useOfferingUnderEdit(uuid);
+  const detail = useOwnedOffering(companyRead, uuid);
+  const mounted = useRef(true);
+  const pending = useRef(false);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
+  const [authority] = useState(() => companyRead.assertCurrent);
+  const [guard] = useState(() => () => {
+    if (!mounted.current) throw new Error('This offering draft is no longer open.');
+    authority(targetCompany, 'owner');
+  });
+  const [config] = useState(() => ({
+    ...companyRead.requestConfig(targetCompany, 'owner'),
+    ledovaSubmissionGuard: guard,
+  }));
   const [chosen, setChosen] = useState<string[]>([]);
   const kept = detail.data?.documents ?? [];
   const documents = company?.uuid === targetCompany ? attachableDocuments(company.documents, kept) : [];
@@ -50,15 +67,22 @@ export function OfferingDocumentsEditor({
   const request = useMutation({
     mutationFn: async ({ added, epoch }: { added: string[]; epoch: number }) => {
       assertSessionEpoch(epoch);
-      const response = await addOfferingDocuments(apiClient, uuid, added, { ledovaSessionEpoch: epoch });
+      guard();
+      const response = await addOfferingDocuments(apiClient, uuid, added, { ...config, ledovaSessionEpoch: epoch });
       assertSessionEpoch(epoch);
+      guard();
       return response;
     },
     onSuccess: async (_, { epoch }) => {
       assertSessionEpoch(epoch);
+      guard();
       await refresh();
       assertSessionEpoch(epoch);
+      guard();
       onClose();
+    },
+    onSettled: () => {
+      pending.current = false;
     },
   });
   const addable = chosen.filter((document) => !kept.includes(document));
@@ -109,8 +133,10 @@ export function OfferingDocumentsEditor({
             primary
             disabled={blocked || addable.length === 0 || request.isPending}
             onPress={() => {
-              if (!blocked && addable.length > 0 && !request.isPending)
+              if (!blocked && addable.length > 0 && mounted.current && !pending.current) {
+                pending.current = true;
                 request.mutate({ added: addable, epoch: getSessionEpoch() });
+              }
             }}
           />
         </ModalActions>

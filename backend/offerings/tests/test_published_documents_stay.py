@@ -7,13 +7,16 @@ from companies.models import (
     OFFER_DOCUMENT_TYPES,
     Company,
     CompanyDocument,
+    CompanyStatus,
     CompanyType,
     DocumentType,
 )
+from companies.tests.test_document_file_access import admit_company_administrator
 from offerings.models import Offering, OfferingStatus
 from offerings.serializers.offering import FOREIGN_DOCUMENT, OFFER_DOCUMENTS_ONLY
 from offerings.services.offering import NOT_ATTACHABLE
 from offerings.tests.test_directory_documents import file_of, offer_document, publish
+from shared.db import use_migrate
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
 
@@ -38,6 +41,13 @@ def reattach(offering, *documents, status):
 class PublishedOfferingsOnlyGainDocumentsTest(APITestCase):
     def setUp(self):
         self.issuer = make_tenant("stay-issuer")
+        with use_migrate():
+            Company.objects.filter(pk=self.issuer.company.pk).update(status=CompanyStatus.DRAFT)
+        self.issuer.company.refresh_from_db()
+        admit_company_administrator(self.issuer.company)
+        with use_migrate():
+            Company.objects.filter(pk=self.issuer.company.pk).update(status=CompanyStatus.ACTIVE)
+        self.issuer.company.refresh_from_db()
         self.offering = self.issuer.offering
         self.memorandum = offer_document(self.issuer.company)
         self.offering.documents.add(self.memorandum)
@@ -103,9 +113,13 @@ class PublishedOfferingsOnlyGainDocumentsTest(APITestCase):
 
     def test_another_companys_document_is_refused(self):
         publish(self.offering)
-        sibling = Company.objects.create(
-            owner=self.issuer.user, name="Sibling Pty Ltd", company_type=CompanyType.PROPRIETARY, acn=an_acn(9_000_002)
-        )
+        with use_migrate():
+            sibling = Company.objects.create(
+                owner=self.issuer.user,
+                name="Sibling Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=an_acn(9_000_002),
+            )
         stray = offer_document(sibling, name="Sibling memorandum")
 
         response = self.add(stray)
@@ -186,7 +200,8 @@ class PublishedOfferingsOnlyGainDocumentsTest(APITestCase):
                 document = offer_document(self.issuer.company, name=f"Draft memorandum {status}")
                 reattach(self.offering, document, status=status)
 
-                self.assertEqual(self.delete(document).status_code, 204)
+                response = self.delete(document)
+                self.assertEqual(response.status_code, 204, response.content)
                 self.assertFalse(CompanyDocument.objects.filter(pk=document.pk).exists())
         self.assertEqual(self.delete(self.supplement).status_code, 204)
 

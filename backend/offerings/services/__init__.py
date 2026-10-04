@@ -1,6 +1,7 @@
 from offerings.services.documents import published_document, published_documents
 from offerings.services.offering import (
     attach_documents,
+    lock_offering,
     submit_offering,
     transition_offering,
     unissued_headroom,
@@ -42,6 +43,7 @@ __all__ = [
     "expire_overdue",
     "generate_reference",
     "issue_instruction",
+    "lock_offering",
     "normalize_reference",
     "offering_headroom",
     "payment_warnings",

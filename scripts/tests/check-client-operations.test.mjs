@@ -227,7 +227,7 @@ test('a retry config escaping through an object shorthand cannot bypass destinat
 });
 
 test("the relocated response-linked company document requires its canonical field and internal binary route", async (t) => {
-  const component = "mobile/src/screens/listing/DocumentEntry.tsx";
+  const component = "mobile/src/screens/company/DocumentEntry.tsx";
   const canonical = {
     "packages/shared/src/generated/api.ts":
       "export interface ApiComponents { schemas: { CompanyDocument: { fileUrl: string }; OtherDocument: { fileUrl: string } } }",
@@ -321,7 +321,7 @@ test("the actual company document caller retains its generated binary and captur
   };
   const source = await readFile(
     new URL(
-      "../../mobile/src/screens/listing/DocumentEntry.tsx",
+      "../../mobile/src/screens/company/DocumentEntry.tsx",
       import.meta.url,
     ),
     "utf8",
@@ -334,7 +334,9 @@ test("the actual company document caller retains its generated binary and captur
         "import type { ApiComponents } from './generated/api'; export type CompanyDocument = ApiComponents['schemas']['CompanyDocument'];",
       "mobile/src/services/apiClient.ts":
         client + "export const apiClient = client;",
-      "mobile/src/screens/listing/DocumentEntry.tsx": source,
+      "mobile/src/screens/company/CompanyState.tsx":
+        "import type { AxiosRequestConfig } from 'axios'; export interface CompanyActionRead { requestConfig(uuid: string): AxiosRequestConfig }",
+      "mobile/src/screens/company/DocumentEntry.tsx": source,
     },
     document.paths,
   );

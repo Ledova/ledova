@@ -19,18 +19,29 @@ from companies.serializers import (
     CompanyUpdateSerializer,
 )
 from companies.services import submit_application, transition_company
+from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
     administrative_actions = frozenset({"status_update"})
-    operator_actions = administrative_actions
+    operator_actions = administrative_actions | frozenset({"list", "retrieve", "submit", "resubmit", "withdraw"})
+    operator_actions_because = (
+        "Company metadata reads retain the exact current owner alongside current personal administration. "
+        "Private documents and contact remain separately administration-scoped. Existing application actions "
+        "retain their exact current-owner workflow and actor-bound service checks."
+    )
     http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "status"]
 
     scoped_model = Company
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if self.action in {"list", "retrieve"}:
+            set_principal(request.user.pk)
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -65,7 +76,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         serializer.is_valid(raise_exception=True)
         company = serializer.save()
 
-        response_serializer = CompanyDetailSerializer(company)
+        response_serializer = CompanyDetailSerializer(company, context=self.get_serializer_context())
         return Response(
             {
                 "message": "Company registered successfully. Please complete your application and submit for review.",
@@ -74,8 +85,13 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    def perform_update(self, serializer):
-        serializer.save()
+    @extend_schema(request=CompanyUpdateSerializer, responses=CompanyDetailSerializer)
+    def partial_update(self, request, *args, **kwargs):
+        company = self.get_object()
+        serializer = self.get_serializer(company, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        company = serializer.save()
+        return Response(CompanyDetailSerializer(company, context=self.get_serializer_context()).data)
 
     @extend_schema(
         responses=inline_serializer(
@@ -119,7 +135,9 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         return Response(
             {
                 "message": f"Company status updated to {company.get_status_display()}",
-                "company": CompanyDetailSerializer(company).data,
+                "company": CompanyDetailSerializer(
+                    company, context={**self.get_serializer_context(), "company_review": True}
+                ).data,
             }
         )
 
@@ -141,7 +159,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         return Response(
             {
                 "message": "Application submitted successfully. You will be notified when the review is complete.",
-                "company": ApplicationStatusSerializer(company).data,
+                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
             }
         )
 
@@ -158,12 +176,14 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         serializer = ApplicationResubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        company = transition_company(company, "resubmit", response=serializer.validated_data["response"])
+        company = transition_company(
+            company, "resubmit", actor=request.user, response=serializer.validated_data["response"]
+        )
 
         return Response(
             {
                 "message": "Application resubmitted successfully.",
-                "company": ApplicationStatusSerializer(company).data,
+                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
             }
         )
 
@@ -180,16 +200,22 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         serializer = ApplicationWithdrawSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        company = transition_company(company, "withdraw", reason=serializer.validated_data.get("reason") or "")
+        company = transition_company(
+            company, "withdraw", actor=request.user, reason=serializer.validated_data.get("reason") or ""
+        )
 
         return Response(
             {
                 "message": "Application withdrawn successfully.",
-                "company": ApplicationStatusSerializer(company).data,
+                "company": ApplicationStatusSerializer(company, context=self.get_serializer_context()).data,
             }
         )
 
     def narrow(self, queryset):
         if self.action in self.administrative_actions:
             return queryset
+        if self.action in {"list", "retrieve"}:
+            return queryset.readable_by(self.request.user)
+        if self.action == "partial_update":
+            return queryset.administrable_by(self.request.user)
         return queryset.owned_by(self.request.user)
