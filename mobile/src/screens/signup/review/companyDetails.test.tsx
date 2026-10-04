@@ -81,10 +81,11 @@ it('renders a separately fetched ABN after retrying the real review error screen
   const view = await render(<ReviewScreen />, { wrapper });
   await waitFor(() => expect(view.getByText('Detail unavailable')).toBeTruthy());
   expect(view.queryByText(detailA.abn)).toBeNull();
+  expect(view.queryByText('Company information is provided by the company.')).toBeNull();
   expect(api.patch).not.toHaveBeenCalled();
   companyA = () => Promise.resolve({ data: detailA });
   await fireEvent.press(view.getByText('Try Again'));
   await waitFor(() => expect(view.getByText(detailA.abn)).toBeTruthy());
-  expect(view.getByText('Company information is provided by the company.')).toBeTruthy();
+  expect(view.getAllByText('Company information is provided by the company.')).toHaveLength(1);
   expect(view.queryByText('Detail unavailable')).toBeNull();
 });
