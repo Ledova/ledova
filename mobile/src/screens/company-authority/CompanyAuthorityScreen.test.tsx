@@ -202,7 +202,9 @@ it('reads every owned-company page, requires explicit selection and submits sepa
 it('allows delegation-only evidence and an optional expiry without inventing exercised permissions', async () => {
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Manage company team' }));
+  await fireEvent.press(
+    view.getByRole('button', { name: 'Permissions you would exercise: Manage company information and team' }),
+  );
   expect(view.getByRole('button', { name: 'Submit authority request' })).toBeDisabled();
   await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Read company register' }));
   await fireEvent.press(view.getByRole('button', { name: 'Choose expiry date' }));
@@ -559,7 +561,7 @@ it('requires declaration acceptance, records the appointment and revokes while r
   expect(view.queryByText(/^Pending/)).toBeNull();
   expect(view.getByText('active')).toBeTruthy();
   expect(view.getByText('Current')).toBeTruthy();
-  expect(view.getAllByText('Manage company team, Prepare register changes').length).toBeGreaterThan(0);
+  expect(view.getAllByText('Manage company information and team, Prepare register changes').length).toBeGreaterThan(0);
   expect(view.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
@@ -587,7 +589,7 @@ it('keeps non-admin proposals pending and explains the initial admission require
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
   expect(
-    view.getByText(/Initial admission requires Manage company team in your own requested permissions/),
+    view.getByText(/Initial admission requires Manage company information and team in your own requested permissions/),
   ).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Establish appointment' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
@@ -614,6 +616,22 @@ it.each(['cancel', 'dismiss'])('sends no revocation after %s and permits a later
   await confirmRevocation();
   await view.findByText('revoked');
   expect(post).toHaveBeenCalledTimes(1);
+  expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
+});
+
+it('consumes the confirmed callback so reusing it after the revocation settles sends nothing', async () => {
+  history = [admitted];
+  post.mockResolvedValue({ data: revoked });
+  const view = await render(<CompanyAuthorityScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  const confirm = revocationAlert()[2]!.find((button) => button.text === 'Permanently revoke')!.onPress!;
+  await act(() => confirm());
+  await view.findByText('revoked');
+  expect(post).toHaveBeenCalledTimes(1);
+  await act(() => confirm());
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(view.queryByRole('button', { name: 'Revoke appointment' })).toBeNull();
   expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([revoked]);
 });
 

@@ -16,6 +16,7 @@ from companies.validators import (
     validate_abn,
     validate_acn,
 )
+from shared.db import use_migrate
 
 ASIC_WORKED_EXAMPLE = "004 085 616"
 ABR_WORKED_EXAMPLE = "83 914 571 673"
@@ -107,7 +108,9 @@ class TheSerializerAndTheModelAgreeTest(TestCase):
 class TheRegistrationApiChecksTheDigitsTest(APITestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(email="checksum@example.test", password="pw-12345678")
+        self.user = User.objects.create_user(
+            email="checksum@example.test", password="pw-12345678", is_active=True, is_email_verified=True
+        )
         self.client.force_authenticate(self.user)
 
     def payload(self, **overrides):
@@ -141,14 +144,17 @@ class TheRegistrationApiChecksTheDigitsTest(APITestCase):
         self.assertIn("abn", response.json())
 
     def test_the_admin_change_form_refuses_an_acn_that_fails_the_check(self):
-        owner = User.objects.create_user(email="checksum-owner@example.test", password="pw-12345678")
-        company = Company.objects.create(
-            owner=owner,
-            name="Draft Checksum Pty Ltd",
-            company_type=CompanyType.PROPRIETARY,
-            acn=COMPANY_ACN,
-            status=CompanyStatus.DRAFT,
+        owner = User.objects.create_user(
+            email="checksum-owner@example.test", password="pw-12345678", is_active=True, is_email_verified=True
         )
+        with use_migrate():
+            company = Company.objects.create(
+                owner=owner,
+                name="Draft Checksum Pty Ltd",
+                company_type=CompanyType.PROPRIETARY,
+                acn=COMPANY_ACN,
+                status=CompanyStatus.DRAFT,
+            )
         company.acn = "100000683"
 
         with self.assertRaises(ValidationError) as refusal:

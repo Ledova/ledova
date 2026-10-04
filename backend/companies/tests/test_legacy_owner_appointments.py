@@ -57,6 +57,7 @@ from companies.tests.test_legacy_owner_migration import (
 from companies.tests.test_team_invitations import raw_team_appointment
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
+from shared.tests.schema import restore_every_migration
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
@@ -72,6 +73,7 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
 
     def setUp(self):
         super().setUp()
+        self.addCleanup(restore_every_migration)
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.enterContext(override_settings(PRIVATE_MEDIA_ROOT=directory.name, STORAGES=STORAGES))
@@ -85,6 +87,7 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
         self.proposal = self.submit()
         MigrationExecutor(connection).migrate([OLD])
         MigrationExecutor(connection).migrate([NEW])
+        restore_every_migration()
         with use_operator():
             self.source = CompanyLegacyOwnerSource.objects.get(company=self.company)
             self.initial = CompanyAppointment.objects.get(legacy_owner=self.source)
@@ -318,9 +321,10 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
             self.assertEqual(CompanyAppointment.objects.filter(company=self.company).count(), 1)
 
     def test_new_companies_and_changed_owners_never_receive_a_runtime_legacy_seed(self):
-        with use_operator():
+        with use_migrate():
             fresh = Company.objects.create(owner=self.owner, name="Post-upgrade company Pty Ltd", acn="336699002")
             Company.objects.filter(pk=self.company.pk).update(owner=self.other)
+        with use_operator():
             self.assertFalse(CompanyLegacyOwnerSource.objects.filter(company=fresh).exists())
             self.assertEqual(CompanyLegacyOwnerSource.objects.get(pk=self.source.pk).owner_id, self.owner.pk)
             self.assertFalse(CompanyAppointment.objects.filter(company=self.company, appointee=self.other).exists())

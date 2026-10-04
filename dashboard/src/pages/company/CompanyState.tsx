@@ -4,6 +4,11 @@ import { PageAction } from '@components/Page';
 import type { useCompany } from './hooks/useCompany';
 
 export type CompanyRead = Pick<ReturnType<typeof useCompany>, 'error' | 'isRefreshing' | 'refetch'>;
+export type CompanyActionRead = CompanyRead &
+  Pick<
+    ReturnType<typeof useCompany>,
+    'assertCurrent' | 'requestConfig' | 'companyKey' | 'scopeKey' | 'canAdmin' | 'ownerBusiness'
+  >;
 
 export function CompanyStatusMark({ status, label }: { status: CompanyStatus; label: string }) {
   const tone: Tone =

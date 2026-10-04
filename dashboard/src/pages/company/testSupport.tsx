@@ -4,11 +4,43 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
 import apiClient from '@services/apiClient';
-import { ApiClientProvider, DESTINATIONS, type Company, type CompanyDocument, type DocumentType } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  DESTINATIONS,
+  type Company,
+  type CompanyDocument,
+  type DocumentType,
+  type AccountRole,
+  type UserPreferences,
+} from '@ledova/shared';
+
+export function companyPreferences(role: AccountRole = 'company'): UserPreferences {
+  return {
+    uuid: 'preferences-one',
+    userProfile: 'profile-one',
+    userAccount: {
+      uuid: 'account-one',
+      role,
+      accountNumber: 'synthetic-one',
+      accountType: 'individual',
+      activationDate: null,
+    },
+    transactionAlerts: true,
+  };
+}
+
+export function prepareCompanyClient(client: QueryClient, role: AccountRole = 'company') {
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences(role) });
+}
 
 export function companyRecord(overrides: Partial<Company> = {}): Company {
   return {
     uuid: 'company-one',
+    isOwner: true,
+    administrativeAccess: { capabilities: ['admin'], draftSetup: false },
     name: 'Harbour Example Pty Ltd',
     tradingName: 'Harbour Example',
     displayName: 'Harbour Example',
@@ -53,6 +85,7 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
 export function documentRecord(type: DocumentType, uuid: string = type): CompanyDocument {
   return {
     uuid,
+    company: 'company-one',
     name: `${uuid}.pdf`,
     documentType: type,
     documentTypeDisplay: type,
@@ -66,6 +99,7 @@ export function documentRecord(type: DocumentType, uuid: string = type): Company
 }
 
 export function renderCompanyPage(client: QueryClient, page: ReactNode, title: string) {
+  if (!client.getQueryState(AUTH_QUERY_KEY)) prepareCompanyClient(client);
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>

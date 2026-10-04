@@ -1,5 +1,7 @@
 import importlib
 import re
+from unittest.mock import patch
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -9,12 +11,26 @@ from django.test import Client, TestCase, override_settings
 from django.urls import clear_url_caches, reverse
 from rest_framework.test import APITestCase
 
-from companies.models import Company, CompanyDocument, CompanyType, DocumentType
+from companies.models import (
+    Company,
+    CompanyCapability,
+    CompanyDocument,
+    CompanyType,
+    DocumentType,
+)
+from companies.services.authority import DECLARATION_VERSION, admit_authority_request
+from companies.services.authority_requests import submit_authority_request
+from companies.services.team import accept_team_invitation, issue_team_invitation
+from companies.tests.registry_fixtures import matching_observation
+from companies.tests.test_authority_requests import evidence
+from shared.db import use_migrate
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.upload_fixtures import (
     PrivateDocumentFileChecks,
     StubUploadDependencies,
     pdf_bytes,
 )
+from users.models import UserProfile
 
 User = get_user_model()
 
@@ -27,36 +43,97 @@ ADMIN_STORAGES = {
 
 
 def make_company(label, acn):
-    owner = User.objects.create_user(email=f"{label}@example.test", password="pw-12345678")
-    company = Company.objects.create(
-        owner=owner,
-        name=f"{label} Pty Ltd",
-        company_type=CompanyType.PROPRIETARY,
-        acn=acn,
+    owner = User.objects.create_user(
+        email=f"{label}@example.test", password="pw-12345678", is_active=True, is_email_verified=True
     )
+    with use_migrate():
+        company = Company.objects.create(
+            owner=owner,
+            name=f"{label} Pty Ltd",
+            company_type=CompanyType.PROPRIETARY,
+            acn=acn,
+        )
     return owner, company
 
 
 def make_document(company, **kwargs):
-    return CompanyDocument.objects.create(
-        company=company,
-        document_type=DocumentType.CONSTITUTION,
-        name="Constitution",
-        file_size=len(DOCUMENT_BYTES),
-        mime_type="application/pdf",
-        **kwargs,
-    )
+    with use_migrate():
+        return CompanyDocument.objects.create(
+            company=company,
+            document_type=DocumentType.CONSTITUTION,
+            name="Constitution",
+            file_size=len(DOCUMENT_BYTES),
+            mime_type="application/pdf",
+            **kwargs,
+        )
 
 
 def attach_file(document, payload=DOCUMENT_BYTES):
-    document.file.save(f"{document.uuid}.pdf", ContentFile(payload), save=True)
+    with use_migrate():
+        document.file.save(f"{document.uuid}.pdf", ContentFile(payload), save=True)
     return document
+
+
+def invite_company_administrator(company, appointment, actor):
+    with use_migrate():
+        UserProfile.objects.get_or_create(user=actor, defaults={"full_name": actor.email})
+    invitation, code, _ = issue_team_invitation(
+        requester=appointment.appointee,
+        company_id=company.pk,
+        inviter_appointment_id=appointment.pk,
+        idempotency_key=uuid4(),
+        capabilities=["admin"],
+        delegatable_capabilities=[],
+    )
+    return accept_team_invitation(
+        requester=actor, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+    )
+
+
+def admit_company_administrator(company, actor=None):
+    with use_migrate():
+        UserProfile.objects.get_or_create(user=company.owner, defaults={"full_name": company.owner.email})
+    with (
+        patch("shared.uploads.scan_upload"),
+        patch("shared.upload_limits.reserve_request"),
+        patch("shared.upload_limits.reserve_bytes"),
+    ):
+        proposal, _ = submit_authority_request(
+            requester=company.owner,
+            company_id=company.pk,
+            idempotency_key=uuid4(),
+            file=evidence(),
+            requested_capabilities=["admin"],
+            delegatable_capabilities=list(CompanyCapability.values),
+        )
+    with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
+        appointment = admit_authority_request(
+            requester=company.owner,
+            request_id=proposal.pk,
+            declaration_version=DECLARATION_VERSION,
+            accept_declaration=True,
+        ).appointment
+    return (
+        invite_company_administrator(company, appointment, actor) if actor and actor != company.owner else appointment
+    )
+
+
+def legacy_company_administrators(*companies):
+    with use_migrate():
+        for company in companies:
+            UserProfile.objects.get_or_create(user=company.owner, defaults={"full_name": company.owner.email})
+    try:
+        migrate_to([("companies", "0018_team_invitation_admission_guards")])
+    finally:
+        restore_every_migration()
+    return [company.appointments.get(legacy_owner__isnull=False) for company in companies]
 
 
 class CompanyDocumentFileUrlTest(StubUploadDependencies, APITestCase):
 
     def setUp(self):
         self.user, self.company = make_company("doc-file-url", "111222333")
+        admit_company_administrator(self.company)
         self.client.force_authenticate(self.user)
         self.url = f"/api/v1/companies/{self.company.uuid}/documents/"
 
@@ -113,6 +190,8 @@ class CompanyDocumentFileViewTest(APITestCase):
         self.other_user, self.other_company = make_company("doc-file-other", "444555666")
         self.staff = User.objects.create_superuser(email="doc-file-staff@example.test", password="pw-12345678")
         self.document = attach_file(make_document(self.company))
+        admit_company_administrator(self.company)
+        admit_company_administrator(self.other_company)
         self.url = f"/api/v1/companies/{self.company.uuid}/documents/{self.document.uuid}/file/"
 
     @staticmethod

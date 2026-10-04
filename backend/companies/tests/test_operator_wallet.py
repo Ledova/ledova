@@ -1,26 +1,31 @@
-from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.contrib.auth.models import Permission
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
+from companies.tests.test_document_file_access import legacy_company_administrators
+from shared.db import use_migrate
 from shared.tests.tenants import make_tenant
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "private": {"BACKEND": "shared.storage.PrivateMediaStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
 
-class OperatorWalletApiTest(APITestCase):
+class OperatorWalletApiTest(APITransactionTestCase):
     def setUp(self):
         self.tenant = make_tenant("owner")
         self.other = make_tenant("other")
+        legacy_company_administrators(self.tenant.company, self.other.company)
         self.client.force_authenticate(self.tenant.user)
         self.url = f"/api/v1/companies/{self.tenant.company.uuid}/"
-        Company.objects.filter(pk=self.tenant.company.pk).update(operator_wallet=None)
+        with use_migrate():
+            Company.objects.filter(pk=self.tenant.company.pk).update(operator_wallet=None)
 
     def _patch(self, wallet):
         return self.client.patch(self.url, {"operatorWallet": wallet}, format="json")
@@ -55,12 +60,17 @@ class OperatorWalletApiTest(APITestCase):
 
 
 @override_settings(STORAGES=TEST_STORAGES)
-class OperatorWalletAdminTest(TestCase):
-    def test_change_form_offers_only_the_owners_verified_evm_wallets(self):
-        User = get_user_model()
-        self.client.force_login(User.objects.create_superuser(email="admin@example.test", password="pw-12345678"))
+class OperatorWalletAdminTest(TransactionTestCase):
+    def test_change_form_offers_only_the_actors_verified_evm_wallets(self):
         tenant = make_tenant("owner")
         other = make_tenant("other")
+        legacy_company_administrators(tenant.company, other.company)
+        tenant.user.is_staff = True
+        tenant.user.save(update_fields=["is_staff"])
+        tenant.user.user_permissions.add(
+            Permission.objects.get(codename="change_company"), Permission.objects.get(codename="view_company")
+        )
+        self.client.force_login(tenant.user)
         page = self.client.get(reverse("admin:companies_company_change", args=[tenant.company.pk]))
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'name="operator_wallet"')
@@ -70,5 +80,4 @@ class OperatorWalletAdminTest(TestCase):
         self.assertNotIn(other.wallet, options)
 
         add_page = self.client.get(reverse("admin:companies_company_add"))
-        self.assertEqual(add_page.status_code, 200)
-        self.assertFalse(add_page.context["adminform"].form.fields["operator_wallet"].queryset.exists())
+        self.assertEqual(add_page.status_code, 403)

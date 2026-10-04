@@ -5,9 +5,9 @@ import { Action } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { CompanyReadNotice, type CompanyRead } from '../company/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
-import type { useCompanyDocuments } from './useCompanyDocuments';
+import type { CompanyDocumentUpload } from '../../hooks/useCompanyDocumentActions';
 
 export function CompanyUpload({
   companyUuid,
@@ -22,8 +22,8 @@ export function CompanyUpload({
   type: DocumentType;
   label: string;
   canUpload: boolean;
-  read: CompanyRead;
-  upload: ReturnType<typeof useCompanyDocuments>['upload'];
+  read: CompanyActionRead;
+  upload: (input: CompanyDocumentUpload) => Promise<unknown>;
   onClose: () => void;
 }) {
   const styles = useCompanyStyles();
@@ -38,6 +38,7 @@ export function CompanyUpload({
     setError(null);
     const epoch = getSessionEpoch();
     try {
+      read.assertCurrent(companyUuid);
       await document.pick();
     } catch (error) {
       if (epoch === getSessionEpoch())
@@ -49,8 +50,9 @@ export function CompanyUpload({
     setError(null);
     const epoch = getSessionEpoch();
     try {
-      const completed = await document.submit(({ file, owner, sessionEpoch }) =>
-        upload({ file, name: file.name, documentType: type, companyUuid: owner, sessionEpoch }),
+      read.assertCurrent(companyUuid);
+      const completed = await document.submit(({ file, owner, sessionEpoch, assertCurrent }) =>
+        upload({ file, name: file.name, documentType: type, companyUuid: owner, sessionEpoch, assertCurrent }),
       );
       if (completed) onClose();
     } catch (error) {
@@ -77,7 +79,7 @@ export function CompanyUpload({
         <CompanyReadNotice read={read} />
         {!canUpload && (
           <Text accessibilityRole="alert" style={styles.error}>
-            Documents can no longer be changed for this application.
+            Refresh this company and your authority before changing documents.
           </Text>
         )}
         <Text style={styles.muted}>PDF or image, max 10 MB.</Text>

@@ -1,8 +1,12 @@
-from drf_spectacular.utils import extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company, CompanyStatus
+from companies.models import Company, CompanyCapability, CompanyDocument, CompanyStatus
 from companies.serializers.document import CompanyDocumentSerializer
+from companies.services.administration import (
+    company_administrative_access,
+    company_contact,
+)
 from companies.services.company import register_company
 from companies.services.editing import update_company
 from companies.validators import (
@@ -14,10 +18,8 @@ from companies.validators import (
 from wallets.models import Wallet
 
 
-@extend_schema_serializer(exclude_fields=("email",))
 class _CompanyUserProfileSerializer(serializers.Serializer):
 
-    email = serializers.EmailField(read_only=True)
     full_name = serializers.CharField(read_only=True, allow_null=True)
 
 
@@ -28,7 +30,27 @@ class _CompanyUserProfileCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
 
 
-class CompanyListSerializer(serializers.ModelSerializer):
+class CompanyAdministrativeAccessSerializer(serializers.Serializer):
+    capabilities = serializers.ListField(
+        child=serializers.ChoiceField(choices=CompanyCapability.choices), read_only=True
+    )
+    draft_setup = serializers.BooleanField(read_only=True)
+
+
+class _CompanyAdministrativeSerializer(serializers.ModelSerializer):
+    is_owner = serializers.SerializerMethodField()
+    administrative_access = serializers.SerializerMethodField()
+
+    def get_is_owner(self, obj) -> bool:
+        actor = getattr(self.context.get("request"), "user", None)
+        return bool(actor and actor.is_authenticated and obj.owner_id == actor.pk)
+
+    @extend_schema_field(CompanyAdministrativeAccessSerializer)
+    def get_administrative_access(self, obj):
+        return company_administrative_access(obj, getattr(self.context.get("request"), "user", None))
+
+
+class CompanyListSerializer(_CompanyAdministrativeSerializer):
 
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     company_type_display = serializers.CharField(
@@ -54,21 +76,54 @@ class CompanyListSerializer(serializers.ModelSerializer):
             "is_active",
             "is_approved",
             "created_at",
+            "is_owner",
+            "administrative_access",
         ]
         read_only_fields = fields
 
 
-class CompanyDetailSerializer(serializers.ModelSerializer):
+class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
 
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     company_type_display = serializers.CharField(
         source="get_company_type_display",
         read_only=True,
     )
-    email = serializers.EmailField(read_only=True)
-    primary_contact = _CompanyUserProfileSerializer(read_only=True, allow_null=True)
-    documents = CompanyDocumentSerializer(many=True, read_only=True)
-    operator_wallet = serializers.SlugRelatedField(slug_field="uuid", read_only=True)
+    email = serializers.SerializerMethodField()
+    primary_contact = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+
+    @extend_schema_field(CompanyDocumentSerializer(many=True))
+    def get_documents(self, obj):
+        actor = getattr(self.context.get("request"), "user", None)
+        if actor is None:
+            return CompanyDocumentSerializer(obj.documents.all(), many=True, context=self.context).data
+        documents = CompanyDocument.objects.filter(company_id=obj.pk)
+        if self.context.get("company_review", False):
+            if company_contact(obj, actor, review=True) is None:
+                return []
+        else:
+            documents = documents.filter(company__in=Company.objects.administrable_by(actor))
+        return CompanyDocumentSerializer(documents, many=True, context=self.context).data
+
+    @extend_schema_field(serializers.EmailField(allow_null=True))
+    def get_email(self, obj):
+        actor = getattr(self.context.get("request"), "user", None)
+        if actor is None:
+            return obj.email
+        contact = company_contact(obj, actor, review=self.context.get("company_review", False))
+        return contact["email"] if contact else None
+
+    operator_wallet = serializers.UUIDField(source="operator_wallet_id", allow_null=True, read_only=True)
+
+    @extend_schema_field(_CompanyUserProfileSerializer(allow_null=True))
+    def get_primary_contact(self, obj):
+        actor = getattr(self.context.get("request"), "user", None)
+        if actor is None:
+            return _CompanyUserProfileSerializer(obj.primary_contact).data if obj.primary_contact else None
+        contact = company_contact(obj, actor, review=self.context.get("company_review", False))
+        profile = contact["primary_contact"] if contact else None
+        return _CompanyUserProfileSerializer(profile).data if profile is not None else None
 
     class Meta:
         model = Company
@@ -115,6 +170,8 @@ class CompanyDetailSerializer(serializers.ModelSerializer):
             "documents",
             "created_at",
             "updated_at",
+            "is_owner",
+            "administrative_access",
         ]
         read_only_fields = [
             "uuid",
@@ -234,7 +291,7 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
         return with_matching_identifiers(self, data)
 
     def update(self, instance, validated_data):
-        return update_company(instance, validated_data)
+        return update_company(instance, validated_data, actor=self.context["request"].user)
 
 
 class CompanyStatusUpdateSerializer(serializers.Serializer):

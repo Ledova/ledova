@@ -1,11 +1,16 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../../services/apiClient';
+import type { CompanyActionRead } from '../company/CompanyState';
 import { Text, View } from 'react-native';
 import {
   formatDate,
   formatMoney,
   formatShareCount,
   REGISTER_COPY,
-  useOfferingSubscriptions,
+  CACHE_TIMING,
+  getOfferingSubscriptions,
+  readEveryPage,
   type OfferingListItem,
 } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
@@ -15,14 +20,27 @@ import { OfferingReadNotice } from './OfferingReadNotice';
 export function SubscriptionsLedger({
   offerings,
   operatorName,
+  companyRead,
 }: {
   offerings: OfferingListItem[];
   operatorName: string;
+  companyRead: CompanyActionRead;
 }) {
   const styles = useCompanyStyles();
   const [selected, setSelected] = useState('');
   const offering = offerings.find((row) => row.uuid === selected) ?? offerings[0];
-  const read = useOfferingSubscriptions(offering?.uuid);
+  const read = useQuery({
+    queryKey: ['offering-subscriptions', offering?.uuid, companyRead.scopeKey],
+    enabled: !!offering && companyRead.ownerBusiness,
+    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        companyRead.assertCurrent(companyRead.companyUuid!, 'owner');
+        const result = await getOfferingSubscriptions(apiClient, offering!.uuid, page);
+        companyRead.assertCurrent(companyRead.companyUuid!, 'owner');
+        return result;
+      }),
+  });
   if (!offering) return null;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>

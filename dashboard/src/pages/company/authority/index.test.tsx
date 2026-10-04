@@ -109,7 +109,7 @@ async function fill(company = companyA) {
   fireEvent.change(await screen.findByLabelText('Draft company'), { target: { value: company.uuid } });
   fireEvent.click(
     within(screen.getByRole('group', { name: 'Actions you request for yourself' })).getByRole('checkbox', {
-      name: 'Manage company team',
+      name: 'Manage company information and team',
     }),
   );
   fireEvent.click(
@@ -228,7 +228,7 @@ it('retires the previous company file and scope when selection changes', async (
   expect(
     (
       within(screen.getByRole('group', { name: 'Actions you request for yourself' })).getByRole('checkbox', {
-        name: 'Manage company team',
+        name: 'Manage company information and team',
       }) as HTMLInputElement
     ).checked,
   ).toBe(true);
@@ -492,7 +492,9 @@ it('requires explicit declaration acceptance, records exact appointment scope an
   expect(screen.getByText('appointment-a')).toBeTruthy();
   expect(screen.getByText('active')).toBeTruthy();
   expect(screen.getByText('Current')).toBeTruthy();
-  expect(screen.getAllByText('Manage company team, Prepare register changes').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Manage company information and team, Prepare register changes').length).toBeGreaterThan(
+    0,
+  );
   expect(screen.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
@@ -518,7 +520,9 @@ it('requires explicit declaration acceptance, records exact appointment scope an
 it('keeps non-administrator proposals pending with a clear initial admission requirement', async () => {
   rows = [request()];
   show();
-  await screen.findByText(/Initial admission requires Manage company team in your own requested actions/);
+  await screen.findByText(
+    /Initial admission requires Manage company information and team in your own requested actions/,
+  );
   expect(screen.queryByRole('button', { name: /Establish appointment/ })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
@@ -563,6 +567,27 @@ it('refuses a confirmation when the signed-in account changes before its effect'
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([admitted()]);
   expect(client.getQueryData(['company-authority-requests', 'profile-b', 'account-b'])).toEqual([]);
+});
+
+it('refuses the open confirmation once a refetch shows the appointment already revoked', async () => {
+  rows = [admitted()];
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Revoke appointment authority.pdf' }));
+  const confirm = within(await screen.findByRole('dialog')).getByRole('button', {
+    name: 'Permanently revoke appointment',
+  });
+  rows = [revoked()];
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-authority-requests', 'profile-a', 'account-a'], exact: true });
+  });
+  await screen.findByText('revoked');
+  expect(screen.queryByRole('button', { name: 'Revoke appointment authority.pdf' })).toBeNull();
+  expect(confirm.isConnected).toBe(true);
+  expect((confirm as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(confirm);
+  await act(() => Promise.resolve());
+  expect(api.post).not.toHaveBeenCalled();
+  expect(client.getQueryData(['company-authority-requests', 'profile-a', 'account-a'])).toEqual([revoked()]);
 });
 
 it.each(['cancel', 'escape'])(

@@ -123,7 +123,7 @@ class RegisteredSchemaCoverageTest(TestCase):
         self,
     ):
         company_uuid, document_uuid = uuid4(), uuid4()
-        document = SimpleNamespace(file=True, company=SimpleNamespace(uuid=company_uuid), uuid=document_uuid)
+        document = SimpleNamespace(file=True, company_id=company_uuid, uuid=document_uuid)
         serializer = CompanyDocumentSerializer()
         url = serializer.get_file_url(document)
         template = url.replace(str(company_uuid), "{company_uuid}").replace(str(document_uuid), "{uuid}")

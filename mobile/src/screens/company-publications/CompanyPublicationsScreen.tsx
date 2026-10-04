@@ -5,6 +5,7 @@ import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { CompanyReadNotice } from '../company/CompanyState';
+import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyStyles } from '../company-register/styles';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
@@ -12,21 +13,23 @@ import { useIssuerPublications } from './useIssuerPublications';
 const TITLE = 'Published to your members';
 
 export function CompanyPublicationsScreen() {
+  const companyRead = useCompanyProfile({ ownedOnly: true });
+  return (
+    <IssuerPublications key={`${companyRead.scopeKey}:${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
+  );
+}
+
+function IssuerPublications({ companyRead }: { companyRead: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
-  const companyRead = useCompanyProfile();
   const { access, company } = companyRead;
-  const { listing, open, openingUuid, openError, blocked } = useIssuerPublications(
-    company?.uuid,
-    access.allowed && !companyRead.error,
-    !companyRead.isRefreshing,
-  );
+  const { listing, open, openingUuid, openError, blocked } = useIssuerPublications(companyRead);
   const publications = listing.data;
   const refreshing = companyRead.isRefreshing || listing.isFetching;
-  const refresh = () => {
+  const refresh = async () => {
     if (!access.allowed) return;
-    void companyRead.refetch();
-    if (company) void listing.refetch();
+    await companyRead.refetch();
+    if (company) await listing.refetch();
   };
   if (!access.allowed)
     return (
@@ -42,9 +45,10 @@ export function CompanyPublicationsScreen() {
       testID="company-publications-screen"
       title={TITLE}
       lede="Staff prepare and publish these records on your company's written instruction."
-      actions={<Action label="Refresh" disabled={refreshing} onPress={refresh} />}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      actions={<Action label="Refresh" disabled={refreshing} onPress={() => void refresh()} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
     >
+      <CompanySelection read={companyRead} />
       {companyRead.isLoading ? (
         <Text style={styles.muted}>Loading company information…</Text>
       ) : companyRead.error ? (

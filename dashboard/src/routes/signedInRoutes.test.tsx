@@ -97,10 +97,13 @@ describe('which signed-in pages an account can open', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
 
-  it.each(['home', 'publications'] as const)('lets an investor open %s, a page for everyone', (key) => {
-    open(key, 'investor');
-    expect(opened(key)).toBe(true);
-  });
+  it.each(['home', 'publications', 'company', 'companyTeam'] as const)(
+    'lets an investor open %s, a page for everyone',
+    (key) => {
+      open(key, 'investor');
+      expect(opened(key)).toBe(true);
+    },
+  );
 
   it.each(['directoryDetail', 'trading'] as const)('lets an investor open %s, an investing page', (key) => {
     open(key, 'investor');
@@ -108,13 +111,13 @@ describe('which signed-in pages an account can open', () => {
   });
 
   it('sends an investor opening a company page to their home at once, even before the frame is showing', () => {
-    open('company', 'investor', { frameShowing: false });
+    open('companyRegister', 'investor', { frameShowing: false });
 
     expect(screen.getByTestId('address').textContent).toBe(DESTINATIONS.home.path);
     expect(screen.queryByText('company')).toBeNull();
   });
 
-  it.each(['companyClass', 'companyRegister', 'company', 'companyListing', 'companyPublications'] as const)(
+  it.each(['companyClass', 'companyRegister', 'companyListing', 'companyPublications'] as const)(
     'sends an investor opening %s to their home instead',
     (key) => {
       open(key, 'investor');
@@ -150,16 +153,18 @@ describe('which signed-in pages an account can open', () => {
     expect(opened(key)).toBe(true);
   });
 
-  it.each(['wallets', 'trading', 'company'] as const)(
+  it.each(['wallets', 'trading', 'company', 'companyRegister'] as const)(
     'gives a role the API does not define only the pages for everyone, sending it from %s to its home',
     (key) => {
       open(key, 'staff' as AccountRole);
       expect(DESTINATIONS[key].audience === 'everyone' ? opened(key) : sentTo('home')).toBe(true);
-      expect(screen.getByTestId('address').textContent).toBe(addressOf(key === 'wallets' ? key : 'home'));
+      expect(screen.getByTestId('address').textContent).toBe(
+        addressOf(DESTINATIONS[key].audience === 'everyone' ? key : 'home'),
+      );
     },
   );
 
-  it.each(['trading', 'company'] as const)(
+  it.each(['trading', 'companyRegister'] as const)(
     'keeps %s titled and loading until the role is known, and shows neither the page nor a landing',
     (key) => {
       open(key, 'investor', { roleLoading: true });
@@ -172,7 +177,7 @@ describe('which signed-in pages an account can open', () => {
   );
 
   it.each([
-    ['company', 'company'],
+    ['companyRegister', 'company'],
     ['trading', 'investor'],
   ] as const)('says the account could not be checked on %s rather than deciding with a guessed role', (key, role) => {
     open(key, role, { roleUnavailable: true });
@@ -184,7 +189,7 @@ describe('which signed-in pages an account can open', () => {
   });
 
   it('checks the account again from Try again', () => {
-    open('company', 'company', { roleUnavailable: true });
+    open('companyRegister', 'company', { roleUnavailable: true });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalledTimes(1);
   });

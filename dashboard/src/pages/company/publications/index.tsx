@@ -4,14 +4,21 @@ import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '../CompanyState';
 import { useCompany } from '../hooks/useCompany';
+import { CompanySelection } from '../CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
+  const companyRead = useCompany({ ownedOnly: true });
+  return (
+    <CompanyPublications key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
+  );
+}
+
+function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompany> }) {
   const navigate = useNavigate();
-  const companyRead = useCompany();
   const { company } = companyRead;
-  const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid);
+  const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid, companyRead);
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
   const publications = listing.data;
   return (
@@ -32,6 +39,7 @@ export default function IssuerPublicationsPage() {
         </>
       }
     >
+      <CompanySelection read={companyRead} />
       {companyRead.error ? (
         <CompanyReadNotice read={companyRead} />
       ) : !company ? (
