@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
 from django.test import override_settings
 from django.utils import timezone
+from drf_spectacular.generators import SchemaGenerator
 from rest_framework.exceptions import APIException
 from rest_framework.test import APITransactionTestCase
 
@@ -359,6 +360,13 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
         for record in records:
             self.assertEqual(set(record), expected)
         self.assertEqual({record["email"] for record in records}, {self.owner.email, self.invitee.email})
+        self.assertEqual(self.client.get(f"{team_url}&ordering=name").status_code, 400)
+        document = SchemaGenerator().get_schema(request=None, public=True)
+        parameters = document["paths"][f"{APPOINTMENTS}team/"]["get"]["parameters"]
+        self.assertEqual({parameter["name"] for parameter in parameters if parameter["in"] == "query"}, {"company"})
+        company_parameter = next(parameter for parameter in parameters if parameter["name"] == "company")
+        self.assertTrue(company_parameter["required"])
+        self.assertEqual(company_parameter["schema"], {"type": "string", "format": "uuid"})
         self.assertEqual(self.client.get(f"{APPOINTMENTS}team/?company={self.foreign_company.pk}").status_code, 404)
         with use_operator():
             UserProfile.objects.filter(pk=self.owner_profile.pk).update(is_id_verified=False)

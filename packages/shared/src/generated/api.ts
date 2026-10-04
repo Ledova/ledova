@@ -6483,7 +6483,6 @@ export interface ApiOperations {
     parameters: {
       query: {
         company: string;
-        ordering?: string;
       };
       header?: never;
       path?: never;

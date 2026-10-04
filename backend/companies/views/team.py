@@ -107,7 +107,9 @@ class CompanyAppointmentViewSet(mixins.ListModelMixin, AuthenticatedGenericViewS
         return self.serializer_class
 
     @extend_schema(
-        parameters=[CompanyTeamQuerySerializer], responses={200: CompanyTeamAppointmentSerializer(many=True)}
+        filters=False,
+        parameters=[CompanyTeamQuerySerializer],
+        responses={200: CompanyTeamAppointmentSerializer(many=True)},
     )
     @action(detail=False, methods=["get"], pagination_class=None)
     def team(self, request):
