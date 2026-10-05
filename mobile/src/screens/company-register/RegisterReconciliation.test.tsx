@@ -22,6 +22,7 @@ const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ACKNOWLEDGE = URLS.REGISTER_RECONCILIATION_ACKNOWLEDGE('reconciliation-latest');
 const READ_FAILED = 'The reconciliation could not be loaded.';
 const REASON = 'The directors accept the outside transfer';
+const CHANGED = 'Your appointment for this step changed. Cancel and start this acknowledgement again.';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const acknowledge = (number: number) => `${COPY.ACKNOWLEDGE} discrepancy ${number} of Ordinary shares`;
 const get = jest.mocked(apiClient.get);
@@ -466,6 +467,30 @@ it('closes the dialog when a newer reconciliation replaces the record it opened 
   expect(post).not.toHaveBeenCalled();
 });
 
+it('holds an open acknowledgement once the step is held by another appointment', async () => {
+  post.mockResolvedValueOnce({ data: acknowledged(1, REASON, 'appointment-aaa') });
+  const view = await openClass();
+  await fireEvent.changeText(await openAcknowledgement(view), REASON);
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled();
+  expect(view.queryByText(CHANGED)).toBeNull();
+  appointments = [appointment('appointment-approver', ['approve']), appointment('appointment-aaa', ['approve'])];
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
+  expect(await view.findByText(CHANGED)).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  expect(post).not.toHaveBeenCalled();
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await fireEvent.changeText(await openAcknowledgement(view), REASON);
+  expect(view.queryByText(CHANGED)).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
+  expect(post).toHaveBeenCalledWith(
+    ACKNOWLEDGE,
+    { appointment: 'appointment-aaa', discrepancy: 1, reason: REASON, idempotencyKey: KEY(1) },
+    expect.anything(),
+  );
+});
+
 it('withdraws acknowledgement once a pull to refresh reads the appointment as revoked', async () => {
   const view = await openClass();
   await openAcknowledgement(view);
@@ -513,6 +538,18 @@ it('reads nothing for the old session when an acknowledgement is refused after t
   expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
   expect(view.queryByText('This discrepancy is already acknowledged.')).toBeNull();
   await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it('offers no acknowledgement and no read-only note while the appointments cannot be read', async () => {
+  failing = new Set([APPOINTMENTS]);
+  const view = await openClass();
+  expect(await view.findByText('Your appointments could not be read, so register actions are hidden.')).toBeTruthy();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  expect(view.queryByRole('button', { name: acknowledge(1) })).toBeNull();
+  failing = new Set();
+  await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
+  expect(await view.findByRole('button', { name: acknowledge(1) })).toBeTruthy();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
 });
 
 it('refuses a reconciliation of another class and offers a retry', async () => {

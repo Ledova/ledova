@@ -775,7 +775,7 @@ it('consumes confirmation once, updates the actual own appointment receipt and i
   expect(post).toHaveBeenCalledTimes(1);
 });
 
-it('makes the register read its import appointments again after a revocation', async () => {
+it('makes the register read its appointments again after a revocation', async () => {
   const view = await screen();
   const key = registerAppointmentsKey(getSessionEpoch());
   client.setQueryData(key, [a]);

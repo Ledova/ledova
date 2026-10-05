@@ -30,6 +30,7 @@ export function ClassEntries({
   const { entries, listed, hasError, moreFailed, loadMore } = useRegisterEntries(epoch, register.token.uuid);
   const sequences = new Map(listed.map((entry) => [entry.uuid, entry.sequence]));
   const linked = (uuid: string) => (sequences.has(uuid) ? `Entry ${sequences.get(uuid)}` : NOT_LOADED);
+  const more = entries.isFetchingNextPage ? 'Loading entries…' : 'Load more entries';
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
@@ -73,7 +74,7 @@ export function ClassEntries({
               {entry.correctable && steps?.prepare && (
                 <Action
                   label={COPY.PREPARE}
-                  accessibilityLabel={`Correct entry ${entry.sequence} of ${name}`}
+                  accessibilityLabel={`${COPY.PREPARE}, entry ${entry.sequence} of ${name}`}
                   onPress={() => onCorrect(entry)}
                 />
               )}
@@ -86,7 +87,7 @@ export function ClassEntries({
               </Text>
               <Action
                 label="Try more entries again"
-                accessibilityLabel={`Try more entries of ${name} again`}
+                accessibilityLabel={`Try more entries again for ${name}`}
                 disabled={entries.isFetching}
                 onPress={() => void loadMore()}
               />
@@ -94,8 +95,8 @@ export function ClassEntries({
           ) : (
             entries.hasNextPage && (
               <Action
-                label={entries.isFetchingNextPage ? 'Loading entries…' : 'Load more entries'}
-                accessibilityLabel={`Load more entries of ${name}`}
+                label={more}
+                accessibilityLabel={`${more} for ${name}`}
                 disabled={entries.isFetching}
                 onPress={() => void loadMore()}
               />

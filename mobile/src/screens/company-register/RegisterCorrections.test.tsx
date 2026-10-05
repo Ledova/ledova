@@ -36,20 +36,21 @@ type Params = { page?: number; token?: string; entry?: string[] };
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const DIGEST = 'a'.repeat(64);
-const NEW = 'prepared correction of entry 1, effective 4 October 2026';
-const STAFF_ERA = 'prepared correction of entry 2, effective 30 September 2026';
-const APPLIED_ONE = 'applied correction of entry 2, effective 2 October 2026';
+const prepared = (createdAt: string) => `prepared on ${formatDateTime(createdAt)}`;
+const NEW = `prepared correction of entry 1, effective 4 October 2026, ${prepared('2026-10-05T01:00:00Z')}`;
+const STAFF_ERA = `prepared correction of entry 2, effective 30 September 2026, ${prepared('2026-10-03T01:00:00Z')}`;
+const APPLIED_ONE = `applied correction of entry 2, effective 2 October 2026, ${prepared('2026-10-04T01:00:00Z')}`;
 const NEW_HEADING = 'Prepared · entry 1 · effective 4 October 2026';
 const APPLIED_HEADING = 'Applied · entry 2 · effective 2 October 2026';
 const READ_FAILED = 'The register entries could not be loaded.';
 const MORE_FAILED = 'More register entries could not be loaded. The history above is incomplete.';
 const CORRECTIONS_FAILED = 'The corrections could not be loaded.';
-const LOAD_MORE = 'Load more entries of Ordinary shares';
+const LOAD_MORE = 'Load more entries for Ordinary shares';
 const REPEATED = { paramsSerializer: { indexes: null } };
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const step = (kind: string, description = NEW) => `${kind} the ${description}`;
 const text = (element: { props: { children?: unknown } }) => [element.props.children].flat().join('');
-const correct = (sequence: number) => `Correct entry ${sequence} of Ordinary shares`;
+const correct = (sequence: number) => `${COPY.PREPARE}, entry ${sequence} of Ordinary shares`;
 const headings = (view: Awaited<ReturnType<typeof render>>) =>
   history(view)
     .getAllByText(/^Entry \d+ · [A-Za-z ]+$/)
@@ -403,6 +404,21 @@ it('names a history link not loaded yet until its page loads, while each correct
   expect(view.queryByText(NOT_LOADED)).toBeNull();
 });
 
+it('says when the authority document could not be opened, and opens it on a retry', async () => {
+  failing = new Set([URLS.REGISTER_CORRECTION_FILE('correction-new')]);
+  const view = await openClass();
+  const download = () => view.getByRole('button', { name: `${COPY.DOWNLOAD} of the ${NEW}` });
+  await fireEvent.press(download());
+  expect(await view.findByText('The document could not be opened. Try again.')).toBeTruthy();
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+  failing = new Set();
+  await waitFor(() => expect(download()).toBeEnabled());
+  await fireEvent.press(download());
+  await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(view.queryByText('The document could not be opened. Try again.')).toBeNull());
+  await waitFor(() => expect(download()).toBeEnabled());
+});
+
 it('reads every page of the class corrections by its share class and lists them newest first', async () => {
   appointments = [appointment('appointment-reader', ['read_register'])];
   const view = await openClass();
@@ -475,7 +491,9 @@ it('shows a decided staff-era correction without a trail by its decision time an
   expect(view.getByText(formatDateTime('2026-10-04T05:00:00Z'))).toBeTruthy();
   expect(view.getByText('Superseded by a company correction')).toBeTruthy();
   expect(
-    view.queryByRole('button', { name: step('Reject', 'rejected correction of entry 2, effective 30 September 2026') }),
+    view.queryByRole('button', {
+      name: step('Reject', `rejected correction of entry 2, effective 30 September 2026, ${prepared(STAFF.createdAt)}`),
+    }),
   ).toBeNull();
 });
 
@@ -516,7 +534,7 @@ it('keeps the loaded entries and offers to try again when a later page fails', a
   expect(view.getByText('Entry 3 · Compensating correction')).toBeTruthy();
   expect(view.queryByText(READ_FAILED)).toBeNull();
   expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
-  await fireEvent.press(view.getByRole('button', { name: 'Try more entries of Ordinary shares again' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Try more entries again for Ordinary shares' }));
   await waitFor(() => expect(history(view).getByText('Entry 1 · Opening state')).toBeTruthy());
   expect(view.queryByText(MORE_FAILED)).toBeNull();
 });
@@ -539,6 +557,20 @@ it('lists an entry once when the next page repeats it after a newer entry was re
   expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
 });
 
+it('lists a correction once when the next page repeats it after a newer correction was prepared', async () => {
+  correctionPages = [
+    [STAFF, CORRECTION],
+    [CORRECTION, APPLIED],
+  ];
+  const view = await openClass();
+  expect(view.getAllByText(/ · effective \d+ [A-Za-z]+ \d{4}$/).map(text)).toEqual([
+    NEW_HEADING,
+    APPLIED_HEADING,
+    'Prepared · entry 2 · effective 30 September 2026',
+  ]);
+  expect(view.getAllByRole('button', { name: step('Approve') })).toHaveLength(1);
+});
+
 it('reads each page under the session it was opened in and drops a page answered after the session changes', async () => {
   const late = deferred();
   entryAnswers.set(2, () => late.promise);
@@ -546,6 +578,7 @@ it('reads each page under the session it was opened in and drops a page answered
   const epoch = getSessionEpoch();
   await fireEvent.press(view.getByRole('button', { name: LOAD_MORE }));
   await waitFor(() => expect(pageReads()).toHaveLength(2));
+  expect(await view.findByRole('button', { name: 'Loading entries… for Ordinary shares' })).toBeDisabled();
   const [, later] = pageReads();
   expect(later).toEqual({ ledovaSessionEpoch: epoch, signal: expect.anything(), ...REPEATED, params: { page: 2 } });
   await act(() => invalidateSessionScope());
@@ -676,6 +709,20 @@ it.each([
   expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
 });
 
+it('names two corrections of one entry, stage and effective date apart by when each was prepared', async () => {
+  correctionPages = [[CORRECTION, { ...CORRECTION, uuid: 'correction-again', createdAt: '2026-10-05T02:00:00Z' }]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findAllByText(NEW_HEADING)).toHaveLength(2);
+  expect(lookups().map(({ params }) => params.entry)).toEqual([['entry-1']]);
+  const again = `prepared correction of entry 1, effective 4 October 2026, ${prepared('2026-10-05T02:00:00Z')}`;
+  for (const description of [NEW, again]) {
+    for (const kind of ['Approve', 'Apply', 'Reject'])
+      expect(view.getByRole('button', { name: step(kind, description) })).toBeTruthy();
+    expect(view.getByRole('button', { name: `${COPY.DOWNLOAD} of the ${description}` })).toBeTruthy();
+  }
+});
+
 it('offers a retained staff-era correction only rejection, beside a company correction offering every step', async () => {
   const view = await openClass();
   expect(view.getByRole('button', { name: step('Reject', STAFF_ERA) })).toBeTruthy();
@@ -705,6 +752,24 @@ it('withdraws every correction step once a pull to refresh reads the appointment
   expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.queryByRole('button', { name: step('Reject', STAFF_ERA) })).toBeNull();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+});
+
+it('shows a newly recorded entry and a newly prepared correction after a pull to refresh', async () => {
+  const view = await openClass();
+  const recorded = { ...ENTRIES[1], uuid: 'entry-4', sequence: 4, effectiveOn: '2026-10-05', correctedBy: null };
+  entryPages = [
+    [recorded, ENTRIES[0]],
+    [ENTRIES[1], ENTRIES[2]],
+  ];
+  lookupEntries = [recorded, ...ENTRIES];
+  correctionPages = [
+    [{ ...CORRECTION, uuid: 'correction-later', corrects: 'entry-4', createdAt: '2026-10-05T09:00:00Z' }, STAFF],
+    [CORRECTION, APPLIED],
+  ];
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
+  expect(await history(view).findByText('Entry 4 · Issue')).toBeTruthy();
+  expect(await view.findByText('Prepared · entry 4 · effective 4 October 2026')).toBeTruthy();
+  expect(headings(view)).toEqual(['Entry 4 · Issue', 'Entry 3 · Compensating correction']);
 });
 
 it('previews an approval with the named original and inverse changes and the register sequence, then records it', async () => {
@@ -998,4 +1063,21 @@ it('withholds correction steps while the appointments cannot be read', async () 
   await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
   expect(await view.findByRole('button', { name: step('Approve') })).toBeTruthy();
   expect(view.getByRole('button', { name: correct(3) })).toBeTruthy();
+});
+
+it('withdraws every step without a read-only note once a later read of the appointments fails', async () => {
+  const view = await openClass();
+  expect(view.getByRole('button', { name: step('Approve') })).toBeTruthy();
+  failing = new Set([APPOINTMENTS]);
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
+  expect(await view.findByText('Your appointments could not be read, so register actions are hidden.')).toBeTruthy();
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
+  expect(view.queryByRole('button', { name: step('Reject', STAFF_ERA) })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
+  for (const note of [
+    COPY.READ_ONLY_NOTE,
+    REGISTER_IMPORT_COPY.READ_ONLY_NOTE,
+    REGISTER_RECONCILIATION_COPY.READ_ONLY_NOTE,
+  ])
+    expect(view.queryByText(note)).toBeNull();
 });

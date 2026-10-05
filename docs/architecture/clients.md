@@ -124,9 +124,9 @@ The class's register entries follow, newest first, one page from the server at a
 time with Load more: each entry's kind, sequence, effective date and signed share
 changes with member names, and the entry it corrects and the entry that reversed
 it, named as not loaded yet until its page is loaded. An entry a later page
-repeats is listed once; a page with a share change that is not whole fails and
-offers a retry, and a later page that fails keeps the loaded entries and offers to
-try again. Then come its
+repeats is listed once, as is a repeated import or correction; a page with a
+share change that is not whole fails and offers a retry, and a later page that
+fails keeps the loaded entries and offers to try again. Then come its
 [corrections](../operations/register-foundation.md#compensating-corrections),
 read on every page with the class's `token` filter and newest first, each page
 with the entries it corrects looked up by their IDs: stage, the corrected entry's
@@ -135,9 +135,10 @@ member names, the authority, approving director, reference and reason, whether
 the company provided the authority document or staff verified it before
 corrections were company-run, the decision trail, any rejection reason and the
 document's download. A correction's heading and step labels name its entry and
-effective date. Corrections of another company or of more than one register, a
-corrected entry the lookup does not return, or a lookup answering with entries it
-was not asked for fail the read. Last comes the
+effective date, and the step and download labels of a correction or an import
+also say when it was prepared. Corrections of another company or of more than
+one register, a corrected entry the lookup does not return, or a lookup
+answering with entries it was not asked for fail the read. Last comes the
 class's latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain):
 status, chain block, compared register sequence and time, any failure text, and
 each discrepancy in words with its details and acknowledgement (reason, who,
@@ -159,7 +160,8 @@ corrections, entries, holders and appointments again. Administration or `approve
 adds **Acknowledge** to an acknowledgeable discrepancy, which
 [acknowledges](../operations/register-foundation.md#acknowledging-a-discrepancy)
 it with a reason of up to 1,000 characters and reads the reconciliation again; a
-refusal also reads the appointments.
+refusal also reads the appointments. Its dialog keeps the appointment it opened
+with and holds confirmation if a refresh changes it.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
