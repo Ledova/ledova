@@ -119,27 +119,30 @@ except where the person's appointments are read. On mobile, each decision opens
 in a dialog, which closes when a refresh withdraws its step; Prepare an import
 opens a form in the same stack; and the retained register document and ASIC
 extract open through the session-bound document copy.
-The class's register entries follow, newest first and 25 at a time with Load
-more: each entry's kind, sequence, effective date and signed share changes with
-member names, the entry it corrects and the entry that reversed it. Then
-come its [corrections](../operations/register-foundation.md#compensating-corrections),
-newest first: stage, preparer, dates, the corrected entry and its inverse
-changes, the authority, approving director, reference and reason, whether the
-company provided the authority document or staff verified it before corrections
-were company-run, the decision trail, any rejection reason and the document's
-download. The API names a correction's register but no client read names a
-class's register, so the app reads every page of the class's entries and of the
-company's corrections and keeps those correcting one of the class's entries; a
-repeated entry, a link to an entry the read missed or a share change that is not
-whole hides the entries and corrections and offers a retry. Last comes the
+The class's register entries follow, newest first, one page from the server at a
+time with Load more: each entry's kind, sequence, effective date and signed share
+changes with member names, and the entry it corrects and the entry that reversed
+it, named as not loaded yet until its page is loaded. An entry a later page
+repeats is listed once; a page with a share change that is not whole fails and
+offers a retry, and a later page that fails keeps the loaded entries and offers to
+try again. Then come its
+[corrections](../operations/register-foundation.md#compensating-corrections),
+read on every page with the class's `token` filter and newest first: stage,
+preparer, dates, the corrected entry once its page is loaded, the inverse changes
+with the member names the loaded entries and holders give, the authority,
+approving director, reference and reason, whether the company provided the
+authority document or staff verified it before corrections were company-run, the
+decision trail, any rejection reason and the document's download. Corrections of
+another company or of more than one register fail the read. Last comes the
 class's latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain):
 status, chain block, compared register sequence and time, any failure text, and
 each discrepancy in words with its details and acknowledgement (reason, who,
 when, and whether the company or, earlier, staff gave it); rows needing
 attribution say so, and a class without a reconciliation says that plainly.
 Administration or `prepare` adds **Correct this entry** to a correctable entry. It
-opens a form in the same stack that shows the entry and the exact inverse it
-records and takes the authority document, the authority, the approving director
+opens a form in the same stack that reads the class's entries page by page until it
+finds the entry, shows it with the exact inverse it records and takes the
+authority document, the authority, the approving director
 of a resolution, the reference, the reason and an effective date no later than
 today (UTC), defaulting to today. The upload keeps its own retry key and confirmed
 receipt, preparation reuses its operation only for an identical request, and the
