@@ -1,15 +1,12 @@
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
-import {
-  DESTINATIONS,
-  REGISTER_IMPORT_COPY,
-  appointmentForRegisterImportStep,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { DESTINATIONS, REGISTER_IMPORT_COPY, type OrderSubmissionOwner } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
-import { ImportRecord, type ImportSteps } from './ImportRecord';
+import { ImportRecord } from './ImportRecord';
+import { registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
+import { entriesKey } from './useRegisterCorrections';
 import { importsKey, useOwnAppointments, useRegisterImports } from './useRegisterImports';
 
 export function ClassImports({
@@ -26,14 +23,7 @@ export function ClassImports({
   const client = useQueryClient();
   const imports = useRegisterImports(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
-  const steps: ImportSteps | null = appointments.isSuccess
-    ? {
-        prepare: appointmentForRegisterImportStep(appointments.data, company, 'prepare'),
-        approve: appointmentForRegisterImportStep(appointments.data, company, 'approve'),
-        apply: appointmentForRegisterImportStep(appointments.data, company, 'apply'),
-        reject: appointmentForRegisterImportStep(appointments.data, company, 'reject'),
-      }
-    : null;
+  const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const refresh = async (keys: QueryKey[]) => {
     try {
       guard();
@@ -42,9 +32,9 @@ export function ClassImports({
     }
     await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
   };
-  const decided = () => refresh([importsKey(owner, token), [...registerKey(owner), 'holders']]);
-  const refused = () =>
-    refresh([importsKey(owner, token), [...registerKey(owner), 'holders'], ownAppointmentsKey(owner)]);
+  const changed = [importsKey(owner, token), [...registerKey(owner), 'holders'], entriesKey(owner, token)];
+  const decided = () => refresh(changed);
+  const refused = () => refresh([...changed, ownAppointmentsKey(owner)]);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{REGISTER_IMPORT_COPY.TITLE}</h3>

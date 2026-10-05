@@ -44,6 +44,7 @@ export function Page({ actions, lede, loading = false, children }: PageProps) {
 interface PageActionProps {
   icon?: ReactNode;
   label: string;
+  context?: string;
   onClick: () => void;
   active?: boolean;
   primary?: boolean;
@@ -59,6 +60,7 @@ const ACTION_LOOKS = {
 export function PageAction({
   icon,
   label,
+  context,
   onClick,
   active = false,
   primary = false,
@@ -74,6 +76,12 @@ export function PageAction({
     >
       {icon}
       <span>{label}</span>
+      {context && (
+        <>
+          {' '}
+          <span className="sr-only">({context})</span>
+        </>
+      )}
     </button>
   );
 }

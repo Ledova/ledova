@@ -62,3 +62,19 @@ it('keeps the title while loading, and shows a loading status instead of the con
   expect(screen.getByRole('status', { name: 'Loading' })).toBeTruthy();
   expect(screen.queryByText('The dividend list')).toBeNull();
 });
+
+it('names an action after its visible label, then any context it hides from sight', () => {
+  const approve = vi.fn();
+  render(
+    <>
+      <PageAction label="Approve" context="correction of entry 2" onClick={approve} />
+      <PageAction label="Filter" onClick={() => {}} />
+    </>,
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Approve (correction of entry 2)' }));
+  expect(approve).toHaveBeenCalledOnce();
+  expect(screen.getByText('(correction of entry 2)').className).toBe('sr-only');
+  expect(screen.getByText('Approve').className).toBe('');
+  expect(screen.getByRole('button', { name: 'Filter' }).querySelector('.sr-only')).toBeNull();
+});

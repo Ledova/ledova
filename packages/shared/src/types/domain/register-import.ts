@@ -1,9 +1,5 @@
 import type { ApiQuery, ApiRequest, ApiSchema } from '../contracts';
 
-export type RegisterEvidence = ApiSchema<'RegisterEvidence'>;
-export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
-export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
-export type RegisterImportDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterImportDecisionPreview = ApiSchema<'RegisterImportDecisionPreview'>;
 export type RegisterImportDecisionRequest = ApiRequest<'api_v1_tokens_register_imports_decision_preview_create'>;
 export type RegisterImportDecideRequest = ApiRequest<'api_v1_tokens_register_imports_decide_create'>;
