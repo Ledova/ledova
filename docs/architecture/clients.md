@@ -491,14 +491,14 @@ import** while the class has no applied import. It opens
 Register, which shows the class and its company and takes the company's current
 share register and ASIC extract, the register date, the authority, the member
 rows, former members and the stated ASIC figures. An opened class lists one row
-per current holder with its member and shares fixed; a class not yet on chain
-takes rows under new member IDs with editable shares. The stated figures must
-match the rows before preparation. Each upload keeps its own retry key and its
-confirmed receipt for an unchanged file, preparation reuses its operation only
-for an identical request, and every receipt is checked before the imports are
-refreshed and the page returns to Register. Every read, decision, download and
-preparation is bound to the signed-in account, and a failed refresh keeps an
-open draft but holds preparation until a retry succeeds.
+per current holder with its member and shares fixed; a class whose register is
+not opened takes rows under new member IDs with editable shares. The stated
+figures must match the rows before preparation. Each upload keeps its own retry
+key and its confirmed receipt for an unchanged file, preparation reuses its
+operation only for an identical request, and every receipt is checked before the
+imports are refreshed and the page returns to Register. Every read, decision,
+download and preparation is bound to the signed-in account, and a failed refresh
+keeps an open draft but holds preparation until a retry succeeds.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

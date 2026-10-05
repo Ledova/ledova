@@ -30,6 +30,8 @@ type Upload = [string, unknown];
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const FAILED = 'The import could not be prepared. Retry with the same details.';
 const MISMATCH = 'The ASIC extract figures differ from the import rows. Correct them before preparing the import.';
+const NO_HOLDERS = 'The stored register lists no current members, so this class has none to import.';
+const ADD_MEMBERS = 'Add each current member in the company’s register, with their shares. Each gets a new member ID.';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -246,6 +248,7 @@ it('prepares an opened class from its stored holdings with exact uploads and bod
   expect(view.getByText('40 shares')).toBeTruthy();
   expect(view.queryByLabelText('Member 1 shares')).toBeNull();
   expect(view.queryByRole('button', { name: 'Add a member' })).toBeNull();
+  expect(view.queryByText(COPY.NOT_ON_CHAIN_NOTE)).toBeNull();
   expect(view.getByLabelText('Member 1 name').props.value).toBe('Alex Member');
   expect(view.getByLabelText('Member 2 name').props.value).toBe('');
   expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
@@ -503,4 +506,24 @@ it('offers a retry instead of the form when the class cannot be read', async () 
   readsFail = false;
   await fireEvent.press(view.getByRole('button', { name: 'Retry' }));
   expect(await view.findByTestId('prepare-import-screen')).toBeTruthy();
+});
+
+it('notes that applying an import opens an unopened register, without calling the class off chain', async () => {
+  holders = unopened;
+  const view = await open();
+  expect(view.getByText(COPY.NOT_ON_CHAIN_NOTE)).toBeTruthy();
+  expect(view.getByText(ADD_MEMBERS)).toBeTruthy();
+  expect(view.queryByText(/not yet on chain/)).toBeNull();
+});
+
+it('tells an opened class without current members that it has none to import, with nothing to add', async () => {
+  holders = { ...opened, totalHolders: 0, holders: [] };
+  const view = await open();
+  expect(view.getByText(NO_HOLDERS)).toBeTruthy();
+  expect(view.queryByText(ADD_MEMBERS)).toBeNull();
+  expect(view.queryByRole('button', { name: 'Add a member' })).toBeNull();
+  await chooseEvidence(view);
+  expect(view.getAllByText(NO_HOLDERS)).toHaveLength(2);
+  expect(view.queryByText('Add each current member of this class.')).toBeNull();
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
 });
