@@ -58,6 +58,11 @@ from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_openings import SETTINGS
 from users.models import UserProfile
 from users.models.investor_classification import InvestorClassification
+from users.serializers.investor_classification import InvestorClassificationSerializer
+from users.services.investor_classification import (
+    create_classification,
+    withdraw_classification,
+)
 from users.tests.test_company_eligibility_requests import CompanyEligibilityCases
 
 
@@ -74,6 +79,23 @@ def _classification_payload():
 def _clear_open_classifications(tenant):
     with use_migrate():
         InvestorClassification.objects.filter(user_account=tenant.account).delete()
+
+
+def _submitted_attachment_classification(tenant):
+    with use_operator():
+        retained = list(
+            InvestorClassification.objects.filter(user_account=tenant.account, status="submitted").values_list(
+                "pk", flat=True
+            )
+        )
+    for classification_id in retained:
+        withdraw_classification(actor=tenant.user, classification_id=classification_id)
+    serializer = InvestorClassificationSerializer(
+        data=_classification_payload(), context={"request": SimpleNamespace(user=tenant.user)}
+    )
+    serializer.is_valid(raise_exception=True)
+    claim = create_classification(actor=tenant.user, validated_data=serializer.validated_data)
+    return {"investor_classification": str(claim.pk), "own_investor_classification": str(claim.pk)}
 
 
 SIGNATURE = "0x" + "ab" * 65
@@ -404,8 +426,18 @@ ROUTES = (
         },
     ),
     Route("get", "/api/v1/documents/{document}/"),
-    Route("post", "/api/v1/documents/{document}/attach/", {"classification": "{own_investor_classification}"}),
-    Route("post", "/api/v1/documents/{own_document}/attach/", {"classification": "{investor_classification}"}),
+    Route(
+        "post",
+        "/api/v1/documents/{document}/attach/",
+        {"classification": "{own_investor_classification}"},
+        prepare=_submitted_attachment_classification,
+    ),
+    Route(
+        "post",
+        "/api/v1/documents/{own_document}/attach/",
+        {"classification": "{investor_classification}"},
+        prepare=_submitted_attachment_classification,
+    ),
     Route("delete", "/api/v1/documents/{document}/"),
 )
 
@@ -613,7 +645,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         return mock
 
     def send(self, route, actor, context):
-        context = {**context, **{f"own_{key}": value for key, value in route_context(actor).items()}}
+        context = {**{f"own_{key}": value for key, value in route_context(actor).items()}, **context}
         if route.path == "/api/v1/companies/{company}/activate/":
             context.setdefault("activation_appointment", str(uuid4()))
             context.setdefault("activation_revision", "0")
@@ -676,10 +708,12 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             own = route_context(actor)
             for route in ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
-
+                    context = dict(own)
+                    if route.prepare is _submitted_attachment_classification:
+                        with self.committed_where_a_request_on_another_connection_can_read_it():
+                            context.update(route.prepare(actor))
                     with self.undone_before_the_next_case(route, actor):
-                        context = dict(own)
-                        if route.prepare:
+                        if route.prepare and route.prepare is not _submitted_attachment_classification:
                             with self.as_whoever_may_write_the_fixture(route, own, actor, actor):
                                 prepared = route.prepare(actor)
                                 if isinstance(prepared, dict):
@@ -1721,6 +1755,7 @@ class ScopedOrderActionRouteMatrixTest(RunsOnTheScopedConnection, OrderActionRou
 
 
 ELIGIBILITY_ROUTES = (
+    Route("get", "/api/v1/companies/{company}/eligibility-requests/"),
     Route("get", "/api/v1/company-eligibility/requests/{eligibility_request}/"),
     Route("post", "/api/v1/company-eligibility/requests/{eligibility_request}/withdraw/"),
     Route("get", "/api/v1/companies/{company}/eligibility-requests/{eligibility_request}/"),
@@ -1737,7 +1772,7 @@ class CompanyEligibilityRouteChecks(CompanyEligibilityCases, StubUploadDependenc
 
     def request_eligibility_route(self, route, *, missing=False):
         context = {
-            "company": str(self.company.pk),
+            "company": str(uuid4() if missing and "{eligibility_request}" not in route.path else self.company.pk),
             "eligibility_request": str(uuid4() if missing else self.proposal.pk),
         }
         if route.method == "get":

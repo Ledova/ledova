@@ -15,12 +15,12 @@ from tokens.tests.order_submission_fixtures import SubmissionFixtures
 class SettlementRefusalMigrationTest(SubmissionFixtures, APITransactionTestCase):
     def test_existing_refusal_and_spent_challenge_survive_the_constraint_upgrade(self):
         self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0054_nav_update_guards")])
         signed = self.signed_body(self.body(order_type="sell"))
         self.share_balance = 0
         refused = self.create(signed)
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertEqual(refused.json()["refusal"]["code"], "insufficient_balance")
+        historical = migrate_to([("tokens", "0054_nav_update_guards")])
         with use_operator():
             submissions = historical.get_model("tokens", "OrderSubmission").objects
             challenges = historical.get_model("tokens", "SigningChallenge").objects
@@ -40,6 +40,7 @@ class SettlementRefusalMigrationTest(SubmissionFixtures, APITransactionTestCase)
             )
         self.assertEqual(after_values, before_values)
         self.assertEqual(after_challenge, before_challenge)
+        restore_every_migration()
         self.assertEqual(self.recover().json(), refused.json())
 
     def test_rollback_refuses_to_discard_a_new_permanent_outcome(self):
