@@ -9,6 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
 from django.test import override_settings
@@ -31,6 +32,7 @@ from tokens.exceptions import SwapNotReadyException
 from tokens.models import ShareToken, SwapOrder, TransferOrder
 from tokens.services import swap_execution
 from tokens.tasks.swap_reconciler import recover_swap_execution, resolve_executing_swaps
+from tokens.tests.order_process_fixtures import worker_databases
 from tokens.tests.swap_execution_fixtures import (
     ExecutionNode,
     execution_receipt,
@@ -716,20 +718,24 @@ class SwapExecutionProcessTest(APITransactionTestCase):
         self.fixture = make_execution("process")
         self.signer = admitted_signer()
         self.swap = self.fixture.swap
-        swap_execution.submit_signature(
-            self.swap,
-            self.fixture.signatures["seller"],
-            SELLER.address,
-            user=self.fixture.seller.user,
-            participant="seller",
-        )
-        swap_execution.submit_signature(
-            self.swap,
-            self.fixture.signatures["buyer"],
-            BUYER.address,
-            user=self.fixture.buyer.user,
-            participant="buyer",
-        )
+        self.seller_actor = self.fixture.seller.user
+        self.buyer_actor = self.fixture.buyer.user
+        with acting_for(self.seller_actor.pk):
+            swap_execution.submit_signature(
+                self.swap,
+                self.fixture.signatures["seller"],
+                SELLER.address,
+                user=self.seller_actor,
+                participant="seller",
+            )
+        with acting_for(self.buyer_actor.pk):
+            swap_execution.submit_signature(
+                self.swap,
+                self.fixture.signatures["buyer"],
+                BUYER.address,
+                user=self.buyer_actor,
+                participant="buyer",
+            )
         self.swap.refresh_from_db()
         self.record = self.swap.transaction
         self.parents = list(
@@ -737,10 +743,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
         )
 
     def worker(self, directory, phase, admission=None):
-        database = connections[current_alias()].settings_dict
-        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
-        env["SWAP_EXECUTION_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["SWAP_EXECUTION_TEST_DATABASES"] = json.dumps(worker_databases(), default=str)
+        env["SWAP_EXECUTION_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
         if admission is not None:
             env["SWAP_EXECUTION_TEST_ADMISSION"] = json.dumps(admission)
         return subprocess.Popen(
@@ -762,7 +767,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
             self.assertEqual(original is not None, signed)
             code, out, err = finish(self.worker(directory, "recover"))
             self.assertEqual(code, 0, out + err)
-            self.assertEqual(json.loads(out)["status"], "confirmed")
+            result = json.loads(out)
+            self.assertEqual(result["status"], "confirmed")
+            self.assertEqual(result["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
             self.record.refresh_from_db()
             self.swap.refresh_from_db()
             attempt = SignedAttempt.objects.get(operation_id=self.record.outgoing_operation_id)
@@ -802,17 +809,25 @@ class SwapExecutionProcessTest(APITransactionTestCase):
 
     def test_kill_after_admission_preserves_both_signature_and_durable_job(self):
         fixture = make_execution("admission-process")
-        swap_execution.submit_signature(
-            fixture.swap, fixture.signatures["seller"], SELLER.address, user=fixture.seller.user, participant="seller"
-        )
+        seller_actor = fixture.seller.user
+        buyer_actor = fixture.buyer.user
+        with acting_for(seller_actor.pk):
+            swap_execution.submit_signature(
+                fixture.swap, fixture.signatures["seller"], SELLER.address, user=seller_actor, participant="seller"
+            )
         admission = {
             "swap_uuid": str(fixture.swap.pk),
-            "actor_id": fixture.buyer.user.pk,
+            "actor_id": buyer_actor.pk,
             "signature": fixture.signatures["buyer"],
         }
         with tempfile.TemporaryDirectory(prefix="swap-execution-admission-") as temporary:
             code, out, err = finish(self.worker(Path(temporary), "admission", admission))
         self.assertEqual(code, -signal.SIGKILL, out + err)
+        observed = json.loads(out)
+        self.assertEqual(observed["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
+        self.assertEqual(observed["database"], connections["default"].settings_dict["NAME"])
+        self.assertEqual(observed["role"], settings.RLS_ROLES["app"])
+        self.assertEqual(observed["principal"], str(buyer_actor.pk))
         fixture.swap.refresh_from_db()
         self.assertEqual(fixture.swap.status, "executing")
         self.assertEqual(fixture.swap.buyer_signature, fixture.signatures["buyer"])
@@ -843,7 +858,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
                 for worker in workers:
                     code, out, err = finish(worker)
                     self.assertEqual(code, 0, out + err)
-                    self.assertEqual(json.loads(out)["status"], "confirmed")
+                    result = json.loads(out)
+                    self.assertEqual(result["status"], "confirmed")
+                    self.assertEqual(result["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
                 self.record.refresh_from_db()
                 attempt = SignedAttempt.objects.get(operation_id=self.record.outgoing_operation_id)
                 self.assertEqual(SigningAccount.objects.get(pk=self.signer.pk).next_nonce, 8)
