@@ -12,6 +12,7 @@ from blockchain.models import (
 )
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from integrations.base_chain.exceptions import GasEstimationError
+from shared.db import acting_for
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import SwapOrderStatus
 from tokens.services import swap_execution
@@ -28,13 +29,15 @@ class SwapExecutionRecordsItsOutcomeTest(TransactionTestCase):
         self.fixture = make_execution("outcome")
         admitted_signer(chain_id=settings.BLOCKCHAIN_CHAIN_ID)
         for participant, key in (("seller", SELLER), ("buyer", BUYER)):
-            self.swap = swap_execution.submit_signature(
-                self.fixture.swap,
-                self.fixture.signatures[participant],
-                key.address,
-                user=getattr(self.fixture, participant).user,
-                participant=participant,
-            )
+            actor = getattr(self.fixture, participant).user
+            with acting_for(actor.pk):
+                self.swap = swap_execution.submit_signature(
+                    self.fixture.swap,
+                    self.fixture.signatures[participant],
+                    key.address,
+                    user=actor,
+                    participant=participant,
+                )
         self.record = self.swap.transaction
         self.node = ExecutionNode(self.record.function_args)
         self.before = self.parent_state()

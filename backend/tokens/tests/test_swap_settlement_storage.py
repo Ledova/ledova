@@ -12,7 +12,7 @@ from eth_account.messages import encode_typed_data
 
 from assets.models import AssetChainDeployment
 from operators.models import Operator, ReceivingChain
-from shared.db import atomic
+from shared.db import acting_for, atomic
 from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.exceptions import LegacySwapHeld
 from tokens.models import SwapOrder, SwapOrderStatus
@@ -75,7 +75,9 @@ class SwapSettlementStorageTest(TransactionTestCase):
         fixture = make_execution("settlement-sign-guard")
         swap = fixture.swap
         service = swap_service(self)
-        signature = SELLER.sign_message(encode_typed_data(full_message=service.get_typed_data(swap))).signature.hex()
+        signature = (
+            SELLER.sign_message(encode_typed_data(full_message=service.get_typed_data(swap))).signature.to_0x_hex()
+        )
         verify = service.verify_signature
 
         def change(*args):
@@ -83,16 +85,18 @@ class SwapSettlementStorageTest(TransactionTestCase):
             SwapOrder.objects.filter(pk=swap.pk).update(share_amount=swap.share_amount + 1)
             return True
 
-        with patch.object(service, "verify_signature", side_effect=change), self.assertRaises(IntegrityError):
-            swap_execution.submit_signature(
-                swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
-            )
+        with acting_for(fixture.seller.user.pk):
+            with patch.object(service, "verify_signature", side_effect=change), self.assertRaises(IntegrityError):
+                swap_execution.submit_signature(
+                    swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
+                )
         swap.refresh_from_db()
         self.assertFalse(swap.seller_signature)
-        with patch("tokens.services.swap_execution.publish_trading_event"):
-            signed = swap_execution.submit_signature(
-                swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
-            )
+        with acting_for(fixture.seller.user.pk):
+            with patch("tokens.services.swap_execution.publish_trading_event"):
+                signed = swap_execution.submit_signature(
+                    swap, signature, SELLER.address, user=fixture.seller.user, participant="seller"
+                )
         self.assertEqual(signed.seller_signature, signature)
 
 

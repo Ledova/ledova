@@ -902,7 +902,7 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
         self.addCleanup(restore_every_migration)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove recorded swap finality evidence"):
             migrate_to([("tokens", "0062_register_foundation")])
-        self.swap.refresh_from_db()
+        self.swap.refresh_from_db(fields=["finalized_receipt"])
         self.assertEqual(self.swap.finalized_receipt, self.finalized())
 
     def test_reversing_the_guard_restores_the_previous_function_verbatim(self):
