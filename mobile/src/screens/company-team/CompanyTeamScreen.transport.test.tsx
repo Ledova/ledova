@@ -139,7 +139,11 @@ it.each(['issue', 'accept', 'revoke'] as const)(
     if (action === 'issue') {
       await fireEvent.press(view.getByRole('radio', { name: 'Select company Synthetic Company' }));
       await fireEvent.press(view.getByRole('radio', { name: 'Select source appointment appointment' }));
-      await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+      await fireEvent.press(
+        view.getByRole('checkbox', {
+          name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+        }),
+      );
       await waitFor(() => expect(sent.some((request) => request.url === `${APPOINTMENTS}team/`)).toBe(true));
     } else if (action === 'accept') {
       await fireEvent.changeText(view.getByLabelText('Invitation code'), 'S'.repeat(43));

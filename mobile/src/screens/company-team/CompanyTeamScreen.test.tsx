@@ -326,7 +326,11 @@ it.each([
 ] as const)('rejects an inconsistent issue HTTP/code receipt (%s)', async (status, returnedCode) => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   post.mockImplementationOnce(async (_, input) => ({
     status,
     data: invitation(input as CreateCompanyTeamInvitationRequest, returnedCode),
@@ -385,12 +389,20 @@ it('offers admin from a delegating source when a separate current personal appoi
 it('uses a fresh issue key when refused invitation details change', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   post.mockRejectedValueOnce(new Error('Synthetic issue refusal'));
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   await view.findByText('The invitation could not be confirmed. Retry with the same details.');
   const first = post.mock.calls[0][1] as CreateCompanyTeamInvitationRequest;
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to delegate: Approve register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to delegate: Approve register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   await view.findByLabelText('One-time invitation code');
   const changed = post.mock.calls[1][1] as CreateCompanyTeamInvitationRequest;
@@ -401,7 +413,11 @@ it('uses a fresh issue key when refused invitation details change', async () => 
 it('blocks duplicate issuing and suppresses a late one-time code after an account switch', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   const response = deferred({
     status: 201,
     data: invitation({
@@ -434,7 +450,11 @@ it('blocks duplicate issuing and suppresses a late one-time code after an accoun
 it('compares exact date instants rather than rejecting the server timestamp formatting', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Choose acceptance deadline date' }));
   await fireEvent(
     view.getByTestId('team-date-Acceptance deadline'),
@@ -505,7 +525,11 @@ it('uses the explicit company/source and allows onward delegation without person
   const view = await screen();
   await chooseSource(view);
   expect(view.getByRole('button', { name: 'Create invitation' })).toBeDisabled();
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to delegate: Approve register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to delegate: Approve register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   expect(await view.findByLabelText('One-time invitation code')).toHaveTextContent(code);
   expect(post).toHaveBeenCalledWith(
@@ -540,7 +564,11 @@ it('offers only the source delegation scope and hides team administration when p
   expect(
     view.queryByRole('checkbox', { name: 'Permissions to delegate: Manage company information and team' }),
   ).toBeNull();
-  expect(view.queryByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' })).toBeNull();
+  expect(
+    view.queryByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  ).toBeNull();
   expect(view.getByRole('checkbox', { name: 'Permissions to exercise: Manage company payments' })).toBeTruthy();
   expect(get.mock.calls.some(([url]) => url === `${APPOINTMENTS}team/`)).toBe(false);
   expect(view.queryByText(other.email)).toBeNull();
@@ -549,7 +577,11 @@ it('offers only the source delegation scope and hides team administration when p
 it('retains an interrupted issue key and handles a code-null retry without pretending to recover the code', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   post.mockRejectedValueOnce(new Error('Interrupted response'));
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   await view.findByText('The invitation could not be confirmed. Retry with the same details.');
@@ -560,7 +592,11 @@ it('retains an interrupted issue key and handles a code-null retry without prete
   expect(post.mock.calls[1][1]).toEqual(input);
   expect(view.queryByLabelText('One-time invitation code')).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Create another invitation' }));
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to delegate: Approve register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to delegate: Approve register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   expect((post.mock.calls[2][1] as CreateCompanyTeamInvitationRequest).idempotencyKey).not.toBe(input.idempotencyKey);
 });
@@ -568,7 +604,11 @@ it('retains an interrupted issue key and handles a code-null retry without prete
 it('rejects a mismatched invitation receipt without displaying or caching its code', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   post.mockImplementationOnce(async (_, input) => ({
     status: 201,
     data: { ...invitation(input as CreateCompanyTeamInvitationRequest), company: b.company },
@@ -683,7 +723,11 @@ it('suppresses duplicate acceptance and retires its code and late receipt on an 
 it('retires a one-time issue code and old source callbacks on a session change', async () => {
   const view = await screen();
   await chooseSource(view);
-  await fireEvent.press(view.getByRole('checkbox', { name: 'Permissions to exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('checkbox', {
+      name: 'Permissions to exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Create invitation' }));
   await view.findByLabelText('One-time invitation code');
   const config = post.mock.calls[0][2]!;

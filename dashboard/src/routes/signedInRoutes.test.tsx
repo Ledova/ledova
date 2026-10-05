@@ -97,13 +97,18 @@ describe('which signed-in pages an account can open', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
 
-  it.each(['home', 'publications', 'company', 'companyTeam', 'companyListing', 'companyEligibility'] as const)(
-    'lets an investor open %s, a page for everyone',
-    (key) => {
-      open(key, 'investor');
-      expect(opened(key)).toBe(true);
-    },
-  );
+  it.each([
+    'home',
+    'publications',
+    'company',
+    'companyRegister',
+    'companyTeam',
+    'companyListing',
+    'companyEligibility',
+  ] as const)('lets an investor open %s, a page for everyone', (key) => {
+    open(key, 'investor');
+    expect(opened(key)).toBe(true);
+  });
 
   it.each(['directoryDetail', 'trading', 'eligibilityRequests'] as const)(
     'lets an investor open %s, an investing page',
@@ -114,13 +119,13 @@ describe('which signed-in pages an account can open', () => {
   );
 
   it('sends an investor opening a company page to their home at once, even before the frame is showing', () => {
-    open('companyRegister', 'investor', { frameShowing: false });
+    open('companyClass', 'investor', { frameShowing: false });
 
     expect(screen.getByTestId('address').textContent).toBe(DESTINATIONS.home.path);
     expect(screen.queryByText('company')).toBeNull();
   });
 
-  it.each(['companyClass', 'companyRegister', 'companyPublications'] as const)(
+  it.each(['companyClass', 'companyOffering', 'companyPublications'] as const)(
     'sends an investor opening %s to their home instead',
     (key) => {
       open(key, 'investor');
@@ -129,12 +134,15 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['wallets', 'transactions'] as const)('lets a company open %s, a page for everyone', (key) => {
-    open(key, 'company');
-    expect(opened(key)).toBe(true);
-  });
+  it.each(['wallets', 'transactions', 'companyRegister'] as const)(
+    'lets a company open %s, a page for everyone',
+    (key) => {
+      open(key, 'company');
+      expect(opened(key)).toBe(true);
+    },
+  );
 
-  it.each(['companyClass', 'companyRegister', 'companyOffering', 'companyPublications'] as const)(
+  it.each(['companyClass', 'companyAuthority', 'companyOffering', 'companyPublications'] as const)(
     'lets a company open %s, a company page',
     (key) => {
       open(key, 'company');
@@ -156,7 +164,7 @@ describe('which signed-in pages an account can open', () => {
     expect(opened(key)).toBe(true);
   });
 
-  it.each(['wallets', 'trading', 'company', 'companyRegister'] as const)(
+  it.each(['wallets', 'trading', 'company', 'companyRegister', 'companyClass'] as const)(
     'gives a role the API does not define only the pages for everyone, sending it from %s to its home',
     (key) => {
       open(key, 'staff' as AccountRole);
@@ -167,7 +175,7 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['trading', 'companyRegister'] as const)(
+  it.each(['trading', 'companyClass'] as const)(
     'keeps %s titled and loading until the role is known, and shows neither the page nor a landing',
     (key) => {
       open(key, 'investor', { roleLoading: true });
@@ -180,7 +188,7 @@ describe('which signed-in pages an account can open', () => {
   );
 
   it.each([
-    ['companyRegister', 'company'],
+    ['companyClass', 'company'],
     ['trading', 'investor'],
   ] as const)('says the account could not be checked on %s rather than deciding with a guessed role', (key, role) => {
     open(key, role, { roleUnavailable: true });
@@ -192,20 +200,26 @@ describe('which signed-in pages an account can open', () => {
   });
 
   it('checks the account again from Try again', () => {
-    open('companyRegister', 'company', { roleUnavailable: true });
+    open('companyClass', 'company', { roleUnavailable: true });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
-  it('opens a page for everyone even when the account could not be checked', () => {
-    open('wallets', 'company', { roleUnavailable: true });
-    expect(opened('wallets')).toBe(true);
-  });
+  it.each(['wallets', 'companyRegister'] as const)(
+    'opens %s, a page for everyone, even when the account could not be checked',
+    (key) => {
+      open(key, 'company', { roleUnavailable: true });
+      expect(opened(key)).toBe(true);
+    },
+  );
 
-  it('does not hold a page for everyone while the role loads', () => {
-    open('wallets', 'investor', { roleLoading: true });
-    expect(opened('wallets')).toBe(true);
-  });
+  it.each(['wallets', 'companyRegister'] as const)(
+    'does not hold %s, a page for everyone, while the role loads',
+    (key) => {
+      open(key, 'investor', { roleLoading: true });
+      expect(opened(key)).toBe(true);
+    },
+  );
 
   it('still sends a signed-out visitor to sign in', () => {
     open('company', 'investor', { signedIn: false });

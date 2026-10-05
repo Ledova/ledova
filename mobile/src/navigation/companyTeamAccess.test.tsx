@@ -1,5 +1,6 @@
 import React from 'react';
 import { cleanup, render } from '@testing-library/react-native';
+import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
 import { HomeStackNavigator } from './HomeStackNavigator';
 import { CompanyStackNavigator } from './CompanyStackNavigator';
 
@@ -69,4 +70,17 @@ it('registers participant requests in the always reachable Home stack', async ()
       options: expect.objectContaining({ headerBackVisible: true }),
     }),
   );
+});
+
+it('registers the register in Home with a back action and keeps it as the Company tab landing', async () => {
+  await render(<HomeStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
+  expect(mockScreens.find((screen) => screen.name === 'CompanyRegister')).toEqual(
+    expect.objectContaining({
+      component: CompanyRegisterScreen,
+      options: expect.objectContaining({ headerBackVisible: true }),
+    }),
+  );
+  mockScreens.length = 0;
+  await render(<CompanyStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
+  expect(mockScreens.find((screen) => screen.name === 'CompanyMain')?.component).toBe(CompanyRegisterScreen);
 });

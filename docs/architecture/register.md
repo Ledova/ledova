@@ -173,23 +173,31 @@ former-member section states how far the fold has read.
 
 ## API and export
 
-The web Company Register at `/company/register` uses the issuer-scoped holders
-read below for each class after reading every page of the class list. It shows
+The web Company Register at `/company/register` reads every page of
+`GET /api/v1/tokens/register/`, the share classes the signed-in person may read,
+then the holders read below for each class of the selected company. It shows
 current members and linked wallets, exact issued and authorised shares, unopened
 registers and waiting-effect warnings. If any read fails, the page offers retry
 and hides partial or stale register rows. It does not substitute wallet balances
-for the stored register. Former members remain available in the register CSV
-downloaded from the class page, reached from Register or Company; certificates and other staff-prepared outputs still follow
-written instructions through the operator workflow described below.
+for the stored register. Former members remain available in the register CSV,
+downloaded from each class on Register or from the class page; certificates and
+other staff-prepared outputs still follow written instructions through the
+operator workflow described below.
 
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
 initialised, current members with their wallets, the stored issued supply, the
 number of completed effects still waiting to be recorded, and former members
 with their fold freshness. `GET /api/v1/tokens/{uuid}/register/waiting/` lists
 those waiting effects in chain order, each with its wallets, shares and the
-reason it waits. These routes and
-`GET /api/v1/tokens/{uuid}/register/export/` are issuer-scoped, and the export of
-a register with no opening is refused with 409 `register_not_initialized`. The
+reason it waits. `GET /api/v1/tokens/register/` lists the share classes whose
+register the caller may read, filterable by `company_uuid`. These routes and
+`GET /api/v1/tokens/{uuid}/register/export/` admit the company owner and anyone
+holding a current company appointment with `admin`, `read_register`, `prepare`,
+`approve` or `apply`; preparing, approving or applying register changes means
+working from the register's member particulars, so those capabilities read it
+too. Other capabilities, delegation-only scope and staff or superuser status
+grant none of them. The export of a register with no opening is
+refused with 409 `register_not_initialized`. The
 current-member API omits residential addresses, but former-member rows include
 them. Each read of an opened register takes its head, issued supply, holdings,
 waiting count and former members from one database snapshot, so an entry
@@ -462,8 +470,8 @@ only successful background work clears that marker.
 
 The retention floor and clock are documented in
 [retention settings](../operations/uploads.md#data-retention). Purged former rows
-cannot be recreated by a later full-history fold. Only the company owner and
-operator read them; the application role cannot write them. Pre-platform former
+cannot be recreated by a later full-history fold. Only the company owner,
+current register appointees and the operator read them; the application role cannot write them. Pre-platform former
 members cannot be reconstructed from the chain; an import records them as
 `ImportedFormerMember` rows. Each ceased before a chain opening, or by the
 register date of an import that is the opening. The holders API and

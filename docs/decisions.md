@@ -33,6 +33,29 @@ The [company-managed register plan](architecture/company-managed-registers.md)
 defines roles, workflows, migration sequence and acceptance criteria. It is
 accepted direction, not a statement that the code already implements it.
 
+### Company-run register authority and evidence
+
+On 5 October 2026 (Australia/Sydney), the owner made three decisions about
+company-run register work, answering questions in Claude's session. Claude recorded
+the answers on #864
+([authority and evidence](https://github.com/Ledova/ledova/issues/864#issuecomment-5986401458),
+[read scope](https://github.com/Ledova/ledova/issues/864#issuecomment-5987962820)).
+The owner then confirmed them directly in Codex's session the same day
+([recorded on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)).
+They apply to #864 and every later issue.
+A current company administrator may prepare, approve, apply and reject register
+changes; `prepare`, `approve`, `apply` and `read_register` remain the narrower
+capabilities for delegates, so an existing owner or a first representative can run
+the register alone. Register evidence is company-provided: uploaded documents are
+kept as evidence with their fingerprints, the company states the ASIC totals, and
+both are shown as provided by the company, with no Ledova staff verification step.
+Holders of `prepare`, `approve` or `apply` read the full register, including
+residential addresses in the CSV and retained evidence copies, because they work
+from member details. The invitation labels for those capabilities say that they
+include reading the register. The owner's amendment recorded on #860 also lets
+#864 start before #863 closes, except member-wallet links, which wait until #863
+closes.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
@@ -581,6 +604,9 @@ appointments and actions; signup account type alone must not grant company autho
   staff-reviewed cap request named Raise authorised shares.
   The role stays as chosen at sign-up;
   staff set "both" in admin, and a customer cannot change it afterwards.
+  Since #864 an account without the company role also reaches Register, from
+  Settings on the web and the drawer on mobile, when a current company
+  appointment grants register access.
 - **Names follow the product's terms.** Holdings replaces Home; Notices replaces
   Publications and Dividends; Activity replaces Transactions; Applications
   replaces Subscriptions; Market replaces Trading, and the coin-price page that

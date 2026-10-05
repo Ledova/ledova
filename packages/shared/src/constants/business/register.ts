@@ -25,6 +25,9 @@ export const REGISTER_COPY = {
   WAITING_UNKNOWN_NOTE:
     'Whether any completed issue or transfer waits to be recorded could not be checked. Try again before relying ' +
     'on these holdings.',
+  NO_REGISTER:
+    'There is no company register to show. Share classes appear here for companies you own or where your company ' +
+    'appointment includes register access.',
   NO_WALLET: 'No linked wallet',
   AMBIGUOUS_NOTE:
     "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +

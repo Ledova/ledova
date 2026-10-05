@@ -9,6 +9,7 @@ from tokens.models.register_correction import (
     RegisterCorrectionAuthority,
     RegisterCorrectionStatus,
 )
+from tokens.querysets import RegisterProposalQuerySet
 
 
 class RegisterMemberWallet(BaseModel):
@@ -27,6 +28,7 @@ def opening_evidence_path(instance, filename):
 
 
 class RegisterOpening(BaseModel):
+    objects = RegisterProposalQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_openings")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_openings")
     mapping = models.JSONField()
@@ -59,6 +61,7 @@ def link_evidence_path(instance, filename):
 
 
 class RegisterWalletLink(BaseModel):
+    objects = RegisterProposalQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_wallet_links")
     mapping = models.JSONField()
     authority = models.CharField(max_length=24, choices=RegisterCorrectionAuthority.choices)

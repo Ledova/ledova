@@ -4,6 +4,7 @@ import { HomeScreen } from '../screens/home';
 import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
 import { CompanyEligibilityScreen } from '../screens/eligibility-records/CompanyEligibilityScreen';
 import { ParticipantEligibilityScreen } from '../screens/eligibility-records/ParticipantEligibilityScreen';
+import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
@@ -12,6 +13,7 @@ export type HomeStackParamList = {
   CompanyTeam: undefined;
   ParticipantEligibility: undefined;
   CompanyEligibility: undefined;
+  CompanyRegister: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -54,6 +56,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
       <Stack.Screen
         name="CompanyEligibility"
         component={CompanyEligibilityScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="CompanyRegister"
+        component={CompanyRegisterScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>

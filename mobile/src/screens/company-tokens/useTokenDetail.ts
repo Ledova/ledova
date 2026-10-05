@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Sharing from 'expo-sharing';
 import {
   getCompanyToken,
   getCompany,
@@ -11,11 +10,8 @@ import {
   readEveryPage,
   submitCapitalIncrease,
   wholeShares,
-  COMPANY_TOKEN_ENDPOINTS,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
-import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
 import { checkedRegister, useCompanyAccess } from '../company-register/useCompanyRegister';
 
 export function useTokenDetail(uuid: string) {
@@ -67,23 +63,5 @@ export function useTokenDetail(uuid: string) {
     mutationFn: (requestUuid: string) => submitCapitalIncrease(apiClient, requestUuid),
     onSuccess: refresh,
   });
-  const download = useMutation({
-    mutationFn: async () => {
-      const epoch = getSessionEpoch();
-      if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device.');
-      assertSessionEpoch(epoch);
-      await shareDocumentCopy(
-        epoch,
-        async () => {
-          const { data } = await apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), {
-            responseType: 'arraybuffer',
-            ledovaSessionEpoch: epoch,
-          });
-          return { name: `register-${uuid}.csv`, type: 'text/csv', bytes: new Uint8Array(data) };
-        },
-        (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: 'public.comma-separated-values-text' }),
-      );
-    },
-  });
-  return { access, token, company, register, issuances, capital, requests, deploy, submitCapital, download, refresh };
+  return { access, token, company, register, issuances, capital, requests, deploy, submitCapital, refresh };
 }

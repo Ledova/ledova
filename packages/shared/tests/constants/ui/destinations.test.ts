@@ -72,7 +72,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     eligibilityRequests: 'investing',
     companyEligibility: 'everyone',
     companyClass: 'company',
-    companyRegister: 'company',
+    companyRegister: 'everyone',
     company: 'everyone',
     companyAuthority: 'company',
     companyTeam: 'everyone',

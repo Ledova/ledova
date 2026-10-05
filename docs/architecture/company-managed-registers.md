@@ -31,8 +31,10 @@ landed through [PR #915](https://github.com/Ledova/ledova/pull/915).
 consumer/client conversion: current exact-company investment admission, separate
 account readiness, authenticated market streams and retained private source
 history. New eligibility-loss instructions can only remove wallet approval; new global
-staff classification decisions are retired. Dependent workflows #864–#873 remain
-planned, and their company offering, issuance and register authority is separate.
+staff classification decisions are retired. The first #864 increment lets a current appointee holding
+administration or a register capability read the company's register and retained
+register proposals; register commands and #865–#873 remain planned. Their company
+offering, issuance and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

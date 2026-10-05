@@ -168,6 +168,15 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- #864's register reads by appointment need no migration. Deploy the backend
+  before or with the clients: the new web and mobile Register read
+  `GET /api/v1/tokens/register/`, which an older backend does not serve, while
+  older clients keep working against the new backend. Roll the clients back with
+  the backend. A backend rolled back alone breaks the new Register pages for every
+  reader, owners included, because those pages list their classes only through
+  that route; the older backend serves register reads to owners alone, through
+  the share-class routes.
+
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not
 authorise staff to manufacture company appointments or approvals while the

@@ -21,7 +21,7 @@ export const DESTINATIONS = {
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'company' },
-  companyRegister: { path: '/company/register', title: 'Register', audience: 'company' },
+  companyRegister: { path: '/company/register', title: 'Register', audience: 'everyone' },
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },

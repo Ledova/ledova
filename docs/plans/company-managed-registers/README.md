@@ -25,8 +25,11 @@ global staff classification authority. Browser/mobile forms expose preview,
 confirmation and retained history with personal prepare/approve queues; uncertain
 commands can be replayed within the running session. The [eligibility guide](company-eligibility.md)
 records the admission, recovery and verification boundaries.
-The later programme still owns company offering, issuance and register workflows;
-#864–#873 remain planned and dependency-ordered.
+The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
+lets #864 start before #863 closes, except member-wallet links, which wait for #863.
+#864's first increment delivers register reads by appointment; its register
+commands remain planned. #865–#873 remain dependency-ordered and own the later
+company offering, issuance and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured

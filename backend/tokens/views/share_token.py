@@ -60,6 +60,7 @@ class ShareTokenViewSet(
             "issue",
             "issuances",
             "holders",
+            "register",
             "register_export",
             "register_waiting",
         }
@@ -75,22 +76,29 @@ class ShareTokenViewSet(
         "The list of effects waiting to be entered classifies completions as recording does, and a "
         "settlement is visible only to its parties, so it reads what no policy admits to the issuer and "
         "the classification refuses any other connection. "
-        "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator."
+        "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator. "
+        "Register reads (the class list, holders, export and waiting effects) also admit a current company "
+        "appointment holding administration or a register capability, alongside the owner."
     )
+
+    register_reads = frozenset({"register", "holders", "register_export", "register_waiting"})
 
     def get_serializer_class(self):
         if self.action == "create":
             return ShareTokenCreateSerializer
-        if self.action == "list":
+        if self.action in {"list", "register"}:
             return ShareTokenListSerializer
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
-        queryset = queryset.issued_by(self.request.user)
+        if self.action in self.register_reads:
+            queryset = queryset.register_readable_by(self.request.user)
+        else:
+            queryset = queryset.issued_by(self.request.user)
         return queryset.with_company()
 
     def filter_queryset(self, queryset):
-        if self.action == "list":
+        if self.action in {"list", "register"}:
             return super().filter_queryset(queryset)
         return queryset
 
@@ -212,6 +220,13 @@ class ShareTokenViewSet(
             issuances = issuances.filter(status=request.query_params["status"])
         page = self.paginate_queryset(issuances.order_by("-completed_at"))
         return self.get_paginated_response(ShareIssuanceListSerializer(page, many=True).data)
+
+    @extend_schema(responses=ShareTokenListSerializer(many=True))
+    @action(detail=False, methods=["get"])
+    def register(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
     @extend_schema(
         responses=inline_serializer(
