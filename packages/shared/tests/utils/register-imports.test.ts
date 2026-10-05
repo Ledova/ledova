@@ -21,9 +21,9 @@ function appointment(uuid: string, overrides: Partial<OwnCompanyAppointment> = {
     isEffective: true,
     revokedAt: null,
     source: 'invitation',
-    status: 'current',
+    status: 'active',
     ...overrides,
-  } as OwnCompanyAppointment;
+  };
 }
 
 const MEMBER = {
@@ -92,6 +92,21 @@ it('picks an effective appointment of the company that holds administration or t
   expect(appointmentForRegisterImportStep(appointments, 'company-a', 'apply')?.uuid).toBe('c');
   expect(appointmentForRegisterImportStep(appointments.slice(1), 'company-a', 'apply')).toBeUndefined();
   expect(appointmentForRegisterImportStep(appointments.slice(2), 'company-a', 'prepare')).toBeUndefined();
+});
+
+it('counts only an active, effective appointment that has not expired, as the company team page does', () => {
+  const step = (overrides: Partial<OwnCompanyAppointment>) =>
+    appointmentForRegisterImportStep(
+      [appointment('a', { capabilities: ['approve'], ...overrides })],
+      'company-a',
+      'approve',
+    )?.uuid;
+  expect(step({})).toBe('a');
+  expect(step({ expiresAt: '2999-01-01T00:00:00Z' })).toBe('a');
+  expect(step({ status: 'revoked', revokedAt: '2026-10-04T00:00:00Z' })).toBeUndefined();
+  expect(step({ status: 'expired' })).toBeUndefined();
+  expect(step({ expiresAt: '2020-01-01T00:00:00Z' })).toBeUndefined();
+  expect(step({ expiresAt: 'not a date' })).toBeUndefined();
 });
 
 it('accepts an evidence receipt only for the exact upload', () => {

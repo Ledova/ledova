@@ -61,7 +61,9 @@ export function appointmentForRegisterImportStep(
     .filter(
       (appointment) =>
         appointment.company === company &&
+        appointment.status === 'active' &&
         appointment.isEffective &&
+        (!appointment.expiresAt || Date.parse(appointment.expiresAt) > Date.now()) &&
         (appointment.capabilities.includes('admin') || appointment.capabilities.includes(STEP_CAPABILITY[step])),
     )
     .sort((left, right) => left.uuid.localeCompare(right.uuid))[0];

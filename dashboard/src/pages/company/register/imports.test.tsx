@@ -405,6 +405,16 @@ it.each([
   ['an owner without an appointment', 'company', []],
   ['an administrator of another company', 'company', [appointment(['admin'], { company: 'inland' })]],
   ['an administrator whose appointment is not effective', 'company', [appointment(['admin'], { isEffective: false })]],
+  [
+    'an administrator whose appointment has passed its expiry',
+    'company',
+    [appointment(['admin'], { expiresAt: '2020-01-01T00:00:00Z' })],
+  ],
+  [
+    'an administrator whose appointment was revoked',
+    'company',
+    [appointment(['admin'], { status: 'revoked', revokedAt: '2026-10-04T00:00:00Z' })],
+  ],
 ] as const)('shows %s the history and the read-only note instead of actions', async (_who, role, held) => {
   appointments = [...held];
   const section = await openClass(role);
