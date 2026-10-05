@@ -17,6 +17,7 @@ from integrations.tests.kycaid_payloads import (
     status_changed,
     verification_completed,
 )
+from operators.models import Operator
 from shared.models import Country
 from users.models import UserAccount, UserProfile
 
@@ -26,6 +27,7 @@ User = get_user_model()
 @override_settings(KYCAID_API_TOKEN=API_TOKEN)
 class KYCAIDWebhookResultTest(APITestCase):
     def setUp(self):
+        Operator.get()
         self.push_task = patch("users.tasks.notifications.send_push_notification").start()
         self.addCleanup(patch.stopall)
         user = User.objects.create_user(email="kycaid-webhook@example.test", password="pw-12345678")
