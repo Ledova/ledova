@@ -14,6 +14,7 @@ import { Page, PageAction } from '@components/Page';
 import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
 import { ClassRegister } from './ClassRegister';
+import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
 
 function RegisterPage({ selection, children }: { selection?: ReactNode; children: ReactNode }) {
@@ -28,23 +29,6 @@ function RegisterPage({ selection, children }: { selection?: ReactNode; children
         </p>
       </Section>
     </Page>
-  );
-}
-
-function Loading() {
-  return (
-    <p role="status" className="py-3 text-sm text-text-muted">
-      Loading your register…
-    </p>
-  );
-}
-
-function Unavailable({ retry, busy }: { retry: () => void; busy: boolean }) {
-  return (
-    <div role="alert" className="flex flex-col items-start gap-3 py-3">
-      <p className="text-sm text-text-muted">We couldn&apos;t load the complete register.</p>
-      <PageAction label="Try again" onClick={retry} disabled={busy} />
-    </div>
   );
 }
 

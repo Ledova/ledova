@@ -97,13 +97,18 @@ describe('which signed-in pages an account can open', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
 
-  it.each(['home', 'publications', 'company', 'companyRegister', 'companyTeam', 'companyListing'] as const)(
-    'lets an investor open %s, a page for everyone',
-    (key) => {
-      open(key, 'investor');
-      expect(opened(key)).toBe(true);
-    },
-  );
+  it.each([
+    'home',
+    'publications',
+    'company',
+    'companyRegister',
+    'companyRegisterImport',
+    'companyTeam',
+    'companyListing',
+  ] as const)('lets an investor open %s, a page for everyone', (key) => {
+    open(key, 'investor');
+    expect(opened(key)).toBe(true);
+  });
 
   it.each(['directoryDetail', 'trading'] as const)('lets an investor open %s, an investing page', (key) => {
     open(key, 'investor');
@@ -126,7 +131,7 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['wallets', 'transactions', 'companyRegister'] as const)(
+  it.each(['wallets', 'transactions', 'companyRegister', 'companyRegisterImport'] as const)(
     'lets a company open %s, a page for everyone',
     (key) => {
       open(key, 'company');
@@ -212,6 +217,14 @@ describe('which signed-in pages an account can open', () => {
       expect(opened(key)).toBe(true);
     },
   );
+
+  it('opens the import page of a share class at its own address, not the class page beneath it', () => {
+    open('companyRegisterImport', 'investor');
+    expect(DESTINATIONS.companyRegisterImport.path).toBe('/company/register/:uuid/import');
+    expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/import');
+    expect(opened('companyRegisterImport')).toBe(true);
+    expect(screen.queryByText('companyClass')).toBeNull();
+  });
 
   it('still sends a signed-out visitor to sign in', () => {
     open('company', 'investor', { signedIn: false });
