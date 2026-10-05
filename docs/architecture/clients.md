@@ -537,8 +537,8 @@ application that opens the register, the note that the class will not be on
 chain. A rejection is previewed again with its reason. Confirming records
 exactly the previewed decision, with a retry key reused only for the same
 preview, and only while the step's current appointment is still the one it was
-previewed with. A recorded decision refreshes the imports and the register; a
-decision or preview the server refuses also refreshes the person's
+previewed with. A recorded decision refreshes the imports, the register and its
+entries; a decision or preview the server refuses also refreshes the person's
 appointments. Holders of administration or `prepare` get **Prepare an
 import** while the class has no applied import. It opens
 `/company/register/:uuid/import`, a page for every signed-in account like
@@ -557,19 +557,20 @@ keeps an open draft but holds preparation until a retry succeeds.
 Each class on the dashboard's Register also shows its register entries, its
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 its latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain).
-Entries list newest first, a page at a time with Load more: kind, number,
-effective and recorded dates, the changes as signed whole-share counts beside
-each member's name, the entry an entry corrects and the entry that reversed it.
-Holders of administration or `prepare` get **Correct this entry** on each
-correctable entry. Corrections list every page of the class's corrections,
-newest first, and each page's corrected entries are read by their UUIDs in one
-request. Each shows its stage, preparer, dates, the entry being corrected and
-the compensating changes, the authority, reference and reason, whether the
-company provided the authority document or staff verified it before corrections
-were company-run, the decision trail and any rejection reason, with a download
-of the authority document. Approve, Apply and Reject follow the import dialog
-through `useRegisterDecision`, whose preview adds the original and compensating
-changes and the register sequence; a retained staff-era correction offers only
+Entries list newest first, a page at a time with Load more, each once: kind,
+number, effective and recorded dates, the changes as signed whole-share counts
+beside each member's name, the entry an entry corrects and the entry that
+reversed it. Holders of administration or `prepare` get **Correct this entry**
+on each correctable entry. Corrections list every page of the class's
+corrections, newest first and each once, and each page's corrected entries are
+read by their UUIDs in one request, which fails if it returns an entry not asked
+for. Each shows its stage, preparer, dates, the entry being corrected and the
+compensating changes, the authority, reference and reason, whether the company
+provided the authority document or staff verified it before corrections were
+company-run, the decision trail and any rejection reason, with a download of the
+authority document. Approve, Apply and Reject follow the import dialog through
+`useRegisterDecision`, whose preview adds the original and compensating changes
+and the register sequence; a retained staff-era correction offers only
 rejection, and a decision or refusal refreshes the corrections, entries,
 register and appointments. The reconciliation shows the latest record's status,
 block, compared register sequence and time, any failure, and each discrepancy as
@@ -587,10 +588,12 @@ and an effective date no later than today in UTC. The upload keeps its own retry
 key and confirmed receipt, preparation reuses its operation only for an
 identical request, and both receipts are checked before the corrections are
 refreshed and the page returns to Register; a conflict refreshes the entry and
-appointments and takes a new operation. Readers see all of this read-only, a
-refresh that shows an appointment gone withdraws its controls, and every read,
-decision, acknowledgement, download and preparation is bound to the signed-in
-account.
+appointments and takes a new operation. Each repeated Correct this entry,
+decision, download and Acknowledge control is named for screen readers after its
+visible label with the entry, correction or discrepancy it concerns. Readers see
+all of this read-only, a refresh that shows an appointment gone withdraws its
+controls, and every read, decision, acknowledgement, download and preparation is
+bound to the signed-in account.
 
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
