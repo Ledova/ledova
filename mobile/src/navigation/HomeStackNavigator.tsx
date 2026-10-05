@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/home';
 import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
+import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
@@ -10,6 +11,7 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   CompanyTeam: undefined;
   CompanyRegister: undefined;
+  PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -47,6 +49,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
       <Stack.Screen
         name="CompanyRegister"
         component={CompanyRegisterScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="PrepareRegisterImport"
+        component={PrepareRegisterImportScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>
