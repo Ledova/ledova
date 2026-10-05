@@ -17,6 +17,8 @@ export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export { REGISTER_CORRECTION_DECISIONS, REGISTER_IMPORT_DECISIONS, useRegisterDecision } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
+export { useDiscrepancyAcknowledgement } from './useDiscrepancyAcknowledgement';
+export type { DiscrepancyAcknowledgementOptions } from './useDiscrepancyAcknowledgement';
 export { canAdministerCompany, canPersonallyAdministerCompany, useCompanySelection } from './useCompanySelection';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';

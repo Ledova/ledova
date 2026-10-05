@@ -103,6 +103,10 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
   REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
+  REGISTER_RECONCILIATIONS: '/api/v1/tokens/register-reconciliations/',
+  REGISTER_RECONCILIATION: (uuid: string) => `/api/v1/tokens/register-reconciliations/${uuid}/` as const,
+  REGISTER_RECONCILIATION_ACKNOWLEDGE: (uuid: string) =>
+    `/api/v1/tokens/register-reconciliations/${uuid}/acknowledge/` as const,
   ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,
   ISSUE: (uuid: string) => `/api/v1/tokens/${uuid}/issue/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',

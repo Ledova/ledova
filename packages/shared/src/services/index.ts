@@ -111,6 +111,11 @@ export {
   downloadRegisterCorrectionFile,
 } from './register-corrections';
 export {
+  getRegisterReconciliations,
+  getRegisterReconciliation,
+  acknowledgeRegisterDiscrepancy,
+} from './register-reconciliations';
+export {
   getInvestorClassifications,
   getInvestorEligibility,
   submitInvestorClassification,
