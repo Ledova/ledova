@@ -25,6 +25,85 @@ beforeEach(() => {
   jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
+it.each([
+  { mimeType: 'application/pdf', name: 'authority.pdf', extension: '.pdf' },
+  { mimeType: 'image/png', name: 'evidence.png', extension: '.png' },
+  { mimeType: 'image/jpeg', name: 'evidence.jpeg', extension: '.jpg' },
+])('keeps a native MIME-bearing private URI for $mimeType', async ({ mimeType, name, extension }) => {
+  const result = pickedFile();
+  pick.mockResolvedValue({ ...result, assets: [{ ...result.assets[0], name, mimeType }] });
+  const copy = (await pickDocumentCopy(() => true))!;
+  expect(copy.file).toEqual({ uri: `${cache}ledova-upload-copies-v1/slot-0${extension}`, name, type: mimeType });
+  expect(files.get(copy.file.uri)?.content).toBe('document-1');
+  expect(files.has(result.assets[0].uri)).toBe(false);
+  const release = copy.acquire();
+  copy.retire();
+  expect(files.has(copy.file.uri)).toBe(true);
+  release();
+  expect(files.has(copy.file.uri)).toBe(false);
+});
+
+it.each([
+  { name: 'authority.PDF', mimeType: undefined, type: 'application/pdf', extension: '.pdf' },
+  { name: 'evidence.png', mimeType: '', type: 'image/png', extension: '.png' },
+  { name: 'evidence.jpg', mimeType: undefined, type: 'image/jpeg', extension: '.jpg' },
+  { name: 'evidence.JPEG', mimeType: 'application/octet-stream', type: 'image/jpeg', extension: '.jpg' },
+])('uses a bounded filename suffix when the provider gives $mimeType for $name', async (data) => {
+  const result = pickedFile();
+  pick.mockResolvedValue({ ...result, assets: [{ ...result.assets[0], name: data.name, mimeType: data.mimeType }] });
+  const copy = (await pickDocumentCopy(() => true))!;
+  expect(copy.file).toEqual({
+    uri: `${cache}ledova-upload-copies-v1/slot-0${data.extension}`,
+    name: data.name,
+    type: data.type,
+  });
+  copy.retire();
+});
+
+it.each([
+  { name: 'authority.pdf', mimeType: 'text/plain' },
+  { name: 'authority.pdf', mimeType: 'toString' },
+  { name: 'evidence.heic', mimeType: 'image/heic' },
+  { name: 'rows.csv', mimeType: undefined },
+  { name: 'account.json', mimeType: 'application/octet-stream' },
+  { name: 'authority.pdf.exe', mimeType: undefined },
+  { name: 'authority.pdf/../../outside', mimeType: undefined },
+])('refuses an unsupported upload type without adopting $name', async ({ name, mimeType }) => {
+  const result = pickedFile();
+  pick.mockResolvedValue({ ...result, assets: [{ ...result.assets[0], name, mimeType }] });
+  await expect(pickDocumentCopy(() => true)).rejects.toThrow('PDF, PNG or JPEG');
+  expect(files.has(result.assets[0].uri)).toBe(false);
+  expect([...files.keys()].some((uri) => uri.includes('/ledova-upload-copies-v1/'))).toBe(false);
+});
+
+it('never uses a provider filename as the destination path', async () => {
+  const result = pickedFile();
+  pick.mockResolvedValue({
+    ...result,
+    assets: [{ ...result.assets[0], name: '../../outside.png', mimeType: 'application/octet-stream' }],
+  });
+  const copy = (await pickDocumentCopy(() => true))!;
+  expect(copy.file.uri).toBe(`${cache}ledova-upload-copies-v1/slot-0.png`);
+  expect(copy.file.name).toBe('../../outside.png');
+  expect(files.get(copy.file.uri)?.content).toBe('document-1');
+  copy.retire();
+});
+
+it('keeps acquire and retirement bound to its internally owned file', async () => {
+  pick.mockResolvedValue(pickedFile());
+  const copy = (await pickDocumentCopy(() => true))!;
+  const owned = copy.file.uri;
+  const unrelated = `${cache}unrelated.pdf`;
+  files.set(unrelated, { size: 5, content: 'untouched' });
+  copy.file.uri = unrelated;
+  const release = copy.acquire();
+  copy.retire();
+  expect(files.has(owned)).toBe(true);
+  release();
+  expect(files.has(owned)).toBe(false);
+  expect(files.get(unrelated)?.content).toBe('untouched');
+});
+
 it('adopts a private copy, preserves the provider original, and waits for every admitted consumer', async () => {
   const result = pickedFile();
   const original = 'content://provider/original.pdf';
@@ -112,10 +191,15 @@ it('refuses a partial copy and permits a complete copy at the limit', async () =
 
 it('cleans only the fixed managed slots after a fresh module load and refuses unreadable or sticky slots', async () => {
   const retired = `${cache}ledova-upload-copies-v1/slot-0`;
-  const denied = `${cache}ledova-upload-copies-v1/slot-1`;
-  const stuck = `${cache}ledova-upload-copies-v1/slot-2`;
+  const retiredPdf = `${cache}ledova-upload-copies-v1/slot-0.pdf`;
+  const retiredPng = `${cache}ledova-upload-copies-v1/slot-0.png`;
+  const denied = `${cache}ledova-upload-copies-v1/slot-1.jpg`;
+  const stuck = `${cache}ledova-upload-copies-v1/slot-2.png`;
   const unrelated = `${cache}ledova-upload-copies-v1/unrelated`;
-  for (const uri of [retired, denied, stuck, unrelated]) files.set(uri, { size: 5, content: 'leftover' });
+  const outsideSlot = `${cache}ledova-upload-copies-v1/slot-16.pdf`;
+  const unrelatedSuffix = `${cache}ledova-upload-copies-v1/slot-3.json`;
+  for (const uri of [retired, retiredPdf, retiredPng, denied, stuck, unrelated, outsideSlot, unrelatedSuffix])
+    files.set(uri, { size: 5, content: 'leftover' });
   unreadable.add(denied);
   sticky.add(stuck);
   pick.mockResolvedValue({ canceled: true, assets: null });
@@ -126,12 +210,31 @@ it('cleans only the fixed managed slots after a fresh module load and refuses un
     await fresh.pickDocumentCopy(() => true);
   });
   expect(files.has(retired)).toBe(false);
+  expect(files.has(retiredPdf)).toBe(false);
+  expect(files.has(retiredPng)).toBe(false);
   expect(files.has(denied)).toBe(true);
   expect(files.has(stuck)).toBe(true);
   expect(files.has(unrelated)).toBe(true);
-  expect(new Set(operations.map(({ uri }) => uri)).size).toBe(16);
+  expect(files.has(outsideSlot)).toBe(true);
+  expect(files.has(unrelatedSuffix)).toBe(true);
+  expect(new Set(operations.map(({ uri }) => uri)).size).toBe(64);
   expect(operations.some(({ kind, uri }) => kind === 'delete' && uri === denied)).toBe(false);
   expect(pick).toHaveBeenCalledTimes(1);
+});
+
+it('does not reuse a slot whose legacy or differently suffixed copy could not be retired', async () => {
+  const legacy = `${cache}ledova-upload-copies-v1/slot-0`;
+  const differentlySuffixed = `${cache}ledova-upload-copies-v1/slot-1.png`;
+  files.set(legacy, { size: 5, content: 'old' });
+  files.set(differentlySuffixed, { size: 5, content: 'old' });
+  sticky.add(legacy);
+  unreadable.add(differentlySuffixed);
+  pick.mockResolvedValue(pickedFile());
+  const copy = (await pickDocumentCopy(() => true))!;
+  expect(copy.file.uri).toBe(`${cache}ledova-upload-copies-v1/slot-2.pdf`);
+  expect(files.has(legacy)).toBe(true);
+  expect(files.has(differentlySuffixed)).toBe(true);
+  copy.retire();
 });
 
 it('does not reuse a leased slot while another picker opens, and retries cleanup after deletion becomes available', async () => {
@@ -139,9 +242,14 @@ it('does not reuse a leased slot while another picker opens, and retries cleanup
   const first = (await pickDocumentCopy(() => true))!;
   const release = first.acquire();
   first.retire();
-  pick.mockResolvedValue(pickedFile(2));
+  const secondResult = pickedFile(2);
+  pick.mockResolvedValue({
+    ...secondResult,
+    assets: [{ ...secondResult.assets[0], name: 'second.png', mimeType: 'image/png' }],
+  });
   const second = (await pickDocumentCopy(() => true))!;
   expect(second.file.uri).not.toBe(first.file.uri);
+  expect(second.file.uri).toBe(`${cache}ledova-upload-copies-v1/slot-1.png`);
   expect(files.get(first.file.uri)?.content).toBe('document-1');
   sticky.add(first.file.uri);
   release();

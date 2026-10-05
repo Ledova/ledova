@@ -108,8 +108,8 @@ export function uploadSize(file: UploadFile): number {
   return size;
 }
 
-function managedFile(slot: number): File {
-  return new File(Paths.cache, 'ledova-upload-copies-v1', `slot-${slot}`);
+function managedFile(slot: number, extension = ''): File {
+  return new File(Paths.cache, 'ledova-upload-copies-v1', `slot-${slot}${extension}`);
 }
 
 function availableSlot(): number {
@@ -118,7 +118,14 @@ function availableSlot(): number {
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
     const existing = copies.get(slot);
     if (existing) existing.cleanup();
-    if (!copies.has(slot) && removeCopy(managedFile(slot)) && available < 0) available = slot;
+    if (
+      !copies.has(slot) &&
+      ['', ...Object.values(EXTENSION_BY_MIME_TYPE)]
+        .map((extension) => removeCopy(managedFile(slot, extension)))
+        .every(Boolean) &&
+      available < 0
+    )
+      available = slot;
   }
   if (available < 0)
     throw new DocumentSelectionError('Document storage is busy. Please finish an upload and try again.');
@@ -132,12 +139,13 @@ export class DocumentCopy {
   constructor(
     readonly file: UploadFile,
     private readonly slot: number,
+    private readonly storedUri: string,
   ) {}
 
   acquire(): () => void {
     if (this.retired || copies.get(this.slot) !== this) throw new Error('Choose the document again.');
     try {
-      if (!managedFile(this.slot).info().exists) throw new Error('Document copy is missing.');
+      if (!new File(this.storedUri).info().exists) throw new Error('Document copy is missing.');
     } catch {
       throw new Error('Choose the document again.');
     }
@@ -159,7 +167,7 @@ export class DocumentCopy {
   cleanup(): void {
     if (!this.retired || this.consumers || copies.get(this.slot) !== this) return;
     try {
-      if (removeCopy(managedFile(this.slot))) copies.delete(this.slot);
+      if (removeCopy(new File(this.storedUri))) copies.delete(this.slot);
     } catch {
       console.warn('Document cache cleanup did not complete.');
     }
@@ -202,7 +210,13 @@ export async function pickDocumentCopy(
     if (asset.size !== undefined && asset.size !== info.size) {
       throw new DocumentSelectionError('The document copy is incomplete. Please choose it again.');
     }
-    destination = managedFile(slot);
+    const suffix = /\.(pdf|png|jpe?g)$/i.exec(asset.name)?.[1].toLowerCase();
+    const fallback = suffix === 'pdf' ? 'application/pdf' : suffix === 'png' ? 'image/png' : suffix ? 'image/jpeg' : '';
+    const type = asset.mimeType && asset.mimeType !== 'application/octet-stream' ? asset.mimeType : fallback;
+    if (!Object.hasOwn(EXTENSION_BY_MIME_TYPE, type)) {
+      throw new DocumentSelectionError('Choose a PDF, PNG or JPEG document.');
+    }
+    destination = managedFile(slot, EXTENSION_BY_MIME_TYPE[type]);
     new File(asset.uri).move(destination);
     if (!destination.info().exists || destination.info().size !== info.size) {
       throw new DocumentSelectionError('Could not keep a private copy of this document. Please choose it again.');
@@ -210,10 +224,7 @@ export async function pickDocumentCopy(
     if (!removeCopy(original))
       throw new DocumentSelectionError('Could not retire the temporary document copy. Please try again.');
     originals.length = 0;
-    const copy = new DocumentCopy(
-      { uri: destination.uri, name: asset.name, type: asset.mimeType || 'application/octet-stream' },
-      slot,
-    );
+    const copy = new DocumentCopy({ uri: destination.uri, name: asset.name, type }, slot, destination.uri);
     copies.set(slot, copy);
     destination = undefined;
     return copy;
