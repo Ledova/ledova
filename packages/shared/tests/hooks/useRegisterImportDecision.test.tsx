@@ -218,3 +218,19 @@ it('reports no decision whose guard refuses once its response returns', async ()
   expect(hook.result.current.target).toBeNull();
   expect(hook.result.current.error).toBe('Your signed-in account changed.');
 });
+
+it('states each refused requirement once, with one fallback for every requirement it cannot word', async () => {
+  const { post, hook } = setup();
+  post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
+    response: {
+      status: 400,
+      data: { unmetRequirements: ['approval_lapsed', 'future_rule_a', 'approval_lapsed', 'future_rule_b'] },
+    },
+  });
+  await act(() => hook.result.current.open('apply'));
+  await act(() => hook.result.current.confirm());
+  expect(hook.result.current.error).toBe(
+    "The approver's appointment has ended. Approve this import again before applying it. " +
+      'The decision was not recorded. Retry the same decision after refreshing.',
+  );
+});

@@ -35,7 +35,9 @@ function refusal(failure: unknown) {
   const codes = (failure as { response?: { data?: { unmetRequirements?: unknown } } })?.response?.data
     ?.unmetRequirements;
   if (!Array.isArray(codes) || !codes.length) return null;
-  return codes.map((code) => REGISTER_IMPORT_UNMET_COPY[String(code)] ?? REGISTER_IMPORT_COPY.DECIDE_FAILED).join(' ');
+  return [
+    ...new Set(codes.map((code) => REGISTER_IMPORT_UNMET_COPY[String(code)] ?? REGISTER_IMPORT_COPY.DECIDE_FAILED)),
+  ].join(' ');
 }
 
 export function useRegisterImportDecision(
