@@ -10,6 +10,12 @@ from tokens.tests.mint_request_fixtures import mint_request
 
 BEFORE = [("tokens", "0080_company_pack")]
 AFTER = [("tokens", "0081_held_orders_and_retired_statuses")]
+ADMISSION_FIELDS = (
+    "eligibility_decision_id",
+    "creation_submission_id",
+    "last_modification_action_id",
+    "last_modification_eligibility_decision_id",
+)
 
 
 class UnwrittenStatusesTest(TestCase):
@@ -33,6 +39,9 @@ class RetiredStatusMigrationTest(TransactionTestCase):
     def setUp(self):
         self.addCleanup(restore_every_migration)
         self.order = make_tenant("retired").order
+        self.assertEqual(
+            TransferOrder.objects.filter(pk=self.order.pk).values_list(*ADMISSION_FIELDS).get(), (None,) * 4
+        )
         actor = get_user_model().objects.create_superuser(email="retired@example.test", password="synthetic")
         self.deposit = mint_request(actor)
 
@@ -52,8 +61,14 @@ class RetiredStatusMigrationTest(TransactionTestCase):
         self.assertEqual(deposits.get(pk=self.deposit.pk).status, "approved")
         orders.filter(pk=self.order.pk).update(status="open")
         deposits.filter(pk=self.deposit.pk).update(status="pending")
-        migrate_to(AFTER)
-        self.assertEqual(TransferOrder.objects.get(pk=self.order.pk).status, TransferOrderStatus.OPEN)
+        after = migrate_to(AFTER)
+        self.assertEqual(
+            after.get_model("tokens", "TransferOrder").objects.get(pk=self.order.pk).status, TransferOrderStatus.OPEN
+        )
+        restore_every_migration()
+        self.assertEqual(
+            TransferOrder.objects.filter(pk=self.order.pk).values_list(*ADMISSION_FIELDS).get(), (None,) * 4
+        )
 
     def test_a_held_order_stops_the_reversal_and_stays_held(self):
         TransferOrder.objects.filter(pk=self.order.pk).update(status=TransferOrderStatus.HELD)
@@ -61,8 +76,14 @@ class RetiredStatusMigrationTest(TransactionTestCase):
         with self.assertRaisesMessage(RuntimeError, f"First 20 identifiers: {self.order.pk}"):
             migrate_to(BEFORE)
 
-        self.assertEqual(TransferOrder.objects.get(pk=self.order.pk).status, TransferOrderStatus.HELD)
-        TransferOrder.objects.filter(pk=self.order.pk).update(status=TransferOrderStatus.CANCELLED)
+        after = migrate_to(AFTER)
+        orders = after.get_model("tokens", "TransferOrder").objects
+        self.assertEqual(orders.get(pk=self.order.pk).status, TransferOrderStatus.HELD)
+        orders.filter(pk=self.order.pk).update(status=TransferOrderStatus.CANCELLED)
         before = migrate_to(BEFORE)
         with self.assertRaises(IntegrityError), atomic():
             before.get_model("tokens", "TransferOrder").objects.filter(pk=self.order.pk).update(status="held")
+        restore_every_migration()
+        self.assertEqual(
+            TransferOrder.objects.filter(pk=self.order.pk).values_list(*ADMISSION_FIELDS).get(), (None,) * 4
+        )

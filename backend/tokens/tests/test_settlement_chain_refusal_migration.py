@@ -5,24 +5,33 @@ from django.conf import settings
 from django.db import IntegrityError
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import use_operator
+from shared.db import use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
+from tokens.exceptions import (
+    CreateOrderInsufficientBalanceException,
+    SettlementChainDisagreement,
+)
 from tokens.models import OrderSubmission, TransferOrder, TransferOrderType
-from tokens.tests.order_submission_fixtures import COUNTERPARTY, SubmissionFixtures
+from tokens.tests.order_submission_fixtures import COUNTERPARTY
 from tokens.tests.test_settlement_chain_agreement import (
     FOREIGN_ADDRESS,
     FOREIGN_CHAIN_ID,
     deployed_token,
 )
+from tokens.tests.test_settlement_refusal_migration import HistoricalRefusalFixtures
 from wallets.models import Wallet
 
 
 @skipUnless(getattr(settings, "MIGRATION_MODULES", {}).get("tokens", "enabled") is not None, "Requires migrations")
-class SettlementChainRefusalMigrationTest(SubmissionFixtures, APITransactionTestCase):
+class SettlementChainRefusalMigrationTest(HistoricalRefusalFixtures, APITransactionTestCase):
     def test_existing_refusal_and_spent_challenge_survive_the_constraint_upgrade(self):
         self.addCleanup(restore_every_migration)
         self.share_balance = 0
-        signed = self.signed_body(self.body(order_type="sell"))
+        signed = self.historical_refusal(
+            "0059_swap_approval_submission",
+            CreateOrderInsufficientBalanceException(balance=self.share_balance, required=10, token_symbol="DEP"),
+            order_type="sell",
+        )
         refused = self.create(signed)
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertEqual(refused.json()["refusal"]["code"], "insufficient_balance")
@@ -59,17 +68,22 @@ class SettlementChainRefusalMigrationTest(SubmissionFixtures, APITransactionTest
                 chain="base",
                 verification_status="VERIFIED",
             )
-            TransferOrder.objects.create(
-                token=token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=counterparty,
-                owner_account=self.tenant.account,
-                wallet_address=counterparty.address,
-                order_type=TransferOrderType.SELL,
-                quantity=10,
-                price_per_share=Decimal("2.50"),
+            with use_migrate():
+                TransferOrder.objects.create(
+                    token=token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=counterparty,
+                    owner_account=self.tenant.account,
+                    wallet_address=counterparty.address,
+                    order_type=TransferOrderType.SELL,
+                    quantity=10,
+                    price_per_share=Decimal("2.50"),
+                )
+        refused = self.create(
+            self.historical_refusal(
+                "0060_order_submission_settlement_chain_refusal", SettlementChainDisagreement(), token=str(token.pk)
             )
-        refused = self.create(self.signed_body(self.body(token=str(token.pk))))
+        )
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertEqual(refused.json()["refusal"]["code"], "settlement_chain_disagreement")
         with use_operator():
