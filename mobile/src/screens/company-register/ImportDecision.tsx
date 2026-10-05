@@ -165,7 +165,7 @@ export function ImportDecision({
             )}
             {preview && !current && (
               <Text accessibilityRole="alert" style={styles.error}>
-                Your appointment for this step changed or could not be checked. Cancel and start this decision again.
+                Your appointment for this step changed. Cancel and start this decision again.
               </Text>
             )}
             {preview && <DecisionPreview kind={kind} preview={preview} />}

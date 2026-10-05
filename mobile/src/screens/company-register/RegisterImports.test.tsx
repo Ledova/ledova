@@ -431,7 +431,7 @@ it('labels a member without a live identity neutrally in the comparison', async 
   post.mockResolvedValueOnce({
     data: {
       ...PREVIEW,
-      comparison: [{ ...PREVIEW.comparison[0], name: null, imported: null, wallets: [], liveName: null }],
+      comparison: [{ ...PREVIEW.comparison[0], name: null, imported: null, wallets: [], liveName: '' }],
     },
   });
   const view = await openClass();
@@ -567,7 +567,7 @@ it('refetches the class imports, holders and appointments when a decision is ref
   expect(view.getByRole('button', { name: 'Preview again' })).toBeEnabled();
 });
 
-it('words a refusal by its unmet requirements and withdraws the steps a revoked appointment held', async () => {
+it('withdraws the steps a revoked appointment held once a decision is refused', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
     message: 'Request failed with status code 400',
     response: { status: 400, data: { unmetRequirements: ['appointment_capability_required'] } },
@@ -604,9 +604,7 @@ it('holds a previewed decision once the step is held by another appointment', as
   appointments = [appointment('appointment-admin', ['admin']), appointment('appointment-aaa', ['approve'])];
   await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
   expect(
-    await view.findByText(
-      'Your appointment for this step changed or could not be checked. Cancel and start this decision again.',
-    ),
+    await view.findByText('Your appointment for this step changed. Cancel and start this decision again.'),
   ).toBeTruthy();
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));

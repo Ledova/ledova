@@ -39,7 +39,6 @@ const AUTHORITIES: [Authority, string][] = [
 ];
 const MONEY = /^(0|[1-9]\d{0,17})(\.\d{1,2})?$/;
 const FAILED = 'The import could not be prepared. Retry with the same details.';
-const NO_HOLDERS = 'The stored register lists no current members, so this class has none to import.';
 
 function isoDay(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -196,7 +195,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
         ? 'Enter the register date as YYYY-MM-DD, no later than today.'
         : members.length === 0
           ? opened
-            ? NO_HOLDERS
+            ? REGISTER_IMPORT_COPY.NO_HOLDERS
             : 'Add each current member of this class.'
           : members.some((row) => !row.name || !row.residentialAddress || !row.shares || !dated(row.enteredOn))
             ? 'Complete each current member’s name, residential address, shares and date entered, no later than the register date.'
@@ -362,7 +361,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
             ? 'Add each current member in the company’s register, with their shares. Each gets a new member ID.'
             : drafts.length > 0
               ? 'Each current member of the stored register, with the shares it records. Enter their particulars from the company’s register.'
-              : NO_HOLDERS}
+              : REGISTER_IMPORT_COPY.NO_HOLDERS}
         </Text>
         {drafts.map((row, index) => {
           const number = index + 1;
