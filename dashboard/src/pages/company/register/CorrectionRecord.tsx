@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
-  REGISTER_COPY,
-  REGISTER_IMPORT_COPY,
-  REGISTER_IMPORT_DECISIONS,
-  REGISTER_IMPORT_UNMET_COPY,
+  REGISTER_CORRECTION_COPY,
+  REGISTER_CORRECTION_DECISIONS,
+  REGISTER_CORRECTION_UNMET_COPY,
   apiErrorSentence,
-  downloadRegisterImportFile,
+  downloadRegisterCorrectionFile,
   formatDateTime,
-  formatShareCount,
-  registerImportTotals,
   useRegisterDecision,
+  type RegisterCorrection,
+  type RegisterCorrectionDecisionPreview,
   type RegisterDecisionKind,
-  type RegisterImport,
-  type RegisterImportDecisionPreview,
+  type RegisterEntry,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { Modal } from '@components/Modal';
@@ -21,11 +19,21 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { DecisionTrail } from './DecisionTrail';
-import { DOWNLOAD_FAILED, STAGE_TONES, STEP_CHANGED, retainedName, type RegisterSteps } from './proposals';
+import { RegisterChanges } from './RegisterChanges';
+import {
+  DOWNLOAD_FAILED,
+  STAGE_TONES,
+  STEP_CHANGED,
+  describeEntry,
+  retainedName,
+  type RegisterSteps,
+} from './proposals';
 import { saveFile } from './useCompanyRegister';
+import type { ClassCorrection } from './useRegisterCorrections';
 
-type Decision = ReturnType<typeof useRegisterDecision<RegisterImport, RegisterImportDecisionPreview>>;
+type Decision = ReturnType<typeof useRegisterDecision<RegisterCorrection, RegisterCorrectionDecisionPreview>>;
 
+const COPY = REGISTER_CORRECTION_COPY;
 const KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
 
 function DecisionPanel({
@@ -33,6 +41,7 @@ function DecisionPanel({
   decision,
   current,
   reason,
+  entry,
   onReason,
   onPreview,
 }: {
@@ -40,17 +49,18 @@ function DecisionPanel({
   decision: Decision;
   current: boolean;
   reason: string;
+  entry: RegisterEntry;
   onReason: (value: string) => void;
   onPreview: () => void;
 }) {
   const preview = decision.target?.preview;
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-primary">{REGISTER_IMPORT_COPY.CONFIRMATIONS[kind]}</p>
+      <p className="text-sm text-text-primary">{COPY.CONFIRMATIONS[kind]}</p>
       {kind === 'reject' && (
         <>
           <label className="block space-y-1 text-sm text-text-primary">
-            {REGISTER_IMPORT_COPY.REJECTION_REASON}
+            {COPY.REJECTION_REASON}
             <textarea
               className={FIELD_CLASS}
               rows={3}
@@ -84,73 +94,41 @@ function DecisionPanel({
       )}
       {preview && (
         <>
-          {kind === 'apply' && preview.opensRegister && (
-            <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
-          )}
+          {kind === 'apply' && <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>}
           {preview.unmetRequirements.length > 0 && (
             <div className="flex flex-col gap-1">
               <p className="text-sm text-text-muted">This decision cannot be recorded yet:</p>
               <ul className="flex flex-col gap-1 text-sm text-text-primary">
                 {preview.unmetRequirements.map((code) => (
-                  <li key={code}>{REGISTER_IMPORT_UNMET_COPY[code] ?? code}</li>
+                  <li key={code}>{REGISTER_CORRECTION_UNMET_COPY[code] ?? code}</li>
                 ))}
               </ul>
             </div>
           )}
-          {preview.statedTotal !== null && preview.statedMemberCount !== null && (
-            <p className="text-sm text-text-primary">
-              {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
-            </p>
-          )}
-          <p className="text-sm text-text-primary">
-            {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(
-              formatShareCount(preview.importedTotal),
-              preview.importedMemberCount,
-            )}
-          </p>
-          <h3 className="text-sm font-medium text-text-primary">Members compared with the stored register</h3>
-          <ul className="divide-y divide-border-subtle">
-            {preview.comparison.map((row) => (
-              <li key={row.member} className="py-2">
-                <Rows>
-                  <Row label="Imported name">{row.name ?? 'Not in the import'}</Row>
-                  <Row label="Imported shares">
-                    <span className="break-all">
-                      {row.imported === null ? 'Not in the import' : formatShareCount(row.imported)}
-                    </span>
-                  </Row>
-                  <Row label="Stored shares">
-                    <span className="break-all">
-                      {row.stored === null ? 'Not stored' : formatShareCount(row.stored)}
-                    </span>
-                  </Row>
-                  <Row label="Imported date entered">{row.importedEnteredOn ?? 'Not in the import'}</Row>
-                  <Row label="Stored date entered">{row.enteredOn ?? 'Not stored'}</Row>
-                  <Row label="Live name">{row.liveName ?? 'No live identity'}</Row>
-                  {row.liveAddress && <Row label="Live address">{row.liveAddress}</Row>}
-                  <Row label="Wallets">
-                    <span className="break-all">
-                      {row.wallets.length > 0 ? row.wallets.join(', ') : REGISTER_COPY.NO_WALLET}
-                    </span>
-                  </Row>
-                </Rows>
-              </li>
-            ))}
-          </ul>
+          <Rows>
+            <Row label="Register sequence">{preview.registerSequence}</Row>
+            <Row label={COPY.EFFECTIVE_ON}>{preview.effectiveOn}</Row>
+            <Row label={COPY.ORIGINAL_CHANGES}>
+              <RegisterChanges changes={preview.originalChanges} named={entry.changes} />
+            </Row>
+            <Row label={COPY.COMPENSATING_CHANGES}>
+              <RegisterChanges changes={preview.changes} named={entry.changes} />
+            </Row>
+          </Rows>
         </>
       )}
     </div>
   );
 }
 
-export function ImportRecord({
-  proposal,
+export function CorrectionRecord({
+  correction: { proposal, entry },
   steps,
   guard,
   onDecided,
   onRefused,
 }: {
-  proposal: RegisterImport;
+  correction: ClassCorrection;
   steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
@@ -169,28 +147,22 @@ export function ImportRecord({
     },
     onRefused,
   });
-  const approve = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('approve'));
-  const apply = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('apply'));
-  const reject = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('reject'));
+  const approve = useRegisterDecision(apiClient, REGISTER_CORRECTION_DECISIONS, proposal, options('approve'));
+  const apply = useRegisterDecision(apiClient, REGISTER_CORRECTION_DECISIONS, proposal, options('apply'));
+  const reject = useRegisterDecision(apiClient, REGISTER_CORRECTION_DECISIONS, proposal, options('reject'));
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;
   const download = useMutation({
-    mutationFn: async (copy: 'register' | 'asic') => {
+    mutationFn: async () => {
       guard();
-      const { data } = await downloadRegisterImportFile(apiClient, proposal.uuid, copy, {
+      const { data } = await downloadRegisterCorrectionFile(apiClient, proposal.uuid, {
         ledovaSubmissionGuard: guard,
       });
       guard();
-      saveFile(
-        data,
-        copy === 'asic'
-          ? retainedName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
-          : retainedName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
-      );
+      saveFile(data, retainedName(proposal.evidenceSnapshot, `register-correction-${proposal.uuid}`));
     },
   });
-  const totals = registerImportTotals(proposal.members);
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
   const target = decision?.target;
@@ -218,40 +190,30 @@ export function ImportRecord({
       <Rows>
         <Row label="Stage">
           <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-            {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
+            {COPY.STAGES[proposal.stage] ?? proposal.stage}
           </Status>
         </Row>
         {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-        <Row label="Register date">{proposal.asAt}</Row>
-        <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
+        <Row label={COPY.EFFECTIVE_ON}>{proposal.effectiveOn}</Row>
+        <Row label={COPY.ORIGINAL_CHANGES}>
+          <span className="block">{describeEntry(entry)}</span>
+          <RegisterChanges changes={entry.changes} />
+        </Row>
+        <Row label={COPY.COMPENSATING_CHANGES}>
+          <RegisterChanges changes={proposal.changes} named={entry.changes} />
+        </Row>
+        <Row label={COPY.AUTHORITY}>{COPY.AUTHORITIES[proposal.authority] ?? proposal.authority}</Row>
+        {proposal.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{proposal.approvingDirector}</Row>}
+        <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
+        <Row label={COPY.REASON}>{proposal.reason}</Row>
+        <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
       </Rows>
       <p className="text-sm text-text-muted">
-        {proposal.providedBy === 'company'
-          ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
-          : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
-      </p>
-      {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
-        <p className="text-sm text-text-primary">
-          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(proposal.asicIssuedTotal), proposal.asicMemberCount)}
-        </p>
-      )}
-      <p className="text-sm text-text-primary">
-        {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
+        {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
       </p>
       <div className="flex flex-wrap gap-2">
-        <PageAction
-          label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-          disabled={download.isPending}
-          onClick={() => download.mutate('register')}
-        />
-        {proposal.asicEvidence !== null && (
-          <PageAction
-            label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
-            disabled={download.isPending}
-            onClick={() => download.mutate('asic')}
-          />
-        )}
+        <PageAction label={COPY.DOWNLOAD} disabled={download.isPending} onClick={() => download.mutate()} />
       </div>
       {download.isError && (
         <p role="alert" className="text-sm text-error-light">
@@ -261,21 +223,16 @@ export function ImportRecord({
       {available.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {available.map((kind) => (
-            <PageAction
-              key={kind}
-              label={REGISTER_IMPORT_COPY.DECISIONS[kind]}
-              disabled={busy}
-              onClick={() => begin(kind)}
-            />
+            <PageAction key={kind} label={COPY.DECISIONS[kind]} disabled={busy} onClick={() => begin(kind)} />
           ))}
         </div>
       )}
       <Modal
         isOpen={!!active}
         onClose={close}
-        title={active ? `${REGISTER_IMPORT_COPY.DECISIONS[active]} import` : ''}
+        title={active ? `${COPY.DECISIONS[active]} correction` : ''}
         showFooter
-        confirmLabel={active ? `${REGISTER_IMPORT_COPY.DECISIONS[active]} import` : 'Confirm'}
+        confirmLabel={active ? `${COPY.DECISIONS[active]} correction` : 'Confirm'}
         confirmLoading={!!decision?.busy}
         confirmDisabled={!ready}
         onConfirm={() => {
@@ -289,6 +246,7 @@ export function ImportRecord({
             decision={decision}
             current={current}
             reason={reason}
+            entry={entry}
             onReason={setReason}
             onPreview={() => void reject.open('reject', reason.trim())}
           />

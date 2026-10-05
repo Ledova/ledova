@@ -1,14 +1,10 @@
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
-import {
-  DESTINATIONS,
-  REGISTER_IMPORT_COPY,
-  appointmentForRegisterStep,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { DESTINATIONS, REGISTER_IMPORT_COPY, type OrderSubmissionOwner } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
-import { ImportRecord, type ImportSteps } from './ImportRecord';
+import { ImportRecord } from './ImportRecord';
+import { registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
 import { importsKey, useOwnAppointments, useRegisterImports } from './useRegisterImports';
 
@@ -26,14 +22,7 @@ export function ClassImports({
   const client = useQueryClient();
   const imports = useRegisterImports(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
-  const steps: ImportSteps | null = appointments.isSuccess
-    ? {
-        prepare: appointmentForRegisterStep(appointments.data, company, 'prepare'),
-        approve: appointmentForRegisterStep(appointments.data, company, 'approve'),
-        apply: appointmentForRegisterStep(appointments.data, company, 'apply'),
-        reject: appointmentForRegisterStep(appointments.data, company, 'reject'),
-      }
-    : null;
+  const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const refresh = async (keys: QueryKey[]) => {
     try {
       guard();
