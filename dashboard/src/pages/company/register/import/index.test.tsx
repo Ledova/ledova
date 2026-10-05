@@ -438,6 +438,7 @@ it('names an approving director only for a resolution and sends none for a court
   fill('Approving director', '');
   expect(submitButton().disabled).toBe(true);
   expect(screen.getByText('Name the approving director for a resolution.')).toBeTruthy();
+  fill('Approving director', 'Example Director');
   fireEvent.change(screen.getByLabelText('Authority'), { target: { value: 'court_order' } });
   expect(screen.queryByLabelText('Approving director')).toBeNull();
   fireEvent.click(submitButton());
@@ -645,4 +646,29 @@ it('keeps the draft but holds preparation after a failed refresh until a retry s
   await waitFor(() => expect(submitButton().disabled).toBe(false));
   expect(screen.queryByRole('alert')).toBeNull();
   expect((screen.getByLabelText('Reason') as HTMLTextAreaElement).value).toBe("Import the company's register");
+});
+
+it('takes a new upload key when another file is chosen after a failed attempt', async () => {
+  let fail = true;
+  uploadFor = async (form) => {
+    if (fail) throw new Error('Network Error');
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await screen.findByRole('alert');
+  fail = false;
+  const corrected = new File(['%PDF corrected register'], 'corrected-register.pdf', { type: 'application/pdf' });
+  attach('Current share register', corrected);
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(
+    uploads().map((form) => [form.get('kind'), form.get('idempotency_key'), (form.get('file') as File).name]),
+  ).toEqual([
+    ['share_register', KEY(1), 'members-register.pdf'],
+    ['share_register', KEY(2), 'corrected-register.pdf'],
+    ['asic_extract', KEY(3), 'asic-extract.pdf'],
+  ]);
 });

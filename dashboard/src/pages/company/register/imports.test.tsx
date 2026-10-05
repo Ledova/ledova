@@ -727,6 +727,7 @@ it('saves no evidence copy whose download returns after the signed-in account ch
     return Promise.resolve(page([]));
   });
   fireEvent.click(within(records(section)[0]).getByRole('button', { name: COPY.DOWNLOAD_REGISTER }));
+  await waitFor(() => expect(reads(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE('import-new'))).toBe(1));
   act(switchAccount);
   await act(async () => pending.resolve({ data: new Blob(['%PDF synthetic']) }));
   expect(saved).toEqual([]);
