@@ -611,6 +611,16 @@ it('refuses a page recording a share change that is not whole and retries it, wi
   expect(view.queryByText(READ_FAILED)).toBeNull();
 });
 
+it('lists no corrections without looking any entry up', async () => {
+  correctionPages = [[]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(COPY.EMPTY)).toBeTruthy();
+  await view.findByText('Entry 3 · Compensating correction');
+  expect(lookups()).toEqual([]);
+  expect(pageReads()).toHaveLength(1);
+});
+
 it('says a class without register entries or corrections has none', async () => {
   entryPages = [[]];
   correctionPages = [[]];
