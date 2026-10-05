@@ -193,8 +193,10 @@ reason it waits. `GET /api/v1/tokens/register/` lists the share classes whose
 register the caller may read, filterable by `company_uuid`. These routes and
 `GET /api/v1/tokens/{uuid}/register/export/` admit the company owner and anyone
 holding a current company appointment with `admin`, `read_register`, `prepare`,
-`approve` or `apply`. Other capabilities, delegation-only scope and staff or
-superuser status grant none of them. The export of a register with no opening is
+`approve` or `apply`; preparing, approving or applying register changes means
+working from the register's member particulars, so those capabilities read it
+too. Other capabilities, delegation-only scope and staff or superuser status
+grant none of them. The export of a register with no opening is
 refused with 409 `register_not_initialized`. The
 current-member API omits residential addresses, but former-member rows include
 them. Each read of an opened register takes its head, issued supply, holdings,

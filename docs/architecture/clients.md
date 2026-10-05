@@ -6,8 +6,10 @@ How dashboard and mobile consume shared TypeScript and design tokens.
 
 ## Company-managed client work
 
-This page describes the current clients, including their owner-only company
-selection and read-only staff decision records. The
+This page describes the current clients, including their company selection and
+read-only staff decision records. Register access follows current appointments
+as well as ownership; most other company selection remains owner or
+administrator scoped. The
 [accepted company-managed plan](company-managed-registers.md#required-self-service-workflows)
 requires web and mobile forms for company appointments and the supported
 prepare, preview, approve and apply workflows. Company activation and offering
@@ -96,8 +98,12 @@ address. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person.
 The mobile shell uses Holdings, Notices, Activity and the securities Market.
-Register is the native Company landing page. It reads every class and its stored
-register, with exact share quantities and complete-read failure states. A class
+Register is the native Company landing page. It reads every class the person may
+read (as the company owner or through a current register appointment), grouped by
+company with a company choice when there is more than one, and each class's
+stored register, with exact share quantities and complete-read failure states.
+Accounts without the company role reach it from the drawer only when they have
+register access. A class
 opens its register and request histories, deployment and share request actions.
 Deployed and paused native classes also expose pause and recovery. Before a POST,
 the app saves and reads back the original request identity and direction in

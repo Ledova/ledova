@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
-from companies.models import Company, CompanyCapability
+from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.authority import DECLARATION_VERSION
 from companies.services.team import (
     accept_team_invitation,
@@ -17,9 +17,25 @@ from companies.tests.test_document_file_access import legacy_company_administrat
 from operators.models import Operator
 from shared.db import use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from tokens.models import ShareToken
+from tokens.models import RegisterExport, ShareToken
+from tokens.querysets import RegisterProposalQuerySet
+from tokens.services.register_corrections import submit_correction
 from tokens.services.register_imports import submit_import
+from tokens.services.register_openings import submit_link
+from tokens.tests.test_register_corrections import (
+    correction_fixture,
+    correction_payload,
+)
 from tokens.tests.test_register_imports import import_fixture, import_payload
+from tokens.tests.test_register_links import link_fixture, link_payload
+from tokens.views.register_correction import RegisterCorrectionViewSet
+from tokens.views.register_import import RegisterImportViewSet
+from tokens.views.register_instruction import RegisterInstructionViewSet
+from tokens.views.register_opening import (
+    RegisterOpeningViewSet,
+    RegisterWalletLinkViewSet,
+)
+from tokens.views.register_proposal import RegisterProposalViewSet
 from users.models import UserProfile
 
 User = get_user_model()
@@ -93,10 +109,19 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
             "classes": {row["uuid"] for row in classes.json()["results"]},
             "holders": client.get(f"/api/v1/tokens/{self.token.uuid}/holders/").status_code,
             "waiting": client.get(f"/api/v1/tokens/{self.token.uuid}/register/waiting/").status_code,
-            "export": client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/").status_code,
+            "export": self.export(client, user),
             "imports": {row["uuid"] for row in client.get("/api/v1/tokens/register-imports/").json()["results"]},
             "import": client.get(f"/api/v1/tokens/register-imports/{self.proposal.uuid}/").status_code,
+            "evidence": client.get(f"/api/v1/tokens/register-imports/{self.proposal.uuid}/file/").status_code,
         }
+
+    def export(self, client, user):
+        with use_operator():
+            before = RegisterExport.objects.filter(token=self.token, requested_by_id=user.pk).count()
+        status = client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/").status_code
+        with use_operator():
+            recorded = RegisterExport.objects.filter(token=self.token, requested_by_id=user.pk).count() - before
+        return status, recorded
 
     def assert_reads_the_register(self, user):
         self.assertEqual(
@@ -105,16 +130,25 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
                 "classes": {str(self.token.uuid)},
                 "holders": 200,
                 "waiting": 200,
-                "export": 200,
+                "export": (200, 1),
                 "imports": {str(self.proposal.uuid)},
                 "import": 200,
+                "evidence": 200,
             },
         )
 
     def assert_reads_nothing(self, user, *, classes=frozenset()):
         self.assertEqual(
             self.reads(user),
-            {"classes": set(classes), "holders": 404, "waiting": 404, "export": 404, "imports": set(), "import": 404},
+            {
+                "classes": set(classes),
+                "holders": 404,
+                "waiting": 404,
+                "export": (404, 0),
+                "imports": set(),
+                "import": 404,
+                "evidence": 404,
+            },
         )
 
     def test_administration_and_each_register_capability_read_the_whole_register(self):
@@ -209,6 +243,73 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
         self.assert_reads_the_register(self.owner)
         revoke_company_appointment(requester=self.owner, appointment_id=self.administrator.pk)
         self.assert_reads_the_register(self.owner)
+
+    def test_no_capability_named_selects_no_appointment(self):
+        with use_operator():
+            self.assertFalse(CompanyAppointment.objects.holding_any([]).exists())
+            self.assertTrue(CompanyAppointment.objects.holding_any([CompanyCapability.ADMIN]).exists())
+
+    def test_every_register_proposal_view_reads_through_the_shared_register_rule(self):
+        for view in (
+            RegisterOpeningViewSet,
+            RegisterWalletLinkViewSet,
+            RegisterImportViewSet,
+            RegisterCorrectionViewSet,
+            RegisterInstructionViewSet,
+        ):
+            with self.subTest(view=view.__name__):
+                self.assertTrue(issubclass(view, RegisterProposalViewSet))
+                self.assertFalse({"narrow", "file", "get_queryset", "get_object"} & set(view.__dict__))
+                self.assertIsInstance(view.scoped_model._default_manager.all(), RegisterProposalQuerySet)
+
+
+class RegisterProposalFamiliesTest(APITransactionTestCase):
+    def setUp(self):
+        with use_operator():
+            correction_owner, _, correction_document, issue = correction_fixture()
+            self.correction = submit_correction(
+                actor=correction_owner, **correction_payload(correction_document, issue)
+            )
+            link_owner, link_company, _, _, link_document = link_fixture()
+            self.link = submit_link(actor=link_owner, **link_payload(link_company, link_document))
+            for owner in (correction_owner, link_owner):
+                UserProfile.objects.get_or_create(user=owner, defaults={"full_name": owner.email})
+            self.correction_administrator, self.link_administrator = legacy_company_administrators(
+                correction_document.company, link_company
+            )
+
+    def reader(self, administrator):
+        appointee = person(f"reader-{uuid4()}@example.test")
+        _, code, _ = issue_team_invitation(
+            requester=administrator.appointee,
+            company_id=administrator.company_id,
+            inviter_appointment_id=administrator.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.READ_REGISTER],
+            delegatable_capabilities=[],
+        )
+        accept_team_invitation(
+            requester=appointee, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
+        client = APIClient()
+        client.force_authenticate(appointee)
+        return client
+
+    def test_correction_and_link_readers_see_only_their_own_companys_proposals_and_evidence(self):
+        correction_reader = self.reader(self.correction_administrator)
+        link_reader = self.reader(self.link_administrator)
+        for kind, proposal, own, foreign in (
+            ("register-corrections", self.correction, correction_reader, link_reader),
+            ("register-links", self.link, link_reader, correction_reader),
+        ):
+            with self.subTest(kind=kind):
+                listed = own.get(f"/api/v1/tokens/{kind}/").json()["results"]
+                self.assertEqual([row["uuid"] for row in listed], [str(proposal.uuid)])
+                self.assertEqual(own.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/").status_code, 200)
+                self.assertEqual(own.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/file/").status_code, 200)
+                self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/").json()["results"], [])
+                self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/").status_code, 404)
+                self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/file/").status_code, 404)
 
 
 class ScopedRegisterAccessByAppointmentTest(RunsOnTheScopedConnection, RegisterAccessByAppointmentTest):

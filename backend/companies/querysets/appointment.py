@@ -18,7 +18,4 @@ class CompanyAppointmentQuerySet(QuerySet):
         return self.current_of(requester, at=at, identity_required=identity_required).filter(company_id=company_id)
 
     def holding_any(self, capabilities):
-        held = Q()
-        for capability in capabilities:
-            held |= Q(capabilities__contains=[capability])
-        return self.filter(held)
+        return self.filter(capabilities__has_any_keys=[str(capability) for capability in capabilities])
