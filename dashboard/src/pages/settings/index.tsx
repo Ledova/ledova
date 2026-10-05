@@ -15,6 +15,7 @@ import apiClient from '@services/apiClient';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section, SwitchRow } from '@components/Ledger';
+import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -70,6 +71,7 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
+  const registerEntry = useRegisterEntry();
   const transactionAlerts = preferences.preferences?.transactionAlerts;
   const alerts = useMutation({
     mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
@@ -151,6 +153,11 @@ export function SettingsPage() {
           <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
             <p className="text-text-muted">Accept a company invitation and read or manage your appointments.</p>
           </LinkRow>
+          {registerEntry && (
+            <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title}>
+              <p className="text-text-muted">Read the company registers you have access to.</p>
+            </LinkRow>
+          )}
           <ActionRow
             description="Choose a new password for your account."
             label="Change password"
