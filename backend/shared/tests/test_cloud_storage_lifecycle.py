@@ -28,6 +28,7 @@ from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
     RegisterCorrection,
+    RegisterEvidence,
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
@@ -174,6 +175,8 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterOpening, "file"),
                         (RegisterWalletLink, "file"),
                         (RegisterImport, "file"),
+                        (RegisterImport, "asic_file"),
+                        (RegisterEvidence, "file"),
                         (RegisterInstruction, "file"),
                         (Publication, "file"),
                         (PublicationEvent, "evidence"),
@@ -188,10 +191,12 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterOpening,
                     RegisterWalletLink,
                     RegisterImport,
+                    RegisterEvidence,
                     RegisterInstruction,
                     Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterImport.asic_file", connected)
                 self.assertIn("shared.storage.sweep:shareholders.PublicationEvent.evidence", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):
