@@ -1,16 +1,26 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Text, View, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { REGISTER_COPY } from '@ledova/shared';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import { useCompanyRegister } from './useCompanyRegister';
+import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
+import { CompanySelection } from '../company/CompanySelection';
+import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRegister } from './ClassRegister';
+import { RegisterDownload } from './RegisterDownload';
 
 export function CompanyRegisterScreen() {
-  const { access, query } = useCompanyRegister();
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
+  return <CompanyRegister key={epoch} epoch={epoch} />;
+}
+
+function CompanyRegister({ epoch }: { epoch: number }) {
+  const { classes, companies, company, selectCompany, registers, isFetching, refresh } = useCompanyRegister(epoch);
+  const classPageOpens = useCompanyAccess().allowed;
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -19,81 +29,80 @@ export function CompanyRegisterScreen() {
       testID="register-screen"
       title="Register"
       lede="The stored register records your company’s members and their shares; wallet balances do not replace it."
-      refreshControl={
-        <RefreshControl
-          refreshing={query.isFetching}
-          onRefresh={() => {
-            if (access.allowed) void query.refetch();
-          }}
-        />
-      }
+      refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => void refresh()} />}
     >
-      {access.isLoading ? (
-        <Text style={styles.muted}>Loading your company access…</Text>
-      ) : access.isError ? (
-        <View style={styles.group}>
-          <Text accessibilityRole="alert" style={styles.error}>
-            Company access could not be verified.
-          </Text>
-          <Action label="Retry company access" onPress={() => void access.refetch()} />
-        </View>
-      ) : !access.allowed ? (
-        <Text style={styles.muted}>The Register is available to company accounts.</Text>
-      ) : (
-        <>
-          <Section title="Share classes">
-            {query.isPending ? (
-              <Text style={styles.muted}>Loading your register…</Text>
-            ) : query.isError ? (
-              <View style={styles.group}>
-                <Text accessibilityRole="alert" style={styles.error}>
-                  We couldn’t load the complete register.
-                </Text>
-                <Action label="Retry register" disabled={query.isFetching} onPress={() => void query.refetch()} />
-              </View>
-            ) : query.data.length === 0 ? (
-              <Text style={styles.muted}>Your company has no share classes yet.</Text>
-            ) : (
-              query.data.map(({ companyName, register }, index) => {
-                const uuid = register.token.uuid;
-                const open = expanded.includes(uuid);
-                return (
-                  <View key={uuid} style={[styles.entry, index === query.data.length - 1 && styles.lastEntry]}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityState={{ expanded: open }}
-                      accessibilityLabel={`${register.token.name} register`}
-                      onPress={() =>
-                        setExpanded((values) => (open ? values.filter((value) => value !== uuid) : [...values, uuid]))
-                      }
-                    >
-                      <Text style={styles.heading}>{register.token.name}</Text>
-                      <Text style={styles.muted}>
-                        {companyName} · {register.token.symbol}
-                      </Text>
-                      <Text style={styles.muted}>{open ? 'Hide members' : 'Show members'}</Text>
-                    </Pressable>
-                    <Rows>
-                      <LinkRow
-                        label="Share class"
-                        accessibilityLabel={`Open ${register.token.name}`}
-                        onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
-                      />
-                      {open && <ClassRegister register={register} />}
-                    </Rows>
-                  </View>
-                );
-              })
-            )}
-          </Section>
-          <Section title="Register instructions">
-            <Text style={styles.muted}>
-              The company owner submits written register instructions. Staff verify and apply them. Certificates,
-              inspection copies, publications and the company pack are prepared by staff on written instruction.
+      <CompanySelection
+        read={{ companies, companyUuid: company?.uuid, selectionBlocked: classes.isFetching, selectCompany }}
+      />
+      <Section title="Share classes">
+        {classes.isPending ? (
+          <Text style={styles.muted}>Loading your register…</Text>
+        ) : classes.isError || registers.isError ? (
+          <View style={styles.group}>
+            <Text accessibilityRole="alert" style={styles.error}>
+              We couldn’t load the complete register.
             </Text>
-          </Section>
-        </>
-      )}
+            <Action label="Retry register" disabled={isFetching} onPress={() => void refresh()} />
+          </View>
+        ) : companies.length === 0 ? (
+          <Text style={styles.muted}>
+            There is no company register to show. Share classes appear here for companies you own or where your company
+            appointment includes register access.
+          </Text>
+        ) : !company ? (
+          <Text style={styles.muted}>Choose a company above.</Text>
+        ) : registers.isPending ? (
+          <Text style={styles.muted}>Loading your register…</Text>
+        ) : (
+          registers.data.map((register, index) => {
+            const uuid = register.token.uuid;
+            const open = expanded.includes(uuid);
+            return (
+              <View key={uuid} style={[styles.entry, index === registers.data.length - 1 && styles.lastEntry]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: open }}
+                  accessibilityLabel={`${register.token.name} register`}
+                  onPress={() =>
+                    setExpanded((values) => (open ? values.filter((value) => value !== uuid) : [...values, uuid]))
+                  }
+                >
+                  <Text style={styles.heading}>{register.token.name}</Text>
+                  <Text style={styles.muted}>
+                    {company.name} · {register.token.symbol}
+                  </Text>
+                  <Text style={styles.muted}>{open ? 'Hide members' : 'Show members'}</Text>
+                </Pressable>
+                <Rows>
+                  {classPageOpens && (
+                    <LinkRow
+                      label="Share class"
+                      accessibilityLabel={`Open ${register.token.name}`}
+                      onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
+                    />
+                  )}
+                  {open && (
+                    <View style={styles.group}>
+                      <RegisterDownload
+                        uuid={uuid}
+                        disabled={!register.initialized}
+                        accessibilityLabel={`${REGISTER_COPY.DOWNLOAD} for ${register.token.name}`}
+                      />
+                      <ClassRegister register={register} />
+                    </View>
+                  )}
+                </Rows>
+              </View>
+            );
+          })
+        )}
+      </Section>
+      <Section title="Register instructions">
+        <Text style={styles.muted}>
+          The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection
+          copies, publications and the company pack are prepared by staff on written instruction.
+        </Text>
+      </Section>
     </Page>
   );
 }

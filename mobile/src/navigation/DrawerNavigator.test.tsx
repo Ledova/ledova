@@ -1,9 +1,11 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { signout } from '@ledova/shared';
+import { COMPANY_TOKEN_ENDPOINTS, signout } from '@ledova/shared';
+import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
+import { getSessionEpoch, invalidateSessionScope } from '../services/sessionScope';
 import { clearTokens } from '../services/tokenStorage';
 import { DrawerNavigator } from './DrawerNavigator';
 
@@ -44,16 +46,25 @@ jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 0, bottom: 34, left: 0, right: 0 }),
 }));
-jest.mock('../services/apiClient', () => ({ apiClient: {} }));
+jest.mock('../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
 jest.mock('../services/notificationsService', () => ({ notificationsService: { unregisterToken: jest.fn() } }));
 jest.mock('../services/tokenStorage', () => ({ clearTokens: jest.fn() }));
 
 const account = ['account'];
+const get = jest.mocked(apiClient.get);
 let client: QueryClient;
 let events: string[];
+let registerClasses: { uuid: string }[];
 
 function cache() {
   return client.getQueryData(account) ? 'kept' : 'cleared';
+}
+
+async function accessRead() {
+  await waitFor(() =>
+    expect(client.getQueryState(['company-tokens', 'register', getSessionEpoch(), 'access'])?.status).toBe('success'),
+  );
+  await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
 }
 
 beforeEach(() => {
@@ -64,6 +75,14 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   client.setQueryData(account, { email: 'synthetic@example.test' });
   events = [];
+  registerClasses = [];
+  get.mockReset();
+  get.mockImplementation(
+    (url) =>
+      (url === COMPANY_TOKEN_ENDPOINTS.REGISTER
+        ? Promise.resolve({ data: { results: registerClasses, next: null, count: registerClasses.length } })
+        : Promise.reject(new Error(`Unexpected ${url}`))) as ReturnType<typeof apiClient.get>,
+  );
   jest.mocked(notificationsService.unregisterToken).mockImplementation(async () => {
     events.push('unregister push');
   });
@@ -213,6 +232,7 @@ it('keeps securities Market behind its feature flag and waits for the role befor
   );
   expect(view.queryByText('Your shares')).toBeNull();
   expect(view.queryByText('Invest')).toBeNull();
+  expect(get).not.toHaveBeenCalled();
   mockRole.isLoading = false;
   await view.rerender(
     <QueryClientProvider client={client}>
@@ -235,6 +255,7 @@ async function footOf() {
       <DrawerNavigator />
     </QueryClientProvider>,
   );
+  await accessRead();
   const foot = view.getByTestId('drawer-foot');
   return {
     view,
@@ -285,6 +306,7 @@ it('opens Company team through Home for an investor while the company work group
       <DrawerNavigator />
     </QueryClientProvider>,
   );
+  await accessRead();
   expect(view.queryByRole('button', { name: 'Register' })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Company team' }));
   expect(mockNavigate).toHaveBeenCalledWith('MainApp', {
@@ -315,7 +337,67 @@ it('keeps the owner business group first and uses a company-neutral title withou
 
 it('does not query company names for an investor navigation menu', async () => {
   const view = await drawer();
+  await accessRead();
 
   expect(view.getByRole('header', { name: 'Invest' })).toBeTruthy();
   expect(mockCompanies).not.toHaveBeenCalled();
+});
+
+it('opens the register through Home for an investor whose appointment reads a company register', async () => {
+  registerClasses = [{ uuid: 'ordinary' }];
+  const view = await drawer();
+  const register = await view.findByRole('button', { name: 'Register' });
+  const buttons = view.getAllByRole('button');
+  expect(buttons.indexOf(register)).toBe(buttons.indexOf(view.getByRole('button', { name: 'Company team' })) + 1);
+  expect(get.mock.calls).toEqual([
+    [
+      COMPANY_TOKEN_ENDPOINTS.REGISTER,
+      {
+        ledovaSessionEpoch: getSessionEpoch(),
+        signal: expect.objectContaining({ aborted: false }),
+        params: { page: 1 },
+      },
+    ],
+  ]);
+  await fireEvent.press(register);
+  expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+    screen: 'Main',
+    params: { screen: 'Home', params: { screen: 'CompanyRegister' } },
+  });
+});
+
+it('hides the register from an investor without register access', async () => {
+  const view = await drawer();
+  await accessRead();
+  expect(view.queryByRole('button', { name: 'Register' })).toBeNull();
+  expect(get).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  ['company', false],
+  ['dual-role', true],
+])('reads no register access for a %s account, whose company group keeps the Register', async (_, isInvestor) => {
+  mockRole = { isCompany: true, isInvestor, isLoading: false };
+  registerClasses = [{ uuid: 'ordinary' }];
+  const view = await drawer();
+  expect(view.getAllByRole('button', { name: 'Register' })).toHaveLength(1);
+  await fireEvent.press(view.getByRole('button', { name: 'Register' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('MainApp', {
+    screen: 'Main',
+    params: { screen: 'Company', params: { screen: 'CompanyMain' } },
+  });
+  expect(get).not.toHaveBeenCalled();
+});
+
+it('does not carry register access from a previous session', async () => {
+  registerClasses = [{ uuid: 'ordinary' }];
+  const view = await drawer();
+  await view.findByRole('button', { name: 'Register' });
+  registerClasses = [];
+  await act(() => invalidateSessionScope());
+  expect(view.queryByRole('button', { name: 'Register' })).toBeNull();
+  await accessRead();
+  expect(get).toHaveBeenCalledTimes(2);
+  expect(get.mock.calls[1][1]).toEqual(expect.objectContaining({ ledovaSessionEpoch: getSessionEpoch() }));
+  expect(view.queryByRole('button', { name: 'Register' })).toBeNull();
 });

@@ -9,13 +9,13 @@ import {
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
   getErrorMessage,
-  REGISTER_COPY,
 } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { Section, Row, Rows, Action } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { ClassRegister } from '../company-register/ClassRegister';
+import { RegisterDownload } from '../company-register/RegisterDownload';
 import { useCompanyStyles } from '../company-register/styles';
 import { useTokenDetail } from './useTokenDetail';
 import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
@@ -267,22 +267,10 @@ function ShareClass({ uuid }: { uuid: string }) {
           <TokenPauseControls token={token} refreshing={data.token.isFetching} />
         )}
         <Section title="Register of members">
-          <Text style={styles.muted}>{REGISTER_COPY.PRIVACY_NOTE}</Text>
-          <Action
-            label={REGISTER_COPY.DOWNLOAD}
-            disabled={
-              data.register.isPending ||
-              data.register.isError ||
-              !data.register.data?.initialized ||
-              data.download.isPending
-            }
-            onPress={() => data.download.mutate()}
+          <RegisterDownload
+            uuid={uuid}
+            disabled={data.register.isPending || data.register.isError || !data.register.data?.initialized}
           />
-          {data.download.isError && (
-            <Text accessibilityRole="alert" style={styles.error}>
-              {REGISTER_COPY.DOWNLOAD_FAILED}
-            </Text>
-          )}
           <ReadResult query={data.register} label="register">
             {data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
