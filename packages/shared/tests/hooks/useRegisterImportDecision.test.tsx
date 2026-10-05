@@ -127,6 +127,19 @@ it('refuses an unconfirmed receipt and refreshes after a refusal', async () => {
   expect(onRefused).toHaveBeenCalledTimes(1);
 });
 
+it('words a refusal by the requirements the server found unmet', async () => {
+  const { post, hook, onRefused } = setup();
+  post
+    .mockResolvedValueOnce({ data: PREVIEW })
+    .mockRejectedValueOnce({ response: { status: 400, data: { unmetRequirements: ['approval_lapsed'] } } });
+  await act(() => hook.result.current.open('apply'));
+  await act(() => hook.result.current.confirm());
+  expect(hook.result.current.error).toBe(
+    "The approver's appointment has ended. Approve this import again before applying it.",
+  );
+  expect(onRefused).toHaveBeenCalledTimes(1);
+});
+
 it('records nothing when the guard refuses or the preview lists unmet requirements', async () => {
   const { post, hook, guard } = setup();
   post.mockResolvedValueOnce({ data: { ...PREVIEW, canDecide: false, unmetRequirements: ['approval_required'] } });

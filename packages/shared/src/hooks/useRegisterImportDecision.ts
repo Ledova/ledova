@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { REGISTER_IMPORT_COPY } from '../constants/business/register-imports';
+import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
 import type {
   RegisterImport,
@@ -26,6 +26,13 @@ export type RegisterImportDecisionOptions = {
   onDecided: (proposal: RegisterImport) => Promise<unknown> | void;
   onRefused?: () => Promise<unknown> | void;
 };
+
+function refusal(failure: unknown) {
+  const codes = (failure as { response?: { data?: { unmetRequirements?: unknown } } })?.response?.data
+    ?.unmetRequirements;
+  if (!Array.isArray(codes) || !codes.length) return null;
+  return codes.map((code) => REGISTER_IMPORT_UNMET_COPY[String(code)] ?? REGISTER_IMPORT_COPY.DECIDE_FAILED).join(' ');
+}
 
 export function useRegisterImportDecision(
   apiClient: AxiosInstance,
@@ -105,7 +112,7 @@ export function useRegisterImportDecision(
       const status = (failure as { response?: { status?: number } })?.response?.status;
       if (status && status < 500) retry.current = null;
       settle(null);
-      if (mounted.current) setError(getErrorMessage(failure, REGISTER_IMPORT_COPY.DECIDE_FAILED));
+      if (mounted.current) setError(refusal(failure) ?? getErrorMessage(failure, REGISTER_IMPORT_COPY.DECIDE_FAILED));
       if (status === 400 || status === 404 || status === 409) await options.onRefused?.();
     } finally {
       pending.current = false;
