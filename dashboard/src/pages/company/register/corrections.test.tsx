@@ -699,6 +699,16 @@ it('reads the entries a page of corrections reverses by their UUIDs, once each, 
   ]);
 });
 
+it('refuses corrections whose entry lookup answers with an entry it was not asked for', async () => {
+  serve((url, config) => (url === ENTRIES && config?.params?.entry ? page([ISSUE, OPENING]) : undefined));
+  await openClass();
+  const list = await corrections();
+  expect(within(list).getByRole('alert').textContent).toContain(
+    "We couldn't load the corrections for this share class.",
+  );
+  expect(within(list).queryByRole('listitem')).toBeNull();
+});
+
 it('lists a correction once when a later page repeats it', async () => {
   const again = correction({ uuid: 'correction-again', corrects: 'entry-transfer', createdAt: '2026-10-04T01:00:00Z' });
   correctionPages = [page([correction(), again], NEXT(CORRECTIONS, 2)), page([again, staffEra()])];

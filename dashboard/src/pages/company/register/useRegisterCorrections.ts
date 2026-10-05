@@ -50,6 +50,8 @@ async function readNamedEntries(token: string, entry: string[], guard: () => voi
   const named = await readEveryPage((page) =>
     guarded(guard, () => getRegisterEntries(apiClient, token, { entry, page }, { ledovaSubmissionGuard: guard })),
   );
+  if (named.some(({ uuid }) => !entry.includes(uuid)))
+    throw new Error('The register answered with entries it was not asked for.');
   return new Map(named.map((row) => [row.uuid, row]));
 }
 

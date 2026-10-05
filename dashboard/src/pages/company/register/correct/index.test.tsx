@@ -558,6 +558,18 @@ it('uploads again under a new key once another appointment holds the prepare ste
   expect(preparations()[0].appointment).toBe('appointment-0');
 });
 
+it('refuses a lookup that answers with an entry it was not asked for', async () => {
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: unknown) =>
+    url === ENTRIES ? page([entry({ uuid: 'entry-newer' })]) : read(url, config),
+  );
+  show();
+  expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load the complete register.");
+  expect(screen.queryByText('This entry is not in the register of this share class.')).toBeNull();
+  expect(screen.queryByText(COPY.ORIGINAL_CHANGES)).toBeNull();
+  expect(screen.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
+});
+
 it('refuses a named entry read whose next link does not advance', async () => {
   const read = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: unknown) =>
