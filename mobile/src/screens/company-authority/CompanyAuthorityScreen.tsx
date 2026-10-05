@@ -15,7 +15,7 @@ import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { useCompanyStyles } from '../company-register/styles';
-import { importAppointmentsKey } from '../company-register/useCompanyRegister';
+import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 
@@ -82,7 +82,7 @@ export function CompanyAuthorityScreen() {
           !response.data.appointment.revokedAt))
     )
       throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
-    if (action === 'revoke') void queryClient.invalidateQueries({ queryKey: importAppointmentsKey(epoch) });
+    if (action === 'revoke') void queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) });
     await queryClient.cancelQueries({ queryKey, exact: true });
     assertSessionEpoch(epoch);
     if (queryClient.getQueryState(queryKey)?.status !== 'success') return;

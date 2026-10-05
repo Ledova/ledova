@@ -13,7 +13,9 @@ import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
+import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
+import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
 import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
@@ -139,6 +141,14 @@ function OwnRegister({
                 <RegisterDownload register={register} />
                 <ClassRegister register={register} />
                 <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
+                <ClassCorrections owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
+                <ClassReconciliation
+                  owner={owner}
+                  guard={guard}
+                  token={register.token.uuid}
+                  company={company.uuid}
+                  holders={register.holders}
+                />
               </Disclosure>
             </li>
           ))}

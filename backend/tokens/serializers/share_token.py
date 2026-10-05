@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from companies.models import Company
 from tokens.constants import RESERVED_SYMBOL
-from tokens.models import ShareToken
+from tokens.models import RegisterEntryKind, ShareToken
 from tokens.services.creation import create_share_token
 from tokens.services.market_data_service import market_summaries
 from tokens.services.register_inclusions import ISSUE, TRANSFER, WAITING_REASONS
@@ -180,6 +180,24 @@ class ShareRegisterHolderSerializer(serializers.Serializer):
     entered_on = serializers.DateField()
     share_class = serializers.CharField()
     identity_source = serializers.CharField()
+
+
+class ShareRegisterEntryChangeSerializer(serializers.Serializer):
+    member = serializers.UUIDField()
+    name = serializers.CharField(allow_null=True)
+    shares = serializers.CharField()
+
+
+class ShareRegisterEntrySerializer(serializers.Serializer):
+    uuid = serializers.UUIDField()
+    sequence = serializers.IntegerField()
+    kind = serializers.ChoiceField(choices=RegisterEntryKind.choices)
+    effective_on = serializers.DateField()
+    recorded_at = serializers.DateTimeField()
+    changes = ShareRegisterEntryChangeSerializer(many=True)
+    corrects = serializers.UUIDField(allow_null=True)
+    corrected_by = serializers.UUIDField(allow_null=True)
+    correctable = serializers.BooleanField()
 
 
 class ShareRegisterWaitingEffectSerializer(serializers.Serializer):

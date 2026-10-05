@@ -475,6 +475,42 @@ def stored_waiting_list(token):
         return waiting_list(token.pk)
 
 
+def stored_entries(token, paginate, wanted=()) -> list[dict]:
+    entries = RegisterEntry.objects.filter(register__token=token)
+    if wanted:
+        entries = entries.filter(pk__in=wanted)
+    with _snapshot():
+        entries = paginate(
+            entries.annotate(
+                corrected_by=Subquery(RegisterEntry.objects.filter(corrects=OuterRef("pk")).values("pk"))
+            ).order_by("-sequence")
+        )
+        people = member_identities(
+            token, sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
+        )
+    return [
+        {
+            "uuid": entry.pk,
+            "sequence": entry.sequence,
+            "kind": entry.kind,
+            "effective_on": entry.effective_on,
+            "recorded_at": entry.created_at,
+            "changes": [
+                {
+                    "member": change["member"],
+                    "name": people[UUID(change["member"])].name or None,
+                    "shares": change["shares"],
+                }
+                for change in entry.changes
+            ],
+            "corrects": entry.corrects_id,
+            "corrected_by": entry.corrected_by,
+            "correctable": bool(entry.changes) and entry.corrected_by is None,
+        }
+        for entry in entries
+    ]
+
+
 def api_holders(rows) -> list[dict]:
     return [{field: row[field] for field in API_FIELDS} for row in rows]
 
