@@ -35,6 +35,12 @@ async function guarded<Result>(guard: () => void, read: () => Promise<Result>) {
   return result;
 }
 
+function firstOfEach<Row>(rows: Row[], uuidOf: (row: Row) => string) {
+  const kept = new Map<string, Row>();
+  for (const row of rows) if (!kept.has(uuidOf(row))) kept.set(uuidOf(row), row);
+  return [...kept.values()];
+}
+
 function readEntries(token: string, page: number, guard: () => void) {
   return guarded(guard, () => getRegisterEntries(apiClient, token, { page }, { ledovaSubmissionGuard: guard }));
 }
@@ -79,7 +85,7 @@ export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, g
   });
   const pages = useLaterPages(queryKey, query);
   return {
-    entries: query.data?.pages.flatMap((page) => page.results) ?? [],
+    entries: firstOfEach(query.data?.pages.flatMap((page) => page.results) ?? [], ({ uuid }) => uuid),
     isPending: query.isPending,
     hasError: pages.hasError,
     moreFailed: pages.moreFailed,
@@ -95,9 +101,10 @@ export function useClassCorrections(owner: OrderSubmissionOwner, token: string, 
   return useQuery({
     queryKey: correctionsKey(owner, token),
     queryFn: async () =>
-      (await readEveryPage((page) => readCorrectionPage(token, page, guard))).sort(
-        (left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt),
-      ),
+      firstOfEach(
+        await readEveryPage((page) => readCorrectionPage(token, page, guard)),
+        ({ proposal }) => proposal.uuid,
+      ).sort((left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt)),
     ...READ_TIMING,
   });
 }

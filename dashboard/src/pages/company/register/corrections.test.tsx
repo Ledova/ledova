@@ -456,6 +456,23 @@ it('says an entry was corrected, or corrects another, without a number until tha
   expect(within(early).getByText(COPY.CORRECTED_NOTE)).toBeTruthy();
 });
 
+it('lists an entry once when a later page repeats it after a new entry was recorded', async () => {
+  const errors = vi.spyOn(console, 'error');
+  correctionPages = [page([])];
+  entryPages = [page([REVERSAL, TRANSFER], NEXT(ENTRIES, 2)), page([TRANSFER, ISSUE, OPENING])];
+  await openClass();
+  const register = await history();
+  fireEvent.click(within(register).getByRole('button', { name: 'Load more register entries' }));
+  await waitFor(() => expect(records(register)).toHaveLength(4));
+  expect(records(register).map((record) => within(record).getByText(/^Entry \d+$/).textContent)).toEqual([
+    'Entry 4',
+    'Entry 3',
+    'Entry 2',
+    'Entry 1',
+  ]);
+  expect(errors.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+});
+
 it('refuses entry pages whose next link does not advance', async () => {
   entryPages = [page([REVERSAL, TRANSFER], NEXT(ENTRIES, 1))];
   correctionPages = [page([])];
@@ -680,6 +697,18 @@ it('reads the entries a page of corrections reverses by their UUIDs, once each, 
   expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config.params.page)).toEqual([
     1, 1, 1,
   ]);
+});
+
+it('lists a correction once when a later page repeats it', async () => {
+  const again = correction({ uuid: 'correction-again', corrects: 'entry-transfer', createdAt: '2026-10-04T01:00:00Z' });
+  correctionPages = [page([correction(), again], NEXT(CORRECTIONS, 2)), page([again, staffEra()])];
+  await openClass();
+  expect(records(await corrections())).toHaveLength(3);
+  expect(
+    client
+      .getQueryData<{ proposal: RegisterCorrection }[]>([...ACCOUNT, 'corrections', 'ordinary'])
+      ?.map(({ proposal }) => proposal.uuid),
+  ).toEqual(['correction-new', 'correction-again', 'correction-staff']);
 });
 
 it("refuses corrections naming an entry outside the class's register, and offers a retry", async () => {
