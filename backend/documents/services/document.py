@@ -8,7 +8,15 @@ from documents.models import Document, DocumentType
 from documents.models.document import document_upload_path
 from documents.tasks.extract import extract_document
 from shared.db import atomic, on_commit
-from users.models import InvestorClassification, InvestorClassificationStatus
+from users.models import (
+    CompanyEligibilityRequest,
+    InvestorClassification,
+    InvestorClassificationStatus,
+)
+from users.services.investor_classification import (
+    evidence_operation,
+    require_evidence_retention_policy,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +56,7 @@ def attach_document(document, classification_uuid):
     copied = None
     storage = document.file.storage
     try:
-        with atomic():
+        with evidence_operation("attach", source_id=classification_uuid, document_id=document.pk), atomic():
             claim = get_object_or_404(InvestorClassification.objects.select_for_update(), pk=classification_uuid)
             document = get_object_or_404(
                 Document.objects.with_matching_claim_owner().select_for_update(of=("self",)), pk=document.pk
@@ -57,6 +65,9 @@ def attach_document(document, classification_uuid):
                 return document
             if document.classification_id:
                 raise ValidationError("This payslip is already attached to a claim.")
+            if CompanyEligibilityRequest.objects.filter(source=claim).exists():
+                raise ValidationError("Evidence shared in a company eligibility request cannot be extended.")
+            require_evidence_retention_policy()
             if claim.status != InvestorClassificationStatus.SUBMITTED:
                 raise ValidationError("Supporting payslips can only be attached to a submitted claim awaiting review.")
             if document.document_type != DocumentType.PAYSLIP or not document.content_available:
@@ -83,4 +94,5 @@ def delete_document(document):
     )
     if document.classification_id:
         raise ValidationError("Supporting evidence is retained with its classification claim and cannot be deleted.")
-    document.delete()
+    with evidence_operation("delete_unattached", document_id=document.pk), atomic():
+        document.delete()

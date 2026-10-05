@@ -21,6 +21,7 @@ from documents.serializers.document import DocumentSerializer
 from feature_flags.models import FeatureFlag
 from offerings.models import Offering, OfferingStatus
 from operators.models import Operator
+from shared.db import use_migrate
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import YieldToken
@@ -401,7 +402,8 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
             document=document, status=ExtractionStatus.SUCCEEDED, parsed_json={"value": 1}
         )
         self.assertIsNotNone(self.get_json(path)["latestExtraction"])
-        Document.objects.filter(pk=document.pk).update(purged_at=timezone.now())
+        with use_migrate():
+            Document.objects.filter(pk=document.pk).update(purged_at=timezone.now())
         self.assertEqual(self.client.get(path).status_code, 404)
         self.assertEqual(self.get_json(DOCUMENTS)["results"], [])
         document.refresh_from_db()

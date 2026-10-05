@@ -10,7 +10,8 @@ from rest_framework.test import APITransactionTestCase
 from documents.models import Document, DocumentRead
 from documents.tasks.retention import purge_document_evidence
 from documents.tests.test_supporting_evidence import STORAGES
-from shared.db import use_operator
+from shared.db import use_migrate, use_operator
+from shared.tests.evidence_retention import installed_evidence_retention_policy
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 
@@ -61,9 +62,10 @@ class ScopedSupportingEvidenceTest(RunsOnTheScopedConnection, APITransactionTest
     @override_settings(UNATTACHED_DOCUMENT_RETENTION_DAYS=1)
     def test_the_periodic_retention_sweep_uses_operator_scope_across_uploaders(self):
         ids = [self.owner.document.pk, self.other.document.pk]
-        with use_operator():
+        with use_migrate():
             Document.objects.filter(pk__in=ids).update(created_at=timezone.now() - timedelta(days=2))
         self.signed_in_as(self.owner.user)
-        self.assertEqual(purge_document_evidence(), {"purged": 2, "failed": 0})
+        with installed_evidence_retention_policy():
+            self.assertEqual(purge_document_evidence(), {"purged": 2, "failed": 0})
         with use_operator():
             self.assertEqual(Document.objects.filter(pk__in=ids, purged_at__isnull=False).count(), 2)

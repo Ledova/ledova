@@ -49,7 +49,13 @@ class SwapProcess:
             },
         )
         test.addCleanup(self.close)
-        loaded = self.receive("loaded")
+        if mode == "reverse_inclusion":
+            preparation = self.receive("schema_preparation")
+            test.assertEqual(preparation["target"], "0063_swap_finalized_receipt")
+            loaded = self.receive("loaded", timeout=90)
+            test.assertEqual(loaded["pid"], preparation["pid"])
+        else:
+            loaded = self.receive("loaded")
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
             test.assertNotEqual(loaded["pid"], cursor.fetchone()[0])
@@ -59,8 +65,8 @@ class SwapProcess:
         self.errors.seek(0)
         return self.errors.read().decode()[-5000:]
 
-    def receive(self, stage):
-        readable, _, _ = select.select([self.process.stdout], [], [], 25)
+    def receive(self, stage, timeout=25):
+        readable, _, _ = select.select([self.process.stdout], [], [], timeout)
         self.test.assertTrue(readable, f"Worker did not reach {stage}: {self.error_output()}")
         line = self.process.stdout.readline()
         self.database_pid = json.loads(line)["pid"]

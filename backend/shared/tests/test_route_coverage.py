@@ -45,6 +45,11 @@ CHAIN_ADDRESS_READ = (
     "Reads the chain for a bare wallet address in the registry of the share class at a contract address; the class "
     "resolves through its own policy and the answer belongs to no tenant row."
 )
+OWN_ELIGIBILITY_REQUEST = (
+    "Own private source and exact known company/offering are checked before preview or request creation; "
+    "the issuer reference grants no company/private-document access. Foreign source and retained history "
+    "controls are pinned by users/tests/test_company_eligibility_requests.py."
+)
 
 EXEMPT = {
     ("post", "/api/signin/"): UNAUTHENTICATED_AUTH,
@@ -68,6 +73,9 @@ EXEMPT = {
     ("post", "/api/wallets/"): CREATES_OWN_ROW,
     ("post", "/api/wallets/batch-check-balances/"): SELF_SCOPED,
     ("post", "/api/investor-classifications/"): CREATES_OWN_ROW_SCOPED_FK,
+    ("get", "/api/v1/company-eligibility/requests/"): SELF_SCOPED,
+    ("post", "/api/v1/company-eligibility/requests/"): OWN_ELIGIBILITY_REQUEST,
+    ("post", "/api/v1/company-eligibility/requests/preview/"): OWN_ELIGIBILITY_REQUEST,
     ("post", "/api/v1/companies/"): CREATES_OWN_ROW_SCOPED_FK,
     ("post", "/api/v1/documents/"): CREATES_OWN_ROW,
     ("get", "/api/notifications/unread-count/"): SELF_SCOPED,
@@ -115,7 +123,13 @@ def matrix_routes():
         add(method, path)
     for method, path in matrix.PUBLICATION_ROUTES.values():
         add(method, path)
-    for route in matrix.ROUTES + matrix.ACTION_ROUTES + matrix.DIRECTORY_ROUTES + matrix.MARKET_ROUTES:
+    for route in (
+        matrix.ROUTES
+        + matrix.ACTION_ROUTES
+        + matrix.DIRECTORY_ROUTES
+        + matrix.MARKET_ROUTES
+        + matrix.ELIGIBILITY_ROUTES
+    ):
         add(route.method, route.path)
     for path, _ in matrix.LIST_ROUTES:
         add("get", path)

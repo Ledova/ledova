@@ -131,7 +131,7 @@ def an_account(label, **fields):
     return UserAccount.objects.create(user_profile=a_profile(label), **fields)
 
 
-def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
+def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classification_model=InvestorClassification):
     number = next(_sequence)
     refs = reference_data()
     email = f"{label}@tenants.example.test"
@@ -172,19 +172,20 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
     preferences = UserPreferences.objects.create(user_profile=profile)
     device_token = DeviceToken.objects.create(user=user, push_token=f"ExponentPushToken[{label}]", device_type="ios")
     notification = Notification.objects.create(user=user, title=f"For {label}", body="Body")
-    investor_classification = InvestorClassification.objects.create(
-        user_account=account,
-        category=InvestorCategory.PROFESSIONAL_INVESTOR,
-        declaration_accepted=True,
-        declaration_text="Declared",
-        declared_basis=f"{label} basis",
-        evidence_file_size=len(label),
-        evidence_mime_type="application/pdf",
-        submitted_at=timezone.now(),
-    )
-    investor_classification.evidence_file.save(
-        f"{label}-evidence.pdf", ContentFile(f"evidence for {label}".encode()), save=True
-    )
+    with use_migrate():
+        investor_classification = classification_model.objects.create(
+            user_account_id=account.pk,
+            category=InvestorCategory.PROFESSIONAL_INVESTOR,
+            declaration_accepted=True,
+            declaration_text="Declared",
+            declared_basis=f"{label} basis",
+            evidence_file_size=len(label),
+            evidence_mime_type="application/pdf",
+            submitted_at=timezone.now(),
+        )
+        investor_classification.evidence_file.save(
+            f"{label}-evidence.pdf", ContentFile(f"evidence for {label}".encode()), save=True
+        )
 
     with use_migrate():
         company = Company.objects.create(
@@ -276,13 +277,14 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
         price_per_share=Decimal("2.50"),
         amount_due=Decimal("25.00"),
     )
-    document = Document.objects.create(
-        uploaded_by=user,
-        document_type="payslip",
-        original_filename=f"{label}.pdf",
-        mime_type="application/pdf",
-    )
-    document.file.save(f"{label}-payslip.pdf", ContentFile(f"payslip for {label}".encode()), save=True)
+    with use_migrate():
+        document = Document.objects.create(
+            uploaded_by=user,
+            document_type="payslip",
+            original_filename=f"{label}.pdf",
+            mime_type="application/pdf",
+        )
+        document.file.save(f"{label}-payslip.pdf", ContentFile(f"payslip for {label}".encode()), save=True)
     return SimpleNamespace(
         label=label,
         refs=refs,
@@ -315,43 +317,46 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True):
 
 
 def an_eligible_investor(account):
-    UserProfile.objects.filter(pk=account.user_profile_id).update(is_id_verified=True)
-    UserAccount.objects.filter(pk=account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
-    return InvestorClassification.objects.create(
-        user_account=account,
-        category=InvestorCategory.PROFESSIONAL_INVESTOR,
-        status=InvestorClassificationStatus.VERIFIED,
-        expires_at=timezone.now() + timedelta(days=365),
-        declaration_accepted=True,
-        declaration_text="Declared",
-        submitted_at=timezone.now(),
-    )
+    with use_migrate():
+        UserProfile.objects.filter(pk=account.user_profile_id).update(is_id_verified=True)
+        UserAccount.objects.filter(pk=account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+        return InvestorClassification.objects.create(
+            user_account=account,
+            category=InvestorCategory.PROFESSIONAL_INVESTOR,
+            status=InvestorClassificationStatus.VERIFIED,
+            expires_at=timezone.now() + timedelta(days=365),
+            declaration_accepted=True,
+            declaration_text="Declared",
+            submitted_at=timezone.now(),
+        )
 
 
 def make_eligible(tenant):
-    UserProfile.objects.filter(pk=tenant.profile.pk).update(is_id_verified=True)
-    UserAccount.objects.filter(pk=tenant.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
-    InvestorClassification.objects.filter(pk=tenant.investor_classification.pk).update(
-        status=InvestorClassificationStatus.VERIFIED, expires_at=timezone.now() + timedelta(days=365)
-    )
+    with use_migrate():
+        UserProfile.objects.filter(pk=tenant.profile.pk).update(is_id_verified=True)
+        UserAccount.objects.filter(pk=tenant.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+        InvestorClassification.objects.filter(pk=tenant.investor_classification.pk).update(
+            status=InvestorClassificationStatus.VERIFIED, expires_at=timezone.now() + timedelta(days=365)
+        )
 
 
 def make_associated(tenant, company):
-    UserProfile.objects.filter(pk=tenant.profile.pk).update(is_id_verified=True)
-    UserAccount.objects.filter(pk=tenant.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
-    return InvestorClassification.objects.create(
-        user_account=tenant.account,
-        company=company,
-        category=InvestorCategory.ASSOCIATED_PERSON,
-        status=InvestorClassificationStatus.VERIFIED,
-        expires_at=timezone.now() + timedelta(days=365),
-        declaration_accepted=True,
-        declaration_text="Declared",
-        declared_basis=f"{tenant.label} association",
-        evidence_file_size=len(tenant.label),
-        evidence_mime_type="application/pdf",
-        submitted_at=timezone.now(),
-    )
+    with use_migrate():
+        UserProfile.objects.filter(pk=tenant.profile.pk).update(is_id_verified=True)
+        UserAccount.objects.filter(pk=tenant.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+        return InvestorClassification.objects.create(
+            user_account=tenant.account,
+            company=company,
+            category=InvestorCategory.ASSOCIATED_PERSON,
+            status=InvestorClassificationStatus.VERIFIED,
+            expires_at=timezone.now() + timedelta(days=365),
+            declaration_accepted=True,
+            declaration_text="Declared",
+            declared_basis=f"{tenant.label} association",
+            evidence_file_size=len(tenant.label),
+            evidence_mime_type="application/pdf",
+            submitted_at=timezone.now(),
+        )
 
 
 def open_to_investors(tenant):

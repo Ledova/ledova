@@ -25,9 +25,11 @@ Current owners retain bounded metadata reads and their existing domain condition
 this read access supplies no administrative capability or private document access.
 The [administrator activation increment](../plans/company-managed-registers/company-activation.md)
 adds evidenced company activation without routine staff onboarding. Company-specific
-participant eligibility remains part of #863. The first #864 increment lets a current
-appointee holding administration or a register capability read the company's register
-and retained register proposals; register commands and #865–#873 remain planned.
+participant eligibility remains part of #863. Its [records and API foundation](../plans/company-managed-registers/company-eligibility.md)
+retains company-scoped decisions while existing investment consumers remain until
+their coherent conversion. The first #864 increment lets a current appointee holding
+administration or a register capability read the company's register and retained
+register proposals; register commands and #865–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
