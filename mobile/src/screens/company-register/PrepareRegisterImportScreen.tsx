@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -24,8 +24,9 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
+import { EvidencePicker, Field, isoDay } from './RegisterFields';
 import { useCompanyStyles } from './styles';
-import { importsKey, useClassRegister, useImportAppointments } from './useCompanyRegister';
+import { importsKey, useClassRegister, useRegisterAppointments } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
 type Authority = RegisterImportPreparation['authority'];
@@ -40,79 +41,9 @@ const AUTHORITIES: [Authority, string][] = [
 const MONEY = /^(0|[1-9]\d{0,17})(\.\d{1,2})?$/;
 const FAILED = 'The import could not be prepared. Retry with the same details.';
 
-function isoDay(value: string) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return (
-    !!match &&
-    new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))).toISOString().startsWith(value)
-  );
-}
-
 function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
   return shares !== null && shares > 0n ? shares.toString() : '';
-}
-
-function Field({
-  label,
-  accessibilityLabel,
-  value,
-  editable,
-  keyboardType,
-  multiline,
-  onChange,
-}: {
-  label: string;
-  accessibilityLabel?: string;
-  value: string;
-  editable: boolean;
-  keyboardType?: KeyboardTypeOptions;
-  multiline?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const styles = useCompanyStyles();
-  return (
-    <View style={styles.group}>
-      <Text style={styles.text}>{label}</Text>
-      <TextInput
-        accessibilityLabel={accessibilityLabel ?? label}
-        style={styles.input}
-        value={value}
-        editable={editable}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        onChangeText={onChange}
-      />
-    </View>
-  );
-}
-
-function EvidencePicker({
-  title,
-  noun,
-  evidence,
-  disabled,
-  onPick,
-}: {
-  title: string;
-  noun: string;
-  evidence: ReturnType<typeof useRegisterEvidence>;
-  disabled: boolean;
-  onPick: () => void;
-}) {
-  const styles = useCompanyStyles();
-  return (
-    <View style={styles.group}>
-      <Text style={styles.heading}>{title}</Text>
-      <Text style={styles.muted}>
-        {evidence.name
-          ? `${evidence.name}${evidence.uploaded ? ' · uploaded' : ''}`
-          : 'Choose a PDF, PNG or JPEG up to 10 MB.'}
-      </Text>
-      <Action label={`${evidence.name ? 'Replace' : 'Choose'} the ${noun}`} disabled={disabled} onPress={onPick} />
-      {!!evidence.name && <Action label={`Remove the ${noun}`} disabled={disabled} onPress={evidence.clear} />}
-    </View>
-  );
 }
 
 export function PrepareRegisterImportScreen() {
@@ -126,7 +57,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const navigation = useNavigation();
   const { tokenUuid, companyUuid } = useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterImport'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
-  const { appointments, steps } = useImportAppointments(epoch, companyUuid);
+  const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const shareRegister = useRegisterEvidence(companyUuid, 'share_register');
   const asicExtract = useRegisterEvidence(companyUuid, 'asic_extract');
   const [asAt, setAsAt] = useState(() => formatDateToString(new Date()));

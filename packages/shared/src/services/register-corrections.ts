@@ -27,6 +27,7 @@ export const getRegisterEntries = (
   apiClient.get<PaginatedResponse<RegisterEntry>>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(uuid), {
     ...config,
     params,
+    paramsSerializer: { indexes: null },
   });
 
 export const getRegisterCorrections = (

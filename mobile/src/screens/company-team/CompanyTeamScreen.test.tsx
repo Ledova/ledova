@@ -15,7 +15,7 @@ import {
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
-import { importAppointmentsKey } from '../company-register/useCompanyRegister';
+import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
 import { CompanyTeamScreen } from './CompanyTeamScreen';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
@@ -777,7 +777,7 @@ it('consumes confirmation once, updates the actual own appointment receipt and i
 
 it('makes the register read its import appointments again after a revocation', async () => {
   const view = await screen();
-  const key = importAppointmentsKey(getSessionEpoch());
+  const key = registerAppointmentsKey(getSessionEpoch());
   client.setQueryData(key, [a]);
   await fireEvent.press(view.getByRole('button', { name: 'Your appointment appointment-a' }));
   await fireEvent.press(view.getByRole('button', { name: 'Revoke your appointment appointment-a' }));

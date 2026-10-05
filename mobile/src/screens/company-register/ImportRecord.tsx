@@ -1,22 +1,23 @@
 import { Text, View } from 'react-native';
-import { useMutation } from '@tanstack/react-query';
-import * as Sharing from 'expo-sharing';
 import {
   COMPANY_TOKEN_ENDPOINTS,
   formatDate,
   formatDateTime,
   formatShareCount,
+  REGISTER_COPY,
   REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_DECISIONS,
   registerImportTotals,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
   type RegisterImport,
+  type RegisterImportDecisionPreview,
   type RegisterStep,
 } from '@ledova/shared';
-import { Action, Row, Rows } from '../../components/Ledger';
+import { Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
-import { ImportDecision } from './ImportDecision';
+import { RegisterCopy } from './RegisterCopy';
+import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
 
 const DECISION_KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
@@ -26,59 +27,38 @@ const DECIDED: Record<RegisterDecisionKind, string> = {
   reject: REGISTER_IMPORT_COPY.STAGES.rejected,
 };
 
-function ImportCopy({
-  uuid,
-  copy,
-  epoch,
-  description,
-}: {
-  uuid: string;
-  copy: 'register' | 'asic';
-  epoch: number;
-  description: string;
-}) {
+function ImportPreview({ kind, preview }: { kind: RegisterDecisionKind; preview: RegisterImportDecisionPreview }) {
   const styles = useCompanyStyles();
-  const label = copy === 'asic' ? REGISTER_IMPORT_COPY.DOWNLOAD_ASIC : REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER;
-  const share = useMutation({
-    mutationFn: async () => {
-      if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device.');
-      await shareDocumentCopy(
-        epoch,
-        async () => {
-          const response =
-            copy === 'asic'
-              ? await apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(uuid), {
-                  responseType: 'arraybuffer',
-                  ledovaSessionEpoch: epoch,
-                })
-              : await apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(uuid), {
-                  responseType: 'arraybuffer',
-                  ledovaSessionEpoch: epoch,
-                });
-          const type = String(response.headers['content-type'] || 'application/octet-stream').split(';')[0];
-          return {
-            name: `${copy === 'asic' ? 'asic-extract' : 'register'}-${uuid}${EXTENSION_BY_MIME_TYPE[type] || ''}`,
-            type,
-            bytes: new Uint8Array(response.data),
-          };
-        },
-        (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: UTI_BY_MIME_TYPE[type] }),
-      );
-    },
-  });
   return (
     <>
-      <Action
-        label={label}
-        accessibilityLabel={`${label} of the ${description}`}
-        disabled={share.isPending}
-        onPress={() => share.mutate()}
-      />
-      {share.isError && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          The document could not be opened. Try again.
+      {kind === 'apply' && preview.opensRegister && (
+        <Text style={styles.text}>{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</Text>
+      )}
+      {preview.statedTotal !== null && preview.statedMemberCount !== null && (
+        <Text style={styles.text}>
+          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
         </Text>
       )}
+      <Text style={styles.text}>
+        {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(preview.importedTotal), preview.importedMemberCount)}
+      </Text>
+      <Text style={styles.heading}>Members compared with the stored register</Text>
+      {preview.comparison.map((row, index) => (
+        <View key={row.member} style={[styles.entry, index === preview.comparison.length - 1 && styles.lastEntry]}>
+          <Rows>
+            <Row label="Imported name">{row.name ?? 'Not in the import'}</Row>
+            <Row label="Imported shares">
+              {row.imported === null ? 'Not in the import' : formatShareCount(row.imported)}
+            </Row>
+            <Row label="Stored shares">{row.stored === null ? 'Not stored' : formatShareCount(row.stored)}</Row>
+            <Row label="Imported date entered">{row.importedEnteredOn ?? 'Not in the import'}</Row>
+            <Row label="Stored date entered">{row.enteredOn ?? 'Not stored'}</Row>
+            <Row label="Live name">{row.liveName || 'No live identity'}</Row>
+            {!!row.liveAddress && <Row label="Live address">{row.liveAddress}</Row>}
+            <Row label="Wallets">{row.wallets.length > 0 ? row.wallets.join(', ') : REGISTER_COPY.NO_WALLET}</Row>
+          </Rows>
+        </View>
+      ))}
     </>
   );
 }
@@ -136,9 +116,31 @@ export function ImportRecord({
       <Text style={styles.text}>
         {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
       </Text>
-      <ImportCopy uuid={proposal.uuid} copy="register" epoch={epoch} description={description} />
+      <RegisterCopy
+        label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+        accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER} of the ${description}`}
+        filename={`register-${proposal.uuid}`}
+        epoch={epoch}
+        read={() =>
+          apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(proposal.uuid), {
+            responseType: 'arraybuffer',
+            ledovaSessionEpoch: epoch,
+          })
+        }
+      />
       {!!proposal.asicSnapshot && (
-        <ImportCopy uuid={proposal.uuid} copy="asic" epoch={epoch} description={description} />
+        <RegisterCopy
+          label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+          accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_ASIC} of the ${description}`}
+          filename={`asic-extract-${proposal.uuid}`}
+          epoch={epoch}
+          read={() =>
+            apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(proposal.uuid), {
+              responseType: 'arraybuffer',
+              ledovaSessionEpoch: epoch,
+            })
+          }
+        />
       )}
       {proposal.status === 'submitted' && steps && (
         <View style={styles.choices}>
@@ -146,8 +148,11 @@ export function ImportRecord({
             const appointment = steps[kind];
             return (
               appointment && (
-                <ImportDecision
+                <RegisterDecision
                   key={kind}
+                  family={REGISTER_IMPORT_DECISIONS}
+                  copy={REGISTER_IMPORT_COPY}
+                  noun="import"
                   proposal={proposal}
                   kind={kind}
                   appointment={appointment.uuid}
@@ -155,7 +160,9 @@ export function ImportRecord({
                   description={description}
                   onSettled={onSettled}
                   onRefused={onRefused}
-                />
+                >
+                  {(preview) => <ImportPreview kind={kind} preview={preview} />}
+                </RegisterDecision>
               )
             );
           })}

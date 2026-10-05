@@ -248,6 +248,8 @@ beforeEach(() => {
       if (appointmentsFail) throw new Error('Appointments unavailable');
       return page(appointments);
     }
+    if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return page([]);
+    if (url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return fileAnswer ?? PDF;
     if (url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
@@ -718,11 +720,11 @@ it('hides a class history after a failed read and offers a retry', async () => {
   expect(await view.findByText('Prepared · as at 20 September 2026')).toBeTruthy();
 });
 
-it('withholds import actions while the appointments cannot be read', async () => {
+it('withholds register actions while the appointments cannot be read', async () => {
   appointmentsFail = true;
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
-  expect(await view.findByText('Your appointments could not be read, so import actions are hidden.')).toBeTruthy();
+  expect(await view.findByText('Your appointments could not be read, so register actions are hidden.')).toBeTruthy();
   await view.findByText('Prepared · as at 20 September 2026');
   expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
   expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();

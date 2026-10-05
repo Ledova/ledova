@@ -9,7 +9,7 @@ import { COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION, f
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
-import { importAppointmentsKey } from '../company-register/useCompanyRegister';
+import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
 import { CompanyAuthorityScreen } from './CompanyAuthorityScreen';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
@@ -601,7 +601,7 @@ it('requires declaration acceptance, records the appointment and revokes while r
   expect(view.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
-  const registerAppointments = importAppointmentsKey(getSessionEpoch());
+  const registerAppointments = registerAppointmentsKey(getSessionEpoch());
   client.setQueryData(registerAppointments, [admitted.appointment]);
   await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
   expect(post).toHaveBeenCalledTimes(1);
