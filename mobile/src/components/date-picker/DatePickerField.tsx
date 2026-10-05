@@ -93,9 +93,6 @@ export function DatePickerField({
 
     if (event.type === 'set' && selectedDate) {
       onChange(selectedDate);
-      if (Platform.OS === 'ios') {
-        setShow(false);
-      }
     } else if (event.type === 'dismissed') {
       setShow(false);
     }

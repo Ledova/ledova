@@ -20,13 +20,13 @@ const ACCOUNT_TYPES: AccountTypeOption[] = [
   {
     role: 'investor',
     title: 'Individual Investor',
-    description: 'Invest in tokenized company shares and manage your digital assets from one portfolio.',
+    description: 'Invest in private-company shares and track your holdings.',
     icon: UserIcon,
   },
   {
     role: 'company',
     title: 'Company Representative',
-    description: 'Register your company to issue tokenized shares and manage shareholders on-chain.',
+    description: 'Register your company and manage its share register.',
     icon: BuildingsIcon,
   },
 ];
