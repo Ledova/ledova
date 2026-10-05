@@ -8,7 +8,8 @@ How dashboard and mobile consume shared TypeScript and design tokens.
 
 This page describes the current clients, including their company selection and
 read-only staff decision records. Register access follows current appointments
-as well as ownership; most other company selection remains owner or
+as well as ownership, and the dashboard's register import steps follow current
+appointments alone; most other company selection remains owner or
 administrator scoped. The
 [accepted company-managed plan](company-managed-registers.md#required-self-service-workflows)
 requires web and mobile forms for company appointments and the supported
@@ -30,8 +31,9 @@ no chain action.
 Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
-absent field must not hide it. The detailed current screen descriptions below
-do not claim these company-managed controls are shipped.
+absent field must not hide it. Apart from the dashboard's register imports, the
+detailed current screen descriptions below do not claim these company-managed
+controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -449,6 +451,40 @@ reviewed issuance and **Raise authorised shares** requests. Share arithmetic use
 whole integers; submission refuses quantities or a resulting authorised cap above
 the current request limit of 2,147,483,647 instead of rounding them. Staff still
 prepare outputs on written instruction.
+
+Each class on the dashboard's Register also lists its
+[register imports](../operations/register-foundation.md#importing-an-existing-register),
+newest first across every page: stage, preparer, dates, the ASIC figures the
+company stated beside the rows' totals, whether the company provided the
+evidence or staff verified it before imports were company-run, the decision
+trail and any rejection reason, with downloads of the import's register document
+and, where kept, its ASIC extract. The person's own current appointments, read
+through the same account-bound cache as Company team, decide which steps a
+prepared import offers: approval and rejection need administration or `approve`,
+and application administration or `apply`. A retained staff-era import offers
+only rejection, and a reader with none of these steps sees the history with a
+read-only note. Each decision opens a dialog driven by the shared
+`useRegisterImportDecision`: it previews the decision and shows the comparison
+with the stored register, unmet requirements in words, the stated and imported
+figures and, before an application that opens the register, the note that the
+class will not be on chain. A rejection is previewed again with its reason.
+Confirming records exactly the previewed decision, with a retry key reused only
+for the same preview, and a recorded or refused decision refreshes the imports
+and the register. Holders of administration or `prepare` get **Prepare an
+import** while the class has no applied import. It opens
+`/company/register/:uuid/import`, a page for every signed-in account like
+Register, which shows the class and its company and takes the company's current
+share register and ASIC extract, the register date, the authority, the member
+rows, former members and the stated ASIC figures. An opened class lists one row
+per current holder with its member and shares fixed; a class not yet on chain
+takes rows under new member IDs with editable shares. The stated figures must
+match the rows before preparation. Each upload keeps its own retry key and its
+confirmed receipt for an unchanged file, preparation reuses its operation only
+for an identical request, and every receipt is checked before the imports are
+refreshed and the page returns to Register. Every read, decision, download and
+preparation is bound to the signed-in account, and a failed refresh keeps an
+open draft but holds preparation until a retry succeeds. The mobile import
+screens are planned.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
