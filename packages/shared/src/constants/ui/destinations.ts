@@ -22,6 +22,11 @@ export const DESTINATIONS = {
   companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'company' },
   companyRegister: { path: '/company/register', title: 'Register', audience: 'everyone' },
   companyRegisterImport: { path: '/company/register/:uuid/import', title: 'Register', audience: 'everyone' },
+  companyRegisterCorrection: {
+    path: '/company/register/:uuid/correct/:entry',
+    title: 'Register',
+    audience: 'everyone',
+  },
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
