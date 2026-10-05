@@ -1083,9 +1083,9 @@ Since 5 October 2026 the company runs its imports itself, under the owner's
   be rejected. The company then prepares a new one.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The API below and the dashboard's
+steps. The API below and the
 [import screens](../architecture/clients.md#company-managed-client-work) on
-Register are delivered; the mobile import screens are planned.
+Register in both clients are delivered.
 
 A share class takes one applied import. Preparation and application each
 refuse another once one is applied, and a partial unique index backs them.
