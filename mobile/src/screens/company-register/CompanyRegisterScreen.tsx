@@ -95,6 +95,13 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         onPrepareImport={() =>
                           navigation.navigate('PrepareRegisterImport', { tokenUuid: uuid, companyUuid: company.uuid })
                         }
+                        onCorrect={(entry) =>
+                          navigation.navigate('PrepareRegisterCorrection', {
+                            tokenUuid: uuid,
+                            companyUuid: company.uuid,
+                            entryUuid: entry.uuid,
+                          })
+                        }
                       />
                     </View>
                   )}

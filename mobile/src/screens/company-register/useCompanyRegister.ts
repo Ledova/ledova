@@ -6,6 +6,7 @@ import {
   getCompanyTokenHolders,
   getOwnCompanyAppointments,
   getRegisterClasses,
+  getRegisterCorrections,
   getRegisterEntries,
   getRegisterImports,
   readEveryPage,
@@ -135,8 +136,9 @@ export function useCompanyRegister(epoch: number) {
       Promise.all([
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
-        queryClient.refetchQueries({ queryKey: importsKey(epoch), type: 'active' }),
-        queryClient.refetchQueries({ queryKey: registerAppointmentsKey(epoch), type: 'active' }),
+        ...[importsKey, entriesKey, correctionsKey, registerAppointmentsKey].map((key) =>
+          queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
+        ),
       ]),
   };
 }
@@ -190,5 +192,22 @@ export function useRegisterEntries(epoch: number, token: string) {
           ),
         ),
       ),
+  });
+}
+
+export function useRegisterCorrections(epoch: number, company: string) {
+  return useQuery({
+    queryKey: correctionsKey(epoch, company),
+    queryFn: async ({ signal }) => {
+      const rows = await readEveryPage((page) =>
+        sessionRead(epoch, () =>
+          getRegisterCorrections(apiClient, { company, page }, { ledovaSessionEpoch: epoch, signal }),
+        ),
+      );
+      if (rows.some((row) => row.company !== company)) {
+        throw new Error('The corrections do not belong to this company');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
   });
 }

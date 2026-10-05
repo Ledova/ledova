@@ -90,6 +90,7 @@ function defaultRead(url: string, number: number): Promise<unknown> {
   if (url === URLS.REGISTER_EXPORT('ordinary'))
     return Promise.resolve({ data: Uint8Array.from('member,shares', (c) => c.charCodeAt(0)).buffer });
   if (url === URLS.REGISTER_IMPORTS || url === APPOINTMENTS) return Promise.resolve(page([]));
+  if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return Promise.resolve(page([]));
   return Promise.reject(new Error(`Unexpected ${url}`));
 }
 const requested = () => get.mock.calls.map(([url]) => url);
