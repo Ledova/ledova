@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.db.models import Count
 from django.utils import timezone
 
+from companies.services.authority_requests import _requester_principal
 from shared.constants import BLOCKCHAIN_BASE
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
@@ -56,7 +57,7 @@ class WalletAdmin(admin.ModelAdmin):
         return readonly
 
     def save_model(self, request, obj, form, change):
-        with invalidation_writer_context(request.user):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
             previous = Wallet.objects.select_for_update().get(pk=obj.pk) if change else None
             if (
                 previous is not None
@@ -71,18 +72,19 @@ class WalletAdmin(admin.ModelAdmin):
             super().save_model(request, obj, form, change)
 
     def delete_model(self, request, obj):
-        with invalidation_writer_context(request.user):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
             wallet = Wallet.objects.select_for_update().get(pk=obj.pk)
             if wallet.chain == BLOCKCHAIN_BASE:
                 enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
             super().delete_model(request, wallet)
 
     def delete_queryset(self, request, queryset):
-        with invalidation_writer_context(request.user):
-            for wallet in queryset.select_for_update().order_by("uuid"):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
+            wallets = list(Wallet.objects.filter(pk__in=queryset.values("pk")).select_for_update().order_by("uuid"))
+            for wallet in wallets:
                 if wallet.chain == BLOCKCHAIN_BASE:
                     enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
-            super().delete_queryset(request, queryset)
+            super().delete_queryset(request, Wallet.objects.filter(pk__in=[wallet.pk for wallet in wallets]))
 
     def get_queryset(self, request):
 

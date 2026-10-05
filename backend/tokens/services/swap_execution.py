@@ -188,16 +188,6 @@ def _lock_command(transaction, *, authority=False):
     return swap, current
 
 
-def _share_class_company(swap):
-    share_class = ShareToken.objects.select_related("company").filter(pk=swap.share_token_id).first()
-    return share_class.company if share_class else None
-
-
-def _signing_account(swap, is_seller):
-    party = recorded_settlement_context(swap)["seller" if is_seller else "buyer"]
-    return UserAccount.objects.filter(pk=party["owner_account_uuid"]).first()
-
-
 def submit_signature(swap_order, signature, signer_address, *, user, participant):
     from tokens.tasks.swap_reconciler import recover_swap_execution
 
