@@ -120,7 +120,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("companies", "0022_company_wallet_lock_order"),
-        ("tokens", "0084_company_register_import_guards"),
+        ("tokens", "0086_company_register_correction_guards"),
     ]
 
     operations = [

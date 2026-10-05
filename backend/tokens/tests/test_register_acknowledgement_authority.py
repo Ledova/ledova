@@ -40,7 +40,7 @@ RECONCILIATIONS = "/api/v1/tokens/register-reconciliations/"
 OPERATION = "register_discrepancy_acknowledge"
 REFUSED = "current company approver"
 NOT_READABLE = "Reconciliation not found."
-PREVIOUS = ("tokens", "0084_company_register_import_guards")
+PREVIOUS = ("tokens", "0086_company_register_correction_guards")
 ACKNOWLEDGEMENTS = import_module("tokens.migrations.0087_company_discrepancy_acknowledgements")
 
 
