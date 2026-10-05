@@ -397,8 +397,12 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         approvals = history.approvals(company, as_at)
         links = history.link_records(company)
         wallet_links = history.wallet_links(links)
+        changes = history.particulars_change_records(company)
+        particulars_changes = history.particulars_changes(changes)
         listed, held = documents.held(company)
-        copies = documents.evidence([*links, *(item for share_class in classes for item in share_class["evidence"])])
+        copies = documents.evidence(
+            [*links, *changes, *(item for share_class in classes for item in share_class["evidence"])]
+        )
         contracts = _contracts(classes, approvals["registries"])
         published = publications.section(company)
     stored = {**held, **copies, **published["stored"]}
@@ -407,6 +411,7 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         "company.json": _json(record),
         "approvals.json": _json(approvals),
         "wallet_links.json": _json(wallet_links),
+        "particulars_changes.json": _json(particulars_changes),
         "documents.json": _json(listed),
         "contracts/contracts.json": _json(contracts),
     }

@@ -10,6 +10,7 @@ VERSION = 1
 MANIFEST = "manifest.json"
 DOCUMENTS = "documents.json"
 LINKS = "wallet_links.json"
+PARTICULARS = "particulars_changes.json"
 DOCUMENT_FOLDER = "documents/"
 RECIPE = "ledova-register-v1"
 EMPTY_HEAD = "0" * 64
@@ -261,7 +262,10 @@ def check_documents(files, manifest):
         if document["path"] is not None:
             listed_file(files, document["path"])
             named.add(document["path"])
-    sources = [(LINKS, {"links": json.loads(listed_file(files, LINKS))})]
+    sources = [
+        (LINKS, {"links": json.loads(listed_file(files, LINKS))}),
+        (PARTICULARS, {"changes": json.loads(listed_file(files, PARTICULARS))}),
+    ]
     for register in manifest["registers"]:
         authority_path = f"classes/{register['class']}/authority.json"
         sources.append((authority_path, json.loads(listed_file(files, authority_path))))

@@ -79,6 +79,7 @@ from tokens.services.register_openings import (
     prepare_link_review,
     submit_link,
 )
+from tokens.services.register_particulars import prepare_particulars_change
 from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.services.settlement_context import configured_domain
 from tokens.tests.test_register_acknowledgement_authority import (
@@ -93,6 +94,7 @@ from tokens.tests.test_register_certificates import (
 from tokens.tests.test_register_corrections import decide
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_imports import owner_appointment, upload_evidence
+from tokens.tests.test_register_particulars import decide as decide_particulars
 from tokens.tests.test_register_workflow_events import (
     SETTLEMENT,
     SettledTransferFixtures,
@@ -338,6 +340,31 @@ def corrected(register, issue, label):
     decide(owner, appointment, proposal, "approve")
     effect_checked("DEFERRED")
     return decide(owner, appointment, proposal, "apply")
+
+
+def changed_particulars(company, member, label):
+    owner = company.owner
+    appointment = owner_appointment(company)
+    evidence = upload_evidence(
+        owner, appointment, RegisterEvidenceKind.SUPPORTING, raw=f"Synthetic {label} deed poll".encode()
+    )
+    change, _ = prepare_particulars_change(
+        actor=owner,
+        operation_id=uuid4(),
+        appointment=appointment.pk,
+        member=member.pk,
+        supporting_evidence=evidence.pk,
+        name=f"Synthetic {label} renamed holder",
+        residential_address=f"5 Synthetic {label} Avenue, Perth WA 6000",
+        as_at=DAY,
+        reason=f"Synthetic {label} deed poll",
+    )
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SET CONSTRAINTS tokens_register_particulars_decision_effect IMMEDIATE")
+    decide_particulars(owner, appointment, change, "approve")
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SET CONSTRAINTS tokens_register_particulars_decision_effect DEFERRED")
+    return decide_particulars(owner, appointment, change, "apply")
 
 
 def linked(company, member, reviewer, document, label):
@@ -822,6 +849,7 @@ class CompanyPackTest(ProducesPacks, TestCase):
             "company.json",
             "approvals.json",
             "wallet_links.json",
+            "particulars_changes.json",
             "documents.json",
             *(
                 f"documents/{document.pk}.pdf"
@@ -1396,6 +1424,58 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         )
         self.assertIn(linked_address, self.files[f"classes/{self.a.ordinary.pk}/register.csv"].decode())
 
+    def test_the_particulars_changes_file_carries_each_change_with_its_decisions_and_supporting_copy(self):
+        self.assertEqual(self.read("particulars_changes.json"), [])
+        holder = self.a.members["holder"]
+        change = changed_particulars(self.a.company, holder, "pack-a")
+        content = self.pack()
+        files = files_of(content)
+        path = f"documents/evidence/registerparticularschange/{change.pk}.pdf"
+        deed = "Synthetic pack-a deed poll".encode()
+
+        self.assertEqual(
+            json.loads(files["particulars_changes.json"]),
+            [
+                {
+                    "uuid": str(change.pk),
+                    "submitted_at": change.created_at.isoformat(),
+                    "member": str(holder.pk),
+                    "name": "Synthetic pack-a renamed holder",
+                    "residential_address": "5 Synthetic pack-a Avenue, Perth WA 6000",
+                    "as_at": DAY.isoformat(),
+                    "reason": "Synthetic pack-a deed poll",
+                    "evidence": {
+                        "document": None,
+                        "document_type": "supporting",
+                        "name": "supporting.pdf",
+                        "mime_type": "application/pdf",
+                        "size": len(deed),
+                        "sha256": sha256(deed),
+                        "path": path,
+                    },
+                    "provided_by": "company",
+                    "decisions": [
+                        {
+                            "kind": decision.kind,
+                            "decided_by": "pack-a owner",
+                            "decided_at": decision.decided_at.isoformat(),
+                            "reason": "",
+                        }
+                        for decision in change.decisions.order_by("decided_at", "uuid")
+                    ],
+                    "status": "applied",
+                    "reviewer": "pack-a owner",
+                    "reviewed_at": change.reviewed_at.isoformat(),
+                    "rejection_reason": "",
+                }
+            ],
+        )
+        self.assertEqual(files[path], deed)
+        self.assertIn("`particulars_changes.json`", files["README.md"].decode())
+        result = consume(content, *ISOLATED)
+        self.assertEqual((result.returncode, result.stderr), (0, ""))
+        self.assertIn("documents: 2 carried, 1 listed only, 4 evidence copies match their records", result.stdout)
+
     def test_the_issues_file_carries_each_issue_with_its_subscription_and_the_payment_as_recorded(self):
         allotment = self.a.allotment
         recorded = RECORDED_AT.isoformat()
@@ -1948,8 +2028,12 @@ class CompanyPackSnapshotTest(TransactionTestCase):
             with self.subTest(line=line):
                 self.assertIn(line, readme)
         self.assertEqual(
-            (json.loads(files["approvals.json"]), json.loads(files["wallet_links.json"])),
-            ({"registries": [], "approvals": [], "changes": []}, []),
+            (
+                json.loads(files["approvals.json"]),
+                json.loads(files["wallet_links.json"]),
+                json.loads(files["particulars_changes.json"]),
+            ),
+            ({"registries": [], "approvals": [], "changes": []}, [], []),
         )
 
     def test_the_company_is_read_with_its_registers_and_not_taken_from_the_callers_copy(self):
