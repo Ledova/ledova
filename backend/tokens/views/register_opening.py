@@ -2,6 +2,7 @@ from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from companies.models import Company
 from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
 from tokens.models import RegisterOpening, RegisterWalletLink
 from tokens.serializers.register_opening import (
@@ -19,14 +20,14 @@ class RegisterOpeningViewSet(AuthenticatedReadOnlyViewSet):
     scoped_model = RegisterOpening
     operator_actions = frozenset({"list", "retrieve", "file"})
     operator_actions_because = (
-        "Retained opening reads require this request's exact current company owner independently of basic "
-        "company administration. The queryset explicitly binds every proposal and file to that owner."
+        "Retained opening reads require this request's company owner or a current appointment holding "
+        "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 
     def narrow(self, queryset):
-        return queryset.filter(company__owner=self.request.user)
+        return queryset.filter(company__in=Company.objects.register_readable_by(self.request.user))
 
     @extend_schema(request=RegisterOpeningCreateSerializer, responses={201: RegisterOpeningSerializer})
     def create(self, request):
@@ -48,14 +49,14 @@ class RegisterWalletLinkViewSet(AuthenticatedReadOnlyViewSet):
     scoped_model = RegisterWalletLink
     operator_actions = frozenset({"list", "retrieve", "file"})
     operator_actions_because = (
-        "Retained wallet-link reads require this request's exact current company owner independently of "
-        "basic company administration. The queryset explicitly binds every proposal and file to that owner."
+        "Retained wallet-link reads require this request's company owner or a current appointment holding "
+        "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
     ordering = ["-created_at", "-uuid"]
     http_method_names = ["get", "post", "head", "options"]
 
     def narrow(self, queryset):
-        return queryset.filter(company__owner=self.request.user)
+        return queryset.filter(company__in=Company.objects.register_readable_by(self.request.user))
 
     @extend_schema(request=RegisterWalletLinkCreateSerializer, responses={201: RegisterWalletLinkSerializer})
     def create(self, request):

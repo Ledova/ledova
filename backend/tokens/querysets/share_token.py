@@ -9,6 +9,11 @@ class ShareTokenQuerySet(QuerySet):
             return self.none()
         return self.filter(company__owner=user)
 
+    def register_readable_by(self, user):
+        from companies.models import Company
+
+        return self.filter(company__in=Company.objects.register_readable_by(user))
+
     def deployed(self):
         return self.filter(status="deployed")
 

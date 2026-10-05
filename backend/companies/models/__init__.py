@@ -3,6 +3,7 @@ from companies.models.appointment import (
     CompanyAppointmentRevocation,
 )
 from companies.models.authority_request import (
+    REGISTER_READERS,
     CompanyAuthorityRequest,
     CompanyAuthorityRequestWithdrawal,
     CompanyCapability,
@@ -37,6 +38,7 @@ __all__ = [
     "CompanyPack",
     "DocumentType",
     "OFFER_DOCUMENT_TYPES",
+    "REGISTER_READERS",
     "CompanyRegistryCheck",
     "RegistryCheckPurpose",
     "RegistryCheckStatus",
