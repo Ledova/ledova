@@ -466,19 +466,23 @@ newest first across every page: stage, preparer, dates, the ASIC figures the
 company stated beside the rows' totals, whether the company provided the
 evidence or staff verified it before imports were company-run, the decision
 trail and any rejection reason, with downloads of the import's register document
-and, where kept, its ASIC extract. The person's own current appointments, read
-through the same account-bound cache as Company team, decide which steps a
-prepared import offers: approval and rejection need administration or `approve`,
-and application administration or `apply`. A retained staff-era import offers
-only rejection, and a reader with none of these steps sees the history with a
-read-only note. Each decision opens a dialog driven by the shared
-`useRegisterImportDecision`: it previews the decision and shows the comparison
-with the stored register, unmet requirements in words, the stated and imported
-figures and, before an application that opens the register, the note that the
-class will not be on chain. A rejection is previewed again with its reason.
-Confirming records exactly the previewed decision, with a retry key reused only
-for the same preview, and a recorded or refused decision refreshes the imports
-and the register. Holders of administration or `prepare` get **Prepare an
+and, where kept, its ASIC extract; a decided staff-era import shows when it was
+decided. The person's own current appointments, read through the same
+account-bound cache as Company team, decide which steps a prepared import
+offers. Only an active, effective appointment before its expiry counts:
+approval and rejection need administration or `approve`, and application
+administration or `apply`. A retained staff-era import offers only rejection,
+and a reader with none of these steps sees the history with a read-only note.
+Each decision opens a dialog driven by the shared `useRegisterImportDecision`:
+it previews the decision and shows the comparison with the stored register,
+unmet requirements in words, the stated and imported figures and, before an
+application that opens the register, the note that the class will not be on
+chain. A rejection is previewed again with its reason. Confirming records
+exactly the previewed decision, with a retry key reused only for the same
+preview, and only while the step's current appointment is still the one it was
+previewed with. A recorded decision refreshes the imports and the register; a
+decision or preview the server refuses also refreshes the person's
+appointments. Holders of administration or `prepare` get **Prepare an
 import** while the class has no applied import. It opens
 `/company/register/:uuid/import`, a page for every signed-in account like
 Register, which shows the class and its company and takes the company's current
