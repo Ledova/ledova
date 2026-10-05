@@ -173,9 +173,9 @@ the new direction.
   `GET /api/v1/tokens/register/`, which an older backend does not serve, while
   older clients keep working against the new backend. Roll the clients back with
   the backend. A backend rolled back alone breaks the new Register pages for every
-  reader, owners included, because those pages read only through that route; the
-  older backend serves register reads to owners alone, through the share-class
-  routes.
+  reader, owners included, because those pages list their classes only through
+  that route; the older backend serves register reads to owners alone, through
+  the share-class routes.
 
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not

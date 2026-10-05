@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   ApiClientProvider,
+  AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS,
   type CompanyShareToken,
   type TokenHoldersResponse,
@@ -488,6 +489,27 @@ it('downloads only the successful register CSV and reports failed attempts', asy
   expect(create).toHaveBeenCalledWith(expect.any(Blob));
   expect(revoke).toHaveBeenCalledWith('blob:synthetic');
   expect(api.get).toHaveBeenCalledWith(EXPORT, { responseType: 'blob' });
+});
+
+it('requests and saves no register CSV once the session has ended', async () => {
+  const create = vi.fn(() => 'blob:synthetic');
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = create;
+      static revokeObjectURL = vi.fn();
+    },
+  );
+  const clicked = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  show();
+  const button = await screen.findByRole('button', { name: 'Download CSV' });
+  await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+  act(() => client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } }));
+  fireEvent.click(button);
+  expect(await screen.findByText('The register could not be downloaded. Try again.')).toBeTruthy();
+  expect(api.get).not.toHaveBeenCalledWith(EXPORT, { responseType: 'blob' });
+  expect(create).not.toHaveBeenCalled();
+  expect(clicked).not.toHaveBeenCalled();
 });
 
 it('reads every issuance and authorised-share request page and submits a retained draft for review', async () => {

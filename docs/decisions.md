@@ -35,8 +35,9 @@ accepted direction, not a statement that the code already implements it.
 
 ### Company-run register authority and evidence
 
-On 5 October 2026 (Australia/Sydney), the owner answered three questions about
-company-run register work in Claude's session. Claude recorded the answers on #864
+On 5 October 2026 (Australia/Sydney), the owner made three decisions about
+company-run register work, answering questions in Claude's session. Claude recorded
+the answers on #864
 ([authority and evidence](https://github.com/Ledova/ledova/issues/864#issuecomment-5986401458),
 [read scope](https://github.com/Ledova/ledova/issues/864#issuecomment-5987962820)).
 The owner then confirmed them directly in Codex's session the same day
@@ -52,8 +53,8 @@ Holders of `prepare`, `approve` or `apply` read the full register, including
 residential addresses in the CSV and retained evidence copies, because they work
 from member details. The invitation labels for those capabilities say that they
 include reading the register. The owner's amendment recorded on #860 also lets
-#864 start before #863 closes, except member-wallet links, which wait for #863's
-wallet-possession changes.
+#864 start before #863 closes, except member-wallet links, which wait until #863
+closes.
 
 ### Company representative verification
 
