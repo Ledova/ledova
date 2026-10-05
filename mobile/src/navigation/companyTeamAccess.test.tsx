@@ -25,6 +25,10 @@ jest.mock('../screens/company-publications/CompanyPublicationsScreen', () => ({
 jest.mock('../screens/company-tokens/TokenDetailScreen', () => ({ TokenDetailScreen: () => null }));
 jest.mock('../screens/company-authority/CompanyAuthorityScreen', () => ({ CompanyAuthorityScreen: () => null }));
 jest.mock('../screens/company-team/CompanyTeamScreen', () => ({ CompanyTeamScreen: () => null }));
+jest.mock('../screens/eligibility-records/CompanyEligibilityScreen', () => ({ CompanyEligibilityScreen: () => null }));
+jest.mock('../screens/eligibility-records/ParticipantEligibilityScreen', () => ({
+  ParticipantEligibilityScreen: () => null,
+}));
 
 afterEach(async () => {
   await cleanup();
@@ -43,3 +47,26 @@ it.each([HomeStackNavigator, CompanyStackNavigator])(
     );
   },
 );
+
+it.each([HomeStackNavigator, CompanyStackNavigator])(
+  'registers the company eligibility queue independently of the visible company tab',
+  async (Navigator) => {
+    await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
+    expect(mockScreens.find((screen) => screen.name === 'CompanyEligibility')).toEqual(
+      expect.objectContaining({
+        component: expect.any(Function),
+        options: expect.objectContaining({ headerBackVisible: true }),
+      }),
+    );
+  },
+);
+
+it('registers participant requests in the always reachable Home stack', async () => {
+  await render(<HomeStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
+  expect(mockScreens.find((screen) => screen.name === 'ParticipantEligibility')).toEqual(
+    expect.objectContaining({
+      component: expect.any(Function),
+      options: expect.objectContaining({ headerBackVisible: true }),
+    }),
+  );
+});

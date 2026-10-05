@@ -1,14 +1,15 @@
 from dataclasses import dataclass
+from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connections
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
 
 from operators.settlement import single_settlement_asset
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, current_alias
 from tokens.exceptions import (
     ChallengeMismatchException,
     CreateOrderInsufficientBalanceException,
@@ -21,11 +22,17 @@ from tokens.models import (
     OrderSubmission,
     OrderSubmissionStatus,
     ShareToken,
+    SigningChallenge,
     TransferOrder,
     TransferOrderType,
 )
 from tokens.services import token_transfer_service
 from tokens.services.signing_challenge import spend
+from tokens.services.trading_admission import (
+    eligibility_guard_refusal,
+    participant_context,
+    prepare_admission,
+)
 from tokens.services.trading_order_service import TradingOrderService
 from users.exceptions import InvestorNotEligibleException
 from users.models import UserAccount
@@ -152,6 +159,7 @@ def _recover_order(submission):
 def issue_order_submission(actor, data):
     _independent_boundary()
     with atomic(durable=True):
+        ShareToken.objects.select_for_update(of=("self",), no_key=True).get(pk=data["token"])
         submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             token = _eligible_token(data["token"], data["wallet"])
@@ -209,13 +217,14 @@ def execute_order_submission(actor, data):
         and not ShareToken.objects.filter(pk=admitted.token_id).exists()
     ):
         raise ValidationError({"token": "Token not found"})
-    with use_operator():
+    with participant_context(actor):
         _independent_boundary()
         return _execute_authorized_submission(actor, data)
 
 
 def _execute_authorized_submission(actor, data):
     with atomic(durable=True):
+        token = ShareToken.objects.select_for_update(of=("self",), no_key=True).get(pk=data["token"])
         submission = _find_submission(data["owner_account_uuid"], data["submission_id"])
         if submission is None:
             raise NotFound(NOT_FOUND)
@@ -225,6 +234,20 @@ def _execute_authorized_submission(actor, data):
             _recover_order(submission)
             return SubmissionResult(submission)
         token, payment_asset = _pending_token(submission, wallet)
+        candidate = SigningChallenge.objects.filter(digest=data.get("digest"), submission=submission).first()
+        if candidate is None:
+            raise ChallengeMismatchException("submission")
+        order_id = uuid4()
+        admission = prepare_admission(
+            actor,
+            token,
+            wallet.user_account,
+            wallet,
+            operation="create_order",
+            target_id=order_id,
+            submission=submission,
+            challenge=candidate,
+        )
         challenge = TradingOrderService.verify_order_create_signature(
             wallet_address=submission.wallet_address,
             token_uuid=str(submission.token_id),
@@ -250,8 +273,15 @@ def _execute_authorized_submission(actor, data):
                     min_quantity=submission.min_quantity,
                     price_per_share=submission.price_per_share,
                     payment_asset=payment_asset,
+                    admission=admission,
+                    submission=submission,
+                    order_id=order_id,
                 )
-        except tuple(BUSINESS_REFUSALS) as exc:
+        except (IntegrityError, *BUSINESS_REFUSALS) as exc:
+            if isinstance(exc, IntegrityError):
+                if not eligibility_guard_refusal(exc):
+                    raise
+                exc = InvestorNotEligibleException(("no_live_company_decision",))
             if type(exc) not in BUSINESS_REFUSALS:
                 raise
             submission.status = OrderSubmissionStatus.REFUSED
@@ -260,6 +290,7 @@ def _execute_authorized_submission(actor, data):
         else:
             submission.status = OrderSubmissionStatus.CREATED
             submission.order = order
+            submission.eligibility_decision = admission.decision
             if match is not None:
                 submission.initial_counter_order = match[
                     "buy_order" if submission.order_type == TransferOrderType.SELL else "sell_order"
@@ -271,6 +302,7 @@ def _execute_authorized_submission(actor, data):
             update_fields=[
                 "status",
                 "order",
+                "eligibility_decision",
                 "initial_counter_order",
                 "initial_swap",
                 "refusal_code",

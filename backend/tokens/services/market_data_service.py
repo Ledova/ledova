@@ -2,17 +2,16 @@ from decimal import Decimal, localcontext
 
 from django.db.models import OuterRef, Subquery
 
-from shared.db import use_operator
+from companies.services.authority_requests import _requester_principal
+from shared.db import principal_of, use_operator
 from shared.utils.token_amounts import token_full_units
 from tokens.exceptions import SettlementContextChanged
 from tokens.models import ShareToken, SwapOrder, TransferOrder
-from users.services.eligibility import investor_eligibility
+from users.services.eligibility import secondary_company_ids
 
 
 def list_market_tokens(user):
-    if not investor_eligibility(user).is_eligible:
-        return ShareToken.objects.none()
-    return ShareToken.objects.with_company().deployed_with_contract()
+    return ShareToken.objects.with_company().deployed_with_contract().filter(company_id__in=secondary_company_ids(user))
 
 
 def _payment_decimals(protocol_version, captured_decimals, legacy_decimals):
@@ -27,7 +26,8 @@ def market_summaries(tokens):
     identifiers = [token.pk for token in tokens]
     if not identifiers:
         return {}
-    with use_operator(), localcontext() as context:
+    principal = principal_of()
+    with use_operator(), _requester_principal(principal or ""), localcontext() as context:
         context.prec = 28
         open_orders = TransferOrder.objects.advertised_liquidity().filter(token=OuterRef("pk"))
         last_trade = SwapOrder.objects.completed_for_token(OuterRef("pk"))

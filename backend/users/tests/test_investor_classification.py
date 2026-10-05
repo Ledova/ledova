@@ -7,17 +7,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from companies.models import Company, CompanyType
-from users.exceptions import InvalidClassificationTransitionException
 from users.models import (
     InvestorCategory,
     InvestorClassification,
     InvestorClassificationStatus,
 )
 from users.models.investor_classification import (
-    ASSOCIATED_PERSON_SCOPE_ERROR,
     plus_years,
 )
-from users.services import transition_classification
 from users.tests.factories import (
     make_classification,
     make_investor,
@@ -31,75 +28,6 @@ ADMIN_TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-
-
-class InvestorClassificationTransitionTest(TestCase):
-
-    def setUp(self):
-        self.reviewer = User.objects.create_user(email="reviewer@example.test", password="pw-12345678", is_staff=True)
-        _, self.account = make_investor("transitions")
-
-    def test_verify_moves_a_submitted_claim_and_records_the_reviewer(self):
-        classification = make_classification(self.account)
-        expires_at = timezone.now() + timedelta(days=730)
-
-        transition_classification(
-            classification, "verify", reviewed_by=self.reviewer, expires_at=expires_at, notes="Checked the register"
-        )
-
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.VERIFIED)
-        self.assertEqual(classification.reviewed_by, self.reviewer)
-        self.assertEqual(classification.review_notes, "Checked the register")
-        self.assertEqual(classification.expires_at, expires_at)
-        self.assertIsNotNone(classification.reviewed_at)
-
-    def test_verify_is_refused_once_the_claim_is_no_longer_submitted(self):
-        classification = verified_classification(self.account, self.reviewer)
-
-        with self.assertRaises(InvalidClassificationTransitionException) as caught:
-            classification.verify(reviewed_by=self.reviewer, expires_at=timezone.now())
-
-        self.assertIn("Cannot transition from 'Verified' to 'Verified'", str(caught.exception.detail))
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.VERIFIED)
-
-    def test_reject_moves_a_submitted_claim_and_records_the_reason(self):
-        classification = make_classification(self.account)
-
-        transition_classification(classification, "reject", reviewed_by=self.reviewer, reason="No certificate")
-
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.REJECTED)
-        self.assertEqual(classification.rejection_reason, "No certificate")
-
-    def test_reject_is_refused_on_a_verified_claim(self):
-        classification = verified_classification(self.account, self.reviewer)
-
-        with self.assertRaises(InvalidClassificationTransitionException):
-            classification.reject(reviewed_by=self.reviewer, reason="Too late")
-
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.VERIFIED)
-
-    def test_revoke_moves_a_verified_claim(self):
-        classification = verified_classification(self.account, self.reviewer)
-
-        transition_classification(classification, "revoke", reviewed_by=self.reviewer, reason="Certificate withdrawn")
-
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.REVOKED)
-        self.assertEqual(classification.rejection_reason, "Certificate withdrawn")
-        self.assertFalse(classification.is_live)
-
-    def test_revoke_is_refused_on_a_submitted_claim(self):
-        classification = make_classification(self.account)
-
-        with self.assertRaises(InvalidClassificationTransitionException):
-            classification.revoke(reviewed_by=self.reviewer, reason="Not yet verified")
-
-        classification.refresh_from_db()
-        self.assertEqual(classification.status, InvestorClassificationStatus.SUBMITTED)
 
 
 class InvestorClassificationExpiryTest(TestCase):
@@ -139,12 +67,12 @@ class InvestorClassificationOpenSubmissionConstraintTest(TestCase):
         self.reviewer = User.objects.create_user(email="constraint@example.test", password="pw-1234567", is_staff=True)
         _, self.account = make_investor("constraint")
 
-    def test_the_database_refuses_a_second_open_submission(self):
-        make_classification(self.account)
+    def test_the_database_retains_multiple_private_submitted_sources(self):
+        first = make_classification(self.account)
+        second = make_classification(self.account)
 
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                make_classification(self.account)
+        self.assertNotEqual(first.pk, second.pk)
+        self.assertEqual(InvestorClassification.objects.filter(user_account=self.account).count(), 2)
 
     def test_a_second_claim_is_allowed_once_the_first_is_verified(self):
         verified_classification(self.account, self.reviewer)
@@ -167,11 +95,11 @@ class InvestorClassificationOpenSubmissionConstraintTest(TestCase):
 
         self.assertEqual(InvestorClassification.objects.filter(user_account=self.account).count(), 2)
 
-    def test_the_constraint_is_a_partial_index_the_backend_actually_carries(self):
+    def test_the_retired_one_open_constraint_is_absent(self):
         constraints = connection.introspection.get_constraints(
             connection.cursor(), InvestorClassification._meta.db_table
         )
-        self.assertIn("investor_classification_one_open_submission", constraints)
+        self.assertNotIn("investor_classification_one_open_submission", constraints)
 
 
 class AssociatedPersonScopeConstraintTest(TestCase):
@@ -229,22 +157,12 @@ class AssociatedPersonScopeConstraintTest(TestCase):
 
         self.assertIn("investor_classification_associated_person_names_the_issuer", constraints)
 
-    def test_the_admin_form_refuses_an_associated_person_claim_with_no_issuer(self):
+    def test_staff_cannot_create_private_sources_for_another_holder(self):
         staff = User.objects.create_superuser(email="scope-staff@example.test", password="pw-12345678")
         self.client.force_login(staff)
 
         with override_settings(STORAGES=ADMIN_TEST_STORAGES):
-            response = self.client.post(
-                reverse("admin:users_investorclassification_add"),
-                {
-                    "user_account": str(self.account.pk),
-                    "company": "",
-                    "category": InvestorCategory.ASSOCIATED_PERSON,
-                    "declared_basis": "A director of the issuer",
-                    "declaration_accepted": "on",
-                },
-            )
+            response = self.client.post(reverse("admin:users_investorclassification_add"), {})
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, ASSOCIATED_PERSON_SCOPE_ERROR)
+        self.assertEqual(response.status_code, 403)
         self.assertFalse(InvestorClassification.objects.exists())

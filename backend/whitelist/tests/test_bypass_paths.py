@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -21,12 +22,11 @@ from whitelist.models import (
     WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
-    WhitelistChangeStatus,
     WhitelistEntry,
     WhitelistStatus,
 )
-from whitelist.services import changes, refresh, whitelist
-from whitelist.tasks import refresh_whitelist_targets
+from whitelist.services import changes, whitelist
+from whitelist.services.eligibility_invalidation import invalidation_worker_context
 from whitelist.tests.change_fixtures import (
     ADDRESS,
     CHAIN_ID,
@@ -34,7 +34,6 @@ from whitelist.tests.change_fixtures import (
     KEY,
     REGISTRY,
     WhitelistNode,
-    a_verified_claim,
     admitted_signer,
     change_actor,
     change_company,
@@ -76,16 +75,10 @@ class WhitelistAuthorityBypassTest(TransactionTestCase):
             patcher = patch.object(module, "get_base_chain_client", return_value=self.node.client)
             patcher.start()
             self.addCleanup(patcher.stop)
-
-    def approval(self):
-        return WhitelistApproval.objects.select_related("entry__wallet", "company").get(
-            entry=self.entry, company=self.company
-        )
-
-    def claim(self, days=365, reviewed_by=None):
-        return a_verified_claim(
-            self.account, timezone.now() + timedelta(days=days), reviewed_by=reviewed_by or self.actor
-        )
+        self.enterContext(invalidation_worker_context())
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute("SELECT current_user")
+            self.assertEqual(cursor.fetchone()[0], settings.RLS_ROLES["operator"])
 
     def submit(self, action, actor, **options):
         return changes.submit(uuid4(), action, ADDRESS, actor, company=self.company, **options)
@@ -106,7 +99,6 @@ class WhitelistAuthorityBypassTest(TransactionTestCase):
         self.assertEqual(self.node.broadcasts, [])
 
     def test_the_database_refuses_moving_an_admitted_change_to_another_authority(self):
-        self.claim()
         change = self.submit(WhitelistAction.ADD, self.actor)
         self.assertEqual(change.authority, WhitelistAuthority.OPERATOR_API)
 
@@ -118,71 +110,6 @@ class WhitelistAuthorityBypassTest(TransactionTestCase):
                 )
 
         self.assertEqual(WhitelistChange.objects.get(pk=change.pk).authority, WhitelistAuthority.OPERATOR_API)
-
-    def test_a_holder_cannot_be_added_back_through_the_refresh_they_can_only_remove_with(self):
-        self.claim()
-        self.submit(WhitelistAction.ADD, self.actor)
-        self.submit(WhitelistAction.REMOVE, self.actor)
-        self.assertEqual(self.approval().status, WhitelistStatus.REMOVED)
-        holder = self.account.user_profile.user
-        sent = len(self.node.broadcasts)
-
-        with self.assertRaises(PermissionDenied):
-            refresh.refresh_approval(self.approval(), holder)
-
-        self.assertEqual(len(self.node.broadcasts), sent)
-        self.assertEqual(self.node.expiries[ADDRESS], 0)
-
-        restored = refresh.refresh_approval(self.approval(), self.actor)
-
-        self.assertEqual((restored.action, restored.status), ("add", WhitelistChangeStatus.CONFIRMED))
-        self.assertNotEqual(self.node.expiries[ADDRESS], 0)
-
-    def test_a_holders_refresh_target_is_counted_as_an_error_rather_than_written(self):
-        self.claim()
-        self.submit(WhitelistAction.ADD, self.actor)
-        self.submit(WhitelistAction.REMOVE, self.actor)
-        targets = refresh.targets_for_wallet(self.entry.wallet_id)
-        holder = self.account.user_profile.user
-        sent = len(self.node.broadcasts)
-
-        self.assertEqual(refresh.refresh_targets(targets, holder), {"checked": 1, "submitted": 0, "errors": 1})
-
-        self.assertEqual(len(self.node.broadcasts), sent)
-        self.assertEqual(self.node.expiries[ADDRESS], 0)
-        self.assertFalse(WhitelistChange.objects.filter(authority=WhitelistAuthority.CLASSIFICATION_REFRESH).exists())
-
-    def test_the_sweep_will_not_write_under_a_reviewer_who_lost_their_staff_standing(self):
-        reviewer = a_staff_member("demoted-reviewer")
-        claim = self.claim(reviewed_by=reviewer)
-        self.submit(WhitelistAction.ADD, self.actor, expires_at=claim.expires_at)
-        claim.revoke(reviewer, "no longer holds")
-        sent = len(self.node.broadcasts)
-
-        get_user_model().objects.filter(pk=reviewer.pk).update(is_staff=False)
-        self.assertEqual(refresh.sweep(), {"checked": 1, "submitted": 0, "unattributed": 1, "errors": 0})
-        get_user_model().objects.filter(pk=reviewer.pk).update(is_staff=True, is_active=False)
-        self.assertEqual(refresh.sweep(), {"checked": 1, "submitted": 0, "unattributed": 1, "errors": 0})
-
-        self.assertEqual(len(self.node.broadcasts), sent)
-        self.assertNotEqual(self.node.expiries[ADDRESS], 0)
-
-        get_user_model().objects.filter(pk=reviewer.pk).update(is_active=True)
-        self.assertEqual(refresh.sweep(), {"checked": 1, "submitted": 1, "unattributed": 0, "errors": 0})
-        self.assertEqual(self.node.expiries[ADDRESS], 0)
-
-    def test_the_refresh_task_writes_nothing_for_an_actor_that_no_longer_exists(self):
-        self.claim()
-        self.submit(WhitelistAction.ADD, self.actor)
-        self.submit(WhitelistAction.REMOVE, self.actor)
-        targets = refresh.targets_for_wallet(self.entry.wallet_id)
-        sent = len(self.node.broadcasts)
-
-        result = refresh_whitelist_targets(targets=targets, actor_id=str(self.actor.pk + 10000))
-
-        self.assertEqual(result, {"checked": 0, "submitted": 0, "errors": 0})
-        self.assertEqual(len(self.node.broadcasts), sent)
-        self.assertEqual(self.node.expiries[ADDRESS], 0)
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)

@@ -1,7 +1,7 @@
-from datetime import datetime
-from datetime import timezone as dt_timezone
 from uuid import uuid4
 
+from companies.services.authority_requests import _requester_principal
+from shared.db import use_operator
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.story import (
     ACCEPTED,
@@ -10,21 +10,17 @@ from shared.seeds.synthetic.chain.story import (
     SUBMITTED,
     WITHDRAWN,
 )
-from whitelist.constants import WHITELIST_NO_EXPIRY
 from whitelist.models import (
     WhitelistAction,
-    WhitelistApproval,
     WhitelistAuthority,
     WhitelistChangeStatus,
     WhitelistEntry,
 )
 from whitelist.services import changes
-from whitelist.services.refresh import STAFF_ENTERED, wanted_expiry
 
 UNAPPROVED_STATUSES = (DRAFT, SUBMITTED, WITHDRAWN, ACCEPTED)
 ENTRY_NOTE = "Synthetic demo entry, approved on the local chain by seed_demo."
 TREASURY_NOTE = "Synthetic employee share trust address created by seed_demo; no key is held for it."
-NOT_ELIGIBLE = "{address} would be approved for {company}, but its holder is not eligible there."
 NOT_CONFIRMED = "The approval of {address} for {company} ended {status}."
 
 
@@ -68,33 +64,22 @@ def entry_for(address, records, company):
     return entry, wallet
 
 
-def expiry_for(entry, company):
-    wanted = wanted_expiry(WhitelistApproval(entry=entry, company=company))
-    if wanted is STAFF_ENTERED or wanted == WHITELIST_NO_EXPIRY:
-        return None
-    if wanted == 0:
-        return 0
-    return datetime.fromtimestamp(wanted, tz=dt_timezone.utc)
-
-
 def approve_company(plan, company_key, records):
     company = records.companies[company_key]
     approved = 0
     for address in approved_addresses(plan, company_key):
         entry, wallet = entry_for(address, records, company_key)
-        expires_at = expiry_for(entry, company)
-        if expires_at == 0:
-            raise ChainStepFailed(NOT_ELIGIBLE.format(address=address, company=company.name))
-        change = changes.submit(
-            uuid4(),
-            WhitelistAction.ADD,
-            entry.wallet_address,
-            records.operations,
-            company=company,
-            expires_at=expires_at,
-            authority=WhitelistAuthority.WHITELIST_ADMIN,
-            wallet_uuid=wallet.pk if wallet else None,
-        )
+        with use_operator(), _requester_principal(records.operations.pk):
+            change = changes.submit(
+                uuid4(),
+                WhitelistAction.ADD,
+                entry.wallet_address,
+                records.operations,
+                company=company,
+                expires_at=None,
+                authority=WhitelistAuthority.WHITELIST_ADMIN,
+                wallet_uuid=wallet.pk if wallet else None,
+            )
         if change.status != WhitelistChangeStatus.CONFIRMED:
             raise ChainStepFailed(NOT_CONFIRMED.format(address=address, company=company.name, status=change.status))
         approved += 1

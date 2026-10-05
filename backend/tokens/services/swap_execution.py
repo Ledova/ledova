@@ -4,7 +4,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import connections
+from django.db import IntegrityError, connections
 from django.db.models import Q
 from django.utils import timezone
 from eth_account import Account
@@ -24,7 +24,7 @@ from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import nonnegative_integer
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
+from shared.db import APP_ALIAS, atomic, current_alias, principal_of
 from shared.utils.blockchain import decode_exception_to_message
 from tokens.constants import MAX_SWAP_RECEIPT_VALUE
 from tokens.events import publish_trading_event
@@ -51,9 +51,15 @@ from tokens.services.settlement_context import (
     settlement_execution_calldata,
 )
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
+from tokens.services.trading_admission import (
+    clear_admission,
+    eligibility_guard_refusal,
+    participant_context,
+    prepare_admission,
+)
 from tokens.services.trading_locks import lock_orders, swap_terms
+from users.exceptions import InvestorNotEligibleException
 from users.models import UserAccount, UserProfile
-from users.services.eligibility import require_account_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import ChainObservationFinality, ChainObservationResult, Wallet
 from wallets.services.chain_evidence import collect_chain_evidence
@@ -123,8 +129,8 @@ def _lock_authority(swap, actor_id, participant):
     profile_id = account.user_profile_id if account else None
     if profile_id is None or not UserProfile.objects.filter(pk=profile_id, user_id=actor_id).exists():
         raise NotFound("Swap not found.")
-    actor = get_user_model().objects.select_for_update().filter(pk=actor_id).first()
-    profile = UserProfile.objects.select_for_update().filter(pk=profile_id).first()
+    actor = get_user_model().objects.select_for_update(of=("self",), no_key=True).filter(pk=actor_id).first()
+    profile = UserProfile.objects.select_for_update(of=("self",), no_key=True).filter(pk=profile_id).first()
     if (
         wallet is None
         or account is None
@@ -212,11 +218,34 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         raise SwapSignatureException("Invalid signature")
     if swap_terms(snapshot) != terms:
         raise SwapSignatureException("The swap changed while its signature was being checked")
-    with use_operator(), atomic(durable=True):
+    with participant_context(user), atomic(durable=True):
         share_class = (
             ShareToken.objects.select_for_update(of=("self",), no_key=True).filter(pk=snapshot.share_token_id).first()
         )
         _lock_authority(snapshot, user.pk, participant)
+        current = SwapOrder.objects.get(pk=snapshot.pk)
+        current_stored = current.seller_signature if is_seller else current.buyer_signature
+        admission = None
+        if not current_stored:
+            expected_participant = "seller" if is_seller else "buyer"
+            if participant != expected_participant:
+                raise SwapSignatureException("The authenticated participant must be the signing party")
+            party = recorded_settlement_context(current)[participant]
+            account = UserAccount.objects.get(pk=party["owner_account_uuid"])
+            wallet = Wallet.objects.get(pk=party["wallet_uuid"])
+            if share_class is None:
+                raise SettlementContextChanged()
+            admission = prepare_admission(
+                user,
+                share_class,
+                account,
+                wallet,
+                operation="first_signature",
+                target_id=current.pk,
+                participant=participant,
+                signature=signature,
+                settlement_digest=current.settlement_digest,
+            )
         swap = _lock_swap(snapshot)
         stored = swap.seller_signature if is_seller else swap.buyer_signature
         if stored and stored != signature:
@@ -237,7 +266,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         if swap.deadline_passed:
             raise SwapExpiredException()
         if not stored:
-            require_account_eligibility(_signing_account(snapshot, is_seller), _share_class_company(snapshot))
+            admission.require_current()
             allowed = (
                 (SwapOrderStatus.CREATED, SwapOrderStatus.BUYER_SIGNED)
                 if is_seller
@@ -245,11 +274,18 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
             )
             if swap.status not in allowed or swap.transaction_id is not None or swap.tx_hash:
                 raise SwapNotReadyException()
-            if is_seller:
-                swap.add_seller_signature(signature)
-            else:
-                swap.add_buyer_signature(signature)
+            try:
+                with atomic():
+                    if is_seller:
+                        swap.add_seller_signature(signature, eligibility_decision=admission.decision)
+                    else:
+                        swap.add_buyer_signature(signature, eligibility_decision=admission.decision)
+            except IntegrityError as exc:
+                if not eligibility_guard_refusal(exc):
+                    raise
+                raise InvestorNotEligibleException(("no_live_company_decision",)) from exc
             publish_trading_event("swap_signed", str(swap.share_token_id))
+        clear_admission()
         if not swap.is_ready:
             return swap
         if (

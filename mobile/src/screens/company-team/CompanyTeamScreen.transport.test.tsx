@@ -23,6 +23,10 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const INVITATIONS = '/api/v1/company-authority/invitations/';

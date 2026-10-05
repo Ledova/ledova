@@ -4,7 +4,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db import connections
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
@@ -25,6 +25,7 @@ from tokens.models import (
     OrderActionStatus,
     OrderActionSubmission,
     ShareToken,
+    SigningChallenge,
     TransferOrder,
 )
 from tokens.services.order_modification_service import (
@@ -41,13 +42,20 @@ from tokens.services.signing_challenge import (
     issue_challenge,
     spend,
 )
+from tokens.services.trading_admission import (
+    eligibility_guard_refusal,
+    participant_context,
+    prepare_admission,
+)
 from tokens.services.trading_order_create import _lock_authorized_wallet
+from users.exceptions import InvestorNotEligibleException
 
 NOT_FOUND = "Order action not found."
 BUSINESS_REFUSALS = {
     OrderCancellationException: (OrderActionPurpose.CANCEL, "order_cancellation_failed", 400),
     OrderModificationException: (OrderActionPurpose.MODIFY, "order_modification_failed", 400),
     OrderModificationConflictException: (OrderActionPurpose.MODIFY, "order_modification_conflict", 409),
+    InvestorNotEligibleException: (OrderActionPurpose.MODIFY, "investor_not_eligible", 403),
 }
 
 
@@ -81,20 +89,20 @@ def _authorized_order(account_id, order_id, *, lock=False):
     return order
 
 
-def _load_action(actor, account_id, action_id):
+def _load_action(actor, account_id, action_id, *, lock_order=True):
     action = (
         OrderActionSubmission.objects.select_for_update(of=("self",))
         .filter(owner_account_id=account_id, action_id=action_id)
         .first()
     )
     if action is not None:
-        _authorize_action(actor, action)
+        _authorize_action(actor, action, lock_order=lock_order)
     return action
 
 
-def _authorize_action(actor, action):
+def _authorize_action(actor, action, *, lock_order=True):
     _lock_authorized_wallet(actor, action)
-    order = _authorized_order(action.owner_account_id, action.order_id, lock=True)
+    order = _authorized_order(action.owner_account_id, action.order_id, lock=lock_order)
     if (
         order.wallet_id != action.wallet_id
         or order.token_id != action.token_id
@@ -172,6 +180,8 @@ def _assert_intent(action, order_id, purpose, data, *, modifications=False):
 
 def _register_action(actor, order_id, purpose, data):
     with atomic(durable=True):
+        snapshot = _authorized_order(data["owner_account_uuid"], order_id)
+        ShareToken.objects.select_for_update(of=("self",), no_key=True).get(pk=snapshot.token_id)
         action = _load_action(actor, data["owner_account_uuid"], data["action_id"])
         if action is None:
             order = _authorized_order(data["owner_account_uuid"], order_id)
@@ -300,13 +310,15 @@ def _verify(action, credentials):
     return challenge
 
 
-def _apply(action, challenge, observed_balance, ip_address, user_agent):
+def _apply(action, challenge, observed_balance, ip_address, user_agent, admission=None):
     if action.purpose == OrderActionPurpose.CANCEL:
         _validate_issue(action, None)
         previous = action.order.status
         action.order.cancel()
         return {"kind": "cancel", "from_status": previous, "to_status": action.order.status}
-    _, changes = apply_order_modification(action.order, challenge, observed_balance, ip_address, user_agent)
+    _, changes = apply_order_modification(
+        action.order, challenge, observed_balance, ip_address, user_agent, action=action, admission=admission
+    )
     return {"kind": "modify", "modification_count": action.order.modification_count, "changes": changes}
 
 
@@ -322,20 +334,43 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
         _token_context(action.order, action)
         _verify(action, credentials)
     observed_balance = _preflight(action, executing=True)
-    with atomic(durable=True):
-        action = _load_action(actor, data["owner_account_uuid"], data["action_id"])
+    with participant_context(actor), atomic(durable=True):
+        token = ShareToken.objects.select_for_update(of=("self",), no_key=True).get(pk=action.token_id)
+        action = _load_action(actor, data["owner_account_uuid"], data["action_id"], lock_order=False)
         if action is None:
             raise NotFound(NOT_FOUND)
         _assert_intent(action, order_id, purpose, data)
         if action.status != OrderActionStatus.PENDING:
+            _authorize_action(actor, action)
             return OrderActionResponse(action)
+        admission = None
+        if purpose == OrderActionPurpose.MODIFY:
+            candidate = SigningChallenge.objects.filter(digest=credentials.get("digest"), action=action).first()
+            if candidate is None:
+                raise ChallengeMismatchException("action")
+            wallet = action.wallet
+            admission = prepare_admission(
+                actor,
+                token,
+                wallet.user_account,
+                wallet,
+                operation="modify_order",
+                target_id=action.order_id,
+                action=action,
+                challenge=candidate,
+            )
+        _authorize_action(actor, action)
         _token_context(action.order, action)
         challenge = _verify(action, credentials)
         spend(challenge, credentials["signature"])
         try:
             with atomic():
-                result = _apply(action, challenge, observed_balance, ip_address, user_agent)
-        except tuple(BUSINESS_REFUSALS) as exc:
+                result = _apply(action, challenge, observed_balance, ip_address, user_agent, admission)
+        except (IntegrityError, *BUSINESS_REFUSALS) as exc:
+            if isinstance(exc, IntegrityError):
+                if not eligibility_guard_refusal(exc):
+                    raise
+                exc = InvestorNotEligibleException(("no_live_company_decision",))
             if type(exc) not in BUSINESS_REFUSALS or BUSINESS_REFUSALS[type(exc)][0] != purpose:
                 raise
             _, action.refusal_code, action.refusal_status = BUSINESS_REFUSALS[type(exc)]
@@ -344,12 +379,17 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
         else:
             action.result = result
             action.status = OrderActionStatus.APPLIED
+            if purpose == OrderActionPurpose.MODIFY:
+                action.eligibility_decision_id = action.order.last_modification_eligibility_decision_id
+                action.eligibility_admitted_at = action.order.last_modified_at
         action.executed_challenge = challenge
         action.executed_by = actor
         action.resolved_at = timezone.now()
         action.save(
             update_fields=[
                 "status",
+                "eligibility_decision",
+                "eligibility_admitted_at",
                 "result",
                 "refusal_code",
                 "refusal_detail",

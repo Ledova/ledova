@@ -10,6 +10,8 @@ __all__ = [
     "WhitelistAuthority",
     "WhitelistChange",
     "WhitelistChangeStatus",
+    "WhitelistEligibilityInvalidation",
+    "WhitelistInvalidationCause",
 ]
 from whitelist.models.approval import WhitelistApproval
 from whitelist.models.change import (
@@ -17,4 +19,6 @@ from whitelist.models.change import (
     WhitelistAuthority,
     WhitelistChange,
     WhitelistChangeStatus,
+    WhitelistEligibilityInvalidation,
+    WhitelistInvalidationCause,
 )

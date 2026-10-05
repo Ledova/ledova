@@ -8,6 +8,10 @@ import { apiClient } from '../../services/apiClient';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('../../services/tokenStorage', () => ({ getAccessToken: jest.fn(async () => 'synthetic-access') }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), delete: jest.fn() } }));
@@ -45,7 +49,7 @@ beforeEach(() => {
   jest.spyOn(FormData.prototype, 'append');
   remove.mockReset();
   readFailure = null;
-  eligibility = { account: 'account-a', isEligible: false, reasons: ['no_live_classification'] };
+  eligibility = { account: 'account-a', isReady: false, reasons: ['identity_not_verified'] };
   claimPages = { 1: { results: [], next: null } };
   companies = [{ uuid: 'issuer-a', name: 'Fictional Harbour Pty Ltd' }];
   client = new QueryClient({
@@ -105,7 +109,7 @@ it('ends the categories and claims cards on their last item without a rule above
   expect(view.getByText('Evidence second').parent).toHaveStyle({ borderBottomWidth: 0 });
 });
 
-it('reads later claim pages and blocks a duplicate claim without changing the documents cache', async () => {
+it('reads later source pages and permits additional evidence without changing the documents cache', async () => {
   claimPages = {
     1: { results: [claim('old')], next: `https://example.test${claimsUrl}?page=2` },
     2: { results: [claim('pending', 'submitted')], next: null },
@@ -114,8 +118,8 @@ it('reads later claim pages and blocks a duplicate claim without changing the do
   client.setQueryData(['investor-classifications'], documentsCache);
   const view = await page();
   expect(await view.findByText('Evidence pending')).toBeTruthy();
-  expect(view.getByText('Awaiting review')).toBeTruthy();
-  expect(view.getByLabelText('Attach evidence for Large investment')).toBeDisabled();
+  expect(view.getByText('Available to share')).toBeTruthy();
+  expect(view.getByLabelText('Attach evidence for Large investment')).toBeEnabled();
   expect(get).toHaveBeenCalledWith(claimsUrl, { params: { page: 2 } });
   expect(client.getQueryData(['investor-classifications'])).toEqual(documentsCache);
 });
@@ -130,7 +134,7 @@ it.each([eligibilityUrl, claimsUrl, `${claimsUrl}2`])(
     readFailure = url;
     const view = await page();
     expect(await view.findByText(/Verification information could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('You cannot subscribe to offerings yet')).toBeNull();
+    expect(view.queryByText('Account checks needed')).toBeNull();
     expect(view.queryByText('Evidence partial')).toBeNull();
     expect(view.queryByText('You have not made a claim yet.')).toBeNull();
     readFailure = null;
@@ -149,13 +153,13 @@ it.each([eligibilityUrl, claimsUrl])(
     await refresh();
     expect(view.getByDisplayValue('My retained synthetic evidence')).toBeTruthy();
     expect(view.getByText('1.pdf')).toBeTruthy();
-    await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeDisabled());
-    await fireEvent.press(view.getByText('Submit for review'));
+    await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled());
+    await fireEvent.press(view.getByText('Save private evidence'));
     expect(post).not.toHaveBeenCalled();
     expect(files.get(copy)?.content).toBe('document-1');
     readFailure = null;
     await fireEvent.press(view.getAllByText('Try again').at(-1)!);
-    await waitFor(() => expect(view.getByText('Submit for review')).toBeEnabled());
+    await waitFor(() => expect(view.getByText('Save private evidence')).toBeEnabled());
     post.mockImplementationOnce(async () => {
       expect(FormData.prototype.append).toHaveBeenCalledWith(
         'evidence_file',
@@ -165,14 +169,14 @@ it.each([eligibilityUrl, claimsUrl])(
       claimPages = { 1: { results: [claim('new', 'submitted')], next: null } };
       return { data: claim('new', 'submitted') };
     });
-    await fireEvent.press(view.getByText('Submit for review'));
+    await fireEvent.press(view.getByText('Save private evidence'));
     expect(await view.findByText('Evidence new')).toBeTruthy();
     expect(post).toHaveBeenCalledTimes(1);
     expect(files.has(copy)).toBe(false);
   },
 );
 
-it('blocks submission while either prerequisite is still refreshing and when a pending claim then appears', async () => {
+it('blocks a held prerequisite read and then permits another submitted source without discarding the draft', async () => {
   const view = await draft();
   let finish!: (value: object) => void;
   get.mockImplementationOnce(
@@ -185,19 +189,27 @@ it('blocks submission while either prerequisite is still refreshing and when a p
   await act(async () => {
     refreshing = client.invalidateQueries({ queryKey: ['investor-eligibility'] });
   });
-  await waitFor(() => expect(view.getByText('Submit for review')).toBeDisabled());
-  await fireEvent.press(view.getByText('Submit for review'));
+  await waitFor(() => expect(view.getByText('Save private evidence')).toBeDisabled());
+  await fireEvent.press(view.getByText('Save private evidence'));
   expect(post).not.toHaveBeenCalled();
   await act(async () => {
     finish({ data: eligibility });
     await refreshing;
   });
-  await waitFor(() => expect(view.getByText('Submit for review')).toBeEnabled());
+  await waitFor(() => expect(view.getByText('Save private evidence')).toBeEnabled());
   claimPages = { 1: { results: [claim('elsewhere', 'submitted')], next: null } };
   await refresh();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeDisabled());
-  expect(view.getByText(/A claim is now awaiting review/)).toBeTruthy();
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled());
   expect(view.getByDisplayValue('My retained synthetic evidence')).toBeTruthy();
+  expect(await view.findByText('Evidence elsewhere')).toBeTruthy();
+  post.mockImplementationOnce(async () => {
+    claimPages = { 1: { results: [claim('elsewhere', 'submitted'), claim('new', 'submitted')], next: null } };
+    return { data: claim('new', 'submitted') };
+  });
+  await fireEvent.press(view.getByRole('button', { name: 'Save private evidence' }));
+  expect(await view.findByText('Evidence new')).toBeTruthy();
+  expect(view.getByText('Evidence elsewhere')).toBeTruthy();
+  expect(post).toHaveBeenCalledTimes(1);
 });
 
 it('keeps a refused claim withdrawal visible and refreshes the ledger after retry', async () => {
@@ -227,7 +239,7 @@ it('keeps the modal and file through refusal and prevents closing or duplicate s
   );
   let pressed!: Promise<void>;
   await act(async () => {
-    pressed = fireEvent.press(view.getByText('Submit for review'));
+    pressed = fireEvent.press(view.getByText('Save private evidence'));
   });
   await waitFor(() => expect(view.getByText('Submitting…')).toBeDisabled());
   await fireEvent.press(view.getByText('Cancel'));
@@ -243,27 +255,27 @@ it('keeps the modal and file through refusal and prevents closing or duplicate s
   });
   expect(await view.findByText('Operator refused this evidence')).toBeTruthy();
   expect(view.getByText('1.pdf')).toBeTruthy();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeEnabled());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled());
 });
 
 it('requires a currently readable selected issuer for an associated-person claim', async () => {
   readFailure = '/api/v1/companies/';
   const view = await draft('Associated with the issuer');
   expect(await view.findByText('Issuers could not be loaded.')).toBeTruthy();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeDisabled());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled());
   readFailure = null;
   await fireEvent.press(view.getByText('Try issuers again'));
   await fireEvent.press(await view.findByText('Fictional Harbour Pty Ltd'));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeEnabled());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled());
   companies = [];
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['companies'] });
   });
   expect(await view.findByText('No issuer is available for this account.')).toBeTruthy();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit for review' })).toBeDisabled());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled());
 });
 
-it('keeps the loading state explicit and shows verified, expired and rejected evidence truthfully', async () => {
+it('keeps account readiness separate from retained historical verification, expiry and rejection', async () => {
   let finish!: (value: object) => void;
   get.mockImplementationOnce(
     () =>
@@ -285,18 +297,20 @@ it('keeps the loading state explicit and shows verified, expired and rejected ev
   expect(view.getByText('Loading verification…')).toBeTruthy();
   expect(view.queryByLabelText('Attach evidence for Large investment')).toBeNull();
   await act(async () => {
-    finish({ data: { ...eligibility, isEligible: true, reasons: [] } });
+    finish({ data: { ...eligibility, isReady: true, reasons: [] } });
   });
-  expect(await view.findByText('You can see and subscribe to offerings')).toBeTruthy();
-  expect(view.getByText(/Verified until/)).toBeTruthy();
-  expect(view.getByText('Expired')).toBeTruthy();
+  expect(await view.findByText('Account ready')).toBeTruthy();
+  expect(view.getByText('Historical verification')).toBeTruthy();
+  expect(view.getByText('Historical verification expired')).toBeTruthy();
+  expect(view.getByText('1 September 2027')).toBeTruthy();
+  expect(view.queryByText('You can see and subscribe to offerings')).toBeNull();
   expect(view.getByText('Rejected')).toBeTruthy();
   expect(view.getByText('Please supply current evidence.')).toBeTruthy();
 });
 
 it('requires the complete accountant certificate and sends its fields with the evidence', async () => {
   const view = await draft("Qualified accountant's certificate");
-  expect(view.getByRole('button', { name: 'Submit for review' })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled();
   await fireEvent.changeText(view.getByLabelText('Certificate date'), '2026-09-01');
   await fireEvent.changeText(view.getByLabelText('Accountant name'), 'Fictional Accountant');
   await fireEvent.changeText(view.getByLabelText('Membership number'), 'EXAMPLE-123');
@@ -305,9 +319,9 @@ it('requires the complete accountant certificate and sends its fields with the e
   expect(body).toHaveStyle({ alignSelf: 'flex-start' });
   expect(body.props.style).not.toHaveProperty('backgroundColor');
   expect(view.getByRole('radio', { name: 'Chartered Accountants ANZ', checked: false })).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Submit for review' })).toBeEnabled();
+  expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled();
   post.mockResolvedValueOnce({ data: claim('new', 'submitted') });
-  await fireEvent.press(view.getByText('Submit for review'));
+  await fireEvent.press(view.getByText('Save private evidence'));
   expect(post).toHaveBeenCalledTimes(1);
   for (const [name, value] of [
     ['category', 'accountant_certificate'],

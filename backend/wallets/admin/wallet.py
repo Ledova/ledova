@@ -2,9 +2,11 @@ from django.contrib import admin
 from django.db.models import Count
 from django.utils import timezone
 
+from shared.constants import BLOCKCHAIN_BASE
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
+from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_wallet
 
 
@@ -54,18 +56,33 @@ class WalletAdmin(admin.ModelAdmin):
         return readonly
 
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        if change and "user_account" in form.changed_data:
-            enqueue_for_wallet(obj.pk, request.user)
+        with invalidation_writer_context(request.user):
+            previous = Wallet.objects.select_for_update().get(pk=obj.pk) if change else None
+            if (
+                previous is not None
+                and previous.chain == BLOCKCHAIN_BASE
+                and previous.verification_status == WALLET_VERIFICATION_STATUS_VERIFIED
+                and (
+                    previous.user_account_id != obj.user_account_id
+                    or obj.verification_status != WALLET_VERIFICATION_STATUS_VERIFIED
+                )
+            ):
+                enqueue_for_wallet(previous.pk, request.user)
+            super().save_model(request, obj, form, change)
 
     def delete_model(self, request, obj):
-        enqueue_for_wallet(obj.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
-        super().delete_model(request, obj)
+        with invalidation_writer_context(request.user):
+            wallet = Wallet.objects.select_for_update().get(pk=obj.pk)
+            if wallet.chain == BLOCKCHAIN_BASE:
+                enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
+            super().delete_model(request, wallet)
 
     def delete_queryset(self, request, queryset):
-        for wallet in queryset:
-            enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
-        super().delete_queryset(request, queryset)
+        with invalidation_writer_context(request.user):
+            for wallet in queryset.select_for_update().order_by("uuid"):
+                if wallet.chain == BLOCKCHAIN_BASE:
+                    enqueue_for_wallet(wallet.pk, request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
+            super().delete_queryset(request, queryset)
 
     def get_queryset(self, request):
 

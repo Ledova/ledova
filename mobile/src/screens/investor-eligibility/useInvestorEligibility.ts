@@ -3,7 +3,7 @@ import {
   CACHE_TIMING,
   deleteInvestorClassification,
   getInvestorClassifications,
-  getInvestorEligibility,
+  getInvestorReadiness,
   readEveryPage,
   submitInvestorClassification,
 } from '@ledova/shared';
@@ -17,7 +17,7 @@ export function useInvestorEligibility() {
   const queryClient = useQueryClient();
   const eligibilityQuery = useQuery({
     queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient),
+    queryFn: () => getInvestorReadiness(apiClient),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
   const classificationsQuery = useQuery({

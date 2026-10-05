@@ -8,7 +8,6 @@ from users.models.investor_classification import (
     DECLARATION_TEXT,
     InvestorCategory,
     InvestorClassification,
-    InvestorClassificationStatus,
     plus_years,
 )
 from users.services.accounts import account_of
@@ -114,14 +113,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
         account = attrs["user_account"] = account_of(getattr(self.context.get("request"), "user", None))
         if account is None:
             raise serializers.ValidationError({"user_account": "This user has no account."})
-        open_submissions = InvestorClassification.objects.filter(
-            user_account=account, status=InvestorClassificationStatus.SUBMITTED
-        )
-        if open_submissions.exists():
-            raise serializers.ValidationError(
-                {"user_account": "This account already has a classification awaiting review."}
-            )
-
         attrs["evidence_file_size"], attrs["evidence_mime_type"] = validate_upload(
             attrs["evidence_file"], field="evidence_file"
         )
@@ -131,17 +122,10 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
 
 
 class InvestorEligibilitySerializer(serializers.Serializer):
-    is_eligible = serializers.BooleanField()
+    is_ready = serializers.BooleanField()
     reasons = serializers.ListField(child=serializers.CharField())
     account = serializers.SerializerMethodField()
-    classification = serializers.SerializerMethodField()
 
     @extend_schema_field(serializers.UUIDField(allow_null=True))
     def get_account(self, obj):
         return str(obj.account.uuid) if obj.account else None
-
-    @extend_schema_field(InvestorClassificationSerializer(allow_null=True))
-    def get_classification(self, obj):
-        if obj.classification is None:
-            return None
-        return InvestorClassificationSerializer(obj.classification, context=self.context).data

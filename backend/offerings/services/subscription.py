@@ -1,12 +1,17 @@
+import json
 import logging
+from contextlib import contextmanager
 from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
+from uuid import uuid4
 
-from django.db import IntegrityError
+from django.db import IntegrityError, connections
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 
 from companies.models import Company
+from companies.services.authority_requests import _requester_principal
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
     SubscriptionRefusedException,
@@ -25,7 +30,7 @@ from offerings.services.payments import (
     raw_settlement_amount,
 )
 from operators.models import Operator
-from shared.db import atomic
+from shared.db import atomic, current_alias, principal_of, use_operator
 from tokens.models import (
     IssuanceType,
     RegisterInstruction,
@@ -34,7 +39,11 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services import share_token_service
-from users.services.eligibility import require_subscription_eligibility
+from users.services.company_eligibility_consumption import (
+    require_subscription_acceptance_eligibility,
+    require_subscription_eligibility,
+)
+from wallets.models import Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -136,51 +145,176 @@ def _require_open(offering: Offering) -> None:
         raise SubscriptionRefusedException(OFFERING_NOT_OPEN.format(symbol=offering.token.symbol))
 
 
-def create_draft(offering: Offering, user_account, wallet, quantity: int, submitted_by=None) -> Subscription:
-    _require_open(offering)
-    _check_bounds(offering, quantity)
-    if wallet.user_account_id != user_account.pk:
-        raise SubscriptionRefusedException(WALLET_NOT_ON_ACCOUNT)
-    return Subscription.objects.create(
-        offering=offering,
-        company_name=offering.token.company.display_name,
-        token_name=offering.token.name,
-        token_symbol=offering.token.symbol,
-        currency=offering.price_currency,
-        user_account=user_account,
-        wallet=wallet,
-        submitted_by=submitted_by,
-        quantity=quantity,
-        price_per_share=offering.price_per_share,
-        amount_due=amount_for(offering, quantity),
-    )
+@contextmanager
+def subscription_admission_operation(operation, **command):
+    with use_operator():
+        command_connection = connections[current_alias()]
+        setting = "app.subscription_admission_command"
+        with command_connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting(%s, true)", [setting])
+            previous = cursor.fetchone()[0] or ""
+            cursor.execute(
+                "SELECT set_config(%s, %s, false)",
+                [setting, json.dumps({"operation": operation, **command}, default=str)],
+            )
+        try:
+            try:
+                with atomic():
+                    yield
+            except IntegrityError as error:
+                if getattr(error.__cause__, "sqlstate", None) == "23514":
+                    raise SubscriptionRefusedException(
+                        "The exact subscription no longer has current admission."
+                    ) from error
+                raise
+        finally:
+            with command_connection.cursor() as cursor:
+                cursor.execute("SELECT set_config(%s, %s, false)", [setting, previous])
 
 
-def _require_eligible(subscription: Subscription):
-    return require_subscription_eligibility(
-        subscription.user_account, subscription.offering.token.company, subscription.amount_due
-    )
+def _admission_principal(actor):
+    if actor is None or not actor.is_authenticated:
+        raise PermissionDenied("A subscription requires its actual account holder.")
+    principal = principal_of()
+    if principal != str(actor.pk):
+        raise PermissionDenied("The subscription actor differs from the current participant.")
+    return actor.pk
 
 
-@atomic()
-def submit(subscription: Subscription, submitted_by=None) -> Subscription:
-    offering = Offering.objects.with_relations().filter(pk=subscription.offering_id).first()
-    if offering is None:
-        raise SubscriptionRefusedException(OFFERING_NOT_OPEN.format(symbol=subscription.token_symbol))
-    subscription.offering = offering
+def _admission_command(subscription, decision):
+    offering = subscription.offering
+    account = subscription.user_account
+    return {
+        "subscription": subscription.pk,
+        "company": offering.company_id,
+        "token": offering.token_id,
+        "offering": offering.pk,
+        "wallet": subscription.wallet_id,
+        "account": account.pk,
+        "profile": account.user_profile_id,
+        "holder": account.user_profile.user_id,
+        "decision": decision.pk,
+        "request": decision.request_id,
+        "source": decision.request.source_id,
+        "quantity": subscription.quantity,
+        "price_per_share": subscription.price_per_share,
+        "currency": subscription.currency,
+        "amount_due": subscription.amount_due,
+    }
+
+
+def _lock_admission():
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT offerings_lock_subscription_admission()")
+
+
+def _current_subscription(subscription):
+    return Subscription.objects.select_related(
+        "offering__token__company", "user_account__user_profile", "wallet", "eligibility_decision__request"
+    ).get(pk=subscription.pk)
+
+
+def _require_frozen_economics(subscription):
+    offering = subscription.offering
     _require_open(offering)
     _check_bounds(offering, subscription.quantity)
-    _require_eligible(subscription)
-    subscription.submit(submitted_by=submitted_by)
-    logger.info(f"Subscription {subscription.uuid} submitted for {subscription.offering.token.symbol}")
-    return subscription
+    if (
+        subscription.company_id != offering.company_id
+        or offering.company_id != offering.token.company_id
+        or subscription.price_per_share != offering.price_per_share
+        or subscription.currency != offering.price_currency
+        or subscription.amount_due != amount_for(offering, subscription.quantity)
+    ):
+        raise SubscriptionRefusedException("The subscription's frozen offering terms have changed.")
 
 
-@atomic()
+def _require_holder(account, actor_id):
+    if account.user_profile.user_id != actor_id:
+        raise PermissionDenied("A subscription requires its actual account holder.")
+
+
+def _require_technical_acceptance():
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(
+            "SELECT offerings_subscription_acceptance_authorized("
+            "NULLIF(current_setting('app.user_id', true), '')::bigint)"
+        )
+        if cursor.fetchone()[0] is not True:
+            raise PermissionDenied("Subscription acceptance requires the current technical change permission.")
+
+
+def create_draft(offering: Offering, user_account, wallet, quantity: int, submitted_by=None) -> Subscription:
+    actor_id = _admission_principal(submitted_by)
+    with use_operator(), _requester_principal(actor_id), atomic():
+        current_offering = Offering.objects.select_related("token__company").get(pk=offering.pk)
+        current_wallet = Wallet.objects.get(pk=wallet.pk)
+        current_account = type(user_account).objects.select_related("user_profile").get(pk=user_account.pk)
+        _require_holder(current_account, actor_id)
+        candidate = Subscription(
+            uuid=uuid4(),
+            offering=current_offering,
+            company_id=current_offering.company_id,
+            company_name=current_offering.token.company.display_name,
+            token_name=current_offering.token.name,
+            token_symbol=current_offering.token.symbol,
+            currency=current_offering.price_currency,
+            user_account=current_account,
+            wallet=current_wallet,
+            submitted_by=submitted_by,
+            quantity=quantity,
+            price_per_share=current_offering.price_per_share,
+            amount_due=amount_for(current_offering, quantity),
+        )
+        outcome = require_subscription_eligibility(current_account, current_offering, quantity)
+        with subscription_admission_operation("draft", **_admission_command(candidate, outcome.decision)):
+            _lock_admission()
+            candidate.offering = Offering.objects.select_related("token__company").get(pk=current_offering.pk)
+            _require_frozen_economics(candidate)
+            require_subscription_eligibility(
+                current_account, candidate.offering, quantity, decision_id=outcome.decision.pk
+            )
+            candidate.save(force_insert=True)
+            candidate.refresh_from_db()
+            return candidate
+
+
+def submit(subscription: Subscription, submitted_by=None) -> Subscription:
+    actor_id = _admission_principal(submitted_by)
+    with use_operator(), _requester_principal(actor_id), atomic():
+        current = _current_subscription(subscription)
+        _require_holder(current.user_account, actor_id)
+        current._require_status([SubscriptionStatus.DRAFT], SubscriptionStatus.SUBMITTED)
+        outcome = require_subscription_eligibility(current.user_account, current.offering, current.quantity)
+        with subscription_admission_operation("submit", **_admission_command(current, outcome.decision)):
+            _lock_admission()
+            current = _current_subscription(current)
+            _require_frozen_economics(current)
+            outcome = require_subscription_eligibility(
+                current.user_account, current.offering, current.quantity, decision_id=outcome.decision.pk
+            )
+            current.submit(submitted_by=submitted_by, eligibility_decision=outcome.decision)
+            subscription.refresh_from_db()
+            logger.info(f"Subscription {current.uuid} submitted for {current.offering.token.symbol}")
+            return subscription
+
+
 def accept(subscription: Subscription) -> Subscription:
-    _require_eligible(subscription)
-    subscription.accept()
-    return subscription
+    principal = principal_of()
+    with use_operator(), _requester_principal(principal or ""), atomic():
+        _require_technical_acceptance()
+        current = _current_subscription(subscription)
+        current._require_status([SubscriptionStatus.SUBMITTED], SubscriptionStatus.ACCEPTED)
+        if current.eligibility_decision_id is None:
+            require_subscription_acceptance_eligibility(current)
+        with subscription_admission_operation("accept", **_admission_command(current, current.eligibility_decision)):
+            require_subscription_acceptance_eligibility(current)
+            _lock_admission()
+            current = _current_subscription(current)
+            _require_frozen_economics(current)
+            require_subscription_acceptance_eligibility(current)
+            current.accept()
+            subscription.refresh_from_db()
+            return subscription
 
 
 def _rail_asset(offering: Offering, rail: str, settlement_asset):

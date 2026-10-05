@@ -97,7 +97,7 @@ describe('which signed-in pages an account can open', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
 
-  it.each(['home', 'publications', 'company', 'companyTeam', 'companyListing'] as const)(
+  it.each(['home', 'publications', 'company', 'companyTeam', 'companyListing', 'companyEligibility'] as const)(
     'lets an investor open %s, a page for everyone',
     (key) => {
       open(key, 'investor');
@@ -105,10 +105,13 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['directoryDetail', 'trading'] as const)('lets an investor open %s, an investing page', (key) => {
-    open(key, 'investor');
-    expect(opened(key)).toBe(true);
-  });
+  it.each(['directoryDetail', 'trading', 'eligibilityRequests'] as const)(
+    'lets an investor open %s, an investing page',
+    (key) => {
+      open(key, 'investor');
+      expect(opened(key)).toBe(true);
+    },
+  );
 
   it('sends an investor opening a company page to their home at once, even before the frame is showing', () => {
     open('companyRegister', 'investor', { frameShowing: false });

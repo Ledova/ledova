@@ -9,7 +9,6 @@ from offerings.services.subscription import create_draft
 from operators.exceptions import SettlementAssetNotDeployedException
 from shared.constants import BLOCKCHAIN_BASE
 from users.models import UserAccount
-from users.services.eligibility import eligible_investor_companies
 from wallets.models import Wallet
 
 SUBSCRIPTION_FIELDS = [
@@ -164,9 +163,7 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         user = getattr(self.context.get("request"), "user", None)
-        fields["offering"].queryset = Offering.objects.open_now().filter(
-            token__company__in=eligible_investor_companies(user)
-        )
+        fields["offering"].queryset = Offering.objects.open_now()
         fields["wallet"].queryset = Wallet.objects.owned_by(user).verified_evm().filter(chain=BLOCKCHAIN_BASE)
         return fields
 

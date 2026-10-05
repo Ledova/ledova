@@ -1,25 +1,19 @@
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
-
-from tokens.models import ShareToken
-from users.services.eligibility import investor_eligibility
+from tokens.services.market_data_service import list_market_tokens
 
 
-def _is_eligible(user) -> bool:
-    return investor_eligibility(user).is_eligible
+def _is_eligible(user, token_uuid) -> bool:
+    return list_market_tokens(user).filter(uuid=token_uuid).exists()
 
 
-async def resolve_streamable_token_uuid(user, raw_token_uuid):
+def streamable_token_uuid(user, raw_token_uuid):
     try:
         token_uuid = str(UUID(raw_token_uuid))
     except (AttributeError, TypeError, ValueError):
         return None
 
-    if not await sync_to_async(_is_eligible)(user):
-        return None
-
-    if not await ShareToken.objects.deployed_with_contract().filter(uuid=token_uuid).aexists():
+    if not _is_eligible(user, token_uuid):
         return None
 
     return token_uuid

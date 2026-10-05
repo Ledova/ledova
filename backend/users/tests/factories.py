@@ -60,7 +60,12 @@ def verified_classification(account, reviewer, **overrides):
     expires_at = overrides.pop("expires_at", timezone.now() + timezone.timedelta(days=365))
     classification = make_classification(account, **overrides)
     with use_migrate():
-        classification.verify(reviewed_by=reviewer, expires_at=expires_at)
+        InvestorClassification.objects.filter(pk=classification.pk).update(
+            status=InvestorClassificationStatus.VERIFIED,
+            reviewed_by=reviewer,
+            reviewed_at=timezone.now(),
+            expires_at=expires_at,
+        )
         classification.refresh_from_db()
     return classification
 
@@ -68,7 +73,12 @@ def verified_classification(account, reviewer, **overrides):
 def revoked_classification(account, reviewer, **overrides):
     classification = verified_classification(account, reviewer, **overrides)
     with use_migrate():
-        classification.revoke(reviewed_by=reviewer, reason="No longer holds")
+        InvestorClassification.objects.filter(pk=classification.pk).update(
+            status=InvestorClassificationStatus.REVOKED,
+            reviewed_by=reviewer,
+            reviewed_at=timezone.now(),
+            rejection_reason="No longer holds",
+        )
         classification.refresh_from_db()
     return classification
 
@@ -76,7 +86,12 @@ def revoked_classification(account, reviewer, **overrides):
 def rejected_classification(account, reviewer, **overrides):
     classification = make_classification(account, **overrides)
     with use_migrate():
-        classification.reject(reviewed_by=reviewer, reason="Evidence insufficient")
+        InvestorClassification.objects.filter(pk=classification.pk).update(
+            status=InvestorClassificationStatus.REJECTED,
+            reviewed_by=reviewer,
+            reviewed_at=timezone.now(),
+            rejection_reason="Evidence insufficient",
+        )
         classification.refresh_from_db()
     return classification
 

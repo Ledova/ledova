@@ -12,7 +12,7 @@ const api = vi.hoisted(() => ({ get: vi.fn(), delete: vi.fn(), post: vi.fn() }))
 vi.mock('@services/apiClient', () => ({ default: api }));
 
 let client: QueryClient;
-const eligibility = { account: 'account-one', isEligible: true, reasons: [], classification: null };
+const eligibility = { account: 'account-one', isReady: true, reasons: [] };
 
 function claim(overrides: Partial<InvestorClassification> = {}): InvestorClassification {
   return {
@@ -80,13 +80,13 @@ it('waits for eligibility and claims without showing a negative or empty result'
   renderPage();
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Verification');
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('Verification needed')).toBeNull();
+  expect(screen.queryByText('Account checks needed')).toBeNull();
   expect(screen.queryByText(/You have not submitted/)).toBeNull();
   await act(async () => finish(page()));
-  expect(await screen.findByText('Verified to invest')).toBeTruthy();
+  expect(await screen.findByText('Account ready')).toBeTruthy();
 });
 
-it('reads every claim page so an older pending claim still prevents duplicate submission', async () => {
+it('reads every source page and allows another private source alongside submitted and historical evidence', async () => {
   api.get.mockImplementation(async (url: string, config?: { params: { page: number } }) => {
     if (url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY) return { data: eligibility };
     return config?.params.page === 1
@@ -96,11 +96,11 @@ it('reads every claim page so an older pending claim still prevents duplicate su
         ]);
   });
   renderPage();
-  expect(await screen.findByText('Awaiting review')).toBeTruthy();
-  expect(screen.getByText('Verified to invest')).toBeTruthy();
+  expect(await screen.findByText('Available to share')).toBeTruthy();
+  expect(screen.getByText('Account ready')).toBeTruthy();
   expect(screen.getAllByRole('article')).toHaveLength(2);
-  for (const button of screen.getAllByRole('button', { name: /Submit evidence|Update evidence/ })) {
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+  for (const button of screen.getAllByRole('button', { name: /Submit evidence|Add evidence/ })) {
+    expect((button as HTMLButtonElement).disabled).toBe(false);
   }
   expect(api.get).toHaveBeenCalledWith(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, { params: { page: 2 } });
   expect(screen.getByRole('link', { name: 'Directory' }).getAttribute('href')).toBe('/directory');
@@ -129,25 +129,25 @@ it.each(['eligibility', 'claims', 'later claims'])(
       'textContent',
       'Your verification could not be loaded. Try again before continuing.Try again',
     );
-    expect(screen.queryByText('Verification needed')).toBeNull();
-    expect(screen.queryByText('Verified to invest')).toBeNull();
+    expect(screen.queryByText('Account checks needed')).toBeNull();
+    expect(screen.queryByText('Account ready')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Update evidence' })).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('Verified to invest')).toBeTruthy();
+    expect(await screen.findByText('Account ready')).toBeTruthy();
   },
 );
 
 it('hides cached claims and actions when a refresh fails', async () => {
   renderPage();
-  await screen.findByText('Verified to invest');
+  await screen.findByText('Account ready');
   api.get.mockRejectedValue(new Error('Unavailable'));
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['investor-eligibility'] });
   });
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Submit evidence' })).toBeNull();
-  expect(screen.queryByText('Verified to invest')).toBeNull();
+  expect(screen.queryByText('Account ready')).toBeNull();
 });
 
 it.each(['eligibility', 'claims'])('retains an open claim through a failed %s refresh and retry', async (source) => {
@@ -168,7 +168,9 @@ it.each(['eligibility', 'claims'])('retains an open claim through a failed %s re
   fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), { target: { value: 'Current certificate' } });
   fireEvent.change(within(dialog).getByLabelText('Evidence file'), { target: { files: [file] } });
   fireEvent.click(within(dialog).getByRole('checkbox'));
-  expect((within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement).disabled).toBe(false);
+  expect((within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
   broken = true;
   await act(async () => {
     await client.invalidateQueries({
@@ -184,13 +186,13 @@ it.each(['eligibility', 'claims'])('retains an open claim through a failed %s re
   );
   expect(screen.getByRole('dialog')).toBe(dialog);
   expect(within(dialog).getByRole('alert').textContent).toContain('Your verification could not be loaded');
-  expect(screen.queryByText('Verified to invest')).toBeNull();
+  expect(screen.queryByText('Account ready')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Submit evidence' })).toBeNull();
   expect((within(dialog).getByLabelText('Basis for the claim') as HTMLTextAreaElement).value).toBe(
     'Current certificate',
   );
   expect(within(dialog).getByText('certificate.pdf')).toBeTruthy();
-  const submit = within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement;
+  const submit = within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement;
   expect(submit.disabled).toBe(true);
   fireEvent.click(submit);
   expect(api.post).not.toHaveBeenCalled();
@@ -230,7 +232,7 @@ it('keeps a claim that is being submitted open on Escape and closes it once it i
     target: { files: [new File(['test'], 'proof.pdf', { type: 'application/pdf' })] },
   });
   fireEvent.click(within(dialog).getByRole('checkbox'));
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Submit for review' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   expect((within(dialog).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
@@ -242,7 +244,7 @@ it('keeps a claim that is being submitted open on Escape and closes it once it i
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
 
-it('retains evidence but blocks a claim when a refresh discovers another pending claim', async () => {
+it('retains and submits the same private evidence when a refresh discovers another submitted source', async () => {
   renderPage();
   fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[0]);
   const dialog = await screen.findByRole('dialog');
@@ -259,20 +261,24 @@ it('retains evidence but blocks a claim when a refresh discovers another pending
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['investor-classifications'] });
   });
-  expect(
-    await within(dialog).findByText('Another claim is awaiting review. Withdraw it before submitting another.'),
-  ).toBeTruthy();
+  await waitFor(() =>
+    expect((within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement).disabled).toBe(
+      false,
+    ),
+  );
   expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
-  const submit = within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement;
-  expect(submit.disabled).toBe(true);
-  fireEvent.click(submit);
-  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  const payload = api.post.mock.calls[0][1] as FormData;
+  expect(payload.get('evidence_file')).toBeInstanceOf(File);
+  expect((payload.get('evidence_file') as File).name).toBe('proof.pdf');
+  expect(payload.get('declared_basis')).toBe('My evidence');
 });
 
 it('shows expiry, review dates and refusal reasons without truncating the claim name', async () => {
   api.get.mockImplementation(async (url: string) =>
     url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
-      ? { data: { ...eligibility, isEligible: false, reasons: ['identity_not_verified'] } }
+      ? { data: { ...eligibility, isReady: false, reasons: ['identity_not_verified'] } }
       : page([
           claim({
             categoryDisplay: 'An extended professional classification description',
@@ -283,8 +289,8 @@ it('shows expiry, review dates and refusal reasons without truncating the claim 
         ]),
   );
   renderPage();
-  expect(await screen.findByText('Expired')).toBeTruthy();
-  expect(screen.getByText('Every holder on the account must finish identity verification.')).toBeTruthy();
+  expect(await screen.findByText('Historical verification expired')).toBeTruthy();
+  expect(screen.getByText('Finish the configured identity verification for your account.')).toBeTruthy();
   expect(screen.getByText('Please provide current evidence.')).toBeTruthy();
   expect(screen.getByText('Expires')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Directory' })).toBeNull();
@@ -304,7 +310,7 @@ it('surfaces a refused withdrawal and retries it, refreshing claims and eligibil
   renderPage();
   fireEvent.click(await screen.findByRole('button', { name: 'Withdraw claim' }));
   expect(await screen.findByRole('alert')).toBeTruthy();
-  expect(screen.getByText('Awaiting review')).toBeTruthy();
+  expect(screen.getByText('Available to share')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Withdraw claim' }));
   expect(await screen.findByText('Withdrawn')).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
@@ -324,7 +330,7 @@ it('submits selected evidence and refreshes the claim list without sending the a
     target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
   });
   fireEvent.click(within(dialog).getByRole('checkbox'));
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Submit for review' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   const payload = api.post.mock.calls[0][1] as FormData;
   expect(payload.get('category')).toBe('product_value');
@@ -347,11 +353,13 @@ it('keeps submitted evidence in the form when the operator refuses the request',
     target: { files: [new File(['test'], 'proof.pdf', { type: 'application/pdf' })] },
   });
   fireEvent.click(within(dialog).getByRole('checkbox'));
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Submit for review' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
   expect(await within(dialog).findByRole('alert')).toBeTruthy();
   expect((within(dialog).getByLabelText('Basis for the claim') as HTMLTextAreaElement).value).toBe('My evidence');
   expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
-  expect((within(dialog).getByRole('button', { name: 'Submit for review' }) as HTMLButtonElement).disabled).toBe(false);
+  expect((within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
 });
 
 it('reports an issuer-list failure in an associated-person claim and retries instead of offering an empty selector', async () => {

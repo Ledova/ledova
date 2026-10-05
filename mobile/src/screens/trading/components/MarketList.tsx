@@ -8,7 +8,7 @@ interface MarketListProps {
   selectedTokenUuid: string | null;
   onSelectToken: (uuid: string) => void;
   isLoading: boolean;
-  isEligible: boolean;
+  isReady: boolean;
   error?: unknown;
   onRetry?: () => void;
   disabled?: boolean;
@@ -19,7 +19,7 @@ export function MarketList({
   selectedTokenUuid,
   onSelectToken,
   isLoading,
-  isEligible,
+  isReady,
   error,
   onRetry,
   disabled,
@@ -43,10 +43,10 @@ export function MarketList({
       ) : tokens.length === 0 ? (
         <View style={styles.fields}>
           <Text style={styles.text}>
-            {isEligible ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}
+            {isReady ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}
           </Text>
           <Text style={styles.muted}>
-            {isEligible ? DIRECTORY_COPY.MARKET_EMPTY_BODY : DIRECTORY_COPY.MARKET_INELIGIBLE_BODY}
+            {isReady ? DIRECTORY_COPY.MARKET_EMPTY_BODY : DIRECTORY_COPY.MARKET_INELIGIBLE_BODY}
           </Text>
         </View>
       ) : (

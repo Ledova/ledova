@@ -5,7 +5,6 @@ from typing import Optional
 from django.utils import timezone
 
 from operators.settlement import require_deployment
-from shared.db import use_operator
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.exceptions import (
     OrderModificationConflictException,
@@ -87,7 +86,10 @@ def validate_modifications(
     return errors
 
 
-def apply_order_modification(order, challenge, observed_balance, ip_address=None, user_agent=None):
+def apply_order_modification(
+    order, challenge, observed_balance, ip_address=None, user_agent=None, *, action, admission
+):
+    admission.require_current()
     validate_can_modify(order)
     intent = challenge.payload["message"]
     new_quantity = int(intent["newQuantity"])
@@ -136,9 +138,11 @@ def apply_order_modification(order, challenge, observed_balance, ip_address=None
     order.modification_count += 1
     order.last_modified_at = timezone.now()
     order.current_signature = signature
-    with use_operator():
-        order.rest_or_hold()
+    order.last_modification_action = action
+    order.last_modification_eligibility_decision = admission.decision
+    order.rest_or_hold()
     order.save()
+    order.refresh_from_db(fields=["last_modified_at", "last_modification_eligibility_decision"])
 
     OrderModificationLog.objects.bulk_create(
         OrderModificationLog(

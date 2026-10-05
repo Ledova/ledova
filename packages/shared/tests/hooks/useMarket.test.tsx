@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import {
   CACHE_TIMING,
+  DIRECTORY_ENDPOINTS,
   INVESTOR_CLASSIFICATION_ENDPOINTS,
   TRADING_CONFIG,
   TRADING_ENDPOINTS,
@@ -13,17 +14,16 @@ import {
 } from '../../src/constants';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
 import { useDirectoryTokens } from '../../src/hooks/useDirectory';
-import { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from '../../src/hooks/useMarket';
-import type { InvestorEligibility, OrderBook, ShareToken } from '../../src/types';
+import { useInvestorReadinessQuery, useOrderBook, useShareTokens } from '../../src/hooks/useMarket';
+import type { InvestorReadiness, OrderBook, ShareToken } from '../../src/types';
 import { keepsAfterClosingFor, readsAgainOnReturnOnlyAfter } from '../fixtures/cache-timing';
 import { response } from '../fixtures/order-submissions';
 
 const token = { uuid: 'fictional-token', name: 'Ordinary', symbol: 'HEX', lastPrice: '0.29' } as ShareToken;
 const book = { sellOrders: [{ price: '0.29', quantity: 3, orders: 1 }], buyOrders: [] } as unknown as OrderBook;
-const eligible: InvestorEligibility = {
+const eligible: InvestorReadiness = {
   account: 'fictional-account',
-  classification: null,
-  isEligible: true,
+  isReady: true,
   reasons: [],
 };
 let client: QueryClient;
@@ -136,42 +136,67 @@ it('re-reads the order book on the fallback interval when no event arrives', asy
   await waitFor(() => expect(requests).toHaveLength(2));
 });
 
-it('reads investor eligibility as its body and refreshes it with Verification', async () => {
-  const view = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+it('reads account readiness as its body and refreshes it with Verification', async () => {
+  const view = renderHook(() => useInvestorReadinessQuery(), { wrapper });
   await waitFor(() => expect(view.result.current.data).toEqual(eligible));
   expect(requests.map((config) => config.url)).toEqual([INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY]);
 
-  handle = async (config) => response(config, { ...eligible, isEligible: false, reasons: ['expired'] });
+  handle = async (config) => response(config, { ...eligible, isReady: false, reasons: ['actor_not_ready'] });
   await act(() => client.invalidateQueries({ queryKey: ['investor-eligibility'] }));
 
-  await waitFor(() => expect(view.result.current.data?.isEligible).toBe(false));
+  await waitFor(() => expect(view.result.current.data?.isReady).toBe(false));
 });
 
 const eligibilityReads = () =>
   requests.filter((config) => config.url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
 
-it('agrees with Directory on eligibility from one read when the Market reads it first', async () => {
-  const market = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+it('agrees with Directory on account readiness from one read when the Market reads it first', async () => {
+  const market = renderHook(() => useInvestorReadinessQuery(), { wrapper });
   await waitFor(() => expect(market.result.current.isSuccess).toBe(true));
 
   const directory = renderHook(() => useDirectoryTokens(), { wrapper });
 
   await waitFor(() => expect(directory.result.current.tokens).toEqual([token]));
-  expect(directory.result.current.isEligible).toBe(true);
+  expect(directory.result.current.isReady).toBe(true);
   expect(market.result.current.data).toEqual(eligible);
   expect(eligibilityReads()).toHaveLength(1);
 });
 
-it('agrees with Directory on eligibility from one read when Directory reads it first', async () => {
+it('agrees with Directory on account readiness from one read when Directory reads it first', async () => {
   const directory = renderHook(() => useDirectoryTokens(), { wrapper });
   await waitFor(() => expect(directory.result.current.tokens).toEqual([token]));
 
-  const market = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+  const market = renderHook(() => useInvestorReadinessQuery(), { wrapper });
 
   await waitFor(() => expect(market.result.current.isSuccess).toBe(true));
   expect(market.result.current.data).toEqual(eligible);
-  expect(directory.result.current.isEligible).toBe(true);
+  expect(directory.result.current.isReady).toBe(true);
   expect(eligibilityReads()).toHaveLength(1);
+});
+
+it('reads the server-bounded catalogue during pending readiness and never invents admission from a ready account', async () => {
+  let finish!: (value: AxiosResponse) => void;
+  handle = async (config) =>
+    config.url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : response(config, page([]));
+  const directory = renderHook(() => useDirectoryTokens(), { wrapper });
+  await waitFor(() =>
+    expect(requests.map((config) => config.url)).toEqual([
+      INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY,
+      DIRECTORY_ENDPOINTS.TOKENS.LIST,
+    ]),
+  );
+  expect(directory.result.current.isLoading).toBe(true);
+  expect(directory.result.current.tokens).toEqual([]);
+  await act(async () => {
+    finish(response(requests[0]!, eligible));
+  });
+  await waitFor(() => expect(directory.result.current.isLoading).toBe(false));
+  expect(directory.result.current.isReady).toBe(true);
+  expect(directory.result.current.tokens).toEqual([]);
 });
 
 const readsOf = (url: string) => () => requests.filter((config) => config.url === url).length;
@@ -196,9 +221,9 @@ it('counts the order book current for two minutes while the Market is in the bac
   );
 });
 
-it('counts investor eligibility current for two minutes', async () => {
+it('counts account readiness current for two minutes', async () => {
   jest.useFakeTimers();
-  const view = renderHook(() => useInvestorEligibilityQuery(), { wrapper });
+  const view = renderHook(() => useInvestorReadinessQuery(), { wrapper });
   await waitFor(() => expect(view.result.current.isSuccess).toBe(true));
 
   await readsAgainOnReturnOnlyAfter(

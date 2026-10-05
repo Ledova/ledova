@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Dict, Optional
 
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from integrations.kyc import get_kyc_provider
@@ -16,11 +17,14 @@ from integrations.kyc.constants import (
     REVIEW_RED,
     REVIEW_YELLOW,
 )
-from shared.db import atomic, use_operator
+from shared.db import atomic, principal_of, use_operator
 from shared.models.country import Country
 from users.exceptions import VerificationTokenGenerationException
 from users.models.user_account import UserAccount
 from users.models.user_profile import UserProfile
+from whitelist.models import WhitelistInvalidationCause
+from whitelist.services.eligibility_invalidation import invalidation_writer_context
+from whitelist.services.refresh import enqueue_for_account
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +140,10 @@ def get_verification_status(user_profile: UserProfile) -> dict:
 
 
 def update_status_from_normalized(user_profile: UserProfile, normalized: NormalizedVerificationResult) -> bool:
-    with use_operator(), atomic():
+    principal = principal_of()
+    with use_operator():
+        actor = get_user_model().objects.get(pk=principal) if principal else None
+    with invalidation_writer_context(actor):
         user_account = (
             UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=user_profile.pk).first()
         )
@@ -163,10 +170,21 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
             user_profile.is_id_verified = False
             user_profile.verified_at = None
 
+        if was_verified and not user_profile.is_id_verified and user_account is not None:
+            from users.services.company_eligibility import _configuration
+
+            if _configuration().investor_kyc_required:
+                enqueue_for_account(
+                    user_account.pk,
+                    actor,
+                    cause=WhitelistInvalidationCause.IDENTITY_LOSS,
+                    cause_fields=["is_id_verified"],
+                )
+
         user_profile.save()
 
         if normalized.review_result == REVIEW_GREEN and not was_verified:
-            _process_verified_customer(user_profile, normalized.pep_data, user_account)
+            _process_verified_customer(user_profile, normalized.pep_data, user_account, actor)
 
         message = REVIEW_OUTCOME_MESSAGES.get(normalized.review_result)
         if message and normalized.review_result != previous_result:
@@ -185,13 +203,18 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
     return user_profile.is_id_verified
 
 
-def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_account) -> None:
+def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_account, actor) -> None:
     from compliance.constants import (
         FATF_BLACKLIST_COUNTRIES,
         PEP_REJECTION_TYPES,
         PEP_TYPE_UNKNOWN,
     )
-    from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_REJECTED
+    from users.constants import (
+        ACCOUNT_STATUS_ACTIVE,
+        ACCOUNT_STATUS_PENDING,
+        ACCOUNT_STATUS_REJECTED,
+    )
+    from users.services.company_eligibility import _configuration
 
     pep_type = pep_data.get("pep_type", "none")
 
@@ -199,10 +222,18 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_acco
         logger.warning(f"No user_account found for user_profile {user_profile.uuid}")
         return
 
+    allowed_statuses = (
+        (ACCOUNT_STATUS_ACTIVE,)
+        if _configuration().investor_kyc_required
+        else (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING)
+    )
+
     uncleared_unknown = pep_type == PEP_TYPE_UNKNOWN and (
         user_profile.kyc_provider != PROVIDER_SUMSUB or pep_data.get("approved_by_provider") is not True
     )
     if pep_type in PEP_REJECTION_TYPES or uncleared_unknown:
+        if user_account.account_status in allowed_statuses:
+            enqueue_for_account(user_account.pk, actor, cause_fields=["account_status"])
         user_account.account_status = ACCOUNT_STATUS_REJECTED
         user_account.rejection_reason = "pep_policy"
         user_account.save()
@@ -211,6 +242,8 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_acco
 
     citizenship = user_profile.citizenship_country
     if citizenship and citizenship.code and citizenship.code.upper() in FATF_BLACKLIST_COUNTRIES:
+        if user_account.account_status in allowed_statuses:
+            enqueue_for_account(user_account.pk, actor, cause_fields=["account_status"])
         user_account.account_status = ACCOUNT_STATUS_REJECTED
         user_account.rejection_reason = "fatf_blacklist"
         user_account.save()

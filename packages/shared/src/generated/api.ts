@@ -3425,7 +3425,7 @@ export interface ApiComponents {
       walletAddress: string;
       walletUuid: string;
     };
-    HttpStatusEnum: 400 | 409;
+    HttpStatusEnum: 400 | 403 | 409;
     IdentitySourceEnum:
       'profile' | 'stamped' | 'recorded' | 'particulars' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
     IdentityVerificationSession: {
@@ -3487,8 +3487,7 @@ export interface ApiComponents {
     InvestorClassificationStatusEnum: 'submitted' | 'verified' | 'rejected' | 'revoked' | 'withdrawn';
     InvestorEligibility: {
       account: string | null;
-      classification: ApiComponents['schemas']['InvestorClassification'] | null;
-      isEligible: boolean;
+      isReady: boolean;
       reasons: string[];
     };
     IssuanceTypeEnum: 'initial' | 'additional' | 'bonus' | 'dividend' | 'transfer';
@@ -3715,7 +3714,10 @@ export interface ApiComponents {
       httpStatus: ApiComponents['schemas']['HttpStatusEnum'];
     };
     OrderActionRefusalCodeEnum:
-      'order_cancellation_failed' | 'order_modification_failed' | 'order_modification_conflict';
+      | 'order_cancellation_failed'
+      | 'order_modification_failed'
+      | 'order_modification_conflict'
+      | 'investor_not_eligible';
     OrderActionReview: {
       currentValues: ApiComponents['schemas']['OrderActionCurrentValues'];
       token: ApiComponents['schemas']['OrderActionToken'];
@@ -8801,9 +8803,11 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json':
+            | ApiComponents['schemas']['OrderActionSubmission']
+            | {
+                [key: string]: unknown;
+              };
         };
       };
       404: {
@@ -8912,9 +8916,11 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json':
+            | ApiComponents['schemas']['OrderActionSubmission']
+            | {
+                [key: string]: unknown;
+              };
         };
       };
       404: {
@@ -9023,9 +9029,11 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json':
+            | ApiComponents['schemas']['OrderActionSubmission']
+            | {
+                [key: string]: unknown;
+              };
         };
       };
       404: {
@@ -9134,9 +9142,11 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json':
+            | ApiComponents['schemas']['OrderActionSubmission']
+            | {
+                [key: string]: unknown;
+              };
         };
       };
       404: {
@@ -9415,9 +9425,11 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
+          'application/json':
+            | ApiComponents['schemas']['OrderSubmission']
+            | {
+                [key: string]: unknown;
+              };
         };
       };
       404: {

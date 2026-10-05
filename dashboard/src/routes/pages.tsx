@@ -8,6 +8,8 @@ import DirectoryTokenPage from '@pages/directory/detail';
 import SubscriptionsPage from '@pages/subscriptions';
 import SubscriptionDetailPage from '@pages/subscriptions/detail';
 import InvestorEligibilityPage from '@pages/investor-eligibility';
+import ParticipantEligibilityPage from '@pages/eligibility-records/participant';
+import CompanyEligibilityPage from '@pages/eligibility-records/company';
 import PublicationsPage from '@pages/publications';
 import CompanyPage from '@pages/company';
 import CompanyAuthorityPage from '@pages/company/authority';
@@ -31,6 +33,8 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   subscriptions: <SubscriptionsPage />,
   subscriptionDetail: <SubscriptionDetailPage />,
   investorEligibility: <InvestorEligibilityPage />,
+  eligibilityRequests: <ParticipantEligibilityPage />,
+  companyEligibility: <CompanyEligibilityPage />,
   publications: <PublicationsPage />,
   companyClass: <ShareClassPage />,
   companyRegister: <CompanyRegisterPage />,

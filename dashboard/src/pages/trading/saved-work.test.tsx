@@ -43,7 +43,7 @@ vi.mock('@ledova/shared', async (importOriginal) => {
   return {
     ...(await importOriginal<typeof import('@ledova/shared')>()),
     useShareTokens: () => ({ data: [{ uuid: f.tokenUuid, name: 'Synthetic', symbol: 'SYN' }] }),
-    useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+    useInvestorReadinessQuery: () => ({ data: { isReady: true } }),
     useOrderBook: () => ({ data: null, isLoading: false }),
     useSwapOrdersMulti: () => ({ data: [], isLoading: false }),
   };

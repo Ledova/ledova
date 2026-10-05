@@ -123,7 +123,7 @@ export function ClaimModal({
       title={spec ? `Claim: ${spec.label}` : 'Claim'}
       size="lg"
       showFooter
-      confirmLabel={isSubmitting ? 'Submitting...' : 'Submit for review'}
+      confirmLabel={isSubmitting ? 'Submitting...' : 'Save private evidence'}
       onConfirm={handleSubmit}
       confirmDisabled={!isComplete || isSubmitting}
       confirmLoading={isSubmitting}

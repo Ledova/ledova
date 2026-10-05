@@ -22,7 +22,7 @@ import DirectoryTokenPage from './detail';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 let client: QueryClient;
-const eligibility = { data: { account: 'account', isEligible: true, classification: null, reasons: [] } };
+const eligibility = { data: { account: 'account', isReady: true, reasons: [] } };
 const firstWallet = { uuid: 'wallet-one', name: 'Primary', address: '0x1111111111111111111111111111111111111111' };
 const secondWallet = { uuid: 'wallet-two', name: 'Reserve', address: '0x2222222222222222222222222222222222222222' };
 const token: DirectoryToken = {
@@ -125,19 +125,21 @@ it('shows every available class under its company, including later pages and cla
   expect(api.get).toHaveBeenCalledWith(DIRECTORY_ENDPOINTS.TOKENS.LIST, { params: { page: 2 } });
 });
 
-it('waits for eligibility and directs an ineligible investor to Verification without reading directory entries', async () => {
+it('fetches the bounded catalogue while readiness is pending and keeps readiness separate from company admission', async () => {
   let finish!: (value: typeof eligibility) => void;
-  api.get.mockReturnValue(
-    new Promise((resolve) => {
-      finish = resolve;
-    }),
+  api.get.mockImplementation((url: string) =>
+    url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : Promise.resolve(page([])),
   );
   renderPage();
   expect(screen.getByRole('status')).toBeTruthy();
-  expect(screen.queryByText('No share classes available.')).toBeNull();
-  await act(async () => finish({ data: { ...eligibility.data, isEligible: false } }));
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith(DIRECTORY_ENDPOINTS.TOKENS.LIST, { params: { page: 1 } }));
+  await act(async () => finish({ data: { ...eligibility.data, isReady: false } }));
   expect(await screen.findByRole('link', { name: 'Verification' })).toBeTruthy();
-  expect(api.get.mock.calls.some(([url]) => url === DIRECTORY_ENDPOINTS.TOKENS.LIST)).toBe(false);
+  expect(screen.queryByRole('link', { name: /Ordinary/ })).toBeNull();
 });
 
 it.each(['eligibility', 'first page', 'later page'])(
@@ -160,7 +162,7 @@ it.each(['eligibility', 'first page', 'later page'])(
     });
     renderPage();
     expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('No share classes available.')).toBeNull();
+    expect(screen.queryByText('No share classes available under your current company decisions.')).toBeNull();
     expect(screen.queryByRole('link', { name: /Ordinary/ })).toBeNull();
     broken = false;
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -173,7 +175,7 @@ it('distinguishes a successful empty directory from a failure', async () => {
     url === DIRECTORY_ENDPOINTS.TOKENS.LIST ? page([]) : defaults(url),
   );
   renderPage();
-  expect(await screen.findByText('No share classes available.')).toBeTruthy();
+  expect(await screen.findByText('No share classes available under your current company decisions.')).toBeTruthy();
   expect(screen.getByRole('heading', { level: 2, name: 'Share classes' })).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
 });

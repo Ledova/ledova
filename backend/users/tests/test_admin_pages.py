@@ -54,7 +54,10 @@ class UsersAdminPagesTest(TestCase):
             info = (instance._meta.app_label, instance._meta.model_name)
             with self.subTest(model=instance._meta.label):
                 self.assertEqual(self.client.get(reverse("admin:%s_%s_changelist" % info)).status_code, 200)
-                self.assertEqual(self.client.get(reverse("admin:%s_%s_add" % info)).status_code, 200)
+                self.assertEqual(
+                    self.client.get(reverse("admin:%s_%s_add" % info)).status_code,
+                    403 if isinstance(instance, InvestorClassification) else 200,
+                )
                 self.assertEqual(
                     self.client.get(reverse("admin:%s_%s_change" % info, args=[instance.pk])).status_code, 200
                 )

@@ -30,10 +30,21 @@ export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfil
 export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';
 export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
 export { useSignupReview } from './useSignupReview';
-export { useInvestorEligibilityQuery, useOrderBook, useShareTokens } from './useMarket';
+export { useInvestorReadinessQuery, useOrderBook, useShareTokens } from './useMarket';
 export { useSwapOrdersMulti } from './useAtomicSwaps';
 export { useSubscribableWallets, useSubscriptions } from './useSubscriptions';
 export { useTransactions } from './useTransactions';
 export type { TransactionFilters } from './useTransactions';
 export { useLaterPages } from './useLaterPages';
 export { useCompanyActivation } from './useCompanyActivation';
+export {
+  useParticipantEligibilityRecords,
+  useCompanyEligibilityRecords,
+  isCurrentEligibilityAppointment,
+  ELIGIBILITY_RECORDS_NOTICE,
+} from './useCompanyEligibilityRecords';
+export type {
+  EligibilityAction,
+  EligibilityRequestDraft,
+  EligibilityDecisionDraft,
+} from './useCompanyEligibilityRecords';

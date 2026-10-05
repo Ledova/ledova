@@ -3,7 +3,7 @@ from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from shared.db import atomic, use_operator
+from shared.db import atomic
 from shared.views.base import AuthenticatedGenericViewSet
 from wallets.filters import WalletFilter
 from wallets.models import Wallet
@@ -30,10 +30,8 @@ from wallets.services import (
     start_wallet_verification,
     transfers,
 )
-from wallets.services.registration import register_wallet
+from wallets.services.registration import delete_wallet, register_wallet
 from wallets.services.sync import sync_wallet
-from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
-from whitelist.services.refresh import enqueue_for_wallet
 
 
 class WalletViewSet(
@@ -73,9 +71,7 @@ class WalletViewSet(
         serializer.instance = self._with_market_value(serializer.save())
 
     def perform_destroy(self, instance):
-        with use_operator():
-            enqueue_for_wallet(instance.pk, self.request.user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
-        instance.delete()
+        delete_wallet(self.request.user, instance.pk)
 
     def perform_create(self, serializer):
         wallet = register_wallet(**serializer.validated_data)

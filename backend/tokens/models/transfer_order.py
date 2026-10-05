@@ -35,6 +35,18 @@ class TransferOrder(BaseModel):
         related_name="transfer_orders",
         help_text="Immutable tenant snapshot for this order.",
     )
+    eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
+    creation_submission = models.OneToOneField(
+        "tokens.OrderSubmission", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
+    last_modification_action = models.ForeignKey(
+        "tokens.OrderActionSubmission", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
+    last_modification_eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
 
     order_type = models.CharField(
         max_length=10,
@@ -104,6 +116,20 @@ class TransferOrder(BaseModel):
         verbose_name_plural = "Transfer Orders"
         ordering = ["-created_at"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(eligibility_decision__isnull=True, creation_submission__isnull=True)
+                | models.Q(eligibility_decision__isnull=False, creation_submission__isnull=False),
+                name="transfer_order_eligibility_birth_pair",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    last_modification_action__isnull=True, last_modification_eligibility_decision__isnull=True
+                )
+                | models.Q(
+                    last_modification_action__isnull=False, last_modification_eligibility_decision__isnull=False
+                ),
+                name="transfer_order_modification_eligibility_pair",
+            ),
             models.CheckConstraint(condition=models.Q(quantity__gt=0), name="transfer_order_positive_quantity"),
             models.CheckConstraint(
                 condition=models.Q(price_per_share__gt=0, price_per_share__lt=Decimal("10000000000000000")),

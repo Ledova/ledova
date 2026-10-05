@@ -1,11 +1,8 @@
 import { DIRECTORY_COPY } from '../../../src/constants/business/directory';
 
-const OPT_IN = /opted in|opts in/i;
-const DEPLOYED = /deployed/i;
-
-describe('the market empty state', () => {
-  it('names only deployment, which is its only condition', () => {
-    expect(DIRECTORY_COPY.MARKET_EMPTY_BODY).toMatch(DEPLOYED);
-    expect(DIRECTORY_COPY.MARKET_EMPTY_BODY).not.toMatch(OPT_IN);
-  });
+it('describes exact secondary company admission without turning readiness into access to every deployment', () => {
+  expect(DIRECTORY_COPY.MARKET_EMPTY_BODY).toMatch(/current company decisions/);
+  expect(DIRECTORY_COPY.MARKET_EMPTY_BODY).toMatch(/secondary trading/);
+  expect(DIRECTORY_COPY.MARKET_EMPTY_BODY).not.toMatch(/every deployed|none exists/);
+  expect(DIRECTORY_COPY.MARKET_INELIGIBLE_BODY).toMatch(/Each company separately decides/);
 });

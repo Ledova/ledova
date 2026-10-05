@@ -6,7 +6,7 @@ import {
   marketAmount,
   marketQuantity,
   selectSwapSettlement,
-  useInvestorEligibilityQuery,
+  useInvestorReadinessQuery,
   useOrderBook,
   useOrderSubmissions,
   useOrderActions,
@@ -92,9 +92,9 @@ export function TradingPage() {
   const currentSigningGeneration = signingGeneration.current;
   const tokensQuery = useShareTokens();
   const { data: tokens, isLoading } = tokensQuery;
-  const eligibilityQuery = useInvestorEligibilityQuery();
+  const eligibilityQuery = useInvestorReadinessQuery();
   const { data: eligibility } = eligibilityQuery;
-  const isEligible = eligibility?.isEligible ?? false;
+  const isReady = eligibility?.isReady ?? false;
   const [selectedTokenUuid, setSelectedTokenUuid] = useState<string | null>(null);
 
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -179,7 +179,15 @@ export function TradingPage() {
   );
 
   const handleCreateOrder = (data: CreateOrderRequest): Promise<boolean> => {
-    if (readsUnavailable || !selectedToken || data.token !== selectedToken.uuid) return Promise.resolve(false);
+    if (
+      readsUnavailable ||
+      eligibilityQuery.isError ||
+      eligibilityQuery.isFetching ||
+      !isReady ||
+      !selectedToken ||
+      data.token !== selectedToken.uuid
+    )
+      return Promise.resolve(false);
     closeSwapSigning();
     actions.close();
     const signingWallet = wallets.find((w) => w.uuid === data.walletUuid);
@@ -260,7 +268,7 @@ export function TradingPage() {
         selectedTokenUuid={selectedTokenUuid}
         onSelectToken={setSelectedTokenUuid}
         isLoading={isLoading || eligibilityQuery.isLoading}
-        isEligible={isEligible}
+        isReady={isReady}
         error={tokensQuery.error || eligibilityQuery.error}
         onRetry={() => {
           void tokensQuery.refetch();
