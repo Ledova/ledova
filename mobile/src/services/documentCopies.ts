@@ -101,6 +101,13 @@ export async function shareDocumentCopy(
   await share(copy.uri, copy.type);
 }
 
+export function uploadSize(file: UploadFile): number {
+  const { size } = new File(file.uri).info();
+  if (typeof size !== 'number' || !Number.isSafeInteger(size) || size <= 0)
+    throw new DocumentSelectionError('Choose the document again.');
+  return size;
+}
+
 function managedFile(slot: number): File {
   return new File(Paths.cache, 'ledova-upload-copies-v1', `slot-${slot}`);
 }

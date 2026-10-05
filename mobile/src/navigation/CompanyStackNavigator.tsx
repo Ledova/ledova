@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
+import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { OfferingsScreen } from '../screens/company-offerings/OfferingsScreen';
 import { CompanyScreen } from '../screens/company';
 import { CompanyPublicationsScreen } from '../screens/company-publications/CompanyPublicationsScreen';
@@ -19,6 +20,7 @@ export type CompanyStackParamList = {
   CompanyAuthority: undefined;
   CompanyTeam: undefined;
   TokenDetail: { uuid: string; name?: string };
+  PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
 };
 
 const Stack = createNativeStackNavigator<CompanyStackParamList>();
@@ -77,6 +79,11 @@ export function CompanyStackNavigator({
           headerBackVisible: true,
           headerRight: () => null,
         })}
+      />
+      <Stack.Screen
+        name="PrepareRegisterImport"
+        component={PrepareRegisterImportScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>
   );

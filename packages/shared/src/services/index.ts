@@ -95,6 +95,14 @@ export {
   submitCapitalIncrease,
 } from './company-tokens';
 export {
+  uploadRegisterEvidence,
+  prepareRegisterImport,
+  getRegisterImports,
+  previewRegisterImportDecision,
+  decideRegisterImport,
+  downloadRegisterImportFile,
+} from './register-imports';
+export {
   getInvestorClassifications,
   getInvestorEligibility,
   submitInvestorClassification,

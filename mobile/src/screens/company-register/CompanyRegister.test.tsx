@@ -22,6 +22,7 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 
 const EMPTY =
   'There is no company register to show. Share classes appear here for companies you own or where your company appointment includes register access.';
+const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const get = jest.mocked(apiClient.get);
 const shareClass = {
   uuid: 'ordinary',
@@ -88,9 +89,11 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     });
   if (url === URLS.REGISTER_EXPORT('ordinary'))
     return Promise.resolve({ data: Uint8Array.from('member,shares', (c) => c.charCodeAt(0)).buffer });
+  if (url === URLS.REGISTER_IMPORTS || url === APPOINTMENTS) return Promise.resolve(page([]));
   return Promise.reject(new Error(`Unexpected ${url}`));
 }
 const requested = () => get.mock.calls.map(([url]) => url);
+const holderReads = () => requested().filter((url) => url.endsWith('/holders/'));
 function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
@@ -270,16 +273,12 @@ it('asks which company to read when several registers are readable and reads onl
   expect(view.queryByRole('button', { name: 'Ordinary shares register' })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Growth shares register' }));
   expect(view.getByText('Gale Member')).toBeTruthy();
-  expect(requested().filter((url) => url !== URLS.REGISTER)).toEqual([URLS.HOLDERS('growth')]);
+  expect(holderReads()).toEqual([URLS.HOLDERS('growth')]);
   await fireEvent.press(view.getByRole('button', { name: 'Select company Paper Company' }));
   await view.findByRole('button', { name: 'Preference shares register' });
   expect(view.getByRole('button', { name: 'Ordinary shares register' })).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Growth shares register' })).toBeNull();
-  expect(requested().filter((url) => url !== URLS.REGISTER)).toEqual([
-    URLS.HOLDERS('growth'),
-    URLS.HOLDERS('ordinary'),
-    URLS.HOLDERS('preference'),
-  ]);
+  expect(holderReads()).toEqual([URLS.HOLDERS('growth'), URLS.HOLDERS('ordinary'), URLS.HOLDERS('preference')]);
 });
 
 it('withdraws company choices while the class list cannot be refreshed and keeps the choice for a retry', async () => {
