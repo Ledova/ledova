@@ -319,6 +319,10 @@ class MarketStory:
         self.rng.shuffle(approved)
         if not sellers or not approved:
             return
+        if listing.key == ODD_LOT[0]:
+            first_timer = next((trader for trader in approved if not listing.held(trader.key)), None)
+            if first_timer is not None:
+                self.reserved[listing.key].add(first_timer.key)
         slots = {
             (slot.role, slot.index): slot
             for slot in TESTER_SLOTS
@@ -488,9 +492,8 @@ class MarketStory:
         maker = targets[0]
         trader = None
         if side == BUY:
-            busy = self.book.active(listing.key)
             for _ in range(len(buyers)):
-                candidate = self._next_buyer(buyers, state, listing.key, busy)
+                candidate = self._next_buyer(buyers, state, listing.key, {maker.investor})
                 if candidate is None:
                     break
                 if self._buyer_wallet(candidate, listing.company, listing):
@@ -506,10 +509,17 @@ class MarketStory:
             if holder is None:
                 return
             trader, address = self.traders[holder.investor], holder.address
+        latest = self.now - timedelta(hours=30)
+        maker = next(
+            (target for target in targets if max(target.placed_at, trader.ready_at) + timedelta(hours=3) < latest),
+            None,
+        )
+        if maker is None:
+            return
         earliest = max(maker.placed_at, trader.ready_at) + timedelta(hours=3)
         moment = None
         for _ in range(24):
-            found = self.moment(earliest, self.now - timedelta(hours=30), rng)
+            found = self.moment(earliest, latest, rng)
             if found is None:
                 return
             found = self._hour(found) + timedelta(minutes=rng.randint(0, 4), seconds=rng.randint(0, 59))
@@ -628,11 +638,15 @@ class MarketStory:
             return trader, address
         if (listing.key, *where) == ODD_LOT:
             busy = self.book.active(listing.key)
-            first_timers = [trader for trader in pool if not listing.held(trader.key) and trader.key not in busy]
-            if first_timers:
-                trader = first_timers[self.rng.randrange(len(first_timers))]
-                self.reserved[listing.key].add(trader.key)
-                return trader, self._buyer_wallet(trader, company, listing)
+            first_timers = [
+                trader
+                for trader in pool
+                if trader.key in self.reserved[listing.key] and not listing.held(trader.key) and trader.key not in busy
+            ]
+            if not first_timers:
+                return None, None
+            trader = first_timers[self.rng.randrange(len(first_timers))]
+            return trader, self._buyer_wallet(trader, company, listing)
         for avoid in (self.book.active(listing.key), {maker.investor}):
             for _ in range(len(pool)):
                 trader = self._next_buyer(pool, state, listing.key, avoid)
