@@ -35,7 +35,8 @@ class CompanyAuthorityRequestMigrationTest(StubUploadDependencies, TransactionTe
         executor = MigrationExecutor(connection)
         executor.migrate([OLD])
         executor = MigrationExecutor(connection)
-        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        historical = executor.loader.project_state(applied_nodes).apps
         User = historical.get_model("authentication", "CustomUser")
         Profile = historical.get_model("users", "UserProfile")
         Company = historical.get_model("companies", "Company")
@@ -54,7 +55,8 @@ class CompanyAuthorityRequestMigrationTest(StubUploadDependencies, TransactionTe
         executor = MigrationExecutor(connection)
         executor.migrate([NEW])
         executor = MigrationExecutor(connection)
-        upgraded = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        upgraded = executor.loader.project_state(applied_nodes).apps
         self.assertEqual(upgraded.get_model("companies", "Company").objects.get(pk=company.pk).name, company.name)
         self.assertEqual(
             upgraded.get_model("users", "UserProfile").objects.get(pk=profile.pk).full_name, profile.full_name

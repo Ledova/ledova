@@ -219,7 +219,8 @@ class ReviewRequestPolicyMigrationTest(TransactionTestCase):
 
     def check_catalogue_at_the_applied_migration_state(self):
         executor = MigrationExecutor(connections[MIGRATE_ALIAS])
-        state = executor.loader.project_state(list(executor.loader.applied_migrations))
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        state = executor.loader.project_state(applied_nodes)
         tables = {model._meta.db_table for model in state.apps.get_models(include_auto_created=True)}
         catalogue = {table: policy for table, policy in POLICIES.items() if table in tables}
         with patch("shared.management.commands.check_rls_catalogue.POLICIES", catalogue):

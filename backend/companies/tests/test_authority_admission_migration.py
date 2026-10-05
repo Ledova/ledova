@@ -71,7 +71,8 @@ class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, Transaction
         }
         MigrationExecutor(connection).migrate([OLD])
         executor = MigrationExecutor(connection)
-        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        historical = executor.loader.project_state(applied_nodes).apps
         request_model = historical.get_model("companies", "CompanyAuthorityRequest")
         for identity, original in originals.items():
             before = request_model.objects.get(pk=identity)
@@ -102,7 +103,8 @@ class CompanyAuthorityAdmissionMigrationTest(StubUploadDependencies, Transaction
         self.assertNotIn("companies_companyappointment", tables)
         self.assertNotIn("companies_companyappointmentrevocation", tables)
         executor = MigrationExecutor(connection)
-        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        historical = executor.loader.project_state(applied_nodes).apps
         retained = historical.get_model("companies", "CompanyAuthorityRequest").objects.get(pk=self.proposal.pk)
         self.assertEqual(retained.request_digest, self.proposal.request_digest)
         with retained.file.open("rb") as source:

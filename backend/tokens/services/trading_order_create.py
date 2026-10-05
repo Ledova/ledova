@@ -16,6 +16,7 @@ from tokens.exceptions import (
     CreateOrderNotWhitelistedException,
     InvalidSettlementAmountException,
     OrderSubmissionConflictException,
+    OrderSubmissionRefreshRequiredException,
     SettlementChainDisagreement,
 )
 from tokens.models import (
@@ -23,6 +24,7 @@ from tokens.models import (
     OrderSubmissionStatus,
     ShareToken,
     SigningChallenge,
+    SigningChallengePurpose,
     TransferOrder,
     TransferOrderType,
 )
@@ -234,9 +236,16 @@ def _execute_authorized_submission(actor, data):
             _recover_order(submission)
             return SubmissionResult(submission)
         token, payment_asset = _pending_token(submission, wallet)
-        candidate = SigningChallenge.objects.filter(digest=data.get("digest"), submission=submission).first()
-        if candidate is None:
+        candidate = SigningChallenge.objects.filter(
+            digest=data.get("digest"),
+            wallet=wallet,
+            wallet_address__iexact=submission.wallet_address,
+            purpose=SigningChallengePurpose.ORDER_CREATE,
+        ).first()
+        if candidate is None or (candidate.submission_id is not None and candidate.submission_id != submission.pk):
             raise ChallengeMismatchException("submission")
+        if candidate.submission_id is None:
+            raise OrderSubmissionRefreshRequiredException()
         order_id = uuid4()
         admission = prepare_admission(
             actor,

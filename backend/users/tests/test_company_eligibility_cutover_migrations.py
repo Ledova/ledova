@@ -82,7 +82,8 @@ class EligibilityCutoverChecks(EligibilityMigrationChecks):
 
     def historical_apps(self):
         executor = MigrationExecutor(connection)
-        return executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        return executor.loader.project_state(applied).apps
 
     def catalogue(self):
         result = super().catalogue()
@@ -269,7 +270,7 @@ class CompanyEligibilityCutoverUpgradeTest(
             session["cutover_holder"] = str(self.participant.pk)
             session.save()
         self.query(
-            "INSERT INTO procrastinate_jobs (queue_name, task_name, args) VALUES (%s, %s, %s::jsonb)",
+            "INSERT INTO procrastinate_jobs (queue_name, task_name, args) VALUES (%s, %s, %s::jsonb) RETURNING id",
             ["cutover-retained", "users.tests.retained_cutover_job", '{"retained": true}'],
         )
         return source.evidence_file, document.file
@@ -284,6 +285,7 @@ class CompanyEligibilityCutoverUpgradeTest(
             recorder.record_unapplied(*GRANTS)
             before_migrations = set(self.query("SELECT app, name FROM django_migrations"))
             before_catalogue = self.catalogue()
+            existing_grant_tables = {row[0] for row in before_catalogue["grants"]}
             before_records = self.records(legacy=True)
             before_bytes = self.private_bytes(*files)
             restore_every_migration()
@@ -294,7 +296,7 @@ class CompanyEligibilityCutoverUpgradeTest(
             self.assertEqual(self.private_bytes(*files), before_bytes)
             self.assertEqual(installed_catalogue["roles"], before_catalogue["roles"])
             self.assertEqual(
-                [row for row in installed_catalogue["grants"] if row[0] in before_records],
+                [row for row in installed_catalogue["grants"] if row[0] in existing_grant_tables],
                 before_catalogue["grants"],
             )
             self.assertTrue(before_migrations <= set(self.query("SELECT app, name FROM django_migrations")))
