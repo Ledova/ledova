@@ -1,11 +1,12 @@
 import csv
+from uuid import UUID
 
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from companies.models import Company
@@ -296,10 +297,18 @@ class ShareTokenViewSet(
     def register_waiting(self, request, uuid=None):
         return Response({"effects": stored_waiting_list(self.get_object())})
 
-    @extend_schema(responses=ShareRegisterEntrySerializer(many=True), filters=False)
+    @extend_schema(
+        responses=ShareRegisterEntrySerializer(many=True),
+        filters=False,
+        parameters=[OpenApiParameter("entry", OpenApiTypes.UUID, many=True)],
+    )
     @action(detail=True, methods=["get"], url_path="register/entries")
     def register_entries(self, request, uuid=None):
-        rows = stored_entries(self.get_object(), self.paginate_queryset)
+        try:
+            wanted = [UUID(value) for value in request.query_params.getlist("entry")]
+        except ValueError:
+            raise ValidationError({"entry": "Name each entry by its UUID."}) from None
+        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted)
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
 
     @extend_schema(responses={(200, "text/csv"): OpenApiTypes.STR})
