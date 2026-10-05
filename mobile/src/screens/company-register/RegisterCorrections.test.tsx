@@ -66,13 +66,21 @@ const register = {
   issuedSupply: '100',
   initialized: true,
   waitingEffects: 0,
-  totalHolders: 1,
+  totalHolders: 2,
   holders: [
     {
       member: 'member-1',
       name: 'Alex Member',
       holderType: 'member',
-      balance: '100',
+      balance: '60',
+      enteredOn: '2026-09-01',
+      wallets: [],
+    },
+    {
+      member: 'member-2',
+      name: 'Blair Member',
+      holderType: 'member',
+      balance: '40',
       enteredOn: '2026-09-01',
       wallets: [],
     },
@@ -108,7 +116,7 @@ const ENTRIES = [
     kind: 'opening',
     effectiveOn: '2026-09-01',
     recordedAt: '2026-09-01T03:00:00Z',
-    changes: [change('member-1', 'Alex Member', '9007199254740993'), change('member-2', null, '40')],
+    changes: [change('member-1', 'Alex Member', '9007199254740993'), change('member-2', 'Blair Member', '40')],
     corrects: null,
     correctedBy: null,
     correctable: true,
@@ -301,7 +309,7 @@ async function loadMore(view: Awaited<ReturnType<typeof render>>, until: string)
 
 beforeEach(() => {
   resetFiles();
-  entryPages = [[ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  entryPages = [[ENTRIES[1], ENTRIES[0]], [ENTRIES[2]]];
   entryAnswers = new Map();
   correctionAnswers = new Map();
   correctionPages = [[STAFF, CORRECTION], [APPLIED]];
@@ -361,7 +369,7 @@ it('pages the class register from the server newest first, with signed named cha
   expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
   expect(view.getByText('Effective 1 September 2026')).toBeTruthy();
   expect(view.getByText('Alex Member: +9,007,199,254,740,993')).toBeTruthy();
-  expect(view.getByText(`${COPY.UNNAMED_MEMBER('member-2')}: +40`)).toBeTruthy();
+  expect(view.getByText('Blair Member: +40')).toBeTruthy();
   expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
   expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.queryByText(COPY.ENTRIES_EMPTY)).toBeNull();
@@ -410,7 +418,7 @@ it('reads every page of the class corrections by its share class and lists them 
   expect(view.getAllByText(COPY.APPROVING_DIRECTOR)).toHaveLength(2);
   const record = within(view.getByText(NEW_HEADING).parent!);
   expect(record.getByText('Alex Member: -9,007,199,254,740,993')).toBeTruthy();
-  expect(record.getByText(`${COPY.UNNAMED_MEMBER('member-2')}: -40`)).toBeTruthy();
+  expect(record.getByText('Blair Member: -40')).toBeTruthy();
   expect(view.getAllByText(COPY.READ_ONLY_NOTE)).toHaveLength(1);
   expect(view.queryByText(/verified by Ledova(?! staff before)/i)).toBeNull();
   for (const kind of ['Approve', 'Apply', 'Reject'])
@@ -551,7 +559,7 @@ it('refuses a page recording a share change that is not whole and retries it, wi
   expect(await view.findByText(NEW_HEADING)).toBeTruthy();
   expect(view.queryByText('Entry 3 · Compensating correction')).toBeNull();
   expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
-  entryPages = [[ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  entryPages = [[ENTRIES[1], ENTRIES[0]], [ENTRIES[2]]];
   await fireEvent.press(view.getByRole('button', { name: 'Retry register entries for Ordinary shares' }));
   expect(await view.findByText('Entry 3 · Compensating correction')).toBeTruthy();
   expect(view.queryByText(READ_FAILED)).toBeNull();
@@ -657,9 +665,9 @@ it('previews an approval with the named original and inverse changes and the reg
   );
   expect(within(view.getByText('Register sequence').parent!).getByText('3')).toBeTruthy();
   expect(view.getAllByText('Alex Member: +9,007,199,254,740,993')).toHaveLength(1);
-  expect(view.getAllByText(`${COPY.UNNAMED_MEMBER('member-2')}: +40`)).toHaveLength(1);
+  expect(view.getAllByText('Blair Member: +40')).toHaveLength(1);
   expect(view.getAllByText('Alex Member: -9,007,199,254,740,993')).toHaveLength(2);
-  expect(view.getAllByText(`${COPY.UNNAMED_MEMBER('member-2')}: -40`)).toHaveLength(2);
+  expect(view.getAllByText('Blair Member: -40')).toHaveLength(2);
   expect(view.getAllByText(COPY.COMPENSATION_NOTE)).toHaveLength(1);
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
