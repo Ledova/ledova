@@ -40,7 +40,7 @@ export const importsKey = (epoch: number, token?: string) => [
   'imports',
   ...(token ? [token] : []),
 ];
-const appointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
+export const importAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 async function readClasses(epoch: number, page: number, signal: AbortSignal) {
   assertSessionEpoch(epoch);
@@ -112,7 +112,7 @@ export function useCompanyRegister(epoch: number) {
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
         queryClient.refetchQueries({ queryKey: importsKey(epoch), type: 'active' }),
-        queryClient.refetchQueries({ queryKey: appointmentsKey(epoch), type: 'active' }),
+        queryClient.refetchQueries({ queryKey: importAppointmentsKey(epoch), type: 'active' }),
       ]),
   };
 }
@@ -144,7 +144,7 @@ export function useRegisterImports(epoch: number, company: string, token: string
 
 export function useImportAppointments(epoch: number, company: string) {
   const appointments = useQuery({
-    queryKey: appointmentsKey(epoch),
+    queryKey: importAppointmentsKey(epoch),
     queryFn: ({ signal }) =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);

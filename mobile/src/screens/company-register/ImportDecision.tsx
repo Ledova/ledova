@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
@@ -72,6 +72,7 @@ export function ImportDecision({
   epoch,
   description,
   onSettled,
+  onStale,
 }: {
   proposal: RegisterImport;
   kind: RegisterImportDecisionKind;
@@ -79,6 +80,7 @@ export function ImportDecision({
   epoch: number;
   description: string;
   onSettled: () => Promise<unknown>;
+  onStale: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
   const [visible, setVisible] = useState(false);
@@ -95,6 +97,9 @@ export function ImportDecision({
     onRefused: onSettled,
   });
   const { busy, error, target } = decision;
+  useEffect(() => {
+    if (!busy && error) void onStale();
+  }, [busy, error]);
   const label = REGISTER_IMPORT_COPY.DECISIONS[kind];
   const preview = target?.preview;
   const previewed = kind !== 'reject' || target?.request.reason === reason.trim();

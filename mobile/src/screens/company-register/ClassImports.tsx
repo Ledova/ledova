@@ -78,6 +78,7 @@ export function ClassImports({
                 steps={steps}
                 last={index === imports.data.length - 1}
                 onSettled={settle}
+                onStale={appointments.refetch}
               />
             ))
           )}

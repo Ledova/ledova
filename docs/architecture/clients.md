@@ -107,12 +107,15 @@ register of each class of the chosen company, with exact share quantities and
 complete-read failure states.
 Showing a class's members also shows its
 [register imports](../operations/register-foundation.md#importing-an-existing-register)
-with the history, steps and checks of the dashboard's Register, described below.
-On mobile, each decision opens in a dialog, Prepare an import opens a form in the
-same stack, and the retained register document and ASIC extract open through the
-session-bound document copy. The import and appointment reads and every upload,
-preview, decision and preparation are bound to the session the screen opened
-under.
+with the history, steps and checks of the dashboard's Register, described below,
+except where the person's appointments are read. On mobile, each decision opens
+in a dialog, Prepare an import opens a form in the same stack, and the retained
+register document and ASIC extract open through the session-bound document copy.
+Register reads the person's appointments itself rather than through Company
+team's cache: a revocation on Company team or Representative authority, pull to
+refresh, and any preview or decision that fails read them again. The import and
+appointment reads and every upload, preview, decision and preparation are bound
+to the session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
 register access. A class
 opens its register and request histories, deployment and share request actions.

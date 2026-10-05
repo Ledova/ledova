@@ -170,6 +170,9 @@ function appointment(uuid: string, capabilities: string[], changes: object = {})
   };
 }
 
+const revoked = (uuid: string, capabilities: string[]) =>
+  appointment(uuid, capabilities, { isEffective: false, status: 'revoked', revokedAt: '2026-10-05T00:00:00Z' });
+
 function decided(kind: Kind, key: string, { appointment = 'appointment-admin', reason = '' } = {}) {
   const decision = {
     uuid: `decision-${key}`,
@@ -511,7 +514,7 @@ it('clears the previous rejection error when the rejection reopens', async () =>
   expect(view.queryByText('Network Error')).toBeNull();
 });
 
-it('refetches the class imports and holders when a decision is refused', async () => {
+it('refetches the class imports, holders and appointments when a decision is refused', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
     response: {
       status: 409,
@@ -521,16 +524,45 @@ it('refetches the class imports and holders when a decision is refused', async (
   const view = await openClass();
   await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
   await view.findByText(COPY.CONFIRMATIONS.apply);
-  const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary'))];
+  const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary')), reads(APPOINTMENTS)];
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   expect(
     await view.findByText('The register operation conflicts with its recorded identity or holdings.'),
   ).toBeTruthy();
   await waitFor(() => expect(reads(URLS.REGISTER_IMPORTS)).toBeGreaterThan(before[0]));
   expect(reads(URLS.HOLDERS('ordinary'))).toBeGreaterThan(before[1]);
+  await waitFor(() => expect(reads(APPOINTMENTS)).toBeGreaterThan(before[2]));
   expect(view.queryByText(COPY.CONFIRMATIONS.apply)).toBeNull();
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
   expect(view.getByRole('button', { name: 'Preview again' })).toBeEnabled();
+});
+
+it('words a refusal by its unmet requirements and withdraws the steps a revoked appointment held', async () => {
+  post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
+    message: 'Request failed with status code 400',
+    response: { status: 400, data: { unmetRequirements: ['appointment_capability_required'] } },
+  });
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
+  await view.findByText(COPY.CONFIRMATIONS.apply);
+  appointments = [revoked('appointment-admin', ['admin'])];
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await waitFor(() => expect(view.queryByRole('button', { name: step('Apply') })).toBeNull());
+  expect(view.queryByText('Request failed with status code 400')).toBeNull();
+  expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+});
+
+it('reads the appointments again after a refused preview and withdraws the revoked steps', async () => {
+  post.mockRejectedValueOnce({ response: { status: 404, data: { detail: 'Appointment not found.' } } });
+  const view = await openClass();
+  const before = reads(APPOINTMENTS);
+  appointments = [revoked('appointment-admin', ['admin'])];
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await waitFor(() => expect(reads(APPOINTMENTS)).toBeGreaterThan(before));
+  await waitFor(() => expect(view.queryByRole('button', { name: step('Approve') })).toBeNull());
+  expect(view.queryByRole('button', { name: step('Reject') })).toBeNull();
+  expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
 it('leaves the cached history unchanged when a decision receipt cannot be confirmed', async () => {
