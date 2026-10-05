@@ -14,9 +14,9 @@ import {
   type AccountRole,
   type CompanyCapability,
   type OwnCompanyAppointment,
+  type RegisterDecisionKind,
   type RegisterImport,
   type RegisterImportDecideRequest,
-  type RegisterImportDecisionKind,
   type RegisterImportDecisionPreview,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -39,7 +39,7 @@ const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart
 let client: QueryClient;
 let imports: RegisterImport[];
 let appointments: OwnCompanyAppointment[];
-let previewFor: (body: { kind: RegisterImportDecisionKind; reason: string }) => RegisterImportDecisionPreview;
+let previewFor: (body: { kind: RegisterDecisionKind; reason: string }) => RegisterImportDecisionPreview;
 let decideFor: (body: RegisterImportDecideRequest) => Promise<{ data: RegisterImport }>;
 
 function holders(): TokenHoldersResponse {
@@ -241,12 +241,12 @@ function records(section: HTMLElement) {
   return within(section).getAllByRole('listitem');
 }
 
-async function openDecision(record: HTMLElement, kind: RegisterImportDecisionKind) {
+async function openDecision(record: HTMLElement, kind: RegisterDecisionKind) {
   fireEvent.click(within(record).getByRole('button', { name: COPY.DECISIONS[kind] }));
   return screen.findByRole('dialog', { name: `${COPY.DECISIONS[kind]} import` });
 }
 
-function confirmButton(dialog: HTMLElement, kind: RegisterImportDecisionKind) {
+function confirmButton(dialog: HTMLElement, kind: RegisterDecisionKind) {
   return within(dialog).getByRole('button', { name: `${COPY.DECISIONS[kind]} import` }) as HTMLButtonElement;
 }
 
@@ -286,7 +286,7 @@ beforeEach(() => {
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);
   });
   api.post.mockImplementation(async (url: string, body: RegisterImportDecideRequest) => {
-    if (url === PREVIEW) return { data: previewFor(body as { kind: RegisterImportDecisionKind; reason: string }) };
+    if (url === PREVIEW) return { data: previewFor(body as { kind: RegisterDecisionKind; reason: string }) };
     if (url === DECIDE) return decideFor(body);
     throw new Error(`Unexpected write ${url}`);
   });

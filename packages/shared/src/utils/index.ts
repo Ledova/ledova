@@ -95,13 +95,12 @@ export {
 } from './swap-settlement-validation';
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
 export {
-  appointmentForRegisterImportStep,
-  isPreparedRegisterImport,
+  appointmentForRegisterStep,
+  isRegisterDecisionReceipt,
   isRegisterEvidenceReceipt,
-  isRegisterImportDecisionReceipt,
-  registerImportTotals,
-  type RegisterImportStep,
-} from './register-imports';
+  type RegisterStep,
+} from './register-commands';
+export { isPreparedRegisterImport, registerImportTotals } from './register-imports';
 export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';

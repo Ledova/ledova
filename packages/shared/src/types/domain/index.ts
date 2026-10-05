@@ -18,6 +18,7 @@ export * from './trading';
 export * from './company';
 export * from './company-authority';
 export * from './company-token';
+export * from './register-command';
 export * from './register-import';
 export * from './feature-flag';
 export * from './operator';

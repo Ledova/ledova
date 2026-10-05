@@ -5,10 +5,11 @@ import {
   formatShareCount,
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_DECISIONS,
   REGISTER_IMPORT_UNMET_COPY,
-  useRegisterImportDecision,
+  useRegisterDecision,
+  type RegisterDecisionKind,
   type RegisterImport,
-  type RegisterImportDecisionKind,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../components/Ledger';
@@ -17,13 +18,7 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { useCompanyStyles } from './styles';
 
-function DecisionPreview({
-  kind,
-  preview,
-}: {
-  kind: RegisterImportDecisionKind;
-  preview: RegisterImportDecisionPreview;
-}) {
+function DecisionPreview({ kind, preview }: { kind: RegisterDecisionKind; preview: RegisterImportDecisionPreview }) {
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
@@ -75,7 +70,7 @@ export function ImportDecision({
   onRefused,
 }: {
   proposal: RegisterImport;
-  kind: RegisterImportDecisionKind;
+  kind: RegisterDecisionKind;
   appointment: string;
   epoch: number;
   description: string;
@@ -85,7 +80,7 @@ export function ImportDecision({
   const styles = useCompanyStyles();
   const [visible, setVisible] = useState(false);
   const [reason, setReason] = useState('');
-  const decision = useRegisterImportDecision(apiClient, proposal, {
+  const decision = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
     appointment,
     newKey: () => Crypto.randomUUID(),
     guard: () => assertSessionEpoch(epoch),

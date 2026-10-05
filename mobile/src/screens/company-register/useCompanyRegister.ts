@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  appointmentForRegisterImportStep,
+  appointmentForRegisterStep,
   canOpen,
   getCompanyTokenHolders,
   getOwnCompanyAppointments,
@@ -11,13 +11,13 @@ import {
   useUserPreferences,
   type CompanyShareTokenListItem,
   type OwnCompanyAppointment,
-  type RegisterImportStep,
+  type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
-const IMPORT_STEPS: RegisterImportStep[] = ['prepare', 'approve', 'apply', 'reject'];
+const IMPORT_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
 
 export function checkedRegister(uuid: string, register: TokenHoldersResponse) {
   const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
@@ -155,8 +155,8 @@ export function useImportAppointments(epoch: number, company: string) {
   });
   const steps = appointments.isSuccess
     ? (Object.fromEntries(
-        IMPORT_STEPS.map((step) => [step, appointmentForRegisterImportStep(appointments.data, company, step)]),
-      ) as Record<RegisterImportStep, OwnCompanyAppointment | undefined>)
+        IMPORT_STEPS.map((step) => [step, appointmentForRegisterStep(appointments.data, company, step)]),
+      ) as Record<RegisterStep, OwnCompanyAppointment | undefined>)
     : undefined;
   return { appointments, steps };
 }

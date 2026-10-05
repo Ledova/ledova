@@ -2,7 +2,7 @@ import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
-  appointmentForRegisterImportStep,
+  appointmentForRegisterStep,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
@@ -28,10 +28,10 @@ export function ClassImports({
   const appointments = useOwnAppointments(owner, guard);
   const steps: ImportSteps | null = appointments.isSuccess
     ? {
-        prepare: appointmentForRegisterImportStep(appointments.data, company, 'prepare'),
-        approve: appointmentForRegisterImportStep(appointments.data, company, 'approve'),
-        apply: appointmentForRegisterImportStep(appointments.data, company, 'apply'),
-        reject: appointmentForRegisterImportStep(appointments.data, company, 'reject'),
+        prepare: appointmentForRegisterStep(appointments.data, company, 'prepare'),
+        approve: appointmentForRegisterStep(appointments.data, company, 'approve'),
+        apply: appointmentForRegisterStep(appointments.data, company, 'apply'),
+        reject: appointmentForRegisterStep(appointments.data, company, 'reject'),
       }
     : null;
   const refresh = async (keys: QueryKey[]) => {

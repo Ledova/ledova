@@ -487,7 +487,7 @@ offers. Only an active, effective appointment before its expiry counts:
 approval and rejection need administration or `approve`, and application
 administration or `apply`. A retained staff-era import offers only rejection,
 and a reader with none of these steps sees the history with a read-only note.
-Each decision opens a dialog driven by the shared `useRegisterImportDecision`:
+Each decision opens a dialog driven by the shared `useRegisterDecision` for imports:
 it previews the decision and shows the comparison with the stored register,
 unmet requirements in words, the stated and imported figures and, before an
 application that opens the register, the note that the class will not be on

@@ -9,9 +9,9 @@ import {
   REGISTER_IMPORT_COPY,
   registerImportTotals,
   type OwnCompanyAppointment,
+  type RegisterDecisionKind,
   type RegisterImport,
-  type RegisterImportDecisionKind,
-  type RegisterImportStep,
+  type RegisterStep,
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
@@ -19,8 +19,8 @@ import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../
 import { ImportDecision } from './ImportDecision';
 import { useCompanyStyles } from './styles';
 
-const DECISION_KINDS: RegisterImportDecisionKind[] = ['approve', 'apply', 'reject'];
-const DECIDED: Record<RegisterImportDecisionKind, string> = {
+const DECISION_KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
+const DECIDED: Record<RegisterDecisionKind, string> = {
   approve: REGISTER_IMPORT_COPY.STAGES.approved,
   apply: REGISTER_IMPORT_COPY.STAGES.applied,
   reject: REGISTER_IMPORT_COPY.STAGES.rejected,
@@ -93,14 +93,14 @@ export function ImportRecord({
 }: {
   proposal: RegisterImport;
   epoch: number;
-  steps?: Record<RegisterImportStep, OwnCompanyAppointment | undefined>;
+  steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
   onSettled: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
   const totals = registerImportTotals(proposal.members);
-  const kinds: RegisterImportDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
+  const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   const stage = REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage;
   const description = `${stage.toLowerCase()} import as at ${formatDate(proposal.asAt)}`;
   return (

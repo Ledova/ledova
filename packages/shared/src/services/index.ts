@@ -94,8 +94,8 @@ export {
   createCapitalIncrease,
   submitCapitalIncrease,
 } from './company-tokens';
+export { uploadRegisterEvidence } from './register-commands';
 export {
-  uploadRegisterEvidence,
   prepareRegisterImport,
   getRegisterImports,
   previewRegisterImportDecision,
