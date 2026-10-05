@@ -539,6 +539,20 @@ it('lists an entry once when the next page repeats it after a newer entry was re
   expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
 });
 
+it('lists a correction once when the next page repeats it after a newer correction was prepared', async () => {
+  correctionPages = [
+    [STAFF, CORRECTION],
+    [CORRECTION, APPLIED],
+  ];
+  const view = await openClass();
+  expect(view.getAllByText(/ · effective \d+ [A-Za-z]+ \d{4}$/).map(text)).toEqual([
+    NEW_HEADING,
+    APPLIED_HEADING,
+    'Prepared · entry 2 · effective 30 September 2026',
+  ]);
+  expect(view.getAllByRole('button', { name: step('Approve') })).toHaveLength(1);
+});
+
 it('reads each page under the session it was opened in and drops a page answered after the session changes', async () => {
   const late = deferred();
   entryAnswers.set(2, () => late.promise);

@@ -55,6 +55,12 @@ export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
+function distinct<Row>(rows: Row[], uuid: (row: Row) => string) {
+  const unique = new Map<string, Row>();
+  for (const row of rows) if (!unique.has(uuid(row))) unique.set(uuid(row), row);
+  return [...unique.values()];
+}
+
 async function sessionRead<Response>(epoch: number, read: () => Promise<Response>) {
   assertSessionEpoch(epoch);
   const response = await read();
@@ -146,8 +152,13 @@ export function useRegisterImports(epoch: number, company: string, token: string
   return useQuery({
     queryKey: importsKey(epoch, token),
     queryFn: async ({ signal }) => {
-      const rows = await readEveryPage((page) =>
-        sessionRead(epoch, () => getRegisterImports(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal })),
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterImports(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
       );
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The imports do not belong to this share class');
@@ -205,13 +216,10 @@ export function useRegisterEntries(epoch: number, token: string) {
     getNextPageParam,
   });
   const pages = useLaterPages(queryKey, entries);
-  const listed = new Map<string, RegisterEntry>();
-  for (const entry of entries.data?.pages.flatMap(({ results }) => results) ?? []) {
-    if (!listed.has(entry.uuid)) listed.set(entry.uuid, entry);
-  }
+  const listed = distinct(entries.data?.pages.flatMap(({ results }) => results) ?? [], ({ uuid }) => uuid);
   return {
     entries,
-    listed: [...listed.values()].sort((left, right) => right.sequence - left.sequence),
+    listed: listed.sort((left, right) => right.sequence - left.sequence),
     ...pages,
   };
 }
@@ -249,7 +257,10 @@ export function useRegisterCorrections(epoch: number, company: string, token: st
   return useQuery({
     queryKey: correctionsKey(epoch, token),
     queryFn: async ({ signal }) => {
-      const rows = await readEveryPage((page) => readCorrectionsPage(epoch, token, page, signal));
+      const rows = distinct(
+        await readEveryPage((page) => readCorrectionsPage(epoch, token, page, signal)),
+        ({ proposal }) => proposal.uuid,
+      );
       const proposals: RegisterCorrection[] = rows.map(({ proposal }) => proposal);
       if (
         proposals.some((proposal) => proposal.company !== company) ||

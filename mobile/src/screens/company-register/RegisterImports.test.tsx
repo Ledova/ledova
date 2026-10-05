@@ -384,6 +384,18 @@ it('offers a retained staff-era import only rejection, beside a company import t
     expect(view.getByRole('button', { name: step(kind) })).toBeTruthy();
 });
 
+it('lists an import once when the next page repeats it after a newer import was prepared', async () => {
+  importPages = [[submitted], [submitted, retired]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  await view.findByText('Rejected · as at 1 September 2026');
+  expect(view.getAllByText(/ · as at /).map((heading) => heading.props.children.join(''))).toEqual([
+    'Prepared · as at 20 September 2026',
+    'Rejected · as at 1 September 2026',
+  ]);
+  expect(view.getAllByRole('button', { name: step('Approve') })).toHaveLength(1);
+});
+
 it('opens preparation for the class and withdraws it once the class has an applied import', async () => {
   appointments = [appointment('appointment-prepare', ['prepare'])];
   const view = await openClass();

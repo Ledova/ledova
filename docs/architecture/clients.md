@@ -124,9 +124,9 @@ The class's register entries follow, newest first, one page from the server at a
 time with Load more: each entry's kind, sequence, effective date and signed share
 changes with member names, and the entry it corrects and the entry that reversed
 it, named as not loaded yet until its page is loaded. An entry a later page
-repeats is listed once; a page with a share change that is not whole fails and
-offers a retry, and a later page that fails keeps the loaded entries and offers to
-try again. Then come its
+repeats is listed once, as is a repeated import or correction; a page with a
+share change that is not whole fails and offers a retry, and a later page that
+fails keeps the loaded entries and offers to try again. Then come its
 [corrections](../operations/register-foundation.md#compensating-corrections),
 read on every page with the class's `token` filter and newest first, each page
 with the entries it corrects looked up by their IDs: stage, the corrected entry's
