@@ -511,6 +511,17 @@ imports are refreshed and the page returns to Register. Every read, decision,
 download and preparation is bound to the signed-in account, and a failed refresh
 keeps an open draft but holds preparation until a retry succeeds.
 
+`packages/shared` also holds the client layer for the company-run
+[corrections](../operations/register-foundation.md#compensating-corrections) and
+[discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
+the API delivers: services for a class's register entries, its corrections and
+its reconciliations, a check of each receipt against its request, their copy,
+the `companyRegisterCorrection` destination at
+`/company/register/:uuid/correct/:entry` and `useDiscrepancyAcknowledgement`.
+`useRegisterDecision` decides corrections as it decides imports. The web and
+mobile correction and acknowledgement screens are being built; neither client
+shows corrections or reconciliations yet.
+
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
 lists every page of its share classes, filtered to that company. Profile edits
