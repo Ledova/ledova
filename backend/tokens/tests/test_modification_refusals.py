@@ -9,10 +9,11 @@ from eth_account import Account
 from rest_framework.test import APITransactionTestCase
 
 from feature_flags.models import FeatureFlag
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
+from shared.db import APP_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.db.aliases import configured
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import OrderModificationLog, SigningChallenge, TransferOrder
 from tokens.models.choices import TransferOrderStatus, TransferOrderType
@@ -32,17 +33,29 @@ class ModificationChecks:
             wallet = Wallet.objects.create(
                 user_account=self.tenant.account, address=OWNER.address, chain="base", verification_status="VERIFIED"
             )
-            self.order = TransferOrder.objects.create(
-                token=self.tenant.deployed_token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=wallet,
-                owner_account=self.tenant.account,
-                wallet_address=OWNER.address,
-                order_type=TransferOrderType.BUY,
-                quantity=10,
-                min_quantity=0,
-                price_per_share=Decimal("1.50"),
-            )
+            with use_migrate():
+                self.order = TransferOrder.objects.create(
+                    token=self.tenant.deployed_token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=OWNER.address,
+                    order_type=TransferOrderType.BUY,
+                    quantity=10,
+                    min_quantity=0,
+                    price_per_share=Decimal("1.50"),
+                )
+                self.order.refresh_from_db()
+                self.assertEqual(
+                    (
+                        self.order.eligibility_decision_id,
+                        self.order.creation_submission_id,
+                        self.order.last_modification_eligibility_decision_id,
+                    ),
+                    (None, None, None),
+                )
+        make_eligible(self.tenant)
+        self.eligibility_decision = accept_company_eligibility(self.tenant)
         self.client.force_authenticate(self.tenant.user)
         self.balance = 200
         self.payment_balance = 10**30
@@ -69,13 +82,18 @@ class ModificationChecks:
         return self.balance if contract == self.order.token.contract_address else self.payment_balance
 
     def change_order(self, **values):
-        with use_operator(), atomic():
+        with use_migrate(), atomic():
+            before = TransferOrder.objects.get(pk=self.order.pk)
+            self.assertIsNone(before.eligibility_decision_id)
+            self.assertIsNone(before.last_modification_eligibility_decision_id)
             connection = connections[current_alias()]
             if connection.vendor == "postgresql":
                 with connection.cursor() as cursor:
                     cursor.execute("SET LOCAL lock_timeout = '100ms'")
             TransferOrder.objects.filter(pk=self.order.pk).update(**values)
             self.order.refresh_from_db()
+            self.assertIsNone(self.order.eligibility_decision_id)
+            self.assertIsNone(self.order.last_modification_eligibility_decision_id)
 
     def issue(self, quantity=12, minimum=0, price="2.00", signer=OWNER):
         identity = {"action_id": str(uuid4()), "owner_account_uuid": str(self.tenant.account.pk)}
@@ -93,7 +111,19 @@ class ModificationChecks:
         return {**identity, "digest": issued["digest"], "signature": signature}
 
     def apply(self, signed):
-        return self.client.post(f"/api/v1/trading/orders/{self.order.uuid}/modify/", signed, format="json")
+        response = self.client.post(f"/api/v1/trading/orders/{self.order.uuid}/modify/", signed, format="json")
+        if response.status_code == 200:
+            with use_operator():
+                self.order.refresh_from_db()
+                self.assertIsNone(self.order.eligibility_decision_id)
+                self.assertIsNone(self.order.creation_submission_id)
+                self.assertEqual(self.order.last_modification_eligibility_decision_id, self.eligibility_decision.pk)
+                action = self.order.last_modification_action
+                self.assertEqual(str(action.action_id), signed["action_id"])
+                self.assertEqual(action.eligibility_decision_id, self.eligibility_decision.pk)
+                self.assertIsNotNone(action.eligibility_admitted_at)
+                self.assertTrue(SigningChallenge.objects.get(digest=signed["digest"]).is_consumed)
+        return response
 
     def assert_spent_without_modification(self, signed):
         with use_operator():
