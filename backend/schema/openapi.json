@@ -21170,6 +21170,14 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {

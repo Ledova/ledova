@@ -23,7 +23,7 @@ from tokens.services.register_corrections import (
 )
 from tokens.views.register_proposal import RegisterProposalViewSet, with_decisions
 
-FILTERS = {"company": "company_id", "register": "register_id", "status": "status"}
+FILTERS = {"company": "company_id", "register": "register_id", "token": "register__token_id", "status": "status"}
 
 
 @extend_schema_view(
@@ -31,6 +31,7 @@ FILTERS = {"company": "company_id", "register": "register_id", "status": "status
         parameters=[
             OpenApiParameter("company", OpenApiTypes.UUID),
             OpenApiParameter("register", OpenApiTypes.UUID),
+            OpenApiParameter("token", OpenApiTypes.UUID),
             OpenApiParameter("status", str, enum=["submitted", "applied", "rejected"]),
         ]
     )
