@@ -1519,6 +1519,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/entries/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_entries_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/export/': {
     parameters: {
       query?: never;
@@ -4126,6 +4142,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['ShareIssuanceRequest'][];
     };
+    PaginatedShareRegisterEntryList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['ShareRegisterEntry'][];
+    };
     PaginatedShareTokenListList: {
       count: number;
       next?: string | null;
@@ -5025,6 +5047,23 @@ export interface ApiComponents {
       totalHolders: number;
       waitingEffects: number | null;
     };
+    ShareRegisterEntry: {
+      changes: ApiComponents['schemas']['ShareRegisterEntryChange'][];
+      correctable: boolean;
+      correctedBy: string | null;
+      corrects: string | null;
+      effectiveOn: string;
+      kind: ApiComponents['schemas']['ShareRegisterEntryKindEnum'];
+      recordedAt: string;
+      sequence: number;
+      uuid: string;
+    };
+    ShareRegisterEntryChange: {
+      member: string;
+      name: string | null;
+      shares: string;
+    };
+    ShareRegisterEntryKindEnum: 'opening' | 'issue' | 'transfer' | 'cessation' | 'correction';
     ShareRegisterHolder: {
       balance: string;
       enteredOn: string;
@@ -8367,6 +8406,29 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PauseSubmissionResponse'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_entries_list: {
+    parameters: {
+      query?: {
+        page?: number;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedShareRegisterEntryList'];
         };
       };
     };

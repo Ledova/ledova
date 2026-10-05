@@ -253,6 +253,7 @@ delivered.
 
 | Method and route | Result |
 | --- | --- |
+| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable` |
 | `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
 | `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register` and `status` |
@@ -280,6 +281,8 @@ from the exercise:
 }
 ```
 
+An entry is `correctable` while it has changes and no correction reverses it;
+preparation still refuses an inverse that would take a holding below zero.
 Preparation derives the exact inverse share changes and captures the register's
 current sequence and head hash. The effective date may be today (UTC) or earlier,
 since a rectification can be backdated; preparation refuses a later one, which
