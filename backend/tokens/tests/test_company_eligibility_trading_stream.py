@@ -1,7 +1,8 @@
 import asyncio
 import json
 from datetime import timedelta
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync, sync_to_async
@@ -54,6 +55,136 @@ class CompanyEligibilityTradingStreamTest(CompanyEligibilityReadCases, StubUploa
         self.assertEqual(pubsub.unsubscribed_from, pubsub.subscribed_to)
         self.assertTrue(pubsub.closed)
         self.assertTrue(client.closed)
+
+    def busy_pubsub(self, message):
+        pubsub = _FakePubSub([])
+        pubsub.get_message = AsyncMock(
+            side_effect=[message] * 3 + [AssertionError("Continuous bus traffic starved the eligibility deadline")]
+        )
+        return pubsub
+
+    def busy_messages(self):
+        return {
+            "foreign": self.redis_event(token=uuid4()),
+            "malformed": {"type": "message", "data": b"\xff"},
+        }
+
+    def test_actual_session_and_company_revocation_close_under_continuous_unrelated_traffic(self):
+        async def scenario(accepted, request, refresh, loss, client):
+            with patch("tokens.views.trading_events.aioredis.from_url", return_value=client), patch(
+                "tokens.views.trading_events.asyncio.get_event_loop",
+                return_value=SimpleNamespace(time=Mock(side_effect=[100, 131, 132, 133])),
+            ):
+                stream = _event_stream(request, self.participant.pk, str(self.first.token_id))
+                self.assertIn("event: connected", await anext(stream))
+                if loss == "session":
+                    await sync_to_async(TokenService.revoke, thread_sensitive=True)(refresh)
+                else:
+                    await sync_to_async(self.revoke, thread_sensitive=True)(accepted)
+                self.assertFalse(
+                    await sync_to_async(_stream_is_current_sync, thread_sensitive=True)(
+                        request, self.participant.pk, str(self.first.token_id)
+                    )
+                )
+                with self.assertRaises(StopAsyncIteration):
+                    await anext(stream)
+
+        for loss in ("session", "company"):
+            for traffic, message in self.busy_messages().items():
+                with self.subTest(loss=loss, traffic=traffic):
+                    accepted, _ = self.accepted()
+                    request, refresh = self.stream_request(cookie=loss == "session")
+                    pubsub = self.busy_pubsub(message)
+                    client = _FakeRedis(pubsub)
+                    async_to_sync(scenario)(accepted, request, refresh, loss, client)
+                    self.assertEqual(pubsub.get_message.await_count, 1)
+                    self.assert_closed(pubsub, client)
+                    if loss == "session":
+                        self.revoke(accepted)
+
+    def test_actual_jwt_expiry_closes_under_continuous_unrelated_traffic(self):
+        async def scenario(request, access, client):
+            with patch("tokens.views.trading_events.aioredis.from_url", return_value=client), patch(
+                "tokens.views.trading_events.asyncio.get_event_loop",
+                return_value=SimpleNamespace(time=Mock(side_effect=[100, 131, 132, 133])),
+            ):
+                stream = _event_stream(request, self.participant.pk, str(self.first.token_id))
+                self.assertIn("event: connected", await anext(stream))
+                leeway = api_settings.LEEWAY
+                leeway_seconds = leeway.total_seconds() if isinstance(leeway, timedelta) else leeway
+                await asyncio.sleep(max(0, access["exp"] + leeway_seconds - timezone.now().timestamp()) + 0.02)
+                with self.assertRaises(StopAsyncIteration):
+                    await anext(stream)
+
+        for traffic, message in self.busy_messages().items():
+            with self.subTest(traffic=traffic):
+                self.accepted()
+                request, _ = self.stream_request(lifetime=timedelta(seconds=5))
+                access = AccessToken(request.META["HTTP_AUTHORIZATION"].split()[1])
+                pubsub = self.busy_pubsub(message)
+                client = _FakeRedis(pubsub)
+                async_to_sync(scenario)(request, access, client)
+                self.assertEqual(pubsub.get_message.await_count, 1)
+                self.assert_closed(pubsub, client)
+                self.assertIsNone(_authenticate_sync(request))
+                with use_operator():
+                    self.assertTrue(TokenService.is_session_live(access["rjti"]))
+                with self.reader():
+                    self.assertEqual(
+                        streamable_token_uuid(self.participant, str(self.first.token_id)), str(self.first.token_id)
+                    )
+
+    def test_actual_company_decision_expiry_closes_under_continuous_unrelated_traffic(self):
+        def wait_for_expiry(decision):
+            with use_operator(), connections[current_alias()].cursor() as cursor:
+                cursor.execute(
+                    "SELECT pg_sleep(GREATEST(0, EXTRACT(EPOCH FROM %s::timestamptz - clock_timestamp())) + 0.02)",
+                    [decision.expires_at],
+                )
+
+        async def scenario(request, decision, client):
+            with patch("tokens.views.trading_events.aioredis.from_url", return_value=client), patch(
+                "tokens.views.trading_events.asyncio.get_event_loop",
+                return_value=SimpleNamespace(time=Mock(side_effect=[100, 131, 132, 133])),
+            ):
+                stream = _event_stream(request, self.participant.pk, str(self.first.token_id))
+                self.assertIn("event: connected", await anext(stream))
+                await sync_to_async(wait_for_expiry, thread_sensitive=True)(decision)
+                with self.assertRaises(StopAsyncIteration):
+                    await anext(stream)
+
+        for traffic, message in self.busy_messages().items():
+            with self.subTest(traffic=traffic):
+                self.requested_expiry = timezone.now() + timedelta(seconds=5)
+                _, decision = self.accepted()
+                request, _ = self.stream_request()
+                pubsub = self.busy_pubsub(message)
+                client = _FakeRedis(pubsub)
+                async_to_sync(scenario)(request, decision, client)
+                self.assertEqual(pubsub.get_message.await_count, 1)
+                self.assert_closed(pubsub, client)
+                self.assertFalse(_stream_is_current_sync(request, self.participant.pk, str(self.first.token_id)))
+
+    def test_current_authority_is_rechecked_during_unrelated_traffic_before_a_sanitized_event(self):
+        self.accepted()
+        request, _ = self.stream_request()
+        private_order = str(uuid4())
+        pubsub = _FakePubSub([*self.busy_messages().values(), self.redis_event(data={"order_uuid": private_order})])
+        client = _FakeRedis(pubsub)
+
+        async def scenario():
+            with patch("tokens.views.trading_events.aioredis.from_url", return_value=client), patch(
+                "tokens.views.trading_events.asyncio.get_event_loop",
+                return_value=SimpleNamespace(time=Mock(side_effect=[100, 131, 132, 133])),
+            ), patch("tokens.views.trading_events._stream_is_current_sync", wraps=_stream_is_current_sync) as current:
+                stream = _event_stream(request, self.participant.pk, str(self.first.token_id))
+                self.assertIn("event: connected", await anext(stream))
+                self.assertEqual(await anext(stream), "event: order_created\ndata: {}\n\n")
+                self.assertEqual(current.call_count, 3)
+                await stream.aclose()
+
+        async_to_sync(scenario)()
+        self.assert_closed(pubsub, client)
 
     def test_actual_company_access_selects_exact_deployed_token_with_principal_restoration(self):
         self.accepted()

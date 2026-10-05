@@ -70,13 +70,15 @@ async def _event_stream(request, actor_id, token_uuid: str):
         while True:
             message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
 
-            if message is None:
-                now = asyncio.get_event_loop().time()
-                if now - last_heartbeat >= HEARTBEAT_INTERVAL:
-                    if not await _stream_is_current(request, actor_id, token_uuid):
-                        return
+            now = asyncio.get_event_loop().time()
+            if now - last_heartbeat >= HEARTBEAT_INTERVAL:
+                if not await _stream_is_current(request, actor_id, token_uuid):
+                    return
+                if message is None:
                     yield ": heartbeat\n\n"
-                    last_heartbeat = now
+                last_heartbeat = now
+
+            if message is None:
                 continue
 
             if not isinstance(message, dict) or message.get("type") != "message":
