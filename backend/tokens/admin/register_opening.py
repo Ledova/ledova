@@ -9,14 +9,9 @@ from rest_framework.exceptions import ValidationError
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_files import admin_file_path
-from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
+from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterOpening, RegisterWalletLink
-from tokens.services.register_openings import (
-    decide_link,
-    decide_opening,
-    prepare_link_review,
-    prepare_opening_review,
-)
+from tokens.services.register_openings import decide_link, prepare_link_review
 
 
 class OpeningReviewForm(forms.Form):
@@ -43,7 +38,6 @@ class RegisterOpeningAdmin(admin.ModelAdmin):
     list_filter = ["authority", "status"]
     readonly_fields = [field.name for field in RegisterOpening._meta.fields if field.name != "file"] + [
         "evidence_link",
-        "review_link",
     ]
     exclude = ["file"]
     actions = None
@@ -70,7 +64,6 @@ class RegisterOpeningAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         return [
-            admin_action_path(self, "<uuid:uuid>/review/", "tokens_registeropening_review", self.review),
             admin_file_path(self, "<uuid:uuid>/evidence/", "tokens_registeropening_evidence", self.resolve_evidence),
         ] + super().get_urls()
 
@@ -84,67 +77,6 @@ class RegisterOpeningAdmin(admin.ModelAdmin):
             '<a href="{}">Open retained document</a>',
             reverse("admin:tokens_registeropening_evidence", args=[obj.pk]),
         )
-
-    @admin.display(description="Review")
-    def review_link(self, obj):
-        if obj.status != "submitted":
-            return "Decision recorded"
-        return format_html(
-            '<a href="{}">Review opening</a>', reverse("admin:tokens_registeropening_review", args=[obj.pk])
-        )
-
-    @method_decorator(require_http_methods(["GET", "POST"]))
-    def review(self, request, proposal):
-        form = OpeningReviewForm(request.POST if request.method == "POST" else None)
-        refusal = ""
-        try:
-            if request.method == "GET":
-                proposal, form.initial["confirmation"] = prepare_opening_review(
-                    proposal_id=proposal.pk, reviewer=request.user
-                )
-            elif form.is_valid():
-                proposal = decide_opening(
-                    proposal_id=proposal.pk,
-                    reviewer=request.user,
-                    confirmation=form.cleaned_data["confirmation"],
-                    decision=form.cleaned_data["decision"],
-                    rejection_reason=form.cleaned_data["rejection_reason"],
-                )
-                self.log_change(request, proposal, f"Register opening {proposal.status}.")
-                self.message_user(request, f"Register opening {proposal.status}.", messages.SUCCESS)
-                return redirect("admin:tokens_registeropening_change", proposal.pk)
-        except RegisterChangeConflict:
-            refusal = "This opening conflicts with the current register or an existing decision."
-        except ValidationError as error:
-            refusal = " ".join(str(item) for item in error.detail)
-        except RegisterUnavailableException:
-            refusal = (
-                "The canonical boundary could not be captured or reverified from the chain. "
-                "Retry the review, or reject this request with a reason."
-            )
-        return render(
-            request,
-            "admin/tokens/register_opening_review.html",
-            {
-                **self.admin_site.each_context(request),
-                "opts": self.model._meta,
-                "original": proposal,
-                "title": "Review register opening",
-                "form": form,
-                "refusal": refusal,
-                "evidence_link": self.evidence_link(proposal),
-                "mapping_rows": self.mapping_rows(proposal),
-            },
-        )
-
-    def mapping_rows(self, proposal):
-        if proposal.boundary is None:
-            return []
-        shares = {row["address"].lower(): row["shares"] for row in proposal.boundary["holdings"]}
-        return [
-            {"address": link["address"], "shares": shares.get(link["address"].lower(), "0"), "member": link["member"]}
-            for link in proposal.mapping
-        ]
 
 
 class LinkReviewForm(OpeningReviewForm):

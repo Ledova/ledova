@@ -49,6 +49,7 @@ from .register_instruction import RegisterInstruction, RegisterInstructionKind
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
+    RegisterOpeningDecision,
     RegisterWalletLink,
 )
 from .share_issuance import ShareIssuance
@@ -104,6 +105,7 @@ __all__ = [
     "RegisterMember",
     "RegisterMemberWallet",
     "RegisterOpening",
+    "RegisterOpeningDecision",
     "RegisterOutput",
     "RegisterPosition",
     "RegisterReconciliation",

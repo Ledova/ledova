@@ -22,7 +22,6 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_openings import submit_opening
 from tokens.tests.test_company_pack import (
     ADMIN_STORAGES,
     ISOLATED,
@@ -44,6 +43,8 @@ from tokens.tests.test_register_imports import (
     prepared,
     upload_evidence,
 )
+from tokens.tests.test_register_openings import offline_boundary, opening_payload
+from tokens.tests.test_register_openings import prepared as prepared_opening
 from users.models import InvestorClassification
 
 EVIDENCE_MODELS = (RegisterOpening, RegisterImport, RegisterCorrection, RegisterInstruction, RegisterWalletLink)
@@ -104,6 +105,14 @@ def verified(fixture, document_type, content):
     return verify_document(document_id=document.pk, reviewer=fixture.reviewer, confirmation=confirmation)
 
 
+def opened(fixture, token, appointment, raw, purpose, **changes):
+    owner = fixture.company.owner
+    evidence = upload_evidence(owner, appointment, RegisterEvidenceKind.AUTHORITY, raw=raw)
+    payload = opening_payload(token.pk, evidence, appointment, mapping=[], **authority_terms(fixture.label, purpose))
+    with patch("tokens.services.register_openings.capture_snapshot", return_value=offline_boundary(token)):
+        return prepared_opening(owner, {**payload, **changes})
+
+
 def with_opening_and_import(fixture):
     label, company = fixture.label, fixture.company
     unopened = ShareToken.objects.create(
@@ -114,17 +123,9 @@ def with_opening_and_import(fixture):
         status=ShareTokenStatus.DEPLOYED,
         contract_address="0x" + sha256(f"{label} evidence shares".encode())[:40],
     )
-    opening = submit_opening(
-        actor=company.owner,
-        operation_id=uuid4(),
-        token_id=unopened.pk,
-        document_id=fixture.document.pk,
-        mapping=[],
-        authority="director_resolution",
-        **authority_terms(label, "opening"),
-    )
-    holder = fixture.members["holder"]
     appointment = owner_appointment(company)
+    opening = opened(fixture, unopened, appointment, f"Synthetic {label} opening authority".encode(), "opening")
+    holder = fixture.members["holder"]
     imported = prepared(
         company.owner,
         {
@@ -265,7 +266,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                         (asic_path, sha256(files[asic_path]), "company"),
                     )
                     self.assertEqual(files[asic_path], read(record.asic_evidence.file.name))
-                elif kind == "correction":
+                elif kind in ("opening", "correction"):
                     self.assertEqual(files[path], read(record.authority_evidence.file.name))
                     self.assertEqual((listed["provided_by"], listed["evidence"]["document"]), ("company", None))
                 else:
@@ -276,15 +277,13 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
         )
 
     def test_operation_id_reused_across_record_kinds_keeps_both_evidence_copies(self):
-        other_document = verified(self.a, DocumentType.OTHER, b"Synthetic different opening evidence")
-        opening = submit_opening(
-            actor=self.a.company.owner,
+        opening = opened(
+            self.a,
+            self.unopened,
+            owner_appointment(self.a.company),
+            b"Synthetic different opening evidence",
+            "same-id opening",
             operation_id=self.a.link.pk,
-            token_id=self.unopened.pk,
-            document_id=other_document.pk,
-            mapping=[],
-            authority="director_resolution",
-            **authority_terms(self.a.label, "same-id opening"),
         )
         self.assertEqual(opening.pk, self.a.link.pk)
         self.assertNotEqual(opening.evidence_snapshot["sha256"], self.a.link.evidence_snapshot["sha256"])
