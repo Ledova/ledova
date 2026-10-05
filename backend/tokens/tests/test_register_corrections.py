@@ -581,7 +581,8 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
     def configured(self):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(self.GUARDS)]
+                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
+                [list(self.GUARDS + self.FUNCTIONS)],
             )
             return cursor.fetchall()
 
@@ -608,7 +609,7 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
         company_run, closed, pinned = self.installed(), self.insert_policy(), self.configured()
         self.assertEqual(
             pinned,
-            [(name, ["search_path=pg_catalog, public, pg_temp"]) for name in sorted(self.GUARDS)],
+            [(name, ["search_path=pg_catalog, public, pg_temp"]) for name in sorted(self.GUARDS + self.FUNCTIONS)],
         )
         self.assertIn("tokens_registercorrectiondecision", dict(company_run)["tokens_guard_register_correction"])
         self.assertIn("'authority'", dict(company_run)["tokens_guard_register_evidence"])
