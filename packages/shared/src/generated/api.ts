@@ -8616,6 +8616,7 @@ export interface ApiOperations {
         page?: number;
         register?: string;
         status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
       };
       header?: never;
       path?: never;
