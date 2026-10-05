@@ -296,6 +296,23 @@ it("reads only the class's latest reconciliation and says plainly when it has no
   expect(within(section).queryByRole('listitem')).toBeNull();
 });
 
+it('shows only the newest reconciliation when the class has older ones', async () => {
+  latest = [
+    reconciliation(),
+    reconciliation({
+      uuid: 'reconciliation-older',
+      status: 'matched',
+      latest: false,
+      discrepancies: [],
+      createdAt: '2026-10-05T00:50:00Z',
+    }),
+  ];
+  const section = await openClass();
+  expect(within(section).getByText(COPY.STATUSES.discrepant)).toBeTruthy();
+  expect(within(section).queryByText(COPY.STATUSES.matched)).toBeNull();
+  expect(records(section)).toHaveLength(8);
+});
+
 it('shows a failed reconciliation with the reason it could not compare', async () => {
   latest = [
     reconciliation({

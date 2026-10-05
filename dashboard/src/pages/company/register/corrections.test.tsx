@@ -440,6 +440,30 @@ it('says an entry was corrected, or corrects another, without a number until tha
   expect(within(early).getByText(COPY.CORRECTED_NOTE)).toBeTruthy();
 });
 
+it('refuses entry pages whose next link does not advance', async () => {
+  entryPages = [page([REVERSAL, TRANSFER], NEXT(ENTRIES, 1))];
+  correctionPages = [page([])];
+  await openClass();
+  const register = await history();
+  expect(within(register).getByRole('alert').textContent).toContain(
+    "We couldn't load the register entries for this share class.",
+  );
+  expect(within(register).queryByRole('listitem')).toBeNull();
+});
+
+it('hides stale entries after a failed refresh', async () => {
+  correctionPages = [page([])];
+  await openClass();
+  const register = await history();
+  expect(records(register)).toHaveLength(2);
+  serve((url) => (url === ENTRIES ? Promise.reject(new Error('Unavailable')) : undefined));
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...ACCOUNT, 'entries', 'ordinary'] });
+  });
+  await waitFor(() => expect(within(register).queryByRole('listitem')).toBeNull());
+  expect(within(register).getByRole('alert')).toBeTruthy();
+});
+
 it('says calmly that the register of a class has no entries yet', async () => {
   entryPages = [page([])];
   correctionPages = [page([])];
@@ -773,6 +797,35 @@ it.each([
   const dialog = await openDecision(records(await corrections())[0], kind);
   await previewed(dialog);
   expect(!!within(dialog).queryByText(COPY.COMPENSATION_NOTE)).toBe(shown);
+});
+
+it('previews and records each step under the appointment that holds it', async () => {
+  appointments = [
+    appointment(['approve'], { uuid: 'appointment-b' }),
+    appointment(['apply'], { uuid: 'appointment-c' }),
+  ];
+  await openClass();
+  const [record] = records(await corrections());
+  let dialog = await openDecision(record, 'apply');
+  await previewed(dialog);
+  fireEvent.click(confirmButton(dialog, 'apply'));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  dialog = await openDecision(records(await corrections())[0], 'reject');
+  await previewed(dialog);
+  expect(writes(PREVIEW).map(([, body]) => body.appointment)).toEqual(['appointment-c', 'appointment-b']);
+  expect(writes(DECIDE).map(([, body]) => body.appointment)).toEqual(['appointment-c']);
+});
+
+it('starts a reopened rejection with a blank reason', async () => {
+  await openClass();
+  const [record] = records(await corrections());
+  let dialog = await openDecision(record, 'reject');
+  await previewed(dialog);
+  fireEvent.change(within(dialog).getByLabelText(COPY.REJECTION_REASON), { target: { value: 'Draft reason' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  dialog = await openDecision(record, 'reject');
+  expect((within(dialog).getByLabelText(COPY.REJECTION_REASON) as HTMLTextAreaElement).value).toBe('');
 });
 
 it('lists unmet requirements in words and keeps the decision unconfirmable while any remain', async () => {

@@ -72,7 +72,10 @@ function entry(overrides: Partial<RegisterEntry> = {}): RegisterEntry {
   };
 }
 
-function appointment(capabilities: CompanyCapability[]): OwnCompanyAppointment {
+function appointment(
+  capabilities: CompanyCapability[],
+  overrides: Partial<OwnCompanyAppointment> = {},
+): OwnCompanyAppointment {
   return {
     uuid: 'appointment-a',
     company: 'harbour',
@@ -87,6 +90,7 @@ function appointment(capabilities: CompanyCapability[]): OwnCompanyAppointment {
     revokedAt: null,
     declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
     declarationText: COMPANY_AUTHORITY_DECLARATION,
+    ...overrides,
   };
 }
 
@@ -282,6 +286,11 @@ it('shows the entry and its exact inverse, then uploads the authority document a
   ]);
   expect(screen.getByText(COPY.COMPENSATION_NOTE)).toBeTruthy();
   expect(screen.getByText(COPY.AUTHORITY_DOCUMENT_NOTE)).toBeTruthy();
+  expect(
+    [COPY.APPROVING_DIRECTOR, COPY.AUTHORITY_REFERENCE, COPY.REASON].map(
+      (label) => (screen.getByLabelText(label) as HTMLInputElement).maxLength,
+    ),
+  ).toEqual([255, 255, 1000]);
   expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config)).toEqual([
     { params: { page: 1 }, ledovaSubmissionGuard: expect.any(Function) },
     { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) },
@@ -515,6 +524,40 @@ it('takes a new upload key after the upload conflicts', async () => {
   fireEvent.click(submitButton());
   expect(await screen.findByText('Register page')).toBeTruthy();
   expect(uploads().map((form) => form.get('idempotency_key'))).toEqual([KEY(1), KEY(2)]);
+});
+
+it('uploads again under a new key once another appointment holds the prepare step', async () => {
+  let fail = true;
+  uploadFor = async (form) => {
+    if (fail) throw new Error('Network Error');
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await screen.findByRole('alert');
+  fail = false;
+  appointments = [appointment(['prepare'], { uuid: 'appointment-0' })];
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-appointments', 'profile-one', 'account-one'] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads().map((form) => [form.get('idempotency_key'), form.get('appointment')])).toEqual([
+    [KEY(1), 'appointment-a'],
+    [KEY(2), 'appointment-0'],
+  ]);
+  expect(preparations()[0].appointment).toBe('appointment-0');
+});
+
+it('refuses entry pages whose next link does not advance', async () => {
+  entryPages = [page([entry({ uuid: 'entry-newer' })], NEXT(1))];
+  serve();
+  show();
+  expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load the complete register.");
+  expect(reads(ENTRIES)).toBe(1);
 });
 
 it('takes a new upload key when another file is chosen after a failed attempt', async () => {
