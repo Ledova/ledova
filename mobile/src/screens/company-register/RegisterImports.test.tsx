@@ -33,8 +33,9 @@ type Kind = 'approve' | 'apply' | 'reject';
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const DIGEST = 'a'.repeat(64);
-const NEW = 'prepared import as at 20 September 2026';
-const OLD = 'rejected import as at 1 September 2026';
+const prepared = (createdAt: string) => `prepared on ${formatDateTime(createdAt)}`;
+const NEW = `prepared import as at 20 September 2026, ${prepared('2026-10-02T01:00:00Z')}`;
+const OLD = `rejected import as at 1 September 2026, ${prepared('2026-10-02T09:00:00+10:00')}`;
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const step = (kind: string, description = NEW) => `${kind} the ${description}`;
 const copyOf = (label: string, description = NEW) => `${label} of the ${description}`;
@@ -374,7 +375,7 @@ it.each([
 it('offers a retained staff-era import only rejection, beside a company import that offers every step', async () => {
   const waiting = { ...retired, uuid: 'import-staff', status: 'submitted', stage: 'submitted', decisions: [] };
   importPages = [[{ ...waiting, rejectionReason: '', reviewedAt: null }], [submitted]];
-  const staff = 'prepared import as at 1 September 2026';
+  const staff = `prepared import as at 1 September 2026, ${prepared(retired.createdAt)}`;
   const view = await openClass();
   expect(view.getByText('Prepared · as at 1 September 2026')).toBeTruthy();
   expect(view.getByRole('button', { name: step('Reject', staff) })).toBeTruthy();
@@ -382,6 +383,19 @@ it('offers a retained staff-era import only rejection, beside a company import t
   expect(view.queryByRole('button', { name: step('Apply', staff) })).toBeNull();
   for (const kind of ['Approve', 'Apply', 'Reject'])
     expect(view.getByRole('button', { name: step(kind) })).toBeTruthy();
+});
+
+it('names two imports of one stage and date apart by when each was prepared', async () => {
+  importPages = [[submitted, { ...submitted, uuid: 'import-again', createdAt: '2026-10-02T02:00:00Z' }]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findAllByText('Prepared · as at 20 September 2026')).toHaveLength(2);
+  const again = `prepared import as at 20 September 2026, ${prepared('2026-10-02T02:00:00Z')}`;
+  for (const description of [NEW, again]) {
+    for (const kind of ['Approve', 'Apply', 'Reject'])
+      expect(view.getByRole('button', { name: step(kind, description) })).toBeTruthy();
+    expect(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER, description) })).toBeTruthy();
+  }
 });
 
 it('lists an import once when the next page repeats it after a newer import was prepared', async () => {

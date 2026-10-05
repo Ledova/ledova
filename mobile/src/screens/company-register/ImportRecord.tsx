@@ -82,7 +82,8 @@ export function ImportRecord({
   const totals = registerImportTotals(proposal.members);
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   const stage = REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage;
-  const description = `${stage.toLowerCase()} import as at ${formatDate(proposal.asAt)}`;
+  const prepared = formatDateTime(proposal.createdAt);
+  const description = `${stage.toLowerCase()} import as at ${formatDate(proposal.asAt)}, prepared on ${prepared}`;
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
@@ -97,7 +98,7 @@ export function ImportRecord({
         {proposal.preparedByName !== null && (
           <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
         )}
-        <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
+        <Row label="Prepared on">{prepared}</Row>
         {proposal.decisions.map((decision) => (
           <Row key={decision.uuid} label={DECIDED[decision.kind]}>
             {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}

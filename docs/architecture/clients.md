@@ -135,9 +135,10 @@ member names, the authority, approving director, reference and reason, whether
 the company provided the authority document or staff verified it before
 corrections were company-run, the decision trail, any rejection reason and the
 document's download. A correction's heading and step labels name its entry and
-effective date. Corrections of another company or of more than one register, a
-corrected entry the lookup does not return, or a lookup answering with entries it
-was not asked for fail the read. Last comes the
+effective date, and the step and download labels of a correction or an import
+also say when it was prepared. Corrections of another company or of more than
+one register, a corrected entry the lookup does not return, or a lookup
+answering with entries it was not asked for fail the read. Last comes the
 class's latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain):
 status, chain block, compared register sequence and time, any failure text, and
 each discrepancy in words with its details and acknowledgement (reason, who,
