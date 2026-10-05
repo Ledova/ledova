@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-Updated 4 October 2026 · Agreed product direction, paired with the
+Updated 5 October 2026 · Agreed product direction, paired with the
 [regulatory pathway](regulatory-pathway.md)
 
 ## Purpose
@@ -12,6 +12,12 @@ their relationship, company decisions and ownership records. Authorised company
 representatives maintain the register and direct issuance and ownership changes;
 shareholders manage their particulars, evidence, requests and holdings. The
 software records authority, applies approved actions and preserves their history.
+
+The core is the private-company share registry and the workflows for issuing,
+managing, transferring and purchasing company shares. Buying cryptocurrencies
+through an on-ramp is optional investor functionality, outside that core.
+Companies must not buy Bitcoin, Ethereum or any other cryptocurrency through
+Ledova's on-ramp.
 
 The same product also gives investors a place to discover companies, acquire
 shares and sell existing holdings, with verifiable ownership records on a public
@@ -37,6 +43,11 @@ the repository's current implementation of it.
 
 Companies have isolated private workspaces. Only intentionally published
 profiles and listings are discoverable across the platform.
+
+Only investors acting in their personal investing capacity may use the optional
+crypto on-ramp. Company authority and ownership of a receiving wallet do not
+grant that permission. Company wallet actions needed for authorised share
+workflows remain separate from crypto purchases.
 
 Roles may support automated execution: the software can validate and apply a
 company-approved instruction without a Ledova staff member operating the register.
@@ -90,6 +101,28 @@ sequence through the regulatory pathway.
 Show acceptance, payment, transfer and register updates as distinct events.
 Handle pending or failed actions, cancellations, disputes, refunds and retries
 accurately, without double-selling or introducing custody.
+
+### Share payments and optional crypto purchases
+
+AUD must be supported as a valid payment method for purchasing company shares,
+not only as a displayed price or valuation. Paying AUD is distinct from buying
+an AUD-denominated stablecoin. A share purchase must not require buying Bitcoin,
+Ethereum or another cryptocurrency through the on-ramp.
+
+The owner has not decided the payment rails/provider, collection, receipt
+verification, reconciliation, refunds or the secondary AUD settlement sequence.
+[#868](https://github.com/Ledova/ledova/issues/868) owns primary company/provider
+payment workflows; [#869](https://github.com/Ledova/ledova/issues/869) owns the
+separate secondary-payment and settlement design. Record these choices for the
+owner before implementing an undecided model. Payment evidence, company issue
+authority, execution and the register effect remain distinct.
+
+Current primary subscriptions have staff-attested AUD bank-transfer instructions
+using operator payment settings. Current secondary settlement uses a prefunded
+stablecoin atomic swap. These are existing mechanisms to preserve, not proof
+that the company-managed AUD payment requirement is complete. The
+[5 October decision](decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+records their limits and the pending investor-only on-ramp enforcement.
 
 ## 4. Self-custody and ownership records
 
@@ -186,6 +219,12 @@ recovery and audit controls. Company users must make issuer decisions; backgroun
 jobs may execute those decisions under limited technical authority. Keep crypto
 and payment operations permissions separate.
 
+Prioritise the registry/share lifecycle over optional crypto purchasing.
+[#920](https://github.com/Ledova/ledova/issues/920) tracks the investor-only
+on-ramp restriction; it does not make crypto acquisition a prerequisite for the
+company-managed programme. Implement AUD share-payment support through the
+payment issues above once the remaining product choices are recorded.
+
 ASIC preparation means producing information for company review and an explicit
 submission workflow. It does not promise automatic filing; required forms,
 authority, integrations and lodgement support must be established before any
@@ -197,11 +236,14 @@ and reconciliation. Verify private-data isolation, revocation, provider
 failure, direct contract calls, duplicate requests and migration to another
 interface. Legal permissions are a separate launch decision.
 
-The buyer funds before placing an offer: the simulated external payment is the
+In the current experimental secondary protocol, the buyer funds before placing
+an offer: the simulated external payment is the
 buyer's deposit, recorded before acceptance, which becomes the stablecoin that
 pays the seller inside the settlement. Acceptance, payment, transfer and register
 updates remain distinct events, and settlement stays an atomic exchange of shares
 for payment ([decision](decisions.md#payments-and-settlement)).
+This protocol does not establish direct AUD settlement or require a crypto
+on-ramp purchase as the target share-payment journey.
 
 Keep architecture, test and migration detail in the repository. Maintain a
 short decision log for blockchain, provider, authority, payment and fee
@@ -250,17 +292,17 @@ company authority, permissions and replacement workflows are implemented.
 
 | Capability | Current boundary |
 | --- | --- |
-| Company onboarding and share classes | Application/review flow, company and token screens exist; operator approval and chain configuration are required |
-| Representative authority | Draft-company owners can submit private requests, accept the exact authorisation/responsibility declaration and obtain an initial scoped appointment after existing configured identity/ABR checks; [withdrawal and self-revocation](plans/company-managed-registers/authority-requests.md) retain evidence/history. The [team API](plans/company-managed-registers/authority-requests.md#team-invitation-api) supports scoped invitations, acceptance, administrator team reads and retained revocation. Team web/mobile screens, legacy-owner migration and dependent register actions remain planned |
+| Company onboarding and share classes | Self-declaration admission and administrator company activation retain the configured identity/ABR checks and evidenced failure/retry outcomes; company/token screens and separate chain-configuration requirements remain |
+| Representative authority | Draft-company owners can submit private requests, accept the exact authorisation/responsibility declaration and obtain an initial scoped appointment after existing configured identity/ABR checks; [withdrawal and self-revocation](plans/company-managed-registers/authority-requests.md) retain evidence/history. Scoped team invitations, acceptance, administrator team reads, retained revocation, web/mobile screens and the legacy-owner upgrade are delivered; dependent register commands remain planned |
 | Tokenized shares | Whole-share issuance and authorized caps are enforced on chain, and so is each company's whitelist, with its expiry, for both the sender and the recipient of a transfer; approvals are set by staff per company, and classification and account changes reach the chain through [a refresh](architecture/outgoing-signing.md#refreshing-an-approval), normally within fifteen minutes |
 | Investor classification | Claim/evidence submission and review status exist in both clients; staff review is in admin; eligibility scopes discovery and subscriptions |
 | Primary offerings and subscriptions | Directory, with the documents of approved offerings, Applications and recorded payment instructions are available in both clients; payment confirmation, refunds and allotment remain operator actions |
-| AUD and stablecoin payments | Operator records receipt, refunds and allotment in admin; bank-feed and stablecoin-watcher reconciliation is planned |
+| AUD and stablecoin payments | Current primary AUD bank-transfer and stablecoin receipts, refunds and allotment are operator-attested in admin. Company/provider AUD payment workflows are required in #868; collection, verification, reconciliation and refund mechanics remain undecided. Current secondary stablecoin settlement does not deliver direct AUD settlement |
 | Register | Current members are read from the stored register once a share class's opening is applied, with the chain unreachable; former members are retained records; a scheduled job reconciles them with the chain, and every export is recorded; an import adds particulars and pre-platform former members to a class opened from the chain, or opens a class not yet on chain, which then records no change until tokenising, future work; the company prepares, approves and applies an import itself through the API, with its own evidence and stated ASIC figures, and the web and mobile import screens are planned; an issue or transfer is entered only under a register instruction naming its approving director that staff reviewed; staff prepare inspection copies, certificates and notice figures on the company's written instruction, and list those still due; the issuer can list the completed effects still waiting to be entered, with the reason each waits; the company owner and anyone holding a current company appointment with administration or a register capability read the register and its export in both clients, and retained register proposals through the API |
 | Portfolios and crypto wallets | Holdings, valuations, history, verified-address flows and supported test-network transfers exist; unpriced shares do not imply a market valuation |
 | Secondary trading | Order, matching and settlement are enabled by default on the experimental deployment; releases still require the human checks in [#624](https://github.com/Ledova/ledova/issues/624) |
 | Mobile | Holdings, Notices, Activity, Register, Invest and Wallets flows exist in the paper interface; native security needs a Ledova build, with separate device acceptance checks |
-| Fiat conversion | An optional on-ramp integration exists; there is no off-ramp |
+| Crypto on-ramp | Optional investor functionality; companies must not buy cryptocurrency through it. Current wallet-owner-only API access and company Buy crypto entry points still need the investor-only restriction tracked in #920. There is no off-ramp |
 
 The [roadmap](roadmap.md) orients the remaining work. A feature flag or configured
 provider does not establish safety or regulatory compliance.

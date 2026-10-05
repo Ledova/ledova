@@ -6,6 +6,13 @@ How dashboard and mobile consume shared TypeScript and design tokens.
 
 ## Company-managed client work
 
+The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+is the private-company share register and share issuance, management, transfers
+and purchases. Crypto on-ramp purchases are optional personal investor actions;
+companies must not buy cryptocurrency through the on-ramp. Company share-wallet
+operations remain distinct from buying cryptocurrency. AUD is a required share
+payment option, with its payment and settlement design still to be decided.
+
 This page describes the current clients, including their company selection and
 read-only staff decision records. Register access follows current appointments
 as well as ownership; most other company selection remains owner or
@@ -177,10 +184,13 @@ requests only publications addressed to the person and retains member voting.
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
-account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites. On both
-clients, Send opens its form directly when Wallets has read exactly one verified
-wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
+account. The current clients expose Buy crypto on Wallets to every account;
+[#920](https://github.com/Ledova/ledova/issues/920) tracks restricting that action
+and its API to personal investor use and refusing company use. This restriction
+is accepted policy, not yet an implemented guarantee. Buying crypto and sending
+are Wallets actions rather than menu items, and the dashboard has no coin-price
+page or favourites. On both clients, Send opens its form directly when Wallets
+has read exactly one verified wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
 which wallet to send from: when several are verified, when none is, and when
 Wallets could not read them. A form opened directly, mobile's Bitcoin form
 included, offers Cancel where Back would return to a choice never made. The web
