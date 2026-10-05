@@ -19,7 +19,7 @@ from web3 import Web3
 from companies.models import CompanyDocument, DocumentType
 from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_document_file_access import DOCUMENT_BYTES, attach_file
-from offerings.tests.factories import allottable_subscription
+from offerings.tests.factories import allottable_subscription, eligible_subscriber
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -1155,6 +1155,7 @@ class ImportOpenedInstructionTest(TransactionTestCase):
 
     def test_an_applied_register_instruction_keeps_a_class_from_being_opened_by_an_import(self):
         proposal, confirmation = self.submit()
+        eligible_subscriber(self.tenant)
         allottable_subscription(self.tenant)
         self.assertFalse(ShareIssuanceRequest.objects.filter(token=self.token, status__in=APPROVED).exists())
         refusal = "has an approved issue or an applied register instruction"
