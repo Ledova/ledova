@@ -283,6 +283,7 @@ it('reads every page of a class import history newest first and shares its retai
   expect(view.getByText(COPY.IMPORTED_FIGURES('100', 1))).toBeTruthy();
   expect(view.getByText(`Robin Reviewer · ${formatDateTime('2026-10-01T02:00:00Z')}`)).toBeTruthy();
   expect(view.getByText('Superseded by a company import')).toBeTruthy();
+  expect(view.queryByText('Decided on')).toBeNull();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER) }));
   await waitFor(() =>
@@ -315,6 +316,13 @@ it('shows a decision without a recorded decider name by its time alone', async (
   const view = await openClass();
   expect(view.getByText(formatDateTime('2026-10-01T02:00:00Z'))).toBeTruthy();
   expect(view.queryByText(` · ${formatDateTime('2026-10-01T02:00:00Z')}`)).toBeNull();
+});
+
+it('dates a decided staff-era import that has no decision trail', async () => {
+  importPages = [[{ ...retired, decisions: [] }], [submitted]];
+  const view = await openClass();
+  expect(view.getAllByText('Decided on')).toHaveLength(1);
+  expect(view.getByText(formatDateTime(retired.reviewedAt))).toBeTruthy();
 });
 
 it.each([

@@ -123,6 +123,9 @@ export function ImportRecord({
             {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
           </Row>
         ))}
+        {proposal.decisions.length === 0 && proposal.reviewedAt && (
+          <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
+        )}
         {!!proposal.rejectionReason && <Row label="Rejection reason">{proposal.rejectionReason}</Row>}
       </Rows>
       {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
