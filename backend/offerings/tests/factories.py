@@ -85,14 +85,25 @@ def draft_subscription(tenant, quantity=10, offering=None, wallet=None, account=
 
 def paid_subscription(tenant, quantity=10, allotted=None, wallet=None):
     subscription = draft_subscription(tenant, quantity=quantity, wallet=wallet)
-    Subscription.objects.filter(pk=subscription.pk).update(
-        status=SubscriptionStatus.PAID,
-        amount_received=Decimal(quantity) * subscription.price_per_share,
-        payment_received_on=timezone.now().date(),
-        allotted_quantity=allotted,
-        reference=f"PAY{str(subscription.uuid).replace('-', '')[:8].upper()}",
+    assert (subscription.eligibility_decision_id, subscription.submitted_at, subscription.accepted_at) == (
+        None,
+        None,
+        None,
     )
+    with use_migrate():
+        Subscription.objects.filter(pk=subscription.pk).update(
+            status=SubscriptionStatus.PAID,
+            amount_received=Decimal(quantity) * subscription.price_per_share,
+            payment_received_on=timezone.now().date(),
+            allotted_quantity=allotted,
+            reference=f"PAY{str(subscription.uuid).replace('-', '')[:8].upper()}",
+        )
     subscription.refresh_from_db()
+    assert (subscription.eligibility_decision_id, subscription.submitted_at, subscription.accepted_at) == (
+        None,
+        None,
+        None,
+    )
     return subscription
 
 

@@ -1,6 +1,7 @@
 import signal
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from pathlib import Path
 from queue import Queue
 from threading import Event
@@ -17,11 +18,13 @@ from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
 from operators.models import Operator
 from shared.db import atomic, configured, current_alias, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import ShareToken, SigningChallenge, SwapOrder, TransferOrder
 from tokens.services import token_transfer_service
+from tokens.services.swap_expiry import expire_unclaimed_swap
 from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
 from tokens.tests.order_submission_fixtures import (
     BASE,
@@ -49,6 +52,8 @@ class CrossAccountMatchingFixtures(SubmissionFixtures):
                 chain="base",
                 verification_status="VERIFIED",
             )
+
+        self.buyer_decision = accept_company_eligibility(self.buyer, issuer_decision=self.eligibility_decision)
 
     def seller_order(self, **terms):
         self.client.force_authenticate(self.tenant.user)
@@ -169,7 +174,7 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
 
     def test_market_quotes_exclude_orders_without_signed_admission(self):
         self.resting_market()
-        with use_operator():
+        with use_migrate():
             TransferOrder.objects.create(
                 token=self.tenant.deployed_token,
                 payment_asset=self.tenant.refs.stablecoin,
@@ -201,13 +206,16 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
         self.assert_market_quotes(quantity=7)
 
     def test_market_quotes_exclude_exhausted_or_below_minimum_remainders(self):
-        seller_id = self.resting_market()
+        buy = self.create(self.buyer_intent(price="1.00"))
+        self.assertEqual(buy.status_code, 201, buy.content)
+        self.assertIsNone(buy.json()["match"])
         for filled, minimum in ((10, 0), (3, 8)):
-            with self.subTest(filled=filled, minimum=minimum), use_operator():
-                TransferOrder.objects.filter(pk=seller_id).update(
-                    status="partially_filled", filled_quantity=filled, min_quantity=minimum
-                )
-            self.assert_market_quotes(ask=None)
+            with self.subTest(filled=filled, minimum=minimum):
+                seller_id = self.seller_order(submission_id=str(uuid4()), min_quantity=minimum)
+                self.assert_market_quotes()
+                with use_operator():
+                    TransferOrder.objects.filter(pk=seller_id).update(status="partially_filled", filled_quantity=filled)
+                self.assert_market_quotes(ask=None)
 
     def test_a_successful_match_does_not_materialize_later_candidates(self):
         candidates = [
@@ -352,7 +360,7 @@ class CrossAccountMatchingChecks(CrossAccountMatchingFixtures):
         self.assertEqual(self.create(signed).status_code, 200)
 
     def test_an_unjournaled_foreign_order_does_not_gain_matching_authority(self):
-        with use_operator():
+        with use_migrate():
             raw = TransferOrder.objects.create(
                 token=self.tenant.deployed_token,
                 payment_asset=self.tenant.refs.stablecoin,
@@ -447,7 +455,6 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
 
     def assert_busy_submission_is_pending(self, signed, response):
         self.assertEqual(response["status"], 503, response)
-        self.assertEqual(response["body"]["code"], "order_matching_busy")
         recovered = self.recover(signed["submission_id"], signed["owner_account_uuid"])
         self.assertEqual(recovered.status_code, 200, recovered.content)
         self.assertEqual(recovered.json()["status"], "pending")
@@ -475,39 +482,74 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
                 self.assertEqual(matcher.read()["stage"], "selecting")
                 response = matcher.read()
                 self.assertEqual(matcher.wait(), 0, matcher.error_output())
+        self.assertEqual(response["body"]["code"], "order_matching_busy")
         self.assert_busy_submission_is_pending(signed, response)
         matched = self.create(signed)
         self.assertEqual(matched.status_code, 201, matched.content)
         self.assertEqual(matched.json()["match"]["counterOrder"], seller_id)
         self.assertEqual(self.create(signed).json(), matched.json())
 
-    def test_changed_candidate_terms_retry_the_same_submission_against_the_new_price(self):
+    def test_a_selected_candidate_serializes_a_modifier_and_later_matches_the_new_price(self):
         seller_id = self.seller_order()
-        action = self.seller_action(seller_id, "modify")
-        signed = self.buyer_intent(price="3.00")
+        signed_action = self.seller_action(seller_id, "modify")
+        signed_buy = self.buyer_intent(price="3.00")
         with tempfile.TemporaryDirectory(prefix="cross-account-changed-candidate-") as temporary:
+            directory = Path(temporary)
             matcher = OrderChild(
                 self,
                 "order_submission_worker",
                 "candidate-selected",
-                Path(temporary),
-                body=signed,
+                directory,
+                body=signed_buy,
                 user_id=self.buyer.user.pk,
             )
-            self.assertEqual(matcher.read()["stage"], "candidate-selected")
-            self.client.force_authenticate(self.tenant.user)
-            modified = self.client.post(f"{BASE}{seller_id}/modify/", action, format="json")
-            self.assertEqual(modified.status_code, 200, modified.content)
+            holding = matcher.read()
+            self.assertEqual(holding["stage"], "candidate-selected")
+            modifier = OrderChild(
+                self,
+                "order_action_worker",
+                "compete",
+                directory,
+                body=signed_action,
+                order_id=seller_id,
+                endpoint="modify",
+            )
+            waiting = modifier.read()
+            wait_for_row_lock(
+                self,
+                waiting["operator_pid"],
+                "tokens_sharetoken",
+                holding["pid"],
+                row_pk=self.tenant.deployed_token.pk,
+            )
             matcher.release()
-            response = matcher.read()
-            self.assertEqual(matcher.wait(), 0, matcher.error_output())
-        self.client.force_authenticate(self.buyer.user)
-        self.assert_busy_submission_is_pending(signed, response)
-        matched = self.create(signed)
-        self.assertEqual(matched.status_code, 201, matched.content)
+            matched, refused = matcher.read(), modifier.read()
+            self.assertEqual((matcher.wait(), modifier.wait()), (0, 0))
+        self.assertEqual(matched["status"], 201, matched)
+        self.assertEqual(refused["status"], 409, refused)
+        self.assertEqual(refused["body"]["refusal"]["code"], "order_modification_conflict")
         with use_operator():
-            swap = SwapOrder.objects.get(pk=matched.json()["match"]["swapOrder"])
-            self.assertEqual((swap.share_amount, swap.payment_amount), (10, 3000))
+            original = SwapOrder.objects.get(pk=matched["body"]["match"]["swapOrder"])
+            self.assertEqual((original.share_amount, original.payment_amount), (10, 2500))
+            challenge = SigningChallenge.objects.get(digest=signed_buy["digest"])
+            retained = (challenge.payload, challenge.consumed_at, challenge.consumed_signature)
+            self.assertTrue(expire_unclaimed_swap(original, original.expires_at + timedelta(seconds=1)))
+        action = self.seller_action(seller_id, "modify")
+        modified = self.client.post(f"{BASE}{seller_id}/modify/", action, format="json")
+        self.assertEqual(modified.status_code, 200, modified.content)
+        next_buy = self.buyer_intent(price="3.00")
+        self.assertNotEqual(next_buy["submission_id"], signed_buy["submission_id"])
+        self.assertNotEqual(next_buy["digest"], signed_buy["digest"])
+        response = self.create(next_buy)
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(self.create(next_buy).json(), response.json())
+        with use_operator():
+            current = SwapOrder.objects.get(pk=response.json()["match"]["swapOrder"])
+            self.assertEqual((current.share_amount, current.payment_amount), (10, 3000))
+            original.refresh_from_db()
+            self.assertEqual((original.share_amount, original.payment_amount), (10, 2500))
+            challenge.refresh_from_db()
+            self.assertEqual((challenge.payload, challenge.consumed_at, challenge.consumed_signature), retained)
 
     def test_an_amount_refused_candidate_releases_its_locks_before_the_fallback(self):
         with use_operator():
@@ -588,6 +630,7 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
                 chain="base",
                 verification_status="VERIFIED",
             )
+        accept_company_eligibility(third, issuer_decision=self.eligibility_decision)
         second = self.buyer_intent(buyer=third, wallet=third_wallet, signer=OTHER_KEY)
         with tempfile.TemporaryDirectory(prefix="cross-account-buyers-") as temporary:
             directory = Path(temporary)
@@ -596,10 +639,22 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
             )
             holding = one.read()
             self.assertEqual(holding["stage"], "candidates-locked")
-            two = OrderChild(self, "order_submission_worker", "compete", directory, body=second, user_id=third.user.pk)
+            two = OrderChild(
+                self,
+                "order_submission_worker",
+                "compete",
+                directory,
+                body=second,
+                user_id=third.user.pk,
+                short_lock_timeout=True,
+            )
             self.assertEqual(two.read()["stage"], "selecting")
             busy = two.read()
             self.assertEqual(two.wait(), 0, two.error_output())
+            self.assertEqual(
+                busy["body"],
+                {"error": "Database error", "detail": "A database error occurred. Please try again later."},
+            )
             self.assert_busy_submission_is_pending(second, busy)
             one.release()
             matched = one.read()
@@ -689,11 +744,21 @@ class CrossAccountMatchingProcessChecks(CrossAccountMatchingFixtures):
             )
             self.assertEqual(action.read()["stage"], "order-locked")
             matcher = OrderChild(
-                self, "order_submission_worker", "compete", directory, body=signed_buy, user_id=self.buyer.user.pk
+                self,
+                "order_submission_worker",
+                "compete",
+                directory,
+                body=signed_buy,
+                user_id=self.buyer.user.pk,
+                short_lock_timeout=True,
             )
             self.assertEqual(matcher.read()["stage"], "selecting")
             busy = matcher.read()
             self.assertEqual(matcher.wait(), 0, matcher.error_output())
+            self.assertEqual(
+                busy["body"],
+                {"error": "Database error", "detail": "A database error occurred. Please try again later."},
+            )
             self.assert_busy_submission_is_pending(signed_buy, busy)
             with use_operator():
                 self.assertFalse(SwapOrder.objects.filter(sell_order_id=seller_id).exists())

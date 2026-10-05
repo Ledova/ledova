@@ -19,8 +19,15 @@ from blockchain.tests.outgoing_fixtures import (
     chain_client,
     receipt,
 )
+from shared.db import use_migrate
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
-from tokens.models import TransferOrder, TransferOrderStatus, TransferOrderType
+from tokens.models import (
+    SwapOrderStatus,
+    TransferOrder,
+    TransferOrderStatus,
+    TransferOrderType,
+)
 from tokens.services import atomic_swap_service
 from tokens.tests.swap_state_fixtures import BUYER, SELLER
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -36,6 +43,43 @@ def make_execution(label, *, issuer=None):
     buyer = make_tenant(f"{label}-buyer", with_swap=False)
     make_eligible(seller)
     make_eligible(buyer)
+    issuer_decision = accept_company_eligibility(issuer or seller)
+    if issuer is not None:
+        seller_decision = accept_company_eligibility(seller, issuer_decision=issuer_decision)
+    else:
+        seller_decision = issuer_decision
+    buyer_decision = accept_company_eligibility(buyer, issuer_decision=issuer_decision)
+    fixture = _execution(seller, buyer, issuer=issuer)
+    fixture.eligibility = {"seller": seller_decision, "buyer": buyer_decision}
+    return fixture
+
+
+def make_historical_execution(label, *, signed="both"):
+    with use_migrate():
+        seller = make_tenant(f"{label}-seller", with_swap=False)
+        buyer = make_tenant(f"{label}-buyer", with_swap=False)
+        make_eligible(seller)
+        make_eligible(buyer)
+        fixture = _execution(seller, buyer)
+        swap = fixture.swap
+        if signed in ("seller", "both"):
+            swap.seller_signature = fixture.signatures["seller"]
+        if signed in ("buyer", "both"):
+            swap.buyer_signature = fixture.signatures["buyer"]
+        swap.status = {
+            "": SwapOrderStatus.CREATED,
+            "seller": SwapOrderStatus.SELLER_SIGNED,
+            "buyer": SwapOrderStatus.BUYER_SIGNED,
+            "both": SwapOrderStatus.READY,
+        }[signed]
+        swap.save(update_fields=["seller_signature", "buyer_signature", "status"])
+        assert swap.seller_eligibility_decision_id is None
+        assert swap.buyer_eligibility_decision_id is None
+        assert all(order.eligibility_decision_id is None for order in fixture.orders)
+        return fixture
+
+
+def _execution(seller, buyer, *, issuer=None):
     orders = []
     for tenant, key, kind in ((seller, SELLER, TransferOrderType.SELL), (buyer, BUYER, TransferOrderType.BUY)):
         wallet = Wallet.objects.create(
@@ -44,21 +88,23 @@ def make_execution(label, *, issuer=None):
             chain="base",
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
-        orders.append(
-            TransferOrder.objects.create(
-                token=(issuer or seller).deployed_token,
-                payment_asset=seller.refs.stablecoin,
-                wallet=wallet,
-                owner_account=tenant.account,
-                wallet_address=wallet.address,
-                order_type=kind,
-                quantity=10,
-                filled_quantity=10,
-                price_per_share="1.50",
-                status=TransferOrderStatus.PENDING_SIGNATURE,
+        with use_migrate():
+            orders.append(
+                TransferOrder.objects.create(
+                    token=(issuer or seller).deployed_token,
+                    payment_asset=seller.refs.stablecoin,
+                    wallet=wallet,
+                    owner_account=tenant.account,
+                    wallet_address=wallet.address,
+                    order_type=kind,
+                    quantity=10,
+                    filled_quantity=10,
+                    price_per_share="1.50",
+                    status=TransferOrderStatus.PENDING_SIGNATURE,
+                )
             )
-        )
-    swap = atomic_swap_service.create_swap_order(*orders, share_amount=10)
+    with use_migrate():
+        swap = atomic_swap_service.create_swap_order(*orders, share_amount=10)
     signable = encode_typed_data(full_message=atomic_swap_service.get_typed_data(swap))
     return SimpleNamespace(
         seller=seller,

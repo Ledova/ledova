@@ -635,11 +635,92 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
 
     def test_a_revoked_buyer_is_removed_from_the_registry_and_can_neither_list_nor_transfer(self):
         self.trade()
-        new_listing = self.signed_order(self.buyer, "sell")
+        before_removal = self.signed_order(self.buyer, "sell")
+        after_removal = self.signed_order(self.buyer, "sell")
+        self.assertNotEqual(before_removal["submission_id"], after_removal["submission_id"])
+        self.assertNotEqual(before_removal["digest"], after_removal["digest"])
+        originals = {}
+        with use_operator():
+            for body in (before_removal, after_removal):
+                submission = OrderSubmission.objects.get(
+                    owner_account_id=body["owner_account_uuid"], submission_id=body["submission_id"]
+                )
+                challenge = submission.challenges.get(digest=body["digest"])
+                self.assertEqual(
+                    (submission.status, submission.order_id, challenge.consumed_at), ("pending", None, None)
+                )
+                originals[body["submission_id"]] = (
+                    submission.pk,
+                    challenge.pk,
+                    challenge.digest,
+                    challenge.nonce,
+                    challenge.payload,
+                    challenge.expires_at,
+                )
+        self.assertNotEqual(originals[before_removal["submission_id"]], originals[after_removal["submission_id"]])
+
+        def refuse_original(body, status_code, code):
+            balances = self.balances()
+            signer = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+            nonce = self.w3.eth.get_transaction_count(signer)
+            changes = WhitelistChange.objects.count()
+            refused = self.client.post(CREATE, body, format="json")
+            self.assertEqual(
+                (refused.status_code, refused.json()["refusal"]["code"]), (status_code, code), refused.content
+            )
+            with use_operator():
+                submission = OrderSubmission.objects.get(
+                    owner_account_id=body["owner_account_uuid"], submission_id=body["submission_id"]
+                )
+                challenge = submission.challenges.get(digest=body["digest"])
+                self.assertEqual(
+                    (
+                        submission.pk,
+                        challenge.pk,
+                        challenge.digest,
+                        challenge.nonce,
+                        challenge.payload,
+                        challenge.expires_at,
+                    ),
+                    originals[body["submission_id"]],
+                )
+                self.assertEqual(
+                    (
+                        submission.status,
+                        submission.refusal_code,
+                        submission.order_id,
+                        submission.eligibility_decision_id,
+                        submission.executed_challenge_id,
+                    ),
+                    ("refused", code, None, None, challenge.pk),
+                )
+                self.assertEqual(challenge.consumed_signature, body["signature"])
+                self.assertIsNotNone(challenge.consumed_at)
+                self.assertIsNotNone(submission.resolved_at)
+                self.assertLessEqual(challenge.consumed_at, submission.resolved_at)
+                spent = (challenge.consumed_at, challenge.consumed_signature, submission.resolved_at)
+                self.assertFalse(TransferOrder.objects.filter(creation_submission=submission).exists())
+            replayed = self.client.post(CREATE, body, format="json")
+            self.assertEqual((replayed.status_code, replayed.json()), (status_code, refused.json()), replayed.content)
+            with use_operator():
+                submission.refresh_from_db()
+                challenge.refresh_from_db()
+                self.assertEqual((challenge.consumed_at, challenge.consumed_signature, submission.resolved_at), spent)
+                self.assertEqual(submission.challenges.count(), 1)
+            self.assertFalse(
+                TransferOrder.objects.filter(wallet_address=self.buyer.address, order_type="sell").exists()
+            )
+            self.assertEqual(
+                (self.balances(), self.w3.eth.get_transaction_count(signer), WhitelistChange.objects.count()),
+                (balances, nonce, changes),
+            )
+
         additions = WhitelistChange.objects.filter(action="add").count()
         share = self._contract()
         self.assertTrue(share.functions.transfer(self.seller.address, 1).call({"from": self.buyer.address}))
         decision = self.party_decisions[self.buyer.address]
+        approval = WhitelistApproval.objects.get(entry__wallet=self.party_wallets[self.buyer.address])
+        registry = self.chain.load_contract("WhitelistRegistry", Web3.to_checksum_address(approval.registry_address))
         self.client.force_authenticate(self.eligibility_approver)
         revoked = self.client.post(
             f"/api/v1/companies/{self.token.company_id}/eligibility-requests/{decision.request_id}/revoke/",
@@ -651,10 +732,28 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
             format="json",
         )
         self.assertEqual(revoked.status_code, 200, revoked.content)
+        self.assertTrue(registry.functions.isWhitelisted(self.buyer.address).call())
+        with use_operator():
+            self.assertFalse(
+                company_eligibility(
+                    self.party_accounts[self.buyer.address],
+                    self.token.company,
+                    purpose="secondary",
+                    decision_id=decision.pk,
+                ).is_eligible
+            )
+        self.client.force_authenticate(self.user_of(self.buyer))
+        refuse_original(before_removal, 403, "investor_not_eligible")
+        with use_operator():
+            unspent = OrderSubmission.objects.get(submission_id=after_removal["submission_id"])
+            self.assertEqual(
+                (unspent.status, unspent.challenges.get(digest=after_removal["digest"]).consumed_at),
+                ("pending", None),
+            )
+        self.assertTrue(registry.functions.isWhitelisted(self.buyer.address).call())
         (job,) = self.deferred(refresh_whitelist_targets, decision_id=str(decision.pk))
         refreshed = refresh_whitelist_targets(**job)
-        approval = WhitelistApproval.objects.get(entry__wallet=self.party_wallets[self.buyer.address])
-        registry = self.chain.load_contract("WhitelistRegistry", Web3.to_checksum_address(approval.registry_address))
+        approval.refresh_from_db()
         self.assertEqual(
             (
                 registry.functions.expiresAt(self.buyer.address).call(),
@@ -665,7 +764,8 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
         self.assertEqual(refreshed, {"checked": 1, "submitted": 1, "unattributed": 0, "errors": 0})
         removal = WhitelistChange.objects.get(authority=WhitelistAuthority.CLASSIFICATION_REFRESH)
         self.assertEqual(
-            (removal.action, removal.status, removal.address), ("remove", "confirmed", self.buyer.address.lower())
+            (removal.action, removal.status, removal.address),
+            ("remove", "confirmed", self.buyer.address.lower()),
         )
         self.assertEqual(
             (removal.eligibility_decision_id, removal.initiated_by_id, removal.invalidation_cause),
@@ -687,9 +787,7 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
             self.assertEqual((private_source.status, private_source.reviewed_by_id), ("submitted", None))
         self.assertEqual(approval.status, WhitelistStatus.REMOVED)
         self.client.force_authenticate(self.user_of(self.buyer))
-        refused = self.client.post(CREATE, new_listing, format="json")
-        self.assertEqual((refused.status_code, refused.json()["refusal"]["code"]), (400, "investor_not_eligible"))
-        self.assertFalse(TransferOrder.objects.filter(wallet_address=self.buyer.address, order_type="sell").exists())
+        refuse_original(after_removal, 400, "not_whitelisted")
         before = self.balances()
         transfer = share.functions.transfer(self.seller.address, 1)._encode_transaction_data()
         self.assertEqual(

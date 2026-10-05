@@ -1,4 +1,5 @@
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import DatabaseError, IntegrityError, connections
@@ -11,7 +12,8 @@ from blockchain.models import BlockchainTransaction, TransactionStatus
 from blockchain.services.transaction import check_pending_transactions
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, admitted_signer
 from feature_flags.models import FeatureFlag
-from shared.db import atomic, current_alias, use_operator
+from shared.db import acting_for, atomic, current_alias, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
@@ -21,7 +23,11 @@ from tokens.services import atomic_swap_service, swap_execution
 from tokens.services.settlement_context import settlement_execution_arguments
 from tokens.services.swap_expiry import expire_unclaimed_swap, expire_unclaimed_swaps
 from tokens.tasks.swap_reconciler import resolve_executing_swaps
-from tokens.tests.swap_execution_fixtures import ExecutionNode, make_execution
+from tokens.tests.swap_execution_fixtures import (
+    ExecutionNode,
+    make_execution,
+    make_historical_execution,
+)
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
@@ -30,7 +36,6 @@ from tokens.tests.swap_state_fixtures import (
     persisted_outcome,
     swap_service,
 )
-from tokens.tests.test_swap_expiry import ExpiryFixtures
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
@@ -128,6 +133,14 @@ class LegacySwapHoldTest(APITransactionTestCase):
             )
             typed = atomic_swap_service.get_typed_data(current)
             signature = "0x" + SELLER.sign_message(encode_typed_data(full_message=typed)).signature.hex()
+        accept_company_eligibility(
+            SimpleNamespace(
+                user=user,
+                profile=current.sell_order.owner_account.user_profile,
+                account=current.sell_order.owner_account,
+                company=current.share_token.company,
+            )
+        )
         identity = {
             "swap_uuid": str(current.pk),
             "owner_account_uuid": str(current.sell_order.owner_account_id),
@@ -195,8 +208,8 @@ class LegacySwapRecoveryHoldTest(TransactionTestCase):
         self.service = swap_service(self)
         self.counter = 0
         for status in SwapOrderStatus.values:
-            self.swaps.append(ExpiryFixtures.matched_swap(self, signed="both"))
-        hashless = ExpiryFixtures.matched_swap(self, signed="both")
+            self.swaps.append(make_historical_execution(f"legacy-{status}").swap)
+        hashless = make_historical_execution("legacy-hashless").swap
         self.swaps.append(hashless)
         arguments = {swap.pk: settlement_execution_arguments(swap) for swap in self.swaps}
         old_apps = migrate_to(BEFORE_CONTEXT)
@@ -315,13 +328,14 @@ class LegacySwapRecoveryHoldTest(TransactionTestCase):
         fixture = make_execution("legacy-current-recovery")
         current = fixture.swap
         for party, signer in (("seller", SELLER), ("buyer", BUYER)):
-            current = swap_execution.submit_signature(
-                current,
-                fixture.signatures[party],
-                signer.address,
-                user=getattr(fixture, party).user,
-                participant=party,
-            )
+            with acting_for(getattr(fixture, party).user.pk):
+                current = swap_execution.submit_signature(
+                    current,
+                    fixture.signatures[party],
+                    signer.address,
+                    user=getattr(fixture, party).user,
+                    participant=party,
+                )
         transaction = current.transaction
         BlockchainTransaction.objects.filter(pk=transaction.pk).update(updated_at=timezone.now() - timedelta(hours=1))
         admitted_signer()

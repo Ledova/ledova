@@ -7,7 +7,7 @@ from eth_account.messages import encode_typed_data
 from web3 import Web3
 
 from blockchain.models import BlockchainTransaction
-from shared.db import use_operator
+from shared.db import use_migrate, use_operator
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_eligible, make_tenant
 from tokens.models import (
@@ -53,20 +53,21 @@ def _make_swap(label, *, ready=False):
             chain="base",
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
-        orders.append(
-            TransferOrder.objects.create(
-                token=tenant.deployed_token,
-                payment_asset=tenant.refs.stablecoin,
-                wallet=wallet,
-                owner_account=tenant.account,
-                wallet_address=wallet.address,
-                order_type=order_type,
-                quantity=40,
-                filled_quantity=30,
-                price_per_share="1.50",
-                status=TransferOrderStatus.PENDING_SIGNATURE,
+        with use_migrate():
+            orders.append(
+                TransferOrder.objects.create(
+                    token=tenant.deployed_token,
+                    payment_asset=tenant.refs.stablecoin,
+                    wallet=wallet,
+                    owner_account=tenant.account,
+                    wallet_address=wallet.address,
+                    order_type=order_type,
+                    quantity=40,
+                    filled_quantity=30,
+                    price_per_share="1.50",
+                    status=TransferOrderStatus.PENDING_SIGNATURE,
+                )
             )
-        )
     swap = SwapOrder(
         sell_order=orders[0],
         buy_order=orders[1],
@@ -79,13 +80,15 @@ def _make_swap(label, *, ready=False):
         nonce=secrets.randbits(63),
         order_hash="0x" + secrets.token_hex(32),
     )
-    save_swap_with_context(swap)
+    with use_migrate():
+        save_swap_with_context(swap)
     if ready:
         signable = encode_typed_data(full_message=atomic_swap_service.get_typed_data(swap))
         swap.seller_signature = SELLER.sign_message(signable).signature.hex()
         swap.buyer_signature = BUYER.sign_message(signable).signature.hex()
         swap.status = SwapOrderStatus.READY
-    swap.save()
+    with use_migrate():
+        swap.save()
     return swap
 
 

@@ -20,7 +20,7 @@ from blockchain.tests.outgoing_fixtures import (
     chain_client,
     receipt,
 )
-from shared.db import atomic, current_alias, use_operator
+from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import SwapNotReadyException
@@ -49,6 +49,7 @@ from tokens.tests.swap_execution_fixtures import (
     ExecutionNode,
     execution_receipt,
     make_execution,
+    make_historical_execution,
 )
 from tokens.tests.swap_state_fixtures import BUYER, CONTRACT, SELLER
 from tokens.tests.test_swap_execution_storage import SwapExecutionStorageFixtures
@@ -62,6 +63,9 @@ LOGGER = "tokens.services.swap_execution"
 
 
 class SwapFinalityFixtures:
+    def make_fixture(self):
+        return make_execution("finality")
+
     def setUp(self):
         super().setUp()
         self.publisher = self.enterContext(patch.object(swap_execution, "publish_trading_event"))
@@ -70,16 +74,17 @@ class SwapFinalityFixtures:
         )
         self.written_inside_a_transaction = []
         with use_operator():
-            self.fixture = make_execution("finality")
+            self.fixture = self.make_fixture()
             admitted_signer()
             for participant, key in (("seller", SELLER), ("buyer", BUYER)):
-                self.swap = swap_execution.submit_signature(
-                    self.fixture.swap,
-                    self.fixture.signatures[participant],
-                    key.address,
-                    user=getattr(self.fixture, participant).user,
-                    participant=participant,
-                )
+                with acting_for(getattr(self.fixture, participant).user.pk):
+                    self.swap = swap_execution.submit_signature(
+                        self.fixture.swap,
+                        self.fixture.signatures[participant],
+                        key.address,
+                        user=getattr(self.fixture, participant).user,
+                        participant=participant,
+                    )
             self.record = self.swap.transaction
         self.node = ExecutionNode(self.record.function_args)
 
@@ -184,7 +189,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
 
     def test_completion_releases_the_held_commitment_and_keeps_the_settled_remainder(self):
         self.confirm()
-        with use_operator():
+        with use_migrate():
             TransferOrder.objects.filter(pk=self.fixture.orders[0].pk).update(quantity=25)
         self.before = self.parents()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
@@ -196,7 +201,7 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
 
     def test_a_confirmed_swap_completes_only_when_the_finalized_head_reaches_its_receipt(self):
         attempt = self.confirm()
-        with use_operator():
+        with use_migrate():
             TransferOrder.objects.filter(pk=self.fixture.orders[1].pk).update(quantity=25)
         self.before = self.parents()
         with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED):
@@ -666,6 +671,33 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             {"sell": (TransferOrderStatus.COMPLETED, 10), "buy": (TransferOrderStatus.COMPLETED, 10)},
         )
 
+    def test_downgrade_retains_actual_company_admission_and_its_confirmed_settlement(self):
+        self.confirm()
+        self.addCleanup(restore_every_migration)
+        before = (
+            SwapOrder.objects.filter(pk=self.swap.pk).values().get(),
+            self.parents(),
+            BlockchainTransaction.objects.filter(pk=self.record.pk).values().get(),
+        )
+        self.assertIsNotNone(before[0]["seller_eligibility_decision_id"])
+        self.assertIsNotNone(before[0]["buyer_eligibility_decision_id"])
+        with self.assertRaisesRegex(RuntimeError, "Retain actual trading admission evidence and its guards"):
+            migrate_to([("tokens", "0063_swap_finalized_receipt")])
+        self.assertEqual(
+            (
+                SwapOrder.objects.filter(pk=self.swap.pk).values().get(),
+                self.parents(),
+                BlockchainTransaction.objects.filter(pk=self.record.pk).values().get(),
+            ),
+            before,
+        )
+
+
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, ATOMIC_SWAP_ADDRESS=CONTRACT)
+class HistoricalSwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
+    def make_fixture(self):
+        return make_historical_execution("historical-finality")
+
     def test_downgrade_waits_for_uncommitted_settlement_and_preserves_its_evidence(self):
         self.confirm()
         self.addCleanup(restore_every_migration)
@@ -676,20 +708,27 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             "gas_used": 21000,
             "policy": {"version": 1, "mode": "finalized"},
         }
-        with atomic():
-            SwapOrder.objects.filter(pk=self.swap.pk).update(
-                status="completed", completed_at=timezone.now(), finalized_receipt=evidence
+        with use_operator(), atomic():
+            self.assertEqual(
+                SwapOrder.objects.filter(pk=self.swap.pk).update(
+                    status="completed", completed_at=timezone.now(), finalized_receipt=evidence
+                ),
+                1,
             )
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                holder_pid = cursor.fetchone()[0]
+            self.assertNotEqual(holder_pid, worker.database_pid)
             worker.send("run")
             worker.receive("reversing")
             deadline = time.monotonic() + 60
             while time.monotonic() < deadline:
-                with connections[current_alias()].cursor() as cursor:
+                with use_migrate(), connections[current_alias()].cursor() as cursor:
                     cursor.execute("SELECT pg_stat_clear_snapshot()")
                     cursor.execute(
-                        "SELECT pg_backend_pid() = ANY(pg_blocking_pids(pid)), wait_event_type, query "
+                        "SELECT %s = ANY(pg_blocking_pids(pid)), wait_event_type, query "
                         "FROM pg_stat_activity WHERE pid = %s",
-                        [worker.database_pid],
+                        [holder_pid, worker.database_pid],
                     )
                     observed = cursor.fetchone()
                 if observed and observed[0] and observed[1] == "Lock" and "tokens_swaporder" in observed[2]:
@@ -698,8 +737,13 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             else:
                 self.fail(f"Downgrade never waited for the committing settlement: {observed}")
         self.assertEqual(worker.done()["result"], "refused")
-        self.swap.refresh_from_db()
+        with use_operator():
+            self.swap.refresh_from_db(fields=["finalized_receipt"])
         self.assertEqual(self.swap.finalized_receipt, evidence)
+
+
+class ScopedHistoricalSwapFinalityProcessTest(RunsOnTheScopedConnection, HistoricalSwapFinalityProcessTest):
+    pass
 
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
