@@ -405,9 +405,10 @@ def _boundary_requirements(actor, proposal, kind, appointment):
         kind == RegisterDecisionKind.REJECT
         or proposal.status != "submitted"
         or proposal.preparing_appointment_id is None
-        or not _holding(actor, proposal.company_id, appointment, CAPABILITY[kind])
     ):
         return []
+    if not _holding(actor, proposal.company_id, appointment, CAPABILITY[kind]):
+        return ["appointment_capability_required"]
     try:
         _recheck_boundary(proposal.boundary)
     except ValidationError:

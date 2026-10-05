@@ -60,6 +60,7 @@ from tokens.tests.test_register_openings import (
     reading,
     staff_era,
 )
+from tokens.tests.test_register_snapshot import block_hash
 from users.models import UserProfile
 
 EVIDENCE = "/api/v1/tokens/register-evidence/"
@@ -496,6 +497,42 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
         self.assertEqual(refused.status_code, 400, refused.content)
         listed = client.get(OPENINGS, {"token": str(self.tenant.token.pk), "status": "applied"}).json()
         self.assertEqual([row["uuid"] for row in listed["results"]], [proposal["uuid"]])
+
+    def test_a_retry_key_another_person_used_still_rechecks_the_boundary(self):
+        approver, approving = self.appoint([CompanyCapability.APPROVE])
+        key = uuid4()
+        decide(approver, approving, self.prepared_by_the_owner(), "approve", idempotency_key=key)
+        other = self.prepared_by_the_owner()
+        self.node.blocks[other.boundary["block"]["number"]]["hash"] = block_hash(19)
+        digest = preview(self.owner, self.administrator, other, "approve")["preview_digest"]
+        with self.assertRaisesMessage(ValidationError, "boundary_changed"):
+            decide_opening(
+                actor=self.owner,
+                opening_id=other.pk,
+                appointment=self.administrator.pk,
+                kind="approve",
+                idempotency_key=key,
+                preview_digest=digest,
+                confirmation=True,
+            )
+
+    def test_a_capability_missed_before_the_command_refuses_rather_than_skipping_the_boundary(self):
+        proposal = self.prepared_by_the_owner()
+        self.node.blocks[proposal.boundary["block"]["number"]]["hash"] = block_hash(19)
+        digest = preview(self.owner, self.administrator, proposal, "approve")["preview_digest"]
+        with patch.object(register_openings, "_holding", return_value=False):
+            with self.assertRaisesMessage(ValidationError, "appointment_capability_required"):
+                decide_opening(
+                    actor=self.owner,
+                    opening_id=proposal.pk,
+                    appointment=self.administrator.pk,
+                    kind="approve",
+                    idempotency_key=uuid4(),
+                    preview_digest=digest,
+                    confirmation=True,
+                )
+        with use_operator():
+            self.assertFalse(RegisterOpeningDecision.objects.filter(register_opening=proposal).exists())
 
     def test_an_unreadable_chain_answers_the_api_with_service_unavailable(self):
         client = APIClient()
