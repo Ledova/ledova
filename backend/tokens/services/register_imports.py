@@ -417,6 +417,7 @@ def _details(proposal):
 def _lock(proposal):
     token = ShareToken.objects.select_for_update().get(pk=proposal.token_id)
     list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
+    return RegisterImport.objects.select_for_update().get(pk=proposal.pk)
 
 
 def _apply(proposal, actor, decision):
