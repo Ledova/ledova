@@ -67,7 +67,7 @@ def _retained(prior, company, kind, appointment, size, mime_type, digest):
 
 def retain_register_evidence(*, actor, company_id, appointment, kind, idempotency_key, name, raw, mime_type):
     if kind not in RegisterEvidenceKind.values:
-        raise ValidationError("Choose a share register or an ASIC extract.")
+        raise ValidationError("Choose a share register, an ASIC extract or an authority document.")
     digest = hashlib.sha256(raw).hexdigest()
     evidence = None
     try:

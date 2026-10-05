@@ -18,6 +18,7 @@ from tokens.models import (
     IssuanceExecutionStatus,
     RegisterAcknowledgement,
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterReconciliation,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
@@ -30,11 +31,6 @@ from tokens.services import (
     register_reconciliation,
 )
 from tokens.services.register import RECONCILED_ROW, export_rows
-from tokens.services.register_corrections import (
-    decide_correction,
-    prepare_correction_review,
-    submit_correction,
-)
 from tokens.services.register_reconciliation import (
     acknowledge_discrepancy,
     reconcile_register,
@@ -43,8 +39,13 @@ from tokens.services.register_snapshot import ZERO_ADDRESS
 from tokens.tasks.register_reconciliation import reconcile_every_register
 from tokens.tests import test_swap_finality
 from tokens.tests.issuance_fixtures import admit
-from tokens.tests.test_register_corrections import correction_payload
+from tokens.tests.test_register_corrections import (
+    apply_correction,
+    correction_payload,
+    prepared,
+)
 from tokens.tests.test_register_events import register_fixture
+from tokens.tests.test_register_imports import owner_appointment, upload_evidence
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_openings import ALICE, BOB, SETTINGS
 from tokens.tests.test_register_snapshot import block_hash
@@ -446,12 +447,10 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         first = self.opened()
         later = self.mint(block=LATER)
         issue = RegisterEntry.objects.get(operation_id=later.pk, kind="issue")
-        proposal = submit_correction(actor=self.owner, **correction_payload(self.document, issue))
-        _, confirmation = prepare_correction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-        decided = decide_correction(
-            proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
-        )
-        self.assertEqual(decided.status, "applied")
+        appointment = owner_appointment(self.tenant.company)
+        evidence = upload_evidence(self.owner, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepared(self.owner, correction_payload(issue, evidence, appointment))
+        self.assertEqual(apply_correction(self.owner, appointment, proposal).status, "applied")
         self.chain(
             LATER + 1,
             (MINT_BLOCK, ZERO_ADDRESS, self.recipient, 10, first.tx_hash),

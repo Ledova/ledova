@@ -60,8 +60,8 @@ from tokens.tests.deployment_fixtures import (
     DeploymentNode,
     admitted_signer,
 )
-from tokens.tests.test_register_corrections import correction_fixture
 from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.test_register_links import link_fixture
 from tokens.tests.test_register_snapshot import SnapshotNode, block_hash, transfer
 
 ALICE = "0x" + "1" * 40
@@ -267,7 +267,7 @@ class RegisterOpeningTest(TransactionTestCase):
             CompanyDocument.objects.filter(pk=self.document.pk).update(is_verified=False)
         with self.assertRaises(ValidationError):
             self.submit(operation_id=uuid4())
-        _, _, foreign_document, _ = correction_fixture()
+        _, _, _, _, foreign_document = link_fixture()
         with self.assertRaises(NotFound):
             self.submit(document_id=foreign_document.pk)
 

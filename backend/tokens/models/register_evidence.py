@@ -14,6 +14,7 @@ def register_evidence_path(instance, filename):
 class RegisterEvidenceKind(models.TextChoices):
     SHARE_REGISTER = "share_register", "Share register"
     ASIC_EXTRACT = "asic_extract", "ASIC extract"
+    AUTHORITY = "authority", "Authority document"
 
 
 class RegisterEvidence(BaseModel):

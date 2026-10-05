@@ -1,66 +1,78 @@
-import hashlib
-import json
 from datetime import date
 from uuid import UUID
 
-from django.contrib.auth import get_user_model
-from django.core import signing
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import Company, CompanyDocument
-from companies.services.document_review import (
-    document_fingerprint,
-    private_document_bytes,
-    verified_document_snapshot,
-)
-from shared.db import APP_ALIAS, atomic, current_alias
-from tokens.constants import REGISTER_CORRECTION_REVIEW_MAX_AGE
+from companies.models import CompanyAppointment, CompanyCapability
+from companies.services.authority_requests import _requester_principal
+from shared.db import use_operator
 from tokens.exceptions import RegisterChangeConflict
-from tokens.models import RegisterCorrection, RegisterEntry, ShareRegister
+from tokens.models import (
+    RegisterCorrection,
+    RegisterCorrectionDecision,
+    RegisterEntry,
+    RegisterEntryKind,
+    RegisterEvidence,
+    RegisterEvidenceKind,
+    RegisterPosition,
+    ShareRegister,
+)
+from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import record_entry
+from tokens.services.register_evidence import (
+    discard,
+    evidence_snapshot,
+    matching_bytes,
+    own_evidence_bytes,
+)
+from tokens.services.register_openings import _authority_values
+
+ENTRY_NOT_FOUND = "Register entry not found."
+EVIDENCE_REFUSAL = "Name the authority document you uploaded for this company."
 
 
-def _digest(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+def _company_of(actor, entry_id):
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    with use_operator(), _requester_principal(actor.pk):
+        company_id = (
+            RegisterEntry.objects.filter(pk=entry_id, register__company_id__in=appointments.values("company_id"))
+            .values_list("register__company_id", flat=True)
+            .first()
+        )
+    if company_id is None:
+        raise NotFound(ENTRY_NOT_FOUND)
+    return company_id
 
 
-def _content(file):
-    return private_document_bytes(file)
+def _negative(register_id, changes):
+    held = dict(
+        RegisterPosition.objects.filter(
+            register_id=register_id, member_id__in=[change["member"] for change in changes]
+        ).values_list("member_id", "shares")
+    )
+    return any(held.get(UUID(change["member"]), 0) + int(change["shares"]) < 0 for change in changes)
 
 
-def _verified(document, content=None):
-    return verified_document_snapshot(document, content=content)
-
-
-def _reviewer(user):
-    if current_alias() == APP_ALIAS:
-        raise PermissionDenied("Register correction review requires the operator connection.")
-    reviewer = get_user_model().objects.get(pk=user.pk)
-    if not reviewer.is_active or not reviewer.is_staff or not reviewer.has_perm("tokens.change_registercorrection"):
-        raise PermissionDenied("Register correction review requires an authorised staff reviewer.")
-    return reviewer
-
-
-def submit_correction(
+def prepare_correction(
     *,
     actor,
     operation_id,
+    appointment,
     corrects_id,
-    document_id,
+    authority_evidence,
     effective_on,
     authority,
     approving_director,
     authority_reference,
-    reason
+    reason,
 ):
-    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
-        raise PermissionDenied("An active company owner must submit the correction.")
     try:
-        operation_id, corrects_id, document_id = (
-            UUID(str(value)) for value in (operation_id, corrects_id, document_id)
+        operation_id, appointment, corrects_id, authority_evidence = (
+            UUID(str(value)) for value in (operation_id, appointment, corrects_id, authority_evidence)
         )
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Correction references must be UUIDs.") from None
@@ -68,169 +80,150 @@ def submit_correction(
         raise ValidationError("A correction requires an effective date.")
     if effective_on > timezone.now().date():
         raise ValidationError(
-            "A correction cannot take effect after the day it is submitted. Date it today (UTC) or earlier."
+            "A correction cannot take effect after the day it is prepared. Date it today (UTC) or earlier."
         )
-    values = {
-        "authority": authority,
-        "approving_director": approving_director,
-        "authority_reference": authority_reference,
-        "reason": reason,
-    }
-    if (
-        authority not in ("director_resolution", "court_order")
-        or any(not isinstance(value, str) for value in values.values())
-        or not authority_reference.strip()
-        or not reason.strip()
-        or len(authority_reference) > 255
-        or len(reason) > 1000
-        or len(approving_director) > 255
-        or (authority == "director_resolution") != bool(approving_director.strip())
-    ):
-        raise ValidationError(
-            "Name the approving director for a resolution, or supply a court order, with a reference and reason."
-        )
-    with atomic():
-        original = RegisterEntry.objects.filter(pk=corrects_id, register__company__owner=actor).first()
-        if original is None:
-            raise NotFound("Register entry not found.")
-        company = Company.objects.select_for_update(no_key=True).get(pk=original.register.company_id)
-        if company.owner_id != actor.pk:
-            raise NotFound("Register entry not found.")
-        register = ShareRegister.objects.select_for_update().get(pk=original.register_id)
-        existing = RegisterCorrection.objects.filter(pk=operation_id).first()
-        if existing:
-            expected = {
-                **values,
-                "corrects_id": corrects_id,
-                "source_document": document_id,
-                "effective_on": effective_on,
-                "submitted_by_id": actor.pk,
-            }
-            if any(getattr(existing, key) != value for key, value in expected.items()):
-                raise RegisterChangeConflict()
-            return existing
-        if RegisterEntry.objects.filter(corrects=original).exists() or not original.changes:
-            raise ValidationError("This entry cannot be compensated. Review the current register.")
-        document = CompanyDocument.objects.select_for_update().filter(pk=document_id, company=company).first()
-        if document is None:
-            raise NotFound("Company authority document not found.")
-        document.company = company
-        raw = _content(document.file)
-        snapshot = _verified(document, ContentFile(raw))
-        proposal = RegisterCorrection(
-            uuid=operation_id,
-            company=company,
-            register=register,
-            corrects=original,
-            base_sequence=register.sequence,
-            base_hash=register.head_hash,
-            effective_on=effective_on,
-            changes=[
-                {"member": change["member"], "shares": str(-int(change["shares"]))} for change in original.changes
-            ],
-            source_document=document.pk,
-            evidence_fingerprint=document.verified_fingerprint,
-            evidence_snapshot=snapshot,
-            submitted_by=actor,
-            **values,
-        )
-        proposal.file.save("authority.bin", ContentFile(raw), save=False)
-        try:
-            proposal.save(force_insert=True)
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-        return proposal
-
-
-def _check_evidence(proposal, company, document):
-    if company.owner_id != proposal.submitted_by_id or document is None or document.company_id != company.pk:
-        raise ValidationError("The company or its authority document changed. Submit a fresh correction.")
-    document.company = company
-    if _digest(_verified(document)) != proposal.evidence_fingerprint:
-        raise ValidationError("The authority evidence changed. Submit a fresh correction.")
-    raw = _content(proposal.file)
-    if (
-        hashlib.sha256(raw).hexdigest() != proposal.evidence_snapshot["sha256"]
-        or len(raw) != proposal.evidence_snapshot["file_size"]
-        or document_fingerprint(document, content=ContentFile(raw)) != proposal.evidence_fingerprint
-    ):
-        raise ValidationError("The retained authority evidence no longer matches the proposal.")
-
-
-def _check_head(proposal, register):
-    if (register.sequence, register.head_hash) != (proposal.base_sequence, proposal.base_hash):
-        raise ValidationError("The register changed after submission. Submit a fresh correction.")
-
-
-def prepare_correction_review(*, proposal_id, reviewer):
-    reviewer = _reviewer(reviewer)
-    proposal = RegisterCorrection.objects.select_related("company", "register", "corrects").get(pk=proposal_id)
-    if proposal.status != "submitted":
-        raise ValidationError("This correction already has a decision.")
-    document = CompanyDocument.objects.filter(pk=proposal.source_document).first()
-    _check_head(proposal, proposal.register)
-    _check_evidence(proposal, proposal.company, document)
-    confirmation = signing.dumps(
-        {"proposal": str(proposal.pk), "reviewer": reviewer.pk, "evidence": proposal.evidence_fingerprint},
-        salt="tokens.register-correction",
-    )
-    return proposal, confirmation
-
-
-def decide_correction(*, proposal_id, reviewer, confirmation, decision, rejection_reason=""):
-    reviewer = _reviewer(reviewer)
-    if (
-        decision not in ("apply", "reject")
-        or (decision == "reject" and not rejection_reason.strip())
-        or len(rejection_reason) > 1000
-    ):
-        raise ValidationError("Choose application or rejection with a reason.")
-    with atomic():
-        initial = RegisterCorrection.objects.get(pk=proposal_id)
-        company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
-        register = ShareRegister.objects.select_for_update().get(pk=initial.register_id)
-        document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
-        proposal = RegisterCorrection.objects.select_for_update().get(pk=proposal_id)
-        if proposal.status != "submitted":
-            if proposal.reviewed_by_id == reviewer.pk and (
-                (decision == "apply" and proposal.status == "applied")
-                or (
-                    decision == "reject"
-                    and proposal.status == "rejected"
-                    and proposal.rejection_reason == rejection_reason
-                )
-            ):
-                return proposal
-            raise RegisterChangeConflict()
-        if decision == "apply":
-            try:
-                preview = signing.loads(
-                    confirmation, salt="tokens.register-correction", max_age=REGISTER_CORRECTION_REVIEW_MAX_AGE
-                )
-            except signing.BadSignature:
-                raise ValidationError("The review confirmation is invalid or expired. Open a fresh review.") from None
-            if preview.get("proposal") != str(proposal_id) or preview.get("reviewer") != reviewer.pk:
-                raise ValidationError("The confirmation belongs to another proposal or reviewer.")
-            if preview.get("evidence") != proposal.evidence_fingerprint:
-                raise ValidationError("The review confirmation does not match this evidence.")
-            _check_head(proposal, register)
-            _check_evidence(proposal, company, document)
-            proposal.applied_entry = record_entry(
-                register_id=register.pk,
-                operation_id=proposal.pk,
-                kind="correction",
-                changes=proposal.changes,
-                effective_on=proposal.effective_on,
-                recorded_by=reviewer,
-                corrects_id=proposal.corrects_id,
+    values = _authority_values(authority, approving_director, authority_reference, reason)
+    proposal = None
+    try:
+        with register_command(actor, _company_of(actor, corrects_id), "register_correction_prepare") as (
+            company,
+            current_actor,
+            profile,
+            operator,
+        ):
+            source = register_appointment(
+                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
             )
-            proposal.status = "applied"
-        else:
-            proposal.status = "rejected"
-            proposal.rejection_reason = rejection_reason
-        proposal.reviewed_by = reviewer
-        proposal.reviewed_at = timezone.now()
-        proposal.save(
-            update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "applied_entry", "updated_at"]
-        )
-        return proposal
+            original = RegisterEntry.objects.get(pk=corrects_id)
+            register = ShareRegister.objects.select_for_update().get(pk=original.register_id)
+            existing = RegisterCorrection.objects.filter(pk=operation_id).first()
+            if existing is not None:
+                expected = {
+                    **values,
+                    "company_id": company.pk,
+                    "corrects_id": corrects_id,
+                    "authority_evidence_id": authority_evidence,
+                    "effective_on": effective_on,
+                    "preparing_appointment_id": source.pk,
+                    "submitted_by_id": current_actor.pk,
+                }
+                if any(getattr(existing, key) != value for key, value in expected.items()):
+                    raise RegisterChangeConflict()
+                return existing, False
+            if RegisterEntry.objects.filter(corrects=original).exists() or not original.changes:
+                raise ValidationError("This entry cannot be compensated. Review the current register.")
+            changes = [
+                {"member": change["member"], "shares": str(-int(change["shares"]))} for change in original.changes
+            ]
+            if _negative(register.pk, changes):
+                raise ValidationError(
+                    "Applying this correction would take a member's holding below zero. Review the current register."
+                )
+            copy = RegisterEvidence.objects.select_for_update().filter(pk=authority_evidence).first()
+            raw = own_evidence_bytes(copy, RegisterEvidenceKind.AUTHORITY, company, current_actor, EVIDENCE_REFUSAL)
+            proposal = RegisterCorrection(
+                uuid=operation_id,
+                company=company,
+                register=register,
+                corrects=original,
+                base_sequence=register.sequence,
+                base_hash=register.head_hash,
+                effective_on=effective_on,
+                changes=changes,
+                preparing_appointment=source,
+                authority_evidence=copy,
+                evidence_fingerprint=copy.sha256,
+                evidence_snapshot=evidence_snapshot(copy),
+                submitted_by=current_actor,
+                **values,
+            )
+            proposal.file.save("authority.bin", ContentFile(raw), save=False)
+            try:
+                proposal.save(force_insert=True)
+            except IntegrityError:
+                raise RegisterChangeConflict() from None
+            return proposal, True
+    except BaseException:
+        if proposal is not None:
+            discard(proposal.file)
+        raise
+
+
+def _effect_requirements(proposal):
+    unmet = []
+    try:
+        matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
+    except ValidationError:
+        unmet.append("evidence_unavailable")
+    register = ShareRegister.objects.get(pk=proposal.register_id)
+    if (register.sequence, register.head_hash) != (proposal.base_sequence, proposal.base_hash):
+        unmet.append("register_changed")
+    if RegisterEntry.objects.filter(corrects_id=proposal.corrects_id).exists():
+        unmet.append("entry_already_corrected")
+    if _negative(proposal.register_id, proposal.changes):
+        unmet.append("position_would_go_negative")
+    return unmet
+
+
+def _details(proposal):
+    return {
+        "register_sequence": ShareRegister.objects.get(pk=proposal.register_id).sequence,
+        "original_changes": proposal.corrects.changes,
+        "changes": proposal.changes,
+        "effective_on": proposal.effective_on,
+    }
+
+
+def _lock(proposal):
+    ShareRegister.objects.select_for_update().get(pk=proposal.register_id)
+
+
+def _apply(proposal, actor, decision):
+    proposal.applied_entry = record_entry(
+        register_id=proposal.register_id,
+        operation_id=proposal.pk,
+        kind=RegisterEntryKind.CORRECTION,
+        changes=proposal.changes,
+        effective_on=proposal.effective_on,
+        recorded_by=actor,
+        corrects_id=proposal.corrects_id,
+    )
+    proposal.status = "applied"
+    proposal.reviewed_by = actor
+    proposal.reviewed_at = decision.decided_at
+    proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "applied_entry", "updated_at"])
+
+
+CORRECTIONS = DecisionFamily(
+    model=RegisterCorrection,
+    decision_model=RegisterCorrectionDecision,
+    field="register_correction",
+    operation="register_correction",
+    approved_function="tokens_register_correction_approved",
+    digest_function="tokens_register_correction_decision_digest",
+    effect_requirements=_effect_requirements,
+    lock=_lock,
+    apply=_apply,
+)
+
+
+def preview_correction_decision(*, actor, correction_id, appointment, kind, reason=""):
+    return preview(
+        CORRECTIONS, _details, actor=actor, proposal_id=correction_id, appointment=appointment, kind=kind, reason=reason
+    )
+
+
+def decide_correction(
+    *, actor, correction_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
+):
+    return decide(
+        CORRECTIONS,
+        actor=actor,
+        proposal_id=correction_id,
+        appointment=appointment,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        preview_digest=preview_digest,
+        confirmation=confirmation,
+        reason=reason,
+    )

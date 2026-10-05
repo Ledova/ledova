@@ -34,6 +34,7 @@ from .register import (
 from .register_correction import (
     RegisterCorrection,
     RegisterCorrectionAuthority,
+    RegisterCorrectionDecision,
     RegisterCorrectionStatus,
 )
 from .register_decision import RegisterDecisionKind
@@ -85,6 +86,7 @@ __all__ = [
     "RegisterAcknowledgement",
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
+    "RegisterCorrectionDecision",
     "RegisterCorrectionStatus",
     "RegisterDecisionKind",
     "RegisterEntry",
