@@ -153,3 +153,21 @@ it('records nothing when the guard refuses or the preview lists unmet requiremen
   expect(post).toHaveBeenCalledTimes(1);
   expect(hook.result.current.error).toBe('Your signed-in account changed.');
 });
+
+it('refreshes after the server refuses a preview, but not after a preview that never arrived', async () => {
+  const { post, hook, onRefused } = setup();
+  post.mockRejectedValueOnce({ response: { status: 404, data: { detail: 'Company appointment not found.' } } });
+  await act(() => hook.result.current.open('approve'));
+  expect(hook.result.current.error).toBe('Company appointment not found.');
+  expect(onRefused).toHaveBeenCalledTimes(1);
+  post.mockRejectedValueOnce({
+    response: { status: 400, data: { detail: 'Choose approval, application or rejection.' } },
+  });
+  await act(() => hook.result.current.open('approve'));
+  expect(onRefused).toHaveBeenCalledTimes(2);
+  post.mockRejectedValueOnce(new Error('Network Error'));
+  await act(() => hook.result.current.open('approve'));
+  expect(hook.result.current.error).toBe('Network Error');
+  expect(onRefused).toHaveBeenCalledTimes(2);
+  expect(hook.result.current.target).toBeNull();
+});

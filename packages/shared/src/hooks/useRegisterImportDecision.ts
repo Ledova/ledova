@@ -27,6 +27,10 @@ export type RegisterImportDecisionOptions = {
   onRefused?: () => Promise<unknown> | void;
 };
 
+function statusOf(failure: unknown) {
+  return (failure as { response?: { status?: number } })?.response?.status;
+}
+
 function refusal(failure: unknown) {
   const codes = (failure as { response?: { data?: { unmetRequirements?: unknown } } })?.response?.data
     ?.unmetRequirements;
@@ -84,6 +88,8 @@ export function useRegisterImportDecision(
       });
     } catch (failure) {
       if (mounted.current) setError(getErrorMessage(failure, REGISTER_IMPORT_COPY.PREVIEW_FAILED));
+      const status = statusOf(failure);
+      if (status === 400 || status === 404) await options.onRefused?.();
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -109,7 +115,7 @@ export function useRegisterImportDecision(
       settle(null);
       await options.onDecided(response.data);
     } catch (failure) {
-      const status = (failure as { response?: { status?: number } })?.response?.status;
+      const status = statusOf(failure);
       if (status && status < 500) retry.current = null;
       settle(null);
       if (mounted.current) setError(refusal(failure) ?? getErrorMessage(failure, REGISTER_IMPORT_COPY.DECIDE_FAILED));

@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
@@ -7,6 +7,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ownAppointmentsKey } from '../team/appointments';
 import { ImportRecord, type ImportSteps } from './ImportRecord';
 import { registerKey } from './useCompanyRegister';
 import { importsKey, useOwnAppointments, useRegisterImports } from './useRegisterImports';
@@ -33,17 +34,17 @@ export function ClassImports({
         reject: appointmentForRegisterImportStep(appointments.data, company, 'reject'),
       }
     : null;
-  const refresh = async () => {
+  const refresh = async (keys: QueryKey[]) => {
     try {
       guard();
     } catch {
       return;
     }
-    await Promise.all([
-      client.invalidateQueries({ queryKey: importsKey(owner, token) }),
-      client.invalidateQueries({ queryKey: [...registerKey(owner), 'holders'] }),
-    ]);
+    await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
   };
+  const decided = () => refresh([importsKey(owner, token), [...registerKey(owner), 'holders']]);
+  const refused = () =>
+    refresh([importsKey(owner, token), [...registerKey(owner), 'holders'], ownAppointmentsKey(owner)]);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{REGISTER_IMPORT_COPY.TITLE}</h3>
@@ -89,7 +90,8 @@ export function ClassImports({
               proposal={proposal}
               steps={steps ?? {}}
               guard={guard}
-              onChanged={refresh}
+              onDecided={decided}
+              onRefused={refused}
             />
           ))}
         </ul>

@@ -154,12 +154,14 @@ export function ImportRecord({
   proposal,
   steps,
   guard,
-  onChanged,
+  onDecided,
+  onRefused,
 }: {
   proposal: RegisterImport;
   steps: ImportSteps;
   guard: () => void;
-  onChanged: () => Promise<unknown>;
+  onDecided: () => Promise<unknown>;
+  onRefused: () => Promise<unknown>;
 }) {
   const [active, setActive] = useState<RegisterImportDecisionKind | null>(null);
   const [reason, setReason] = useState('');
@@ -170,9 +172,9 @@ export function ImportRecord({
     requestConfig: () => ({ ledovaSubmissionGuard: guard }),
     onDecided: async () => {
       setActive(null);
-      await onChanged();
+      await onDecided();
     },
-    onRefused: onChanged,
+    onRefused,
   });
   const approve = useRegisterImportDecision(apiClient, proposal, options('approve'));
   const apply = useRegisterImportDecision(apiClient, proposal, options('apply'));

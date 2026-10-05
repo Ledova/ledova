@@ -647,7 +647,7 @@ it('refuses an unconfirmed decision receipt and leaves the imports as they were'
   expect(confirmButton(dialog, 'apply').disabled).toBe(true);
 });
 
-it('shows a refused decision and refreshes the imports and register after a conflict', async () => {
+it('shows a refused decision and refreshes the imports, register and appointments after a conflict', async () => {
   decideFor = async () => {
     throw {
       response: {
@@ -659,6 +659,7 @@ it('shows a refused decision and refreshes the imports and register after a conf
   const section = await openClass();
   const importsRead = reads(IMPORTS);
   const holdersRead = reads(HOLDERS);
+  const appointmentsRead = reads(APPOINTMENTS);
   const dialog = await openDecision(records(section)[0], 'apply');
   await within(dialog).findByText('Example Live Member');
   fireEvent.click(confirmButton(dialog, 'apply'));
@@ -667,7 +668,32 @@ it('shows a refused decision and refreshes the imports and register after a conf
   );
   await waitFor(() => expect(reads(IMPORTS)).toBe(importsRead + 1));
   expect(reads(HOLDERS)).toBe(holdersRead + 1);
+  await waitFor(() => expect(reads(APPOINTMENTS)).toBe(appointmentsRead + 1));
 });
+
+it.each([
+  [404, 'Company appointment not found.', true],
+  [400, 'Choose approval, application or rejection.', true],
+  [undefined, 'Unable to connect to our servers.', false],
+] as const)(
+  'after a preview failing with %s shows why and refreshes the imports, register and appointments: %s',
+  async (status, message, refreshes) => {
+    previewFor = () => {
+      throw status
+        ? { response: { status, data: { detail: message } } }
+        : Object.assign(new Error(message), { isUserFriendly: true });
+    };
+    const section = await openClass();
+    const before = [reads(IMPORTS), reads(HOLDERS), reads(APPOINTMENTS)];
+    const dialog = await openDecision(records(section)[0], 'approve');
+    expect((await within(dialog).findByRole('alert')).textContent).toBe(message);
+    await waitFor(() => expect(within(dialog).queryByText('Loading the preview…')).toBeNull());
+    expect([reads(IMPORTS), reads(HOLDERS), reads(APPOINTMENTS)]).toEqual(
+      refreshes ? before.map((count) => count + 1) : before,
+    );
+    expect(confirmButton(dialog, 'approve').disabled).toBe(true);
+  },
+);
 
 it('retries an unconfirmed decision with the same key and takes a new key once the preview changes', async () => {
   decideFor = async () => {
