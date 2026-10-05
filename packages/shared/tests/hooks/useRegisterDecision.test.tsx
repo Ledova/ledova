@@ -1,8 +1,13 @@
 /** @jest-environment jsdom */
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import axios from 'axios';
+import {
+  REGISTER_CORRECTION_COPY,
+  REGISTER_CORRECTION_UNMET_COPY,
+} from '../../src/constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../../src/constants/business/register-imports';
 import {
+  REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   useRegisterDecision,
   type RegisterDecisionFamily,
@@ -21,7 +26,7 @@ type Fixtures<Preview> = {
   path: string;
   preview: Preview;
   record: Record<string, unknown>;
-  copy: typeof REGISTER_IMPORT_COPY;
+  copy: typeof REGISTER_IMPORT_COPY | typeof REGISTER_CORRECTION_COPY;
   unmet: Record<string, string>;
   code: string;
 };
@@ -338,4 +343,61 @@ behaves('import', REGISTER_IMPORT_DECISIONS, {
   copy: REGISTER_IMPORT_COPY,
   unmet: REGISTER_IMPORT_UNMET_COPY,
   code: 'approval_lapsed',
+});
+
+behaves('correction', REGISTER_CORRECTION_DECISIONS, {
+  path: '/api/v1/tokens/register-corrections/proposal-a/',
+  preview: {
+    previewDigest: DIGEST,
+    unmetRequirements: [],
+    canDecide: true,
+    registerSequence: 2,
+    originalChanges: [{ member: 'member-a', shares: '5' }],
+    changes: [{ member: 'member-a', shares: '-5' }],
+    effectiveOn: '2026-09-20',
+  },
+  record: { changes: [{ member: 'member-a', shares: '-5' }], appliedEntry: 'entry-c' },
+  copy: REGISTER_CORRECTION_COPY,
+  unmet: REGISTER_CORRECTION_UNMET_COPY,
+  code: 'register_changed',
+});
+
+it('confirms an applied correction only once it names the entry it applied', async () => {
+  const api = axios.create();
+  const post = jest.spyOn(api, 'post');
+  const onDecided = jest.fn();
+  const hook = renderHook(() =>
+    useRegisterDecision(
+      api,
+      REGISTER_CORRECTION_DECISIONS,
+      { uuid: 'proposal-a' },
+      { appointment: 'appointment-a', newKey: () => 'key-1', guard: () => undefined, onDecided },
+    ),
+  );
+  post
+    .mockResolvedValueOnce({ data: { previewDigest: DIGEST, canDecide: true, unmetRequirements: [] } })
+    .mockResolvedValueOnce({
+      data: {
+        uuid: 'proposal-a',
+        status: 'applied',
+        reviewedAt: DECIDED_AT,
+        rejectionReason: '',
+        changes: [],
+        appliedEntry: null,
+        decisions: [
+          {
+            kind: 'apply',
+            appointment: 'appointment-a',
+            idempotencyKey: 'key-1',
+            digest: DIGEST,
+            reason: '',
+            decidedAt: DECIDED_AT,
+          },
+        ],
+      },
+    });
+  await act(() => hook.result.current.open('apply'));
+  await act(() => hook.result.current.confirm());
+  expect(onDecided).not.toHaveBeenCalled();
+  expect(hook.result.current.error).toBe(REGISTER_CORRECTION_COPY.DECISION_RECEIPT_FAILED);
 });

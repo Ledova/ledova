@@ -15,7 +15,7 @@ export { useOrderActions } from './useOrderActions';
 export { useOrderActionSigning } from './useOrderActionSigning';
 export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
-export { REGISTER_IMPORT_DECISIONS, useRegisterDecision } from './useRegisterDecision';
+export { REGISTER_CORRECTION_DECISIONS, REGISTER_IMPORT_DECISIONS, useRegisterDecision } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
 export { canAdministerCompany, canPersonallyAdministerCompany, useCompanySelection } from './useCompanySelection';
 export { useResolutionStatus } from './useResolutionStatus';

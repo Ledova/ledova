@@ -20,6 +20,7 @@ export * from './company-authority';
 export * from './company-token';
 export * from './register-command';
 export * from './register-import';
+export * from './register-correction';
 export * from './feature-flag';
 export * from './operator';
 export * from './offering';

@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
+import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
 import type {
+  RegisterCorrection,
+  RegisterCorrectionDecisionPreview,
   RegisterDecideRequest,
   RegisterDecisionKind,
   RegisterDecisionRequest,
@@ -11,6 +15,7 @@ import type {
 } from '../types';
 import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import { failureStatus, isRegisterDecisionReceipt } from '../utils/register-commands';
+import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
@@ -38,6 +43,17 @@ export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, R
   isReceipt: isRegisterDecisionReceipt,
   unmet: REGISTER_IMPORT_UNMET_COPY,
   copy: REGISTER_IMPORT_COPY,
+};
+
+export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
+  RegisterCorrection,
+  RegisterCorrectionDecisionPreview
+> = {
+  preview: previewRegisterCorrectionDecision,
+  decide: decideRegisterCorrection,
+  isReceipt: isRegisterCorrectionDecisionReceipt,
+  unmet: REGISTER_CORRECTION_UNMET_COPY,
+  copy: REGISTER_CORRECTION_COPY,
 };
 
 export type RegisterDecisionTarget<Preview> = {
