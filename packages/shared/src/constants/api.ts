@@ -93,7 +93,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_EXPORT: (uuid: string) => `/api/v1/tokens/${uuid}/register/export/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
   REGISTER_IMPORTS: '/api/v1/tokens/register-imports/',
-  REGISTER_IMPORT: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/` as const,
   REGISTER_IMPORT_FILE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/file/` as const,
   REGISTER_IMPORT_ASIC_FILE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/asic-file/` as const,
   REGISTER_IMPORT_PREVIEW: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/decision-preview/` as const,
