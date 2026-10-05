@@ -127,24 +127,26 @@ repeats is listed once; a page with a share change that is not whole fails and
 offers a retry, and a later page that fails keeps the loaded entries and offers to
 try again. Then come its
 [corrections](../operations/register-foundation.md#compensating-corrections),
-read on every page with the class's `token` filter and newest first: stage,
-preparer, dates, the corrected entry once its page is loaded, the inverse changes
-with the member names the loaded entries and holders give, the authority,
-approving director, reference and reason, whether the company provided the
-authority document or staff verified it before corrections were company-run, the
-decision trail, any rejection reason and the document's download. Corrections of
-another company or of more than one register fail the read. Last comes the
+read on every page with the class's `token` filter and newest first, each page
+with the entries it corrects looked up by their IDs: stage, the corrected entry's
+sequence and kind, preparer, dates, the inverse changes with the corrected entry's
+member names, the authority, approving director, reference and reason, whether
+the company provided the authority document or staff verified it before
+corrections were company-run, the decision trail, any rejection reason and the
+document's download. A correction's heading and step labels name its entry and
+effective date. Corrections of another company or of more than one register, a
+corrected entry the lookup does not return, or a lookup answering with entries it
+was not asked for fail the read. Last comes the
 class's latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain):
 status, chain block, compared register sequence and time, any failure text, and
 each discrepancy in words with its details and acknowledgement (reason, who,
 when, and whether the company or, earlier, staff gave it); rows needing
 attribution say so, and a class without a reconciliation says that plainly.
 Administration or `prepare` adds **Correct this entry** to a correctable entry. It
-opens a form in the same stack that reads the class's entries page by page until it
-finds the entry, shows it with the exact inverse it records and takes the
-authority document, the authority, the approving director
-of a resolution, the reference, the reason and an effective date no later than
-today (UTC), defaulting to today. The upload keeps its own retry key and confirmed
+opens a form in the same stack that looks up the entry by its ID, shows it with
+the exact inverse it records and takes the authority document, the authority, the
+approving director of a resolution, the reference, the reason and an effective
+date no later than today (UTC), defaulting to today. The upload keeps its own retry key and confirmed
 receipt, preparation reuses its operation only for an identical request, and the
 corrections are refreshed once the receipt is confirmed; a conflict reads the
 entry and appointments again and takes a new operation. Approval and rejection
