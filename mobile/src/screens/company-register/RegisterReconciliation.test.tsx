@@ -163,10 +163,12 @@ const acknowledgements = () => post.mock.calls.filter(([url]) => url === ACKNOWL
 const keys = () => acknowledgements().map(([, body]) => (body as { idempotencyKey: string }).idempotencyKey);
 function deferred() {
   let resolve!: (value: unknown) => void;
-  const promise = new Promise((done) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -492,6 +494,24 @@ it('drops an open acknowledgement when the session changes and ignores its late 
   expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
   expect(client.getQueryState(reconciliationKey(epoch, 'ordinary'))?.errorUpdateCount).toBe(0);
   expect(view.queryByText(COPY.ACKNOWLEDGEMENT_RECEIPT_FAILED)).toBeNull();
+  await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it('reads nothing for the old session when an acknowledgement is refused after the session changes', async () => {
+  const late = deferred();
+  post.mockReturnValueOnce(late.promise as ReturnType<typeof post>);
+  const view = await openClass();
+  const epoch = getSessionEpoch();
+  await fireEvent.changeText(await openAcknowledgement(view), REASON);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  await act(() => invalidateSessionScope());
+  const retired = get.mock.calls.length;
+  await act(async () =>
+    late.reject({ response: { status: 400, data: ['This discrepancy is already acknowledged.'] } }),
+  );
+  expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
+  expect(view.queryByText('This discrepancy is already acknowledged.')).toBeNull();
   await view.findByRole('button', { name: 'Ordinary shares register' });
 });
 

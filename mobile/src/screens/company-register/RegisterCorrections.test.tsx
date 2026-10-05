@@ -285,10 +285,12 @@ const refreshed = () => [
 ];
 function deferred() {
   let resolve!: (value: unknown) => void;
-  const promise = new Promise((done) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -864,6 +866,53 @@ it('drops an open decision when the session changes and ignores its late answer'
   expect(client.getQueryState(correctionsKey(epoch, 'ordinary'))?.errorUpdateCount).toBe(0);
   expect(view.queryByText(COPY.DECISION_RECEIPT_FAILED)).toBeNull();
   await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it('reads nothing for the old session when a decision is refused after the session changes', async () => {
+  const late = deferred();
+  post.mockResolvedValueOnce({ data: PREVIEW }).mockReturnValueOnce(late.promise as ReturnType<typeof post>);
+  const view = await openClass();
+  const epoch = getSessionEpoch();
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
+  await view.findByText(COPY.CONFIRMATIONS.apply);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  await act(() => invalidateSessionScope());
+  const retired = get.mock.calls.length;
+  await act(async () =>
+    late.reject({ response: { status: 409, data: { detail: 'The register operation conflicts.' } } }),
+  );
+  expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
+  expect(view.queryByText('The register operation conflicts.')).toBeNull();
+  await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it('names a member who no longer holds shares from the loaded entries', async () => {
+  const issue = {
+    ...ENTRIES[1],
+    uuid: 'entry-4',
+    sequence: 4,
+    changes: [change('member-3', 'Casey Former', '5')],
+    correctedBy: null,
+    correctable: true,
+  };
+  entryPages = [[issue, ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  correctionPages = [
+    [
+      {
+        ...CORRECTION,
+        uuid: 'correction-former',
+        corrects: 'entry-4',
+        effectiveOn: '2026-10-05',
+        changes: [{ member: 'member-3', shares: '-5' }],
+      },
+    ],
+  ];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  const record = within((await view.findByText('Prepared · effective 5 October 2026')).parent!);
+  expect(await record.findByText('Entry 4 · Issue')).toBeTruthy();
+  expect(record.getByText('Casey Former: -5')).toBeTruthy();
 });
 
 it('shows a new session no correction or step before its own reads answer', async () => {
