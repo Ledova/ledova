@@ -53,7 +53,8 @@ export const REGISTER_IMPORT_COPY = {
   DOWNLOAD_REGISTER: 'Download the register document',
   DOWNLOAD_ASIC: 'Download the ASIC extract',
   DECISION_RECEIPT_FAILED: 'The decision could not be confirmed. Refresh before retrying.',
-  PREPARATION_RECEIPT_FAILED: 'The prepared import could not be confirmed. Refresh before retrying.',
+  PREPARATION_RECEIPT_FAILED:
+    'The prepared import could not be confirmed. Check the imports on Register before preparing again.',
   UPLOAD_RECEIPT_FAILED: 'The uploaded evidence could not be confirmed. Upload it again.',
   PREVIEW_FAILED: 'The decision could not be previewed. Refresh and try again.',
   DECIDE_FAILED: 'The decision was not recorded. Retry the same decision after refreshing.',
