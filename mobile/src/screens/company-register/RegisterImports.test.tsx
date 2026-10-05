@@ -7,6 +7,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   formatDateTime,
   REGISTER_COPY,
+  REGISTER_CORRECTION_COPY,
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_IMPORT_UNMET_COPY,
 } from '@ledova/shared';
@@ -30,6 +31,7 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 
 type Kind = 'approve' | 'apply' | 'reject';
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
+const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const DIGEST = 'a'.repeat(64);
 const NEW = 'prepared import as at 20 September 2026';
 const OLD = 'rejected import as at 1 September 2026';
@@ -145,8 +147,20 @@ const PREVIEW = {
   importedMemberCount: 1,
 };
 const UNREASONED = { ...PREVIEW, canDecide: false, unmetRequirements: ['reason_required'] };
+const OPENING = {
+  uuid: 'entry-1',
+  sequence: 1,
+  kind: 'opening',
+  effectiveOn: '2026-09-20',
+  recordedAt: '2026-10-05T00:00:00Z',
+  changes: [{ member: 'member-1', name: 'Alex Member', shares: '100' }],
+  corrects: null,
+  correctedBy: null,
+  correctable: true,
+};
 let client: QueryClient;
 let importPages: unknown[][];
+let entryRows: unknown[];
 let appointments: unknown[];
 let importsFail: boolean;
 let appointmentsFail: boolean;
@@ -221,6 +235,7 @@ async function openClass() {
 beforeEach(() => {
   resetFiles();
   importPages = [[retired], [submitted]];
+  entryRows = [];
   appointments = [appointment('appointment-admin', ['admin'])];
   importsFail = false;
   appointmentsFail = false;
@@ -248,8 +263,8 @@ beforeEach(() => {
       if (appointmentsFail) throw new Error('Appointments unavailable');
       return page(appointments);
     }
-    if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return page([]);
-    if (url === URLS.REGISTER_RECONCILIATIONS) return page([]);
+    if (url === ENTRIES_URL) return page(entryRows);
+    if (url === URLS.REGISTER_CORRECTIONS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return fileAnswer ?? PDF;
     if (url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
@@ -429,6 +444,22 @@ it('previews an approval, records exactly that decision and refetches the class 
   expect(reads(URLS.HOLDERS('ordinary'))).toBeGreaterThan(before[1]);
 });
 
+it('shows the opening entry an applied import records without a pull to refresh', async () => {
+  post
+    .mockResolvedValueOnce({ data: { ...PREVIEW, opensRegister: true } })
+    .mockResolvedValueOnce({ data: decided('apply', KEY(1)) });
+  const view = await openClass();
+  expect(await view.findByText(REGISTER_CORRECTION_COPY.ENTRIES_EMPTY)).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
+  await view.findByText(COPY.CONFIRMATIONS.apply);
+  importPages = [[retired], [decided('apply', KEY(1))]];
+  entryRows = [OPENING];
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  expect(await view.findByText('Entry 1 · Opening state')).toBeTruthy();
+  expect(view.queryByText(REGISTER_CORRECTION_COPY.ENTRIES_EMPTY)).toBeNull();
+  expect(await view.findByText('Applied · as at 20 September 2026')).toBeTruthy();
+});
+
 it('labels a member without a live identity neutrally in the comparison', async () => {
   post.mockResolvedValueOnce({
     data: {
@@ -546,7 +577,7 @@ it('clears the previous rejection error when the rejection reopens', async () =>
   expect(view.queryByText('Network Error')).toBeNull();
 });
 
-it('refetches the class imports, holders and appointments when a decision is refused', async () => {
+it('refetches the class imports, entries, holders and appointments when a decision is refused', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
     response: {
       status: 409,
@@ -556,7 +587,12 @@ it('refetches the class imports, holders and appointments when a decision is ref
   const view = await openClass();
   await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
   await view.findByText(COPY.CONFIRMATIONS.apply);
-  const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary')), reads(APPOINTMENTS)];
+  const before = [
+    reads(URLS.REGISTER_IMPORTS),
+    reads(URLS.HOLDERS('ordinary')),
+    reads(APPOINTMENTS),
+    reads(ENTRIES_URL),
+  ];
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   expect(
     await view.findByText('The register operation conflicts with its recorded identity or holdings.'),
@@ -564,6 +600,7 @@ it('refetches the class imports, holders and appointments when a decision is ref
   await waitFor(() => expect(reads(URLS.REGISTER_IMPORTS)).toBeGreaterThan(before[0]));
   expect(reads(URLS.HOLDERS('ordinary'))).toBeGreaterThan(before[1]);
   await waitFor(() => expect(reads(APPOINTMENTS)).toBeGreaterThan(before[2]));
+  expect(reads(ENTRIES_URL)).toBeGreaterThan(before[3]);
   expect(view.queryByText(COPY.CONFIRMATIONS.apply)).toBeNull();
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
   expect(view.getByRole('button', { name: 'Preview again' })).toBeEnabled();

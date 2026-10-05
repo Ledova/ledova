@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   type OwnCompanyAppointment,
@@ -8,7 +9,7 @@ import {
 import { Action } from '../../components/Ledger';
 import { ImportRecord } from './ImportRecord';
 import { useCompanyStyles } from './styles';
-import { useRegisterImports } from './useCompanyRegister';
+import { entriesKey, useRegisterImports } from './useCompanyRegister';
 
 export function ClassImports({
   epoch,
@@ -28,10 +29,13 @@ export function ClassImports({
   onPrepare: () => void;
 }) {
   const styles = useCompanyStyles();
+  const queryClient = useQueryClient();
   const name = register.token.name;
   const imports = useRegisterImports(epoch, company, register.token.uuid);
-  const settle = () => Promise.all([imports.refetch(), refreshHolders()]);
-  const refused = () => Promise.all([imports.refetch(), refreshHolders(), refreshAppointments()]);
+  const refreshEntries = () =>
+    queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' });
+  const settle = () => Promise.all([imports.refetch(), refreshEntries(), refreshHolders()]);
+  const refused = () => Promise.all([imports.refetch(), refreshEntries(), refreshHolders(), refreshAppointments()]);
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
