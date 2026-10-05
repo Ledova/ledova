@@ -182,6 +182,19 @@ the new direction.
   review page is gone. This release adds no client. Reversing `0084` refuses
   once any upload, decision or company-run import exists; reversing `0083` then
   restores owners' direct submissions.
+- `tokens/0087_company_discrepancy_acknowledgements` makes reconciliation
+  discrepancy acknowledgement a company step (#864). It adds the acknowledging
+  appointment and a retry key to acknowledgements, with a check that a row has
+  both or neither and one acknowledgement per person and key, and replaces the
+  acknowledgement guard `0070` installed: an acknowledgement must come through
+  the company command, by the person it names, from that person's current
+  appointment holding `admin` or `approve`, for a row of the class's latest
+  reconciliation. The staff requirement and the `register_acknowledge` command
+  are gone. Nothing is backfilled: staff-era acknowledgements keep both new
+  fields empty, still explain their rows and read as provided by staff. The
+  release adds the `/api/v1/tokens/register-reconciliations/` routes and no
+  client. Reversing `0087` refuses once any company acknowledgement exists;
+  otherwise it restores the staff guard exactly as `0070` installed it.
 - #864's register reads by appointment need no migration. Deploy the backend
   before or with the clients: the new web and mobile Register read
   `GET /api/v1/tokens/register/`, which an older backend does not serve, while

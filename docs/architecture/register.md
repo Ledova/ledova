@@ -29,10 +29,11 @@ need capability-scoped company routes with the existing provenance and privacy.
 The remaining sections describe current implementation, including staff-only
 review of openings, links, corrections and instructions, and admin-only outputs.
 Imports are company-run: the company provides the evidence and states the ASIC
-figures, and its appointments approve and apply them. An import can open a
-register and retain members with no wallet, but an imported non-chain class
-currently accepts neither issue nor transfer instructions; publications also
-require a deployed or paused class. Supporting non-paid employee grants and
+figures, and its appointments approve and apply them. Its appointments holding
+`admin` or `approve` also acknowledge reconciliation discrepancies. An import
+can open a register and retain members with no wallet, but an imported non-chain
+class currently accepts neither issue nor transfer instructions; publications
+also require a deployed or paused class. Supporting non-paid employee grants and
 other changes to a non-tokenised register therefore needs real ledger/workflow
 work. A wallet is required only when the chosen action uses the chain. A
 non-chain issue or transfer must record its real approved ledger effect, never a
@@ -437,11 +438,13 @@ Every chain transfer after the opening must be accounted for by a recorded
 effect, a waiting effect or an in-flight platform operation. Holdings and supply
 must equal the stored ones plus those pending movements. Each run is retained as
 `matched`, `discrepant` or `failed`; a chain failure fails the reconciliation,
-never the register. A transfer of zero shares is ignored. Staff can acknowledge
-an investigated divergence, one row at a time with a reason, in an append-only
-record only the operator writes; later runs treat it as explained. The
+never the register. A transfer of zero shares is ignored. A current company
+appointment holding `admin` or `approve` acknowledges an investigated divergence
+through the API, one row of the latest reconciliation at a time with a reason,
+in an append-only record that keeps the earlier staff acknowledgements; later
+runs treat each acknowledged row as explained. The
 [runbook](../operations/register-foundation.md#reconciling-with-the-chain) lists
-the discrepancies and what each asks of an operator.
+the discrepancies and what each asks.
 
 ## Former members
 

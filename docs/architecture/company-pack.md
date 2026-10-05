@@ -122,7 +122,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `classes/<class id>/settlements.json` | Every settlement of the class that was admitted for execution: the signed order with its EIP-712 domain, both signatures, the transaction, its operation, the finalized receipt and the register entry |
 | `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and its transaction hash, the execution that sent it, and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
 | `classes/<class id>/former_members.json` | The former-member section of `register.csv`, from the same rows, each with the date until which s169(3) keeps it |
-| `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason and time |
+| `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason, acknowledger's name, time and `provided_by`: `company`, or `staff` for one recorded before acknowledgement was company-run |
 | `classes/<class id>/waiting.json` | `effects`: the [waiting list](register.md#api-and-export), or `null` where the API's is |
 | `classes/<class id>/due.json` | The class's rows of the [certificates and notice figures still due](register.md#outputs-due) |
 | `contracts/contracts.json` | The chain id, the compiler settings, the factory, settlement and registry addresses, each class's address, the owner it was deployed with and the settlement contract its approval targeted, each registry's owner, and both signing domains |
@@ -333,7 +333,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   [s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)
   keeps it until. Ledova's own purge waits at least as long.
 - **Reconciliations** are every comparison of the register with the chain, with
-  its discrepancies and each acknowledgement's reason and time.
+  its discrepancies and each acknowledgement's reason, the name of the person who
+  acknowledged it, the time and `provided_by`: `company`, or `staff` for an
+  acknowledgement recorded before acknowledgement was company-run.
 - **Waiting and due** come from the services the register already has.
   `waiting.json` is `waiting_list(token)`, `null` where the API's list is.
   `due.json` is the class's rows of `outputs_due(company=company)`: given a
@@ -521,9 +523,9 @@ one part-paid, neither allotted, beside a draft that must stay out; a transfer w
 is a settlement order; a correction reversing the issue, reviewed and applied
 through the correction service; a reviewed wallet link; a former member; an
 approved capital increase; a pause; one listed and one lapsed wallet approval and
-an approval change; a discrepant reconciliation with its acknowledgement; and a
-registry check. Every authority record rests on a verified company document with
-bytes of its own. It produces the pack
+an approval change; a discrepant reconciliation with a staff-era and a company
+acknowledgement; and a registry check. Every authority record rests on a
+verified company document with bytes of its own. It produces the pack
 through the admin page and gives it to
 [company_pack_consumer.py](../../backend/tokens/tests/company_pack_consumer.py),
 run as `python -I -S company_pack_consumer.py pack.zip` in a subprocess with an
