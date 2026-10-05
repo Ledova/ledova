@@ -294,6 +294,42 @@ it('says plainly that a class has no reconciliation yet', async () => {
   expect(view.queryByText('Status')).toBeNull();
 });
 
+it('shows only the latest of the class reconciliations, which the API lists newest first', async () => {
+  reconciliations = [
+    RECONCILIATION,
+    {
+      ...RECONCILIATION,
+      uuid: 'reconciliation-older',
+      status: 'failed',
+      failure: 'An older run could not read the chain.',
+      createdAt: '2026-10-04T06:50:00Z',
+      latest: false,
+      discrepancies: [],
+    },
+  ];
+  const view = await openClass();
+  expect(view.getAllByText('Status')).toHaveLength(1);
+  expect(within(view.getByText('Status').parent!).getByText(COPY.STATUSES.discrepant)).toBeTruthy();
+  expect(view.queryByText('An older run could not read the chain.')).toBeNull();
+});
+
+it('follows the server on whether a row can be acknowledged, whatever its kind', async () => {
+  reconciliations = [
+    {
+      ...RECONCILIATION,
+      discrepancies: [
+        { ...RECONCILIATION.discrepancies[1], acknowledgeable: false },
+        { kind: 'future_kind', acknowledgeable: true, acknowledgement: null },
+      ],
+    },
+  ];
+  const view = await openClass();
+  expect(within(view.getByText('Discrepancy 1').parent!).queryByText(COPY.ACKNOWLEDGEABLE_NOTE)).toBeNull();
+  expect(view.queryByRole('button', { name: acknowledge(1) })).toBeNull();
+  expect(view.getByText('future_kind')).toBeTruthy();
+  expect(view.getByRole('button', { name: acknowledge(2) })).toBeTruthy();
+});
+
 it('shows a failed reconciliation with its failure text and nothing it could not compare', async () => {
   reconciliations = [
     {
@@ -446,11 +482,15 @@ it('drops an open acknowledgement when the session changes and ignores its late 
   await fireEvent.changeText(await openAcknowledgement(view), REASON);
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const { ledovaSubmissionGuard } = post.mock.calls[0][2] as { ledovaSubmissionGuard: () => void };
+  expect(ledovaSubmissionGuard).not.toThrow();
   await act(() => invalidateSessionScope());
+  expect(ledovaSubmissionGuard).toThrow('The saved session changed.');
   expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull();
   const retired = get.mock.calls.length;
   await act(async () => late.resolve({ data: acknowledged(1) }));
   expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
+  expect(client.getQueryState(reconciliationKey(epoch, 'ordinary'))?.errorUpdateCount).toBe(0);
   expect(view.queryByText(COPY.ACKNOWLEDGEMENT_RECEIPT_FAILED)).toBeNull();
   await view.findByRole('button', { name: 'Ordinary shares register' });
 });
