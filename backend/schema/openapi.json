@@ -23065,6 +23065,17 @@
         "operationId": "api_v1_tokens_register_entries_list",
         "parameters": [
           {
+            "in": "query",
+            "name": "entry",
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",

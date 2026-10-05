@@ -150,6 +150,20 @@ class RegisterEntriesTest(APITransactionTestCase):
         second = self.entries(page=2)
         self.assertEqual(([row["sequence"] for row in second["results"]], second["next"]), ([1], None))
 
+    def test_named_entries_are_read_alone_and_only_from_their_own_class(self):
+        named = self.entries(entry=[str(self.issue.pk), str(self.correction.pk)])
+        self.assertEqual(
+            [(row["uuid"], row["correctedBy"]) for row in named["results"]],
+            [(str(self.correction.pk), None), (str(self.issue.pk), str(self.correction.pk))],
+        )
+        with use_operator():
+            token = ShareToken.objects.create(company=self.company, name="Other", symbol="OTH", total_supply="1000")
+        self.assertEqual(self.entries(token, entry=str(self.issue.pk))["results"], [])
+        client = APIClient()
+        client.force_authenticate(self.owner)
+        refused = client.get(f"/api/v1/tokens/{self.token.uuid}/register/entries/", {"entry": "not-a-uuid"})
+        self.assertEqual(refused.status_code, 400, refused.content)
+
 
 class ScopedRegisterEntriesTest(RunsOnTheScopedConnection, RegisterEntriesTest):
     def submit(self, payload):
