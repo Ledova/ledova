@@ -4446,6 +4446,7 @@ export interface ApiComponents {
     RegisterAcknowledgement: {
       acknowledgedAt: string;
       acknowledgedByName: string | null;
+      appointment: string | null;
       providedBy: string;
       reason: string;
     };

@@ -1420,9 +1420,10 @@ planned; the API below is delivered.
 `discrepancy` counts from zero through the record's `discrepancies`, in the
 order the API lists them. A row is `acknowledgeable` while its reconciliation is
 the class's latest, its kind can be acknowledged and nothing acknowledges it yet.
-Its `acknowledgement` is `null`, or the reason, the acknowledger's name, the time
-and `provided_by`: `company`, or `staff` for an acknowledgement recorded before
-acknowledgement was company-run, which shows no name.
+Its `acknowledgement` is `null`, or the reason, the acknowledging `appointment`,
+the acknowledger's name, the time and `provided_by`: `company`, or `staff` for an
+acknowledgement recorded before acknowledgement was company-run, which shows no
+appointment or name.
 
 A new acknowledgement answers `201`. An identical retry with the same
 `idempotency_key` answers `200` with the same acknowledgement, even after a later

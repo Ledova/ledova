@@ -19,7 +19,7 @@ class RegisterAcknowledgementSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RegisterAcknowledgement
-        fields = ["reason", "acknowledged_by_name", "acknowledged_at", "provided_by"]
+        fields = ["reason", "appointment", "acknowledged_by_name", "acknowledged_at", "provided_by"]
         read_only_fields = fields
 
     def get_acknowledged_by_name(self, obj) -> str | None:

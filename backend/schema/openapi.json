@@ -9108,6 +9108,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "providedBy": {
             "readOnly": true,
             "type": "string"
@@ -9120,6 +9127,7 @@
         "required": [
           "acknowledgedAt",
           "acknowledgedByName",
+          "appointment",
           "providedBy",
           "reason"
         ],
