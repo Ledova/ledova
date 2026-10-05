@@ -473,6 +473,20 @@ it('lists an entry once when a later page repeats it after a new entry was recor
   expect(errors.mock.calls.flat().join(' ')).not.toMatch(/same key/);
 });
 
+it('keeps the first copy of an entry a later page repeats with a newer state', async () => {
+  correctionPages = [page([])];
+  const earlier = { ...TRANSFER, correctedBy: null, correctable: true };
+  entryPages = [page([REVERSAL, earlier], NEXT(ENTRIES, 2)), page([TRANSFER, ISSUE, OPENING])];
+  await openClass();
+  const register = await history();
+  fireEvent.click(within(register).getByRole('button', { name: 'Load more register entries' }));
+  await waitFor(() => expect(records(register)).toHaveLength(4));
+  const transfer = records(register)[1];
+  expect(within(transfer).getByText('Entry 3')).toBeTruthy();
+  expect(within(transfer).queryByText(/^Reversed by/)).toBeNull();
+  expect(within(transfer).getByRole('link', { name: COPY.PREPARE })).toBeTruthy();
+});
+
 it('refuses entry pages whose next link does not advance', async () => {
   entryPages = [page([REVERSAL, TRANSFER], NEXT(ENTRIES, 1))];
   correctionPages = [page([])];

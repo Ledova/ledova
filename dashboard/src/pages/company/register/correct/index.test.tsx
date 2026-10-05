@@ -570,6 +570,46 @@ it('refuses a lookup that answers with an entry it was not asked for', async () 
   expect(screen.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
 });
 
+it('shows only the loading state while the appointments are read, then the form', async () => {
+  const pending = deferred<ReturnType<typeof page<OwnCompanyAppointment>>>();
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: unknown) =>
+    url === APPOINTMENTS ? pending.promise : read(url, config),
+  );
+  show();
+  await waitFor(() => expect(client.getQueryData([...ACCOUNT, 'classes'])).toEqual([LISTED]));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(screen.getByRole('status').textContent).toBe('Loading your register…');
+  expect(screen.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(reads(ENTRIES)).toBe(0);
+  await act(async () => pending.resolve(page(appointments)));
+  await ready();
+  expect(screen.queryByRole('status')).toBeNull();
+});
+
+it('disables every field while the correction is being prepared', async () => {
+  const pending = deferred<{ data: RegisterEvidence }>();
+  uploadFor = () => pending.promise;
+  show();
+  await ready();
+  complete();
+  const fields = [
+    COPY.AUTHORITY_DOCUMENT,
+    COPY.EFFECTIVE_ON,
+    COPY.AUTHORITY,
+    COPY.APPROVING_DIRECTOR,
+    COPY.AUTHORITY_REFERENCE,
+    COPY.REASON,
+  ].map((label) => screen.getByLabelText(label));
+  expect(fields.map((field) => field.matches(':disabled'))).toEqual(Array(6).fill(false));
+  fireEvent.click(submitButton());
+  await waitFor(() => expect(uploads()).toHaveLength(1));
+  expect(fields.map((field) => field.matches(':disabled'))).toEqual(Array(6).fill(true));
+  await act(async () => pending.resolve({ data: receipt(uploads()[0]) }));
+  expect(await screen.findByText('Register page')).toBeTruthy();
+});
+
 it('refuses a named entry read whose next link does not advance', async () => {
   const read = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: unknown) =>
@@ -743,6 +783,21 @@ it('starts a blank draft for another signed-in account', async () => {
   expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toContain('Reverse the transfer');
   act(switchAccount);
   await waitFor(() => expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toBe(''));
+  expect(submitButton().disabled).toBe(true);
+});
+
+it("starts a blank draft for another signed-in account even when that account's reads are cached", async () => {
+  const other = ['tokens', 'register', 'profile-two', 'account-two'];
+  client.setQueryData([...other, 'classes'], [LISTED]);
+  client.setQueryData(['company-appointments', 'profile-two', 'account-two'], [appointment(['prepare'])]);
+  client.setQueryData([...other, 'entries', 'ordinary', 'entry-transfer'], entry());
+  show();
+  await ready();
+  complete();
+  act(switchAccount);
+  expect(screen.queryByRole('status')).toBeNull();
+  expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toBe('');
+  expect((screen.getByLabelText(COPY.AUTHORITY_REFERENCE) as HTMLInputElement).value).toBe('');
   expect(submitButton().disabled).toBe(true);
 });
 
