@@ -282,8 +282,8 @@ const requests = (url: string) =>
     .filter(([called]) => called === url)
     .map(([, config]) => config as { params: Params; ledovaSessionEpoch: number; signal: AbortSignal });
 const history = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.ENTRIES_TITLE).parent!);
-const pageReads = () => requests(ENTRIES_URL).filter(({ params }) => !params.entry);
-const lookups = () => requests(ENTRIES_URL).filter(({ params }) => !!params.entry);
+const pageReads = () => requests(ENTRIES_URL).filter(({ params }) => !params.entry?.length);
+const lookups = () => requests(ENTRIES_URL).filter(({ params }) => !!params.entry?.length);
 const refreshed = () => [
   reads(URLS.REGISTER_CORRECTIONS),
   pageReads().length,
@@ -343,7 +343,7 @@ beforeEach(() => {
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === APPOINTMENTS) return page(appointments);
-    if (url === ENTRIES_URL && params.entry)
+    if (url === ENTRIES_URL && params.entry?.length)
       return (
         lookupAnswer?.(params.entry) ??
         page(lookupEntries.filter(({ uuid }) => params.entry!.includes(uuid)).sort((a, b) => b.sequence - a.sequence))
@@ -519,6 +519,14 @@ it('keeps the loaded entries and offers to try again when a later page fails', a
   await fireEvent.press(view.getByRole('button', { name: 'Try more entries of Ordinary shares again' }));
   await waitFor(() => expect(history(view).getByText('Entry 1 · Opening state')).toBeTruthy());
   expect(view.queryByText(MORE_FAILED)).toBeNull();
+});
+
+it('refuses a history page whose next page does not advance', async () => {
+  entryAnswers.set(1, async () => page([ENTRIES[0], ENTRIES[1]], 'https://api.example.test/?page=1'));
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(READ_FAILED)).toBeTruthy();
+  expect(history(view).queryByText('Entry 3 · Compensating correction')).toBeNull();
 });
 
 it('lists an entry once when the next page repeats it after a newer entry was recorded', async () => {

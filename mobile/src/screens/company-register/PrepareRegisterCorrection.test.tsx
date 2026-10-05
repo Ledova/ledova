@@ -213,7 +213,7 @@ beforeEach(() => {
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === APPOINTMENTS) return { data: { results: appointments, next: null, count: appointments.length } };
     if (url === URLS.REGISTER_ENTRIES('ordinary')) {
-      const results = lookupEntries.filter(({ uuid }) => wanted.includes(uuid));
+      const results = wanted.length ? lookupEntries.filter(({ uuid }) => wanted.includes(uuid)) : lookupEntries;
       return lookupAnswer?.() ?? { data: { results, next: null, count: results.length } };
     }
     throw new Error(`Unexpected ${url}`);
