@@ -66,11 +66,11 @@ const OPENING = {
   changes: [{ member: 'member-1', name: null, shares: '40' }],
 };
 let client: QueryClient;
-let entryPages: (typeof TRANSFER)[][];
+let lookupEntries: (typeof TRANSFER)[];
 let appointments: unknown[];
 let readsFail: boolean;
 let held: Set<string>;
-let entryAnswers: Map<number, () => Promise<unknown>>;
+let lookupAnswer: (() => Promise<unknown>) | null;
 let evidenceChanges: object[];
 let prepareAnswer: jest.Mock;
 let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData['append']>>;
@@ -165,7 +165,7 @@ const reads = (url: string) => get.mock.calls.filter(([called]) => called === ur
 const entryReads = () =>
   get.mock.calls
     .filter(([called]) => called === URLS.REGISTER_ENTRIES('ordinary'))
-    .map(([, config]) => config as { params: { page: number }; ledovaSessionEpoch: number });
+    .map(([, config]) => config as { params: { entry: string[]; page: number }; ledovaSessionEpoch: number });
 const submit = (view: Awaited<ReturnType<typeof render>>) =>
   fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -194,11 +194,11 @@ beforeEach(() => {
   resetFiles();
   append = jest.spyOn(FormData.prototype, 'append');
   mockParams = { tokenUuid: 'ordinary', companyUuid: 'paper', entryUuid: 'entry-2' };
-  entryPages = [[TRANSFER], [OPENING]];
+  lookupEntries = [TRANSFER, OPENING];
   appointments = [appointment('appointment-prepare', ['prepare'])];
   readsFail = false;
   held = new Set();
-  entryAnswers = new Map();
+  lookupAnswer = null;
   evidenceChanges = [];
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
@@ -207,21 +207,15 @@ beforeEach(() => {
   mockGoBack.mockReset();
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   get.mockReset().mockImplementation(async (url, config) => {
-    const number = (config?.params as { page?: number } | undefined)?.page ?? 1;
+    const wanted = (config?.params as { entry?: string[] } | undefined)?.entry ?? [];
     if (readsFail) throw new Error('Unavailable');
     if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === APPOINTMENTS) return { data: { results: appointments, next: null, count: appointments.length } };
-    if (url === URLS.REGISTER_ENTRIES('ordinary'))
-      return (
-        entryAnswers.get(number)?.() ?? {
-          data: {
-            results: entryPages[number - 1] ?? [],
-            next: number < entryPages.length ? `https://api.example.test/?page=${number + 1}` : null,
-            count: 2,
-          },
-        }
-      );
+    if (url === URLS.REGISTER_ENTRIES('ordinary')) {
+      const results = lookupEntries.filter(({ uuid }) => wanted.includes(uuid));
+      return lookupAnswer?.() ?? { data: { results, next: null, count: results.length } };
+    }
     throw new Error(`Unexpected ${url}`);
   });
   prepareAnswer = jest.fn(async (body: RegisterCorrectionPreparation) => ({ data: preparedFrom(body) }));
@@ -245,7 +239,9 @@ it('shows the entry and its exact inverse, uploads the authority document and pr
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
   expect(get).toHaveBeenCalledWith(URLS.HOLDERS('ordinary'), session);
   expect(get).toHaveBeenCalledWith(APPOINTMENTS, { ...session, params: { page: 1 } });
-  expect(entryReads()).toEqual([{ ...session, params: { page: 1 } }]);
+  expect(entryReads()).toEqual([
+    { ...session, paramsSerializer: { indexes: null }, params: { entry: ['entry-2'], page: 1 } },
+  ]);
   client.setQueryData(correctionsKey(epoch, 'ordinary'), []);
   expect(view.getByText('Entry 2 · Transfer')).toBeTruthy();
   expect(view.getByText('Effective 10 September 2026')).toBeTruthy();
@@ -300,11 +296,10 @@ it('prepares under a court order without an approving director', async () => {
   expect(preparations()).toEqual([expect.objectContaining({ authority: 'court_order', approvingDirector: '' })]);
 });
 
-it('reads later pages only until it finds the entry, and names an unnamed member neutrally', async () => {
+it('reads the entry it corrects by that entry alone, and names an unnamed member neutrally', async () => {
   mockParams = { ...mockParams, entryUuid: 'entry-1' };
-  entryPages = [[TRANSFER], [OPENING], [{ ...TRANSFER, uuid: 'entry-0', sequence: 0 }]];
   const view = await open();
-  expect(entryReads().map(({ params }) => params.page)).toEqual([1, 2]);
+  expect(entryReads().map(({ params }) => params)).toEqual([{ entry: ['entry-1'], page: 1 }]);
   expect(view.getByText('Entry 1 · Opening state')).toBeTruthy();
   expect(view.getByText(`${COPY.UNNAMED_MEMBER('member-1')}: +40`)).toBeTruthy();
   expect(view.getByText(`${COPY.UNNAMED_MEMBER('member-1')}: -40`)).toBeTruthy();
@@ -525,7 +520,7 @@ it.each([
 it.each([
   [
     'has been corrected',
-    () => (entryPages = [[{ ...TRANSFER, correctable: false, correctedBy: 'entry-1' }], [OPENING]]),
+    () => (lookupEntries = [{ ...TRANSFER, correctable: false, correctedBy: 'entry-1' }, OPENING]),
     'A correction has reversed this entry, or it records no change, so it cannot be corrected.',
   ],
   [
@@ -540,32 +535,35 @@ it.each([
   expect(view.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
 });
 
-it('reads every page before saying an entry is not in the class register', async () => {
-  mockParams = { ...mockParams, entryUuid: 'entry-elsewhere' };
+it('refuses an entry lookup that answers with another entry, and retries it', async () => {
+  lookupAnswer = async () => ({ data: { results: [OPENING], next: null, count: 1 } });
   const view = await render(<PrepareRegisterCorrectionScreen />, { wrapper });
-  expect(await view.findByText('This entry is not in the register of this share class.')).toBeTruthy();
-  expect(entryReads().map(({ params }) => params.page)).toEqual([1, 2]);
+  expect(await view.findByText('We couldn’t load this register entry and your appointments.')).toBeTruthy();
+  expect(view.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
+  lookupAnswer = null;
+  await fireEvent.press(view.getByRole('button', { name: 'Retry' }));
+  expect(await view.findByTestId('prepare-correction-screen')).toBeTruthy();
 });
 
-it('asks for no later page once the session changes while it looks for the entry', async () => {
-  mockParams = { ...mockParams, entryUuid: 'entry-1' };
+it('drops an entry lookup answered after the session changes and reads the entry again for the new session', async () => {
   let answer!: (value: unknown) => void;
-  entryAnswers.set(
-    1,
-    () =>
-      new Promise((resolve) => {
-        answer = resolve;
-      }),
-  );
+  lookupAnswer = () =>
+    new Promise((resolve) => {
+      answer = resolve;
+    });
   const view = await render(<PrepareRegisterCorrectionScreen />, { wrapper });
   await waitFor(() => expect(answer).toBeDefined());
   const epoch = getSessionEpoch();
-  entryAnswers.clear();
+  const [retired] = get.mock.calls.filter(([url]) => url === URLS.REGISTER_ENTRIES('ordinary'));
+  lookupAnswer = null;
   await act(() => invalidateSessionScope());
-  await act(async () => answer({ data: { results: [TRANSFER], next: 'https://api.example.test/?page=2', count: 2 } }));
+  expect((retired[1] as { signal: AbortSignal }).signal.aborted).toBe(true);
+  await act(async () => answer({ data: { results: [OPENING], next: null, count: 1 } }));
   await view.findByTestId('prepare-correction-screen');
-  expect(entryReads().filter(({ ledovaSessionEpoch }) => ledovaSessionEpoch === epoch)).toEqual([
-    expect.objectContaining({ params: { page: 1 } }),
+  expect(view.getByText('Entry 2 · Transfer')).toBeTruthy();
+  expect(entryReads().map(({ ledovaSessionEpoch, params }) => [ledovaSessionEpoch, params])).toEqual([
+    [epoch, { entry: ['entry-2'], page: 1 }],
+    [epoch + 1, { entry: ['entry-2'], page: 1 }],
   ]);
 });
 

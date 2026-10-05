@@ -32,22 +32,24 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 
 type Kind = 'approve' | 'apply' | 'reject';
 type Entry = (typeof ENTRIES)[number];
-type Params = { page?: number; token?: string };
+type Params = { page?: number; token?: string; entry?: string[] };
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const DIGEST = 'a'.repeat(64);
-const NEW = 'prepared correction effective 4 October 2026';
-const STAFF_ERA = 'prepared correction effective 30 September 2026';
-const NEW_HEADING = 'Prepared · effective 4 October 2026';
+const NEW = 'prepared correction of entry 1, effective 4 October 2026';
+const STAFF_ERA = 'prepared correction of entry 2, effective 30 September 2026';
+const APPLIED_ONE = 'applied correction of entry 2, effective 2 October 2026';
+const NEW_HEADING = 'Prepared · entry 1 · effective 4 October 2026';
+const APPLIED_HEADING = 'Applied · entry 2 · effective 2 October 2026';
 const READ_FAILED = 'The register entries could not be loaded.';
 const MORE_FAILED = 'More register entries could not be loaded. The history above is incomplete.';
 const CORRECTIONS_FAILED = 'The corrections could not be loaded.';
 const LOAD_MORE = 'Load more entries of Ordinary shares';
+const REPEATED = { paramsSerializer: { indexes: null } };
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const step = (kind: string, description = NEW) => `${kind} the ${description}`;
 const text = (element: { props: { children?: unknown } }) => [element.props.children].flat().join('');
 const correct = (sequence: number) => `Correct entry ${sequence} of Ordinary shares`;
-const history = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.ENTRIES_TITLE).parent!);
 const headings = (view: Awaited<ReturnType<typeof render>>) =>
   history(view)
     .getAllByText(/^Entry \d+ · [A-Za-z ]+$/)
@@ -228,6 +230,8 @@ const PDF = { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content
 let client: QueryClient;
 let entryPages: Entry[][];
 let entryAnswers: Map<number, () => Promise<unknown>>;
+let lookupEntries: Entry[];
+let lookupAnswer: ((entry: string[]) => Promise<unknown>) | null;
 let correctionAnswers: Map<number, () => Promise<unknown>>;
 let correctionPages: unknown[][];
 let appointments: unknown[];
@@ -277,9 +281,12 @@ const requests = (url: string) =>
   get.mock.calls
     .filter(([called]) => called === url)
     .map(([, config]) => config as { params: Params; ledovaSessionEpoch: number; signal: AbortSignal });
+const history = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.ENTRIES_TITLE).parent!);
+const pageReads = () => requests(ENTRIES_URL).filter(({ params }) => !params.entry);
+const lookups = () => requests(ENTRIES_URL).filter(({ params }) => !!params.entry);
 const refreshed = () => [
   reads(URLS.REGISTER_CORRECTIONS),
-  reads(ENTRIES_URL),
+  pageReads().length,
   reads(URLS.HOLDERS('ordinary')),
   reads(APPOINTMENTS),
 ];
@@ -313,6 +320,8 @@ beforeEach(() => {
   resetFiles();
   entryPages = [[ENTRIES[1], ENTRIES[0]], [ENTRIES[2]]];
   entryAnswers = new Map();
+  lookupEntries = ENTRIES;
+  lookupAnswer = null;
   correctionAnswers = new Map();
   correctionPages = [[STAFF, CORRECTION], [APPLIED]];
   appointments = [appointment('appointment-admin', ['admin'])];
@@ -334,6 +343,11 @@ beforeEach(() => {
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === APPOINTMENTS) return page(appointments);
+    if (url === ENTRIES_URL && params.entry)
+      return (
+        lookupAnswer?.(params.entry) ??
+        page(lookupEntries.filter(({ uuid }) => params.entry!.includes(uuid)).sort((a, b) => b.sequence - a.sequence))
+      );
     if (url === ENTRIES_URL) return entryAnswers.get(number)?.() ?? paged(entryPages, number);
     if (url === URLS.REGISTER_CORRECTIONS)
       return params.token === 'ordinary'
@@ -355,7 +369,7 @@ it('pages the class register from the server newest first, with signed named cha
   const view = await openClass();
   const epoch = getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
-  expect(requests(ENTRIES_URL)).toEqual([{ ...session, params: { page: 1 } }]);
+  expect(pageReads()).toEqual([{ ...session, ...REPEATED, params: { page: 1 } }]);
   expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue']);
   expect(view.getByText('Effective 4 October 2026')).toBeTruthy();
   expect(view.getByText('Effective 10 September 2026')).toBeTruthy();
@@ -364,9 +378,9 @@ it('pages the class register from the server newest first, with signed named cha
   expect(within(history(view).getByText('Reversed by').parent!).getByText('Entry 3')).toBeTruthy();
   expect(history(view).queryByText('Entry 1 · Opening state')).toBeNull();
   await loadMore(view, 'Entry 1 · Opening state');
-  expect(requests(ENTRIES_URL)).toEqual([
-    { ...session, params: { page: 1 } },
-    { ...session, params: { page: 2 } },
+  expect(pageReads()).toEqual([
+    { ...session, ...REPEATED, params: { page: 1 } },
+    { ...session, ...REPEATED, params: { page: 2 } },
   ]);
   expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
   expect(view.getByText('Effective 1 September 2026')).toBeTruthy();
@@ -377,17 +391,15 @@ it('pages the class register from the server newest first, with signed named cha
   expect(view.queryByText(COPY.ENTRIES_EMPTY)).toBeNull();
 });
 
-it('names an entry the loaded pages do not include as not loaded until its page is loaded', async () => {
+it('names a history link not loaded yet until its page loads, while each correction names its entry at once', async () => {
   entryPages = [[ENTRIES[0]], [ENTRIES[1], ENTRIES[2]]];
   const view = await openClass();
-  const record = (heading: string) => view.getByText(heading).parent!;
+  const record = (heading: string) => within(view.getByText(heading).parent!);
   expect(within(view.getByText('Entry 3 · Compensating correction').parent!).getByText(NOT_LOADED)).toBeTruthy();
-  expect(within(record(NEW_HEADING)).getByText(NOT_LOADED)).toBeTruthy();
-  expect(within(record('Applied · effective 2 October 2026')).getByText(NOT_LOADED)).toBeTruthy();
+  expect(record(NEW_HEADING).getByText('Entry 1 · Opening state')).toBeTruthy();
+  expect(record(APPLIED_HEADING).getByText('Entry 2 · Issue')).toBeTruthy();
   await loadMore(view, 'Entry 1 · Opening state');
   expect(within(view.getByText('Entry 3 · Compensating correction').parent!).getByText('Entry 2')).toBeTruthy();
-  expect(within(record(NEW_HEADING)).getByText('Entry 1 · Opening state')).toBeTruthy();
-  expect(within(record('Applied · effective 2 October 2026')).getByText('Entry 2 · Issue')).toBeTruthy();
   expect(view.queryByText(NOT_LOADED)).toBeNull();
 });
 
@@ -400,10 +412,14 @@ it('reads every page of the class corrections by its share class and lists them 
     { ...session, params: { token: 'ordinary', page: 1 } },
     { ...session, params: { token: 'ordinary', page: 2 } },
   ]);
+  expect(lookups()).toEqual([
+    { ...session, ...REPEATED, params: { entry: ['entry-2', 'entry-1'], page: 1 } },
+    { ...session, ...REPEATED, params: { entry: ['entry-2'], page: 1 } },
+  ]);
   expect(view.getAllByText(/ · effective \d+ [A-Za-z]+ \d{4}$/).map(text)).toEqual([
     NEW_HEADING,
-    'Applied · effective 2 October 2026',
-    'Prepared · effective 30 September 2026',
+    APPLIED_HEADING,
+    'Prepared · entry 2 · effective 30 September 2026',
   ]);
   expect(view.getAllByText(COPY.PROVIDED_BY_COMPANY)).toHaveLength(2);
   expect(view.getByText(COPY.STAFF_VERIFIED)).toBeTruthy();
@@ -454,12 +470,12 @@ it('shows a decided staff-era correction without a trail by its decision time an
     ],
   ];
   const view = await openClass();
-  expect(view.getByText('Rejected · effective 30 September 2026')).toBeTruthy();
+  expect(view.getByText('Rejected · entry 2 · effective 30 September 2026')).toBeTruthy();
   expect(view.getByText('Decided on')).toBeTruthy();
   expect(view.getByText(formatDateTime('2026-10-04T05:00:00Z'))).toBeTruthy();
   expect(view.getByText('Superseded by a company correction')).toBeTruthy();
   expect(
-    view.queryByRole('button', { name: step('Reject', 'rejected correction effective 30 September 2026') }),
+    view.queryByRole('button', { name: step('Reject', 'rejected correction of entry 2, effective 30 September 2026') }),
   ).toBeNull();
 });
 
@@ -472,19 +488,19 @@ it('reads a long history one page at a time, fetching the next page only on requ
     correctable: true,
   }));
   entryPages = [entries.slice(0, 25), entries.slice(25)];
+  lookupEntries = entries;
   correctionPages = [[CORRECTION]];
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   await view.findByText('Entry 30 · Issue');
   await view.findByText(NEW_HEADING);
-  expect(reads(ENTRIES_URL)).toBe(1);
+  expect(pageReads()).toHaveLength(1);
   expect(headings(view)).toHaveLength(25);
   expect(history(view).queryByText('Entry 5 · Issue')).toBeNull();
-  expect(within(view.getByText(NEW_HEADING).parent!).getByText(NOT_LOADED)).toBeTruthy();
-  await loadMore(view, 'Entry 5 · Issue');
-  expect(reads(ENTRIES_URL)).toBe(2);
-  expect(headings(view)).toHaveLength(30);
   expect(within(view.getByText(NEW_HEADING).parent!).getByText('Entry 1 · Issue')).toBeTruthy();
+  await loadMore(view, 'Entry 5 · Issue');
+  expect(pageReads()).toHaveLength(2);
+  expect(headings(view)).toHaveLength(30);
   expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
 });
 
@@ -521,17 +537,17 @@ it('reads each page under the session it was opened in and drops a page answered
   const view = await openClass();
   const epoch = getSessionEpoch();
   await fireEvent.press(view.getByRole('button', { name: LOAD_MORE }));
-  await waitFor(() => expect(requests(ENTRIES_URL)).toHaveLength(2));
-  const [, later] = requests(ENTRIES_URL);
-  expect(later).toEqual({ ledovaSessionEpoch: epoch, signal: expect.anything(), params: { page: 2 } });
+  await waitFor(() => expect(pageReads()).toHaveLength(2));
+  const [, later] = pageReads();
+  expect(later).toEqual({ ledovaSessionEpoch: epoch, signal: expect.anything(), ...REPEATED, params: { page: 2 } });
   await act(() => invalidateSessionScope());
   expect(later.signal.aborted).toBe(true);
   entryAnswers.clear();
   await act(async () => late.resolve(paged(entryPages, 2)));
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   await view.findByText('Entry 3 · Compensating correction');
-  expect(requests(ENTRIES_URL).slice(2)).toEqual([
-    { ledovaSessionEpoch: epoch + 1, signal: expect.anything(), params: { page: 1 } },
+  expect(pageReads().slice(2)).toEqual([
+    { ledovaSessionEpoch: epoch + 1, signal: expect.anything(), ...REPEATED, params: { page: 1 } },
   ]);
   expect(history(view).queryByText('Entry 1 · Opening state')).toBeNull();
   await view.findByText(NEW_HEADING);
@@ -550,7 +566,27 @@ it('asks for no further page of the class corrections once the session changes b
   expect(requests(URLS.REGISTER_CORRECTIONS).filter((config) => config.ledovaSessionEpoch === epoch)).toEqual([
     { ledovaSessionEpoch: epoch, signal: expect.anything(), params: { token: 'ordinary', page: 1 } },
   ]);
+  expect(lookups().filter((config) => config.ledovaSessionEpoch === epoch)).toEqual([]);
   await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it.each([
+  ['an entry the register does not list', () => (lookupEntries = [ENTRIES[1]])],
+  ['an entry it was not asked for', () => (lookupAnswer = async () => page(ENTRIES))],
+  [
+    'a share change that is not whole',
+    () => (lookupEntries = [{ ...ENTRIES[2], changes: [change('member-1', 'Alex Member', '1.5')] }, ENTRIES[1]]),
+  ],
+])('refuses corrections whose entry lookup answers %s, and retries them', async (_, answer) => {
+  answer();
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(CORRECTIONS_FAILED)).toBeTruthy();
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
+  lookupEntries = ENTRIES;
+  lookupAnswer = null;
+  await fireEvent.press(view.getByRole('button', { name: 'Retry corrections for Ordinary shares' }));
+  expect(await view.findByText(NEW_HEADING)).toBeTruthy();
 });
 
 it('refuses a page recording a share change that is not whole and retries it, without hiding the corrections', async () => {
@@ -601,7 +637,7 @@ it.each([
   const view = await openClass();
   for (const kind of ['Approve', 'Apply', 'Reject']) {
     expect(!!view.queryByRole('button', { name: step(kind) })).toBe(offered.includes(kind));
-    expect(view.queryByRole('button', { name: step(kind, 'applied correction effective 2 October 2026') })).toBeNull();
+    expect(view.queryByRole('button', { name: step(kind, APPLIED_ONE) })).toBeNull();
   }
   expect(!!view.queryByRole('button', { name: correct(3) })).toBe(prepares);
   expect(view.queryByRole('button', { name: correct(2) })).toBeNull();
@@ -887,7 +923,7 @@ it('reads nothing for the old session when a decision is refused after the sessi
   await view.findByRole('button', { name: 'Ordinary shares register' });
 });
 
-it('names a member who no longer holds shares from the loaded entries', async () => {
+it('names the members of a correction from the entry it corrects, whatever the history has loaded', async () => {
   const issue = {
     ...ENTRIES[1],
     uuid: 'entry-4',
@@ -896,7 +932,7 @@ it('names a member who no longer holds shares from the loaded entries', async ()
     correctedBy: null,
     correctable: true,
   };
-  entryPages = [[issue, ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  lookupEntries = [issue, ...ENTRIES];
   correctionPages = [
     [
       {
@@ -910,9 +946,10 @@ it('names a member who no longer holds shares from the loaded entries', async ()
   ];
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
-  const record = within((await view.findByText('Prepared · effective 5 October 2026')).parent!);
-  expect(await record.findByText('Entry 4 · Issue')).toBeTruthy();
+  const record = within((await view.findByText('Prepared · entry 4 · effective 5 October 2026')).parent!);
+  expect(record.getByText('Entry 4 · Issue')).toBeTruthy();
   expect(record.getByText('Casey Former: -5')).toBeTruthy();
+  expect(history(view).queryByText('Entry 4 · Issue')).toBeNull();
 });
 
 it('shows a new session no correction or step before its own reads answer', async () => {

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_CORRECTION_COPY as COPY,
   type OwnCompanyAppointment,
@@ -8,7 +9,7 @@ import {
 import { Action } from '../../components/Ledger';
 import { CorrectionRecord } from './CorrectionRecord';
 import { useCompanyStyles } from './styles';
-import { useRegisterCorrections, useRegisterEntries } from './useCompanyRegister';
+import { entriesKey, useRegisterCorrections } from './useCompanyRegister';
 
 export function ClassCorrections({
   epoch,
@@ -26,14 +27,16 @@ export function ClassCorrections({
   refreshAppointments: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
+  const queryClient = useQueryClient();
   const name = register.token.name;
   const corrections = useRegisterCorrections(epoch, company, register.token.uuid);
-  const { entries, listed } = useRegisterEntries(epoch, register.token.uuid);
-  const named = [
-    ...register.holders.map(({ member, name: holder, balance }) => ({ member, name: holder, shares: balance })),
-    ...listed.flatMap(({ changes }) => changes),
-  ].filter((change) => !!change.name);
-  const settle = () => Promise.all([corrections.refetch(), entries.refetch(), refreshHolders(), refreshAppointments()]);
+  const settle = () =>
+    Promise.all([
+      corrections.refetch(),
+      queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' }),
+      refreshHolders(),
+      refreshAppointments(),
+    ]);
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
@@ -58,12 +61,11 @@ export function ClassCorrections({
       ) : corrections.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
       ) : (
-        corrections.data.map((proposal, index) => (
+        corrections.data.map(({ proposal, corrected }, index) => (
           <CorrectionRecord
             key={proposal.uuid}
             proposal={proposal}
-            corrected={listed.find(({ uuid }) => uuid === proposal.corrects)}
-            named={named}
+            corrected={corrected}
             epoch={epoch}
             steps={steps}
             last={index === corrections.data.length - 1}

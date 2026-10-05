@@ -17,8 +17,9 @@ import {
   useUserPreferences,
   type CompanyShareTokenListItem,
   type OwnCompanyAppointment,
-  type PaginatedResponse,
+  type RegisterCorrection,
   type RegisterEntry,
+  type RegisterEntryQueryParams,
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -40,13 +41,6 @@ export function useCompanyAccess() {
   const preferences = useUserPreferences();
   const role = preferences.userAccount?.role;
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
-}
-
-function checkedEntryPage(page: PaginatedResponse<RegisterEntry>) {
-  if (page.results.some(({ changes }) => changes.some(({ shares }) => !/^-?\d+$/.test(shares)))) {
-    throw new Error('The register entries record a share change that is not whole');
-  }
-  return page;
 }
 
 const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
@@ -179,19 +173,34 @@ export function useRegisterAppointments(epoch: number, company: string) {
   return { appointments, steps };
 }
 
-async function readEntryPage(epoch: number, token: string, page: number, signal: AbortSignal) {
-  const { data } = await sessionRead(epoch, () =>
-    getRegisterEntries(apiClient, token, { page }, { ledovaSessionEpoch: epoch, signal }),
+async function readEntries(epoch: number, token: string, params: RegisterEntryQueryParams, signal: AbortSignal) {
+  const response = await sessionRead(epoch, () =>
+    getRegisterEntries(apiClient, token, params, { ledovaSessionEpoch: epoch, signal }),
   );
-  assertNextPageAdvances(page, data);
-  return checkedEntryPage(data);
+  if (response.data.results.some(({ changes }) => changes.some(({ shares }) => !/^-?\d+$/.test(shares)))) {
+    throw new Error('The register entries record a share change that is not whole');
+  }
+  return response;
+}
+
+async function readNamedEntries(epoch: number, token: string, entry: string[], signal: AbortSignal) {
+  if (entry.length === 0) return new Map<string, RegisterEntry>();
+  const rows = await readEveryPage((page) => readEntries(epoch, token, { entry, page }, signal));
+  if (rows.some(({ uuid }) => !entry.includes(uuid))) {
+    throw new Error('The register answered with entries it was not asked for');
+  }
+  return new Map(rows.map((row) => [row.uuid, row]));
 }
 
 export function useRegisterEntries(epoch: number, token: string) {
   const queryKey = entriesKey(epoch, token);
   const entries = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam, signal }) => readEntryPage(epoch, token, pageParam, signal),
+    queryFn: async ({ pageParam, signal }) => {
+      const { data } = await readEntries(epoch, token, { page: pageParam }, signal);
+      assertNextPageAdvances(pageParam, data);
+      return data;
+    },
     initialPageParam: 1,
     getNextPageParam,
   });
@@ -210,32 +219,45 @@ export function useRegisterEntries(epoch: number, token: string) {
 export function useRegisterEntry(epoch: number, token: string, uuid: string) {
   return useQuery({
     queryKey: [...entriesKey(epoch, token), uuid],
-    queryFn: async ({ signal }) => {
-      let page: number | undefined = 1;
-      while (page !== undefined) {
-        const data = await readEntryPage(epoch, token, page, signal);
-        const entry = data.results.find((row) => row.uuid === uuid);
-        if (entry) return entry;
-        page = getNextPageParam(data);
-      }
-      return null;
-    },
+    queryFn: async ({ signal }) => (await readNamedEntries(epoch, token, [uuid], signal)).get(uuid) ?? null,
   });
+}
+
+async function readCorrectionsPage(epoch: number, token: string, page: number, signal: AbortSignal) {
+  const { data } = await sessionRead(epoch, () =>
+    getRegisterCorrections(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+  );
+  const corrected = await readNamedEntries(
+    epoch,
+    token,
+    [...new Set(data.results.map(({ corrects }) => corrects))],
+    signal,
+  );
+  return {
+    data: {
+      ...data,
+      results: data.results.map((proposal) => {
+        const entry = corrected.get(proposal.corrects);
+        if (!entry) throw new Error('A correction names an entry the register of this share class does not list');
+        return { proposal, corrected: entry };
+      }),
+    },
+  };
 }
 
 export function useRegisterCorrections(epoch: number, company: string, token: string) {
   return useQuery({
     queryKey: correctionsKey(epoch, token),
     queryFn: async ({ signal }) => {
-      const rows = await readEveryPage((page) =>
-        sessionRead(epoch, () =>
-          getRegisterCorrections(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
-        ),
-      );
-      if (rows.some((row) => row.company !== company) || new Set(rows.map(({ register }) => register)).size > 1) {
+      const rows = await readEveryPage((page) => readCorrectionsPage(epoch, token, page, signal));
+      const proposals: RegisterCorrection[] = rows.map(({ proposal }) => proposal);
+      if (
+        proposals.some((proposal) => proposal.company !== company) ||
+        new Set(proposals.map(({ register }) => register)).size > 1
+      ) {
         throw new Error('The corrections do not belong to this share class');
       }
-      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+      return rows.sort((left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt));
     },
   });
 }

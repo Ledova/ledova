@@ -11,12 +11,10 @@ import {
   type RegisterCorrectionDecisionPreview,
   type RegisterDecisionKind,
   type RegisterEntry,
-  type RegisterEntryChange,
   type RegisterStep,
 } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { NOT_LOADED } from './ClassEntries';
 import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
@@ -45,11 +43,11 @@ function Changes({ title, lines }: { title: string; lines: string[] }) {
 function CorrectionPreview({
   kind,
   preview,
-  named,
+  corrected,
 }: {
   kind: RegisterDecisionKind;
   preview: RegisterCorrectionDecisionPreview;
-  named: RegisterEntryChange[];
+  corrected: RegisterEntry;
 }) {
   const styles = useCompanyStyles();
   return (
@@ -59,8 +57,11 @@ function CorrectionPreview({
         <Row label="Register sequence">{preview.registerSequence}</Row>
         <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
       </Rows>
-      <Changes title={COPY.ORIGINAL_CHANGES} lines={formatRegisterChanges(preview.originalChanges, named)} />
-      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(preview.changes, named)} />
+      <Changes
+        title={COPY.ORIGINAL_CHANGES}
+        lines={formatRegisterChanges(preview.originalChanges, corrected.changes)}
+      />
+      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(preview.changes, corrected.changes)} />
     </>
   );
 }
@@ -68,15 +69,13 @@ function CorrectionPreview({
 export function CorrectionRecord({
   proposal,
   corrected,
-  named,
   epoch,
   steps,
   last,
   onSettled,
 }: {
   proposal: RegisterCorrection;
-  corrected?: RegisterEntry;
-  named: RegisterEntryChange[];
+  corrected: RegisterEntry;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -86,18 +85,18 @@ export function CorrectionRecord({
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   const stage = COPY.STAGES[proposal.stage] ?? proposal.stage;
   const effective = formatDate(proposal.effectiveOn);
-  const description = `${stage.toLowerCase()} correction effective ${effective}`;
+  const description = `${stage.toLowerCase()} correction of entry ${corrected.sequence}, effective ${effective}`;
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
-        {stage} · effective {effective}
+        {stage} · entry {corrected.sequence} · effective {effective}
       </Text>
       <Text style={styles.muted}>
         {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
       </Text>
       <Rows>
         <Row label="Corrects">
-          {corrected ? `Entry ${corrected.sequence} · ${COPY.ENTRY_KINDS[corrected.kind]}` : NOT_LOADED}
+          Entry {corrected.sequence} · {COPY.ENTRY_KINDS[corrected.kind]}
         </Row>
         {proposal.preparedByName !== null && (
           <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
@@ -117,7 +116,7 @@ export function CorrectionRecord({
         <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
         <Row label={COPY.REASON}>{proposal.reason}</Row>
       </Rows>
-      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(proposal.changes, named)} />
+      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(proposal.changes, corrected.changes)} />
       <RegisterCopy
         label={COPY.DOWNLOAD}
         accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
@@ -149,7 +148,7 @@ export function CorrectionRecord({
                   onSettled={onSettled}
                   onRefused={onSettled}
                 >
-                  {(preview) => <CorrectionPreview kind={kind} preview={preview} named={named} />}
+                  {(preview) => <CorrectionPreview kind={kind} preview={preview} corrected={corrected} />}
                 </RegisterDecision>
               )
             );
