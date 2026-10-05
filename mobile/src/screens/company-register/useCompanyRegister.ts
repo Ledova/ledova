@@ -6,11 +6,13 @@ import {
   getCompanyTokenHolders,
   getOwnCompanyAppointments,
   getRegisterClasses,
+  getRegisterEntries,
   getRegisterImports,
   readEveryPage,
   useUserPreferences,
   type CompanyShareTokenListItem,
   type OwnCompanyAppointment,
+  type RegisterEntry,
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -34,25 +36,47 @@ export function useCompanyAccess() {
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
+function checkedEntries(entries: RegisterEntry[]) {
+  const recorded = new Set(entries.map(({ uuid }) => uuid));
+  if (
+    recorded.size !== entries.length ||
+    entries.some(
+      (entry) =>
+        entry.changes.some(({ shares }) => !/^-?\d+$/.test(shares)) ||
+        [entry.corrects, entry.correctedBy].some((link) => link !== null && !recorded.has(link)),
+    )
+  ) {
+    throw new Error('The register entries do not form one complete history of this share class');
+  }
+  return entries.sort((left, right) => right.sequence - left.sequence);
+}
+
 const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
-export const importsKey = (epoch: number, token?: string) => [
+const recordsKey = (records: string) => (epoch: number, scope?: string) => [
   ...registerKey(epoch),
-  'imports',
-  ...(token ? [token] : []),
+  records,
+  ...(scope ? [scope] : []),
 ];
+export const importsKey = recordsKey('imports');
+export const entriesKey = recordsKey('entries');
+export const correctionsKey = recordsKey('corrections');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
-async function readClasses(epoch: number, page: number, signal: AbortSignal) {
+async function sessionRead<Response>(epoch: number, read: () => Promise<Response>) {
   assertSessionEpoch(epoch);
-  const response = await getRegisterClasses(apiClient, { page }, { ledovaSessionEpoch: epoch, signal });
+  const response = await read();
   assertSessionEpoch(epoch);
   return response;
 }
 
+function readClasses(epoch: number, page: number, signal: AbortSignal) {
+  return sessionRead(epoch, () => getRegisterClasses(apiClient, { page }, { ledovaSessionEpoch: epoch, signal }));
+}
+
 async function readRegister(epoch: number, uuid: string, signal: AbortSignal) {
-  assertSessionEpoch(epoch);
-  const { data } = await getCompanyTokenHolders(apiClient, uuid, { ledovaSessionEpoch: epoch, signal });
-  assertSessionEpoch(epoch);
+  const { data } = await sessionRead(epoch, () =>
+    getCompanyTokenHolders(apiClient, uuid, { ledovaSessionEpoch: epoch, signal }),
+  );
   return checkedRegister(uuid, data);
 }
 
@@ -128,12 +152,9 @@ export function useRegisterImports(epoch: number, company: string, token: string
   return useQuery({
     queryKey: importsKey(epoch, token),
     queryFn: async ({ signal }) => {
-      const rows = await readEveryPage(async (page) => {
-        assertSessionEpoch(epoch);
-        const response = await getRegisterImports(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal });
-        assertSessionEpoch(epoch);
-        return response;
-      });
+      const rows = await readEveryPage((page) =>
+        sessionRead(epoch, () => getRegisterImports(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal })),
+      );
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The imports do not belong to this share class');
       }
@@ -146,12 +167,9 @@ export function useRegisterAppointments(epoch: number, company: string) {
   const appointments = useQuery({
     queryKey: registerAppointmentsKey(epoch),
     queryFn: ({ signal }) =>
-      readEveryPage(async (page) => {
-        assertSessionEpoch(epoch);
-        const response = await getOwnCompanyAppointments(apiClient, page, { ledovaSessionEpoch: epoch, signal });
-        assertSessionEpoch(epoch);
-        return response;
-      }),
+      readEveryPage((page) =>
+        sessionRead(epoch, () => getOwnCompanyAppointments(apiClient, page, { ledovaSessionEpoch: epoch, signal })),
+      ),
   });
   const steps = appointments.isSuccess
     ? (Object.fromEntries(
@@ -159,4 +177,18 @@ export function useRegisterAppointments(epoch: number, company: string) {
       ) as Record<RegisterStep, OwnCompanyAppointment | undefined>)
     : undefined;
   return { appointments, steps };
+}
+
+export function useRegisterEntries(epoch: number, token: string) {
+  return useQuery({
+    queryKey: entriesKey(epoch, token),
+    queryFn: async ({ signal }) =>
+      checkedEntries(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterEntries(apiClient, token, { page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+      ),
+  });
 }

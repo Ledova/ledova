@@ -3,6 +3,7 @@ import * as Crypto from 'expo-crypto';
 import {
   createUserFriendlyError,
   isRegisterEvidenceReceipt,
+  REGISTER_CORRECTION_COPY,
   REGISTER_IMPORT_COPY,
   uploadRegisterEvidence,
   type RegisterEvidence,
@@ -12,6 +13,12 @@ import {
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { apiClient } from '../../services/apiClient';
 import { uploadSize, type UploadFile } from '../../services/documentCopies';
+
+const EVIDENCE: Record<RegisterEvidenceKind, { noun: string; unconfirmed: string }> = {
+  share_register: { noun: 'share register', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
+  asic_extract: { noun: 'ASIC extract', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
+  authority: { noun: 'authority document', unconfirmed: REGISTER_CORRECTION_COPY.UPLOAD_RECEIPT_FAILED },
+};
 
 export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind) {
   const document = useDocumentUpload(company);
@@ -42,7 +49,7 @@ export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind)
         current();
         if (!isRegisterEvidenceReceipt(response.data, request, size)) {
           retry.current = null;
-          throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
+          throw createUserFriendlyError(EVIDENCE[kind].unconfirmed);
         }
         uploaded = response.data;
       } catch (failure) {
@@ -52,8 +59,7 @@ export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind)
       }
     });
     guard();
-    if (!completed || !uploaded)
-      throw createUserFriendlyError(`Choose the ${kind === 'asic_extract' ? 'ASIC extract' : 'share register'} again.`);
+    if (!completed || !uploaded) throw createUserFriendlyError(`Choose the ${EVIDENCE[kind].noun} again.`);
     retry.current = null;
     setReceipt(uploaded);
     return uploaded;
