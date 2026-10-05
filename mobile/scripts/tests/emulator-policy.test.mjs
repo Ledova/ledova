@@ -95,9 +95,11 @@ test('the Android shell actually launches exactly one owned emulator', () => {
 test('the actual emulator command keeps at least four vCPUs', () => {
   const launches = observe().filter((event) => event.startsWith('launch '));
   assert.equal(launches.length, 1);
-  const cores = launches[0].match(/ -cores (\d+)(?: |$)/);
-  assert.ok(cores, 'the launch names its vCPU count');
+  const counts = [...launches[0].matchAll(/ -cores (\d+)(?= |$)/g)];
+  assert.equal(counts.length, 1, 'the launch names one vCPU count');
+  const [cores] = counts;
   assert.ok(Number(cores[1]) >= 4, `the launch gives the emulator ${cores[1]} vCPUs`);
+  assert.doesNotMatch(launches[0], / -smp(?: |$)/, 'no QEMU option overrides the vCPU count');
 });
 
 test('the Android shell waits for boot and foreground settling before its first build', () => {
