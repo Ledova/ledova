@@ -1,4 +1,9 @@
-from drf_spectacular.utils import OpenApiTypes, extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -22,6 +27,15 @@ from tokens.views.register_proposal import RegisterProposalViewSet
 FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter("company", OpenApiTypes.UUID),
+            OpenApiParameter("token", OpenApiTypes.UUID),
+            OpenApiParameter("status", str, enum=["submitted", "applied", "rejected"]),
+        ]
+    )
+)
 class RegisterImportViewSet(RegisterProposalViewSet):
     queryset = RegisterImport.objects.none()
     serializer_class = RegisterImportSerializer

@@ -8499,8 +8499,11 @@ export interface ApiOperations {
   api_v1_tokens_register_imports_list: {
     parameters: {
       query?: {
+        company?: string;
         ordering?: string;
         page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
       };
       header?: never;
       path?: never;

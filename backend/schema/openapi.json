@@ -20784,6 +20784,14 @@
         "operationId": "api_v1_tokens_register_imports_list",
         "parameters": [
           {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "Which field to use when ordering the results.",
             "in": "query",
             "name": "ordering",
@@ -20799,6 +20807,26 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
