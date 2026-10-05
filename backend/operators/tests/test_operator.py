@@ -9,9 +9,12 @@ from rest_framework.test import APITestCase
 from assets.models import Asset, AssetChainDeployment
 from operators.models import SINGLETON_PK, Operator, ReceivingChain
 from operators.serializers import OperatorSerializer
+from shared.db import acting_for
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_associated, make_eligible, make_tenant
 from shared.tests.test_admin_row_actions import grant, staff_user
-from users.models import InvestorClassification, InvestorClassificationStatus
+from users.models import InvestorCategory
+from users.services.company_eligibility_consumption import company_eligibility
 
 User = get_user_model()
 
@@ -314,6 +317,7 @@ class OperatorApiTest(APITestCase):
             self.assertNotIn(secret, data)
 
     def test_authenticated_get_returns_the_configured_operator(self):
+        accept_company_eligibility(self.investor)
         audy = stablecoin()
         operator = Operator.get()
         operator.name = "Acme"
@@ -368,6 +372,7 @@ class OperatorApiTest(APITestCase):
         self.assertEqual((body["investorKycRequired"], body["issuerKycRequired"]), (True, False))
 
     def test_payment_instructions_carry_only_the_rails_that_are_set(self):
+        accept_company_eligibility(self.investor)
         operator = Operator.get()
         operator.bank_bsb = "062000"
         operator.save(update_fields=["bank_bsb"])
@@ -378,6 +383,7 @@ class OperatorApiTest(APITestCase):
         self.assertNotIn("receivingWalletChain", instructions)
 
     def test_an_eligible_investor_is_handed_the_rails(self):
+        accept_company_eligibility(self.investor)
         expected = self._with_rails()
 
         self.assertEqual(self._payment_instructions(self.user), expected)
@@ -397,17 +403,35 @@ class OperatorApiTest(APITestCase):
 
         self.assertEqual(self._payment_instructions(self.staff), expected)
 
-    def test_an_associated_person_reaches_the_rails_of_the_issuer_they_can_subscribe_to(self):
-        expected = self._with_rails()
+    def test_a_primary_company_association_does_not_reveal_operator_secondary_rails(self):
+        issuer_decision = accept_company_eligibility(self.investor)
+        self._with_rails()
         associate = make_tenant("rails-associate")
         make_associated(associate, self.investor.company)
-
-        self.assertEqual(self._payment_instructions(associate.user), expected)
-
-    def test_a_revoked_classification_takes_the_rails_away_again(self):
-        self._with_rails()
-        InvestorClassification.objects.filter(user_account=self.investor.account).update(
-            status=InvestorClassificationStatus.REVOKED
+        decision = accept_company_eligibility(
+            associate, issuer_decision=issuer_decision, category=InvestorCategory.ASSOCIATED_PERSON
         )
+
+        with acting_for(associate.user.pk):
+            primary = company_eligibility(
+                associate.account, self.investor.company, purpose="primary", decision_id=decision.pk
+            )
+            secondary = company_eligibility(
+                associate.account, self.investor.company, purpose="secondary", decision_id=decision.pk
+            )
+
+        self.assertTrue(primary.is_eligible)
+        self.assertEqual(primary.decision.pk, decision.pk)
+        self.assertFalse(secondary.is_eligible)
+        self.assertIsNone(self._payment_instructions(associate.user))
+
+    def test_withdrawing_the_company_eligibility_source_takes_the_rails_away_again(self):
+        decision = accept_company_eligibility(self.investor)
+        expected = self._with_rails()
+        self.assertEqual(self._payment_instructions(self.user), expected)
+
+        withdrawn = self.client.delete(reverse("investor-classifications-detail", args=[decision.request.source_id]))
+
+        self.assertEqual(withdrawn.status_code, 204, withdrawn.content)
 
         self.assertIsNone(self._payment_instructions(self.user))

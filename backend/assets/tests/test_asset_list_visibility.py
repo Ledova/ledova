@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
 from wallets.models import Holding
 
@@ -58,6 +59,7 @@ class AssetListExcludesTokenizedSecuritiesTest(APITestCase):
 
     def test_the_token_listing_still_carries_the_share_class_for_an_eligible_investor(self):
         make_eligible(self.tenant)
+        accept_company_eligibility(self.tenant)
         self.client.force_authenticate(self.tenant.user)
 
         response = self.client.get("/api/v1/trading/tokens/")
