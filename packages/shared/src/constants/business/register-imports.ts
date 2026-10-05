@@ -30,6 +30,7 @@ export const REGISTER_IMPORT_COPY = {
   READ_ONLY_NOTE:
     'You can read these imports. Preparing, approving and applying an import needs an appointment with ' +
     'administration or that step.',
+  NO_HOLDERS: 'The stored register lists no current members, so this class has none to import.',
   NOT_ON_CHAIN_NOTE:
     "Applying this import opens the share class's register from the company's own records. A class an import " +
     'opened is not on chain: it records no issue, transfer or cessation until it is tokenised, which is later work.',
@@ -43,7 +44,7 @@ export const REGISTER_IMPORT_COPY = {
   CONFIRMATIONS: {
     approve: 'Approve this import exactly as prepared.',
     apply: 'Apply this import to the register now. This cannot be undone.',
-    reject: 'Reject this import with the reason below.',
+    reject: 'Reject this import with the reason given.',
   } as Record<RegisterImportDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
   STATED_FIGURES: (total: string, count: number) =>

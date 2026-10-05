@@ -70,6 +70,7 @@ export function useRegisterImportDecision(
     setBusy(true);
     setError(null);
     settle(null);
+    let refused = false;
     try {
       options.guard();
       const request = { appointment: options.appointment, kind, reason };
@@ -91,11 +92,12 @@ export function useRegisterImportDecision(
     } catch (failure) {
       if (mounted.current) setError(getErrorMessage(failure, REGISTER_IMPORT_COPY.PREVIEW_FAILED));
       const status = statusOf(failure);
-      if (status === 400 || status === 404) await options.onRefused?.();
+      refused = status === 400 || status === 404;
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
     }
+    if (refused) await options.onRefused?.();
   };
   const confirm = async () => {
     const current = confirmation.current;

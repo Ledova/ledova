@@ -413,6 +413,15 @@ it('opens a class not yet on chain from members it numbers itself, with editable
   expect(preparations()[0]).toMatchObject({ asicIssuedTotal: '150', asicMemberCount: 2, formerMembers: [] });
 });
 
+it('says an opened class with no current members has none to import, and offers no member to add', async () => {
+  holders = { ...opened(), holders: [], totalHolders: 0 };
+  show();
+  expect(await screen.findByText(COPY.NO_HOLDERS)).toBeTruthy();
+  expect(screen.queryByRole('group', { name: 'Member 1' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add a member' })).toBeNull();
+  expect(submitButton().disabled).toBe(true);
+});
+
 it('blocks preparation while the stated ASIC figures differ from the import rows', async () => {
   show();
   await ready();

@@ -308,9 +308,11 @@ export function ImportForm({
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Current members</legend>
           <p className="text-sm text-text-muted">
-            {register.initialized
-              ? 'Each current member of the stored register, with the shares it records.'
-              : "Each current member in the company's register, with their shares."}
+            {!register.initialized
+              ? "Each current member in the company's register, with their shares."
+              : register.holders.length > 0
+                ? 'Each current member of the stored register, with the shares it records.'
+                : REGISTER_IMPORT_COPY.NO_HOLDERS}
           </p>
           {draft.members.map((row, index) => {
             const holder = register.initialized

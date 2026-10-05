@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { act, cleanup, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import { useRegisterImportDecision } from '../../src/hooks/useRegisterImportDecision';
 
@@ -170,6 +170,24 @@ it('refreshes after the server refuses a preview, but not after a preview that n
   expect(hook.result.current.error).toBe('Network Error');
   expect(onRefused).toHaveBeenCalledTimes(2);
   expect(hook.result.current.target).toBeNull();
+});
+
+it('releases a refused preview before its refresh settles', async () => {
+  const { post, hook, onRefused } = setup();
+  let finishRefresh = () => {};
+  onRefused.mockReturnValueOnce(new Promise<void>((resolve) => (finishRefresh = resolve)));
+  post.mockRejectedValueOnce({ response: { status: 404, data: { detail: 'Company appointment not found.' } } });
+  let opening: Promise<void> = Promise.resolve();
+  act(() => {
+    opening = hook.result.current.open('apply');
+  });
+  await waitFor(() => expect(onRefused).toHaveBeenCalledTimes(1));
+  expect(hook.result.current.busy).toBe(false);
+  expect(hook.result.current.error).toBe('Company appointment not found.');
+  await act(async () => {
+    finishRefresh();
+    await opening;
+  });
 });
 
 it('takes a new retry key after the server refuses a decision, even for the same preview', async () => {

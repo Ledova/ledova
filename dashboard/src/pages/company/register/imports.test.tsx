@@ -682,7 +682,7 @@ it.each([
   [400, 'Choose approval, application or rejection.', true],
   [undefined, 'Unable to connect to our servers.', false],
 ] as const)(
-  'after a preview failing with %s shows why and refreshes the imports, register and appointments: %s',
+  'after a preview failing with %s shows why, refreshing the imports, register and appointments only on a refusal: %s',
   async (status, message, refreshes) => {
     previewFor = () => {
       throw status
