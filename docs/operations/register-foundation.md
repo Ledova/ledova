@@ -187,8 +187,9 @@ and [backend verification](../development/testing.md#backend-verification).
 The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
 not proof of director authority. The company-document admin provides its
-content-verification prerequisite; the correction and opening workflows below
-are its current consumers.
+content-verification prerequisite; the opening, wallet link and register
+instruction workflows below are its current consumers. Imports and corrections
+use company-provided evidence instead.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -215,41 +216,62 @@ fingerprints.
 
 This is a record of what was verified at a time. Storage can become unavailable
 or be changed outside the application, and validity can expire without a database
-write. The correction and opening consumers therefore recheck the current file
+write. The opening consumers therefore recheck the current file
 against the recorded fingerprint, the company and the proposed change, and the
 validity dates; the historical `is_verified` flag alone is insufficient. No
 background storage monitoring or deletion/retention change is introduced here.
 Documentary authority and an exact proposed register change remain separate
 requirements of each approval workflow.
 
-## Reviewed compensating corrections
+## Compensating corrections
 
-The synthetic stored register accepts owner-submitted requests to reverse one
-identified entry exactly. This is a compensation, not an editable replacement:
-the original entry and its hash remain, and the new entry names the original.
-Applying it changes the stored holdings the register routes serve; it broadcasts
-no chain change. Replacement transactions and reconciliation remain #647 work.
+A correction reverses one identified entry exactly. This is a compensation, not
+an editable replacement: the original entry and its hash remain, and the new
+entry names the original. Applying it changes the stored holdings the register
+routes serve; it broadcasts no chain change. Replacement transactions and
+reconciliation remain #647 work.
 
-An external issuer integration can use these authenticated routes:
+Since 5 October 2026 the company runs its corrections itself, as it runs its
+[imports](#importing-an-existing-register), under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+- the evidence is company-provided. The company uploads the director resolution
+  or court order that authorises the correction as an `authority` upload. Ledova
+  staff do not verify it, and the correction's copy is shown as provided by the
+  company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- a correction submitted for the retired staff review and still waiting can only
+  be rejected. The company then prepares a new one.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The web and mobile correction screens are planned; the API below is
+delivered.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-corrections/` | Submit the owner's precise correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision/evidence metadata and decision |
-| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the retained authority file |
+| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
+| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register` and `status` |
+| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision and evidence, stage and decisions |
+| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the correction's copy of the authority document |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
 For a synthetic exercise, use the register foundation command to create an
-opening and identify the entry to compensate. Upload a synthetic signed resolution
-through the existing company document route and have permitted staff complete its
-content review. Submit this JSON as that company's owner, replacing UUIDs with
-those from the exercise:
+opening and identify the entry to compensate, and upload a synthetic signed
+resolution as an `authority` upload. Then prepare, replacing UUIDs with those
+from the exercise:
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000001",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "corrects_id": "10000000-0000-4000-8000-000000000002",
-  "document_id": "10000000-0000-4000-8000-000000000003",
+  "authority_evidence": "10000000-0000-4000-8000-000000000003",
   "effective_on": "2026-09-20",
   "authority": "director_resolution",
   "approving_director": "Synthetic Director",
@@ -258,49 +280,92 @@ those from the exercise:
 }
 ```
 
-The service derives the exact inverse share changes and captures the register's
-current sequence/hash. The effective date may be today (UTC) or earlier, since a
-rectification can be backdated; submission refuses a later one, which would hold
-back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
-until that date. One reviewed uploaded file must include the authority for
-this precise correction. A director resolution names the approving director;
+Preparation derives the exact inverse share changes and captures the register's
+current sequence and head hash. The effective date may be today (UTC) or earlier,
+since a rectification can be backdated; preparation refuses a later one, which
+would hold back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
+until that date. A director resolution names the approving director;
 `court_order` instead uses a court reference and an empty `approving_director`.
-An owner account is not proof of director authority. Staff document verification
-alone does not approve the correction. External-only links and legacy verification
-flags without content binding cannot supply its evidence.
+An owner account is not proof of director authority.
 
-In **Admin → Tokens → Register corrections**, open the request's review link.
-An active staff user with change permission must inspect the retained file, named
-authority, company identity, original entry, inverse quantities, date and register
-revision, then explicitly confirm authority and choose **Approve and apply**.
-The confirmation is reviewer-specific and expires after fifteen minutes. Approval,
-its compensating entry and the holdings projection commit together; a failure
-rolls them all back. Repeated identical submission/decision returns the existing
-result, while conflicting UUID reuse is refused. The database prevents rewriting
-or deleting the request and prevents the customer role from deciding it.
+Preparation refuses, with a message naming the problem:
+- an entry of a company in which the caller holds no current appointment;
+- evidence that is not the preparer's own `authority` upload for this company,
+  or whose stored bytes no longer match its fingerprint;
+- an entry already corrected, or one with no changes;
+- an inverse that would take a stored holding below zero.
 
-A changed register revision, company identity or original document makes
-application unavailable. Missing, rejected, expired or altered evidence also
-refuses application, including replacement with different bytes of the same size.
-A retained copy is checked against the verified content again at application.
-Reject an obsolete request with a reason, then submit corrected intent with a new
-UUID and freshly reviewed evidence. Rejection remains available even when a file
-is unavailable. An already compensated entry cannot be compensated a second time.
-An inverse that would make a current holding negative is refused by the existing
-register guard. Use the foundation verifier to check the resulting event chain
-and projection; that is not a claim of chain reconciliation.
+The correction keeps its own private copy of the upload, with a snapshot naming
+the upload, its size, type and SHA-256, and marked as provided by the company.
+An identical preparation retry returns the correction; the same operation ID
+with any change conflicts.
 
-The owner chose private retention without automatic expiry for correction
-requests and authority files during the synthetic-only experiment. Ordinary
-request deletion is blocked. Deleting the original company document does not
-delete the retained copy or decision, but prevents a pending request from being
-applied. Committed copies are protected by their retained row; copies left by a
-rolled-back or interrupted submission fall under the existing 24-hour orphan
-sweep. Account/company deletion still respects protected register relations.
-Production retention needs its own decision before real data is admitted.
-Classification evidence, former-member retention and export records have
-independent policies; this choice does not change them. Export records follow
-the 2,557-day floor, purged by the daily retention job.
+Each decision starts with a preview, which shows the original entry's changes
+beside their inverse and lists what the decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `correction_decided` | The correction is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era correction, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
+| `register_changed` | The register has a newer entry than the revision preparation captured |
+| `entry_already_corrected` | Another correction of the same entry was applied |
+| `position_would_go_negative` | Applying the inverse would take a stored holding below zero |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the correction, the decision, the person, the
+appointment, the reason and, for application, the register's sequence and head
+hash. The decision must carry the same digest, so any change in between
+conflicts. An identical decision retry with the same retry key returns the
+correction; the same key with any change conflicts. Every step rechecks the
+appointment after taking the company lock, so a revocation that commits first
+refuses the decision and records nothing.
+
+Application records the compensating entry, whose operation ID is the
+correction's UUID and which the person applying it records, with the decision
+and the holdings projection; a failure rolls them all back. A correction the
+register has moved past cannot be applied: reject it with a reason and prepare a
+new one against the current register. Rejection stays available until a decision
+applies or rejects the correction, including when the retained copy is
+unavailable. An already compensated entry cannot be compensated a second time.
+**Admin → Tokens → Register corrections** shows corrections and their copies as
+read-only history. The database keeps corrections, uploads and decisions
+immutable and refuses:
+- a preparation not made through the company command by a person whose current
+  appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own `authority` upload for the company;
+- a preparation whose changes are not the exact inverse, whose register revision
+  is not current, whose entry is already corrected, whose authority fields are
+  incomplete or whose effective date is after today;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era correction, or an
+  application without a current approval;
+- an applied or rejected correction without its matching decision, and a
+  decision whose correction does not carry its effect when the transaction
+  commits;
+- an application whose entry is not the exact compensating entry, recorded by
+  the person applying it directly after the revision preparation captured.
+
+Use the foundation verifier to check the resulting event chain and projection;
+that is not a claim of chain reconciliation.
+
+The owner chose private retention without automatic expiry for corrections and
+their authority files during the synthetic-only experiment. Ordinary deletion is
+blocked. A correction made before corrections were company-run keeps its copy of
+the staff-verified company document; deleting that document deletes neither the
+copy nor the decision. Committed copies are protected by their retained row;
+copies left by a rolled-back or interrupted preparation fall under the existing
+24-hour orphan sweep. The company's uploads are kept like import evidence
+(owner decision, 5 October 2026). Account/company deletion still respects
+protected register relations. Production retention needs its own decision before
+real data is admitted. Classification evidence, former-member retention and
+export records have independent policies; this choice does not change them.
+Export records follow the 2,557-day floor, purged by the daily retention job.
 
 ## Approved opening capture and wallet links
 
@@ -1091,7 +1156,7 @@ refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, or `authority` for a [correction](#compensating-corrections), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
 | `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
 | `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |

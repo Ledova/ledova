@@ -65,6 +65,14 @@ new one. Evidence uploads that no import uses are kept until production
 retention is decided. Evidence downloads are not logged; that can be added later
 for every register proposal at once.
 
+The owner applied the same rules to company-run corrections the same day
+(recorded on #864 and #860): a current `admin` appointment may take every step
+and `prepare`, `approve` and `apply` are the narrower delegate capabilities, with
+rejection taking `approve`; application needs an approval whose approver still
+holds a current appointment; the company's authority document is company-provided
+evidence with no Ledova staff verification; a correction still waiting for the
+retired staff review can only be rejected; and evidence downloads are not logged.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
