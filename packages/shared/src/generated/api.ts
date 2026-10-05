@@ -1663,6 +1663,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-evidence/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_evidence_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-imports/': {
     parameters: {
       query?: never;
@@ -1689,6 +1705,54 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_imports_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-imports/{uuid}/asic-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_imports_asic_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-imports/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_imports_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-imports/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_imports_decision_preview_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4311,39 +4375,70 @@ export interface ApiComponents {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
     };
+    RegisterEvidence: {
+      appointment: string;
+      company: string;
+      createdAt: string;
+      fileSize: number;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterEvidenceKindEnum'];
+      mimeType: string;
+      originalFilename: string;
+      providedBy: string;
+      sha256: string;
+      uuid: string;
+    };
+    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract';
+    RegisterEvidenceUploadRequest: {
+      appointment: string;
+      companyId: string;
+      file: Blob;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterEvidenceKindEnum'];
+    };
     RegisterImport: {
       approvingDirector: string;
       asAt: string;
-      asicDocument: string;
+      asicDocument: string | null;
+      asicEvidence: string | null;
       asicFingerprint: string;
       asicIssuedTotal: string | null;
       asicMemberCount: number | null;
+      asicSnapshot: unknown;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
       authorityReference: string;
       company: string;
       createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterImportDecision'][];
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       formerMembers: unknown;
       members: unknown;
+      preparedByName: string | null;
+      preparingAppointment: string | null;
+      providedBy: string;
       reason: string;
+      registerEvidence: string | null;
       registerSequence: number | null;
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
-      sourceDocument: string;
+      sourceDocument: string | null;
+      stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       token: string;
       uuid: string;
     };
     RegisterImportCreateRequest: {
+      appointment: string;
       approvingDirector?: string;
       asAt: string;
-      asicDocumentId: string;
+      asicEvidence: string;
+      asicIssuedTotal: string;
+      asicMemberCount: number;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
       authorityReference: string;
-      documentId: string;
       formerMembers: {
         [key: string]: unknown;
       }[];
@@ -4352,7 +4447,56 @@ export interface ApiComponents {
       }[];
       operationId: string;
       reason: string;
+      registerEvidence: string;
       tokenId: string;
+    };
+    RegisterImportDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterImportDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterImportDecisionKindEnum: 'approve' | 'apply' | 'reject';
+    RegisterImportDecisionPreview: {
+      canDecide: boolean;
+      comparison: ApiComponents['schemas']['RegisterImportPreviewRow'][];
+      importedMemberCount: number;
+      importedTotal: string;
+      opensRegister: boolean;
+      previewDigest: string;
+      registerSequence: number;
+      statedMemberCount: number | null;
+      statedTotal: string | null;
+      unmetRequirements: string[];
+    };
+    RegisterImportDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterImportPreviewRow: {
+      enteredOn: string | null;
+      imported: string | null;
+      importedEnteredOn: string | null;
+      liveAddress: string | null;
+      liveName: string | null;
+      member: string;
+      name: string | null;
+      stored: string | null;
+      wallets: string[];
     };
     RegisterInstruction: {
       approvingDirector: string;
@@ -8321,6 +8465,37 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_evidence_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'multipart/form-data': ApiComponents['schemas']['RegisterEvidenceUploadRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterEvidence'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterEvidence'];
+        };
+      };
+    };
+  };
   api_v1_tokens_register_imports_list: {
     parameters: {
       query?: {
@@ -8358,6 +8533,14 @@ export interface ApiOperations {
       };
     };
     responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterImport'];
+        };
+      };
       201: {
         headers: {
           [name: string]: unknown;
@@ -8385,6 +8568,81 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterImport'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_asic_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterImportDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterImportDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterImportDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterImport'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterImportDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterImportDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterImportDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterImportDecisionPreview'];
         };
       };
     };

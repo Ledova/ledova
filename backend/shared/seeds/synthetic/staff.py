@@ -56,7 +56,6 @@ PERMISSIONS = {
         "tokens.view_registeropening",
         "tokens.change_registeropening",
         "tokens.view_registerimport",
-        "tokens.change_registerimport",
         "tokens.view_registerinstruction",
         "tokens.change_registerinstruction",
         "tokens.view_registerwalletlink",

@@ -6,25 +6,21 @@ from unittest.mock import Mock
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
 from django.db import DatabaseError, IntegrityError, connection, connections
-from django.test import TransactionTestCase, override_settings
-from django.urls import reverse
+from django.test import TransactionTestCase
 from django.utils import timezone
-from django.utils.html import escape
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
 from web3 import Web3
 
-from companies.models import CompanyDocument, DocumentType
-from companies.services.document_review import prepare_document_review, verify_document
-from companies.tests.test_document_file_access import DOCUMENT_BYTES, attach_file
+from companies.services.administration import company_operation
+from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from offerings.tests.factories import allottable_subscription
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     FormerHolder,
@@ -32,7 +28,9 @@ from tokens.models import (
     IssuanceStatus,
     RegisterEntry,
     RegisterEntryKind,
+    RegisterEvidenceKind,
     RegisterImport,
+    RegisterImportDecision,
     RegisterInstruction,
     RegisterMember,
     RegisterMemberParticulars,
@@ -78,10 +76,11 @@ from tokens.services.register_events import (
     record_entry,
     verify_register,
 )
+from tokens.services.register_evidence import retain_register_evidence
 from tokens.services.register_imports import (
     decide_import,
-    prepare_import_review,
-    submit_import,
+    prepare_import,
+    preview_import_decision,
 )
 from tokens.services.register_instructions import (
     APPROVED,
@@ -121,47 +120,52 @@ NEWCOMER = {
     "entered_on": "2020-02-02",
     "amount_paid": None,
 }
-DECIDED = {"status": "applied", "asic_issued_total": 100, "asic_member_count": 2, "register_sequence": 1}
 
 
-def verified_document(company, reviewer, document_type, name):
+def staff_user():
     with use_migrate():
-        document = attach_file(
-            CompanyDocument.objects.create(
-                company=company,
-                document_type=document_type,
-                name=name,
-                file_size=len(DOCUMENT_BYTES),
-                mime_type="application/pdf",
-            )
+        return get_user_model().objects.create_user(
+            email=f"staff-{uuid4()}@example.test", is_active=True, is_staff=True
         )
-    _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-    return verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+
+
+def owner_appointment(company):
+    with use_migrate():
+        UserProfile.objects.get_or_create(user=company.owner, defaults={"full_name": "Synthetic register owner"})
+    return historical_owner_appointment(company)
+
+
+def upload_evidence(actor, appointment, kind, raw=DOCUMENT_BYTES):
+    evidence, _ = retain_register_evidence(
+        actor=actor,
+        company_id=appointment.company_id,
+        appointment=appointment.pk,
+        kind=kind,
+        idempotency_key=uuid4(),
+        name=f"{kind}.pdf",
+        raw=raw,
+        mime_type="application/pdf",
+    )
+    return evidence
 
 
 def import_fixture():
     owner, company, token, member, other, opening = register_fixture()
     owner.is_staff = False
     owner.save(update_fields=["is_staff"])
-    reviewer = get_user_model().objects.create_user(
-        email=f"import-{uuid4()}@example.test", is_active=True, is_staff=True
-    )
-    reviewer.user_permissions.add(
-        *Permission.objects.filter(
-            codename__in=["change_companydocument", "change_registerimport", "view_registerimport"]
-        )
-    )
-    register_document = verified_document(company, reviewer, DocumentType.SHARE_REGISTER, "Share register")
-    asic = verified_document(company, reviewer, DocumentType.ASIC_EXTRACT, "ASIC extract")
-    return owner, company, token, member, reviewer, register_document, asic, opening
+    appointment = owner_appointment(company)
+    register_copy = upload_evidence(owner, appointment, RegisterEvidenceKind.SHARE_REGISTER)
+    asic = upload_evidence(owner, appointment, RegisterEvidenceKind.ASIC_EXTRACT)
+    return owner, company, token, member, appointment, register_copy, asic, opening
 
 
-def import_payload(token, register_document, asic, member, **changes):
+def import_payload(token, register_copy, asic, member, appointment, **changes):
     return {
         "operation_id": uuid4(),
+        "appointment": appointment.pk,
         "token_id": token.pk,
-        "document_id": register_document.pk,
-        "asic_document_id": asic.pk,
+        "register_evidence": register_copy.pk,
+        "asic_evidence": asic.pk,
         "as_at": DAY.isoformat(),
         "members": [
             {
@@ -189,6 +193,74 @@ def import_payload(token, register_document, asic, member, **changes):
     }
 
 
+def stated(payload):
+    return {
+        "asic_issued_total": str(sum(int(row["shares"]) for row in payload["members"])),
+        "asic_member_count": len(payload["members"]),
+        **payload,
+    }
+
+
+def prepared(actor, payload):
+    return prepare_import(actor=actor, **stated(payload))[0]
+
+
+def preview(actor, appointment, proposal, kind, reason=""):
+    return preview_import_decision(
+        actor=actor, import_id=proposal.pk, appointment=appointment.pk, kind=kind, reason=reason
+    )[1]
+
+
+def decide(actor, appointment, proposal, kind, reason="", idempotency_key=None):
+    return decide_import(
+        actor=actor,
+        import_id=proposal.pk,
+        appointment=appointment.pk,
+        kind=kind,
+        idempotency_key=idempotency_key or uuid4(),
+        preview_digest=preview(actor, appointment, proposal, kind, reason)["preview_digest"],
+        confirmation=True,
+        reason=reason,
+    )
+
+
+def apply_import(actor, appointment, proposal):
+    decide(actor, appointment, proposal, "approve")
+    return decide(actor, appointment, proposal, "apply")
+
+
+def decision_digest(proposal, kind, actor, appointment, reason=""):
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(
+            "SELECT tokens_register_import_decision_digest(%s, %s, %s, %s, %s)",
+            [proposal.pk, kind, actor.pk, appointment.pk, reason],
+        )
+        return cursor.fetchone()[0]
+
+
+def forge_decision(proposal, kind, actor, appointment, reason="", digest=None):
+    with company_operation(actor, proposal.company_id, f"register_import_{kind}"), atomic():
+        decision = RegisterImportDecision.objects.create(
+            register_import=proposal,
+            kind=kind,
+            decided_by=actor,
+            appointment=appointment,
+            idempotency_key=uuid4(),
+            digest=digest or decision_digest(proposal, kind, actor, appointment, reason),
+            reason=reason,
+            decided_at=timezone.now(),
+        )
+        decision.refresh_from_db()
+    return decision
+
+
+def forge_outcome(proposal, actor, decision, **fields):
+    with company_operation(actor, proposal.company_id, f"register_import_{decision.kind}"), atomic():
+        RegisterImport.objects.filter(pk=proposal.pk).update(
+            reviewed_by=actor, reviewed_at=decision.decided_at, **fields
+        )
+
+
 def live_wallet(company, member, address, name, residence=RESIDENCE):
     user = get_user_model().objects.create_user(email=f"live-{uuid4()}@example.test", password="pw-12345678")
     profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
@@ -205,16 +277,17 @@ class RegisterImportTest(TransactionTestCase):
             self.company,
             self.token,
             self.member,
-            self.reviewer,
-            self.register_document,
+            self.appointment,
+            self.register_copy,
             self.asic,
             self.opening,
         ) = import_fixture()
-        self.payload = import_payload(self.token, self.register_document, self.asic, self.member)
+        self.staff = staff_user()
+        self.payload = import_payload(self.token, self.register_copy, self.asic, self.member, self.appointment)
         self.newcomer = uuid4()
 
     def submit(self, **changes):
-        return submit_import(actor=self.owner, **{**self.payload, **changes})
+        return prepared(self.owner, {**self.payload, **changes})
 
     def unopened(self, symbol="UNO", **fields):
         return ShareToken.objects.create(
@@ -245,16 +318,17 @@ class RegisterImportTest(TransactionTestCase):
             key=lambda change: change["member"],
         )
 
-    def apply(self, proposal, total=100, count=1):
-        _, _, confirmation = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-        return decide_import(
-            proposal_id=proposal.pk,
-            reviewer=self.reviewer,
-            confirmation=confirmation,
-            decision="apply",
-            asic_issued_total=total,
-            asic_member_count=count,
-        )
+    def preview(self, proposal, kind="apply", reason=""):
+        return preview(self.owner, self.appointment, proposal, kind, reason)
+
+    def decide(self, proposal, kind, reason="", **options):
+        return decide(self.owner, self.appointment, proposal, kind, reason, **options)
+
+    def apply(self, proposal):
+        return apply_import(self.owner, self.appointment, proposal)
+
+    def unmet(self, proposal, kind="apply"):
+        return self.preview(proposal, kind)["unmet_requirements"]
 
     def move(self, source, target, shares, effective_on=DAY):
         record_entry(
@@ -280,18 +354,36 @@ class RegisterImportTest(TransactionTestCase):
         rows = self.export(token)
         return {row[0]: dict(zip(REGISTER_HEADERS, row)) for row in rows[1 : rows.index([])]}
 
-    def test_submission_binds_both_documents_and_retains_the_register_copy(self):
+    def test_preparation_binds_both_uploads_and_retains_copies_with_the_stated_figures(self):
         proposal = self.submit()
         self.assertEqual((proposal.status, proposal.token_id, proposal.as_at), ("submitted", self.token.pk, DAY))
         self.assertEqual(
-            (proposal.evidence_fingerprint, proposal.asic_document, proposal.asic_fingerprint),
-            (self.register_document.verified_fingerprint, self.asic.pk, self.asic.verified_fingerprint),
+            (
+                proposal.evidence_fingerprint,
+                proposal.asic_fingerprint,
+                proposal.source_document,
+                proposal.asic_document,
+            ),
+            (self.register_copy.sha256, self.asic.sha256, None, None),
         )
-        self.assertTrue(proposal.file.storage.exists(proposal.file.name))
+        self.assertEqual(
+            (proposal.preparing_appointment_id, proposal.asic_issued_total, proposal.asic_member_count),
+            (self.appointment.pk, 100, 1),
+        )
+        self.assertEqual(
+            (proposal.evidence_snapshot["provided_by"], proposal.asic_snapshot["document_type"]),
+            ("company", RegisterEvidenceKind.ASIC_EXTRACT),
+        )
+        for stored in (proposal.file, proposal.asic_file):
+            self.assertTrue(stored.storage.exists(stored.name))
+        self.assertNotEqual(proposal.file.name, proposal.asic_file.name)
         self.assertEqual(proposal.members[0]["amount_paid"], "250.00")
-        self.assertEqual(self.submit(operation_id=self.payload["operation_id"]).pk, proposal.pk)
+        replayed, created = prepare_import(actor=self.owner, **stated(self.payload))
+        self.assertEqual((replayed.pk, created), (proposal.pk, False))
+        with self.assertRaises(RegisterChangeConflict):
+            prepare_import(actor=self.owner, **stated({**self.payload, "reason": "Another reason"}))
 
-    def test_submission_refuses_unusable_rows_and_documents(self):
+    def test_preparation_refuses_unusable_rows_evidence_and_figures(self):
         row = self.payload["members"][0]
         for changes in (
             {"members": []},
@@ -302,15 +394,17 @@ class RegisterImportTest(TransactionTestCase):
             {"members": [{**row, "entered_on": "2030-01-01"}]},
             {"members": [{**row, "name": " "}]},
             {"former_members": [{**self.payload["former_members"][0], "ceased_on": "2030-01-01"}]},
-            {"document_id": self.asic.pk},
-            {"asic_document_id": self.register_document.pk},
+            {"register_evidence": self.asic.pk},
+            {"asic_evidence": self.register_copy.pk},
             {"as_at": (timezone.localdate() + timedelta(days=1)).isoformat()},
+            {"asic_issued_total": "99"},
+            {"asic_member_count": 2},
         ):
             with self.subTest(changes=changes), self.assertRaises(ValidationError):
                 self.submit(operation_id=uuid4(), **changes)
         self.assertFalse(RegisterImport.objects.exists())
 
-    def test_submission_refuses_text_longer_than_its_column(self):
+    def test_preparation_refuses_text_longer_than_its_column(self):
         row = self.payload["members"][0]
         former = self.payload["former_members"][0]
         for changes in (
@@ -350,11 +444,10 @@ class RegisterImportTest(TransactionTestCase):
         proposal = self.submit(former_members=[{**former, "ceased_on": day.isoformat()} for day in edges])
         self.assertEqual([row["ceased_on"] for row in proposal.former_members], [day.isoformat() for day in edges])
 
-    def test_application_records_particulars_former_members_and_the_asic_figures(self):
+    def test_application_records_particulars_former_members_and_the_stated_figures(self):
         proposal = self.submit()
-        _, comparison, _ = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
         self.assertEqual(
-            comparison,
+            self.preview(proposal, "approve")["comparison"],
             [
                 {
                     "member": str(self.member.pk),
@@ -374,6 +467,10 @@ class RegisterImportTest(TransactionTestCase):
             (applied.status, applied.asic_issued_total, applied.asic_member_count, applied.register_sequence),
             ("applied", 100, 1, 1),
         )
+        self.assertEqual(
+            (applied.reviewed_by_id, list(applied.decisions.values_list("kind", flat=True))),
+            (self.owner.pk, ["approve", "apply"]),
+        )
         self.assertEqual(list(RegisterEntry.objects.filter(register__token=self.token)), [self.opening])
         particulars = RegisterMemberParticulars.objects.get(member=self.member)
         self.assertEqual((particulars.name, particulars.residential_address), ("Mia Member", RESIDENCE))
@@ -382,22 +479,31 @@ class RegisterImportTest(TransactionTestCase):
             (former.name, former.shares_at_cessation, former.ceased_on), ("Fred Former", 40, date(2022, 3, 1))
         )
 
-    def test_replaying_an_application_with_other_asic_figures_conflicts(self):
-        proposal = self.apply(self.submit())
-        replay = {"proposal_id": proposal.pk, "reviewer": self.reviewer, "confirmation": "", "decision": "apply"}
-        repeated = decide_import(**replay, asic_issued_total=100, asic_member_count=1)
-        self.assertEqual((repeated.pk, repeated.status), (proposal.pk, "applied"))
-        for total, count in ((99, 1), (100, 2)):
-            with self.subTest(total=total, count=count), self.assertRaises(RegisterChangeConflict):
-                decide_import(**replay, asic_issued_total=total, asic_member_count=count)
-        proposal.refresh_from_db()
-        self.assertEqual((proposal.asic_issued_total, proposal.asic_member_count), (100, 1))
-
-    def test_figures_that_differ_from_the_asic_extract_or_changed_holdings_refuse_application(self):
+    def test_an_identical_decision_retry_returns_the_import_and_a_changed_one_conflicts(self):
         proposal = self.submit()
-        for total, count, message in ((99, 1, "ASIC extract shows 99"), (100, 2, "held by 2 members")):
-            with self.subTest(total=total, count=count), self.assertRaisesMessage(ValidationError, message):
-                self.apply(proposal, total, count)
+        key = uuid4()
+        approved = self.decide(proposal, "approve", idempotency_key=key)
+        retry = {
+            "actor": self.owner,
+            "import_id": proposal.pk,
+            "appointment": self.appointment.pk,
+            "kind": "approve",
+            "idempotency_key": key,
+            "preview_digest": approved.decisions.get().digest,
+            "confirmation": True,
+        }
+        self.assertEqual(decide_import(**retry).pk, proposal.pk)
+        for changes in ({"kind": "reject", "reason": "Changed"}, {"preview_digest": "0" * 64}):
+            with self.subTest(changes=changes), self.assertRaises(RegisterChangeConflict):
+                decide_import(**{**retry, **changes})
+        self.assertEqual(RegisterImportDecision.objects.filter(register_import=proposal).count(), 1)
+        with self.assertRaisesMessage(ValidationError, "already_approved"):
+            self.decide(proposal, "approve")
+        self.assertEqual(self.decide(proposal, "apply").status, "applied")
+
+    def test_holdings_that_change_after_preparation_keep_it_from_applying_and_it_can_be_rejected(self):
+        proposal = self.submit()
+        self.decide(proposal, "approve")
         record_entry(
             register_id=self.opening.register_id,
             operation_id=uuid4(),
@@ -406,17 +512,15 @@ class RegisterImportTest(TransactionTestCase):
             effective_on=DAY,
             recorded_by=self.owner,
         )
-        with self.assertRaisesMessage(ValidationError, "(import 100, stored 105)"):
-            self.apply(proposal)
+        self.assertIn("holdings_differ", self.unmet(proposal))
+        with self.assertRaisesMessage(ValidationError, "holdings_differ"):
+            self.decide(proposal, "apply")
         self.assertFalse(RegisterMemberParticulars.objects.exists())
-        rejected = decide_import(
-            proposal_id=proposal.pk,
-            reviewer=self.reviewer,
-            confirmation="",
-            decision="reject",
-            rejection_reason="Stale",
+        rejected = self.decide(proposal, "reject", reason="Stale")
+        self.assertEqual(
+            (rejected.status, rejected.rejection_reason, rejected.reviewed_by_id, rejected.asic_issued_total),
+            ("rejected", "Stale", self.owner.pk, 100),
         )
-        self.assertEqual((rejected.status, rejected.asic_issued_total), ("rejected", None))
 
     def test_the_imported_date_entered_lasts_while_the_holding_is_continuous_and_amount_paid_while_unchanged(self):
         self.apply(self.submit())
@@ -478,7 +582,7 @@ class RegisterImportTest(TransactionTestCase):
                 },
             ]
         )
-        self.apply(proposal, total=100, count=2)
+        self.apply(proposal)
         members = self.members()
         self.assertEqual(
             [members[str(self.member.pk)][header] for header in ("Name", "Date entered", "Amount paid")],
@@ -492,32 +596,18 @@ class RegisterImportTest(TransactionTestCase):
     def test_a_share_class_takes_one_applied_import(self):
         first = self.submit()
         second = self.submit(operation_id=uuid4())
-        _, _, confirmation = prepare_import_review(proposal_id=second.pk, reviewer=self.reviewer)
+        self.decide(second, "approve")
         self.apply(first)
         refusal = "already has an applied import"
         with self.assertRaisesMessage(ValidationError, refusal):
             self.submit(operation_id=uuid4())
-        with self.assertRaisesMessage(ValidationError, refusal):
-            prepare_import_review(proposal_id=second.pk, reviewer=self.reviewer)
-        with self.assertRaisesMessage(ValidationError, refusal):
-            decide_import(
-                proposal_id=second.pk,
-                reviewer=self.reviewer,
-                confirmation=confirmation,
-                decision="apply",
-                asic_issued_total=100,
-                asic_member_count=1,
-            )
-        RegisterMemberParticulars.objects.filter(member=self.member).update(source_import=second)
+        self.assertIn("class_has_applied_import", self.unmet(second))
+        with self.assertRaisesMessage(ValidationError, "class_has_applied_import"):
+            self.decide(second, "apply")
         with self.assertRaisesMessage(IntegrityError, "one_applied_register_import_per_class"), atomic():
-            RegisterImport.objects.filter(pk=second.pk).update(
-                status="applied",
-                reviewed_by=self.reviewer,
-                reviewed_at=timezone.now(),
-                asic_issued_total=100,
-                asic_member_count=1,
-                register_sequence=1,
-            )
+            decision = forge_decision(second, "apply", self.owner, self.appointment)
+            RegisterMemberParticulars.objects.filter(member=self.member).update(source_import=second)
+            forge_outcome(second, self.owner, decision, status="applied", register_sequence=1)
         self.assertEqual(ImportedFormerMember.objects.count(), 1)
 
     def test_an_older_import_for_another_class_keeps_the_newer_particulars(self):
@@ -558,7 +648,6 @@ class RegisterImportTest(TransactionTestCase):
             self.members(imports["OLDER"].token)[str(self.member.pk)]["Residential address"], "Newer address"
         )
 
-    @override_settings(STORAGES=ADMIN_STORAGES)
     def test_live_identity_wins_an_ambiguous_one_stays_and_particulars_fill_in_only_where_nothing_resolves(self):
         ambiguous, walletless, stamped = (create_member(company_id=self.company.pk, member_id=uuid4()) for _ in "abc")
         for member in (ambiguous, walletless, stamped):
@@ -584,7 +673,7 @@ class RegisterImportTest(TransactionTestCase):
                 for label, member in (("Mia", self.member), ("Amy", ambiguous), ("Wes", walletless), ("Sam", stamped))
             ]
         )
-        _, comparison, _ = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        comparison = self.preview(proposal, "approve")["comparison"]
         self.assertEqual(
             {row["member"]: (row["name"], row["live_name"], row["wallets"], row["entered_on"]) for row in comparison},
             {
@@ -594,11 +683,23 @@ class RegisterImportTest(TransactionTestCase):
                 str(stamped.pk): ("Imported Sam", "", [STAMPED], DAY),
             },
         )
-        self.client.force_login(self.reviewer)
-        page = self.client.get(reverse("admin:tokens_registerimport_review", args=[proposal.pk]))
-        for shown in ("Live Mia, 1 Live Street", LIVE, f"{FIRST}, {SECOND}", MEMBER_AMBIGUOUS_NAME, DAY.isoformat()):
-            self.assertContains(page, escape(shown))
-        self.apply(proposal, total=100, count=4)
+        client = APIClient()
+        client.force_authenticate(self.owner)
+        response = client.post(
+            f"/api/v1/tokens/register-imports/{proposal.pk}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        shown = {row["member"]: row for row in response.json()["comparison"]}
+        self.assertEqual(
+            (shown[str(self.member.pk)]["liveName"], shown[str(self.member.pk)]["liveAddress"]),
+            ("Live Mia", "1 Live Street"),
+        )
+        self.assertEqual(
+            (shown[str(ambiguous.pk)]["wallets"], shown[str(self.member.pk)]["imported"]), ([FIRST, SECOND], "25")
+        )
+        self.apply(proposal)
         members = self.members()
         shown = ("Name", "Residential address", "Holder type", "Identity source")
         self.assertEqual(
@@ -709,26 +810,41 @@ class RegisterImportTest(TransactionTestCase):
         heading = rows.index(FORMER_MEMBER_HEADERS)
         self.assertEqual(rows[heading + 1][0], "Fred Former")
 
-    def test_the_database_refuses_forged_imports_rewrites_and_deletion(self):
-        proposal = self.submit()
-        with self.assertRaises(DatabaseError), atomic():
-            RegisterImport.objects.filter(pk=proposal.pk).update(members=[])
-        with self.assertRaises(DatabaseError), atomic():
-            RegisterImport.objects.filter(pk=proposal.pk).update(
-                status="applied",
-                reviewed_by=self.reviewer,
-                reviewed_at=timezone.now(),
-                asic_issued_total=100,
-                asic_member_count=1,
-                register_sequence=1,
-            )
-        with self.assertRaises(DatabaseError), atomic():
-            proposal.delete()
-        forged = {
+    def forged_fields(self, proposal):
+        return {
             field.name: getattr(proposal, field.name)
             for field in RegisterImport._meta.fields
-            if field.name not in ("uuid", "created_at", "updated_at", "file")
+            if field.name not in ("uuid", "created_at", "updated_at", "file", "asic_file")
         }
+
+    def insert_forged(self, fields, actor=None, operation="register_import_prepare", **changes):
+        forged_id = uuid4()
+        folder = f"companies/{self.company.pk}/register-imports/{forged_id}"
+        with company_operation(actor or self.owner, self.company.pk, operation), atomic():
+            RegisterImport.objects.create(
+                **{
+                    **fields,
+                    **changes,
+                    "uuid": forged_id,
+                    "file": f"{folder}/{uuid4()}.bin",
+                    "asic_file": f"{folder}/{uuid4()}.bin",
+                }
+            )
+
+    def test_the_database_refuses_forged_imports_rewrites_and_deletion(self):
+        proposal = self.submit()
+        with company_operation(self.owner, self.company.pk, "register_import_apply"):
+            for write in (
+                lambda: RegisterImport.objects.filter(pk=proposal.pk).update(members=[]),
+                lambda: RegisterImport.objects.filter(pk=proposal.pk).update(asic_issued_total=101),
+                lambda: RegisterImport.objects.filter(pk=proposal.pk).update(
+                    status="applied", reviewed_by=self.owner, reviewed_at=timezone.now(), register_sequence=1
+                ),
+                proposal.delete,
+            ):
+                with self.assertRaises(DatabaseError), atomic():
+                    write()
+        forged = self.forged_fields(proposal)
         member = proposal.members[0]
         without_amount = {key: value for key, value in member.items() if key != "amount_paid"}
         former = proposal.former_members[0]
@@ -739,17 +855,25 @@ class RegisterImportTest(TransactionTestCase):
             {"members": [{**without_amount, "note": "an extra key in place of amount_paid"}]},
             {"former_members": [{**former, "note": "an extra key"}]},
             {"former_members": [{**former, "ceased_on": DAY.isoformat()}]},
+            {"asic_issued_total": 99},
+            {"asic_member_count": 2},
+            {"evidence_fingerprint": "0" * 64},
+            {"asic_snapshot": {**proposal.asic_snapshot, "sha256": "0" * 64}},
+            {"register_evidence": self.asic},
+            {"preparing_appointment": None},
+            {"submitted_by": self.staff},
+            {"status": "applied"},
         ):
-            forged_id = uuid4()
-            with self.subTest(changes=changes), self.assertRaises(DatabaseError), atomic():
-                RegisterImport.objects.create(
-                    **{
-                        **forged,
-                        **changes,
-                        "uuid": forged_id,
-                        "file": f"companies/{self.company.pk}/register-imports/{forged_id}/{uuid4()}.bin",
-                    }
+            with self.subTest(changes=changes):
+                self.assert_refused("exact current intent", lambda: self.insert_forged(forged, **changes))
+        for actor, operation in ((self.owner, "register_import_approve"), (self.staff, "register_import_prepare")):
+            with self.subTest(actor=actor.email, operation=operation):
+                self.assert_refused(
+                    "exact current intent", lambda: self.insert_forged(forged, actor=actor, operation=operation)
                 )
+        with self.assertRaises(RuntimeError), atomic():
+            self.insert_forged(forged)
+            raise RuntimeError("rollback")
         self.assertEqual(RegisterImport.objects.count(), 1)
 
     def test_particulars_and_imported_former_members_follow_the_seven_year_clock_and_the_import_is_kept(self):
@@ -769,7 +893,8 @@ class RegisterImportTest(TransactionTestCase):
         self.assertEqual(
             (proposal.members[0]["name"], proposal.former_members[0]["name"]), ("Mia Member", "Fred Former")
         )
-        self.assertTrue(proposal.file.storage.exists(proposal.file.name))
+        for stored in (proposal.file, proposal.asic_file):
+            self.assertTrue(stored.storage.exists(stored.name))
 
     def test_an_import_opens_a_class_not_yet_on_chain_with_its_members_particulars_and_former_members(self):
         deployed = self.unopened(
@@ -782,17 +907,18 @@ class RegisterImportTest(TransactionTestCase):
         for token in (self.unopened(), deployed):
             with self.subTest(status=token.status):
                 proposal = self.submit(**self.opening_import(token))
-                _, comparison, _ = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+                approval = self.preview(proposal, "approve")
                 self.assertEqual(
-                    {row["member"]: (row["imported"], row["stored"]) for row in comparison},
+                    {row["member"]: (row["imported"], row["stored"]) for row in approval["comparison"]},
                     {str(self.member.pk): (60, None), str(self.newcomer): (40, None)},
                 )
-                applied = self.apply(proposal, total=100, count=2)
+                self.assertTrue(approval["opens_register"])
+                applied = self.apply(proposal)
                 self.assertEqual((applied.status, applied.register_sequence), ("applied", 1))
                 (entry,) = RegisterEntry.objects.filter(register__token=token)
                 self.assertEqual(
                     (entry.kind, entry.sequence, entry.operation_id, entry.effective_on, entry.recorded_by_id),
-                    (RegisterEntryKind.OPENING, 1, proposal.pk, DAY, self.reviewer.pk),
+                    (RegisterEntryKind.OPENING, 1, proposal.pk, DAY, self.owner.pk),
                 )
                 self.assertEqual(entry.changes, self.opening_changes())
                 self.assertEqual(verify_register(entry.register_id)["issued_supply"], "100")
@@ -814,35 +940,25 @@ class RegisterImportTest(TransactionTestCase):
     def test_an_approved_issue_keeps_a_class_from_being_opened_by_an_import(self):
         token = self.unopened()
         proposal = self.submit(**self.opening_import(token))
-        _, _, confirmation = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        self.decide(proposal, "approve")
         ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot").approve(
-            self.reviewer
+            self.staff
         )
         refusal = "has an approved issue or an applied register instruction"
         with self.assertRaisesMessage(ValidationError, refusal):
             self.submit(**self.opening_import(token))
-        with self.assertRaisesMessage(ValidationError, refusal):
-            prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-        with self.assertRaisesMessage(ValidationError, refusal):
-            decide_import(
-                proposal_id=proposal.pk,
-                reviewer=self.reviewer,
-                confirmation=confirmation,
-                decision="apply",
-                asic_issued_total=100,
-                asic_member_count=2,
-            )
+        self.assertIn("class_not_openable", self.unmet(proposal))
+        with self.assertRaisesMessage(ValidationError, "class_not_openable"):
+            self.decide(proposal, "apply")
         self.assertFalse(ShareRegister.objects.filter(token=token).exists())
         self.assertFalse(RegisterMember.objects.filter(pk=self.newcomer).exists())
 
-    def test_a_class_opened_after_submission_applies_the_import_by_the_opened_rules(self):
+    def test_a_class_opened_after_preparation_applies_the_import_by_the_opened_rules(self):
         token = self.unopened()
         dated = self.submit(**self.opening_import(token))
         earlier = self.submit(**self.opening_import(token, former_members=self.payload["former_members"]))
-        confirmations = {
-            proposal.pk: prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)[2]
-            for proposal in (dated, earlier)
-        }
+        for proposal in (dated, earlier):
+            self.decide(proposal, "approve")
         open_register(
             token_id=token.pk,
             operation_id=uuid4(),
@@ -850,19 +966,11 @@ class RegisterImportTest(TransactionTestCase):
             effective_on=DAY,
             recorded_by=self.owner,
         )
-        for proposal, refusal in (
-            (dated, f"ceased before the register's opening on {DAY.isoformat()}"),
-            (earlier, f"{self.newcomer} (import 40, stored None)"),
-        ):
-            with self.subTest(refusal=refusal), self.assertRaisesMessage(ValidationError, refusal):
-                decide_import(
-                    proposal_id=proposal.pk,
-                    reviewer=self.reviewer,
-                    confirmation=confirmations[proposal.pk],
-                    decision="apply",
-                    asic_issued_total=100,
-                    asic_member_count=2,
-                )
+        for proposal, unmet in ((dated, "former_member_after_opening"), (earlier, "holdings_differ")):
+            with self.subTest(unmet=unmet):
+                self.assertIn(unmet, self.unmet(proposal))
+                with self.assertRaisesMessage(ValidationError, unmet):
+                    self.decide(proposal, "apply")
         self.assertEqual(RegisterEntry.objects.filter(register__token=token).count(), 1)
         self.assertFalse(RegisterMember.objects.filter(pk=self.newcomer).exists())
         with self.assertRaisesMessage(ValidationError, "must already be a member"):
@@ -875,13 +983,15 @@ class RegisterImportTest(TransactionTestCase):
             self.submit(**self.opening_import(self.unopened(), members=[row]))
         self.assertFalse(RegisterImport.objects.exists())
 
-    def test_asic_figures_that_differ_refuse_an_opening_and_record_nothing(self):
+    def test_stated_figures_that_differ_refuse_an_opening_and_record_nothing(self):
         token = self.unopened()
-        proposal = self.submit(**self.opening_import(token))
-        for total, count, message in ((99, 2, "ASIC extract shows 99 shares"), (100, 1, "held by 1 members")):
-            with self.subTest(total=total, count=count), self.assertRaisesMessage(ValidationError, message):
-                self.apply(proposal, total, count)
-        self.assertEqual(RegisterImport.objects.get(pk=proposal.pk).status, "submitted")
+        for figures, message in (
+            ({"asic_issued_total": "99"}, "ASIC extract shows 99 shares"),
+            ({"asic_member_count": 1}, "held by 1 members"),
+        ):
+            with self.subTest(figures=figures), self.assertRaisesMessage(ValidationError, message):
+                self.submit(**self.opening_import(token), **figures)
+        self.assertFalse(RegisterImport.objects.exists())
         self.assertFalse(ShareRegister.objects.filter(token=token).exists())
         self.assertFalse(RegisterMember.objects.filter(pk=self.newcomer).exists())
         self.assertFalse(RegisterMemberParticulars.objects.exists())
@@ -891,11 +1001,21 @@ class RegisterImportTest(TransactionTestCase):
         payload = self.opening_import(token)
         proposal = self.submit(**payload)
         self.assertEqual(self.submit(**payload).pk, proposal.pk)
-        self.apply(proposal, total=100, count=2)
-        replay = {"proposal_id": proposal.pk, "reviewer": self.reviewer, "confirmation": "", "decision": "apply"}
-        self.assertEqual(decide_import(**replay, asic_issued_total=100, asic_member_count=2).status, "applied")
+        self.decide(proposal, "approve")
+        key = uuid4()
+        applied = self.decide(proposal, "apply", idempotency_key=key)
+        replay = {
+            "actor": self.owner,
+            "import_id": proposal.pk,
+            "appointment": self.appointment.pk,
+            "kind": "apply",
+            "idempotency_key": key,
+            "preview_digest": applied.decisions.get(kind="apply").digest,
+            "confirmation": True,
+        }
+        self.assertEqual(decide_import(**replay).status, "applied")
         with self.assertRaises(RegisterChangeConflict):
-            decide_import(**replay, asic_issued_total=100, asic_member_count=1)
+            decide_import(**{**replay, "preview_digest": "0" * 64})
         self.assertEqual(ShareRegister.objects.get(token=token).sequence, 1)
         with self.assertRaisesMessage(ValidationError, "already has an applied import"):
             self.submit(**self.opening_import(token))
@@ -903,12 +1023,13 @@ class RegisterImportTest(TransactionTestCase):
     def test_the_database_ties_an_opening_import_to_exactly_its_own_entry(self):
         token = self.unopened()
         proposal = self.submit(**self.opening_import(token))
+        self.decide(proposal, "approve")
         exact = {
             "token_id": token.pk,
             "operation_id": proposal.pk,
             "changes": self.opening_changes(),
             "effective_on": DAY,
-            "recorded_by": self.reviewer,
+            "recorded_by": self.owner,
         }
 
         def unchanged():
@@ -928,7 +1049,7 @@ class RegisterImportTest(TransactionTestCase):
             request = ShareIssuanceRequest.objects.create(
                 token=token, recipient_address=CAROL, amount=5, reason="Allot"
             )
-            request.approve(self.reviewer)
+            request.approve(self.staff)
 
         def forge(entry, after=unchanged):
             for row in proposal.members:
@@ -944,15 +1065,14 @@ class RegisterImportTest(TransactionTestCase):
             if entry is not None:
                 open_register(**entry)
             after()
-            RegisterImport.objects.filter(pk=proposal.pk).update(
-                **DECIDED, reviewed_by=self.reviewer, reviewed_at=timezone.now()
-            )
+            decision = forge_decision(proposal, "apply", self.owner, self.appointment)
+            forge_outcome(proposal, self.owner, decision, status="applied", register_sequence=1)
 
         for entry, after in (
             (None, unchanged),
             ({**exact, "changes": self.opening_changes(newcomer_shares="50")}, unchanged),
             ({**exact, "effective_on": DAY - timedelta(days=1)}, unchanged),
-            ({**exact, "recorded_by": self.owner}, unchanged),
+            ({**exact, "recorded_by": self.staff}, unchanged),
             (exact, an_issue_after_it),
             (exact, an_approved_issue),
         ):
@@ -969,38 +1089,26 @@ class RegisterImportTest(TransactionTestCase):
     def test_the_database_admits_an_opening_import_only_for_an_eligible_class_and_its_companys_members(self):
         token = self.unopened()
         proposal = self.submit(**self.opening_import(token))
-        forged = {
-            field.name: getattr(proposal, field.name)
-            for field in RegisterImport._meta.fields
-            if field.name not in ("uuid", "created_at", "updated_at", "file")
-        }
+        forged = self.forged_fields(proposal)
         _, _, _, stranger, _, _ = register_fixture()
-
-        def insert(**changes):
-            forged_id = uuid4()
-            RegisterImport.objects.create(
-                **{
-                    **forged,
-                    **changes,
-                    "uuid": forged_id,
-                    "file": f"companies/{self.company.pk}/register-imports/{forged_id}/{uuid4()}.bin",
-                }
-            )
-
         row = proposal.members[0]
-        self.assert_refused("exact current intent", lambda: insert(members=[{**row, "member": str(stranger.pk)}]))
+        alone = {"asic_issued_total": int(row["shares"]), "asic_member_count": 1}
+        self.assert_refused(
+            "exact current intent",
+            lambda: self.insert_forged(forged, members=[{**row, "member": str(stranger.pk)}], **alone),
+        )
         with self.assertRaises(RuntimeError), atomic():
-            insert(members=[{**row, "member": str(uuid4())}])
+            self.insert_forged(forged, members=[{**row, "member": str(uuid4())}], **alone)
             raise RuntimeError("rollback")
         ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot").approve(
-            self.reviewer
+            self.staff
         )
-        self.assert_refused("exact current intent", insert)
+        self.assert_refused("exact current intent", lambda: self.insert_forged(forged))
         self.assertEqual(RegisterImport.objects.count(), 1)
 
     def test_an_import_opened_class_reads_not_on_chain_with_nothing_waiting_until_a_completion(self):
         token = self.unopened()
-        self.apply(self.submit(**self.opening_import(token)), total=100, count=2)
+        self.apply(self.submit(**self.opening_import(token)))
         client = APIClient()
         client.force_authenticate(self.owner)
         rows = self.export(token)
@@ -1031,7 +1139,7 @@ class RegisterImportTest(TransactionTestCase):
         buyer = create_member(company_id=self.company.pk, member_id=uuid4())
         self.move(self.member, buyer, 30)
         content, _ = prepare_notice_figures(
-            self.token, self.reviewer, period_from=DAY, instruction="SYNTHETIC-NOTICE-IMPORTED"
+            self.token, self.staff, period_from=DAY, instruction="SYNTHETIC-NOTICE-IMPORTED"
         )
         rows = list(csv.reader(io.StringIO(content.decode())))
         self.assertIn(["2", "Transfer", DAY.isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
@@ -1045,8 +1153,7 @@ class RegisterImportTest(TransactionTestCase):
         row = self.payload["members"][0]
         trustee = {"name": TRUSTEE, "residential_address": TRUSTEE_ADDRESS, "amount_paid": None}
         self.apply(
-            self.submit(members=[{**row, "shares": "60"}, {**row, "member": str(trust.pk), "shares": "40", **trustee}]),
-            count=2,
+            self.submit(members=[{**row, "shares": "60"}, {**row, "member": str(trust.pk), "shares": "40", **trustee}])
         )
         return trust
 
@@ -1086,12 +1193,12 @@ class RegisterImportTest(TransactionTestCase):
             (TRUSTEE, TRUSTEE_ADDRESS, "treasury", IDENTITY_PARTICULARS, None),
         )
         [transferee, _] = pages_of(
-            prepare_certificate(self.token, self.reviewer, sequence=2, instruction="SYNTHETIC-CERTIFICATE")
+            prepare_certificate(self.token, self.staff, sequence=2, instruction="SYNTHETIC-CERTIFICATE")
         )
         self.assertIn(f"Member: {TRUSTEE}", transferee)
         self.assertIn(f"Residential address: {TRUSTEE_ADDRESS}", transferee)
         content, _ = prepare_notice_figures(
-            self.token, self.reviewer, period_from=DAY, instruction="SYNTHETIC-NOTICE-TRUST"
+            self.token, self.staff, period_from=DAY, instruction="SYNTHETIC-NOTICE-TRUST"
         )
         rows = list(csv.reader(io.StringIO(content.decode())))
         self.assertIn([str(trust.pk), TRUSTEE, TRUSTEE_ADDRESS, "40", "not recorded"], rows)
@@ -1128,54 +1235,46 @@ class ImportOpenedInstructionTest(TransactionTestCase):
     def setUp(self):
         self.tenant, self.reviewer, self.document, self.request = instruction_fixture("import-opened")
         self.token = self.tenant.deployed_token
-        self.reviewer.user_permissions.add(
-            *Permission.objects.filter(codename__in=["change_registerimport", "view_registerimport"])
-        )
         self.member = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
+        self.appointment = owner_appointment(self.tenant.company)
         self.payload = import_payload(
             self.token,
-            verified_document(self.tenant.company, self.reviewer, DocumentType.SHARE_REGISTER, "Share register"),
-            verified_document(self.tenant.company, self.reviewer, DocumentType.ASIC_EXTRACT, "ASIC extract"),
+            upload_evidence(self.tenant.user, self.appointment, RegisterEvidenceKind.SHARE_REGISTER),
+            upload_evidence(self.tenant.user, self.appointment, RegisterEvidenceKind.ASIC_EXTRACT),
             self.member,
+            self.appointment,
         )
 
     def submit(self):
-        proposal = submit_import(actor=self.tenant.user, **{**self.payload, "operation_id": uuid4()})
-        return proposal, prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)[2]
+        proposal = prepared(self.tenant.user, {**self.payload, "operation_id": uuid4()})
+        decide(self.tenant.user, self.appointment, proposal, "approve")
+        return proposal
 
-    def decide(self, proposal, confirmation):
-        return decide_import(
-            proposal_id=proposal.pk,
-            reviewer=self.reviewer,
-            confirmation=confirmation,
-            decision="apply",
-            asic_issued_total=100,
-            asic_member_count=1,
-        )
+    def apply(self, proposal):
+        return decide(self.tenant.user, self.appointment, proposal, "apply")
 
     def test_an_applied_register_instruction_keeps_a_class_from_being_opened_by_an_import(self):
-        proposal, confirmation = self.submit()
+        proposal = self.submit()
         allottable_subscription(self.tenant)
         self.assertFalse(ShareIssuanceRequest.objects.filter(token=self.token, status__in=APPROVED).exists())
         refusal = "has an approved issue or an applied register instruction"
         with self.assertRaisesMessage(ValidationError, refusal):
             self.submit()
-        with self.assertRaisesMessage(ValidationError, refusal):
-            self.decide(proposal, confirmation)
+        with self.assertRaisesMessage(ValidationError, "class_not_openable"):
+            self.apply(proposal)
         with self.assertRaisesMessage(DatabaseError, "exactly the register's only entry"), atomic():
             open_register(
                 token_id=self.token.pk,
                 operation_id=proposal.pk,
                 changes=[{"member": str(self.member.pk), "shares": "100"}],
                 effective_on=DAY,
-                recorded_by=self.reviewer,
+                recorded_by=self.tenant.user,
             )
             RegisterMemberParticulars.objects.create(
                 member=self.member, name="Mia Member", residential_address=RESIDENCE, source_import=proposal
             )
-            RegisterImport.objects.filter(pk=proposal.pk).update(
-                **{**DECIDED, "asic_member_count": 1}, reviewed_by=self.reviewer, reviewed_at=timezone.now()
-            )
+            decision = forge_decision(proposal, "apply", self.tenant.user, self.appointment)
+            forge_outcome(proposal, self.tenant.user, decision, status="applied", register_sequence=1)
         self.assertFalse(RegisterEntry.objects.filter(register__token=self.token).exists())
 
     def test_an_import_opened_class_takes_no_issue_instruction(self):
@@ -1188,7 +1287,7 @@ class ImportOpenedInstructionTest(TransactionTestCase):
             RegisterInstruction.objects.filter(pk=waiting.pk).update(**applied)
             raise RuntimeError("rollback")
         self.request.refresh_from_db()
-        self.decide(*self.submit())
+        self.apply(self.submit())
         refusal = "opened from an imported register"
         with self.assertRaisesMessage(ValidationError, refusal):
             submit_instruction(actor=self.tenant.user, **{**payload, "operation_id": uuid4()})
@@ -1231,17 +1330,10 @@ class RegisterImportOpeningMigrationTest(TransactionTestCase):
         self.assertEqual(self.installed(), opening)
 
     def test_reversal_refuses_while_an_import_has_opened_a_register(self):
-        owner, company, _, member, reviewer, register_document, asic, _ = import_fixture()
+        owner, company, _, member, appointment, register_copy, asic, _ = import_fixture()
         token = ShareToken.objects.create(company=company, name="Unopened", symbol="UNO", total_supply="1000")
-        proposal = submit_import(actor=owner, **import_payload(token, register_document, asic, member))
-        _, _, confirmation = prepare_import_review(proposal_id=proposal.pk, reviewer=reviewer)
-        decide_import(
-            proposal_id=proposal.pk,
-            reviewer=reviewer,
-            confirmation=confirmation,
-            decision="apply",
-            asic_issued_total=100,
-            asic_member_count=1,
+        apply_import(
+            owner, appointment, prepared(owner, import_payload(token, register_copy, asic, member, appointment))
         )
         opening = self.installed()
         migration = import_module("tokens.migrations.0077_import_opening")
@@ -1249,6 +1341,43 @@ class RegisterImportOpeningMigrationTest(TransactionTestCase):
             with connections[current_alias()].schema_editor() as editor:
                 migration.close_imports(None, editor)
         self.assertEqual(self.installed(), opening)
+
+
+class CompanyRegisterImportMigrationTest(TransactionTestCase):
+    def guard(self):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT prosrc FROM pg_proc WHERE proname = 'tokens_guard_register_import'")
+            return cursor.fetchone()[0]
+
+    def insert_policy(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT pg_get_expr(polwithcheck, polrelid) FROM pg_policy "
+                "WHERE polname = 'tokens_registerimport_insert'"
+            )
+            return cursor.fetchone()[0]
+
+    def test_reversal_restores_the_staff_review_guard_and_owner_submissions_then_reapplies(self):
+        self.addCleanup(restore_every_migration)
+        company_run, closed = self.guard(), self.insert_policy()
+        self.assertIn("tokens_registerimportdecision", company_run)
+        self.assertNotIn("submitted_by_id", closed)
+        migrate_to([("tokens", "0081_held_orders_and_retired_statuses")])
+        staff_review = self.guard()
+        self.assertIn("Only operator review may decide", staff_review)
+        self.assertNotIn("tokens_registerimportdecision", staff_review)
+        self.assertIn("submitted_by_id", self.insert_policy())
+        restore_every_migration()
+        self.assertEqual((self.guard(), self.insert_policy()), (company_run, closed))
+
+    def test_reversal_refuses_while_company_register_evidence_or_imports_exist(self):
+        import_fixture()
+        company_run = self.guard()
+        migration = import_module("tokens.migrations.0084_company_register_import_guards")
+        with self.assertRaisesMessage(DatabaseError, "Retain company register imports"), atomic():
+            with connections[current_alias()].schema_editor() as editor:
+                migration.remove_company_imports(None, editor)
+        self.assertEqual(self.guard(), company_run)
 
 
 class ScopedRegisterImportTest(RunsOnTheScopedConnection, APITransactionTestCase):
@@ -1259,35 +1388,29 @@ class ScopedRegisterImportTest(RunsOnTheScopedConnection, APITransactionTestCase
                 self.company,
                 self.token,
                 self.member,
-                self.reviewer,
-                self.register_document,
+                self.appointment,
+                self.register_copy,
                 self.asic,
                 _,
             ) = import_fixture()
             self.stranger, _, _, _, _, _ = register_fixture()
         self.the_principal_the_middleware_would_set(self.owner)
-        self.proposal = submit_import(
-            actor=self.owner, **import_payload(self.token, self.register_document, self.asic, self.member)
+        self.proposal = prepared(
+            self.owner, import_payload(self.token, self.register_copy, self.asic, self.member, self.appointment)
         )
 
-    def test_app_submits_and_reads_but_only_the_operator_reviews_applies_and_writes_particulars(self):
+    def test_the_app_reads_but_only_the_bounded_operator_command_prepares_decides_and_writes_particulars(self):
         self.assertEqual(list(RegisterImport.objects.values_list("pk", flat=True)), [self.proposal.pk])
-        with self.assertRaises(PermissionDenied):
-            prepare_import_review(proposal_id=self.proposal.pk, reviewer=self.reviewer)
-        with self.assertRaises(DatabaseError), atomic():
-            RegisterMemberParticulars.objects.create(
+        for write in (
+            lambda: RegisterMemberParticulars.objects.create(
                 member=self.member, name="Forged", residential_address="Nowhere", source_import=self.proposal
-            )
-        with use_operator():
-            _, _, confirmation = prepare_import_review(proposal_id=self.proposal.pk, reviewer=self.reviewer)
-            decide_import(
-                proposal_id=self.proposal.pk,
-                reviewer=self.reviewer,
-                confirmation=confirmation,
-                decision="apply",
-                asic_issued_total=100,
-                asic_member_count=1,
-            )
+            ),
+            lambda: RegisterImport.objects.filter(pk=self.proposal.pk).update(status="rejected"),
+            lambda: list(RegisterImportDecision.objects.all()),
+        ):
+            with self.assertRaises(DatabaseError), atomic():
+                write()
+        apply_import(self.owner, self.appointment, self.proposal)
         self.assertEqual((RegisterMemberParticulars.objects.count(), ImportedFormerMember.objects.count()), (1, 1))
         self.the_principal_the_middleware_would_set(self.stranger)
         self.assertEqual(
@@ -1299,36 +1422,26 @@ class ScopedRegisterImportTest(RunsOnTheScopedConnection, APITransactionTestCase
             (0, 0, 0),
         )
 
-    def test_the_app_submits_an_opening_import_and_only_the_operator_opens_the_register(self):
+    def test_an_opening_import_opens_the_register_only_through_the_operator_command(self):
         with use_operator():
             token = ShareToken.objects.create(company=self.company, name="Unopened", symbol="UNO", total_supply="1000")
         newcomer = uuid4()
         payload = import_payload(
             token,
-            self.register_document,
+            self.register_copy,
             self.asic,
             self.member,
+            self.appointment,
             members=[{**NEWCOMER, "member": str(newcomer), "shares": "100"}],
         )
-        proposal = submit_import(actor=self.owner, **payload)
-        with self.assertRaises(PermissionDenied):
-            prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        proposal = prepared(self.owner, payload)
         with self.assertRaises(DatabaseError), atomic():
             RegisterMember.objects.create(uuid=newcomer, company=self.company)
-        with use_operator():
-            _, _, confirmation = prepare_import_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-            decide_import(
-                proposal_id=proposal.pk,
-                reviewer=self.reviewer,
-                confirmation=confirmation,
-                decision="apply",
-                asic_issued_total=100,
-                asic_member_count=1,
-            )
+        apply_import(self.owner, self.appointment, proposal)
         (entry,) = RegisterEntry.objects.filter(register__token=token)
         self.assertEqual(
             (entry.operation_id, entry.changes, entry.recorded_by_id),
-            (proposal.pk, [{"member": str(newcomer), "shares": "100"}], self.reviewer.pk),
+            (proposal.pk, [{"member": str(newcomer), "shares": "100"}], self.owner.pk),
         )
         self.assertEqual(RegisterMemberParticulars.objects.get(member_id=newcomer).name, "Nia Newcomer")
         self.the_principal_the_middleware_would_set(self.stranger)

@@ -168,6 +168,20 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- `tokens/0083_company_register_imports` and
+  `tokens/0084_company_register_import_guards` make register imports company-run
+  (#864). `0083` adds company-provided evidence uploads and append-only import
+  decisions, both operator-only, adds the preparing appointment, both uploads,
+  the ASIC extract copy and its snapshot to imports, and closes owners' direct
+  import inserts. `0084` installs the guards: uploads and decisions bind the
+  person, the company command and a current appointment, decisions carry a
+  digest the database recomputes, and the import guard admits only company-run
+  preparation and outcomes that match a decision. Nothing is backfilled. Imports
+  still waiting for the retired staff review stay readable and can only be
+  rejected by the company; the admin keeps imports as read-only history and the
+  review page is gone. This release adds no client. Reversing `0084` refuses
+  once any upload, decision or company-run import exists; reversing `0083` then
+  restores owners' direct submissions.
 - #864's register reads by appointment need no migration. Deploy the backend
   before or with the clients: the new web and mobile Register read
   `GET /api/v1/tokens/register/`, which an older backend does not serve, while

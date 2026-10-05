@@ -27,16 +27,19 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review and admin-only outputs. An import can open a register and retain members
-with no wallet, but an imported non-chain class currently accepts neither issue
-nor transfer instructions; publications also require a deployed or paused class.
-Supporting non-paid employee grants and other changes to a non-tokenised register
-therefore needs real ledger/workflow work. A wallet is required only when the
-chosen action uses the chain. A non-chain issue or transfer must record its real
-approved ledger effect, never a fabricated chain completion. Later tokenisation
-must mirror existing authorised holdings without issuing those shares again.
-Unsupported tokenisation and corporate actions
-must stay explicit rather than appear available after a permission change.
+review of openings, links, corrections and instructions, and admin-only outputs.
+Imports are company-run: the company provides the evidence and states the ASIC
+figures, and its appointments approve and apply them. An import can open a
+register and retain members with no wallet, but an imported non-chain class
+currently accepts neither issue nor transfer instructions; publications also
+require a deployed or paused class. Supporting non-paid employee grants and
+other changes to a non-tokenised register therefore needs real ledger/workflow
+work. A wallet is required only when the chosen action uses the chain. A
+non-chain issue or transfer must record its real approved ledger effect, never a
+fabricated chain completion. Later tokenisation must mirror existing authorised
+holdings without issuing those shares again. Unsupported tokenisation and
+corporate actions must stay explicit rather than appear available after a
+permission change.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection

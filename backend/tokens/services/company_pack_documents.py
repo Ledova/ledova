@@ -26,6 +26,10 @@ def evidence_path(record):
     return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}", record.pk, record.evidence_snapshot.get("mime_type"))
 
 
+def asic_evidence_path(record):
+    return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}-asic", record.pk, record.asic_snapshot.get("mime_type"))
+
+
 def held(company):
     listed, stored = [], {}
     for document in CompanyDocument.objects.filter(company=company).order_by("created_at", "uuid"):
@@ -56,7 +60,7 @@ def held(company):
 
 
 def evidence(records) -> dict:
-    return {
+    copies = {
         evidence_path(record): {
             "file": record.file,
             "size": None,
@@ -68,6 +72,18 @@ def evidence(records) -> dict:
         }
         for record in records
     }
+    for record in records:
+        if getattr(record, "asic_file", None):
+            copies[asic_evidence_path(record)] = {
+                "file": record.asic_file,
+                "size": None,
+                "recorded": {
+                    "size": record.asic_snapshot.get("file_size"),
+                    "sha256": record.asic_snapshot.get("sha256"),
+                },
+                "of": f"the ASIC extract of {record._meta.verbose_name} {record.pk}",
+            }
+    return copies
 
 
 UNREADABLE = (OSError, ValueError, GoogleAPIError, S3ClientError, BotoCoreError)

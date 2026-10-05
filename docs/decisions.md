@@ -56,6 +56,15 @@ include reading the register. The owner's amendment recorded on #860 also lets
 #864 start before #863 closes, except member-wallet links, which wait until #863
 closes.
 
+For company-run imports the owner decided four more questions the same day
+([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5988960147)).
+Application needs an approval whose approver's appointment is still current;
+otherwise a current approver approves again. An import submitted for the retired
+staff review and still waiting can only be rejected, and the company prepares a
+new one. Evidence uploads that no import uses are kept until production
+retention is decided. Evidence downloads are not logged; that can be added later
+for every register proposal at once.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
@@ -171,8 +180,10 @@ same floor and purge; the owner chose that the same day in
 In the same decision, an import of an existing register depends on the class.
 For a class already opened from the chain, it adds particulars and pre-platform
 former members. For a class not yet on chain, it becomes the opening, and later
-tokenising mints mirror it rather than add shares. A staff reviewer enters the
-ASIC extract's issued total and member count, and application refuses a mismatch.
+tokenising mints mirror it rather than add shares. A staff reviewer entered the
+ASIC extract's issued total and member count, and application refused a mismatch;
+since 5 October 2026 the company states them when it prepares the import
+([company-run register authority](#company-run-register-authority-and-evidence)).
 An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that

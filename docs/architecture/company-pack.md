@@ -373,7 +373,12 @@ of those files is stored under `companies/<company id>/`
   kind keeps records with the same operation id from replacing each other's copy.
   A copy is carried even where its company document is also carried: the document may have
   changed or gone since the record was submitted, and the copy is what was
-  reviewed.
+  reviewed. A company-run import also keeps a copy of its ASIC extract, carried at
+  `documents/evidence/registerimport-asic/<record id>` and named by the record's
+  `asic.path` with its `asic.sha256` and `asic.size`. Its record carries
+  `provided_by` (`company`, or `staff_verified` for an import made before
+  imports were company-run) and its `decisions`, each with its kind, the
+  decider's name, time and any reason.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
