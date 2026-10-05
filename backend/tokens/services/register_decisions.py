@@ -26,7 +26,7 @@ CAPABILITY = {
 }
 
 
-def _nothing_to_check(proposal, kind):
+def _nothing_to_check(actor, proposal, kind, appointment):
     return []
 
 
@@ -107,10 +107,15 @@ def _readable(family, actor, proposal_id):
     return proposal
 
 
+def _recorded_before(family, actor, idempotency_key):
+    with use_operator(), _requester_principal(actor.pk):
+        return family.decision_model.objects.filter(decided_by_id=actor.pk, idempotency_key=idempotency_key).exists()
+
+
 def preview(family, details, *, actor, proposal_id, appointment, kind, reason):
     _check_kind(kind, reason)
     initial = _readable(family, actor, proposal_id)
-    checked = family.before_command(initial, kind)
+    checked = family.before_command(actor, initial, kind, appointment)
     with company_operation(actor, initial.company_id, f"{family.operation}_preview"):
         proposal = family.model.objects.select_related("company").get(pk=initial.pk)
         current_actor = type(actor).objects.get(pk=actor.pk)
@@ -138,7 +143,10 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         raise ValidationError(f"Confirm the exact register {family.subject} decision.")
     _check_kind(kind, reason)
     initial = _readable(family, actor, proposal_id)
-    checked = family.before_command(initial, kind)
+    if _recorded_before(family, actor, idempotency_key):
+        checked = []
+    else:
+        checked = family.before_command(actor, initial, kind, appointment)
     with register_command(actor, initial.company_id, f"{family.operation}_{kind}") as (
         company,
         current_actor,

@@ -430,12 +430,16 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 }
 ```
 
-Preparation first captures a fresh canonical snapshot (see
+Preparation first checks that the caller's named appointment is current and
+holds `admin` or `prepare`, then captures a fresh canonical snapshot (see
 [inspecting a snapshot](#inspecting-a-canonical-chain-snapshot)), including the
 canonical transfer history that later classification needs. It reads the chain
 before it takes the company lock, then checks everything else against that
-boundary under the lock. It refuses, with a message naming the problem:
-- a share class of a company in which the caller holds no current appointment;
+boundary under the lock, the appointment included. It refuses, with a message
+naming the problem:
+- a share class of a company in which the caller holds no current appointment,
+  or an appointment that holds neither `admin` nor `prepare`, before reading the
+  chain;
 - a class that is not deployed or paused, or whose register already has an entry;
 - a mapped member of another company, or a mapped address already linked to
   another member of the company;
@@ -476,16 +480,17 @@ lacks:
 | `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
 
 Approval and application read the chain again before they take the company lock,
-and check only stored facts under it. A chain that cannot be read refuses them
-with 503 rather than an unmet requirement; rejection never reads the chain. The
-preview digest binds the opening, the decision, the person, the appointment, the
-reason, the boundary block's hash and, for application, the class's register
-state: either that no register exists or its sequence and head hash. The decision
-must carry the same digest, so any change in between conflicts. An identical
-decision retry with the same retry key returns the opening, and once the opening
-is decided it does so without reading the chain; the same key with any change
-conflicts. Every step rechecks the appointment after taking the company lock, so
-a revocation that commits first refuses the decision and records nothing.
+and check only stored facts under it. They read it only for a caller whose
+appointment is current and holds the step's capability or `admin`. A chain that
+cannot be read refuses them with 503 rather than an unmet requirement; rejection
+never reads the chain. The preview digest binds the opening, the decision, the
+person, the appointment, the reason, the boundary block's hash and, for
+application, the class's register state: either that no register exists or its
+sequence and head hash. The decision must carry the same digest, so any change in
+between conflicts. An identical decision retry with the same retry key returns
+the opening without reading the chain; the same key with any change conflicts.
+Every step rechecks the appointment after taking the company lock, so a
+revocation that commits first refuses the decision and records nothing.
 
 Application commits the members, the wallet links, the opening entry, the
 decision and the holdings projection atomically, and a failure rolls them all

@@ -541,22 +541,37 @@ class RegisterOpeningTest(TransactionTestCase):
             self.assertNotIn("private endpoint", str(refused.exception))
         self.assertEqual(self.decide(proposal, "reject", "The chain cannot be reached").status, "rejected")
 
-    def test_an_identical_application_retry_needs_no_provider(self):
+    def test_an_identical_decision_retry_needs_no_provider(self):
         proposal = self.submit()
-        self.decide(proposal, "approve")
-        key = uuid4()
-        applied = self.decide(proposal, "apply", idempotency_key=key)
-        self.node.client.w3.eth.get_block.side_effect = RuntimeError("provider offline")
+        get_block = self.node.client.w3.eth.get_block
+        approval, application = uuid4(), uuid4()
+        approved = self.decide(proposal, "approve", idempotency_key=approval)
+        retry = {
+            "actor": self.owner,
+            "opening_id": proposal.pk,
+            "appointment": self.administrator.pk,
+            "kind": "approve",
+            "idempotency_key": approval,
+            "preview_digest": approved.decisions.get(kind="approve").digest,
+            "confirmation": True,
+        }
+        get_block.side_effect = RuntimeError("provider offline")
+        self.assertEqual(decide_opening(**retry).status, "submitted")
+        with self.assertRaises(RegisterChangeConflict):
+            decide_opening(**{**retry, "preview_digest": "0" * 64})
+        get_block.side_effect = self.node.block
+        applied = self.decide(proposal, "apply", idempotency_key=application)
+        get_block.side_effect = RuntimeError("provider offline")
         retried = decide_opening(
-            actor=self.owner,
-            opening_id=proposal.pk,
-            appointment=self.administrator.pk,
-            kind="apply",
-            idempotency_key=key,
-            preview_digest=applied.decisions.get(kind="apply").digest,
-            confirmation=True,
+            **{
+                **retry,
+                "kind": "apply",
+                "idempotency_key": application,
+                "preview_digest": applied.decisions.get(kind="apply").digest,
+            }
         )
         self.assertEqual(retried.applied_entry_id, applied.applied_entry_id)
+        self.assertEqual(RegisterOpeningDecision.objects.filter(register_opening=proposal).count(), 2)
 
     def test_a_register_initialised_after_preparation_refuses_approval_and_application(self):
         approved = self.submit()

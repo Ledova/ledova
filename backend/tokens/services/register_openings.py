@@ -46,8 +46,17 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import DecisionFamily, decide, preview
+from tokens.services.register_authority import (
+    APPOINTMENT_NOT_FOUND,
+    register_appointment,
+    register_command,
+)
+from tokens.services.register_decisions import (
+    CAPABILITY,
+    DecisionFamily,
+    decide,
+    preview,
+)
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import (
     discard,
@@ -122,6 +131,16 @@ def _company_of(actor, token_id):
     return company_id
 
 
+def _holding(actor, company_id, appointment, capability):
+    with use_operator(), _requester_principal(actor.pk):
+        return (
+            CompanyAppointment.objects.current_for(actor, company_id, at=timezone.now(), identity_required=False)
+            .filter(pk=appointment)
+            .holding_any([CompanyCapability.ADMIN, capability])
+            .exists()
+        )
+
+
 def _check_unopened(token):
     if token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
         raise ValidationError("A register opening requires a deployed share class.")
@@ -157,6 +176,8 @@ def prepare_opening(
     values = _authority_values(authority, approving_director, authority_reference, reason)
     normalized = _mapping(mapping)
     company_id = _company_of(actor, token_id)
+    if not _holding(actor, company_id, appointment, CompanyCapability.PREPARE):
+        raise NotFound(APPOINTMENT_NOT_FOUND)
     with use_operator(), _requester_principal(actor.pk):
         retried = RegisterOpening.objects.filter(pk=operation_id).exists()
         if not retried:
@@ -379,11 +400,12 @@ def _link(company, links):
             raise RegisterChangeConflict()
 
 
-def _boundary_requirements(proposal, kind):
+def _boundary_requirements(actor, proposal, kind, appointment):
     if (
         kind == RegisterDecisionKind.REJECT
         or proposal.status != "submitted"
         or proposal.preparing_appointment_id is None
+        or not _holding(actor, proposal.company_id, appointment, CAPABILITY[kind])
     ):
         return []
     try:

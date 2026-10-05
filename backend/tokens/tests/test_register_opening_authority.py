@@ -34,6 +34,7 @@ from tokens.models import (
     RegisterOpeningDecision,
     ShareRegister,
 )
+from tokens.services.register_authority import APPOINTMENT_NOT_FOUND
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import evidence_snapshot
 from tokens.services.register_openings import decide_opening, prepare_opening
@@ -88,6 +89,8 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
         applier, applying = self.appoint([CompanyCapability.APPLY])
         proposal = self.prepare_as(preparer, preparing)
         self.assertEqual((proposal.submitted_by_id, proposal.preparing_appointment_id), (preparer.pk, preparing.pk))
+        get_block = self.node.client.w3.eth.get_block
+        get_block.reset_mock()
         for actor, appointment, kind in (
             (preparer, preparing, "approve"),
             (applier, applying, "approve"),
@@ -103,6 +106,7 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
                 )
                 with self.assertRaisesMessage(ValidationError, "appointment_capability_required"):
                     decide(actor, appointment, proposal, kind, reason)
+        get_block.assert_not_called()
         decide(approver, approving, proposal, "approve")
         applied = decide(applier, applying, proposal, "apply")
         with use_operator():
@@ -124,11 +128,16 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
         reader, reading_appointment = self.appoint([CompanyCapability.READ_REGISTER])
         finance, financing = self.appoint([CompanyCapability.FINANCE])
         staff = staff_user()
+        get_block = self.node.client.w3.eth.get_block
+        get_block.reset_mock()
         for actor, appointment in ((reader, reading_appointment), (finance, financing), (staff, self.administrator)):
             with self.subTest(actor=actor.email), self.assertRaises(NotFound):
                 upload_evidence(actor, appointment, RegisterEvidenceKind.AUTHORITY)
             with self.subTest(actor=actor.email), self.assertRaises(NotFound):
                 prepared(actor, self.payload(self.evidence, appointment))
+        with self.assertRaisesMessage(NotFound, APPOINTMENT_NOT_FOUND):
+            prepared(self.owner, self.payload(self.evidence, reading_appointment))
+        get_block.assert_not_called()
         with use_operator():
             self.assertFalse(RegisterOpening.objects.exists())
 
