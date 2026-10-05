@@ -134,17 +134,18 @@ class CompanyEligibilityReadConsumerTest(CompanyEligibilityReadCases, StubUpload
         with use_operator():
             self.first.documents.add(first_document)
             self.second.documents.add(second_document)
+            first_token = self.first.token
         expected = {str(self.first.token_id), str(self.second.token_id)}
         self.assertEqual(set(self.rows(DIRECTORY)), expected)
         self.assertEqual(set(self.rows(MARKET)), expected)
         self.assertNotIn(str(foreign_offer.token_id), expected)
         self.client.force_authenticate(self.participant)
-        listed = self.client.get(documents_of(self.first.token))
+        listed = self.client.get(documents_of(first_token))
         self.assertEqual(listed.status_code, 200, listed.content)
         self.assertEqual([row["uuid"] for row in listed.json()], [str(first_document.pk)])
-        self.assertEqual(streamed(self.client.get(file_of(self.first.token, first_document))), PDF)
+        self.assertEqual(streamed(self.client.get(file_of(first_token, first_document))), PDF)
         for document in (second_document, private):
-            self.assertEqual(self.client.get(file_of(self.first.token, document)).status_code, 404)
+            self.assertEqual(self.client.get(file_of(first_token, document)).status_code, 404)
         self.assertEqual(self.payment_instructions(), {"bank_account_name": "Synthetic settlement account"})
         with self.reader():
             self.assertEqual(directory_admission(self.participant).company_ids, frozenset({self.company.pk}))
@@ -168,6 +169,8 @@ class CompanyEligibilityReadConsumerTest(CompanyEligibilityReadCases, StubUpload
             sibling.documents.add(allowed)
             self.first.documents.add(same_class_sibling)
             self.second.documents.add(other_class)
+            first_token = self.first.token
+            second_token = self.second.token
         self.replace_source(category=InvestorCategory.PRODUCT_VALUE)
         request, decision = self.accepted(offering=str(sibling.pk), quantity=1)
         rows = self.rows(DIRECTORY)
@@ -176,12 +179,12 @@ class CompanyEligibilityReadConsumerTest(CompanyEligibilityReadCases, StubUpload
         self.assertEqual(self.rows(MARKET), {})
         self.assertIsNone(self.payment_instructions())
         self.client.force_authenticate(self.participant)
-        listed = self.client.get(documents_of(self.first.token))
+        listed = self.client.get(documents_of(first_token))
         self.assertEqual(listed.status_code, 200, listed.content)
         self.assertEqual([row["uuid"] for row in listed.json()], [str(allowed.pk)])
-        self.assertEqual(self.client.get(file_of(self.first.token, allowed)).status_code, 200)
-        self.assertEqual(self.client.get(file_of(self.first.token, same_class_sibling)).status_code, 404)
-        self.assertEqual(self.client.get(documents_of(self.second.token)).status_code, 404)
+        self.assertEqual(self.client.get(file_of(first_token, allowed)).status_code, 200)
+        self.assertEqual(self.client.get(file_of(first_token, same_class_sibling)).status_code, 404)
+        self.assertEqual(self.client.get(documents_of(second_token)).status_code, 404)
         with self.reader():
             admission = directory_admission(self.participant)
             self.assertEqual(admission.company_ids, frozenset())

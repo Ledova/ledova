@@ -1674,7 +1674,7 @@ class OrderActionRouteChecks(ActionFixtures):
         super().setUp()
         self.cancel_order = self.order
         self.cancel_signed = self.signed()
-        with use_operator():
+        with use_migrate():
             self.order = TransferOrder.objects.create(
                 token=self.order.token,
                 payment_asset=self.order.payment_asset,
@@ -1685,6 +1685,7 @@ class OrderActionRouteChecks(ActionFixtures):
                 quantity=10,
                 price_per_share=Decimal("2.50"),
             )
+        with use_operator():
             self.other = make_tenant("action-matrix-other")
         self.action_id = uuid4()
         self.modify_signed = self.signed("modify", self.modify_body())

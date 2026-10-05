@@ -24,6 +24,7 @@ from integrations.tests.kycaid_payloads import (
     verification_completed,
 )
 from integrations.tests.sumsub_payloads import aml_case, review, verification_steps
+from operators.models import Operator
 from shared.db import current_alias, set_principal, use_operator
 from shared.models import Country
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -37,6 +38,7 @@ SUMSUB_APPLICANT_ID = "5ca1ab1e0000400080000a11"
 
 
 def a_profile_awaiting_its_result(email):
+    Operator.get()
     user = User.objects.create_user(email=email, password="pw-12345678")
     profile = UserProfile.objects.create(
         user=user,
@@ -62,7 +64,7 @@ class ScopedIdentityApplyRaceTest(RunsOnTheScopedConnection, TransactionTestCase
         process = identity._process_verified_customer
         arrivals, guard, second = [], Lock(), Event()
 
-        def contended(user_profile, pep_data, user_account):
+        def contended(user_profile, pep_data, user_account, actor):
             with guard:
                 arrivals.append(user_profile.pk)
                 first = len(arrivals) == 1
@@ -70,7 +72,7 @@ class ScopedIdentityApplyRaceTest(RunsOnTheScopedConnection, TransactionTestCase
                 second.wait(timeout=2)
             else:
                 second.set()
-            return process(user_profile, pep_data, user_account)
+            return process(user_profile, pep_data, user_account, actor)
 
         def as_the_webhook():
             with use_operator():

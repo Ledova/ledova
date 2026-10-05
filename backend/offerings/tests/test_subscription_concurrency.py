@@ -34,6 +34,7 @@ from offerings.tests.factories import (
     extra_wallet,
     open_offering,
 )
+from shared.db import acting_for
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareIssuanceRequest
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY
@@ -185,8 +186,10 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
         accepted = []
         for index in range(len(SMALL_CODE_POOL)):
             subscription = draft_subscription(self.tenant, wallet=extra_wallet(self.tenant, f"{index}"))
-            submit(subscription, submitted_by=self.tenant.user)
-            accept(subscription)
+            with acting_for(self.tenant.user.pk):
+                submit(subscription, submitted_by=self.tenant.user)
+            with acting_for(self.operator_user.pk):
+                accept(subscription)
             accepted.append(subscription)
 
         pool = iter(SMALL_CODE_POOL * 40)

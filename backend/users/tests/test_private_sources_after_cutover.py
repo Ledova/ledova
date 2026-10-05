@@ -1,8 +1,7 @@
 from django.db import DatabaseError, connections
-from django.db.transaction import atomic
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import current_alias, use_operator
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import InvestorClassification, InvestorClassificationStatus

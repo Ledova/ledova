@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 
-from companies.models import Company
+from companies.models import Company, CompanyStatus
 from companies.services.authority_requests import _requester_principal
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
@@ -37,6 +37,7 @@ from tokens.models import (
     RequestStatus,
     ShareIssuanceRequest,
     ShareToken,
+    ShareTokenStatus,
 )
 from tokens.services import share_token_service
 from users.services.company_eligibility_consumption import (
@@ -141,7 +142,13 @@ def _check_bounds(offering: Offering, quantity: int) -> None:
 
 
 def _require_open(offering: Offering) -> None:
-    if not offering.is_open:
+    if not (
+        offering.is_open
+        and offering.token.status == ShareTokenStatus.DEPLOYED
+        and offering.token.contract_address
+        and offering.token.company.status == CompanyStatus.ACTIVE
+        and offering.token.company.is_open_to_investors
+    ):
         raise SubscriptionRefusedException(OFFERING_NOT_OPEN.format(symbol=offering.token.symbol))
 
 
@@ -250,6 +257,8 @@ def create_draft(offering: Offering, user_account, wallet, quantity: int, submit
         current_wallet = Wallet.objects.get(pk=wallet.pk)
         current_account = type(user_account).objects.select_related("user_profile").get(pk=user_account.pk)
         _require_holder(current_account, actor_id)
+        if current_wallet.user_account_id != current_account.pk:
+            raise SubscriptionRefusedException(WALLET_NOT_ON_ACCOUNT)
         candidate = Subscription(
             uuid=uuid4(),
             offering=current_offering,
@@ -265,6 +274,7 @@ def create_draft(offering: Offering, user_account, wallet, quantity: int, submit
             price_per_share=current_offering.price_per_share,
             amount_due=amount_for(current_offering, quantity),
         )
+        _require_frozen_economics(candidate)
         outcome = require_subscription_eligibility(current_account, current_offering, quantity)
         with subscription_admission_operation("draft", **_admission_command(candidate, outcome.decision)):
             _lock_admission()
@@ -284,6 +294,7 @@ def submit(subscription: Subscription, submitted_by=None) -> Subscription:
         current = _current_subscription(subscription)
         _require_holder(current.user_account, actor_id)
         current._require_status([SubscriptionStatus.DRAFT], SubscriptionStatus.SUBMITTED)
+        _require_frozen_economics(current)
         outcome = require_subscription_eligibility(current.user_account, current.offering, current.quantity)
         with subscription_admission_operation("submit", **_admission_command(current, outcome.decision)):
             _lock_admission()
@@ -307,6 +318,7 @@ def accept(subscription: Subscription) -> Subscription:
         if current.eligibility_decision_id is None:
             require_subscription_acceptance_eligibility(current)
         with subscription_admission_operation("accept", **_admission_command(current, current.eligibility_decision)):
+            _require_frozen_economics(current)
             require_subscription_acceptance_eligibility(current)
             _lock_admission()
             current = _current_subscription(current)

@@ -8,6 +8,7 @@ from django.test.runner import DiscoverRunner
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 
 SCOPED_TEST_LABELS = (
+    "users.tests.test_company_eligibility_fresh_signup.ScopedCompanyEligibilityFreshSignupTest",
     "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilityCutoverUpgradeTest",
     "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilitySubscriptionCutoverReversalTest",
     "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilityTradingCutoverReversalTest",
@@ -56,6 +57,7 @@ SCOPED_TEST_LABELS = (
     "companies.tests.test_authority_request_capability_guard_scoped.ScopedAuthorityRequestCapabilityGuardTest",
     "tokens.tests.test_trading_retention.ScopedTradingRetentionTest",
     "offerings.tests.test_application_retention.ScopedApplicationRetentionTest",
+    "offerings.tests.test_subscription_api.ScopedSubscriptionIssuerReadTest",
     "blockchain.tests.test_fresh_signer_scoped.ScopedFreshSignerTest",
     "companies.tests.test_document_review_scoped.ScopedCompanyDocumentReviewTest",
     "tokens.tests.test_register_corrections_scoped.ScopedRegisterCorrectionTest",
@@ -113,6 +115,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_swap_execution_storage.ScopedSwapExecutionAppStorageTest",
     "tokens.tests.test_swap_authority_lock_order.ScopedSwapAuthorityLockOrderTest",
     "tokens.tests.test_swap_finality.ScopedSwapFinalityTest",
+    "tokens.tests.test_swap_finality.ScopedHistoricalSwapFinalityProcessTest",
     "tokens.tests.test_swap_process_concurrency.ScopedSwapWorkersUseOneCurrentClaimTest",
     "tokens.tests.test_signature_admission_processes.ScopedSignatureAdmissionProcessesTest",
     "tokens.tests.test_legacy_swap_hold.ScopedLegacySwapHoldTest",

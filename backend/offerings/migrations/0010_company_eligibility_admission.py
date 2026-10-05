@@ -28,6 +28,8 @@ LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path = pg_catalog, public AS $
         command->>'operation' IN ('draft', 'submit', 'accept')
         AND product.uuid = (command->>'offering')::uuid AND product.company_id = (command->>'company')::uuid
         AND token.uuid = (command->>'token')::uuid AND token.company_id = product.company_id
+        AND token.status = 'deployed' AND length(token.contract_address) > 0
+        AND issuer.status = 'active' AND issuer.is_open_to_investors
         AND product.status = 'approved' AND product.opens_at <= at_time
         AND (product.closes_at IS NULL OR product.closes_at > at_time)
         AND (command->>'quantity')::integer >= product.minimum_shares
@@ -50,6 +52,7 @@ LANGUAGE sql VOLATILE SECURITY INVOKER SET search_path = pg_catalog, public AS $
         AND public.users_company_eligibility_decision_facts_current(
             decision.uuid, account.uuid, product.company_id, 'primary', product.uuid, (command->>'quantity')::integer, at_time)
         FROM public.offerings_offering product JOIN public.tokens_sharetoken token ON token.uuid = product.token_id
+        JOIN public.companies_company issuer ON issuer.uuid = product.company_id
         JOIN public.wallets wallet ON wallet.uuid = (command->>'wallet')::uuid
         JOIN public.customer_accounts_account account ON account.uuid = wallet.user_account_id
         JOIN public.users_userprofile profile ON profile.uuid = account.user_profile_id

@@ -48,7 +48,8 @@ class SyntheticCompanyEligibilityTest(
             return hashlib.sha256(stored.read()).hexdigest()
 
     def seeded_decision(self, **changes):
-        return accept_source(self.source, self.company, self.approver, self.appointment, **changes)
+        with use_operator():
+            return accept_source(self.source, self.company, self.approver, self.appointment, **changes)
 
     def test_holder_consent_and_real_company_appointment_admit_only_the_actual_issuer(self):
         with use_operator():

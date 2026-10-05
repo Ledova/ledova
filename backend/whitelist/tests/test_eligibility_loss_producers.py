@@ -13,6 +13,7 @@ from rest_framework.test import APITransactionTestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.admin.user import CustomUserAdmin
+from authentication.models import CustomUser
 from authentication.services import TokenService
 from companies.services.authority_requests import _requester_principal
 from integrations.kyc.base import NormalizedVerificationResult
@@ -155,13 +156,20 @@ class EligibilityLossProducerCases(CompanyEligibilityConsumptionCases):
                 self.assertTrue(changed[field], field)
         self.queued.append(deepcopy(arguments))
 
-    def staff_actor(self, label, *permissions):
+    def staff_actor(self, label, *models, action="change"):
         with use_operator():
             actor, _ = make_investor(f"loss-producer-{label}", staff=True)
-            for app_label, codename in permissions:
-                actor.user_permissions.add(Permission.objects.get(content_type__app_label=app_label, codename=codename))
-            for app_label, codename in permissions:
-                self.assertTrue(actor.has_perm(f"{app_label}.{codename}"))
+            permissions = [
+                Permission.objects.get(
+                    content_type__app_label=model._meta.app_label,
+                    content_type__model=model._meta.model_name,
+                    codename=f"{action}_{model._meta.model_name}",
+                )
+                for model in models
+            ]
+            actor.user_permissions.add(*permissions)
+            for permission in permissions:
+                self.assertTrue(actor.has_perm(f"{permission.content_type.app_label}.{permission.codename}"))
         self.assertFalse(actor.is_superuser)
         return actor
 
@@ -273,8 +281,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assert_retained_private_history()
 
     def test_admin_wallet_delete_requires_delete_permission_at_the_actual_commit(self):
-        change_only = self.staff_actor("wallet-change-only", ("wallets", "change_wallet"))
-        delete_only = self.staff_actor("wallet-delete-only", ("wallets", "delete_wallet"))
+        change_only = self.staff_actor("wallet-change-only", Wallet)
+        delete_only = self.staff_actor("wallet-delete-only", Wallet, action="delete")
         model_admin = WalletAdmin(Wallet, admin.site)
 
         def delete_as(actor):
@@ -288,8 +296,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assert_single_loss(WhitelistInvalidationCause.WALLET_REMOVAL, [], delete_only, wallet=True)
 
     def test_admin_wallet_deverification_requires_change_permission_and_ignores_restoration_or_noop(self):
-        delete_only = self.staff_actor("deverify-delete-only", ("wallets", "delete_wallet"))
-        change_only = self.staff_actor("deverify-change-only", ("wallets", "change_wallet"))
+        delete_only = self.staff_actor("deverify-delete-only", Wallet, action="delete")
+        change_only = self.staff_actor("deverify-change-only", Wallet)
         model_admin = WalletAdmin(Wallet, admin.site)
         self.wallet.verification_status = WALLET_VERIFICATION_STATUS_PENDING
         self.assert_sql_refused(lambda: self.save_admin(model_admin, delete_only, self.wallet))
@@ -311,7 +319,7 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assert_retained_private_history()
 
     def test_admin_pending_wallet_rebind_has_no_loss_and_verified_rebind_is_refused_without_losing_approval(self):
-        actor = self.staff_actor("wallet-account-rebind", ("wallets", "change_wallet"))
+        actor = self.staff_actor("wallet-account-rebind", Wallet)
         model_admin = WalletAdmin(Wallet, admin.site)
         with use_operator():
             pending = Wallet.objects.create(
@@ -342,7 +350,7 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
 
     def test_rolled_back_wallet_delete_keeps_its_history_and_never_dispatches_queue_transport(self):
         model_admin = WalletAdmin(Wallet, admin.site)
-        actor = self.staff_actor("wallet-delete-rollback", ("wallets", "delete_wallet"))
+        actor = self.staff_actor("wallet-delete-rollback", Wallet, action="delete")
         with self.assertRaisesMessage(RuntimeError, "Synthetic original loss rollback"):
             with self.as_actor(actor), atomic():
                 model_admin.delete_model(self.admin_request(actor), self.wallet)
@@ -394,8 +402,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assertFalse(self.eligibility().is_eligible)
 
     def test_staff_standing_and_role_loss_require_the_exact_account_permission_and_keep_original_facts(self):
-        wrong = self.staff_actor("standing-auth-only", ("authentication", "change_customuser"))
-        right = self.staff_actor("standing-account-only", ("users", "change_useraccount"))
+        wrong = self.staff_actor("standing-auth-only", CustomUser)
+        right = self.staff_actor("standing-account-only", UserAccount)
         model_admin = UserAccountAdmin(UserAccount, admin.site)
         self.account.account_status = ACCOUNT_STATUS_SUSPENDED
         self.account.role = AccountRole.COMPANY
@@ -417,8 +425,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
             self.assertEqual(WhitelistEligibilityInvalidation.objects.count(), 1)
 
     def test_staff_email_change_requires_auth_permission_and_retains_original_verified_email_loss(self):
-        wrong = self.staff_actor("email-account-only", ("users", "change_useraccount"))
-        right = self.staff_actor("email-auth-only", ("authentication", "change_customuser"))
+        wrong = self.staff_actor("email-account-only", UserAccount)
+        right = self.staff_actor("email-auth-only", CustomUser)
         model_admin = CustomUserAdmin(type(self.participant), admin.site)
         with use_operator():
             raw = TokenService.issue(self.participant)[1]
@@ -439,7 +447,7 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assertFalse(self.participant.is_email_verified)
 
     def test_staff_auth_loss_records_both_original_fields_and_never_records_a_noop_or_restoration(self):
-        actor = self.staff_actor("auth-loss", ("authentication", "change_customuser"))
+        actor = self.staff_actor("auth-loss", CustomUser)
         model_admin = CustomUserAdmin(type(self.participant), admin.site)
         self.participant.is_active = False
         self.participant.is_email_verified = False
@@ -499,8 +507,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assert_retained_private_history()
 
     def test_staff_provider_identity_loss_requires_profile_permission_and_restores_the_actual_principal(self):
-        wrong = self.staff_actor("identity-auth-only", ("authentication", "change_customuser"))
-        right = self.staff_actor("identity-profile-only", ("users", "change_userprofile"))
+        wrong = self.staff_actor("identity-auth-only", CustomUser)
+        right = self.staff_actor("identity-profile-only", UserProfile)
         self.assert_sql_refused(lambda: self.provider_result(wrong))
         with use_operator():
             self.profile.refresh_from_db()
@@ -510,10 +518,8 @@ class EligibilityLossProducerTest(EligibilityLossProducerCases, StubUploadDepend
         self.assert_single_loss(WhitelistInvalidationCause.IDENTITY_LOSS, ["is_id_verified"], right)
 
     def test_profile_admin_identity_loss_requires_profile_permission_and_ignores_noop_or_restoration(self):
-        wrong = self.staff_actor(
-            "profile-account-auth-only", ("users", "change_useraccount"), ("authentication", "change_customuser")
-        )
-        right = self.staff_actor("profile-admin-only", ("users", "change_userprofile"))
+        wrong = self.staff_actor("profile-account-auth-only", UserAccount, CustomUser)
+        right = self.staff_actor("profile-admin-only", UserProfile)
         model_admin = UserProfileAdmin(UserProfile, admin.site)
         self.profile.is_id_verified = False
         self.assert_sql_refused(lambda: self.save_admin(model_admin, wrong, self.profile))

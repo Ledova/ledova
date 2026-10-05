@@ -2,6 +2,7 @@ import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from copy import copy
 from datetime import timedelta
 from decimal import Decimal
 from threading import Event
@@ -18,6 +19,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
+from companies.models import Company
 from companies.services.authority_requests import _requester_principal
 from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Offering, SettlementRail, Subscription, SubscriptionStatus
@@ -36,7 +38,7 @@ from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
-from tokens.models import RequestStatus, ShareIssuanceExecution
+from tokens.models import RequestStatus, ShareIssuanceExecution, ShareToken
 from tokens.tests.instruction_fixtures import apply_instruction
 from users.exceptions import InvestorNotEligibleException
 from users.models import (
@@ -1094,6 +1096,77 @@ class CompanyEligibilitySubscriptionGuardTest(
             subscription.refresh_from_db()
             self.assertEqual(subscription.status, SubscriptionStatus.ACCEPTED)
         self.assertEqual(subscription.eligibility_decision_id, decision.pk)
+        self.assert_source_unreviewed()
+
+    def test_hidden_products_refuse_exact_raw_draft_submit_and_accept_without_rewriting_the_original_d1(self):
+        _, decision = self.accepted()
+        draft = self.draft()
+        submitted = self.submitted()
+        candidate = copy(draft)
+        candidate.pk = uuid4()
+        before = {row.pk: self.subscription_snapshot(row) for row in (draft, submitted)}
+        records = self.snapshots()
+        for state, token_changes, company_changes in (
+            ("paused", {"status": "paused"}, {}),
+            ("closed", {}, {"is_open_to_investors": False}),
+            ("warning", {}, {"status": "warning"}),
+            ("suspended", {}, {"status": "suspended"}),
+            ("empty_contract", {"contract_address": ""}, {}),
+        ):
+            with use_migrate():
+                if token_changes:
+                    ShareToken.objects.filter(pk=self.offer_token.pk).update(**token_changes)
+                if company_changes:
+                    Company.objects.filter(pk=self.company.pk).update(**company_changes)
+            for operation, subscription, actor in (
+                ("draft", candidate, self.participant),
+                ("submit", draft, self.participant),
+                ("accept", submitted, self.technical),
+            ):
+                command = self.admission_command(operation, subscription, decision)
+                with self.subTest(state=state, operation=operation), self.database_role("operator", actor):
+                    self.assert_guard_refusal(lambda: self.declare_admission(command))
+                    with self.assertRaises(DatabaseError) as raised, atomic():
+                        with connections[current_alias()].cursor() as cursor:
+                            cursor.execute(
+                                "SELECT set_config('app.subscription_admission_command', %s, true)",
+                                [json.dumps(command)],
+                            )
+                        if operation == "draft":
+                            candidate.save(force_insert=True)
+                        else:
+                            values = {"status": SubscriptionStatus.ACCEPTED, "accepted_at": timezone.now()}
+                            if operation == "submit":
+                                values = {
+                                    "status": SubscriptionStatus.SUBMITTED,
+                                    "eligibility_decision_id": decision.pk,
+                                    "submitted_by_id": self.participant.pk,
+                                    "submitted_at": timezone.now(),
+                                }
+                            Subscription.objects.filter(pk=subscription.pk).update(**values)
+                    self.assertEqual(getattr(raised.exception.__cause__, "sqlstate", None), "23514")
+                with use_operator():
+                    self.assertFalse(Subscription.objects.filter(pk=candidate.pk).exists())
+                self.assertEqual(self.subscription_snapshot(draft), before[draft.pk])
+                self.assertEqual(self.subscription_snapshot(submitted), before[submitted.pk])
+                self.assertEqual(self.snapshots(), records)
+            with use_migrate():
+                ShareToken.objects.filter(pk=self.offer_token.pk).update(
+                    status="deployed", contract_address=self.offer_token.contract_address
+                )
+                Company.objects.filter(pk=self.company.pk).update(status="active", is_open_to_investors=True)
+        with self.database_role("operator", self.participant), atomic():
+            self.declare_admission(self.admission_command("draft", candidate, decision))
+            candidate.save(force_insert=True)
+            candidate.refresh_from_db()
+            self.assertEqual(candidate.status, SubscriptionStatus.DRAFT)
+            self.assertIsNone(candidate.eligibility_decision_id)
+            submit(draft, submitted_by=self.participant)
+        with self.database_role("operator", self.technical):
+            accept(submitted)
+        self.assertEqual(draft.eligibility_decision_id, decision.pk)
+        self.assertEqual(submitted.eligibility_decision_id, decision.pk)
+        self.assertEqual(self.snapshots(), records)
         self.assert_source_unreviewed()
 
     def test_exact_raw_operator_submit_and_accept_commit_the_original_d1(self):
