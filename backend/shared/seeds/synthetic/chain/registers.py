@@ -14,8 +14,8 @@ from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     IssuanceStatus,
+    RegisterDecisionKind,
     RegisterEvidenceKind,
-    RegisterImportDecisionKind,
     RegisterPosition,
     RegisterReconciliationStatus,
     ShareIssuance,
@@ -219,7 +219,7 @@ def import_particulars(share_class, records):
         authority_reference=f"{reference_prefix(token)}-IMP-{share_class.symbol}",
         reason="Add each member's particulars, date entered and amount paid from the company's own register.",
     )
-    for kind in (RegisterImportDecisionKind.APPROVE, RegisterImportDecisionKind.APPLY):
+    for kind in (RegisterDecisionKind.APPROVE, RegisterDecisionKind.APPLY):
         _, preview = preview_import_decision(
             actor=company.owner, import_id=proposal.pk, appointment=appointment.pk, kind=kind
         )

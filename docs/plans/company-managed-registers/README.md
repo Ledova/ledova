@@ -21,8 +21,9 @@ Company-specific participant eligibility and client/consumer conversion remain i
 The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
 lets #864 start before #863 closes, except member-wallet links, which wait for #863.
 #864's first increment delivers register reads by appointment, its second
-company-run imports through the API, and its third company acknowledgement of
-reconciliation discrepancies through the API; the import and acknowledgement
+company-run imports through the API and both clients, its third company-run
+corrections through the API, and its fourth company acknowledgement of
+reconciliation discrepancies through the API; the correction and acknowledgement
 screens and its other register commands remain planned. #865–#873 remain
 dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
@@ -69,6 +70,18 @@ The documentation audit covers all 73 Markdown documents tracked at its baseline
 plus the accepted plan: 74 documents, 46 updated and 28 retained as aligned
 technical contracts, historical evidence or a truthful runtime-generated output.
 This index and the audit report are additional reviewed documents.
+
+The owner's [5 October product clarification](../../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+prioritises the private-company register and share issuance, management,
+transfer and purchase. Optional crypto on-ramp purchases are investor-only;
+companies must not use that integration to buy cryptocurrency. The existing
+access gap is tracked separately in
+[#920](https://github.com/Ledova/ledova/issues/920), without changing programme
+dependencies or agent ownership. AUD is a valid share-payment requirement,
+distinct from AUD pricing and stablecoin settlement. #868 owns primary payment
+work and #869 the secondary path; payment rails/provider, collection,
+verification, reconciliation, refund and settlement choices remain undecided.
+Core share journeys must not require an on-ramp purchase.
 
 ## Delivery tracking
 

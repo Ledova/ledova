@@ -507,14 +507,18 @@ class RegisterImportDecisionGuardTest(AppointsTeam, APITransactionTestCase):
             ),
         )
         forged = forged_fields(theirs)
-        self.assert_refused(
-            "exact current intent",
-            lambda: insert_forged(
-                forged, self.owner, submitted_by=self.owner, preparing_appointment=self.administrator
-            ),
-        )
+        mine = forged_fields(self.proposal)
+        register_copy = ("register_evidence", "evidence_fingerprint", "evidence_snapshot")
+        asic_copy = ("asic_evidence", "asic_fingerprint", "asic_snapshot")
+        for borrowed in (register_copy + asic_copy, register_copy, asic_copy):
+            with self.subTest(borrowed=borrowed):
+                self.assert_refused(
+                    "exact current intent",
+                    lambda: insert_forged({**mine, **{name: forged[name] for name in borrowed}}, self.owner),
+                )
         with self.assertRaises(RuntimeError), atomic():
             insert_forged(forged, preparer)
+            insert_forged(mine, self.owner)
             raise RuntimeError("rollback")
 
     def test_an_outcome_needs_its_own_decision_and_a_decision_needs_its_own_outcome(self):

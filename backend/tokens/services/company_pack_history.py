@@ -58,6 +58,22 @@ def _evidence(record):
     }
 
 
+def _provided_by(record):
+    return "company" if record.preparing_appointment_id else "staff_verified"
+
+
+def _decisions(record):
+    return [
+        {
+            "kind": decision.kind,
+            "decided_by": _name(decision.decided_by),
+            "decided_at": decision.decided_at,
+            "reason": decision.reason,
+        }
+        for decision in record.decisions.select_related("decided_by__userprofile").order_by("decided_at", "uuid")
+    ]
+
+
 def _decided(record, authority, **terms):
     return {
         "uuid": record.pk,
@@ -111,18 +127,8 @@ def authority(records) -> dict:
                     "size": record.asic_snapshot.get("file_size") if record.asic_snapshot else None,
                     "path": asic_evidence_path(record) if record.asic_file else None,
                 },
-                provided_by="company" if record.preparing_appointment_id else "staff_verified",
-                decisions=[
-                    {
-                        "kind": decision.kind,
-                        "decided_by": _name(decision.decided_by),
-                        "decided_at": decision.decided_at,
-                        "reason": decision.reason,
-                    }
-                    for decision in record.decisions.select_related("decided_by__userprofile").order_by(
-                        "decided_at", "uuid"
-                    )
-                ],
+                provided_by=_provided_by(record),
+                decisions=_decisions(record),
                 register_sequence=record.register_sequence,
             )
             for record in records["imports"]
@@ -136,6 +142,8 @@ def authority(records) -> dict:
                 changes=correction.changes,
                 base_sequence=correction.base_sequence,
                 base_hash=correction.base_hash,
+                provided_by=_provided_by(correction),
+                decisions=_decisions(correction),
                 entry=correction.applied_entry_id,
             )
             for correction in records["corrections"]

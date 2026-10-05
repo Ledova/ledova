@@ -19,7 +19,7 @@ from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterExport, ShareToken
 from tokens.querysets import RegisterProposalQuerySet
-from tokens.services.register_corrections import submit_correction
+from tokens.services.register_corrections import prepare_correction
 from tokens.services.register_openings import submit_link
 from tokens.tests.test_register_corrections import (
     correction_fixture,
@@ -262,17 +262,14 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
 class RegisterProposalFamiliesTest(APITransactionTestCase):
     def setUp(self):
         with use_operator():
-            correction_owner, _, correction_document, issue = correction_fixture()
-            self.correction = submit_correction(
-                actor=correction_owner, **correction_payload(correction_document, issue)
+            correction_owner, _, self.correction_administrator, issue, evidence = correction_fixture()
+            self.correction, _ = prepare_correction(
+                actor=correction_owner, **correction_payload(issue, evidence, self.correction_administrator)
             )
             link_owner, link_company, _, _, link_document = link_fixture()
             self.link = submit_link(actor=link_owner, **link_payload(link_company, link_document))
-            for owner in (correction_owner, link_owner):
-                UserProfile.objects.get_or_create(user=owner, defaults={"full_name": owner.email})
-            self.correction_administrator, self.link_administrator = (
-                historical_owner_appointment(company) for company in (correction_document.company, link_company)
-            )
+            UserProfile.objects.get_or_create(user=link_owner, defaults={"full_name": link_owner.email})
+            self.link_administrator = historical_owner_appointment(link_company)
 
     def reader(self, administrator):
         appointee = person(f"reader-{uuid4()}@example.test")

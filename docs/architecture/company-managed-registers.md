@@ -32,12 +32,15 @@ administration or a register capability read the company's register and retained
 register proposals. The second lets the company run register imports through the
 API: it uploads its own evidence, states the ASIC figures, and approves and
 applies the import with no Ledova staff review
-([import process](../operations/register-foundation.md#importing-an-existing-register)).
-The third lets a current company approver or administrator acknowledge a
+([import process](../operations/register-foundation.md#importing-an-existing-register)),
+and the Register in both clients runs those steps. The third lets the company run
+compensating corrections through the API in the same way, with its own authority
+document ([correction process](../operations/register-foundation.md#compensating-corrections)).
+The fourth lets a current company approver or administrator acknowledge a
 reconciliation discrepancy through the API, with a written reason and no Ledova
 staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
-The web and mobile import and acknowledgement screens, #864's other register
-commands and #865–#873 remain planned.
+The correction and acknowledgement screens, #864's other register commands and
+#865–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -57,6 +60,18 @@ distinction is [retired](../operations/upgrades.md#one-registry-product).
 A private internal instance uses the same software, features
 and authority model. Hosting does not select a separately maintained product.
 This decision does not change the software licence or establish a legal finding.
+
+The owner's [5 October product clarification](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+keeps the private-company register and issuing, managing, transferring and
+purchasing company shares as the core. Crypto on-ramp purchases are optional and
+investor-only; companies must not buy cryptocurrency through that integration.
+AUD is a required share-payment method, distinct from AUD pricing and an
+AUD-denominated stablecoin. Payment mechanics remain undecided in
+[#868](https://github.com/Ledova/ledova/issues/868) and
+[#869](https://github.com/Ledova/ledova/issues/869); the existing on-ramp access
+gap is tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
+Company appointments and wallets needed for share operations do not grant
+crypto-purchase permission.
 
 Several remaining domain workflows submit proposals that only platform staff can review and apply;
 some submissions lack client forms. Staff also handle payment, allotment and
@@ -354,6 +369,12 @@ remain implementation references until their described workflows change.
   offering eligibility; no wallet is required where no chain action is involved.
 - Receipt, issue authority, execution, holding and register effect remain separate
   and reconcile to the same quantity. Payment alone does not create an issue.
+- Core register/share journeys do not require a crypto on-ramp purchase.
+  Companies cannot open one; permitted investor use remains optional and
+  separately verified under #920.
+- Paid share workflows support AUD once their recorded payment design is
+  delivered. Identify the actual recipient, currency, instruction and receipt;
+  do not label AUD pricing or stablecoin settlement as direct AUD payment.
 - A supported non-paid employee grant or other authorised non-paid issue records
   its genuine terms and authority without inventing a receipt or paid subscription.
 - Supported non-tokenised register issues, transfers and publications operate on
@@ -394,3 +415,6 @@ company workflows. Administrator changes follow the accepted existing-administra
 or court/regulator rule, separate from own-account recovery.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.
+AUD collection, receipt verification, reconciliation, refunds and secondary
+settlement choices still need owner decisions through #868/#869. This accepted
+payment requirement does not select a bank, provider or custody model.

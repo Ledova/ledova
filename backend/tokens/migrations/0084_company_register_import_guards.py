@@ -293,6 +293,7 @@ def install_company_imports(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(_with_roles(cursor, FUNCTIONS))
         cursor.execute(_with_roles(cursor, IMPORT_GUARD))
+        cursor.execute("ALTER FUNCTION tokens_guard_register_import() SET search_path = pg_catalog, public, pg_temp")
 
 
 def remove_company_imports(apps, schema_editor):

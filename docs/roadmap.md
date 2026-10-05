@@ -9,8 +9,12 @@ phase issues record how the shipped work was built.
 
 The accepted direction of 3 October 2026 is one registry product for companies
 and their shareholders, including private self-hosting of the same software.
-Companies make issuer decisions and manage their member registers. Ledova
-operates infrastructure and separately scoped crypto/payment services. The
+Companies make issuer decisions and manage their member registers. The owner
+clarified the [product priorities on 5 October 2026](decisions.md#registry-priority-crypto-on-ramp-and-aud-payments):
+share issuance, management, transfers and purchases are core; crypto on-ramp
+purchases are optional personal investor activity, and companies must not use
+the on-ramp to buy cryptocurrency. Ledova operates infrastructure and separately
+scoped payment services. Company share-wallet operations remain distinct. The
 [company-managed register plan](architecture/company-managed-registers.md)
 defines this direction and the transition from the current staff-gated workflows.
 The [GitHub programme #860](https://github.com/Ledova/ledova/issues/860) and
@@ -91,7 +95,13 @@ for dependencies; the priorities below group that work by theme:
    and subscription decisions with company workflows, configured checks and
    exact company-authorised issue/allotment instructions. Companies or their
    payment providers receive primary payments; preserve old instruction snapshots
-   and separate platform market deposit/settlement work. Support employee grants
+   and separate platform market deposit/settlement work. AUD must be a valid
+   share-payment option, not just pricing or AUDY.
+   [#868](https://github.com/Ledova/ledova/issues/868) owns primary payment work;
+   [#869](https://github.com/Ledova/ledova/issues/869) owns secondary payment and
+   settlement work. Rail/provider, verification, reconciliation, refund and
+   secondary settlement choices remain undecided; share purchases must not require
+   a crypto on-ramp purchase or conversion. Support employee grants
    and other supported non-paid issues without manufacturing a payment receipt.
 - **Certificates and register outputs.** Give authorised company users the
    workflows for certificates, inspection copies, notice figures and company
@@ -112,6 +122,11 @@ and crypto/payment roles must not gain register authority through automation.
 
 ### Other follow-ups
 
+- Restrict optional crypto on-ramp purchases to personal investor use and refuse
+  company use on both clients and the API
+  ([#920](https://github.com/Ledova/ledova/issues/920)). The current exposure is
+  an implementation gap; the policy does not itself close it. This feature is
+  secondary to the registry and share workflows.
 - Phase 1 follow-up: tokenising a share class an import opened,
   [built when one first needs to go on chain](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439).
 - Splits and consolidations are

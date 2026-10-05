@@ -1,20 +1,16 @@
-import hashlib
 import re
 from collections import defaultdict
 from datetime import date
 from uuid import UUID
 
 from django.core.files.base import ContentFile
-from django.db import IntegrityError, connections
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import CompanyCapability
-from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
-from companies.services.document_review import private_document_bytes
-from operators.models import Operator
-from shared.db import current_alias, use_operator
+from shared.db import use_operator
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -25,7 +21,6 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterImportDecision,
-    RegisterImportDecisionKind,
     RegisterInstruction,
     RegisterMember,
     RegisterMemberParticulars,
@@ -37,19 +32,21 @@ from tokens.models import (
 )
 from tokens.services.former_holders import retention_cutoff
 from tokens.services.register import _member_identity
-from tokens.services.register_authority import (
-    holds,
-    register_appointment,
-    register_command,
-)
+from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_evidence import (
+    discard,
+    evidence_snapshot,
+    matching_bytes,
+    own_evidence_bytes,
+)
 from tokens.services.register_instructions import APPROVED
 from tokens.services.register_openings import (
     _authority_values,
     _check_uninitialized,
     _members_of,
 )
-from users.models import UserProfile
 from whitelist.services.identity import identities_for
 
 MEMBER_FIELDS = {"member", "name", "residential_address", "shares", "entered_on", "amount_paid"}
@@ -60,12 +57,7 @@ TEXT_LIMITS = {
 }
 SHARE_DIGITS = RegisterPosition._meta.get_field("shares").max_digits
 MONEY = re.compile(r"(0|[1-9][0-9]{0,17})([.][0-9]{1,2})?")
-CAPABILITY = {
-    RegisterImportDecisionKind.APPROVE: CompanyCapability.APPROVE,
-    RegisterImportDecisionKind.APPLY: CompanyCapability.APPLY,
-    RegisterImportDecisionKind.REJECT: CompanyCapability.APPROVE,
-}
-NOT_FOUND = "Register import not found."
+EVIDENCE_REFUSAL = "Name the share register and the ASIC extract you uploaded for this company."
 
 
 def _text(value, label):
@@ -194,52 +186,12 @@ def _stated(asic_issued_total, asic_member_count, current):
     return total, count
 
 
-def _snapshot(evidence):
-    return {
-        "provided_by": "company",
-        "evidence": str(evidence.pk),
-        "company": str(evidence.company_id),
-        "document_type": evidence.kind,
-        "name": evidence.original_filename,
-        "file_size": evidence.file_size,
-        "mime_type": evidence.mime_type,
-        "sha256": evidence.sha256,
-    }
-
-
-def _matching_bytes(stored, size, digest):
-    try:
-        raw = private_document_bytes(stored)
-    except ValidationError:
-        raw = b""
-    if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
-        raise ValidationError("A retained evidence file no longer matches its record. Upload it and prepare again.")
-    return raw
-
-
-def _evidence_bytes(evidence, kind, company, actor):
-    if (
-        evidence is None
-        or evidence.kind != kind
-        or evidence.company_id != company.pk
-        or evidence.uploaded_by_id != (actor.pk)
-    ):
-        raise ValidationError("Name the share register and the ASIC extract you uploaded for this company.")
-    return _matching_bytes(evidence.file, evidence.file_size, evidence.sha256)
-
-
 def _company_of(actor, token_id):
     with use_operator(), _requester_principal(actor.pk):
         company_id = ShareToken.objects.filter(pk=token_id).values_list("company_id", flat=True).first()
     if company_id is None:
         raise NotFound("Share class not found.")
     return company_id
-
-
-def _discard(*files):
-    for stored in files:
-        if stored and stored._committed:
-            stored.storage.delete(stored.name)
 
 
 def prepare_import(
@@ -307,8 +259,12 @@ def prepare_import(
                 return existing, False
             register_copy = RegisterEvidence.objects.select_for_update().filter(pk=register_evidence).first()
             asic_copy = RegisterEvidence.objects.select_for_update().filter(pk=asic_evidence).first()
-            register_raw = _evidence_bytes(register_copy, RegisterEvidenceKind.SHARE_REGISTER, company, current_actor)
-            asic_raw = _evidence_bytes(asic_copy, RegisterEvidenceKind.ASIC_EXTRACT, company, current_actor)
+            register_raw = own_evidence_bytes(
+                register_copy, RegisterEvidenceKind.SHARE_REGISTER, company, current_actor, EVIDENCE_REFUSAL
+            )
+            asic_raw = own_evidence_bytes(
+                asic_copy, RegisterEvidenceKind.ASIC_EXTRACT, company, current_actor, EVIDENCE_REFUSAL
+            )
             opening = _opening(token)
             _check_unapplied(token)
             _check_former(former, opening)
@@ -334,9 +290,9 @@ def prepare_import(
                 register_evidence=register_copy,
                 asic_evidence=asic_copy,
                 evidence_fingerprint=register_copy.sha256,
-                evidence_snapshot=_snapshot(register_copy),
+                evidence_snapshot=evidence_snapshot(register_copy),
                 asic_fingerprint=asic_copy.sha256,
-                asic_snapshot=_snapshot(asic_copy),
+                asic_snapshot=evidence_snapshot(asic_copy),
                 asic_issued_total=total,
                 asic_member_count=count,
                 submitted_by=current_actor,
@@ -351,7 +307,7 @@ def prepare_import(
             return proposal, True
     except BaseException:
         if proposal is not None:
-            _discard(proposal.file, proposal.asic_file)
+            discard(proposal.file, proposal.asic_file)
         raise
 
 
@@ -416,28 +372,11 @@ def _open(proposal, token, actor):
     )
 
 
-def _scalar(sql, params):
-    with connections[current_alias()].cursor() as cursor:
-        cursor.execute(sql, params)
-        return cursor.fetchone()[0]
-
-
-def _digest(proposal, kind, actor, appointment, reason):
-    return _scalar(
-        "SELECT tokens_register_import_decision_digest(%s, %s, %s, %s, %s)",
-        [proposal.pk, kind, actor.pk, appointment.pk, reason],
-    )
-
-
-def _approved(proposal):
-    return _scalar("SELECT tokens_register_import_approved(%s, clock_timestamp())", [proposal.pk])
-
-
 def _effect_requirements(proposal):
     unmet = []
     try:
-        _matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
-        _matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)
+        matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
+        matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)
     except ValidationError:
         unmet.append("evidence_unavailable")
     token = proposal.token
@@ -461,40 +400,10 @@ def _effect_requirements(proposal):
     return unmet
 
 
-def _requirements(proposal, kind, appointment, reason):
-    unmet = []
-    if not holds(appointment, CAPABILITY[kind]):
-        unmet.append("appointment_capability_required")
-    if proposal.status != "submitted":
-        unmet.append("import_decided")
-    if kind == RegisterImportDecisionKind.REJECT:
-        if not reason.strip():
-            unmet.append("reason_required")
-        return sorted(set(unmet))
-    if reason:
-        unmet.append("reason_not_allowed")
-    if proposal.preparing_appointment_id is None:
-        unmet.append("company_provided_evidence_required")
-        return sorted(set(unmet))
-    approved = _approved(proposal)
-    if kind == RegisterImportDecisionKind.APPROVE and approved:
-        unmet.append("already_approved")
-    if kind == RegisterImportDecisionKind.APPLY and not approved:
-        approvals = proposal.decisions.filter(kind=RegisterImportDecisionKind.APPROVE).exists()
-        unmet.append("approval_lapsed" if approvals else "approval_required")
-    if proposal.status == "submitted" and "appointment_capability_required" not in unmet:
-        unmet.extend(_effect_requirements(proposal))
-    return sorted(set(unmet))
-
-
-def _preview(proposal, actor, appointment, kind, reason):
-    unmet = _requirements(proposal, kind, appointment, reason)
+def _details(proposal):
     register = ShareRegister.objects.filter(token_id=proposal.token_id).first()
     imported_total = sum(int(row["shares"]) for row in proposal.members)
     return {
-        "preview_digest": _digest(proposal, kind, actor, appointment, reason),
-        "unmet_requirements": unmet,
-        "can_decide": not unmet,
         "opens_register": _opening(proposal.token) is None,
         "register_sequence": register.sequence if register is not None else 0,
         "comparison": _review_rows(proposal, _comparison(proposal)),
@@ -505,33 +414,13 @@ def _preview(proposal, actor, appointment, kind, reason):
     }
 
 
-def _check_kind(kind, reason):
-    if kind not in RegisterImportDecisionKind.values:
-        raise ValidationError("Choose approval, application or rejection.")
-    if not isinstance(reason, str) or len(reason) > 1000:
-        raise ValidationError("A rejection reason may have at most 1000 characters.")
+def _lock(proposal):
+    token = ShareToken.objects.select_for_update().get(pk=proposal.token_id)
+    list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
 
 
-def _readable(actor, import_id):
-    with use_operator(), _requester_principal(actor.pk):
-        proposal = RegisterImport.objects.register_readable_by(actor).filter(pk=import_id).first()
-    if proposal is None:
-        raise NotFound(NOT_FOUND)
-    return proposal
-
-
-def preview_import_decision(*, actor, import_id, appointment, kind, reason=""):
-    _check_kind(kind, reason)
-    initial = _readable(actor, import_id)
-    with company_operation(actor, initial.company_id, "register_import_preview"):
-        proposal = RegisterImport.objects.select_related("company", "token").get(pk=initial.pk)
-        current_actor = type(actor).objects.get(pk=actor.pk)
-        profile = UserProfile.objects.filter(user=current_actor).first()
-        source = register_appointment(proposal.company, current_actor, profile, Operator.get(), appointment)
-        return proposal, _preview(proposal, current_actor, source, kind, reason)
-
-
-def _apply(proposal, token, actor, decision):
+def _apply(proposal, actor, decision):
+    token = proposal.token
     if _opening(token) is None:
         _open(proposal, token, actor)
     newer = {
@@ -569,61 +458,34 @@ def _apply(proposal, token, actor, decision):
     proposal.save(update_fields=["status", "register_sequence", "reviewed_by", "reviewed_at", "updated_at"])
 
 
-def _reject(proposal, actor, decision):
-    proposal.status = "rejected"
-    proposal.rejection_reason = decision.reason
-    proposal.reviewed_by = actor
-    proposal.reviewed_at = decision.decided_at
-    proposal.save(update_fields=["status", "rejection_reason", "reviewed_by", "reviewed_at", "updated_at"])
+IMPORTS = DecisionFamily(
+    model=RegisterImport,
+    decision_model=RegisterImportDecision,
+    field="register_import",
+    operation="register_import",
+    approved_function="tokens_register_import_approved",
+    digest_function="tokens_register_import_decision_digest",
+    effect_requirements=_effect_requirements,
+    lock=_lock,
+    apply=_apply,
+)
+
+
+def preview_import_decision(*, actor, import_id, appointment, kind, reason=""):
+    return preview(
+        IMPORTS, _details, actor=actor, proposal_id=import_id, appointment=appointment, kind=kind, reason=reason
+    )
 
 
 def decide_import(*, actor, import_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
-    if confirmation is not True:
-        raise ValidationError("Confirm the exact register import decision.")
-    _check_kind(kind, reason)
-    initial = _readable(actor, import_id)
-    with register_command(actor, initial.company_id, f"register_import_{kind}") as (
-        company,
-        current_actor,
-        profile,
-        operator,
-    ):
-        source = register_appointment(company, current_actor, profile, operator, appointment)
-        prior = RegisterImportDecision.objects.filter(decided_by=current_actor, idempotency_key=idempotency_key).first()
-        if prior is not None:
-            if (prior.register_import_id, prior.kind, prior.appointment_id, prior.reason, prior.digest) != (
-                initial.pk,
-                kind,
-                source.pk,
-                reason,
-                preview_digest,
-            ):
-                raise RegisterChangeConflict()
-            return RegisterImport.objects.get(pk=prior.register_import_id)
-        token = ShareToken.objects.select_for_update().get(pk=initial.token_id)
-        list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
-        proposal = RegisterImport.objects.select_for_update().select_related("token").get(pk=initial.pk)
-        preview = _preview(proposal, current_actor, source, kind, reason)
-        if preview["preview_digest"] != preview_digest:
-            raise RegisterChangeConflict()
-        if preview["unmet_requirements"]:
-            raise ValidationError({"unmet_requirements": preview["unmet_requirements"]})
-        try:
-            decision = RegisterImportDecision.objects.create(
-                register_import=proposal,
-                kind=kind,
-                decided_by=current_actor,
-                appointment=source,
-                idempotency_key=idempotency_key,
-                digest=preview_digest,
-                reason=reason,
-                decided_at=timezone.now(),
-            )
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-        decision.refresh_from_db(fields=["decided_at"])
-        if kind == RegisterImportDecisionKind.APPLY:
-            _apply(proposal, token, current_actor, decision)
-        elif kind == RegisterImportDecisionKind.REJECT:
-            _reject(proposal, current_actor, decision)
-        return proposal
+    return decide(
+        IMPORTS,
+        actor=actor,
+        proposal_id=import_id,
+        appointment=appointment,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        preview_digest=preview_digest,
+        confirmation=confirmation,
+        reason=reason,
+    )

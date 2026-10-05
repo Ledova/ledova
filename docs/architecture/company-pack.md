@@ -301,7 +301,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
   retained, all from the snapshot taken when it was submitted, and `path`, where
   the copy's bytes are under `documents/evidence/` (see [documents](#documents)).
-  The snapshot's company identity, storage path and owner id stay behind.
+  A company-run import or correction names no company document: its copy is of
+  the company's own upload, and its `document_type` is the upload's kind. The
+  snapshot's company identity, storage path and owner id stay behind.
 - **Reviewers are named, not numbered.** A reviewer is the full name on the
   staff member's profile, blank when there is none. No user id, submitter or
   staff email leaves: user ids appear only inside each entry's preimage.
@@ -377,10 +379,10 @@ of those files is stored under `companies/<company id>/`
   changed or gone since the record was submitted, and the copy is what was
   reviewed. A company-run import also keeps a copy of its ASIC extract, carried at
   `documents/evidence/registerimport-asic/<record id>` and named by the record's
-  `asic.path` with its `asic.sha256` and `asic.size`. Its record carries
-  `provided_by` (`company`, or `staff_verified` for an import made before
-  imports were company-run) and its `decisions`, each with its kind, the
-  decider's name, time and any reason.
+  `asic.path` with its `asic.sha256` and `asic.size`. An import's or
+  correction's record carries `provided_by` (`company`, or `staff_verified` for
+  one made before imports or corrections were company-run) and its `decisions`,
+  each with its kind, the decider's name, time and any reason.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
@@ -520,12 +522,14 @@ contracts."
 synthetic company with two share classes: an opening; an issue of a paid
 subscription under an applied register instruction; one subscription paid and
 one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
-is a settlement order; a correction reversing the issue, reviewed and applied
-through the correction service; a reviewed wallet link; a former member; an
-approved capital increase; a pause; one listed and one lapsed wallet approval and
-an approval change; a discrepant reconciliation with a staff-era and a company
-acknowledgement; and a registry check. Every authority record rests on a
-verified company document with bytes of its own. It produces the pack
+is a settlement order; a correction reversing the issue, prepared, approved and
+applied by the company owner's appointment through the correction service; a
+reviewed wallet link; a former member; an approved capital increase; a pause; one
+listed and one lapsed wallet approval and an approval change; a discrepant
+reconciliation with a staff-era and a company acknowledgement; and a registry
+check. Every authority record rests on evidence with bytes of its own: a verified
+company document, or for the correction the company's own `authority` upload. It
+produces the pack
 through the admin page and gives it to
 [company_pack_consumer.py](../../backend/tokens/tests/company_pack_consumer.py),
 run as `python -I -S company_pack_consumer.py pack.zip` in a subprocess with an
@@ -590,8 +594,8 @@ receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
 secp256k1: it checks that the pack is internally consistent and well-formed.
 
 [test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
-adds an opening, submitted on a third, unopened class, and an import, each
-through its submit service with a verified document, so that every kind of
+adds an opening, submitted on a third, unopened class with a verified document,
+and an import prepared from the company's own uploads, so that every kind of
 authority record retains a copy. Its tests find every document and evidence
 copy carried with the bytes storage holds and listed in the manifest, each
 record naming its copy, and the documents and the members' evidence statement

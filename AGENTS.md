@@ -12,6 +12,13 @@ when starting or resuming work, including after context compaction.
   the working backlog.
 - Keep the design and implementation simple. Prefer existing patterns and small,
   focused changes over speculative abstractions or additional product modes.
+- Prioritise the private-company register and issuing, managing, transferring
+  and purchasing shares. Crypto on-ramp purchases are optional personal investor
+  functionality; companies must not buy cryptocurrency through that integration.
+  AUD is a required share-payment method, distinct from pricing or a stablecoin.
+  Follow the [5 October product decision](docs/decisions.md#registry-priority-crypto-on-ramp-and-aud-payments);
+  record undecided payment mechanics for the owner through #868/#869 before
+  implementing them, and keep #920's existing on-ramp enforcement gap explicit.
 - Tidy as each issue progresses. Remove code, imports, configuration, routes,
   tests and documentation that become obsolete when their replacement lands.
   Check references before deleting; do not leave parallel unused implementations.
