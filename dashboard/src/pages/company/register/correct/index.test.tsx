@@ -181,10 +181,13 @@ function switchAccount() {
 }
 
 function serve(entries = entryPages) {
-  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
+  api.get.mockImplementation(async (url: string, config?: { params?: { entry?: string[] } }) => {
     if (url === REGISTER) return page([LISTED]);
     if (url === APPOINTMENTS) return page(appointments);
-    if (url === ENTRIES) return entries[(config?.params?.page ?? 1) - 1];
+    if (url === ENTRIES)
+      return page(
+        entries.flatMap(({ data }) => data.results).filter(({ uuid }) => config?.params?.entry?.includes(uuid)),
+      );
     throw new Error(`Unexpected read ${url}`);
   });
 }
@@ -292,8 +295,11 @@ it('shows the entry and its exact inverse, then uploads the authority document a
     ),
   ).toEqual([255, 255, 1000]);
   expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config)).toEqual([
-    { params: { page: 1 }, ledovaSubmissionGuard: expect.any(Function) },
-    { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) },
+    {
+      params: { entry: ['entry-transfer'], page: 1 },
+      paramsSerializer: { indexes: null },
+      ledovaSubmissionGuard: expect.any(Function),
+    },
   ]);
   expect(submitButton().disabled).toBe(true);
 
@@ -428,12 +434,12 @@ it('says when the share class is not in a register the person can read', async (
   expect(reads(ENTRIES)).toBe(0);
 });
 
-it('reads every entry page and says when the entry is not in the register of this share class', async () => {
+it("says when the class's register returns no entry by that UUID", async () => {
   entryPages = [page([entry({ uuid: 'entry-newer' })], NEXT(2)), page([entry({ uuid: 'entry-older' })])];
   serve();
   show();
   expect(await screen.findByText('This entry is not in the register of this share class.')).toBeTruthy();
-  expect(reads(ENTRIES)).toBe(2);
+  expect(reads(ENTRIES)).toBe(1);
   expect(screen.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
 });
 
@@ -552,9 +558,11 @@ it('uploads again under a new key once another appointment holds the prepare ste
   expect(preparations()[0].appointment).toBe('appointment-0');
 });
 
-it('refuses entry pages whose next link does not advance', async () => {
-  entryPages = [page([entry({ uuid: 'entry-newer' })], NEXT(1))];
-  serve();
+it('refuses a named entry read whose next link does not advance', async () => {
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: unknown) =>
+    url === ENTRIES ? page([], NEXT(1)) : read(url, config),
+  );
   show();
   expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load the complete register.");
   expect(reads(ENTRIES)).toBe(1);
@@ -650,7 +658,7 @@ it('refreshes the entry and appointments after a conflict and prepares the next 
   complete();
   fireEvent.click(submitButton());
   expect((await screen.findByRole('alert')).textContent).toBe('The register operation conflicts.');
-  await waitFor(() => expect(reads(ENTRIES)).toBe(entriesRead + 2));
+  await waitFor(() => expect(reads(ENTRIES)).toBe(entriesRead + 1));
   expect(reads(APPOINTMENTS)).toBe(appointmentsRead + 1);
   conflict = false;
   fireEvent.click(submitButton());

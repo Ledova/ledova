@@ -39,16 +39,29 @@ function readEntries(token: string, page: number, guard: () => void) {
   return guarded(guard, () => getRegisterEntries(apiClient, token, { page }, { ledovaSubmissionGuard: guard }));
 }
 
-async function readEntriesUntil(token: string, wanted: Set<string>, guard: () => void) {
-  const found = new Map<string, RegisterEntry>();
-  let page: number | undefined = 1;
-  while (page !== undefined && found.size < wanted.size) {
-    const { data } = await readEntries(token, page, guard);
-    data.results.filter((entry) => wanted.has(entry.uuid)).forEach((entry) => found.set(entry.uuid, entry));
-    assertNextPageAdvances(page, data);
-    page = getNextPageParam(data);
-  }
-  return found;
+async function readNamedEntries(token: string, entry: string[], guard: () => void) {
+  if (!entry.length) return new Map<string, RegisterEntry>();
+  const named = await readEveryPage((page) =>
+    guarded(guard, () => getRegisterEntries(apiClient, token, { entry, page }, { ledovaSubmissionGuard: guard })),
+  );
+  return new Map(named.map((row) => [row.uuid, row]));
+}
+
+async function readCorrectionPage(token: string, page: number, guard: () => void) {
+  const { data } = await guarded(guard, () =>
+    getRegisterCorrections(apiClient, { token, page }, { ledovaSubmissionGuard: guard }),
+  );
+  const corrected = await readNamedEntries(token, [...new Set(data.results.map(({ corrects }) => corrects))], guard);
+  return {
+    data: {
+      ...data,
+      results: data.results.map((proposal): ClassCorrection => {
+        const entry = corrected.get(proposal.corrects);
+        if (!entry) throw new Error('The corrections named an entry outside this share class.');
+        return { proposal, entry };
+      }),
+    },
+  };
 }
 
 export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, guard: () => void) {
@@ -81,19 +94,10 @@ export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, g
 export function useClassCorrections(owner: OrderSubmissionOwner, token: string, guard: () => void) {
   return useQuery({
     queryKey: correctionsKey(owner, token),
-    queryFn: async (): Promise<ClassCorrection[]> => {
-      const proposals = await readEveryPage((page) =>
-        guarded(guard, () => getRegisterCorrections(apiClient, { token, page }, { ledovaSubmissionGuard: guard })),
-      );
-      const corrected = await readEntriesUntil(token, new Set(proposals.map(({ corrects }) => corrects)), guard);
-      return proposals
-        .map((proposal) => {
-          const entry = corrected.get(proposal.corrects);
-          if (!entry) throw new Error('The corrections named an entry outside this share class.');
-          return { proposal, entry };
-        })
-        .sort((left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt));
-    },
+    queryFn: async () =>
+      (await readEveryPage((page) => readCorrectionPage(token, page, guard))).sort(
+        (left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt),
+      ),
     ...READ_TIMING,
   });
 }
@@ -114,7 +118,7 @@ export function useLatestReconciliation(owner: OrderSubmissionOwner, token: stri
 }
 
 export async function readClassEntry(token: string, uuid: string, guard: () => void) {
-  const entry = (await readEntriesUntil(token, new Set([uuid]), guard)).get(uuid);
+  const entry = (await readNamedEntries(token, [uuid], guard)).get(uuid);
   if (entry && !entry.changes.every(({ shares }) => /^-?\d+$/.test(shares)))
     throw new Error('The register entry did not state exact share changes.');
   return entry ?? null;

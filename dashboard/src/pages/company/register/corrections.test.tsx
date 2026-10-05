@@ -253,6 +253,16 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function entriesRead(params: ReadConfig['params']) {
+  return [ENTRIES, { params, paramsSerializer: { indexes: null }, ledovaSubmissionGuard: expect.any(Function) }];
+}
+
+function namedReads() {
+  return api.get.mock.calls
+    .filter(([url, config]) => url === ENTRIES && config?.params?.entry)
+    .map(([, config]) => config.params.entry);
+}
+
 function reads(url: string) {
   return api.get.mock.calls.filter(([called]) => called === url).length;
 }
@@ -261,8 +271,10 @@ function writes(url: string) {
   return api.post.mock.calls.filter(([called]) => called === url);
 }
 
-function serve(read?: (url: string, config?: { params?: { page?: number } }) => unknown) {
-  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
+type ReadConfig = { params?: { page?: number; entry?: string[] } };
+
+function serve(read?: (url: string, config?: ReadConfig) => unknown) {
+  api.get.mockImplementation(async (url: string, config?: ReadConfig) => {
     const answer = read?.(url, config);
     if (answer !== undefined) return answer;
     const at = (config?.params?.page ?? 1) - 1;
@@ -270,6 +282,10 @@ function serve(read?: (url: string, config?: { params?: { page?: number } }) => 
     if (url === HOLDERS) return { data: holders() };
     if (url === APPOINTMENTS) return page(appointments);
     if (url === IMPORTS || url === RECONCILIATIONS) return page([]);
+    if (url === ENTRIES && config?.params?.entry)
+      return page(
+        entryPages.flatMap(({ data }) => data.results).filter(({ uuid }) => config.params!.entry!.includes(uuid)),
+      );
     if (url === ENTRIES) return entryPages[at];
     if (url === CORRECTIONS) return correctionPages[at];
     if (url.endsWith('/file/')) return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
@@ -385,7 +401,7 @@ it('lists the class register newest first a page at a time, naming each change a
   correctionPages = [page([])];
   await openClass();
   const register = await history();
-  expect(api.get).toHaveBeenCalledWith(ENTRIES, { params: { page: 1 }, ledovaSubmissionGuard: expect.any(Function) });
+  expect(api.get.mock.calls).toContainEqual(entriesRead({ page: 1 }));
   const [reversal, transfer] = records(register);
   expect(records(register)).toHaveLength(2);
   expect(within(reversal).getByText(COPY.ENTRY_KINDS.correction)).toBeTruthy();
@@ -405,7 +421,7 @@ it('lists the class register newest first a page at a time, naming each change a
 
   fireEvent.click(within(register).getByRole('button', { name: 'Load more register entries' }));
   await waitFor(() => expect(records(register)).toHaveLength(4));
-  expect(api.get).toHaveBeenCalledWith(ENTRIES, { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) });
+  expect(api.get.mock.calls).toContainEqual(entriesRead({ page: 2 }));
   const [, , issue, opening] = records(register);
   expect(within(issue).getByText('Second Member: +250')).toBeTruthy();
   expect(within(opening).getByText(COPY.ENTRY_KINDS.opening)).toBeTruthy();
@@ -589,7 +605,8 @@ it("lists every page of the class's corrections, newest first, each with the ent
     params: { token: 'ordinary', page: 2 },
     ledovaSubmissionGuard: expect.any(Function),
   });
-  expect(api.get).toHaveBeenCalledWith(ENTRIES, { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) });
+  expect(api.get.mock.calls).toContainEqual(entriesRead({ entry: ['entry-opening'], page: 1 }));
+  expect(namedReads()).toEqual([['entry-opening'], ['entry-transfer', 'entry-issue']]);
   const [newest, middle, oldest] = records(list);
   expect(records(list)).toHaveLength(3);
   expect(rows(newest)).toEqual([
@@ -648,24 +665,22 @@ it('reads no further entries for a class without corrections, and says so calmly
   expect(reads(ENTRIES)).toBe(1);
 });
 
-it.each([
-  ['the newest page', correction({ corrects: 'entry-reversal' }), [1]],
-  ['a later page', correction(), [1, 2]],
-] as const)(
-  "reads the class's register only until it finds an entry a correction reverses on %s",
-  async (_where, corrected, pages) => {
-    correctionPages = [page([corrected])];
-    entryPages = [...entryPages, page([])];
-    entryPages[1] = page([ISSUE, OPENING], NEXT(ENTRIES, 3));
-    await openClass();
-    expect(records(await corrections())).toHaveLength(1);
-    await history();
-    expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config.params.page)).toEqual([
-      1,
-      ...pages,
-    ]);
-  },
-);
+it('reads the entries a page of corrections reverses by their UUIDs, once each, without paging the register', async () => {
+  correctionPages = [
+    page(
+      [correction(), correction({ uuid: 'correction-again', createdAt: '2026-10-04T01:00:00Z' })],
+      NEXT(CORRECTIONS, 2),
+    ),
+    page([staffEra()]),
+  ];
+  await openClass();
+  expect(records(await corrections())).toHaveLength(3);
+  await history();
+  expect(namedReads()).toEqual([['entry-issue'], ['entry-opening']]);
+  expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config.params.page)).toEqual([
+    1, 1, 1,
+  ]);
+});
 
 it("refuses corrections naming an entry outside the class's register, and offers a retry", async () => {
   correctionPages = [page([correction({ corrects: 'entry-elsewhere' })])];
@@ -791,7 +806,7 @@ it('previews an approval, then records exactly the previewed decision and refres
   await waitFor(() =>
     expect([reads(CORRECTIONS), reads(ENTRIES), reads(HOLDERS), reads(APPOINTMENTS)]).toEqual([
       before[0] + 1,
-      before[1] + 3,
+      before[1] + 2,
       before[2] + 1,
       before[3] + 1,
     ]),
@@ -1008,7 +1023,7 @@ it('shows a refused decision and refreshes the corrections, entries, register an
       before[0] + 1,
       before[1] + 1,
       before[2] + 1,
-      before[3] + 3,
+      before[3] + 2,
     ]),
   );
 });
