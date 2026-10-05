@@ -418,12 +418,22 @@ Wallets reloading its wallet list and the person leaving Wallets. The guard
 decides pages, not data: the API still decides which rows a person sees, and
 answers 404 for one it refuses.
 
-The Company Register at `/company/register` reads every page of the issuer's
-share classes and each class's stored register. It shows current members, linked
-wallets and exact issued and authorised shares. Unopened registers and unknown or
-positive waiting-effect counts stay explicit. A failed class or register read
-hides the incomplete result and offers retry, including after a failed refresh.
-Register and Company open a class at `/company/register/:uuid`. Its ledger shows
+The Company Register at `/company/register` is a page for every signed-in
+account; the API decides which registers it shows. It reads every page of the
+share classes the person may read, as the company owner or through a current
+company appointment holding administration or a register capability, and groups
+them by company. A person who can read more than one company selects one first,
+and only that company's stored registers are read. Each class shows current
+members, linked wallets, exact issued and authorised shares and the logged
+register CSV download. Unopened registers and unknown or positive waiting-effect
+counts stay explicit. A failed class or register read hides the incomplete
+result and offers retry, including after a failed refresh. With nothing
+readable, the page says there is no company register to show. Its reads are
+keyed to the signed-in account, and an account change starts the page again.
+Company accounts reach Register from the sidebar; other accounts get a Settings
+entry only once the first page of readable classes is not empty.
+For company accounts, Register and Company open a class at
+`/company/register/:uuid`, whose class reads remain owner-bound. Its ledger shows
 class state, exact issued and authorised shares, the stored members, and every
 page of issuance and authorised-share request history. Failed history reads hide
 stale rows and offer retry. The class page replaces the old Company modal; it

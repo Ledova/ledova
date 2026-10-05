@@ -173,14 +173,16 @@ former-member section states how far the fold has read.
 
 ## API and export
 
-The web Company Register at `/company/register` uses the issuer-scoped holders
-read below for each class after reading every page of the class list. It shows
+The web Company Register at `/company/register` reads every page of
+`GET /api/v1/tokens/register/`, the share classes the signed-in person may read,
+then the holders read below for each class of the selected company. It shows
 current members and linked wallets, exact issued and authorised shares, unopened
 registers and waiting-effect warnings. If any read fails, the page offers retry
 and hides partial or stale register rows. It does not substitute wallet balances
-for the stored register. Former members remain available in the register CSV
-downloaded from the class page, reached from Register or Company; certificates and other staff-prepared outputs still follow
-written instructions through the operator workflow described below.
+for the stored register. Former members remain available in the register CSV,
+downloaded from each class on Register or from the class page; certificates and
+other staff-prepared outputs still follow written instructions through the
+operator workflow described below.
 
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
 initialised, current members with their wallets, the stored issued supply, the
