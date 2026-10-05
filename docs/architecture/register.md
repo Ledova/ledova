@@ -189,9 +189,13 @@ initialised, current members with their wallets, the stored issued supply, the
 number of completed effects still waiting to be recorded, and former members
 with their fold freshness. `GET /api/v1/tokens/{uuid}/register/waiting/` lists
 those waiting effects in chain order, each with its wallets, shares and the
-reason it waits. These routes and
-`GET /api/v1/tokens/{uuid}/register/export/` are issuer-scoped, and the export of
-a register with no opening is refused with 409 `register_not_initialized`. The
+reason it waits. `GET /api/v1/tokens/register/` lists the share classes whose
+register the caller may read, filterable by `company_uuid`. These routes and
+`GET /api/v1/tokens/{uuid}/register/export/` admit the company owner and anyone
+holding a current company appointment with `admin`, `read_register`, `prepare`,
+`approve` or `apply`. Other capabilities, delegation-only scope and staff or
+superuser status grant none of them. The export of a register with no opening is
+refused with 409 `register_not_initialized`. The
 current-member API omits residential addresses, but former-member rows include
 them. Each read of an opened register takes its head, issued supply, holdings,
 waiting count and former members from one database snapshot, so an entry
@@ -464,8 +468,8 @@ only successful background work clears that marker.
 
 The retention floor and clock are documented in
 [retention settings](../operations/uploads.md#data-retention). Purged former rows
-cannot be recreated by a later full-history fold. Only the company owner and
-operator read them; the application role cannot write them. Pre-platform former
+cannot be recreated by a later full-history fold. Only the company owner,
+current register appointees and the operator read them; the application role cannot write them. Pre-platform former
 members cannot be reconstructed from the chain; an import records them as
 `ImportedFormerMember` rows. Each ceased before a chain opening, or by the
 register date of an import that is the opening. The holders API and

@@ -33,6 +33,18 @@ The [company-managed register plan](architecture/company-managed-registers.md)
 defines roles, workflows, migration sequence and acceptance criteria. It is
 accepted direction, not a statement that the code already implements it.
 
+### Company-run register authority and evidence
+
+On 5 October 2026 (Australia/Sydney), the owner made two choices for company-run
+register work ([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5986401458)).
+A current company administrator may prepare, approve, apply and reject register
+changes; `prepare`, `approve`, `apply` and `read_register` remain the narrower
+capabilities for delegates, so an existing owner or a first representative can run
+the register alone. Register evidence is company-provided: uploaded documents are
+kept as evidence with their fingerprints, the company states the ASIC totals, and
+both are shown as provided by the company, with no Ledova staff verification step.
+The owner also approved building #864 alongside #863 rather than after it.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
