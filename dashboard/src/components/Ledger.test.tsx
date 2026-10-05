@@ -2,7 +2,8 @@
 import { createRef, useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { Disclosure, SwitchRow } from './Ledger';
+import { MemoryRouter } from 'react-router-dom';
+import { Disclosure, LinkRow, SwitchRow } from './Ledger';
 
 afterEach(cleanup);
 
@@ -103,4 +104,18 @@ it('asks for the other value when pressed, and for nothing while it is disabled'
   rerender(<SwitchRow label="Directory" checked onChange={change} disabled />);
   fireEvent.click(control);
   expect(change).toHaveBeenCalledTimes(2);
+});
+
+it('names a link row after its visible label, then any context it hides from sight', () => {
+  render(
+    <MemoryRouter>
+      <LinkRow to="/company/register/ordinary/correct/entry-4" label="Correct this entry" context="entry 4" />
+      <LinkRow to="/company/register/ordinary" label="Share class" />
+    </MemoryRouter>,
+  );
+
+  const link = screen.getByRole('link', { name: 'Correct this entry (entry 4)' });
+  expect(link.getAttribute('href')).toBe('/company/register/ordinary/correct/entry-4');
+  expect(within(link).getByText('(entry 4)').className).toBe('sr-only');
+  expect(screen.getByRole('link', { name: 'Share class' }).querySelector('.sr-only')).toBeNull();
 });

@@ -19,7 +19,7 @@ import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { useCompanyStyles } from '../company-register/styles';
-import { importAppointmentsKey } from '../company-register/useCompanyRegister';
+import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
 import { AcceptInvitation } from './AcceptInvitation';
 import { AppointmentRecord, scopeLabels } from './AppointmentRecord';
 import { InvitationForm } from './InvitationForm';
@@ -170,7 +170,7 @@ function CompanyTeam({
       ),
     );
     void queryClient.invalidateQueries({ queryKey: ['company-authority-requests'] });
-    void queryClient.invalidateQueries({ queryKey: importAppointmentsKey(epoch) });
+    void queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) });
   };
   return (
     <Page

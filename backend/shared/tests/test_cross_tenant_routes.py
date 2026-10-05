@@ -389,6 +389,7 @@ ROUTES = (
     Route("get", "/api/v1/tokens/{deployed_token}/holders/"),
     Route("get", "/api/v1/tokens/{deployed_token}/register/export/"),
     Route("get", "/api/v1/tokens/{deployed_token}/register/waiting/"),
+    Route("get", "/api/v1/tokens/{deployed_token}/register/entries/"),
     Route(
         "post",
         "/api/v1/tokens/",

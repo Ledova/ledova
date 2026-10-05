@@ -94,14 +94,23 @@ export {
   createCapitalIncrease,
   submitCapitalIncrease,
 } from './company-tokens';
+export { uploadRegisterEvidence } from './register-commands';
 export {
-  uploadRegisterEvidence,
   prepareRegisterImport,
   getRegisterImports,
   previewRegisterImportDecision,
   decideRegisterImport,
   downloadRegisterImportFile,
 } from './register-imports';
+export {
+  getRegisterEntries,
+  getRegisterCorrections,
+  prepareRegisterCorrection,
+  previewRegisterCorrectionDecision,
+  decideRegisterCorrection,
+  downloadRegisterCorrectionFile,
+} from './register-corrections';
+export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,
   getInvestorReadiness,

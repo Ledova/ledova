@@ -40,6 +40,9 @@ const LEDES: Partial<Record<DestinationKey, string>> = {
   companyRegisterImport:
     "Import a share class's existing register from the company's own records. The evidence and figures are provided " +
     'by the company.',
+  companyRegisterCorrection:
+    "Prepare a correction that reverses one entry of a share class's register exactly. The authority document is " +
+    'provided by the company.',
   companyPublications: "Staff prepare and publish these records on your company's written instruction.",
   eligibilityRequests:
     'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.',

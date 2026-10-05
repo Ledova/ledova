@@ -64,6 +64,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_correction_authority.ScopedRegisterCorrectionAuthorityTest",
     "tokens.tests.test_register_correction_authority.ScopedRegisterCorrectionDecisionGuardTest",
     "tokens.tests.test_register_access.ScopedRegisterAccessByAppointmentTest",
+    "tokens.tests.test_register_entries.ScopedRegisterEntriesTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterOpeningTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterWalletLinkTest",
     "tokens.tests.test_register_reconciliation.ScopedRegisterReconciliationTest",

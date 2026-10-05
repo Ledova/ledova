@@ -356,6 +356,7 @@ class RegisterAcknowledgementAuthorityTest(AcknowledgementFixtures, APITransacti
                 "acknowledgeable": False,
                 "acknowledgement": {
                     "reason": "The directors accept the outside transfer",
+                    "appointment": str(approving.pk),
                     "acknowledgedByName": approver.email,
                     "providedBy": "company",
                 },
@@ -379,7 +380,10 @@ class RegisterAcknowledgementAuthorityTest(AcknowledgementFixtures, APITransacti
         self.assertEqual(
             read["discrepancies"][1]["acknowledgement"]["reason"], "Accepted before company-run acknowledgement"
         )
-        self.assertIsNone(read["discrepancies"][1]["acknowledgement"]["acknowledgedByName"])
+        self.assertEqual(
+            [read["discrepancies"][1]["acknowledgement"][key] for key in ("acknowledgedByName", "appointment")],
+            [None, None],
+        )
         refused = client.post(
             f"{detail}acknowledge/",
             {**body, "appointment": str(reading.pk), "discrepancy": 2, "idempotency_key": str(uuid4())},

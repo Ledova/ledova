@@ -43,9 +43,10 @@ document ([correction process](../operations/register-foundation.md#compensating
 The fourth lets a current company approver or administrator acknowledge a
 reconciliation discrepancy through the API, with a written reason and no Ledova
 staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
-The correction and acknowledgement screens, #864's other register commands and
-#865–#873 remain planned. Their company offering, issuance and register authority
-is separate.
+The Register in both clients also lists each class's entries and runs those
+corrections and acknowledgements. #864's other register commands and #865–#873
+remain planned. Their company offering, issuance and register authority is
+separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

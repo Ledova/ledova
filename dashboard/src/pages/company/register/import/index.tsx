@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
-  appointmentForRegisterImportStep,
+  appointmentForRegisterStep,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
@@ -69,7 +69,7 @@ function OwnImport({
   const listed = classes.data?.find((item) => item.uuid === uuid);
   const appointment =
     listed && appointments.data
-      ? appointmentForRegisterImportStep(appointments.data, listed.companyUuid, 'prepare')
+      ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
   const register = useQuery({
     queryKey: [...registerKey(owner), 'holders', 'class', uuid],

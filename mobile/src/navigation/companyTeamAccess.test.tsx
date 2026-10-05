@@ -1,6 +1,7 @@
 import React from 'react';
 import { cleanup, render } from '@testing-library/react-native';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
+import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
 import { CompanyStackNavigator, type CompanyStackParamList } from './CompanyStackNavigator';
@@ -34,6 +35,9 @@ jest.mock('../screens/eligibility-records/ParticipantEligibilityScreen', () => (
 jest.mock('../screens/company-register/PrepareRegisterImportScreen', () => ({
   PrepareRegisterImportScreen: () => null,
 }));
+jest.mock('../screens/company-register/PrepareRegisterCorrectionScreen', () => ({
+  PrepareRegisterCorrectionScreen: () => null,
+}));
 
 afterEach(async () => {
   await cleanup();
@@ -66,18 +70,20 @@ it.each([HomeStackNavigator, CompanyStackNavigator])(
   },
 );
 
-it.each([HomeStackNavigator, CompanyStackNavigator])(
-  'registers import preparation beside the register with a back action',
-  async (Navigator) => {
-    await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
-    expect(mockScreens.find((screen) => screen.name === 'PrepareRegisterImport')).toEqual(
-      expect.objectContaining({
-        component: PrepareRegisterImportScreen,
-        options: expect.objectContaining({ title: '', headerBackVisible: true }),
-      }),
-    );
-  },
-);
+it.each([
+  ['import', 'PrepareRegisterImport', PrepareRegisterImportScreen, HomeStackNavigator],
+  ['import', 'PrepareRegisterImport', PrepareRegisterImportScreen, CompanyStackNavigator],
+  ['correction', 'PrepareRegisterCorrection', PrepareRegisterCorrectionScreen, HomeStackNavigator],
+  ['correction', 'PrepareRegisterCorrection', PrepareRegisterCorrectionScreen, CompanyStackNavigator],
+])('registers %s preparation beside the register with a back action', async (_, name, component, Navigator) => {
+  await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
+  expect(mockScreens.find((screen) => screen.name === name)).toEqual(
+    expect.objectContaining({
+      component,
+      options: expect.objectContaining({ title: '', headerBackVisible: true }),
+    }),
+  );
+});
 
 it('registers participant requests in the always reachable Home stack', async () => {
   await render(<HomeStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
@@ -94,6 +100,17 @@ it('types the import preparation params alike in both register stacks', () => {
   const company: CompanyStackParamList['PrepareRegisterImport'] = home;
   const back: HomeStackParamList['PrepareRegisterImport'] = company;
   expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper' });
+});
+
+it('types the correction preparation params alike in both register stacks', () => {
+  const home: HomeStackParamList['PrepareRegisterCorrection'] = {
+    tokenUuid: 'ordinary',
+    companyUuid: 'paper',
+    entryUuid: 'entry-1',
+  };
+  const company: CompanyStackParamList['PrepareRegisterCorrection'] = home;
+  const back: HomeStackParamList['PrepareRegisterCorrection'] = company;
+  expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper', entryUuid: 'entry-1' });
 });
 
 it('registers the register in Home with a back action and keeps it as the Company tab landing', async () => {

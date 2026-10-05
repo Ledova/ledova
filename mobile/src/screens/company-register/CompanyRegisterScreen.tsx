@@ -10,7 +10,7 @@ import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
-import { ClassImports } from './ClassImports';
+import { ClassRecords } from './ClassRecords';
 import { ClassRegister } from './ClassRegister';
 import { RegisterDownload } from './RegisterDownload';
 
@@ -87,13 +87,20 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         accessibilityLabel={`${REGISTER_COPY.DOWNLOAD} for ${register.token.name}`}
                       />
                       <ClassRegister register={register} />
-                      <ClassImports
+                      <ClassRecords
                         epoch={epoch}
                         company={company.uuid}
                         register={register}
                         refreshHolders={registers.refetch}
-                        onPrepare={() =>
+                        onPrepareImport={() =>
                           navigation.navigate('PrepareRegisterImport', { tokenUuid: uuid, companyUuid: company.uuid })
+                        }
+                        onCorrect={(entry) =>
+                          navigation.navigate('PrepareRegisterCorrection', {
+                            tokenUuid: uuid,
+                            companyUuid: company.uuid,
+                            entryUuid: entry.uuid,
+                          })
                         }
                       />
                     </View>
