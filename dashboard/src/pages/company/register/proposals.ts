@@ -1,4 +1,10 @@
-import { appointmentForRegisterStep, type OwnCompanyAppointment, type RegisterStep } from '@ledova/shared';
+import {
+  REGISTER_CORRECTION_COPY,
+  appointmentForRegisterStep,
+  type OwnCompanyAppointment,
+  type RegisterEntry,
+  type RegisterStep,
+} from '@ledova/shared';
 import type { Tone } from '@components/Ledger';
 
 export type RegisterSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
@@ -27,4 +33,9 @@ export function registerSteps(appointments: OwnCompanyAppointment[], company: st
 export function retainedName(snapshot: unknown, fallback: string) {
   const name = (snapshot as { name?: unknown } | null)?.name;
   return typeof name === 'string' && name ? name : fallback;
+}
+
+export function describeEntry(entry: Pick<RegisterEntry, 'kind' | 'sequence' | 'effectiveOn'>) {
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? entry.kind;
+  return `${kind} · Entry ${entry.sequence} · Effective ${entry.effectiveOn}`;
 }
