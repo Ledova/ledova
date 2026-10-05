@@ -1,14 +1,15 @@
 import logging
 from collections import defaultdict
 
-from django.contrib.auth import get_user_model
 from django.db.models import F
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 
 from blockchain.models import OutgoingStatus, SignedAttempt
+from companies.models import CompanyCapability
+from companies.services.authority_requests import _requester_principal
 from integrations.blockchain.receipts import normalized_hash
-from shared.db import atomic
-from tokens.exceptions import RegisterUnavailableException
+from shared.db import atomic, use_operator
+from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
     IssuanceExecutionStatus,
     RegisterAcknowledgement,
@@ -25,6 +26,7 @@ from tokens.models import (
     SwapOrder,
     SwapOrderStatus,
 )
+from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_inclusions import (
     ATTRIBUTION,
     ISSUE,
@@ -253,31 +255,67 @@ def reconcile_register(token_id, *, client=None):
     return record
 
 
-def acknowledge_discrepancy(*, reconciliation_id, index, reason, actor):
-    _operator()
-    staff = get_user_model().objects.filter(pk=getattr(actor, "pk", None), is_active=True, is_staff=True).first()
-    if staff is None:
-        raise PermissionDenied("Only active staff can acknowledge a register discrepancy.")
-    if not isinstance(reason, str) or not reason.strip() or len(reason) > 1000:
-        raise ValidationError("Give the reason this discrepancy is acknowledged, in at most 1000 characters.")
-    reconciliation = RegisterReconciliation.objects.filter(pk=reconciliation_id).first()
+def _readable(actor, reconciliation_id):
+    with use_operator(), _requester_principal(actor.pk):
+        reconciliation = (
+            RegisterReconciliation.objects.register_readable_by(actor)
+            .select_related("token")
+            .filter(pk=reconciliation_id)
+            .first()
+        )
     if reconciliation is None:
         raise NotFound("Reconciliation not found.")
-    if type(index) is not int or not 0 <= index < len(reconciliation.discrepancies):
-        raise ValidationError("Name one of this reconciliation's discrepancies by its position, counting from zero.")
-    discrepancy = reconciliation.discrepancies[index]
-    if discrepancy["kind"] not in ACKNOWLEDGEABLE:
-        raise ValidationError("An attribution or a missing transfer needs attribution, not an acknowledgement.")
-    with atomic():
+    return reconciliation
+
+
+def _row(reconciliation, discrepancy):
+    if type(discrepancy) is int and 0 <= discrepancy < len(reconciliation.discrepancies):
+        return reconciliation.discrepancies[discrepancy]
+    return None
+
+
+def acknowledge_discrepancy(*, actor, reconciliation_id, appointment, discrepancy, reason, idempotency_key):
+    reconciliation = _readable(actor, reconciliation_id)
+    with register_command(actor, reconciliation.token.company_id, "register_discrepancy_acknowledge") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        source = register_appointment(company, current_actor, profile, operator, appointment, CompanyCapability.APPROVE)
+        prior = RegisterAcknowledgement.objects.filter(
+            acknowledged_by_id=current_actor.pk, idempotency_key=idempotency_key
+        ).first()
+        if prior is not None:
+            if (prior.reconciliation_id, prior.discrepancy, prior.reason, prior.appointment_id) != (
+                reconciliation.pk,
+                _row(reconciliation, discrepancy),
+                reason,
+                source.pk,
+            ):
+                raise RegisterChangeConflict()
+            return prior, False
         token = ShareToken.objects.select_for_update().get(pk=reconciliation.token_id)
         if RegisterReconciliation.objects.filter(token=token).first() != reconciliation:
             raise ValidationError("Acknowledge a discrepancy of the share class's latest reconciliation.")
-        if RegisterAcknowledgement.objects.filter(reconciliation=reconciliation, discrepancy=discrepancy).exists():
+        row = _row(reconciliation, discrepancy)
+        if row is None:
+            raise ValidationError(
+                "Name one of this reconciliation's discrepancies by its position, counting from zero."
+            )
+        if row["kind"] not in ACKNOWLEDGEABLE:
+            raise ValidationError("An attribution or a missing transfer needs attribution, not an acknowledgement.")
+        if RegisterAcknowledgement.objects.filter(reconciliation=reconciliation, discrepancy=row).exists():
             raise ValidationError("This discrepancy is already acknowledged.")
-        return RegisterAcknowledgement.objects.create(
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 1000:
+            raise ValidationError("Give the reason this discrepancy is acknowledged, in at most 1000 characters.")
+        acknowledgement = RegisterAcknowledgement.objects.create(
             token_id=token.pk,
             reconciliation=reconciliation,
-            discrepancy=discrepancy,
+            discrepancy=row,
             reason=reason,
-            acknowledged_by_id=staff.pk,
+            acknowledged_by_id=current_actor.pk,
+            appointment=source,
+            idempotency_key=idempotency_key,
         )
+        return acknowledgement, True

@@ -28,7 +28,7 @@ The pack carries the company, its share classes, each class's register of member
 | `classes/<class id>/settlements.json` | Each settlement of the class that Ledova executed: the order both parties signed with its signing domain, the order hash, both signatures, the transaction and its finalized receipt, and the register entry that recorded it |
 | `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced, the execution that sent it and the subscription it allotted; under `awaiting_allotment`, each subscription with a payment recorded and no shares allotted. Each subscription carries its payment as recorded |
 | `classes/<class id>/former_members.json` | The former members in `register.csv`, each with the date until which it must be kept |
-| `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their acknowledgements |
+| `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their acknowledgements: each one's reason, who acknowledged it and when, and whether the company acknowledged it or Ledova staff did before acknowledgement was company-run |
 | `classes/<class id>/waiting.json` | Completed issues and settled transfers not yet entered in the register |
 | `classes/<class id>/due.json` | Share certificates and notice figures still owed for the register's entries |
 | `contracts/contracts.json` | The chain, each contract's address, the owner each share class was deployed with and the settlement contract it was approved on, the registry's owner, the two signing domains and the compiler settings |

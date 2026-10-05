@@ -36,8 +36,11 @@ applies the import with no Ledova staff review
 and the Register in both clients runs those steps. The third lets the company run
 compensating corrections through the API in the same way, with its own authority
 document ([correction process](../operations/register-foundation.md#compensating-corrections)).
-The correction screens, #864's other register commands and #865–#873 remain
-planned.
+The fourth lets a current company approver or administrator acknowledge a
+reconciliation discrepancy through the API, with a written reason and no Ledova
+staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
+The correction and acknowledgement screens, #864's other register commands and
+#865–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -261,7 +264,7 @@ flowchart LR
 | Staff evidence review and register-opening/link/instruction/import/correction guards | Company authority at API, service, worker, policy and trigger boundaries                                                                                                       |
 | Staff-only DB decision/issuance triggers; customer ledger writes refused             | Bounded company-authorised commands, preserving guarded system execution                                                                                                       |
 | Operator payment settings and staff subscription/allotment actions                   | Company payment settings/decisions with exact company issue authority                                                                                                          |
-| Staff whitelist, issuance and reconciliation acknowledgement                         | Company capabilities for dependent actions, preserving eligibility/finality and exact discrepancy checks                                                                       |
+| Staff whitelist and issuance                                                         | Company capabilities for dependent actions, preserving eligibility and finality                                                                                                |
 | Admin-only outputs and staff publication/ballot/payment workflows                    | Company tools and participant read/response flows                                                                                                                              |
 | Operator console names the platform as every company's register keeper               | Attribute company administration and each actual decision maker correctly                                                                                                      |
 

@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from offerings.models import Subscription, SubscriptionStatus
@@ -363,13 +364,21 @@ def former_members(stored) -> list:
 
 
 def reconciliations(token) -> list:
+    acknowledgements = list(RegisterAcknowledgement.objects.filter(token_id=token.pk).order_by("created_at", "uuid"))
+    people = (
+        get_user_model()
+        .objects.select_related("userprofile")
+        .in_bulk({acknowledgement.acknowledged_by_id for acknowledgement in acknowledgements})
+    )
     acknowledged = defaultdict(list)
-    for acknowledgement in RegisterAcknowledgement.objects.filter(token_id=token.pk).order_by("created_at", "uuid"):
+    for acknowledgement in acknowledgements:
         acknowledged[acknowledgement.reconciliation_id].append(
             {
                 "discrepancy": acknowledgement.discrepancy,
                 "reason": acknowledgement.reason,
+                "acknowledged_by": _name(people.get(acknowledgement.acknowledged_by_id)),
                 "acknowledged_at": acknowledgement.created_at,
+                "provided_by": "company" if acknowledgement.appointment_id else "staff",
             }
         )
     return [

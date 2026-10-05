@@ -73,6 +73,13 @@ holds a current appointment; the company's authority document is company-provide
 evidence with no Ledova staff verification; a correction still waiting for the
 retired staff review can only be rejected; and evidence downloads are not logged.
 
+For reconciliation discrepancies the owner decided the same day
+([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
+that acknowledgement is one company step: a current appointment holding `admin`
+or `approve` acknowledges one specific discrepancy of the latest reconciliation
+with a written reason. There is no Ledova staff step and no second person, and
+#864 adds no new approver-conflict rule.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
@@ -196,11 +203,14 @@ An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that
 took no action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
-A reconciliation divergence that staff have investigated and accepted is
+A reconciliation divergence that has been investigated and accepted is
 acknowledged, one discrepancy at a time with a reason, in an append-only record
-only the operator writes, and later runs treat it as explained, so a share class
-can return to `matched`. Transfers of zero shares are ignored, because anyone
-can emit one. Both were chosen on 22 September 2026 in
+only the operator connection writes, and later runs treat it as explained, so a
+share class can return to `matched`. Staff acknowledged them until 5 October
+2026, when acknowledgement became a company step
+([company-run register authority](#company-run-register-authority-and-evidence)).
+Transfers of zero shares are ignored, because anyone can emit one. Both were
+chosen on 22 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
 The same decision settled two import questions. An applied import's reviewed
 copy and uploaded register file are evidence, kept like opening and correction

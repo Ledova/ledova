@@ -241,6 +241,11 @@ REGISTER_IMPORT_ROUTES = {
     "decide": ("post", "/api/v1/tokens/register-imports/{uuid}/decide/"),
     "evidence": ("post", "/api/v1/tokens/register-evidence/"),
 }
+REGISTER_RECONCILIATION_ROUTES = {
+    "list": ("get", "/api/v1/tokens/register-reconciliations/"),
+    "detail": ("get", "/api/v1/tokens/register-reconciliations/{uuid}/"),
+    "acknowledge": ("post", "/api/v1/tokens/register-reconciliations/{uuid}/acknowledge/"),
+}
 PUBLICATION_ROUTES = {
     "list": ("get", "/api/v1/publications/"),
     "file": ("get", "/api/v1/publications/{uuid}/file/"),
@@ -1480,6 +1485,51 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 self.client.logout()
         with self.as_an_operator_would():
             self.assertEqual(RegisterImport.objects.get(pk=proposal_id).status, "submitted")
+
+    def test_register_reconciliation_routes_keep_rows_and_acknowledgements_company_bound(self):
+        from tokens.models import RegisterAcknowledgement
+        from tokens.tests.test_register_acknowledgement_authority import (
+            acknowledgement_fixture,
+            reconciled,
+        )
+
+        with self.as_an_operator_would():
+            owner, _, token, member, appointment = acknowledgement_fixture()
+            record_id = str(reconciled(token, member).pk)
+        listing = REGISTER_RECONCILIATION_ROUTES["list"][1]
+        detail = REGISTER_RECONCILIATION_ROUTES["detail"][1].format(uuid=record_id)
+        acknowledge = REGISTER_RECONCILIATION_ROUTES["acknowledge"][1].format(uuid=record_id)
+        body = {
+            "appointment": str(appointment.pk),
+            "discrepancy": 0,
+            "reason": "Accepted by the directors",
+            "idempotency_key": str(uuid4()),
+        }
+        requests = (
+            lambda path: self.client.get(path),
+            lambda path: self.client.post(path, body, format="json"),
+        )
+        self.client.force_authenticate(owner)
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [record_id])
+        self.assertEqual(self.client.get(detail).status_code, 200)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            for send, path in zip(requests, (detail, acknowledge)):
+                denied = send(path)
+                missing = send(path.replace(record_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.assertEqual(self.rows(self.client.get(listing)), [])
+        self.client.force_authenticate(None)
+        for send, path in zip((*requests, requests[0]), (detail, acknowledge, listing)):
+            self.assertEqual(send(path).status_code, 401)
+        with self.as_an_operator_would():
+            self.assertFalse(RegisterAcknowledgement.objects.exists())
+        self.client.force_authenticate(owner)
+        acknowledged = requests[1](acknowledge)
+        self.assertEqual(acknowledged.status_code, 201, acknowledged.content)
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterAcknowledgement.objects.get().acknowledged_by_id, owner.pk)
 
     @override_settings(
         STORAGES={

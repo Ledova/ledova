@@ -1,6 +1,7 @@
 from .capital_increase import CapitalIncreaseRequestQuerySet
 from .register_instruction import RegisterInstructionQuerySet
 from .register_proposal import RegisterProposalQuerySet
+from .register_reconciliation import RegisterReconciliationQuerySet
 from .share_issuance import ShareIssuanceQuerySet
 from .share_issuance_request import ShareIssuanceRequestQuerySet
 from .share_token import ShareTokenQuerySet
@@ -12,6 +13,7 @@ __all__ = [
     "CapitalIncreaseRequestQuerySet",
     "RegisterInstructionQuerySet",
     "RegisterProposalQuerySet",
+    "RegisterReconciliationQuerySet",
     "ShareIssuanceQuerySet",
     "ShareIssuanceRequestQuerySet",
     "ShareTokenQuerySet",

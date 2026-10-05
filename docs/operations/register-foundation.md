@@ -1346,8 +1346,8 @@ with the stored register under the share-class lock that completions take:
   held for attribution accounts for its own transfer but moves nothing, since
   its place relative to the opening is what is unknown.
 
-A transfer of zero shares is ignored, and a discrepancy staff have
-[acknowledged](#acknowledging-a-discrepancy) is treated as explained.
+A transfer of zero shares is ignored, and an
+[acknowledged](#acknowledging-a-discrepancy) discrepancy is treated as explained.
 
 The stored register row is locked for the comparison, so a correction cannot
 land between reading the supply and reading the holdings. A snapshot below the
@@ -1380,24 +1380,64 @@ python manage.py register_reconcile --token TOKEN_UUID
 
 It prints the retained record. The database refuses to rewrite or delete a
 reconciliation, or to record one inconsistent with its status. Only the
-operator records them, and the issuer reads its own. Downgrading `tokens/0070`
-refuses while any exist.
+operator records them. The issuer reads its own, and register readers read them
+through the [reconciliation API](#acknowledging-a-discrepancy). Downgrading
+`tokens/0070` refuses while any exist.
 
 ### Acknowledging a discrepancy
 
-The register itself cannot follow a divergence it did not cause: no reviewed
-entry records an outside transfer, and a correction only compensates an
-existing entry. Once staff have investigated a divergence and accepted it, they
-acknowledge it, one row at a time, from the share class's latest
-reconciliation, from `backend/`:
+The register itself cannot follow a divergence it did not cause: no entry
+records an outside transfer, and a correction only compensates an existing
+entry. Once the company has investigated a divergence and accepted it, it
+acknowledges it, one row at a time, from the share class's latest
+reconciliation. Since 5 October 2026 this is one company step, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+a current appointment holding `admin` or `approve` acknowledges one specific
+discrepancy with a written reason. There is no Ledova staff step and no second
+person. Staff permissions, company ownership alone and shareholding grant no
+acknowledgement. The company cannot start a reconciliation; the six-hourly job
+and the operator's `register_reconcile` run them. The web and mobile screens are
+planned; the API below is delivered.
 
-```bash
-python manage.py register_acknowledge --reconciliation RECONCILIATION_UUID \
-    --discrepancy POSITION --reason "WHY IT IS ACCEPTED" --actor STAFF_USER_ID
+| Method and route | Result |
+| --- | --- |
+| `GET /api/v1/tokens/register-reconciliations/` | Paginated reconciliations, newest first, of share classes whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `token` |
+| `GET /api/v1/tokens/register-reconciliations/{uuid}/` | The record: status, block, register sequence, any failure, whether it is the class's `latest`, and each discrepancy as stored with `acknowledgeable` and its `acknowledgement` |
+| `POST /api/v1/tokens/register-reconciliations/{uuid}/acknowledge/` | Acknowledge one discrepancy; return the reconciliation |
+
+```json
+{
+  "appointment": "10000000-0000-4000-8000-000000000030",
+  "discrepancy": 0,
+  "reason": "The directors accept the transfer the two holders made outside the platform",
+  "idempotency_key": "10000000-0000-4000-8000-000000000051"
+}
 ```
 
-`POSITION` counts from zero through the record's `discrepancies`, in the order
-`register_reconcile` prints them. Later runs treat the row as explained:
+`discrepancy` counts from zero through the record's `discrepancies`, in the
+order the API lists them. A row is `acknowledgeable` while its reconciliation is
+the class's latest, its kind can be acknowledged and nothing acknowledges it yet.
+Its `acknowledgement` is `null`, or the reason, the acknowledger's name, the time
+and `provided_by`: `company`, or `staff` for an acknowledgement recorded before
+acknowledgement was company-run, which shows no name.
+
+A new acknowledgement answers `201`. An identical retry with the same
+`idempotency_key` answers `200` with the same acknowledgement, even after a later
+reconciliation; the same key with any change answers `409`. The request records
+nothing and refuses:
+- a reconciliation of a class whose register the caller cannot read, as not
+  found;
+- an appointment that is not the caller's current appointment holding `admin` or
+  `approve`, as not found;
+- a caller who does not meet the issuer identity check the operator requires;
+- a reconciliation that is not the class's latest: for a row of an older record,
+  wait for the next run and use it;
+- a position outside the record's discrepancies;
+- an `attribution` or `missing_transfer` row;
+- a row already acknowledged;
+- a blank reason, or one of more than 1,000 characters.
+
+Later runs treat the row as explained:
 
 - an acknowledged `unrecognised_transfer` is not reported again for that
   transaction hash;
@@ -1416,14 +1456,27 @@ need the attribution procedure, which is still
 [#647](https://github.com/Ledova/ledova/issues/647) work.
 
 Each acknowledgement is retained with the reconciliation, the exact row, the
-reason, the staff member and the time, and the command prints it. The command
-takes rows of the latest reconciliation only, under the share-class lock a run
-holds, so no divergence is counted twice; for a row of an older record,
-reconcile again and use the new one. The database refuses to change or delete
-an acknowledgement, a row that is not verbatim in the class's reconciliation, a
-second acknowledgement of the same row, a blank reason, a user who is not
-active staff, and any insert from the app role. Only the operator reads them;
-the issuer sees the reconciliation result they produce.
+reason, the person, their appointment and the time. The company register
+command rechecks the appointment after taking the company lock, and takes the
+share-class lock a run holds, so a revocation that commits first refuses it and
+no divergence is counted twice. The database keeps acknowledgements immutable and refuses:
+- an acknowledgement not made through the company command for the class's
+  company, by the person it names;
+- an appointment that is not that person's current appointment holding `admin`
+  or `approve`, and a missing retry key;
+- a row of any reconciliation but the class's latest, a row that is not verbatim
+  in it, an `attribution` or `missing_transfer` row and a blank reason;
+- a second acknowledgement of the same row, and a second use of a person's retry
+  key;
+- any insert from the app role.
+
+Only the operator connection reads them. Register readers see them through the
+reconciliation API, and the
+[company pack](../architecture/company-pack.md#approvals-and-history) lists each
+one with who acknowledged it and whether the company or staff did. Staff
+acknowledged discrepancies through an operator command, `register_acknowledge`,
+until 5 October 2026. That command is retired; the acknowledgements it recorded
+are kept unchanged and still explain their rows.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).
