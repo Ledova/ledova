@@ -175,7 +175,7 @@ def _parties(plan):
 def _replay(plan, market):
     for _, kind, _, item in _history(plan):
         if kind == 0:
-            trading.place(item, market, at=item.placed_at)
+            trading.place(item, market)
         elif kind == 1:
             trading.lapse(item, market)
         else:

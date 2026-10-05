@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from datetime import timedelta
 from decimal import Decimal
 
@@ -40,7 +39,7 @@ from tokens.services.trading_order_create import (
 )
 
 TRANSACTION_INTEGERS = ("value", "gas", "gasPrice", "nonce", "chainId")
-EXPIRY_RUN = timedelta(minutes=18)
+EXPIRY_DELAY = timedelta(seconds=1)
 REFUSED = "The {side} order {key} was not created: {code} {detail}"
 MISMATCHED = "The {side} order {key} matched {actual}, and the plan has it match {planned}."
 NOT_CANCELLED = "The cancellation of {key} ended {status}."
@@ -59,7 +58,7 @@ def _party(order, market):
     return wallet, account, account.user_profile.user
 
 
-def place(order, market, at=None):
+def place(order, market):
     token = market.tokens[order.listing]
     wallet, account, user = _party(order, market)
     data = {
@@ -76,7 +75,7 @@ def place(order, market, at=None):
         "owner_account": account,
     }
     key = market.keyring.key(wallet.address)
-    with use_operator(), _requester_principal(user.pk), frozen(at) if at else nullcontext():
+    with use_operator(), _requester_principal(user.pk):
         issued = issue_order_submission(user, data)
         challenge = issued.challenge
         signature = _sign(key, signable_message(challenge["domain"], challenge["types"], challenge["message"]))
@@ -108,7 +107,7 @@ def cancel(order, market):
     _, account, user = _party(order, market)
     data = {"action_id": seeded_id("cancel", order.key), "owner_account_uuid": account.pk}
     key = market.keyring.key(order.address)
-    with use_operator(), _requester_principal(user.pk), frozen(order.cancelled_at):
+    with use_operator(), _requester_principal(user.pk):
         issued = issue_order_action(user, transfer.pk, OrderActionPurpose.CANCEL, data)
         challenge = issued.challenge
         signature = _sign(key, signable_message(challenge["domain"], challenge["types"], challenge["message"]))
@@ -126,9 +125,9 @@ def cancel(order, market):
 
 def lapse(fill, market):
     taker = market.plan.order(fill.taker)
-    submission = place(taker, market, at=taker.placed_at)
+    submission = place(taker, market)
     swap = matched(taker, submission, fill.maker, market)
-    with frozen(taker.placed_at + EXPIRY_RUN) as moment:
+    with frozen(swap.expires_at + EXPIRY_DELAY) as moment:
         if not expire_unclaimed_swap(swap, moment):
             raise ChainStepFailed(NOT_EXPIRED.format(key=fill.taker))
     if taker.fate == HELD:
