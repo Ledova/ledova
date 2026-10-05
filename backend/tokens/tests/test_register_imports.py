@@ -1082,6 +1082,7 @@ class RegisterImportTest(TransactionTestCase):
                     defaults={
                         "name": row["name"],
                         "residential_address": row["residential_address"],
+                        "as_at": proposal.as_at,
                         "source_import": proposal,
                     },
                 )
@@ -1294,7 +1295,11 @@ class ImportOpenedInstructionTest(TransactionTestCase):
                 recorded_by=self.tenant.user,
             )
             RegisterMemberParticulars.objects.create(
-                member=self.member, name="Mia Member", residential_address=RESIDENCE, source_import=proposal
+                member=self.member,
+                name="Mia Member",
+                residential_address=RESIDENCE,
+                as_at=proposal.as_at,
+                source_import=proposal,
             )
             decision = forge_decision(proposal, "apply", self.tenant.user, self.appointment)
             forge_outcome(proposal, self.tenant.user, decision, status="applied", register_sequence=1)
@@ -1426,7 +1431,11 @@ class ScopedRegisterImportTest(RunsOnTheScopedConnection, APITransactionTestCase
         self.assertEqual(list(RegisterImport.objects.values_list("pk", flat=True)), [self.proposal.pk])
         for write in (
             lambda: RegisterMemberParticulars.objects.create(
-                member=self.member, name="Forged", residential_address="Nowhere", source_import=self.proposal
+                member=self.member,
+                name="Forged",
+                residential_address="Nowhere",
+                as_at=self.proposal.as_at,
+                source_import=self.proposal,
             ),
             lambda: RegisterImport.objects.filter(pk=self.proposal.pk).update(status="rejected"),
             lambda: list(RegisterImportDecision.objects.all()),

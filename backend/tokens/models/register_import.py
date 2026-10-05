@@ -110,7 +110,20 @@ class RegisterMemberParticulars(BaseModel):
     member = models.OneToOneField("tokens.RegisterMember", on_delete=models.PROTECT, related_name="particulars")
     name = models.CharField(max_length=255)
     residential_address = models.TextField()
-    source_import = models.ForeignKey(RegisterImport, on_delete=models.PROTECT, related_name="particulars")
+    as_at = models.DateField()
+    source_import = models.ForeignKey(RegisterImport, on_delete=models.PROTECT, related_name="particulars", null=True)
+    source_change = models.ForeignKey(
+        "tokens.RegisterParticularsChange", on_delete=models.PROTECT, related_name="particulars", null=True
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(source_import__isnull=False, source_change__isnull=True)
+                | models.Q(source_import__isnull=True, source_change__isnull=False),
+                name="register_member_particulars_one_source",
+            ),
+        ]
 
 
 class ImportedFormerMember(BaseModel):

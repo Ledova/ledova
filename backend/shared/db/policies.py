@@ -311,6 +311,7 @@ POLICIES = {
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
+    "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "shareholders_publication": (
         f"{_company('company_id', VISIBLE_COMPANIES)} OR {ADDRESSED_TO_ME}",
@@ -606,6 +607,9 @@ OPERATOR_ONLY = {
     "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
     "corrections, each bound to the deciding appointment and written by the bounded register command on the "
     "operator connection. Register readers see them through the correction on the operator connection.",
+    "tokens_registerparticularschangedecision": "Append-only company approvals, applications and rejections of "
+    "member particulars changes, each bound to the deciding appointment and written by the bounded register command "
+    "on the operator connection. Register readers see them through the change on the operator connection.",
     "tokens_registeracknowledgement": "Append-only acknowledgements of register reconciliation discrepancies. A "
     "company's are written by the bounded register command on the operator connection, each bound to the "
     "acknowledging appointment; retained staff-era rows came from a retired operator command. Register readers "

@@ -110,7 +110,7 @@ const RECEIPT = {
   createdAt: '2026-10-05T00:00:00Z',
 } satisfies RegisterEvidence;
 
-it.each<RegisterEvidenceKind>(['share_register', 'asic_extract', 'authority'])(
+it.each<RegisterEvidenceKind>(['share_register', 'asic_extract', 'authority', 'supporting'])(
   'accepts a %s evidence receipt for the exact upload',
   (kind) => {
     expect(isRegisterEvidenceReceipt({ ...RECEIPT, kind }, { ...UPLOAD, kind }, 4)).toBe(true);

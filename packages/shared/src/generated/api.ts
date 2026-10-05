@@ -1967,6 +1967,86 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-particulars-changes/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_particulars_changes_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_particulars_changes_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-particulars-changes/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_particulars_changes_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-particulars-changes/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_particulars_changes_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_particulars_changes_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-particulars-changes/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_particulars_changes_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-reconciliations/': {
     parameters: {
       query?: never;
@@ -4118,6 +4198,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterOpening'][];
     };
+    PaginatedRegisterParticularsChangeList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterParticularsChange'][];
+    };
     PaginatedRegisterReconciliationList: {
       count: number;
       next?: string | null;
@@ -4568,7 +4654,7 @@ export interface ApiComponents {
       sha256: string;
       uuid: string;
     };
-    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority';
+    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority' | 'supporting';
     RegisterEvidenceUploadRequest: {
       appointment: string;
       companyId: string;
@@ -4741,6 +4827,80 @@ export interface ApiComponents {
       operationId: string;
       reason: string;
       tokenId: string;
+    };
+    RegisterParticularsChange: {
+      asAt: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterParticularsChangeDecision'][];
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      member: string;
+      name: string;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      reason: string;
+      rejectionReason: string;
+      residentialAddress: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      supportingEvidence: string;
+      uuid: string;
+    };
+    RegisterParticularsChangeCreateRequest: {
+      appointment: string;
+      asAt: string;
+      member: string;
+      name: string;
+      operationId: string;
+      reason: string;
+      residentialAddress: string;
+      supportingEvidence: string;
+    };
+    RegisterParticularsChangeDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterParticularsChangeDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterParticularsChangeDecisionPreview: {
+      asAt: string;
+      canDecide: boolean;
+      current: ApiComponents['schemas']['RegisterParticularsHeld'] | null;
+      member: string;
+      name: string;
+      previewDigest: string;
+      residentialAddress: string;
+      unmetRequirements: string[];
+    };
+    RegisterParticularsChangeDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterParticularsHeld: {
+      asAt: string;
+      name: string;
+      residentialAddress: string;
+      sourceChange: string | null;
+      sourceImport: string | null;
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -9217,6 +9377,160 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_openings_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterParticularsChangeList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterParticularsChangeCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterParticularsChangeCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterParticularsChangeCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterParticularsChangeDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterParticularsChangeDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterParticularsChangeDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterParticularsChangeDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterParticularsChangeDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterParticularsChangeDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChangeDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_particulars_changes_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;
