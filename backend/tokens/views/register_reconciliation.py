@@ -39,6 +39,7 @@ class RegisterReconciliationViewSet(AuthenticatedReadOnlyViewSet):
         "acknowledgements and the acknowledging appointee's name."
     )
     ordering = ["-created_at", "-uuid"]
+    ordering_fields = ["created_at"]
     http_method_names = ["get", "post", "head", "options"]
 
     def narrow(self, queryset):

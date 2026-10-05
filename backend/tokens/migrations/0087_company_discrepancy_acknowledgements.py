@@ -45,6 +45,7 @@ DECLARE
     acknowledged tokens_registerreconciliation;
     principal bigint;
     issuer uuid;
+    at_time timestamptz;
 """,
     ),
     (
@@ -52,6 +53,7 @@ DECLARE
     IF current_user = %s
 """,
         """    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    at_time := clock_timestamp();
     SELECT company_id INTO issuer FROM tokens_sharetoken WHERE uuid = NEW.token_id;
     PERFORM 1 FROM companies_company WHERE uuid = issuer FOR UPDATE;
     PERFORM 1 FROM tokens_sharetoken WHERE uuid = NEW.token_id FOR UPDATE;
@@ -61,8 +63,7 @@ DECLARE
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_discrepancy_acknowledge'
         OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text
         OR NEW.idempotency_key IS NULL
-        OR NOT tokens_register_appointment_current(NEW.appointment_id, issuer, principal, 'approve',
-            clock_timestamp())
+        OR NOT tokens_register_appointment_current(NEW.appointment_id, issuer, principal, 'approve', at_time)
         OR EXISTS (SELECT 1 FROM tokens_registerreconciliation later
             WHERE later.token_id = acknowledged.token_id
                 AND (later.created_at, later.uuid) > (acknowledged.created_at, acknowledged.uuid))
@@ -75,9 +76,21 @@ DECLARE
     THEN
         RAISE EXCEPTION 'Active staff acknowledge one exact discrepancy of a reconciliation, with a reason'
 """,
-        """        OR length(btrim(NEW.reason)) = 0
+        """        OR NEW.reason !~ '[^[:space:]]'
     THEN
         RAISE EXCEPTION 'A current company approver acknowledges one exact current discrepancy, with a reason'
+""",
+    ),
+    (
+        """            USING ERRCODE = '23514';
+    END IF;
+    RETURN NEW;
+""",
+        """            USING ERRCODE = '23514';
+    END IF;
+    NEW.created_at := at_time;
+    NEW.updated_at := at_time;
+    RETURN NEW;
 """,
     ),
 )

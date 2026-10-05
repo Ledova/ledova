@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from importlib import import_module
@@ -265,7 +266,9 @@ class RegisterAcknowledgementAuthorityTest(AcknowledgementFixtures, APITransacti
         reappointed = self.reappoint(approver, [CompanyCapability.APPROVE])
         with self.assertRaises(RegisterChangeConflict):
             acknowledge(approver, reappointed, self.record, 0, idempotency_key=key)
-        self.assertEqual(len(self.recorded()), 1)
+        colleague, colleagues = self.appoint([CompanyCapability.APPROVE])
+        self.assertTrue(acknowledge(colleague, colleagues, newer, 0, idempotency_key=key)[1])
+        self.assertEqual(len(self.recorded()), 2)
 
     def test_only_the_latest_reconciliation_takes_an_acknowledgement(self):
         newer = self.newer()
@@ -390,6 +393,12 @@ class RegisterAcknowledgementAuthorityTest(AcknowledgementFixtures, APITransacti
             [(row["uuid"], row["latest"]) for row in listed], [(str(newer.pk), True), (read["uuid"], False)]
         )
         self.assertEqual([row["acknowledgeable"] for row in listed[1]["discrepancies"]], [False] * 5)
+        self.assertEqual(client.get(RECONCILIATIONS, {"company": str(uuid4())}).json()["results"], [])
+        for ordering in ("latest", "-latest", "created_at"):
+            with self.subTest(ordering=ordering):
+                ordered = client.get(RECONCILIATIONS, {"ordering": ordering})
+                self.assertEqual(ordered.status_code, 200, ordered.content)
+                self.assertEqual(len(ordered.json()["results"]), 2)
         with use_operator():
             _, _, other_token, _, _, _ = register_fixture()
         self.assertEqual(client.get(RECONCILIATIONS, {"token": str(other_token.pk)}).json()["results"], [])
@@ -426,6 +435,7 @@ class RegisterAcknowledgementGuardTest(AcknowledgementFixtures, APITransactionTe
             ("share class", {"token_id": sibling.pk}),
             ("row", {"index": 1, "discrepancy": {**member, "chain": "98"}}),
             ("reason", {"reason": " "}),
+            ("whitespace reason", {"reason": "\t\n"}),
             ("attribution", {"index": 3}),
             ("missing transfer", {"index": 4}),
         ):
@@ -509,6 +519,33 @@ class RegisterAcknowledgementGuardTest(AcknowledgementFixtures, APITransactionTe
                 with self.assertRaisesMessage(DatabaseError, "Retain register acknowledgements as recorded"), atomic():
                     write()
         self.assertEqual([row[4] for row in self.recorded()], ["Accepted by the directors"])
+
+    def test_the_database_stamps_an_acknowledgement_when_it_checks_its_authority(self):
+        claimed = timezone.now() - timedelta(days=30)
+        acknowledgement = uuid4()
+        with company_operation(self.owner, self.company.pk, OPERATION), atomic():
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO tokens_registeracknowledgement (uuid, created_at, updated_at, token_id, "
+                    "reconciliation_id, discrepancy, reason, acknowledged_by_id, appointment_id, idempotency_key) "
+                    "VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)",
+                    [
+                        acknowledgement,
+                        claimed,
+                        claimed,
+                        self.token.pk,
+                        self.record.pk,
+                        json.dumps(self.record.discrepancies[0]),
+                        "Accepted by the directors",
+                        self.owner.pk,
+                        self.administrator.pk,
+                        uuid4(),
+                    ],
+                )
+        with use_operator():
+            stored = RegisterAcknowledgement.objects.get(pk=acknowledgement)
+        self.assertEqual(stored.created_at, stored.updated_at)
+        self.assertGreater(stored.created_at, claimed + timedelta(days=29))
 
     def test_each_row_and_each_retry_key_is_recorded_once(self):
         key = uuid4()
