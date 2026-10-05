@@ -469,6 +469,7 @@ LIST_ROUTES = (
     ("/api/portfolios/", ("portfolio",)),
     ("/api/v1/companies/", ("company",)),
     ("/api/v1/tokens/", ("token", "deployed_token")),
+    ("/api/v1/tokens/register/", ("token", "deployed_token")),
     ("/api/v1/tokens/capital-increases/", ("capital_increase",)),
     ("/api/v1/tokens/issuance-requests/", ("issuance_request",)),
     ("/api/v1/offerings/", ("offering",)),

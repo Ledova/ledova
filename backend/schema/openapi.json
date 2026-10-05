@@ -21015,6 +21015,90 @@
         ]
       }
     },
+    "/api/v1/tokens/register/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company_uuid",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contract_address",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token_type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedShareTokenListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/{uuid}/": {
       "get": {
         "operationId": "api_v1_tokens_retrieve",

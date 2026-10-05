@@ -1,9 +1,15 @@
 import { Text, View } from 'react-native';
-import type { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { Choice } from '../../components/Ledger';
 import { useCompanyStyles } from '../company-register/styles';
 
-export function CompanySelection({ read }: { read: ReturnType<typeof useCompanyProfile> }) {
+type CompanyChoices = {
+  companies: { uuid: string; name: string }[];
+  companyUuid: string | undefined;
+  selectionBlocked: boolean;
+  selectCompany: (uuid: string) => void;
+};
+
+export function CompanySelection({ read }: { read: CompanyChoices }) {
   const styles = useCompanyStyles();
   if (read.companies.length === 0 || (read.companies.length < 2 && read.companyUuid)) return null;
   return (

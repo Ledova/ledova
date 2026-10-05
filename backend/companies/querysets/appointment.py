@@ -2,9 +2,8 @@ from django.db.models import Q, QuerySet
 
 
 class CompanyAppointmentQuerySet(QuerySet):
-    def current_for(self, requester, company_id, *, at, identity_required):
+    def current_of(self, requester, *, at, identity_required):
         current = self.filter(
-            company_id=company_id,
             appointee_id=requester.pk,
             appointee__is_active=True,
             appointee__is_email_verified=True,
@@ -14,3 +13,9 @@ class CompanyAppointmentQuerySet(QuerySet):
         if identity_required:
             current = current.filter(appointee_profile__is_id_verified=True)
         return current
+
+    def current_for(self, requester, company_id, *, at, identity_required):
+        return self.current_of(requester, at=at, identity_required=identity_required).filter(company_id=company_id)
+
+    def holding_any(self, capabilities):
+        return self.filter(capabilities__has_any_keys=[str(capability) for capability in capabilities])

@@ -291,8 +291,10 @@ it('bounds separate personal and delegatable choices by the selected source', as
   show();
   await selectSource();
   expect(screen.queryByRole('checkbox', { name: 'Manage company information and team' })).toBeNull();
-  expect(screen.queryByRole('checkbox', { name: 'Prepare register changes' })).toBeNull();
-  choose('delegatable', 'Approve register changes');
+  expect(
+    screen.queryByRole('checkbox', { name: 'Prepare register changes (includes reading the register)' }),
+  ).toBeNull();
+  choose('delegatable', 'Approve register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   expect(await screen.findByLabelText('One-time invitation code')).toBeTruthy();
   expect(api.post.mock.calls[0][1]).toMatchObject({
@@ -309,7 +311,9 @@ it('does not offer administrator grants from delegatable admin without personal 
   show();
   await selectSource();
   expect(screen.queryByRole('checkbox', { name: 'Manage company information and team' })).toBeNull();
-  expect(screen.getAllByRole('checkbox', { name: 'Prepare register changes' })).toHaveLength(2);
+  expect(
+    screen.getAllByRole('checkbox', { name: 'Prepare register changes (includes reading the register)' }),
+  ).toHaveLength(2);
 });
 
 it('allows an administrator to delegate from a separate current source with administrator scope', async () => {
@@ -336,7 +340,7 @@ it('retains the issue key for an unchanged failed retry and honestly displays a 
     .mockImplementationOnce(async (_url, data) => issued(data, null));
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByText('Synthetic disconnected response');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
@@ -349,10 +353,10 @@ it('uses a fresh issue key when retry terms change', async () => {
   api.post.mockRejectedValueOnce(new Error('Synthetic retry'));
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByText('Synthetic retry');
-  choose('delegatable', 'Approve register changes');
+  choose('delegatable', 'Approve register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByLabelText('One-time invitation code');
   expect(api.post.mock.calls[0][1].idempotencyKey).not.toBe(api.post.mock.calls[1][1].idempotencyKey);
@@ -362,7 +366,7 @@ it('keeps a newly issued code out of query caches, mutation caches and browser s
   const stored = vi.spyOn(Storage.prototype, 'setItem');
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   const input = (await screen.findByLabelText('One-time invitation code')) as HTMLInputElement;
   expect(input.value).toBe(code);
@@ -385,7 +389,7 @@ it('suppresses duplicate issue taps while preserving the exact requested deadlin
   api.post.mockReturnValue(result.promise);
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.change(screen.getByLabelText('Invitation deadline (UTC, optional)'), { target: { value: '2026-10-10' } });
   fireEvent.change(screen.getByLabelText('Appointment expiry (UTC, optional)'), { target: { value: '2026-11-01' } });
   const create = screen.getByRole('button', { name: 'Create invitation' });
@@ -406,7 +410,7 @@ it('rechecks local source expiry at dispatch even before a timer causes a rerend
   rows = [appointment({ expiresAt: new Date(expiry).toISOString() })];
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   vi.spyOn(Date, 'now').mockReturnValue(expiry);
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByText(/No current appointment can delegate actions for this company/);
@@ -418,7 +422,7 @@ it('discards an issued code after an account change and invalidates the transpor
   api.post.mockReturnValue(result.promise);
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   const terms = api.post.mock.calls[0][1];
   const guard = api.post.mock.calls[0][2].ledovaSubmissionGuard;
@@ -440,7 +444,7 @@ it('refuses an unbound or non-new code receipt while preserving the issue key fo
   api.post.mockImplementationOnce(async (_url, data) => ({ ...issued(data), status: 200 }));
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await screen.findByText(/invitation outcome could not be confirmed/);
   expect(screen.queryByLabelText('One-time invitation code')).toBeNull();
@@ -626,7 +630,7 @@ it('hides retained team cache after a failed refresh', async () => {
 it('hides retained own authority after a failed refresh and prevents invitation issue', async () => {
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   api.get.mockImplementation(async (url) => {
     if (url === appointmentsUrl) throw new Error('Synthetic refusal');
     return page([]);
@@ -737,7 +741,7 @@ it('refuses a revocation receipt that changes the frozen scope or expiry', async
 it('retains the displayed one-time code through a default focus refetch', async () => {
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   const input = await screen.findByLabelText('One-time invitation code');
   const refreshed = deferred<ReturnType<typeof page>>();
@@ -769,7 +773,7 @@ it('retains the interrupted issue key through a focus refetch and replays one re
   });
   show();
   await selectSource();
-  choose('personal', 'Prepare register changes');
+  choose('personal', 'Prepare register changes (includes reading the register)');
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   const firstKey = api.post.mock.calls[0][1].idempotencyKey;
@@ -787,7 +791,7 @@ it('retains the interrupted issue key through a focus refetch and replays one re
   await act(async () => refreshed.resolve(page(rows)));
   await waitFor(() => expect(client.getQueryState(ownKey)?.fetchStatus).toBe('idle'));
   const chosen = within(screen.getByRole('group', { name: 'Actions for the appointee' })).getByRole('checkbox', {
-    name: 'Prepare register changes',
+    name: 'Prepare register changes (includes reading the register)',
   });
   if (!(chosen as HTMLInputElement).checked) fireEvent.click(chosen);
   fireEvent.click(screen.getByRole('button', { name: 'Create invitation' }));

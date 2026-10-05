@@ -114,7 +114,7 @@ async function fill(company = companyA) {
   );
   fireEvent.click(
     within(screen.getByRole('group', { name: 'Actions you request permission to delegate' })).getByRole('checkbox', {
-      name: 'Approve register changes',
+      name: 'Approve register changes (includes reading the register)',
     }),
   );
   const file = new File(['%PDF synthetic representative evidence'], 'authority.pdf', { type: 'application/pdf' });
@@ -492,9 +492,10 @@ it('requires explicit declaration acceptance, records exact appointment scope an
   expect(screen.getByText('appointment-a')).toBeTruthy();
   expect(screen.getByText('active')).toBeTruthy();
   expect(screen.getByText('Current')).toBeTruthy();
-  expect(screen.getAllByText('Manage company information and team, Prepare register changes').length).toBeGreaterThan(
-    0,
-  );
+  expect(
+    screen.getAllByText('Manage company information and team, Prepare register changes (includes reading the register)')
+      .length,
+  ).toBeGreaterThan(0);
   expect(screen.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Withdraw request authority.pdf' })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: /Accept authorisation/ })).toBeNull();

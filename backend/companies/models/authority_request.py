@@ -16,6 +16,15 @@ class CompanyCapability(models.TextChoices):
     READ_REGISTER = "read_register", "Read company register"
 
 
+REGISTER_READERS = (
+    CompanyCapability.ADMIN,
+    CompanyCapability.READ_REGISTER,
+    CompanyCapability.PREPARE,
+    CompanyCapability.APPROVE,
+    CompanyCapability.APPLY,
+)
+
+
 def authority_evidence_path(instance, filename):
     return f"companies/{instance.company_id}/authority-requests/{instance.pk}/{uuid4()}.bin"
 

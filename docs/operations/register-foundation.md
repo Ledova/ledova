@@ -235,7 +235,7 @@ An external issuer integration can use these authenticated routes:
 | Method and route | Result |
 | --- | --- |
 | `POST /api/v1/tokens/register-corrections/` | Submit the owner's precise correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-corrections/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
 | `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision/evidence metadata and decision |
 | `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the retained authority file |
 
@@ -325,7 +325,7 @@ An external issuer integration can use these authenticated routes:
 | Method and route | Result |
 | --- | --- |
 | `POST /api/v1/tokens/register-openings/` | Submit the owner's opening proposal; return the retained request |
-| `GET /api/v1/tokens/register-openings/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-openings/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
 | `GET /api/v1/tokens/register-openings/{uuid}/` | Request, captured boundary, mapping and decision |
 | `GET /api/v1/tokens/register-openings/{uuid}/file/` | Authenticated attachment of the retained authority file |
 
@@ -399,7 +399,7 @@ class. The request retains a private copy of the authority file.
 | Method and route | Result |
 | --- | --- |
 | `POST /api/v1/tokens/register-links/` | Submit the owner's link request; return the retained request |
-| `GET /api/v1/tokens/register-links/` | Paginated requests for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-links/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
 | `GET /api/v1/tokens/register-links/{uuid}/` | Request, mapping and decision |
 | `GET /api/v1/tokens/register-links/{uuid}/file/` | Authenticated attachment of the retained authority file |
 
@@ -452,7 +452,7 @@ own kind.
 | Method and route | Result |
 | --- | --- |
 | `POST /api/v1/tokens/register-instructions/` | Submit the owner's instruction; return the retained instruction |
-| `GET /api/v1/tokens/register-instructions/` | Paginated instructions for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-instructions/` | Paginated instructions for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
 | `GET /api/v1/tokens/register-instructions/{uuid}/` | Instruction, items and decision |
 | `GET /api/v1/tokens/register-instructions/{uuid}/file/` | Authenticated attachment of the retained authority file |
 
@@ -722,8 +722,10 @@ that date.
 
 ### The issuer's waiting list
 
-The company owner can list the completed effects of a share class that are not
-yet in the register, in the order recording will take them:
+Anyone who may read the register (the company owner, or a current appointment
+holding `admin`, `read_register`, `prepare`, `approve` or `apply`) can list the
+completed effects of a share class that are not yet in the register, in the
+order recording will take them:
 
 | Method and route | Result |
 | --- | --- |
@@ -749,8 +751,10 @@ its two `wallets` and its `shares`.
 
 The list, the `waitingEffects` count and recording walk the same classification
 in the same order, so the count is always the list's length and the first effect
-listed is the one recording stops at. The route answers the owner of the share
-class's company, and 404 for anyone else, from one database snapshot.
+listed is the one recording stops at. The route answers whoever may read the
+share class's register (its company's owner, or a current appointment holding
+`admin`, `read_register`, `prepare`, `approve` or `apply`) and 404 for anyone
+else, from one database snapshot.
 
 ## Reading the register
 
@@ -1073,7 +1077,7 @@ extract, documentary authority as for an opening, and the register date:
 | Method and route | Result |
 | --- | --- |
 | `POST /api/v1/tokens/register-imports/` | Submit the import; return the retained request |
-| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies currently owned by the caller |
+| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
 | `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, figures and decision |
 | `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the retained register document |
 

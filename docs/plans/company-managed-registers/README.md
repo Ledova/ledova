@@ -17,8 +17,11 @@ part of #863, delivered through [PR #913](https://github.com/Ledova/ledova/pull/
 [PR #914](https://github.com/Ledova/ledova/pull/914) aligns the authority lock prefixes.
 The [eligibility records and API foundation](company-eligibility.md) retains scoped
 requests and company decisions without supplying investment permission.
-Company-specific participant eligibility and client/consumer conversion remain in that issue;
-#864–#873 remain planned and dependency-ordered.
+Company-specific participant eligibility and client/consumer conversion remain in that issue.
+The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
+lets #864 start before #863 closes, except member-wallet links, which wait for #863.
+#864's first increment delivers register reads by appointment; its register
+commands remain planned. #865–#873 remain dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured

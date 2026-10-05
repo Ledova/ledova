@@ -7,12 +7,12 @@ import {
   getCapitalIncreases,
   getShareIssuanceRequests,
   readEveryPage,
-  downloadTokenRegister,
   deployCompanyToken,
   submitCapitalIncrease,
   wholeShares,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { useRegisterDownload } from '../register/useCompanyRegister';
 
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();
@@ -70,18 +70,6 @@ export function useShareClass(uuid: string) {
     mutationFn: (requestUuid: string) => submitCapitalIncrease(apiClient, requestUuid),
     onSuccess: refresh,
   });
-  const download = useMutation({
-    mutationFn: async () => {
-      const { data } = await downloadTokenRegister(apiClient, uuid);
-      const url = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `register-${token.data?.symbol ?? uuid}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    },
-  });
+  const download = useRegisterDownload(uuid, token.data?.symbol);
   return { token, company, register, issuances, capital, requests, deploy, submitCapital, download, refresh };
 }

@@ -6,8 +6,10 @@ How dashboard and mobile consume shared TypeScript and design tokens.
 
 ## Company-managed client work
 
-This page describes the current clients, including their owner-only company
-selection and read-only staff decision records. The
+This page describes the current clients, including their company selection and
+read-only staff decision records. Register access follows current appointments
+as well as ownership; most other company selection remains owner or
+administrator scoped. The
 [accepted company-managed plan](company-managed-registers.md#required-self-service-workflows)
 requires web and mobile forms for company appointments and the supported
 prepare, preview, approve and apply workflows. Company activation and offering
@@ -96,8 +98,13 @@ address. Holdings replaces the crypto home at the existing `/home`
 address. Notices at `/publications` lists documents, resolutions and dividends
 addressed to the person.
 The mobile shell uses Holdings, Notices, Activity and the securities Market.
-Register is the native Company landing page. It reads every class and its stored
-register, with exact share quantities and complete-read failure states. A class
+Register is the native Company landing page. It reads every class the person may
+read (as the company owner or through a current register appointment), grouped by
+company with a company choice when there is more than one, and the stored
+register of each class of the chosen company, with exact share quantities and
+complete-read failure states.
+Accounts without the company role reach it from the drawer only when they have
+register access. A class
 opens its register and request histories, deployment and share request actions.
 Deployed and paused native classes also expose pause and recovery. Before a POST,
 the app saves and reads back the original request identity and direction in
@@ -418,12 +425,22 @@ Wallets reloading its wallet list and the person leaving Wallets. The guard
 decides pages, not data: the API still decides which rows a person sees, and
 answers 404 for one it refuses.
 
-The Company Register at `/company/register` reads every page of the issuer's
-share classes and each class's stored register. It shows current members, linked
-wallets and exact issued and authorised shares. Unopened registers and unknown or
-positive waiting-effect counts stay explicit. A failed class or register read
-hides the incomplete result and offers retry, including after a failed refresh.
-Register and Company open a class at `/company/register/:uuid`. Its ledger shows
+The Company Register at `/company/register` is a page for every signed-in
+account; the API decides which registers it shows. It reads every page of the
+share classes the person may read, as the company owner or through a current
+company appointment holding administration or a register capability, and groups
+them by company. A person who can read more than one company selects one first,
+and only that company's stored registers are read. Each class shows current
+members, linked wallets, exact issued and authorised shares and the logged
+register CSV download. Unopened registers and unknown or positive waiting-effect
+counts stay explicit. A failed class or register read hides the incomplete
+result and offers retry, including after a failed refresh. With nothing
+readable, the page says there is no company register to show. Its reads are
+keyed to the signed-in account, and an account change starts the page again.
+Company accounts reach Register from the sidebar; other accounts get a Settings
+entry only once the first page of readable classes is not empty.
+For company accounts, Register and Company open a class at
+`/company/register/:uuid`, whose class reads remain owner-bound. Its ledger shows
 class state, exact issued and authorised shares, the stored members, and every
 page of issuance and authorised-share request history. Failed history reads hide
 stale rows and offer retry. The class page replaces the old Company modal; it

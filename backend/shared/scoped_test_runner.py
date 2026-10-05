@@ -28,6 +28,7 @@ SCOPED_TEST_LABELS = (
     "blockchain.tests.test_fresh_signer_scoped.ScopedFreshSignerTest",
     "companies.tests.test_document_review_scoped.ScopedCompanyDocumentReviewTest",
     "tokens.tests.test_register_corrections_scoped.ScopedRegisterCorrectionTest",
+    "tokens.tests.test_register_access.ScopedRegisterAccessByAppointmentTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterOpeningTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterWalletLinkTest",
     "tokens.tests.test_register_reconciliation.ScopedRegisterReconciliationTest",
