@@ -100,8 +100,9 @@ addressed to the person.
 The mobile shell uses Holdings, Notices, Activity and the securities Market.
 Register is the native Company landing page. It reads every class the person may
 read (as the company owner or through a current register appointment), grouped by
-company with a company choice when there is more than one, and each class's
-stored register, with exact share quantities and complete-read failure states.
+company with a company choice when there is more than one, and the stored
+register of each class of the chosen company, with exact share quantities and
+complete-read failure states.
 Accounts without the company role reach it from the drawer only when they have
 register access. A class
 opens its register and request histories, deployment and share request actions.

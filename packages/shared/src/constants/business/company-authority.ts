@@ -7,9 +7,9 @@ export const COMPANY_AUTHORITY_DECLARATION =
 
 export const COMPANY_AUTHORITY_CAPABILITIES = [
   { value: 'admin', label: 'Manage company information and team' },
-  { value: 'prepare', label: 'Prepare register changes' },
-  { value: 'approve', label: 'Approve register changes' },
-  { value: 'apply', label: 'Apply authorised changes' },
+  { value: 'prepare', label: 'Prepare register changes (includes reading the register)' },
+  { value: 'approve', label: 'Approve register changes (includes reading the register)' },
+  { value: 'apply', label: 'Apply authorised changes (includes reading the register)' },
   { value: 'finance', label: 'Manage company payments' },
   { value: 'read_register', label: 'Read company register' },
 ] as const satisfies readonly { value: CompanyCapability; label: string }[];

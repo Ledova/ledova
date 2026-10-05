@@ -722,8 +722,10 @@ that date.
 
 ### The issuer's waiting list
 
-The company owner can list the completed effects of a share class that are not
-yet in the register, in the order recording will take them:
+Anyone who may read the register (the company owner, or a current appointment
+holding `admin`, `read_register`, `prepare`, `approve` or `apply`) can list the
+completed effects of a share class that are not yet in the register, in the
+order recording will take them:
 
 | Method and route | Result |
 | --- | --- |

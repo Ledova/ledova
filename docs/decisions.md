@@ -43,7 +43,11 @@ capabilities for delegates, so an existing owner or a first representative can r
 the register alone. Register evidence is company-provided: uploaded documents are
 kept as evidence with their fingerprints, the company states the ASIC totals, and
 both are shown as provided by the company, with no Ledova staff verification step.
-The owner also approved building #864 alongside #863 rather than after it.
+The owner also approved building #864 alongside #863 rather than after it. The
+same day the owner confirmed that holders of `prepare`, `approve` or `apply` read
+the full register, including residential addresses in the CSV and retained
+evidence copies, because they work from member details; the invitation labels
+for those capabilities say that they include reading the register.
 
 ### Company representative verification
 

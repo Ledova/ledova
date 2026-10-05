@@ -180,8 +180,16 @@ it('reads every owned-company page, requires explicit selection and submits sepa
   expect(view.queryByRole('button', { name: 'Choose evidence' })).toBeNull();
   expect(get).toHaveBeenCalledWith(COMPANIES, { params: { page: 2 }, ledovaSessionEpoch: getSessionEpoch() });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Approve register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would delegate: Approve register changes (includes reading the register)',
+    }),
+  );
   const epoch = getSessionEpoch();
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   expect(await view.findByText(`Your request has been retained. ${pendingMessage}`)).toBeTruthy();
@@ -220,7 +228,11 @@ it('keeps exact evidence and idempotency key through an interrupted response, th
   post.mockRejectedValue({ response: { data: { detail: 'Response interrupted' } } });
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   await view.findByText('Response interrupted');
   const first = post.mock.calls[0][1];
@@ -229,7 +241,11 @@ it('keeps exact evidence and idempotency key through an interrupted response, th
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
   expect(parts(post.mock.calls[1][1])).toEqual(parts(first));
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would delegate: Approve register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would delegate: Approve register changes (includes reading the register)',
+    }),
+  );
   post.mockResolvedValue({ data: record });
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(3));
@@ -241,7 +257,11 @@ it('keeps exact evidence and idempotency key through an interrupted response, th
 it('retires evidence when the selected company changes and never submits it for the new company', async () => {
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   const uri = [...files.keys()].find((value) => value.includes('ledova-upload-copies'))!;
   await fireEvent.press(view.getByRole('radio', { name: 'Draft A' }));
   expect(view.getByRole('button', { name: 'Choose evidence' })).toBeTruthy();
@@ -253,7 +273,11 @@ it('retires evidence when the selected company changes and never submits it for 
 it('retains the draft but blocks a cached company after refresh fails and recovers through retry', async () => {
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   companyReadFailure = true;
   await fireEvent.press(view.getByRole('button', { name: 'Refresh' }));
   await view.findByText('Your companies could not be loaded. Retry before submitting.');
@@ -324,7 +348,11 @@ it('suppresses a previous session submission result and retains active upload by
   post.mockReturnValue(response.promise);
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
   const uri = (field(post.mock.calls[0][1], 'file') as { uri: string }).uri;
@@ -427,7 +455,11 @@ it('shows the server withdrawal outcome when retrying the original evidence subm
   post.mockResolvedValue({ data: withdrawn });
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
   await selectAndPick(view);
-  await fireEvent.press(view.getByRole('button', { name: 'Permissions you would exercise: Prepare register changes' }));
+  await fireEvent.press(
+    view.getByRole('button', {
+      name: 'Permissions you would exercise: Prepare register changes (includes reading the register)',
+    }),
+  );
   await fireEvent.press(view.getByRole('button', { name: 'Submit authority request' }));
   expect(await view.findByText(`Your request has been retained. ${withdrawn.verificationMessage}`)).toBeTruthy();
   expect(view.queryByText(`Your request has been retained. ${pendingMessage}`)).toBeNull();
@@ -561,7 +593,10 @@ it('requires declaration acceptance, records the appointment and revokes while r
   expect(view.queryByText(/^Pending/)).toBeNull();
   expect(view.getByText('active')).toBeTruthy();
   expect(view.getByText('Current')).toBeTruthy();
-  expect(view.getAllByText('Manage company information and team, Prepare register changes').length).toBeGreaterThan(0);
+  expect(
+    view.getAllByText('Manage company information and team, Prepare register changes (includes reading the register)')
+      .length,
+  ).toBeGreaterThan(0);
   expect(view.getByText(COMPANY_AUTHORITY_DECLARATION_VERSION)).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Withdraw request' })).toBeNull();
   expect(view.queryByRole('checkbox', { name: 'Accept authorisation declaration' })).toBeNull();
