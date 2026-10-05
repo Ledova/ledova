@@ -339,6 +339,7 @@ it('lists every page of the class imports newest first with their stage, prepare
     asicIssuedTotal: null,
     asicMemberCount: null,
     rejectionReason: 'Superseded by the company-run import',
+    reviewedAt: '2026-09-30T05:00:00Z',
   });
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
     if (url === REGISTER)
@@ -386,6 +387,11 @@ it('lists every page of the class imports newest first with their stage, prepare
   expect(within(oldest).queryByText('Prepared by')).toBeNull();
   expect(within(oldest).queryByText(/as stated by the company/)).toBeNull();
   expect(within(oldest).getByText('Superseded by the company-run import')).toBeTruthy();
+  expect(within(oldest).getByText('Decided on').nextElementSibling?.textContent).toBe(
+    formatDateTime('2026-09-30T05:00:00Z'),
+  );
+  expect(within(middle).queryByText('Decided on')).toBeNull();
+  expect(within(newest).queryByText('Decided on')).toBeNull();
   expect(within(oldest).getByRole('button', { name: COPY.DOWNLOAD_REGISTER })).toBeTruthy();
   expect(within(oldest).queryByRole('button', { name: COPY.DOWNLOAD_ASIC })).toBeNull();
   expect(within(newest).getByRole('button', { name: COPY.DOWNLOAD_ASIC })).toBeTruthy();

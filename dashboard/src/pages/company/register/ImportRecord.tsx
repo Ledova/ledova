@@ -239,6 +239,9 @@ export function ImportRecord({
               {item.reason && ` · ${item.reason}`}
             </Row>
           ))}
+        {proposal.decisions.length === 0 && proposal.reviewedAt && (
+          <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
+        )}
         {proposal.status === 'rejected' && proposal.rejectionReason && (
           <Row label="Rejection reason">{proposal.rejectionReason}</Row>
         )}
