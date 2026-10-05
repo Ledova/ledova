@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   formatDateTime,
+  REGISTER_COPY,
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_IMPORT_UNMET_COPY,
 } from '@ledova/shared';
@@ -30,7 +31,11 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 type Kind = 'approve' | 'apply' | 'reject';
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const DIGEST = 'a'.repeat(64);
+const NEW = 'prepared import as at 20 September 2026';
+const OLD = 'rejected import as at 1 September 2026';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
+const step = (kind: string, description = NEW) => `${kind} the ${description}`;
+const copyOf = (label: string, description = NEW) => `${label} of the ${description}`;
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
 const shareClass = {
@@ -124,14 +129,14 @@ const PREVIEW = {
   comparison: [
     {
       member: 'member-1',
-      name: 'Alex Member',
-      imported: '100',
+      name: 'Alex Member' as string | null,
+      imported: '100' as string | null,
       stored: '100' as string | null,
       enteredOn: '2026-09-01' as string | null,
-      importedEnteredOn: '2019-05-01',
+      importedEnteredOn: '2019-05-01' as string | null,
       wallets: [`0x${'1'.repeat(40)}`],
-      liveName: 'Alex Verified',
-      liveAddress: '1 Verified Street',
+      liveName: 'Alex Live' as string | null,
+      liveAddress: '1 Live Street' as string | null,
     },
   ],
   statedTotal: '9007199254740993',
@@ -139,6 +144,7 @@ const PREVIEW = {
   importedTotal: '9007199254740993',
   importedMemberCount: 1,
 };
+const UNREASONED = { ...PREVIEW, canDecide: false, unmetRequirements: ['reason_required'] };
 let client: QueryClient;
 let importPages: unknown[][];
 let appointments: unknown[];
@@ -188,6 +194,7 @@ function decided(kind: Kind, key: string, { appointment = 'appointment-admin', r
 
 const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
 const reads = (url: string) => get.mock.calls.filter(([called]) => called === url).length;
+const PDF = { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content-type': 'application/pdf' } };
 function deferred() {
   let resolve!: (value: unknown) => void;
   const promise = new Promise((done) => {
@@ -233,8 +240,8 @@ beforeEach(() => {
       if (appointmentsFail) throw new Error('Appointments unavailable');
       return page(appointments);
     }
-    if (url === URLS.REGISTER_IMPORT_FILE('import-new') || url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new'))
-      return { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content-type': 'application/pdf' } };
+    if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return PDF;
+    if (url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
   });
   jest.mocked(Sharing.shareAsync).mockClear();
@@ -269,7 +276,7 @@ it('reads every page of a class import history newest first and shares its retai
   expect(view.getByText(`Robin Reviewer · ${formatDateTime('2026-10-01T02:00:00Z')}`)).toBeTruthy();
   expect(view.getByText('Superseded by a company import')).toBeTruthy();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: `${COPY.DOWNLOAD_REGISTER} for import import-new` }));
+  await fireEvent.press(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER) }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(`${cache}ledova-document-views-v1/register-import-new.pdf`, {
       mimeType: 'application/pdf',
@@ -280,7 +287,7 @@ it('reads every page of a class import history newest first and shares its retai
     responseType: 'arraybuffer',
     ledovaSessionEpoch: epoch,
   });
-  await fireEvent.press(view.getByRole('button', { name: `${COPY.DOWNLOAD_ASIC} for import import-new` }));
+  await fireEvent.press(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_ASIC) }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenLastCalledWith(
       `${cache}ledova-document-views-v1/asic-extract-import-new.pdf`,
@@ -291,8 +298,8 @@ it('reads every page of a class import history newest first and shares its retai
     responseType: 'arraybuffer',
     ledovaSessionEpoch: epoch,
   });
-  expect(view.getByRole('button', { name: `${COPY.DOWNLOAD_REGISTER} for import import-old` })).toBeTruthy();
-  expect(view.queryByRole('button', { name: `${COPY.DOWNLOAD_ASIC} for import import-old` })).toBeNull();
+  expect(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER, OLD) })).toBeTruthy();
+  expect(view.queryByRole('button', { name: copyOf(COPY.DOWNLOAD_ASIC, OLD) })).toBeNull();
 });
 
 it.each([
@@ -304,7 +311,7 @@ it.each([
   const view = await openClass();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
   for (const kind of ['Approve', 'Apply', 'Reject'])
-    expect(view.queryByRole('button', { name: `${kind} import import-new` })).toBeNull();
+    expect(view.queryByRole('button', { name: step(kind) })).toBeNull();
   expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();
 });
 
@@ -317,8 +324,8 @@ it.each([
   appointments = [appointment('appointment-step', capabilities)];
   const view = await openClass();
   for (const kind of ['Approve', 'Apply', 'Reject']) {
-    expect(!!view.queryByRole('button', { name: `${kind} import import-new` })).toBe(offered.includes(kind));
-    expect(view.queryByRole('button', { name: `${kind} import import-old` })).toBeNull();
+    expect(!!view.queryByRole('button', { name: step(kind) })).toBe(offered.includes(kind));
+    expect(view.queryByRole('button', { name: step(kind, OLD) })).toBeNull();
   }
   expect(!!view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBe(prepares);
   expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
@@ -327,13 +334,14 @@ it.each([
 it('offers a retained staff-era import only rejection, beside a company import that offers every step', async () => {
   const waiting = { ...retired, uuid: 'import-staff', status: 'submitted', stage: 'submitted', decisions: [] };
   importPages = [[{ ...waiting, rejectionReason: '', reviewedAt: null }], [submitted]];
+  const staff = 'prepared import as at 1 September 2026';
   const view = await openClass();
   expect(view.getByText('Prepared · as at 1 September 2026')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Reject import import-staff' })).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Approve import import-staff' })).toBeNull();
-  expect(view.queryByRole('button', { name: 'Apply import import-staff' })).toBeNull();
+  expect(view.getByRole('button', { name: step('Reject', staff) })).toBeTruthy();
+  expect(view.queryByRole('button', { name: step('Approve', staff) })).toBeNull();
+  expect(view.queryByRole('button', { name: step('Apply', staff) })).toBeNull();
   for (const kind of ['Approve', 'Apply', 'Reject'])
-    expect(view.getByRole('button', { name: `${kind} import import-new` })).toBeTruthy();
+    expect(view.getByRole('button', { name: step(kind) })).toBeTruthy();
 });
 
 it('opens preparation for the class and withdraws it once the class has an applied import', async () => {
@@ -352,7 +360,7 @@ it('previews an approval, records exactly that decision and refetches the class 
   const view = await openClass();
   const epoch = getSessionEpoch();
   const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary'))];
-  await fireEvent.press(view.getByRole('button', { name: 'Approve import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
   expect(await view.findByText(COPY.CONFIRMATIONS.approve)).toBeTruthy();
   expect(post).toHaveBeenCalledWith(
     URLS.REGISTER_IMPORT_PREVIEW('import-new'),
@@ -361,9 +369,12 @@ it('previews an approval, records exactly that decision and refetches the class 
   );
   expect(view.getAllByText(COPY.STATED_FIGURES('9,007,199,254,740,993', 1))).toHaveLength(2);
   expect(view.getAllByText(COPY.IMPORTED_FIGURES('9,007,199,254,740,993', 1))).toHaveLength(2);
-  expect(view.getByText('Member member-1')).toBeTruthy();
-  expect(view.getByText('Alex Verified, 1 Verified Street')).toBeTruthy();
+  expect(view.getByText('Live name')).toBeTruthy();
+  expect(view.getByText('Alex Live')).toBeTruthy();
+  expect(view.getByText('Live address')).toBeTruthy();
+  expect(view.getByText('1 Live Street')).toBeTruthy();
   expect(view.getByText(`0x${'1'.repeat(40)}`)).toBeTruthy();
+  expect(view.queryByText(/verified identity/i)).toBeNull();
   expect(view.queryByText(COPY.NOT_ON_CHAIN_NOTE)).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
@@ -383,6 +394,23 @@ it('previews an approval, records exactly that decision and refetches the class 
   expect(reads(URLS.HOLDERS('ordinary'))).toBeGreaterThan(before[1]);
 });
 
+it('labels a member without a live identity neutrally in the comparison', async () => {
+  post.mockResolvedValueOnce({
+    data: {
+      ...PREVIEW,
+      comparison: [{ ...PREVIEW.comparison[0], name: null, imported: null, wallets: [], liveName: null }],
+    },
+  });
+  const view = await openClass();
+  const listed = view.queryAllByText(REGISTER_COPY.NO_WALLET).length;
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  expect(view.getByText('No live identity')).toBeTruthy();
+  expect(view.getAllByText('Not in the import')).toHaveLength(2);
+  expect(view.getAllByText(REGISTER_COPY.NO_WALLET)).toHaveLength(listed + 1);
+  expect(view.queryByText(/verified identity/i)).toBeNull();
+});
+
 it('notes that applying an opening import leaves the class off chain, and unmet requirements block it', async () => {
   const opening = {
     ...PREVIEW,
@@ -395,48 +423,57 @@ it('notes that applying an opening import leaves the class off chain, and unmet 
     })
     .mockResolvedValueOnce({ data: opening });
   const view = await openClass();
-  await fireEvent.press(view.getByRole('button', { name: 'Apply import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
   expect(await view.findByText(COPY.NOT_ON_CHAIN_NOTE)).toBeTruthy();
   expect(view.getByText(REGISTER_IMPORT_UNMET_COPY.approval_required)).toBeTruthy();
   expect(view.getByText('future_requirement')).toBeTruthy();
   expect(view.getByText(COPY.CONFIRMATIONS.apply)).toBeTruthy();
-  expect(view.getAllByText('None').length).toBeGreaterThan(0);
+  expect(view.getAllByText('Not stored')).toHaveLength(2);
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   expect(post).toHaveBeenCalledTimes(1);
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  await fireEvent.press(view.getByRole('button', { name: 'Approve import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
   expect(await view.findByText(COPY.CONFIRMATIONS.approve)).toBeTruthy();
   expect(view.queryByText(COPY.NOT_ON_CHAIN_NOTE)).toBeNull();
 });
 
-it('rejects with the trimmed reason it previewed, and a changed reason needs a new preview', async () => {
+it('rejects only with the reason it previewed, trimmed and at most 1,000 characters', async () => {
   appointments = [appointment('appointment-approver', ['approve'])];
   const rejection = { appointment: 'appointment-approver', reason: 'Stale register' };
   post
-    .mockResolvedValueOnce({ data: PREVIEW })
+    .mockResolvedValueOnce({ data: UNREASONED })
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockResolvedValueOnce({ data: decided('reject', KEY(2), rejection) });
   const view = await openClass();
   const epoch = getSessionEpoch();
-  await fireEvent.press(view.getByRole('button', { name: 'Reject import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Reject') }));
+  expect(await view.findByText(REGISTER_IMPORT_UNMET_COPY.reason_required)).toBeTruthy();
+  expect(post).toHaveBeenLastCalledWith(
+    URLS.REGISTER_IMPORT_PREVIEW('import-new'),
+    { appointment: 'appointment-approver', kind: 'reject', reason: '' },
+    { ledovaSessionEpoch: epoch },
+  );
+  const reason = () => view.getByLabelText(COPY.REJECTION_REASON);
+  expect(reason().props.maxLength).toBe(1000);
   expect(view.getByRole('button', { name: 'Preview rejection' })).toBeDisabled();
-  expect(post).not.toHaveBeenCalled();
-  await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), '  Stale register  ');
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  await fireEvent.changeText(reason(), '  Stale register  ');
   await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
-  expect(await view.findByText(COPY.CONFIRMATIONS.reject)).toBeTruthy();
+  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled());
   expect(post).toHaveBeenLastCalledWith(
     URLS.REGISTER_IMPORT_PREVIEW('import-new'),
     { appointment: 'appointment-approver', kind: 'reject', reason: 'Stale register' },
     { ledovaSessionEpoch: epoch },
   );
-  expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled();
-  await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Stale register, and late');
-  expect(view.queryByText(COPY.CONFIRMATIONS.reject)).toBeNull();
+  expect(view.getByRole('button', { name: 'Preview rejection' })).toBeDisabled();
+  await fireEvent.changeText(reason(), 'Stale register, and late');
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Stale register');
-  await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
-  await view.findByText(COPY.CONFIRMATIONS.reject);
+  expect(view.getByRole('button', { name: 'Preview rejection' })).toBeEnabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  expect(post).toHaveBeenCalledTimes(2);
+  await fireEvent.changeText(reason(), 'Stale register ');
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled();
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
   expect(post).toHaveBeenLastCalledWith(
@@ -453,6 +490,27 @@ it('rejects with the trimmed reason it previewed, and a changed reason needs a n
   );
 });
 
+it('clears the previous rejection error when the rejection reopens', async () => {
+  post
+    .mockResolvedValueOnce({ data: UNREASONED })
+    .mockResolvedValueOnce({ data: PREVIEW })
+    .mockRejectedValueOnce(new Error('Network Error'))
+    .mockResolvedValueOnce({ data: UNREASONED });
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: step('Reject') }));
+  await view.findByText(REGISTER_IMPORT_UNMET_COPY.reason_required);
+  await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Stale register');
+  await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  expect(await view.findByText('Network Error')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Reject') }));
+  expect(await view.findByText(REGISTER_IMPORT_UNMET_COPY.reason_required)).toBeTruthy();
+  expect(view.getByLabelText(COPY.REJECTION_REASON).props.value).toBe('');
+  expect(view.queryByText('Network Error')).toBeNull();
+});
+
 it('refetches the class imports and holders when a decision is refused', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockRejectedValueOnce({
     response: {
@@ -461,7 +519,7 @@ it('refetches the class imports and holders when a decision is refused', async (
     },
   });
   const view = await openClass();
-  await fireEvent.press(view.getByRole('button', { name: 'Apply import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
   await view.findByText(COPY.CONFIRMATIONS.apply);
   const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary'))];
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
@@ -479,7 +537,7 @@ it('leaves the cached history unchanged when a decision receipt cannot be confir
   post.mockResolvedValueOnce({ data: PREVIEW }).mockResolvedValueOnce({ data: decided('approve', 'another-key') });
   const view = await openClass();
   const key = importsKey(getSessionEpoch(), 'ordinary');
-  await fireEvent.press(view.getByRole('button', { name: 'Approve import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
   await view.findByText(COPY.CONFIRMATIONS.approve);
   const cached = client.getQueryState(key)!;
   const before = [reads(URLS.REGISTER_IMPORTS), reads(URLS.HOLDERS('ordinary'))];
@@ -500,7 +558,7 @@ it('retries an interrupted decision under its key and takes a new key once the p
   const view = await openClass();
   const decide = () => post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_DECIDE('import-new'));
   for (let attempt = 0; attempt < 3; attempt++) {
-    await fireEvent.press(view.getByRole('button', { name: 'Approve import import-new' }));
+    await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
     await view.findByText(COPY.CONFIRMATIONS.approve);
     await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
     await view.findByText('Network Error');
@@ -519,7 +577,7 @@ it('drops an open decision when the session changes and ignores its late answer'
   post.mockResolvedValueOnce({ data: PREVIEW }).mockReturnValueOnce(late.promise as ReturnType<typeof post>);
   const view = await openClass();
   const epoch = getSessionEpoch();
-  await fireEvent.press(view.getByRole('button', { name: 'Apply import import-new' }));
+  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
   await view.findByText(COPY.CONFIRMATIONS.apply);
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
@@ -539,7 +597,7 @@ it('hides a class history after a failed read and offers a retry', async () => {
   await act(() => client.invalidateQueries({ queryKey: importsKey(getSessionEpoch()) }));
   expect(await view.findByText('The imports could not be loaded.')).toBeTruthy();
   expect(view.queryByText('Prepared · as at 20 September 2026')).toBeNull();
-  expect(view.queryByRole('button', { name: 'Approve import import-new' })).toBeNull();
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
   importsFail = false;
   await fireEvent.press(view.getByRole('button', { name: 'Retry imports for Ordinary shares' }));
   expect(await view.findByText('Prepared · as at 20 September 2026')).toBeTruthy();
@@ -551,10 +609,10 @@ it('withholds import actions while the appointments cannot be read', async () =>
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText('Your appointments could not be read, so import actions are hidden.')).toBeTruthy();
   await view.findByText('Prepared · as at 20 September 2026');
-  expect(view.queryByRole('button', { name: 'Approve import import-new' })).toBeNull();
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
   expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();
   expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
   appointmentsFail = false;
   await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
-  expect(await view.findByRole('button', { name: 'Approve import import-new' })).toBeTruthy();
+  expect(await view.findByRole('button', { name: step('Approve') })).toBeTruthy();
 });

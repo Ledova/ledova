@@ -26,7 +26,17 @@ const DECIDED: Record<RegisterImportDecisionKind, string> = {
   reject: REGISTER_IMPORT_COPY.STAGES.rejected,
 };
 
-function ImportCopy({ uuid, copy, epoch }: { uuid: string; copy: 'register' | 'asic'; epoch: number }) {
+function ImportCopy({
+  uuid,
+  copy,
+  epoch,
+  description,
+}: {
+  uuid: string;
+  copy: 'register' | 'asic';
+  epoch: number;
+  description: string;
+}) {
   const styles = useCompanyStyles();
   const label = copy === 'asic' ? REGISTER_IMPORT_COPY.DOWNLOAD_ASIC : REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER;
   const share = useMutation({
@@ -60,7 +70,7 @@ function ImportCopy({ uuid, copy, epoch }: { uuid: string; copy: 'register' | 'a
     <>
       <Action
         label={label}
-        accessibilityLabel={`${label} for import ${uuid}`}
+        accessibilityLabel={`${label} of the ${description}`}
         disabled={share.isPending}
         onPress={() => share.mutate()}
       />
@@ -89,10 +99,12 @@ export function ImportRecord({
   const styles = useCompanyStyles();
   const totals = registerImportTotals(proposal.members);
   const kinds: RegisterImportDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
+  const stage = REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage;
+  const description = `${stage.toLowerCase()} import as at ${formatDate(proposal.asAt)}`;
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
-        {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage} · as at {formatDate(proposal.asAt)}
+        {stage} · as at {formatDate(proposal.asAt)}
       </Text>
       <Text style={styles.muted}>
         {proposal.providedBy === 'company'
@@ -119,8 +131,10 @@ export function ImportRecord({
       <Text style={styles.text}>
         {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
       </Text>
-      <ImportCopy uuid={proposal.uuid} copy="register" epoch={epoch} />
-      {!!proposal.asicSnapshot && <ImportCopy uuid={proposal.uuid} copy="asic" epoch={epoch} />}
+      <ImportCopy uuid={proposal.uuid} copy="register" epoch={epoch} description={description} />
+      {!!proposal.asicSnapshot && (
+        <ImportCopy uuid={proposal.uuid} copy="asic" epoch={epoch} description={description} />
+      )}
       {proposal.status === 'submitted' && steps && (
         <View style={styles.choices}>
           {kinds.map((kind) => {
@@ -133,6 +147,7 @@ export function ImportRecord({
                   kind={kind}
                   appointment={appointment.uuid}
                   epoch={epoch}
+                  description={description}
                   onSettled={onSettled}
                 />
               )

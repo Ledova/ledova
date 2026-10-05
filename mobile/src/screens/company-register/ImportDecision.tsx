@@ -3,6 +3,7 @@ import { Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
   formatShareCount,
+  REGISTER_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_UNMET_COPY,
   useRegisterImportDecision,
@@ -15,8 +16,6 @@ import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { useCompanyStyles } from './styles';
-
-const shares = (value: string | null) => (value === null ? 'None' : formatShareCount(value));
 
 function DecisionPreview({
   kind,
@@ -39,26 +38,21 @@ function DecisionPreview({
       <Text style={styles.text}>
         {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(preview.importedTotal), preview.importedMemberCount)}
       </Text>
-      {preview.comparison.map((row) => (
-        <View key={row.member} style={styles.group}>
-          <Text style={styles.heading}>{row.name ?? row.liveName ?? 'Not in this import'}</Text>
-          <Text selectable style={styles.muted}>
-            Member {row.member}
-          </Text>
+      <Text style={styles.heading}>Members compared with the stored register</Text>
+      {preview.comparison.map((row, index) => (
+        <View key={row.member} style={[styles.entry, index === preview.comparison.length - 1 && styles.lastEntry]}>
           <Rows>
-            <Row label="Imported shares">{shares(row.imported)}</Row>
-            <Row label="Stored shares">{shares(row.stored)}</Row>
-            <Row label="Imported date entered">{row.importedEnteredOn ?? 'None'}</Row>
-            <Row label="Stored date entered">{row.enteredOn ?? 'None'}</Row>
-            <Row label="Verified identity">
-              {row.liveName ? [row.liveName, row.liveAddress].filter(Boolean).join(', ') : 'None'}
+            <Row label="Imported name">{row.name ?? 'Not in the import'}</Row>
+            <Row label="Imported shares">
+              {row.imported === null ? 'Not in the import' : formatShareCount(row.imported)}
             </Row>
+            <Row label="Stored shares">{row.stored === null ? 'Not stored' : formatShareCount(row.stored)}</Row>
+            <Row label="Imported date entered">{row.importedEnteredOn ?? 'Not in the import'}</Row>
+            <Row label="Stored date entered">{row.enteredOn ?? 'Not stored'}</Row>
+            <Row label="Live name">{row.liveName || 'No live identity'}</Row>
+            {!!row.liveAddress && <Row label="Live address">{row.liveAddress}</Row>}
+            <Row label="Wallets">{row.wallets.length > 0 ? row.wallets.join(', ') : REGISTER_COPY.NO_WALLET}</Row>
           </Rows>
-          {row.wallets.map((wallet) => (
-            <Text selectable key={wallet} style={styles.muted}>
-              {wallet}
-            </Text>
-          ))}
         </View>
       ))}
       {preview.unmetRequirements.map((code) => (
@@ -76,12 +70,14 @@ export function ImportDecision({
   kind,
   appointment,
   epoch,
+  description,
   onSettled,
 }: {
   proposal: RegisterImport;
   kind: RegisterImportDecisionKind;
   appointment: string;
   epoch: number;
+  description: string;
   onSettled: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
@@ -98,36 +94,40 @@ export function ImportDecision({
     },
     onRefused: onSettled,
   });
+  const { busy, error, target } = decision;
   const label = REGISTER_IMPORT_COPY.DECISIONS[kind];
-  const preview = decision.target?.preview;
-  const previewAgain = () => void decision.open(kind, kind === 'reject' ? reason.trim() : '');
+  const preview = target?.preview;
+  const previewed = kind !== 'reject' || target?.request.reason === reason.trim();
+  const ready = !!preview?.canDecide && !busy && previewed;
   return (
     <>
       <Action
         label={label}
-        accessibilityLabel={`${label} import ${proposal.uuid}`}
-        disabled={decision.busy}
+        accessibilityLabel={`${label} the ${description}`}
+        disabled={busy}
         onPress={() => {
           setReason('');
           setVisible(true);
-          if (kind !== 'reject') void decision.open(kind);
+          void decision.open(kind);
         }}
       />
       {visible && (
         <CustomModal
           visible
           title={`${label} import`}
-          busy={decision.busy}
+          busy={busy}
           onClose={() => {
             decision.cancel();
             setVisible(false);
           }}
           actions={
             <Action
-              label={decision.busy && preview ? 'Recording…' : 'Confirm'}
+              label={busy && preview ? 'Recording…' : 'Confirm'}
               primary
-              disabled={!preview?.canDecide || decision.busy}
-              onPress={() => void decision.confirm()}
+              disabled={!ready}
+              onPress={() => {
+                if (ready) void decision.confirm();
+              }}
             />
           }
         >
@@ -139,26 +139,25 @@ export function ImportDecision({
                   accessibilityLabel={REGISTER_IMPORT_COPY.REJECTION_REASON}
                   style={styles.input}
                   value={reason}
-                  editable={!decision.busy}
+                  editable={!busy}
+                  maxLength={1000}
                   multiline
-                  onChangeText={(value) => {
-                    setReason(value);
-                    decision.cancel();
-                  }}
+                  onChangeText={setReason}
+                />
+                <Action
+                  label="Preview rejection"
+                  disabled={busy || !reason.trim() || target?.request.reason === reason.trim()}
+                  onPress={() => void decision.open('reject', reason.trim())}
                 />
               </>
             )}
-            {(kind === 'reject' || decision.error) && (
-              <Action
-                label={kind === 'reject' ? 'Preview rejection' : 'Preview again'}
-                disabled={decision.busy || (kind === 'reject' && !reason.trim())}
-                onPress={previewAgain}
-              />
+            {kind !== 'reject' && error && (
+              <Action label="Preview again" disabled={busy} onPress={() => void decision.open(kind)} />
             )}
-            {decision.busy && !preview && <Text style={styles.muted}>Previewing the decision…</Text>}
-            {decision.error && (
+            {busy && !preview && <Text style={styles.muted}>Previewing the decision…</Text>}
+            {error && (
               <Text accessibilityRole="alert" style={styles.error}>
-                {decision.error}
+                {error}
               </Text>
             )}
             {preview && <DecisionPreview kind={kind} preview={preview} />}
