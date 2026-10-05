@@ -159,7 +159,8 @@ corrections, entries, holders and appointments again. Administration or `approve
 adds **Acknowledge** to an acknowledgeable discrepancy, which
 [acknowledges](../operations/register-foundation.md#acknowledging-a-discrepancy)
 it with a reason of up to 1,000 characters and reads the reconciliation again; a
-refusal also reads the appointments.
+refusal also reads the appointments. Its dialog keeps the appointment it opened
+with and holds confirmation if a refresh changes it.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or

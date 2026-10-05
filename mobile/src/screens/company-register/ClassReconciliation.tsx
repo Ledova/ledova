@@ -43,7 +43,7 @@ function Acknowledge({
   onRefused: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
-  const [visible, setVisible] = useState(false);
+  const [opened, setOpened] = useState<string>();
   const [reason, setReason] = useState('');
   const [attempted, setAttempted] = useState(false);
   const acknowledgement = useDiscrepancyAcknowledgement(apiClient, reconciliation, {
@@ -52,13 +52,14 @@ function Acknowledge({
     guard: () => assertSessionEpoch(epoch),
     requestConfig: () => ({ ledovaSessionEpoch: epoch }),
     onAcknowledged: () => {
-      setVisible(false);
+      setOpened(undefined);
       return onSettled();
     },
     onRefused,
   });
   const { busy, error } = acknowledgement;
-  const ready = !!reason.trim() && !busy;
+  const current = opened === appointment;
+  const ready = !!reason.trim() && !busy && current;
   return (
     <>
       <Action
@@ -68,15 +69,15 @@ function Acknowledge({
         onPress={() => {
           setReason('');
           setAttempted(false);
-          setVisible(true);
+          setOpened(appointment);
         }}
       />
-      {visible && (
+      {opened && (
         <CustomModal
           visible
           title={`${COPY.ACKNOWLEDGE} discrepancy`}
           busy={busy}
-          onClose={() => setVisible(false)}
+          onClose={() => setOpened(undefined)}
           actions={
             <Action
               label={busy ? 'Recording…' : 'Confirm'}
@@ -106,6 +107,11 @@ function Acknowledge({
             {attempted && error && (
               <Text accessibilityRole="alert" style={styles.error}>
                 {error}
+              </Text>
+            )}
+            {!current && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                Your appointment for this step changed. Cancel and start this acknowledgement again.
               </Text>
             )}
           </View>
