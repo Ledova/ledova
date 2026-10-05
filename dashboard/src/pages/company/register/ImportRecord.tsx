@@ -38,12 +38,14 @@ function fileName(snapshot: unknown, fallback: string) {
 function DecisionPanel({
   kind,
   decision,
+  current,
   reason,
   onReason,
   onPreview,
 }: {
   kind: RegisterImportDecisionKind;
   decision: Decision;
+  current: boolean;
   reason: string;
   onReason: (value: string) => void;
   onPreview: () => void;
@@ -75,6 +77,11 @@ function DecisionPanel({
       {decision.error && (
         <p role="alert" className="text-sm text-error-light">
           {decision.error}
+        </p>
+      )}
+      {preview && !current && (
+        <p role="alert" className="text-sm text-error-light">
+          Your appointment for this step changed or could not be checked. Cancel and start this decision again.
         </p>
       )}
       {decision.busy && !preview && (
@@ -192,10 +199,12 @@ export function ImportRecord({
   const kinds: RegisterImportDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
   const target = decision?.target;
+  const current = !!active && !!target && steps[active]?.uuid === target.request.appointment;
   const ready =
     !!decision &&
     !decision.busy &&
     !!target &&
+    current &&
     target.preview.canDecide &&
     (active !== 'reject' || target.request.reason === reason.trim());
   const begin = (kind: RegisterImportDecisionKind) => {
@@ -293,6 +302,7 @@ export function ImportRecord({
           <DecisionPanel
             kind={active}
             decision={decision}
+            current={current}
             reason={reason}
             onReason={setReason}
             onPreview={() => void reject.open('reject', reason.trim())}

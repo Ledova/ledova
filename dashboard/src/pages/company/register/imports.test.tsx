@@ -528,6 +528,46 @@ it('lists unmet requirements in words and keeps the decision unconfirmable while
 });
 
 it.each([
+  [
+    'revoked',
+    () => {
+      appointments = [
+        appointment(['admin'], { status: 'revoked', isEffective: false, revokedAt: '2026-10-05T03:00:00Z' }),
+      ];
+    },
+  ],
+  [
+    'replaced by another appointment',
+    () => {
+      appointments = [appointment(['admin'], { uuid: 'appointment-0' })];
+    },
+  ],
+  [
+    'unreadable',
+    () => {
+      const read = api.get.getMockImplementation()!;
+      api.get.mockImplementation(async (url: string, config?: unknown) => {
+        if (url === APPOINTMENTS) throw new Error('Unavailable');
+        return read(url, config);
+      });
+    },
+  ],
+] as const)('holds a previewed decision once its step appointment is %s', async (_change, change) => {
+  const section = await openClass();
+  const dialog = await openDecision(records(section)[0], 'approve');
+  await within(dialog).findByText('Example Live Member');
+  expect(confirmButton(dialog, 'approve').disabled).toBe(false);
+  change();
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-appointments', 'profile-one', 'account-one'] });
+  });
+  await waitFor(() => expect(confirmButton(dialog, 'approve').disabled).toBe(true));
+  expect(within(dialog).getByText(/Your appointment for this step changed or could not be checked/)).toBeTruthy();
+  fireEvent.click(confirmButton(dialog, 'approve'));
+  expect(writes(DECIDE)).toHaveLength(0);
+});
+
+it.each([
   ['apply', true, true],
   ['approve', true, false],
   ['apply', false, false],
