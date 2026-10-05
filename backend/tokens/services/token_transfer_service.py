@@ -339,6 +339,7 @@ def create_order_and_match(
         payment_asset=payment_asset,
         filled_quantity=0,
     )
+    order.refresh_from_db()
 
     from tokens.events import publish_trading_event
 
