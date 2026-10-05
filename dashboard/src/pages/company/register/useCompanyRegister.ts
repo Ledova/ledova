@@ -64,9 +64,16 @@ export function useRegisterEntry() {
 }
 
 export function useRegisterDownload(uuid: string, symbol: string | undefined) {
+  const { owner, boundary } = useSubmissionOwner();
   return useMutation({
     mutationFn: async () => {
+      const guard = () => {
+        if (!owner || boundary.get() !== owner)
+          throw new Error('Your signed-in account changed. Reopen the register to download it.');
+      };
+      guard();
       const { data } = await downloadTokenRegister(apiClient, uuid);
+      guard();
       const url = URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = url;

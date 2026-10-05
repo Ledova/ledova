@@ -362,6 +362,39 @@ it('opens the register to an investor-role appointee, with members and the CSV b
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
 
+it.each([
+  [
+    'another account signs in',
+    () => {
+      const other = companyPreferences('investor');
+      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+        data: { ...other, userProfile: 'profile-two', userAccount: { ...other.userAccount!, uuid: 'account-two' } },
+      });
+    },
+  ],
+  ['the session ends', () => client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } })],
+])('saves no register CSV whose response arrives after %s', async (_change, retire) => {
+  const downloads = stubDownloads();
+  const exported = COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT('ordinary');
+  let finish!: (response: { data: Blob }) => void;
+  api.get.mockImplementation((url: string) => {
+    if (url === REGISTER) return Promise.resolve(page([harbour('ordinary')]));
+    if (url === exported)
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    return Promise.resolve({ data: register() });
+  });
+  show('investor');
+  await openOrdinary();
+  fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+  await waitFor(() => expect(readUrls()).toContain(exported));
+  act(retire);
+  await act(async () => finish({ data: new Blob(['Synthetic register'], { type: 'text/csv' }) }));
+  expect(downloads.create).not.toHaveBeenCalled();
+  expect(downloads.saved).toEqual([]);
+});
+
 it('offers an investor-role appointee a Settings entry from the first register page alone', async () => {
   api.get.mockImplementation(async (url: string) => {
     if (url === REGISTER) return page([harbour('ordinary')], 'https://example.test/tokens/register/?page=2');

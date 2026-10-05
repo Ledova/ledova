@@ -35,19 +35,25 @@ accepted direction, not a statement that the code already implements it.
 
 ### Company-run register authority and evidence
 
-On 5 October 2026 (Australia/Sydney), the owner made two choices for company-run
-register work ([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5986401458)).
+On 5 October 2026 (Australia/Sydney), the owner answered three questions about
+company-run register work in Claude's session. Claude recorded the answers on #864
+([authority and evidence](https://github.com/Ledova/ledova/issues/864#issuecomment-5986401458),
+[read scope](https://github.com/Ledova/ledova/issues/864#issuecomment-5987962820)).
+The owner then confirmed them directly in Codex's session the same day
+([recorded on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)).
+They apply to #864 and every later issue.
 A current company administrator may prepare, approve, apply and reject register
 changes; `prepare`, `approve`, `apply` and `read_register` remain the narrower
 capabilities for delegates, so an existing owner or a first representative can run
 the register alone. Register evidence is company-provided: uploaded documents are
 kept as evidence with their fingerprints, the company states the ASIC totals, and
 both are shown as provided by the company, with no Ledova staff verification step.
-The owner also approved building #864 alongside #863 rather than after it. The
-same day the owner confirmed that holders of `prepare`, `approve` or `apply` read
-the full register, including residential addresses in the CSV and retained
-evidence copies, because they work from member details; the invitation labels
-for those capabilities say that they include reading the register.
+Holders of `prepare`, `approve` or `apply` read the full register, including
+residential addresses in the CSV and retained evidence copies, because they work
+from member details. The invitation labels for those capabilities say that they
+include reading the register. The owner's amendment recorded on #860 also lets
+#864 start before #863 closes, except member-wallet links, which wait for #863's
+wallet-possession changes.
 
 ### Company representative verification
 

@@ -3,7 +3,13 @@
 import { act, cleanup, fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { COMPANY_TOKEN_ENDPOINTS, type CompanyShareToken, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  COMPANY_TOKEN_ENDPOINTS,
+  type CompanyShareToken,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
+import apiClient from '@services/apiClient';
 import { ShareClass } from '.';
 import { renderCompanyPage } from '../testSupport';
 import { useShareClass } from './useShareClass';
@@ -150,7 +156,11 @@ it.each(['inactive', 'failed'])('refreshes the deployment prerequisite through a
   token.status = 'draft';
   show();
   const hook = renderHook(() => useShareClass('class-one'), {
-    wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+      </QueryClientProvider>
+    ),
   });
   const button = await screen.findByRole('button', { name: 'Deploy class' });
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
