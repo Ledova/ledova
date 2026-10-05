@@ -587,6 +587,24 @@ it('reads the appointments again after a refused preview and withdraws the revok
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
+it('holds a previewed decision once the step is held by another appointment', async () => {
+  post.mockResolvedValueOnce({ data: PREVIEW });
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled();
+  appointments = [appointment('appointment-admin', ['admin']), appointment('appointment-aaa', ['approve'])];
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
+  expect(
+    await view.findByText(
+      'Your appointment for this step changed or could not be checked. Cancel and start this decision again.',
+    ),
+  ).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  expect(post).toHaveBeenCalledTimes(1);
+});
+
 it('leaves the cached history unchanged when a decision receipt cannot be confirmed', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockResolvedValueOnce({ data: decided('approve', 'another-key') });
   const view = await openClass();

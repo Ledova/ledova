@@ -100,7 +100,8 @@ export function ImportDecision({
   const label = REGISTER_IMPORT_COPY.DECISIONS[kind];
   const preview = target?.preview;
   const previewed = kind !== 'reject' || target?.request.reason === reason.trim();
-  const ready = !!preview?.canDecide && !busy && previewed;
+  const current = !!target && target.request.appointment === appointment;
+  const ready = !!preview?.canDecide && !busy && previewed && current;
   return (
     <>
       <Action
@@ -160,6 +161,11 @@ export function ImportDecision({
             {error && (
               <Text accessibilityRole="alert" style={styles.error}>
                 {error}
+              </Text>
+            )}
+            {preview && !current && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                Your appointment for this step changed or could not be checked. Cancel and start this decision again.
               </Text>
             )}
             {preview && <DecisionPreview kind={kind} preview={preview} />}
