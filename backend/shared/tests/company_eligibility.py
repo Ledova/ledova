@@ -3,8 +3,9 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
-from companies.models import CompanyCapability
+from companies.models import CompanyAppointment, CompanyCapability, CompanyStatus
 from companies.services.activation import activate_company
 from companies.services.authority import DECLARATION_VERSION, admit_authority_request
 from companies.services.authority_requests import submit_authority_request
@@ -32,7 +33,6 @@ def accept_company_eligibility(tenant, *, issuer_decision=None, category=Investo
         if issuer_decision is None:
             tenant.company.refresh_from_db()
             company = tenant.company
-            approver, _ = make_investor(f"trade-{uuid4().hex}", role="company")
         else:
             issuer_decision = CompanyEligibilityDecision.objects.select_related(
                 "request__company", "decided_by", "appointment"
@@ -45,36 +45,59 @@ def accept_company_eligibility(tenant, *, issuer_decision=None, category=Investo
         "companies.services.registry.lookup_company", return_value=matching_observation(company)
     ):
         if issuer_decision is None:
-            proposal, created = submit_authority_request(
-                requester=tenant.user,
-                company_id=company.pk,
-                idempotency_key=uuid4(),
-                file=SimpleUploadedFile("trading-authority.pdf", pdf_bytes(), content_type="application/pdf"),
-                requested_capabilities=[CompanyCapability.ADMIN],
-                delegatable_capabilities=[
-                    CompanyCapability.ADMIN,
-                    CompanyCapability.PREPARE,
-                    CompanyCapability.APPROVE,
-                ],
-            )
-            assert created
-            initial = admit_authority_request(
-                requester=tenant.user,
-                request_id=proposal.pk,
-                declaration_version=DECLARATION_VERSION,
-                accept_declaration=True,
-            ).appointment
-            company, activation = activate_company(
-                actor=tenant.user,
-                company_id=company.pk,
-                idempotency_key=uuid4(),
-                appointment=initial.pk,
-                lifecycle_revision=company.lifecycle_revision,
-                declaration_version=DECLARATION_VERSION,
-                accept_declaration=True,
-            )
-            assert activation.applied_at is not None
+            with use_operator():
+                initial = (
+                    CompanyAppointment.objects.current_for(
+                        tenant.user,
+                        company.pk,
+                        at=timezone.now(),
+                        identity_required=Operator.get().issuer_kyc_required,
+                    )
+                    .filter(
+                        capabilities__contains=[CompanyCapability.ADMIN],
+                        delegatable_capabilities__contains=[CompanyCapability.PREPARE, CompanyCapability.APPROVE],
+                    )
+                    .first()
+                )
+                if initial is None:
+                    assert not CompanyAppointment.objects.filter(company=company).exists(), (
+                        "Existing fixture authority must be current personal administration with preparation "
+                        "and approval delegation."
+                    )
+            if initial is None:
+                proposal, created = submit_authority_request(
+                    requester=tenant.user,
+                    company_id=company.pk,
+                    idempotency_key=uuid4(),
+                    file=SimpleUploadedFile("trading-authority.pdf", pdf_bytes(), content_type="application/pdf"),
+                    requested_capabilities=[CompanyCapability.ADMIN],
+                    delegatable_capabilities=[
+                        CompanyCapability.ADMIN,
+                        CompanyCapability.PREPARE,
+                        CompanyCapability.APPROVE,
+                    ],
+                )
+                assert created
+                initial = admit_authority_request(
+                    requester=tenant.user,
+                    request_id=proposal.pk,
+                    declaration_version=DECLARATION_VERSION,
+                    accept_declaration=True,
+                ).appointment
+            if company.status != CompanyStatus.ACTIVE:
+                company, activation = activate_company(
+                    actor=tenant.user,
+                    company_id=company.pk,
+                    idempotency_key=uuid4(),
+                    appointment=initial.pk,
+                    lifecycle_revision=company.lifecycle_revision,
+                    declaration_version=DECLARATION_VERSION,
+                    accept_declaration=True,
+                )
+                assert activation.applied_at is not None
             tenant.company = company
+            with use_operator():
+                approver, _ = make_investor(f"trade-{uuid4().hex}", role="company")
             invitation, code, created = issue_team_invitation(
                 requester=tenant.user,
                 company_id=company.pk,

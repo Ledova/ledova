@@ -74,6 +74,7 @@ export function CompanyAuthorityScreen() {
     assertSessionEpoch(epoch);
     if (
       response.data.uuid !== request.uuid ||
+      response.data.company !== request.company ||
       (action === 'withdraw' && (response.data.status !== 'withdrawn' || !response.data.withdrawnAt)) ||
       (action === 'admit' && (response.data.status !== 'admitted' || !response.data.appointment)) ||
       (action === 'revoke' &&
@@ -82,7 +83,12 @@ export function CompanyAuthorityScreen() {
           !response.data.appointment.revokedAt))
     )
       throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
-    if (action === 'revoke') void queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) });
+    if (action === 'admit' || action === 'revoke')
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['company', request.company] }),
+        queryClient.invalidateQueries({ queryKey: ['companies'] }),
+        queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) }),
+      ]);
     await queryClient.cancelQueries({ queryKey, exact: true });
     assertSessionEpoch(epoch);
     if (queryClient.getQueryState(queryKey)?.status !== 'success') return;

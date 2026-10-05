@@ -42,6 +42,12 @@ OLD = [
 ]
 GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
+RESTORED_EMPTY_TABLES = {
+    "tokens_registercorrectiondecision",
+    "tokens_registerevidence",
+    "tokens_registerimportdecision",
+    "whitelist_whitelisteligibilityinvalidation",
+}
 ADDED_COLUMNS = {
     "offerings_subscription": ["eligibility_decision_id"],
     "tokens_transferorder": [
@@ -291,7 +297,9 @@ class CompanyEligibilityCutoverUpgradeTest(
             restore_every_migration()
             installed_catalogue = self.catalogue()
             current = self.records(legacy=True)
-            self.assertEqual(current.pop("whitelist_whitelisteligibilityinvalidation"), [])
+            self.assertEqual(set(current) - set(before_records), RESTORED_EMPTY_TABLES)
+            for table in RESTORED_EMPTY_TABLES:
+                self.assertEqual(current.pop(table), [], f"Restored table {table} must contain no retained history.")
             self.assertEqual(current, before_records)
             self.assertEqual(self.private_bytes(*files), before_bytes)
             self.assertEqual(installed_catalogue["roles"], before_catalogue["roles"])

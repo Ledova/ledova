@@ -16,6 +16,7 @@ SCOPED_TEST_LABELS = (
     "whitelist.tests.test_eligibility_loss_producers_scoped.ScopedEligibilityLossProducerTest",
     "whitelist.tests.test_company_eligibility_invalidation_scoped.ScopedCompanyEligibilityInvalidationTest",
     "shared.tests.test_seed_company_eligibility.ScopedSyntheticCompanyEligibilityTest",
+    "shared.tests.test_company_eligibility_fixture.ScopedCompanyEligibilityFixtureTest",
     "users.tests.test_private_sources_after_cutover.ScopedPrivateSourcesAfterCutoverTest",
     "users.tests.test_investor_eligibility.ScopedAccountStandingMatrixTest",
     "whitelist.tests.test_admin_eligibility_read.ScopedWhitelistAdminEligibilityReadTest",
