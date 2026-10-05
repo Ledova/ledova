@@ -326,6 +326,9 @@ def install_company_corrections(apps, schema_editor):
         cursor.execute(IMPORT_GUARDS._with_roles(cursor, FUNCTIONS))
         cursor.execute(IMPORT_GUARDS._with_roles(cursor, EVIDENCE_GUARD))
         cursor.execute(IMPORT_GUARDS._with_roles(cursor, CORRECTION_GUARD))
+        cursor.execute(
+            "ALTER FUNCTION tokens_guard_register_correction() SET search_path = pg_catalog, public, pg_temp"
+        )
 
 
 def remove_company_corrections(apps, schema_editor):

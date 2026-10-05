@@ -27,6 +27,7 @@ from tokens.models import (
     RegisterCorrection,
     RegisterCorrectionDecision,
     RegisterEntry,
+    RegisterEvidence,
     RegisterEvidenceKind,
     ShareRegister,
 )
@@ -577,6 +578,13 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
             )
             return cursor.fetchall()
 
+    def configured(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(self.GUARDS)]
+            )
+            return cursor.fetchall()
+
     def insert_policy(self):
         with connection.cursor() as cursor:
             cursor.execute(
@@ -597,7 +605,11 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
     def test_reversal_restores_the_staff_review_guard_owner_submissions_and_upload_kinds_then_reapplies(self):
         self.addCleanup(restore_every_migration)
         previous = ("tokens", "0084_company_register_import_guards")
-        company_run, closed = self.installed(), self.insert_policy()
+        company_run, closed, pinned = self.installed(), self.insert_policy(), self.configured()
+        self.assertEqual(
+            pinned,
+            [(name, ["search_path=pg_catalog, public, pg_temp"]) for name in sorted(self.GUARDS)],
+        )
         self.assertIn("tokens_registercorrectiondecision", dict(company_run)["tokens_guard_register_correction"])
         self.assertIn("'authority'", dict(company_run)["tokens_guard_register_evidence"])
         self.assertNotIn("submitted_by_id", closed)
@@ -605,11 +617,12 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
         migrate_to([("tokens", "0063_swap_finalized_receipt")])
         migrate_to([previous])
         earlier = self.installed()
+        self.assertEqual(dict(self.configured())["tokens_guard_register_correction"], None)
         self.assertIn("Only operator review may decide", dict(earlier)["tokens_guard_register_correction"])
         self.assertNotIn("'authority'", dict(earlier)["tokens_guard_register_evidence"])
         self.assertIn("submitted_by_id", self.insert_policy())
         restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy()), (company_run, closed))
+        self.assertEqual((self.installed(), self.insert_policy(), self.configured()), (company_run, closed, pinned))
         migrate_to([previous])
         self.assertEqual(self.installed(), earlier)
         self.assertIn("submitted_by_id", self.insert_policy())
@@ -619,6 +632,23 @@ class RegisterCorrectionMigrationTest(TransactionTestCase):
 
     def test_reversal_refuses_while_company_corrections_decisions_or_authority_uploads_exist(self):
         correction_fixture()
+        company_run = self.installed()
+        migration = import_module("tokens.migrations.0086_company_register_correction_guards")
+        with self.assertRaisesMessage(DatabaseError, "Retain company register corrections"), atomic():
+            with connections[current_alias()].schema_editor() as editor:
+                migration.remove_company_corrections(None, editor)
+        self.assertEqual(self.installed(), company_run)
+
+    def test_reversal_refuses_while_a_company_decision_on_a_staff_era_correction_exists(self):
+        owner, _, appointment, issue, evidence = correction_fixture()
+        proposal = staff_era(prepared(owner, correction_payload(issue, evidence, appointment)))
+        with use_migrate(), atomic(), connections[current_alias()].cursor() as cursor:
+            cursor.execute("ALTER TABLE tokens_registerevidence DISABLE TRIGGER tokens_register_evidence_guard")
+            try:
+                RegisterEvidence.objects.filter(pk=evidence.pk).update(kind=RegisterEvidenceKind.SHARE_REGISTER)
+            finally:
+                cursor.execute("ALTER TABLE tokens_registerevidence ENABLE TRIGGER tokens_register_evidence_guard")
+        decide(owner, appointment, proposal, "reject", reason="Prepared for the retired staff review")
         company_run = self.installed()
         migration = import_module("tokens.migrations.0086_company_register_correction_guards")
         with self.assertRaisesMessage(DatabaseError, "Retain company register corrections"), atomic():

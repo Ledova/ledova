@@ -2,8 +2,9 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError
+from django.db import DatabaseError, connection, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
@@ -18,7 +19,7 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from operators.models import Operator
-from shared.db import atomic, use_migrate, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
@@ -163,6 +164,71 @@ class RegisterCorrectionAuthorityTest(CorrectionAuthorityFixture, StubUploadDepe
         with use_operator():
             self.assertFalse(RegisterCorrectionDecision.objects.exists())
 
+    def reappoint(self, appointee, capabilities):
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.administrator.pk,
+            idempotency_key=uuid4(),
+            capabilities=list(capabilities),
+            delegatable_capabilities=[],
+        )
+        return accept_team_invitation(
+            requester=appointee, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
+
+    def test_a_preview_binds_its_correction_appointment_and_reason(self):
+        approver, approving = self.appoint([CompanyCapability.APPROVE])
+        with use_operator():
+            other_issue = record_entry(
+                register_id=self.issue.register_id,
+                operation_id=uuid4(),
+                kind="issue",
+                changes=self.issue.changes,
+                effective_on=self.issue.effective_on,
+                recorded_by=self.owner,
+            )
+        proposal = self.prepared_by_the_owner()
+        other = prepared(
+            self.owner,
+            correction_payload(
+                other_issue,
+                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.AUTHORITY),
+                self.administrator,
+            ),
+        )
+
+        def decided(correction, appointment, kind, digest, reason=""):
+            return decide_correction(
+                actor=approver,
+                correction_id=correction.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=digest,
+                confirmation=True,
+                reason=reason,
+            )
+
+        approval = preview(approver, approving, proposal, "approve")["preview_digest"]
+        rejection = preview(approver, approving, proposal, "reject", "The resolution was withdrawn")["preview_digest"]
+        with self.subTest(bound="correction"), self.assertRaises(RegisterChangeConflict):
+            decided(other, approving, "approve", approval)
+        with self.subTest(bound="reason"), self.assertRaises(RegisterChangeConflict):
+            decided(proposal, approving, "reject", rejection, "Another reason")
+        revoke_company_appointment(requester=self.owner, appointment_id=approving.pk)
+        reappointed = self.reappoint(approver, [CompanyCapability.APPROVE])
+        with self.subTest(bound="appointment"), self.assertRaises(RegisterChangeConflict):
+            decided(proposal, reappointed, "approve", approval)
+        with use_operator():
+            self.assertFalse(RegisterCorrectionDecision.objects.exists())
+        self.assertEqual(
+            decided(
+                proposal, reappointed, "approve", preview(approver, reappointed, proposal, "approve")["preview_digest"]
+            ).status,
+            "submitted",
+        )
+
     def test_an_expired_appointment_neither_prepares_nor_decides(self):
         expires_at = timezone.now() + timedelta(days=1)
         preparer, preparing = self.appoint(
@@ -271,6 +337,16 @@ class RegisterCorrectionAuthorityTest(CorrectionAuthorityFixture, StubUploadDepe
                 prepare_correction(actor=actor, **{**payload, **changes})
         with use_operator():
             self.assertEqual(RegisterCorrection.objects.count(), 1)
+        own = correction_payload(
+            self.issue, upload_evidence(preparer, preparing, RegisterEvidenceKind.AUTHORITY), preparing
+        )
+        prepare_correction(actor=preparer, **own)
+        revoke_company_appointment(requester=self.owner, appointment_id=preparing.pk)
+        reappointed = self.reappoint(preparer, [CompanyCapability.PREPARE])
+        with self.assertRaises(RegisterChangeConflict):
+            prepare_correction(actor=preparer, **{**own, "appointment": reappointed.pk})
+        with use_operator():
+            self.assertEqual(RegisterCorrection.objects.count(), 2)
 
     def test_the_api_uploads_prepares_previews_and_decides(self):
         client = APIClient()
@@ -591,6 +667,7 @@ class RegisterCorrectionDecisionGuardTest(CorrectionAuthorityFixture, APITransac
             rejected = {"status": "rejected", "rejection_reason": "Exact"}
             for actor, fields in (
                 (self.owner, {**rejected, "reviewed_by": approver, "reviewed_at": decision.decided_at}),
+                (self.owner, {**rejected, "reviewed_by": self.owner, "reviewed_at": decision.decided_at}),
                 (approver, {**rejected, "reviewed_by": approver, "reviewed_at": timezone.now()}),
             ):
                 with self.subTest(actor=actor.email), self.assertRaisesMessage(DatabaseError, refused), atomic():
@@ -614,6 +691,48 @@ class RegisterCorrectionDecisionGuardTest(CorrectionAuthorityFixture, APITransac
                         applied_entry=entry,
                         reviewed_by=self.owner,
                         reviewed_at=approval.decided_at,
+                    )
+            raise RuntimeError("rollback")
+        with use_operator():
+            self.assertEqual(RegisterCorrection.objects.get(pk=self.proposal.pk).status, "submitted")
+
+    def test_a_temporary_table_cannot_stand_in_for_the_decision_or_evidence_tables(self):
+        operator = connection.ops.quote_name(settings.RLS_ROLES["operator"])
+        decided_at = timezone.now()
+        with use_migrate(), self.assertRaises(RuntimeError), atomic():
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute(f"SET LOCAL ROLE {operator}")
+                cursor.execute(
+                    "CREATE TEMP TABLE tokens_registercorrectiondecision "
+                    "(LIKE public.tokens_registercorrectiondecision) ON COMMIT DROP"
+                )
+                cursor.execute(
+                    "INSERT INTO pg_temp.tokens_registercorrectiondecision (uuid, created_at, updated_at, "
+                    "register_correction_id, kind, decided_by_id, appointment_id, idempotency_key, digest, reason, "
+                    "decided_at) VALUES (%s, %s, %s, %s, 'reject', %s, %s, %s, %s, 'Forged', %s)",
+                    [
+                        uuid4(),
+                        decided_at,
+                        decided_at,
+                        self.proposal.pk,
+                        self.owner.pk,
+                        self.administrator.pk,
+                        uuid4(),
+                        "0" * 64,
+                        decided_at,
+                    ],
+                )
+                cursor.execute(
+                    "SELECT set_config('app.user_id', %s, true), "
+                    "set_config('app.company_operation', 'register_correction_reject', true), "
+                    "set_config('app.company_id', %s, true)",
+                    [str(self.owner.pk), str(self.company.pk)],
+                )
+                with self.assertRaisesMessage(DatabaseError, "Only the exact company decision"), atomic():
+                    cursor.execute(
+                        "UPDATE public.tokens_registercorrection SET status = 'rejected', "
+                        "rejection_reason = 'Forged', reviewed_by_id = %s, reviewed_at = %s WHERE uuid = %s",
+                        [self.owner.pk, decided_at, self.proposal.pk],
                     )
             raise RuntimeError("rollback")
         with use_operator():
