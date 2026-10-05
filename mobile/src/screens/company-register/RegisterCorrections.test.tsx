@@ -14,6 +14,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
+import { NOT_LOADED } from './ClassEntries';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { correctionsKey } from './useCompanyRegister';
 
@@ -31,16 +32,26 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), 
 
 type Kind = 'approve' | 'apply' | 'reject';
 type Entry = (typeof ENTRIES)[number];
+type Params = { page?: number; token?: string };
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
+const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const DIGEST = 'a'.repeat(64);
-const NEW = 'prepared correction of entry 1';
-const STAFF_ERA = 'prepared correction of entry 2';
+const NEW = 'prepared correction effective 4 October 2026';
+const STAFF_ERA = 'prepared correction effective 30 September 2026';
+const NEW_HEADING = 'Prepared · effective 4 October 2026';
 const READ_FAILED = 'The register entries could not be loaded.';
+const MORE_FAILED = 'More register entries could not be loaded. The history above is incomplete.';
 const CORRECTIONS_FAILED = 'The corrections could not be loaded.';
+const LOAD_MORE = 'Load more entries of Ordinary shares';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const step = (kind: string, description = NEW) => `${kind} the ${description}`;
 const text = (element: { props: { children?: unknown } }) => [element.props.children].flat().join('');
 const correct = (sequence: number) => `Correct entry ${sequence} of Ordinary shares`;
+const history = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.ENTRIES_TITLE).parent!);
+const headings = (view: Awaited<ReturnType<typeof render>>) =>
+  history(view)
+    .getAllByText(/^Entry \d+ · [A-Za-z ]+$/)
+    .map(text);
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
 const shareClass = {
@@ -159,6 +170,7 @@ const APPLIED = {
   ...CORRECTION,
   uuid: 'correction-applied',
   corrects: 'entry-2',
+  effectiveOn: '2026-10-02',
   changes: [{ member: 'member-1', shares: '-10' }],
   authority: 'court_order',
   approvingDirector: '',
@@ -176,6 +188,7 @@ const STAFF = {
   ...CORRECTION,
   uuid: 'correction-staff',
   corrects: 'entry-2',
+  effectiveOn: '2026-09-30',
   changes: [{ member: 'member-1', shares: '-10' }],
   approvingDirector: 'Sam Director',
   authorityReference: 'STAFF-RESOLUTION-2',
@@ -186,14 +199,6 @@ const STAFF = {
   authorityEvidence: null,
   sourceDocument: 'document-1',
   createdAt: '2026-10-03T01:00:00Z',
-};
-const OTHER_CLASS = {
-  ...CORRECTION,
-  uuid: 'correction-other',
-  register: 'register-preference',
-  corrects: 'entry-of-preference',
-  reason: 'A correction of another class',
-  createdAt: '2026-10-06T01:00:00Z',
 };
 const PREVIEW = {
   previewDigest: DIGEST,
@@ -214,6 +219,8 @@ const UNREASONED = { ...PREVIEW, canDecide: false, unmetRequirements: ['reason_r
 const PDF = { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content-type': 'application/pdf' } };
 let client: QueryClient;
 let entryPages: Entry[][];
+let entryAnswers: Map<number, () => Promise<unknown>>;
+let correctionAnswers: Map<number, () => Promise<unknown>>;
 let correctionPages: unknown[][];
 let appointments: unknown[];
 let failing: Set<string>;
@@ -258,9 +265,13 @@ const page = (results: unknown[], next: string | null = null) => ({ data: { resu
 const paged = (pages: unknown[][], number: number) =>
   page(pages[number - 1] ?? [], number < pages.length ? `https://api.example.test/?page=${number + 1}` : null);
 const reads = (url: string) => get.mock.calls.filter(([called]) => called === url).length;
+const requests = (url: string) =>
+  get.mock.calls
+    .filter(([called]) => called === url)
+    .map(([, config]) => config as { params: Params; ledovaSessionEpoch: number; signal: AbortSignal });
 const refreshed = () => [
   reads(URLS.REGISTER_CORRECTIONS),
-  reads(URLS.REGISTER_ENTRIES('ordinary')),
+  reads(ENTRIES_URL),
   reads(URLS.HOLDERS('ordinary')),
   reads(APPOINTMENTS),
 ];
@@ -278,17 +289,22 @@ function wrapper({ children }: { children: React.ReactNode }) {
 async function openClass() {
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
-  await view.findByText('Prepared · entry 1');
+  await view.findByText(NEW_HEADING);
+  await view.findByText('Entry 3 · Compensating correction');
   return view;
+}
+
+async function loadMore(view: Awaited<ReturnType<typeof render>>, until: string) {
+  await fireEvent.press(view.getByRole('button', { name: LOAD_MORE }));
+  await waitFor(() => expect(history(view).getByText(until)).toBeTruthy());
 }
 
 beforeEach(() => {
   resetFiles();
-  entryPages = [[ENTRIES[1], ENTRIES[0]], [ENTRIES[2]]];
-  correctionPages = [
-    [OTHER_CLASS, STAFF],
-    [CORRECTION, APPLIED],
-  ];
+  entryPages = [[ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  entryAnswers = new Map();
+  correctionAnswers = new Map();
+  correctionPages = [[STAFF, CORRECTION], [APPLIED]];
   appointments = [appointment('appointment-admin', ['admin'])];
   failing = new Set();
   held = new Set();
@@ -300,15 +316,19 @@ beforeEach(() => {
   });
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
-    const number = (config?.params as { page?: number } | undefined)?.page ?? 1;
+    const params = (config?.params ?? {}) as Params;
+    const number = params.page ?? 1;
     if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (failing.has(url)) throw new Error('Unavailable');
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === APPOINTMENTS) return page(appointments);
-    if (url === URLS.REGISTER_ENTRIES('ordinary')) return paged(entryPages, number);
-    if (url === URLS.REGISTER_CORRECTIONS) return paged(correctionPages, number);
+    if (url === ENTRIES_URL) return entryAnswers.get(number)?.() ?? paged(entryPages, number);
+    if (url === URLS.REGISTER_CORRECTIONS)
+      return params.token === 'ordinary'
+        ? (correctionAnswers.get(number)?.() ?? paged(correctionPages, number))
+        : page([]);
     if (url === URLS.REGISTER_CORRECTION_FILE('correction-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
   });
@@ -320,54 +340,65 @@ afterEach(async () => {
   client.clear();
 });
 
-it('lists every page of the class register newest first with signed named changes and correction links', async () => {
+it('pages the class register from the server newest first, with signed named changes and correction links', async () => {
   appointments = [appointment('appointment-reader', ['read_register'])];
   const view = await openClass();
   const epoch = getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
-  expect(
-    get.mock.calls.filter(([url]) => url === URLS.REGISTER_ENTRIES('ordinary')).map(([, config]) => config),
-  ).toEqual([
+  expect(requests(ENTRIES_URL)).toEqual([{ ...session, params: { page: 1 } }]);
+  expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue']);
+  expect(view.getByText('Effective 4 October 2026')).toBeTruthy();
+  expect(view.getByText('Effective 10 September 2026')).toBeTruthy();
+  expect(view.getAllByText('Alex Member: +10')).toHaveLength(1);
+  expect(within(history(view).getByText('Corrects').parent!).getByText('Entry 2')).toBeTruthy();
+  expect(within(history(view).getByText('Reversed by').parent!).getByText('Entry 3')).toBeTruthy();
+  expect(history(view).queryByText('Entry 1 · Opening state')).toBeNull();
+  await loadMore(view, 'Entry 1 · Opening state');
+  expect(requests(ENTRIES_URL)).toEqual([
     { ...session, params: { page: 1 } },
     { ...session, params: { page: 2 } },
   ]);
-  expect(view.getAllByText(/^Entry \d · [A-Za-z ]+$/).map(text)).toEqual([
-    'Entry 3 · Compensating correction',
-    'Entry 2 · Issue',
-    'Entry 1 · Opening state',
-  ]);
-  expect(view.getByText('Effective 4 October 2026')).toBeTruthy();
-  expect(view.getByText('Effective 10 September 2026')).toBeTruthy();
-  expect(view.getAllByText('Alex Member: -10').length).toBeGreaterThan(0);
-  expect(view.getAllByText('Alex Member: +10').length).toBeGreaterThan(0);
-  expect(view.getAllByText('Alex Member: +9,007,199,254,740,993').length).toBeGreaterThan(0);
-  expect(view.getAllByText(COPY.UNNAMED_MEMBER('member-2') + ': +40').length).toBeGreaterThan(0);
-  expect(within(view.getByText('Corrects').parent!).getByText('Entry 2')).toBeTruthy();
-  expect(within(view.getByText('Reversed by').parent!).getByText('Entry 3')).toBeTruthy();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
+  expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
+  expect(view.getByText('Effective 1 September 2026')).toBeTruthy();
+  expect(view.getByText('Alex Member: +9,007,199,254,740,993')).toBeTruthy();
+  expect(view.getByText(`${COPY.UNNAMED_MEMBER('member-2')}: +40`)).toBeTruthy();
+  expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.queryByText(COPY.ENTRIES_EMPTY)).toBeNull();
 });
 
-it('reads every page of the company corrections and lists only the class corrections newest first', async () => {
+it('names an entry the loaded pages do not include as not loaded until its page is loaded', async () => {
+  entryPages = [[ENTRIES[0]], [ENTRIES[1], ENTRIES[2]]];
+  const view = await openClass();
+  const record = (heading: string) => view.getByText(heading).parent!;
+  expect(within(view.getByText('Entry 3 · Compensating correction').parent!).getByText(NOT_LOADED)).toBeTruthy();
+  expect(within(record(NEW_HEADING)).getByText(NOT_LOADED)).toBeTruthy();
+  expect(within(record('Applied · effective 2 October 2026')).getByText(NOT_LOADED)).toBeTruthy();
+  await loadMore(view, 'Entry 1 · Opening state');
+  expect(within(view.getByText('Entry 3 · Compensating correction').parent!).getByText('Entry 2')).toBeTruthy();
+  expect(within(record(NEW_HEADING)).getByText('Entry 1 · Opening state')).toBeTruthy();
+  expect(within(record('Applied · effective 2 October 2026')).getByText('Entry 2 · Issue')).toBeTruthy();
+  expect(view.queryByText(NOT_LOADED)).toBeNull();
+});
+
+it('reads every page of the class corrections by its share class and lists them newest first', async () => {
   appointments = [appointment('appointment-reader', ['read_register'])];
   const view = await openClass();
   const epoch = getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
-  expect(get.mock.calls.filter(([url]) => url === URLS.REGISTER_CORRECTIONS).map(([, config]) => config)).toEqual([
-    { ...session, params: { company: 'paper', page: 1 } },
-    { ...session, params: { company: 'paper', page: 2 } },
+  expect(requests(URLS.REGISTER_CORRECTIONS)).toEqual([
+    { ...session, params: { token: 'ordinary', page: 1 } },
+    { ...session, params: { token: 'ordinary', page: 2 } },
   ]);
-  expect(view.getAllByText(/ · entry \d$/).map(text)).toEqual([
-    'Prepared · entry 1',
-    'Applied · entry 2',
-    'Prepared · entry 2',
+  expect(view.getAllByText(/ · effective \d+ [A-Za-z]+ \d{4}$/).map(text)).toEqual([
+    NEW_HEADING,
+    'Applied · effective 2 October 2026',
+    'Prepared · effective 30 September 2026',
   ]);
-  expect(view.queryByText('A correction of another class')).toBeNull();
   expect(view.getAllByText(COPY.PROVIDED_BY_COMPANY)).toHaveLength(2);
   expect(view.getByText(COPY.STAFF_VERIFIED)).toBeTruthy();
   expect(view.getByText('Pat Preparer')).toBeTruthy();
   expect(view.getByText(formatDateTime(CORRECTION.createdAt))).toBeTruthy();
-  expect(view.getAllByText('4 October 2026')).toHaveLength(3);
   expect(view.getAllByText(COPY.AUTHORITIES.director_resolution)).toHaveLength(2);
   expect(view.getByText('Dana Director')).toBeTruthy();
   expect(view.getByText('RESOLUTION-7')).toBeTruthy();
@@ -377,9 +408,9 @@ it('reads every page of the company corrections and lists only the class correct
   expect(view.getByText(`Robin Approver · ${formatDateTime('2026-10-04T02:00:00Z')}`)).toBeTruthy();
   expect(view.getByText(`Ari Admin · ${formatDateTime('2026-10-04T03:00:00Z')}`)).toBeTruthy();
   expect(view.getAllByText(COPY.APPROVING_DIRECTOR)).toHaveLength(2);
-  expect(view.getByText('Entry 1 · Opening state · effective 1 September 2026')).toBeTruthy();
-  expect(view.getAllByText('Alex Member: -9,007,199,254,740,993')).toHaveLength(1);
-  expect(view.getAllByText(COPY.UNNAMED_MEMBER('member-2') + ': -40')).toHaveLength(1);
+  const record = within(view.getByText(NEW_HEADING).parent!);
+  expect(record.getByText('Alex Member: -9,007,199,254,740,993')).toBeTruthy();
+  expect(record.getByText(`${COPY.UNNAMED_MEMBER('member-2')}: -40`)).toBeTruthy();
   expect(view.getAllByText(COPY.READ_ONLY_NOTE)).toHaveLength(1);
   expect(view.queryByText(/verified by Ledova(?! staff before)/i)).toBeNull();
   for (const kind of ['Approve', 'Apply', 'Reject'])
@@ -413,14 +444,16 @@ it('shows a decided staff-era correction without a trail by its decision time an
     ],
   ];
   const view = await openClass();
-  expect(view.getByText('Rejected · entry 2')).toBeTruthy();
+  expect(view.getByText('Rejected · effective 30 September 2026')).toBeTruthy();
   expect(view.getByText('Decided on')).toBeTruthy();
   expect(view.getByText(formatDateTime('2026-10-04T05:00:00Z'))).toBeTruthy();
   expect(view.getByText('Superseded by a company correction')).toBeTruthy();
-  expect(view.queryByRole('button', { name: step('Reject', 'rejected correction of entry 2') })).toBeNull();
+  expect(
+    view.queryByRole('button', { name: step('Reject', 'rejected correction effective 30 September 2026') }),
+  ).toBeNull();
 });
 
-it('shows the history a page at a time and loads more entries on request', async () => {
+it('reads a long history one page at a time, fetching the next page only on request', async () => {
   const entries = Array.from({ length: 30 }, (_, index) => ({
     ...ENTRIES[1],
     uuid: `entry-${30 - index}`,
@@ -433,25 +466,119 @@ it('shows the history a page at a time and loads more entries on request', async
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   await view.findByText('Entry 30 · Issue');
-  expect(reads(URLS.REGISTER_ENTRIES('ordinary'))).toBe(2);
-  expect(view.getAllByText(/^Entry \d+ · Issue$/)).toHaveLength(25);
-  expect(view.getByText('Entry 6 · Issue')).toBeTruthy();
-  expect(view.queryByText('Entry 5 · Issue')).toBeNull();
-  expect(view.getByText('Prepared · entry 1')).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: 'Load more entries of Ordinary shares' }));
-  expect(view.getAllByText(/^Entry \d+ · Issue$/)).toHaveLength(30);
-  expect(view.getByText('Entry 1 · Issue')).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Load more entries of Ordinary shares' })).toBeNull();
-  expect(reads(URLS.REGISTER_ENTRIES('ordinary'))).toBe(2);
+  await view.findByText(NEW_HEADING);
+  expect(reads(ENTRIES_URL)).toBe(1);
+  expect(headings(view)).toHaveLength(25);
+  expect(history(view).queryByText('Entry 5 · Issue')).toBeNull();
+  expect(within(view.getByText(NEW_HEADING).parent!).getByText(NOT_LOADED)).toBeTruthy();
+  await loadMore(view, 'Entry 5 · Issue');
+  expect(reads(ENTRIES_URL)).toBe(2);
+  expect(headings(view)).toHaveLength(30);
+  expect(within(view.getByText(NEW_HEADING).parent!).getByText('Entry 1 · Issue')).toBeTruthy();
+  expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
+});
+
+it('keeps the loaded entries and offers to try again when a later page fails', async () => {
+  let failures = 1;
+  entryAnswers.set(2, async () => {
+    if (failures-- > 0) throw new Error('Unavailable');
+    return paged(entryPages, 2);
+  });
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: LOAD_MORE }));
+  expect(await view.findByText(MORE_FAILED)).toBeTruthy();
+  expect(view.getByText('Entry 3 · Compensating correction')).toBeTruthy();
+  expect(view.queryByText(READ_FAILED)).toBeNull();
+  expect(view.queryByRole('button', { name: LOAD_MORE })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Try more entries of Ordinary shares again' }));
+  await waitFor(() => expect(history(view).getByText('Entry 1 · Opening state')).toBeTruthy());
+  expect(view.queryByText(MORE_FAILED)).toBeNull();
+});
+
+it('lists an entry once when the next page repeats it after a newer entry was recorded', async () => {
+  entryPages = [
+    [ENTRIES[0], ENTRIES[1]],
+    [ENTRIES[1], ENTRIES[2]],
+  ];
+  const view = await openClass();
+  await loadMore(view, 'Entry 1 · Opening state');
+  expect(headings(view)).toEqual(['Entry 3 · Compensating correction', 'Entry 2 · Issue', 'Entry 1 · Opening state']);
+});
+
+it('reads each page under the session it was opened in and drops a page answered after the session changes', async () => {
+  const late = deferred();
+  entryAnswers.set(2, () => late.promise);
+  const view = await openClass();
+  const epoch = getSessionEpoch();
+  await fireEvent.press(view.getByRole('button', { name: LOAD_MORE }));
+  await waitFor(() => expect(requests(ENTRIES_URL)).toHaveLength(2));
+  const [, later] = requests(ENTRIES_URL);
+  expect(later).toEqual({ ledovaSessionEpoch: epoch, signal: expect.anything(), params: { page: 2 } });
+  await act(() => invalidateSessionScope());
+  expect(later.signal.aborted).toBe(true);
+  entryAnswers.clear();
+  await act(async () => late.resolve(paged(entryPages, 2)));
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  await view.findByText('Entry 3 · Compensating correction');
+  expect(requests(ENTRIES_URL).slice(2)).toEqual([
+    { ledovaSessionEpoch: epoch + 1, signal: expect.anything(), params: { page: 1 } },
+  ]);
+  expect(history(view).queryByText('Entry 1 · Opening state')).toBeNull();
+  await view.findByText(NEW_HEADING);
+});
+
+it('asks for no further page of the class corrections once the session changes between pages', async () => {
+  const late = deferred();
+  correctionAnswers.set(1, () => late.promise);
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  await waitFor(() => expect(requests(URLS.REGISTER_CORRECTIONS)).toHaveLength(1));
+  const epoch = getSessionEpoch();
+  correctionAnswers.clear();
+  await act(() => invalidateSessionScope());
+  await act(async () => late.resolve(paged(correctionPages, 1)));
+  expect(requests(URLS.REGISTER_CORRECTIONS).filter((config) => config.ledovaSessionEpoch === epoch)).toEqual([
+    { ledovaSessionEpoch: epoch, signal: expect.anything(), params: { token: 'ordinary', page: 1 } },
+  ]);
+  await view.findByRole('button', { name: 'Ordinary shares register' });
+});
+
+it('refuses a page recording a share change that is not whole and retries it, without hiding the corrections', async () => {
+  entryPages = [[{ ...ENTRIES[0], changes: [change('member-1', 'Alex Member', '1.5')] }, ENTRIES[1]], [ENTRIES[2]]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(READ_FAILED)).toBeTruthy();
+  expect(await view.findByText(NEW_HEADING)).toBeTruthy();
+  expect(view.queryByText('Entry 3 · Compensating correction')).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
+  entryPages = [[ENTRIES[0], ENTRIES[1]], [ENTRIES[2]]];
+  await fireEvent.press(view.getByRole('button', { name: 'Retry register entries for Ordinary shares' }));
+  expect(await view.findByText('Entry 3 · Compensating correction')).toBeTruthy();
+  expect(view.queryByText(READ_FAILED)).toBeNull();
 });
 
 it('says a class without register entries or corrections has none', async () => {
   entryPages = [[]];
+  correctionPages = [[]];
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText(COPY.ENTRIES_EMPTY)).toBeTruthy();
   expect(await view.findByText(COPY.EMPTY)).toBeTruthy();
-  expect(view.queryByText('A correction of another class')).toBeNull();
+});
+
+it.each([
+  ['another company', { company: 'garden' }],
+  ['another register', { register: 'register-preference' }],
+])('refuses corrections that name %s and retries them alone', async (_, foreign) => {
+  correctionPages = [[CORRECTION, { ...STAFF, ...foreign }]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(CORRECTIONS_FAILED)).toBeTruthy();
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
+  expect(view.getByText('Entry 3 · Compensating correction')).toBeTruthy();
+  correctionPages = [[CORRECTION]];
+  await fireEvent.press(view.getByRole('button', { name: 'Retry corrections for Ordinary shares' }));
+  expect(await view.findByText(NEW_HEADING)).toBeTruthy();
 });
 
 it.each([
@@ -464,9 +591,8 @@ it.each([
   const view = await openClass();
   for (const kind of ['Approve', 'Apply', 'Reject']) {
     expect(!!view.queryByRole('button', { name: step(kind) })).toBe(offered.includes(kind));
-    expect(view.queryByRole('button', { name: step(kind, 'applied correction of entry 2') })).toBeNull();
+    expect(view.queryByRole('button', { name: step(kind, 'applied correction effective 2 October 2026') })).toBeNull();
   }
-  expect(!!view.queryByRole('button', { name: correct(1) })).toBe(prepares);
   expect(!!view.queryByRole('button', { name: correct(3) })).toBe(prepares);
   expect(view.queryByRole('button', { name: correct(2) })).toBeNull();
   expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
@@ -483,7 +609,7 @@ it.each([
   for (const kind of ['Approve', 'Apply', 'Reject'])
     expect(view.queryByRole('button', { name: step(kind) })).toBeNull();
   expect(view.queryByRole('button', { name: step('Reject', STAFF_ERA) })).toBeNull();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
 });
 
 it('offers a retained staff-era correction only rejection, beside a company correction offering every step', async () => {
@@ -498,11 +624,11 @@ it('offers a retained staff-era correction only rejection, beside a company corr
 it('opens the preparation of a correctable entry with its class, company and entry', async () => {
   appointments = [appointment('appointment-prepare', ['prepare'])];
   const view = await openClass();
-  await fireEvent.press(view.getByRole('button', { name: correct(1) }));
+  await fireEvent.press(view.getByRole('button', { name: correct(3) }));
   expect(mockNavigate).toHaveBeenCalledWith('PrepareRegisterCorrection', {
     tokenUuid: 'ordinary',
     companyUuid: 'paper',
-    entryUuid: 'entry-1',
+    entryUuid: 'entry-3',
   });
 });
 
@@ -512,7 +638,7 @@ it('withdraws every correction step once a pull to refresh reads the appointment
   appointments = [revoked('appointment-admin', ['admin'])];
   await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
   await waitFor(() => expect(view.queryByRole('button', { name: step('Approve') })).toBeNull());
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.queryByRole('button', { name: step('Reject', STAFF_ERA) })).toBeNull();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
@@ -529,11 +655,11 @@ it('previews an approval with the named original and inverse changes and the reg
     { appointment: 'appointment-admin', kind: 'approve', reason: '' },
     { ledovaSessionEpoch: epoch },
   );
-  expect(view.getByText('Register sequence')).toBeTruthy();
   expect(within(view.getByText('Register sequence').parent!).getByText('3')).toBeTruthy();
-  expect(view.getAllByText('Alex Member: +9,007,199,254,740,993').length).toBe(3);
-  expect(view.getAllByText('Alex Member: -9,007,199,254,740,993').length).toBe(2);
-  expect(view.getAllByText(COPY.UNNAMED_MEMBER('member-2') + ': -40').length).toBe(2);
+  expect(view.getAllByText('Alex Member: +9,007,199,254,740,993')).toHaveLength(1);
+  expect(view.getAllByText(`${COPY.UNNAMED_MEMBER('member-2')}: +40`)).toHaveLength(1);
+  expect(view.getAllByText('Alex Member: -9,007,199,254,740,993')).toHaveLength(2);
+  expect(view.getAllByText(`${COPY.UNNAMED_MEMBER('member-2')}: -40`)).toHaveLength(2);
   expect(view.getAllByText(COPY.COMPENSATION_NOTE)).toHaveLength(1);
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
@@ -671,14 +797,14 @@ it('withdraws the steps a revoked appointment held once a decision is refused', 
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(view.queryByRole('button', { name: step('Apply') })).toBeNull());
   expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
 it('leaves the cached corrections unchanged when a decision receipt cannot be confirmed', async () => {
   post.mockResolvedValueOnce({ data: PREVIEW }).mockResolvedValueOnce({ data: decided('approve', 'another-key') });
   const view = await openClass();
-  const key = correctionsKey(getSessionEpoch(), 'paper');
+  const key = correctionsKey(getSessionEpoch(), 'ordinary');
   await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
   await view.findByText(COPY.CONFIRMATIONS.approve);
   const cached = client.getQueryState(key)!;
@@ -727,7 +853,7 @@ it('drops an open decision when the session changes and ignores its late answer'
   const retired = get.mock.calls.length;
   await act(async () => late.resolve({ data: decided('apply', KEY(1)) }));
   expect(get.mock.calls.slice(retired).filter(([, config]) => config?.ledovaSessionEpoch === epoch)).toEqual([]);
-  expect(client.getQueryState(correctionsKey(epoch, 'paper'))?.errorUpdateCount).toBe(0);
+  expect(client.getQueryState(correctionsKey(epoch, 'ordinary'))?.errorUpdateCount).toBe(0);
   expect(view.queryByText(COPY.DECISION_RECEIPT_FAILED)).toBeNull();
   await view.findByRole('button', { name: 'Ordinary shares register' });
 });
@@ -735,53 +861,16 @@ it('drops an open decision when the session changes and ignores its late answer'
 it('shows a new session no correction or step before its own reads answer', async () => {
   const view = await openClass();
   expect(view.getByRole('button', { name: step('Approve') })).toBeTruthy();
-  held = new Set([URLS.REGISTER_CORRECTIONS, URLS.REGISTER_ENTRIES('ordinary'), APPOINTMENTS]);
+  held = new Set([URLS.REGISTER_CORRECTIONS, ENTRIES_URL, APPOINTMENTS]);
   await act(() => invalidateSessionScope());
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText('Loading corrections…')).toBeTruthy();
   expect(await view.findByText(REGISTER_IMPORT_COPY.EMPTY)).toBeTruthy();
   expect(await view.findByText(REGISTER_RECONCILIATION_COPY.EMPTY)).toBeTruthy();
   expect(view.getByText('Loading register entries…')).toBeTruthy();
-  expect(view.queryByText('Prepared · entry 1')).toBeNull();
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
   expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
-});
-
-it.each([
-  ['a fractional change', () => (entryPages = [[{ ...ENTRIES[2], changes: [change('member-1', 'Alex', '1.5')] }]])],
-  [
-    'an entry listed twice',
-    () =>
-      (entryPages = [
-        [ENTRIES[0], ENTRIES[1]],
-        [ENTRIES[1], ENTRIES[2]],
-      ]),
-  ],
-  ['a link to an entry the read missed', () => (entryPages = [[ENTRIES[0], ENTRIES[2]]])],
-])('refuses a register history with %s, hides the corrections and retries', async (_, malformed) => {
-  malformed();
-  const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
-  expect(await view.findByText(READ_FAILED)).toBeTruthy();
-  expect(view.getByText(CORRECTIONS_FAILED)).toBeTruthy();
-  expect(view.queryByText('Prepared · entry 1')).toBeNull();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
-  entryPages = [[ENTRIES[1], ENTRIES[0]], [ENTRIES[2]]];
-  await fireEvent.press(view.getByRole('button', { name: 'Retry register entries for Ordinary shares' }));
-  expect(await view.findByText('Prepared · entry 1')).toBeTruthy();
-  expect(view.queryByText(CORRECTIONS_FAILED)).toBeNull();
-});
-
-it('refuses corrections that name another company and retries them alone', async () => {
-  correctionPages = [[CORRECTION, { ...STAFF, company: 'garden' }]];
-  const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
-  expect(await view.findByText(CORRECTIONS_FAILED)).toBeTruthy();
-  expect(view.queryByText('Prepared · entry 1')).toBeNull();
-  expect(view.getByText('Entry 1 · Opening state')).toBeTruthy();
-  correctionPages = [[CORRECTION]];
-  await fireEvent.press(view.getByRole('button', { name: 'Retry corrections for Ordinary shares' }));
-  expect(await view.findByText('Prepared · entry 1')).toBeTruthy();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
 });
 
 it('withholds correction steps while the appointments cannot be read', async () => {
@@ -789,12 +878,12 @@ it('withholds correction steps while the appointments cannot be read', async () 
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText('Your appointments could not be read, so register actions are hidden.')).toBeTruthy();
-  await view.findByText('Prepared · entry 1');
+  await view.findByText(NEW_HEADING);
   expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
-  expect(view.queryByRole('button', { name: correct(1) })).toBeNull();
+  expect(view.queryByRole('button', { name: correct(3) })).toBeNull();
   expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
   failing = new Set();
   await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
   expect(await view.findByRole('button', { name: step('Approve') })).toBeTruthy();
-  expect(view.getByRole('button', { name: correct(1) })).toBeTruthy();
+  expect(view.getByRole('button', { name: correct(3) })).toBeTruthy();
 });

@@ -11,10 +11,12 @@ import {
   type RegisterCorrectionDecisionPreview,
   type RegisterDecisionKind,
   type RegisterEntry,
+  type RegisterEntryChange,
   type RegisterStep,
 } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
+import { NOT_LOADED } from './ClassEntries';
 import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
@@ -26,12 +28,11 @@ const DECIDED: Record<RegisterDecisionKind, string> = {
   reject: COPY.STAGES.rejected,
 };
 
-function Changes({ title, note, lines }: { title: string; note?: string; lines: string[] }) {
+function Changes({ title, lines }: { title: string; lines: string[] }) {
   const styles = useCompanyStyles();
   return (
     <>
       <Text style={styles.heading}>{title}</Text>
-      {!!note && <Text style={styles.muted}>{note}</Text>}
       {lines.map((line, index) => (
         <Text key={index} style={styles.text}>
           {line}
@@ -44,11 +45,11 @@ function Changes({ title, note, lines }: { title: string; note?: string; lines: 
 function CorrectionPreview({
   kind,
   preview,
-  corrected,
+  named,
 }: {
   kind: RegisterDecisionKind;
   preview: RegisterCorrectionDecisionPreview;
-  corrected: RegisterEntry;
+  named: RegisterEntryChange[];
 }) {
   const styles = useCompanyStyles();
   return (
@@ -58,11 +59,8 @@ function CorrectionPreview({
         <Row label="Register sequence">{preview.registerSequence}</Row>
         <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
       </Rows>
-      <Changes
-        title={COPY.ORIGINAL_CHANGES}
-        lines={formatRegisterChanges(preview.originalChanges, corrected.changes)}
-      />
-      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(preview.changes, corrected.changes)} />
+      <Changes title={COPY.ORIGINAL_CHANGES} lines={formatRegisterChanges(preview.originalChanges, named)} />
+      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(preview.changes, named)} />
     </>
   );
 }
@@ -70,13 +68,15 @@ function CorrectionPreview({
 export function CorrectionRecord({
   proposal,
   corrected,
+  named,
   epoch,
   steps,
   last,
   onSettled,
 }: {
   proposal: RegisterCorrection;
-  corrected: RegisterEntry;
+  corrected?: RegisterEntry;
+  named: RegisterEntryChange[];
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -85,22 +85,24 @@ export function CorrectionRecord({
   const styles = useCompanyStyles();
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   const stage = COPY.STAGES[proposal.stage] ?? proposal.stage;
-  const description = `${stage.toLowerCase()} correction of entry ${corrected.sequence}`;
-  const entry = `Entry ${corrected.sequence} · ${COPY.ENTRY_KINDS[corrected.kind]}`;
+  const effective = formatDate(proposal.effectiveOn);
+  const description = `${stage.toLowerCase()} correction effective ${effective}`;
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
-        {stage} · entry {corrected.sequence}
+        {stage} · effective {effective}
       </Text>
       <Text style={styles.muted}>
         {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
       </Text>
       <Rows>
+        <Row label="Corrects">
+          {corrected ? `Entry ${corrected.sequence} · ${COPY.ENTRY_KINDS[corrected.kind]}` : NOT_LOADED}
+        </Row>
         {proposal.preparedByName !== null && (
           <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
         )}
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-        <Row label={COPY.EFFECTIVE_ON}>{formatDate(proposal.effectiveOn)}</Row>
         {proposal.decisions.map((decision) => (
           <Row key={decision.uuid} label={DECIDED[decision.kind]}>
             {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
@@ -115,12 +117,7 @@ export function CorrectionRecord({
         <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
         <Row label={COPY.REASON}>{proposal.reason}</Row>
       </Rows>
-      <Changes
-        title={COPY.ORIGINAL_CHANGES}
-        note={`${entry} · effective ${formatDate(corrected.effectiveOn)}`}
-        lines={formatRegisterChanges(corrected.changes)}
-      />
-      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(proposal.changes, corrected.changes)} />
+      <Changes title={COPY.COMPENSATING_CHANGES} lines={formatRegisterChanges(proposal.changes, named)} />
       <RegisterCopy
         label={COPY.DOWNLOAD}
         accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
@@ -152,7 +149,7 @@ export function CorrectionRecord({
                   onSettled={onSettled}
                   onRefused={onSettled}
                 >
-                  {(preview) => <CorrectionPreview kind={kind} preview={preview} corrected={corrected} />}
+                  {(preview) => <CorrectionPreview kind={kind} preview={preview} named={named} />}
                 </RegisterDecision>
               )
             );

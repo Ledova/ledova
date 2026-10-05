@@ -1,7 +1,8 @@
 import { useState, useSyncExternalStore } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   appointmentForRegisterStep,
+  assertNextPageAdvances,
   canOpen,
   getCompanyTokenHolders,
   getOwnCompanyAppointments,
@@ -9,11 +10,14 @@ import {
   getRegisterCorrections,
   getRegisterEntries,
   getRegisterImports,
+  getNextPageParam,
   getRegisterReconciliations,
   readEveryPage,
+  useLaterPages,
   useUserPreferences,
   type CompanyShareTokenListItem,
   type OwnCompanyAppointment,
+  type PaginatedResponse,
   type RegisterEntry,
   type RegisterStep,
   type TokenHoldersResponse,
@@ -38,19 +42,11 @@ export function useCompanyAccess() {
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
-function checkedEntries(entries: RegisterEntry[]) {
-  const recorded = new Set(entries.map(({ uuid }) => uuid));
-  if (
-    recorded.size !== entries.length ||
-    entries.some(
-      (entry) =>
-        entry.changes.some(({ shares }) => !/^-?\d+$/.test(shares)) ||
-        [entry.corrects, entry.correctedBy].some((link) => link !== null && !recorded.has(link)),
-    )
-  ) {
-    throw new Error('The register entries do not form one complete history of this share class');
+function checkedEntryPage(page: PaginatedResponse<RegisterEntry>) {
+  if (page.results.some(({ changes }) => changes.some(({ shares }) => !/^-?\d+$/.test(shares)))) {
+    throw new Error('The register entries record a share change that is not whole');
   }
-  return entries.sort((left, right) => right.sequence - left.sequence);
+  return page;
 }
 
 const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
@@ -183,31 +179,61 @@ export function useRegisterAppointments(epoch: number, company: string) {
   return { appointments, steps };
 }
 
+async function readEntryPage(epoch: number, token: string, page: number, signal: AbortSignal) {
+  const { data } = await sessionRead(epoch, () =>
+    getRegisterEntries(apiClient, token, { page }, { ledovaSessionEpoch: epoch, signal }),
+  );
+  assertNextPageAdvances(page, data);
+  return checkedEntryPage(data);
+}
+
 export function useRegisterEntries(epoch: number, token: string) {
+  const queryKey = entriesKey(epoch, token);
+  const entries = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam, signal }) => readEntryPage(epoch, token, pageParam, signal),
+    initialPageParam: 1,
+    getNextPageParam,
+  });
+  const pages = useLaterPages(queryKey, entries);
+  const listed = new Map<string, RegisterEntry>();
+  for (const entry of entries.data?.pages.flatMap(({ results }) => results) ?? []) {
+    if (!listed.has(entry.uuid)) listed.set(entry.uuid, entry);
+  }
+  return {
+    entries,
+    listed: [...listed.values()].sort((left, right) => right.sequence - left.sequence),
+    ...pages,
+  };
+}
+
+export function useRegisterEntry(epoch: number, token: string, uuid: string) {
   return useQuery({
-    queryKey: entriesKey(epoch, token),
-    queryFn: async ({ signal }) =>
-      checkedEntries(
-        await readEveryPage((page) =>
-          sessionRead(epoch, () =>
-            getRegisterEntries(apiClient, token, { page }, { ledovaSessionEpoch: epoch, signal }),
-          ),
-        ),
-      ),
+    queryKey: [...entriesKey(epoch, token), uuid],
+    queryFn: async ({ signal }) => {
+      let page: number | undefined = 1;
+      while (page !== undefined) {
+        const data = await readEntryPage(epoch, token, page, signal);
+        const entry = data.results.find((row) => row.uuid === uuid);
+        if (entry) return entry;
+        page = getNextPageParam(data);
+      }
+      return null;
+    },
   });
 }
 
-export function useRegisterCorrections(epoch: number, company: string) {
+export function useRegisterCorrections(epoch: number, company: string, token: string) {
   return useQuery({
-    queryKey: correctionsKey(epoch, company),
+    queryKey: correctionsKey(epoch, token),
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage((page) =>
         sessionRead(epoch, () =>
-          getRegisterCorrections(apiClient, { company, page }, { ledovaSessionEpoch: epoch, signal }),
+          getRegisterCorrections(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
         ),
       );
-      if (rows.some((row) => row.company !== company)) {
-        throw new Error('The corrections do not belong to this company');
+      if (rows.some((row) => row.company !== company) || new Set(rows.map(({ register }) => register)).size > 1) {
+        throw new Error('The corrections do not belong to this share class');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },

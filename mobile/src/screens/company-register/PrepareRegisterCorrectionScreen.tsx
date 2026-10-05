@@ -23,7 +23,7 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay } from './RegisterFields';
 import { useCompanyStyles } from './styles';
-import { correctionsKey, useClassRegister, useRegisterAppointments, useRegisterEntries } from './useCompanyRegister';
+import { correctionsKey, useClassRegister, useRegisterAppointments, useRegisterEntry } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
@@ -43,7 +43,7 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
   const { tokenUuid, companyUuid, entryUuid } =
     useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterCorrection'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
-  const entries = useRegisterEntries(epoch, tokenUuid);
+  const found = useRegisterEntry(epoch, tokenUuid, entryUuid);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const document = useRegisterEvidence(companyUuid, 'authority');
   const [effectiveOn, setEffectiveOn] = useState(utcToday);
@@ -62,7 +62,7 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
       live.current = false;
     };
   }, []);
-  const entry = entries.data?.find(({ uuid }) => uuid === entryUuid);
+  const entry = found.data;
   const date = effectiveOn.trim();
   const problem = !document.name
     ? 'Choose the authority document.'
@@ -81,8 +81,8 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
     !!entry?.correctable &&
     register.isSuccess &&
     !register.isFetching &&
-    entries.isSuccess &&
-    !entries.isFetching &&
+    found.isSuccess &&
+    !found.isFetching &&
     appointments.isSuccess &&
     !appointments.isFetching;
   const pick = async () => {
@@ -130,7 +130,7 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
       if (!isPreparedRegisterCorrection(response.data, preparation))
         throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       retry.current = null;
-      await queryClient.invalidateQueries({ queryKey: correctionsKey(epoch, companyUuid) });
+      await queryClient.invalidateQueries({ queryKey: correctionsKey(epoch, tokenUuid) });
       guard();
       navigation.goBack();
     } catch (cause) {
@@ -142,20 +142,20 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
         return;
       }
       setError(apiErrorSentence(cause, FAILED, FAILED));
-      if (status === 409) await Promise.all([entries.refetch(), appointments.refetch()]);
+      if (status === 409) await Promise.all([found.refetch(), appointments.refetch()]);
     } finally {
       pending.current = false;
       if (live.current) setSubmitting(false);
     }
   };
   const title = DESTINATIONS.companyRegisterCorrection.title;
-  if (register.isPending || entries.isPending || appointments.isPending)
+  if (register.isPending || found.isPending || appointments.isPending)
     return (
       <Page title={title}>
         <Text style={styles.muted}>Loading the register entry…</Text>
       </Page>
     );
-  if (register.isError || entries.isError || appointments.isError)
+  if (register.isError || found.isError || appointments.isError)
     return (
       <Page title={title}>
         <Text accessibilityRole="alert" style={styles.error}>
@@ -163,10 +163,10 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
         </Text>
         <Action
           label="Retry"
-          disabled={register.isFetching || entries.isFetching || appointments.isFetching}
+          disabled={register.isFetching || found.isFetching || appointments.isFetching}
           onPress={() => {
             void register.refetch();
-            void entries.refetch();
+            void found.refetch();
             void appointments.refetch();
           }}
         />

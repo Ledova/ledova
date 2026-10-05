@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   formatDate,
@@ -13,7 +12,7 @@ import { Action, Row, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from './styles';
 import { useRegisterEntries } from './useCompanyRegister';
 
-const SHOWN = 25;
+export const NOT_LOADED = 'An entry not loaded yet';
 
 export function ClassEntries({
   epoch,
@@ -28,9 +27,9 @@ export function ClassEntries({
 }) {
   const styles = useCompanyStyles();
   const name = register.token.name;
-  const entries = useRegisterEntries(epoch, register.token.uuid);
-  const [shown, setShown] = useState(SHOWN);
-  const sequences = new Map((entries.data ?? []).map((entry) => [entry.uuid, entry.sequence]));
+  const { entries, listed, hasError, moreFailed, loadMore } = useRegisterEntries(epoch, register.token.uuid);
+  const sequences = new Map(listed.map((entry) => [entry.uuid, entry.sequence]));
+  const linked = (uuid: string) => (sequences.has(uuid) ? `Entry ${sequences.get(uuid)}` : NOT_LOADED);
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
@@ -38,7 +37,7 @@ export function ClassEntries({
       </Text>
       {entries.isPending ? (
         <Text style={styles.muted}>Loading register entries…</Text>
-      ) : entries.isError ? (
+      ) : hasError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
             The register entries could not be loaded.
@@ -50,11 +49,11 @@ export function ClassEntries({
             onPress={() => void entries.refetch()}
           />
         </View>
-      ) : entries.data.length === 0 ? (
+      ) : listed.length === 0 ? (
         <Text style={styles.muted}>{COPY.ENTRIES_EMPTY}</Text>
       ) : (
         <>
-          {entries.data.slice(0, shown).map((entry, index, listed) => (
+          {listed.map((entry, index) => (
             <View key={entry.uuid} style={[styles.entry, index === listed.length - 1 && styles.lastEntry]}>
               <Text style={styles.heading}>
                 Entry {entry.sequence} · {COPY.ENTRY_KINDS[entry.kind]}
@@ -67,8 +66,8 @@ export function ClassEntries({
               ))}
               {!!(entry.corrects || entry.correctedBy) && (
                 <Rows>
-                  {!!entry.corrects && <Row label="Corrects">Entry {sequences.get(entry.corrects)}</Row>}
-                  {!!entry.correctedBy && <Row label="Reversed by">Entry {sequences.get(entry.correctedBy)}</Row>}
+                  {!!entry.corrects && <Row label="Corrects">{linked(entry.corrects)}</Row>}
+                  {!!entry.correctedBy && <Row label="Reversed by">{linked(entry.correctedBy)}</Row>}
                 </Rows>
               )}
               {entry.correctable && steps?.prepare && (
@@ -80,12 +79,27 @@ export function ClassEntries({
               )}
             </View>
           ))}
-          {entries.data.length > shown && (
-            <Action
-              label="Load more entries"
-              accessibilityLabel={`Load more entries of ${name}`}
-              onPress={() => setShown((count) => count + SHOWN)}
-            />
+          {moreFailed ? (
+            <View style={styles.group}>
+              <Text accessibilityRole="alert" style={styles.error}>
+                More register entries could not be loaded. The history above is incomplete.
+              </Text>
+              <Action
+                label="Try more entries again"
+                accessibilityLabel={`Try more entries of ${name} again`}
+                disabled={entries.isFetching}
+                onPress={() => void loadMore()}
+              />
+            </View>
+          ) : (
+            entries.hasNextPage && (
+              <Action
+                label={entries.isFetchingNextPage ? 'Loading entries…' : 'Load more entries'}
+                accessibilityLabel={`Load more entries of ${name}`}
+                disabled={entries.isFetching}
+                onPress={() => void loadMore()}
+              />
+            )
           )}
         </>
       )}

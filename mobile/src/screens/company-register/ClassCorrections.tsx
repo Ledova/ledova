@@ -27,10 +27,12 @@ export function ClassCorrections({
 }) {
   const styles = useCompanyStyles();
   const name = register.token.name;
-  const entries = useRegisterEntries(epoch, register.token.uuid);
-  const corrections = useRegisterCorrections(epoch, company);
-  const recorded = new Map((entries.data ?? []).map((entry) => [entry.uuid, entry]));
-  const listed = (corrections.data ?? []).filter(({ corrects }) => recorded.has(corrects));
+  const corrections = useRegisterCorrections(epoch, company, register.token.uuid);
+  const { entries, listed } = useRegisterEntries(epoch, register.token.uuid);
+  const named = [
+    ...register.holders.map(({ member, name: holder, balance }) => ({ member, name: holder, shares: balance })),
+    ...listed.flatMap(({ changes }) => changes),
+  ].filter((change) => !!change.name);
   const settle = () => Promise.all([corrections.refetch(), entries.refetch(), refreshHolders(), refreshAppointments()]);
   return (
     <View style={styles.group}>
@@ -39,9 +41,9 @@ export function ClassCorrections({
       </Text>
       <Text style={styles.muted}>{COPY.COMPENSATION_NOTE}</Text>
       {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-      {corrections.isPending || entries.isPending ? (
+      {corrections.isPending ? (
         <Text style={styles.muted}>Loading corrections…</Text>
-      ) : corrections.isError || entries.isError ? (
+      ) : corrections.isError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
             The corrections could not be loaded.
@@ -49,21 +51,22 @@ export function ClassCorrections({
           <Action
             label="Retry corrections"
             accessibilityLabel={`Retry corrections for ${name}`}
-            disabled={corrections.isFetching || entries.isFetching}
-            onPress={() => void Promise.all([corrections.refetch(), entries.refetch()])}
+            disabled={corrections.isFetching}
+            onPress={() => void corrections.refetch()}
           />
         </View>
-      ) : listed.length === 0 ? (
+      ) : corrections.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
       ) : (
-        listed.map((proposal, index) => (
+        corrections.data.map((proposal, index) => (
           <CorrectionRecord
             key={proposal.uuid}
             proposal={proposal}
-            corrected={recorded.get(proposal.corrects)!}
+            corrected={listed.find(({ uuid }) => uuid === proposal.corrects)}
+            named={named}
             epoch={epoch}
             steps={steps}
-            last={index === listed.length - 1}
+            last={index === corrections.data.length - 1}
             onSettled={settle}
           />
         ))
