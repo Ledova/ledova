@@ -74,8 +74,8 @@ This index and the audit report are additional reviewed documents.
 The owner's [5 October product clarification](../../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 prioritises the private-company register and share issuance, management,
 transfer and purchase. Optional crypto on-ramp purchases are investor-only;
-companies must not use that integration to buy cryptocurrency. The existing
-access gap is tracked separately in
+companies must not use that integration to buy cryptocurrency. Its current
+investing-account and provider-lifetime guards are tracked separately in
 [#920](https://github.com/Ledova/ledova/issues/920), without changing programme
 dependencies or agent ownership. AUD is a valid share-payment requirement,
 distinct from AUD pricing and stablecoin settlement. #868 owns primary payment

@@ -68,8 +68,8 @@ investor-only; companies must not buy cryptocurrency through that integration.
 AUD is a required share-payment method, distinct from AUD pricing and an
 AUD-denominated stablecoin. Payment mechanics remain undecided in
 [#868](https://github.com/Ledova/ledova/issues/868) and
-[#869](https://github.com/Ledova/ledova/issues/869); the existing on-ramp access
-gap is tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
+[#869](https://github.com/Ledova/ledova/issues/869); the investor-only on-ramp
+guards are tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
 Company appointments and wallets needed for share operations do not grant
 crypto-purchase permission.
 

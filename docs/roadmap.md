@@ -122,11 +122,11 @@ and crypto/payment roles must not gain register authority through automation.
 
 ### Other follow-ups
 
-- Restrict optional crypto on-ramp purchases to personal investor use and refuse
-  company use on both clients and the API
-  ([#920](https://github.com/Ledova/ledova/issues/920)). The current exposure is
-  an implementation gap; the policy does not itself close it. This feature is
-  secondary to the registry and share workflows.
+- Optional crypto on-ramp purchases require a current personal investor account
+  on the API and both clients ([#920](https://github.com/Ledova/ledova/issues/920)).
+  Synthetic role-loss and provider-lifetime regressions cover that boundary;
+  external-provider and physical-device acceptance remain separate. This feature
+  is secondary to the registry and share workflows.
 - Phase 1 follow-up: tokenising a share class an import opened,
   [built when one first needs to go on chain](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439).
 - Splits and consolidations are

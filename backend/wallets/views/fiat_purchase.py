@@ -3,11 +3,13 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from shared.constants import get_native_asset_symbol
 from shared.views.principal import SetsThePrincipalOnTheConnection
+from users.models import UserAccount
 from wallets.exceptions import WalletUuidRequiredException
 from wallets.models import Wallet
 from wallets.serializers.fiat_purchase import FiatPurchaseWidgetRequestSerializer
@@ -32,6 +34,9 @@ class FiatPurchaseViewSet(SetsThePrincipalOnTheConnection, viewsets.ViewSet):
     )
     @action(detail=False, methods=["post"], url_path="transak-widget-url")
     def transak_widget_url(self, request):
+        if not UserAccount.objects.for_holder(request.user).investing().exists():
+            raise PermissionDenied("Crypto purchases require a personal investor account.")
+
         wallet_uuid = request.data.get("wallet_uuid")
         if not wallet_uuid:
             raise WalletUuidRequiredException()

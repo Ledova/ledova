@@ -22,7 +22,7 @@ on-ramp are optional investor functionality; companies must not use it to buy
 Bitcoin, Ethereum or other cryptocurrencies. AUD is a required share-payment
 method, with payment mechanics still to be decided. The
 [5 October product decision](docs/decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-records the current enforcement and payment gaps separately from these rules.
+records the investor-only on-ramp boundary and the remaining payment design.
 
 > **Experimental and unaudited.** Use only synthetic data on a local development
 > chain or supported public testnet. Ledova is not production ready and must not

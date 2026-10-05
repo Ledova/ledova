@@ -198,10 +198,12 @@ requests only publications addressed to the person and retains member voting.
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
-account. The current clients expose Buy crypto on Wallets to every account;
-[#920](https://github.com/Ledova/ledova/issues/920) tracks restricting that action
-and its API to personal investor use and refusing company use. This restriction
-is accepted policy, not yet an implemented guarantee. Buying crypto and sending
+account. Buy crypto on Wallets requires an actual `investor` or `both` personal
+account, with unknown and company-only accounts refused. The API also reads the
+current investing account before contacting the provider
+([#920](https://github.com/Ledova/ledova/issues/920)). Both clients reject direct
+opening and late responses after account or role loss; an open provider is
+removed and its URL retired. Buying crypto and sending
 are Wallets actions rather than menu items, and the dashboard has no coin-price
 page or favourites. On both clients, Send opens its form directly when Wallets
 has read exactly one verified wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
