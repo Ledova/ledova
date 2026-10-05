@@ -60,7 +60,7 @@ paths and are uploaded even when setup or a build fails. Inventory or signalling
 errors retain an incomplete cleanup status; unverified groups are not signalled
 and an unreaped child is recorded as such. A runner loss or
 uncatchable kill can still prevent final collection or upload. These collectors
-improve observation; they do not establish the original SystemUI cause or close #880.
+observe; they never dismiss a dialog, retry or skip a probe.
 Before the first build, the job attempts to let the emulator settle after boot,
 within 300 seconds and without gating the run (`mobile/scripts/emulator-settle.mjs`).
 It waits for the broadcast queues to go idle, then polls the guest's 1-minute
@@ -68,11 +68,23 @@ load until a complete decimal reading below 4 arrives within the budget; every
 wait is bounded by the time left. `ledova-guest-settle.log` records either
 settling or a budget gap: the guest stayed busy, a reading was unavailable or
 malformed (unconfirmed), or a reading arrived after the budget. The emulator gets
-the runner's four vCPUs. With two, a Google Play services boot-broadcast ANR
-followed within a minute of boot in 3 of 3 attributed runs, one of them before
-the build started; with four, in 0 of 3. That supports relieving post-boot
-saturation as a mitigation; it does not rule out host contention or establish
-the cause of the SystemUI failures.
+the runner's four vCPUs, and `mobile/scripts/tests/emulator-policy.test.mjs`
+fails if the launch drops below four, a QEMU option overrides the count, or the
+settle no longer runs as its own foreground command between boot and the first
+build.
+
+Both settings are the mitigation for the SystemUI ANR in #880, not a captured
+cause. Android's own post-boot work drove the guest's 1-minute load to 27–37
+even with four vCPUs, in the 24 runs that recorded guest load. The two failed
+runs gave the emulator two vCPUs and started a 14-minute build about 20 seconds
+after boot; the "System UI isn't responding" dialog already held focus at the
+first app launch, before the scanner tests were built, and its onset is unknown.
+Seven of the eight two-vCPU runs that kept ANR records recorded a Google Play
+services ANR within a minute of boot. Of the 39 Android runs from the change
+(3 October 2026) to 4 October 21:04 UTC, none failed; one recorded an ANR, a
+background dialer job during the settle, before any build or test. No SystemUI
+reason or trace was ever captured, so this is consistent with post-boot
+saturation but does not rule out host contention from the build.
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves
