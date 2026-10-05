@@ -711,6 +711,19 @@ it('neither invalidates nor navigates when a preparation returns after the signe
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('keeps no entry whose read returns after the signed-in account changed', async () => {
+  const pending = deferred<ReturnType<typeof page<RegisterEntry>>>();
+  const read = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, config?: unknown) =>
+    url === ENTRIES ? pending.promise : read(url, config),
+  );
+  show();
+  await waitFor(() => expect(reads(ENTRIES)).toBe(1));
+  act(switchAccount);
+  await act(async () => pending.resolve(page([entry()])));
+  expect(client.getQueryData(ENTRY_KEY)).toBeUndefined();
+});
+
 it('starts a blank draft for another signed-in account', async () => {
   show();
   await ready();

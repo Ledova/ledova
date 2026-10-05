@@ -1167,6 +1167,16 @@ it('keeps no register entries whose read returns after the signed-in account cha
   expect(client.getQueryData([...ACCOUNT, 'entries', 'ordinary'])).toBeUndefined();
 });
 
+it('keeps no corrections whose corrected entries return after the signed-in account changed', async () => {
+  const pending = deferred<Paged<RegisterEntry>>();
+  serve((url, config) => (url === ENTRIES && config?.params?.entry ? pending.promise : undefined));
+  await openClass();
+  await waitFor(() => expect(namedReads()).toEqual([['entry-issue']]));
+  act(switchAccount);
+  await act(async () => pending.resolve(page([ISSUE])));
+  expect(client.getQueryData([...ACCOUNT, 'corrections', 'ordinary'])).toBeUndefined();
+});
+
 it('keeps each account to its own entries and corrections, showing none of the previous account while its own load', async () => {
   await openClass();
   expect(within(await corrections()).getByText('Example Preparer')).toBeTruthy();
