@@ -1,9 +1,6 @@
-from drf_spectacular.utils import OpenApiTypes, extend_schema
-from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from companies.models import Company
-from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
 from tokens.models import RegisterOpening, RegisterWalletLink
 from tokens.serializers.register_opening import (
     RegisterOpeningCreateSerializer,
@@ -12,22 +9,17 @@ from tokens.serializers.register_opening import (
     RegisterWalletLinkSerializer,
 )
 from tokens.services.register_openings import submit_link, submit_opening
+from tokens.views.register_proposal import RegisterProposalViewSet
 
 
-class RegisterOpeningViewSet(AuthenticatedReadOnlyViewSet):
+class RegisterOpeningViewSet(RegisterProposalViewSet):
     queryset = RegisterOpening.objects.none()
     serializer_class = RegisterOpeningSerializer
     scoped_model = RegisterOpening
-    operator_actions = frozenset({"list", "retrieve", "file"})
     operator_actions_because = (
         "Retained opening reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
-    ordering = ["-created_at", "-uuid"]
-    http_method_names = ["get", "post", "head", "options"]
-
-    def narrow(self, queryset):
-        return queryset.filter(company__in=Company.objects.register_readable_by(self.request.user))
 
     @extend_schema(request=RegisterOpeningCreateSerializer, responses={201: RegisterOpeningSerializer})
     def create(self, request):
@@ -36,27 +28,15 @@ class RegisterOpeningViewSet(AuthenticatedReadOnlyViewSet):
         proposal = submit_opening(actor=request.user, **serializer.validated_data)
         return Response(RegisterOpeningSerializer(proposal).data, status=201)
 
-    @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
-    @action(detail=True, methods=["get"])
-    def file(self, request, uuid=None):
-        proposal = self.get_object()
-        return stream_stored_file(proposal.file, proposal.evidence_snapshot["mime_type"], as_attachment=True)
 
-
-class RegisterWalletLinkViewSet(AuthenticatedReadOnlyViewSet):
+class RegisterWalletLinkViewSet(RegisterProposalViewSet):
     queryset = RegisterWalletLink.objects.none()
     serializer_class = RegisterWalletLinkSerializer
     scoped_model = RegisterWalletLink
-    operator_actions = frozenset({"list", "retrieve", "file"})
     operator_actions_because = (
         "Retained wallet-link reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
-    ordering = ["-created_at", "-uuid"]
-    http_method_names = ["get", "post", "head", "options"]
-
-    def narrow(self, queryset):
-        return queryset.filter(company__in=Company.objects.register_readable_by(self.request.user))
 
     @extend_schema(request=RegisterWalletLinkCreateSerializer, responses={201: RegisterWalletLinkSerializer})
     def create(self, request):
@@ -64,9 +44,3 @@ class RegisterWalletLinkViewSet(AuthenticatedReadOnlyViewSet):
         serializer.is_valid(raise_exception=True)
         proposal = submit_link(actor=request.user, **serializer.validated_data)
         return Response(RegisterWalletLinkSerializer(proposal).data, status=201)
-
-    @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
-    @action(detail=True, methods=["get"])
-    def file(self, request, uuid=None):
-        proposal = self.get_object()
-        return stream_stored_file(proposal.file, proposal.evidence_snapshot["mime_type"], as_attachment=True)

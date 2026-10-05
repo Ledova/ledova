@@ -9,6 +9,7 @@ from tokens.models.register_correction import (
     RegisterCorrectionAuthority,
     RegisterCorrectionStatus,
 )
+from tokens.querysets import RegisterProposalQuerySet
 
 
 def import_evidence_path(instance, filename):
@@ -16,6 +17,7 @@ def import_evidence_path(instance, filename):
 
 
 class RegisterImport(BaseModel):
+    objects = RegisterProposalQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_imports")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_imports")
     as_at = models.DateField()

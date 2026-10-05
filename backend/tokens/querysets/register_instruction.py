@@ -1,7 +1,9 @@
-from django.db.models import Q, QuerySet
+from django.db.models import Q
+
+from tokens.querysets.register_proposal import RegisterProposalQuerySet
 
 
-class RegisterInstructionQuerySet(QuerySet):
+class RegisterInstructionQuerySet(RegisterProposalQuerySet):
 
     def covering(self, *items):
         listed = Q()

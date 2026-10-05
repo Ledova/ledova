@@ -5,6 +5,7 @@ from django.db import models
 
 from shared.models import BaseModel
 from shared.storage import private_storage
+from tokens.querysets import RegisterProposalQuerySet
 
 
 class RegisterCorrectionAuthority(models.TextChoices):
@@ -23,6 +24,7 @@ def correction_evidence_path(instance, filename):
 
 
 class RegisterCorrection(BaseModel):
+    objects = RegisterProposalQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_corrections")
     register = models.ForeignKey("tokens.ShareRegister", on_delete=models.PROTECT, related_name="corrections")
     corrects = models.ForeignKey("tokens.RegisterEntry", on_delete=models.PROTECT, related_name="proposals")

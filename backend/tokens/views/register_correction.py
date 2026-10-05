@@ -1,31 +1,23 @@
-from drf_spectacular.utils import OpenApiTypes, extend_schema
-from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from companies.models import Company
-from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
 from tokens.models import RegisterCorrection
 from tokens.serializers.register_correction import (
     RegisterCorrectionCreateSerializer,
     RegisterCorrectionSerializer,
 )
 from tokens.services.register_corrections import submit_correction
+from tokens.views.register_proposal import RegisterProposalViewSet
 
 
-class RegisterCorrectionViewSet(AuthenticatedReadOnlyViewSet):
+class RegisterCorrectionViewSet(RegisterProposalViewSet):
     queryset = RegisterCorrection.objects.none()
     serializer_class = RegisterCorrectionSerializer
     scoped_model = RegisterCorrection
-    operator_actions = frozenset({"list", "retrieve", "file"})
     operator_actions_because = (
         "Retained correction reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
-    ordering = ["-created_at", "-uuid"]
-    http_method_names = ["get", "post", "head", "options"]
-
-    def narrow(self, queryset):
-        return queryset.filter(company__in=Company.objects.register_readable_by(self.request.user))
 
     @extend_schema(request=RegisterCorrectionCreateSerializer, responses={201: RegisterCorrectionSerializer})
     def create(self, request):
@@ -33,9 +25,3 @@ class RegisterCorrectionViewSet(AuthenticatedReadOnlyViewSet):
         serializer.is_valid(raise_exception=True)
         proposal = submit_correction(actor=request.user, **serializer.validated_data)
         return Response(RegisterCorrectionSerializer(proposal).data, status=201)
-
-    @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
-    @action(detail=True, methods=["get"])
-    def file(self, request, uuid=None):
-        proposal = self.get_object()
-        return stream_stored_file(proposal.file, proposal.evidence_snapshot["mime_type"], as_attachment=True)
