@@ -1,9 +1,10 @@
 import { Text, View } from 'react-native';
-import type { RegisterEntry, TokenHoldersResponse } from '@ledova/shared';
+import { appointmentForAcknowledgement, type RegisterEntry, type TokenHoldersResponse } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
+import { ClassReconciliation } from './ClassReconciliation';
 import { useCompanyStyles } from './styles';
 import { useRegisterAppointments } from './useCompanyRegister';
 
@@ -24,6 +25,7 @@ export function ClassRecords({
 }) {
   const styles = useCompanyStyles();
   const { appointments, steps } = useRegisterAppointments(epoch, company);
+  const acknowledging = appointments.isSuccess ? appointmentForAcknowledgement(appointments.data, company) : undefined;
   return (
     <>
       {appointments.isError && (
@@ -55,6 +57,13 @@ export function ClassRecords({
         register={register}
         steps={steps}
         refreshHolders={refreshHolders}
+        refreshAppointments={appointments.refetch}
+      />
+      <ClassReconciliation
+        epoch={epoch}
+        register={register}
+        appointment={acknowledging?.uuid}
+        readOnly={appointments.isSuccess && !acknowledging}
         refreshAppointments={appointments.refetch}
       />
     </>

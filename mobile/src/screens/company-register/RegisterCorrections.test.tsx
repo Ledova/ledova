@@ -9,6 +9,7 @@ import {
   REGISTER_CORRECTION_COPY as COPY,
   REGISTER_CORRECTION_UNMET_COPY,
   REGISTER_IMPORT_COPY,
+  REGISTER_RECONCILIATION_COPY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
@@ -304,7 +305,7 @@ beforeEach(() => {
     if (failing.has(url)) throw new Error('Unavailable');
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
-    if (url === URLS.REGISTER_IMPORTS) return page([]);
+    if (url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === APPOINTMENTS) return page(appointments);
     if (url === URLS.REGISTER_ENTRIES('ordinary')) return paged(entryPages, number);
     if (url === URLS.REGISTER_CORRECTIONS) return paged(correctionPages, number);
@@ -739,6 +740,7 @@ it('shows a new session no correction or step before its own reads answer', asyn
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText('Loading corrections…')).toBeTruthy();
   expect(await view.findByText(REGISTER_IMPORT_COPY.EMPTY)).toBeTruthy();
+  expect(await view.findByText(REGISTER_RECONCILIATION_COPY.EMPTY)).toBeTruthy();
   expect(view.getByText('Loading register entries…')).toBeTruthy();
   expect(view.queryByText('Prepared · entry 1')).toBeNull();
   expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();

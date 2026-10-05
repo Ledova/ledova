@@ -9,6 +9,7 @@ import {
   getRegisterCorrections,
   getRegisterEntries,
   getRegisterImports,
+  getRegisterReconciliations,
   readEveryPage,
   useUserPreferences,
   type CompanyShareTokenListItem,
@@ -61,6 +62,7 @@ const recordsKey = (records: string) => (epoch: number, scope?: string) => [
 export const importsKey = recordsKey('imports');
 export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
+export const reconciliationKey = recordsKey('reconciliation');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 async function sessionRead<Response>(epoch: number, read: () => Promise<Response>) {
@@ -136,7 +138,7 @@ export function useCompanyRegister(epoch: number) {
       Promise.all([
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
-        ...[importsKey, entriesKey, correctionsKey, registerAppointmentsKey].map((key) =>
+        ...[importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map((key) =>
           queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
         ),
       ]),
@@ -208,6 +210,21 @@ export function useRegisterCorrections(epoch: number, company: string) {
         throw new Error('The corrections do not belong to this company');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterReconciliation(epoch: number, token: string) {
+  return useQuery({
+    queryKey: reconciliationKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const { data } = await sessionRead(epoch, () =>
+        getRegisterReconciliations(apiClient, { token }, { ledovaSessionEpoch: epoch, signal }),
+      );
+      if (data.results.some((row) => row.token !== token)) {
+        throw new Error('The reconciliations do not belong to this share class');
+      }
+      return data.results[0] ?? null;
     },
   });
 }

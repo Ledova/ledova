@@ -249,6 +249,7 @@ beforeEach(() => {
       return page(appointments);
     }
     if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return page([]);
+    if (url === URLS.REGISTER_RECONCILIATIONS) return page([]);
     if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return fileAnswer ?? PDF;
     if (url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
