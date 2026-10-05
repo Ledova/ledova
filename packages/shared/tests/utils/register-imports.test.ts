@@ -123,6 +123,9 @@ it('accepts an evidence receipt only for the exact upload', () => {
 
 it('accepts a prepared import only when it carries exactly the request', () => {
   expect(isPreparedRegisterImport(proposal(), PREPARATION)).toBe(true);
+  const { name, member, shares, enteredOn, amountPaid, residentialAddress } = MEMBER;
+  const stored = { name, member, shares, enteredOn, amountPaid, residentialAddress };
+  expect(isPreparedRegisterImport(proposal({ members: [stored] }), PREPARATION)).toBe(true);
   for (const changed of [
     proposal({ asicIssuedTotal: '1' }),
     proposal({ members: [{ ...MEMBER, shares: '1' }] }),

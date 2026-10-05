@@ -35,7 +35,9 @@ export type RegisterImportPreparation = Omit<
   formerMembers: RegisterImportFormerRow[];
 };
 
-export type RegisterImport = Omit<ApiSchema<'RegisterImport'>, 'members' | 'formerMembers'> & {
+export type RegisterImportRecord = ApiSchema<'RegisterImport'>;
+
+export type RegisterImport = Omit<RegisterImportRecord, 'members' | 'formerMembers'> & {
   members: RegisterImportMemberRow[];
   formerMembers: RegisterImportFormerRow[];
 };

@@ -6,11 +6,39 @@ import type {
   RegisterImport,
   RegisterImportDecideRequest,
   RegisterImportDecisionKind,
+  RegisterImportFormerRow,
   RegisterImportMemberRow,
   RegisterImportPreparation,
+  RegisterImportRecord,
 } from '../types';
 
 export type RegisterImportStep = 'prepare' | RegisterImportDecisionKind;
+
+const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
+const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
+
+function rowsOf<Row>(value: unknown, text: string[], optional: string[] = []): value is Row[] {
+  return (
+    Array.isArray(value) &&
+    value.every((row: Record<string, unknown> | null) => {
+      if (!row || typeof row !== 'object') return false;
+      return (
+        text.every((key) => typeof row[key] === 'string') &&
+        optional.every((key) => row[key] === null || typeof row[key] === 'string')
+      );
+    })
+  );
+}
+
+export function registerImportOf(record: RegisterImportRecord): RegisterImport {
+  const { members, formerMembers } = record;
+  if (
+    !rowsOf<RegisterImportMemberRow>(members, MEMBER_TEXT, ['amountPaid']) ||
+    !rowsOf<RegisterImportFormerRow>(formerMembers, FORMER_TEXT)
+  )
+    throw new Error('The register import rows could not be read.');
+  return { ...record, members, formerMembers };
+}
 
 const STEP_CAPABILITY: Record<RegisterImportStep, CompanyCapability> = {
   prepare: 'prepare',
@@ -55,8 +83,12 @@ export function isRegisterEvidenceReceipt(
   );
 }
 
-function sameRows(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
+function memberRows(rows: RegisterImportMemberRow[]) {
+  return JSON.stringify(
+    [...rows]
+      .sort((left, right) => left.member.localeCompare(right.member))
+      .map((row) => [row.member, row.name, row.residentialAddress, row.shares, row.enteredOn, row.amountPaid]),
+  );
 }
 
 export function isPreparedRegisterImport(proposal: RegisterImport, request: RegisterImportPreparation) {
@@ -70,10 +102,7 @@ export function isPreparedRegisterImport(proposal: RegisterImport, request: Regi
     proposal.asicMemberCount === request.asicMemberCount &&
     proposal.asAt === request.asAt &&
     proposal.providedBy === 'company' &&
-    sameRows(
-      [...proposal.members].sort((left, right) => left.member.localeCompare(right.member)),
-      [...request.members].sort((left, right) => left.member.localeCompare(right.member)),
-    ) &&
+    memberRows(proposal.members) === memberRows(request.members) &&
     proposal.formerMembers.length === request.formerMembers.length
   );
 }

@@ -25,6 +25,8 @@ function applied(key: string) {
     stage: 'applied',
     reviewedAt: '2026-10-05T00:00:00Z',
     rejectionReason: '',
+    members: [],
+    formerMembers: [],
     decisions: [
       {
         uuid: 'decision-a',

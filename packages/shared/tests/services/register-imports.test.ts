@@ -34,8 +34,8 @@ it('uploads one evidence file as multipart with the company, appointment, kind a
 
 it('prepares, lists, previews, decides and downloads through the import routes', async () => {
   const api = axios.create();
-  const post = jest.spyOn(api, 'post').mockResolvedValue({ data: {} });
-  const get = jest.spyOn(api, 'get').mockResolvedValue({ data: {} });
+  const post = jest.spyOn(api, 'post').mockResolvedValue({ data: { members: [], formerMembers: [] } });
+  const get = jest.spyOn(api, 'get').mockResolvedValue({ data: { results: [] } });
   const preparation = {
     operationId: 'import-a',
     appointment: 'appointment-a',
@@ -76,4 +76,37 @@ it('prepares, lists, previews, decides and downloads through the import routes',
     ['/api/v1/tokens/register-imports/import-a/asic-file/', { responseType: 'blob' }],
     ['/api/v1/tokens/register-imports/import-a/file/', { responseType: 'blob' }],
   ]);
+});
+
+it('types the rows of every import read and refuses rows it cannot read', async () => {
+  const api = axios.create();
+  const member = {
+    name: 'Synthetic Member',
+    member: 'member-a',
+    shares: '9007199254740993',
+    enteredOn: '2019-05-01',
+    amountPaid: null,
+    residentialAddress: '1 Synthetic Street',
+  };
+  const former = {
+    name: 'Synthetic Former',
+    shares: '40',
+    ceasedOn: '2022-03-01',
+    residentialAddress: '2 Synthetic Road',
+  };
+  const record = { uuid: 'import-a', members: [member], formerMembers: [former] };
+  jest.spyOn(api, 'get').mockResolvedValueOnce({ data: { results: [record], next: null } });
+  const { data } = await getRegisterImports(api, { token: 'class-a' });
+  expect(data.results).toEqual([record]);
+  expect(data.results[0]!.members[0]!.shares).toBe('9007199254740993');
+  for (const members of [undefined, [{ ...member, amountPaid: 250 }], [{ ...member, residentialAddress: undefined }]]) {
+    jest.spyOn(api, 'post').mockResolvedValueOnce({ data: { ...record, members } });
+    await expect(decideRegisterImport(api, 'import-a', {} as never)).rejects.toThrow(
+      'The register import rows could not be read.',
+    );
+  }
+  jest
+    .spyOn(api, 'post')
+    .mockResolvedValueOnce({ data: { ...record, formerMembers: [{ ...former, ceasedOn: null }] } });
+  await expect(prepareRegisterImport(api, {} as never)).rejects.toThrow('The register import rows could not be read.');
 });
