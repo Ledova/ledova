@@ -66,6 +66,12 @@ Multiple submitted sources are permitted. Source upload and private evidence
 history retain their controls; company acceptance does not mark a source globally
 verified.
 
+Associated-person source uploads name the issuer using the company-provided UUID.
+Both clients require a valid UUID without reading the company administration list
+or requiring an existing eligibility decision. The server accepts only an active
+issuer; this bounded lookup does not reveal company metadata or expand directory
+access. The company remains the exact target of any later sharing request.
+
 **Company eligibility** is reachable from Holdings and Company team in both
 clients, including an investor's mobile Home stack. It derives company choices
 from the caller's own current personal prepare or approve appointments without

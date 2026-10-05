@@ -13,6 +13,7 @@ vi.mock('@services/apiClient', () => ({ default: api }));
 
 let client: QueryClient;
 const eligibility = { account: 'account-one', isReady: true, reasons: [] };
+const issuerUuid = 'b1111111-1111-4111-8111-111111111111';
 
 function claim(overrides: Partial<InvestorClassification> = {}): InvestorClassification {
   return {
@@ -51,6 +52,20 @@ function renderPage() {
       </QueryClientProvider>
     </MemoryRouter>,
   );
+}
+
+async function associatedDraft() {
+  renderPage();
+  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[3]);
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.change(within(dialog).getByLabelText('Basis for the claim'), {
+    target: { value: 'My role with the known issuer' },
+  });
+  fireEvent.change(within(dialog).getByLabelText('Evidence file'), {
+    target: { files: [new File(['synthetic evidence'], 'proof.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(within(dialog).getByRole('checkbox'));
+  return dialog;
 }
 
 beforeEach(() => {
@@ -337,6 +352,7 @@ it('submits selected evidence and refreshes the claim list without sending the a
   expect(payload.get('declared_basis')).toBe('My eligible investment evidence');
   expect(payload.get('declaration_accepted')).toBe('true');
   expect(payload.has('user_account')).toBe(false);
+  expect(payload.has('company')).toBe(false);
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(api.get.mock.calls.filter(([url]) => url === INVESTOR_CLASSIFICATION_ENDPOINTS.BASE).length).toBeGreaterThan(
     1,
@@ -362,21 +378,80 @@ it('keeps submitted evidence in the form when the operator refuses the request',
   );
 });
 
-it('reports an issuer-list failure in an associated-person claim and retries instead of offering an empty selector', async () => {
-  let broken = true;
+it('requires a valid known issuer UUID for a fresh participant without reading the administration list', async () => {
   api.get.mockImplementation(async (url: string) => {
     if (url === INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY) return { data: eligibility };
     if (url === INVESTOR_CLASSIFICATION_ENDPOINTS.BASE) return page();
-    if (broken) throw new Error('Unavailable');
-    return { data: { results: [{ uuid: 'fictional-issuer', name: 'Harbour Example Pty Ltd' }] } };
+    throw new Error('A participant has no company administration access');
   });
-  renderPage();
-  fireEvent.click((await screen.findAllByRole('button', { name: 'Submit evidence' }))[3]);
-  const dialog = await screen.findByRole('dialog');
-  expect(await within(dialog).findByText('Issuers could not be loaded.')).toBeTruthy();
-  expect((within(dialog).getByLabelText('Issuer') as HTMLSelectElement).disabled).toBe(true);
-  broken = false;
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Try again' }));
-  expect(await within(dialog).findByRole('option', { name: 'Harbour Example Pty Ltd' })).toBeTruthy();
-  expect((within(dialog).getByLabelText('Issuer') as HTMLSelectElement).disabled).toBe(false);
+  const dialog = await associatedDraft();
+  const issuer = within(dialog).getByLabelText('Issuer company UUID');
+  const save = within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement;
+  for (const value of ['', 'not-a-uuid', issuerUuid.replace(/-/g, '')]) {
+    fireEvent.change(issuer, { target: { value } });
+    expect(save.disabled).toBe(true);
+    fireEvent.click(save);
+    expect(api.post).not.toHaveBeenCalled();
+  }
+  fireEvent.change(issuer, { target: { value: ` ${issuerUuid.toUpperCase()} ` } });
+  expect(save.disabled).toBe(false);
+  fireEvent.click(save);
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  const payload = api.post.mock.calls[0][1] as FormData;
+  expect(payload.get('company')).toBe(issuerUuid.toUpperCase());
+  expect(payload.get('category')).toBe('associated_person');
+  expect(payload.get('declared_basis')).toBe('My role with the known issuer');
+  expect(payload.get('declaration_accepted')).toBe('true');
+  expect(payload.has('user_account')).toBe(false);
+  expect((payload.get('evidence_file') as File).name).toBe('proof.pdf');
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(api.get.mock.calls.every(([url]) => Object.values(INVESTOR_CLASSIFICATION_ENDPOINTS).includes(url))).toBe(
+    true,
+  );
+});
+
+it('keeps the issuer and private evidence when the server refuses an inactive or unknown issuer', async () => {
+  api.post.mockRejectedValueOnce(new Error('The issuer must be active.'));
+  const dialog = await associatedDraft();
+  fireEvent.change(within(dialog).getByLabelText('Issuer company UUID'), { target: { value: issuerUuid } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
+  expect((await within(dialog).findByRole('alert')).textContent).toBe('The issuer must be active.');
+  expect((within(dialog).getByLabelText('Issuer company UUID') as HTMLInputElement).value).toBe(issuerUuid);
+  expect(within(dialog).getByText('proof.pdf')).toBeTruthy();
+  expect((within(dialog).getByRole('button', { name: 'Save private evidence' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+  const corrected = 'c1111111-1111-4111-8111-111111111111';
+  fireEvent.change(within(dialog).getByLabelText('Issuer company UUID'), { target: { value: corrected } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+  const original = api.post.mock.calls[0][1] as FormData;
+  const retry = api.post.mock.calls[1][1] as FormData;
+  expect(original.get('company')).toBe(issuerUuid);
+  expect(retry.get('company')).toBe(corrected);
+  expect(retry.get('evidence_file')).toBe(original.get('evidence_file'));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('keeps the exact associated issuer fixed while an evidence submission is pending', async () => {
+  let saved!: (value: unknown) => void;
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        saved = resolve;
+      }),
+  );
+  const dialog = await associatedDraft();
+  const issuer = within(dialog).getByLabelText('Issuer company UUID') as HTMLInputElement;
+  fireEvent.change(issuer, { target: { value: issuerUuid } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save private evidence' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+  expect(issuer.disabled).toBe(true);
+  fireEvent.change(issuer, { target: { value: 'c1111111-1111-4111-8111-111111111111' } });
+  expect(issuer.value).toBe(issuerUuid);
+  expect((api.post.mock.calls[0][1] as FormData).get('company')).toBe(issuerUuid);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Loading...' }));
+  expect(api.post).toHaveBeenCalledTimes(1);
+  await act(async () => saved({ data: claim({ category: 'associated_person', status: 'submitted', isLive: false }) }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });

@@ -5,6 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { InvestorEligibilityScreen } from './index';
 import { CATEGORIES } from './constants';
 import { apiClient } from '../../services/apiClient';
+import { invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
@@ -18,6 +19,7 @@ jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post
 
 const eligibilityUrl = '/api/investor-classifications/eligibility/';
 const claimsUrl = '/api/investor-classifications/';
+const issuerUuid = 'b1111111-1111-4111-8111-111111111111';
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
 const remove = jest.mocked(apiClient.delete);
@@ -26,7 +28,6 @@ let client: QueryClient;
 let readFailure: string | null;
 let claimPages: Record<number, object>;
 let eligibility: object;
-let companies: object[];
 
 function claim(uuid: string, status = 'rejected') {
   return {
@@ -51,7 +52,6 @@ beforeEach(() => {
   readFailure = null;
   eligibility = { account: 'account-a', isReady: false, reasons: ['identity_not_verified'] };
   claimPages = { 1: { results: [], next: null } };
-  companies = [{ uuid: 'issuer-a', name: 'Fictional Harbour Pty Ltd' }];
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
   });
@@ -60,7 +60,6 @@ beforeEach(() => {
     if (readFailure === url || readFailure === `${url}${page}`) throw new Error('Synthetic read unavailable');
     if (url === eligibilityUrl) return { data: eligibility };
     if (url === claimsUrl) return { data: claimPages[page] };
-    if (url === '/api/v1/companies/') return { data: { results: companies, next: null } };
     throw new Error(`Unexpected request ${url}`);
   });
 });
@@ -258,21 +257,125 @@ it('keeps the modal and file through refusal and prevents closing or duplicate s
   await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled());
 });
 
-it('requires a currently readable selected issuer for an associated-person claim', async () => {
-  readFailure = '/api/v1/companies/';
+it('requires a valid known issuer UUID for a fresh participant without reading the administration list', async () => {
   const view = await draft('Associated with the issuer');
-  expect(await view.findByText('Issuers could not be loaded.')).toBeTruthy();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled());
-  readFailure = null;
-  await fireEvent.press(view.getByText('Try issuers again'));
-  await fireEvent.press(await view.findByText('Fictional Harbour Pty Ltd'));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled());
-  companies = [];
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: ['companies'] });
+  const issuer = view.getByLabelText('Issuer company UUID');
+  for (const value of ['', 'not-a-uuid', issuerUuid.replace(/-/g, '')]) {
+    await fireEvent.changeText(issuer, value);
+    expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled();
+    await fireEvent.press(view.getByText('Save private evidence'));
+    expect(post).not.toHaveBeenCalled();
+  }
+  await fireEvent.changeText(issuer, ` ${issuerUuid.toUpperCase()} `);
+  expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled();
+  post.mockResolvedValueOnce({ data: claim('new', 'submitted') });
+  await fireEvent.press(view.getByText('Save private evidence'));
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(FormData.prototype.append).toHaveBeenCalledWith('company', issuerUuid.toUpperCase());
+  expect(FormData.prototype.append).toHaveBeenCalledWith('category', 'associated_person');
+  expect(FormData.prototype.append).toHaveBeenCalledWith('declared_basis', 'My retained synthetic evidence');
+  expect(FormData.prototype.append).toHaveBeenCalledWith('declaration_accepted', 'true');
+  expect(get.mock.calls.every(([url]) => [eligibilityUrl, claimsUrl].includes(url))).toBe(true);
+  expect(view.queryByText('Claim: Associated with the issuer')).toBeNull();
+});
+
+it('keeps the issuer and private evidence when the server refuses an inactive or unknown issuer', async () => {
+  const view = await draft('Associated with the issuer');
+  await fireEvent.changeText(view.getByLabelText('Issuer company UUID'), issuerUuid);
+  const copy = [...files.keys()].find((uri) => uri.includes('/ledova-upload-copies-v1/'))!;
+  post.mockRejectedValueOnce(new Error('The issuer must be active.'));
+  await fireEvent.press(view.getByText('Save private evidence'));
+  expect(await view.findByText('The issuer must be active.')).toBeTruthy();
+  expect(view.getByDisplayValue(issuerUuid)).toBeTruthy();
+  expect(view.getByText('1.pdf')).toBeTruthy();
+  expect(files.get(copy)?.content).toBe('document-1');
+  expect(view.getByRole('button', { name: 'Save private evidence' })).toBeEnabled();
+  const corrected = 'c1111111-1111-4111-8111-111111111111';
+  await fireEvent.changeText(view.getByLabelText('Issuer company UUID'), corrected);
+  post.mockImplementationOnce(async () => {
+    expect(files.get(copy)?.content).toBe('document-1');
+    return { data: claim('new', 'submitted') };
   });
-  expect(await view.findByText('No issuer is available for this account.')).toBeTruthy();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Save private evidence' })).toBeDisabled());
+  await fireEvent.press(view.getByText('Save private evidence'));
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(FormData.prototype.append).toHaveBeenCalledWith('company', issuerUuid);
+  expect(FormData.prototype.append).toHaveBeenCalledWith('company', corrected);
+  const evidence = jest.mocked(FormData.prototype.append).mock.calls.filter(([name]) => name === 'evidence_file');
+  expect(evidence).toEqual([
+    ['evidence_file', expect.objectContaining({ uri: copy })],
+    ['evidence_file', expect.objectContaining({ uri: copy })],
+  ]);
+  expect(files.has(copy)).toBe(false);
+  await waitFor(() => expect(view.queryByText('Claim: Associated with the issuer')).toBeNull());
+});
+
+it('keeps the exact associated issuer fixed and the upload bytes alive while submission is pending', async () => {
+  const view = await draft('Associated with the issuer');
+  const issuer = view.getByLabelText('Issuer company UUID');
+  await fireEvent.changeText(issuer, issuerUuid);
+  const copy = [...files.keys()].find((uri) => uri.includes('/ledova-upload-copies-v1/'))!;
+  let saved!: (value: object) => void;
+  post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        saved = resolve;
+      }),
+  );
+  let submitting!: Promise<void>;
+  await act(async () => {
+    submitting = fireEvent.press(view.getByText('Save private evidence'));
+  });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(view.getByLabelText('Issuer company UUID').props.editable).toBe(false);
+  await act(async () => {
+    view.getByLabelText('Issuer company UUID').props.onChangeText('c1111111-1111-4111-8111-111111111111');
+  });
+  expect(view.getByDisplayValue(issuerUuid)).toBeTruthy();
+  expect(FormData.prototype.append).toHaveBeenCalledWith('company', issuerUuid);
+  expect(files.get(copy)?.content).toBe('document-1');
+  await fireEvent.press(view.getByText('Submitting…'));
+  expect(post).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    saved({ data: claim('new', 'submitted') });
+    await submitting;
+  });
+  expect(view.queryByText('Claim: Associated with the issuer')).toBeNull();
+  expect(files.has(copy)).toBe(false);
+});
+
+it('does not let a retired associated-source completion close a new session draft', async () => {
+  const view = await draft('Associated with the issuer');
+  await fireEvent.changeText(view.getByLabelText('Issuer company UUID'), issuerUuid);
+  const copy = [...files.keys()].find((uri) => uri.includes('/ledova-upload-copies-v1/'))!;
+  let saved!: (value: object) => void;
+  post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        saved = resolve;
+      }),
+  );
+  let submitting!: Promise<void>;
+  await act(async () => {
+    submitting = fireEvent.press(view.getByText('Save private evidence'));
+  });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    invalidateSessionScope();
+  });
+  expect(view.queryByText('Claim: Associated with the issuer')).toBeNull();
+  expect(files.has(copy)).toBe(true);
+  await fireEvent.press(view.getByLabelText('Attach evidence for Associated with the issuer'));
+  expect(view.getByText('Claim: Associated with the issuer')).toBeTruthy();
+  const readsBeforeCompletion = get.mock.calls.length;
+  await act(async () => {
+    saved({ data: claim('retired', 'submitted') });
+    await submitting;
+  });
+  expect(view.getByText('Claim: Associated with the issuer')).toBeTruthy();
+  expect(view.getByLabelText('Issuer company UUID').props.value).toBe('');
+  expect(view.queryByText('1.pdf')).toBeNull();
+  expect(files.has(copy)).toBe(false);
+  expect(get).toHaveBeenCalledTimes(readsBeforeCompletion);
 });
 
 it('keeps account readiness separate from retained historical verification, expiry and rejection', async () => {
@@ -332,4 +435,5 @@ it('requires the complete accountant certificate and sends its fields with the e
     ['declaration_accepted', 'true'],
   ])
     expect(FormData.prototype.append).toHaveBeenCalledWith(name, value);
+  expect(FormData.prototype.append).not.toHaveBeenCalledWith('company', expect.anything());
 });

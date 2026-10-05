@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getCompanies, getErrorMessage, formatDate } from '@ledova/shared';
+import { getErrorMessage, formatDate, isUuid } from '@ledova/shared';
 import type { CertifierBody, InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
-import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { useInvestorEligibility } from './useInvestorEligibility';
@@ -52,12 +50,6 @@ export function InvestorEligibilityScreen() {
   const [deleteError, setDeleteError] = useState<{ uuid: string; message: string } | null>(null);
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
-  const companiesQuery = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: needsCompany,
-  });
-  const companies = companiesQuery.isError ? [] : (companiesQuery.data?.data.results ?? []);
   const reset = useCallback(() => {
     draftGeneration.current++;
     setCategory(null);
@@ -82,8 +74,7 @@ export function InvestorEligibilityScreen() {
     !!category &&
     !!eligibility?.account &&
     declaredBasis.trim() !== '' &&
-    (!needsCompany ||
-      (!companiesQuery.isError && !companiesQuery.isFetching && companies.some((item) => item.uuid === company))) &&
+    (!needsCompany || isUuid(company.trim())) &&
     (!needsCertifier ||
       (certificateIssuedAt !== '' &&
         certifierName.trim() !== '' &&
@@ -108,7 +99,7 @@ export function InvestorEligibilityScreen() {
           category,
           declaredBasis: declaredBasis.trim(),
           file: uploadFile,
-          company: needsCompany ? company : undefined,
+          company: needsCompany ? company.trim() : undefined,
           certificateIssuedAt: needsCertifier ? certificateIssuedAt : undefined,
           certifierName: needsCertifier ? certifierName.trim() : undefined,
           certifierBody: needsCertifier ? (certifierBody as CertifierBody) : undefined,
@@ -273,35 +264,21 @@ export function InvestorEligibilityScreen() {
         )}
         {needsCompany && (
           <View style={styles.group}>
-            <Text style={styles.label}>Issuer</Text>
-            {companiesQuery.isLoading ? (
-              <Text style={styles.message}>Loading issuers…</Text>
-            ) : companiesQuery.isError ? (
-              <>
-                <Text accessibilityRole="alert" style={styles.error}>
-                  Issuers could not be loaded.
-                </Text>
-                <Action
-                  label="Try issuers again"
-                  onPress={() => void companiesQuery.refetch()}
-                  disabled={companiesQuery.isFetching}
-                />
-              </>
-            ) : companies.length === 0 ? (
-              <Text style={styles.message}>No issuer is available for this account.</Text>
-            ) : (
-              <View style={styles.choices}>
-                {companies.map((item) => (
-                  <Choice
-                    key={item.uuid}
-                    label={item.name}
-                    selected={company === item.uuid}
-                    accessibilityRole="radio"
-                    onPress={() => changeField(setCompany, item.uuid)}
-                  />
-                ))}
-              </View>
-            )}
+            <Text style={styles.label}>Issuer company UUID</Text>
+            <TextInput
+              accessibilityLabel="Issuer company UUID"
+              value={company}
+              onChangeText={(value) => {
+                if (!busy) changeField(setCompany, value);
+              }}
+              editable={!busy}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+            <Text style={styles.help}>
+              Enter the exact company UUID provided by the issuer. The server checks that it is active.
+            </Text>
           </View>
         )}
         {needsCertifier && (

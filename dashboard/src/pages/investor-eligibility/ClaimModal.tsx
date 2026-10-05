@@ -2,9 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { formatFileSize, getCompanies, getErrorMessage, submitInvestorClassification } from '@ledova/shared';
-import type { CompanyListItem, InvestorCategory } from '@ledova/shared';
-import { useQuery } from '@tanstack/react-query';
+import { formatFileSize, getErrorMessage, isUuid, submitInvestorClassification } from '@ledova/shared';
+import type { InvestorCategory } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -46,13 +45,6 @@ export function ClaimModal({
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
 
-  const companiesQuery = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: isOpen && needsCompany,
-  });
-  const companies: CompanyListItem[] = companiesQuery.isError ? [] : (companiesQuery.data?.data?.results ?? []);
-
   const spec = CATEGORIES.find((item) => item.category === category);
 
   const reset = () => {
@@ -81,7 +73,7 @@ export function ClaimModal({
     !!userAccount &&
     declarationAccepted &&
     declaredBasis.trim() !== '' &&
-    (!needsCompany || (company !== '' && !companiesQuery.isError && !companiesQuery.isLoading)) &&
+    (!needsCompany || isUuid(company.trim())) &&
     (!needsCertifier ||
       (certificateIssuedAt !== '' &&
         certifierName.trim() !== '' &&
@@ -97,7 +89,7 @@ export function ClaimModal({
         category,
         declaredBasis: declaredBasis.trim(),
         file,
-        company: needsCompany ? company : undefined,
+        company: needsCompany ? company.trim() : undefined,
         certificateIssuedAt: needsCertifier ? certificateIssuedAt : undefined,
         certifierName: needsCertifier ? certifierName.trim() : undefined,
         certifierBody: needsCertifier ? (certifierBody as 'ca_anz' | 'cpa_australia' | 'ipa') : undefined,
@@ -144,32 +136,22 @@ export function ClaimModal({
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
 
         {needsCompany && (
-          <label className="block">
-            <span className="text-sm font-medium text-text-primary">Issuer</span>
-            <select
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              className={FIELD_CLASS}
-              disabled={companiesQuery.isLoading || companiesQuery.isError}
-            >
-              <option value="">Select the issuer</option>
-              {companies.map((item) => (
-                <option key={item.uuid} value={item.uuid}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        {needsCompany && companiesQuery.isError && (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-error-light">
-            <p>Issuers could not be loaded.</p>
-            <PageAction
-              label="Try again"
-              onClick={() => void companiesQuery.refetch()}
-              disabled={companiesQuery.isFetching}
-            />
+          <div>
+            <label className="block">
+              <span className="text-sm font-medium text-text-primary">Issuer company UUID</span>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => {
+                  if (!isSubmitting) setCompany(e.target.value);
+                }}
+                className={FIELD_CLASS}
+                disabled={isSubmitting}
+              />
+            </label>
+            <p className="mt-1 text-sm text-text-muted">
+              Enter the exact company UUID provided by the issuer. The server checks that it is active.
+            </p>
           </div>
         )}
 
