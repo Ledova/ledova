@@ -12,7 +12,7 @@ import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { PrepareRegisterCorrectionScreen } from './PrepareRegisterCorrectionScreen';
-import { correctionsKey } from './useCompanyRegister';
+import { correctionsKey, entriesKey, registerAppointmentsKey } from './useCompanyRegister';
 
 const mockGoBack = jest.fn();
 let mockParams = { tokenUuid: 'ordinary', companyUuid: 'paper', entryUuid: 'entry-2' };
@@ -166,6 +166,7 @@ const entryReads = () =>
   get.mock.calls
     .filter(([called]) => called === URLS.REGISTER_ENTRIES('ordinary'))
     .map(([, config]) => config as { params: { entry: string[]; page: number }; ledovaSessionEpoch: number });
+const ahead = (date: Date) => new Date(date.getTime() + 10 * 3_600_000);
 const submit = (view: Awaited<ReturnType<typeof render>>) =>
   fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -305,7 +306,20 @@ it('reads the entry it corrects by that entry alone, and names an unnamed member
   expect(view.getByText(`${COPY.UNNAMED_MEMBER('member-1')}: -40`)).toBeTruthy();
 });
 
-it('dates the correction today in UTC by default and holds a date after it', async () => {
+it('dates the correction today in UTC by default for a reader east of UTC, and holds a date after it', async () => {
+  const format = Date.prototype.toLocaleDateString;
+  jest.spyOn(Date.prototype, 'getFullYear').mockImplementation(function (this: Date) {
+    return ahead(this).getUTCFullYear();
+  });
+  jest.spyOn(Date.prototype, 'getMonth').mockImplementation(function (this: Date) {
+    return ahead(this).getUTCMonth();
+  });
+  jest.spyOn(Date.prototype, 'getDate').mockImplementation(function (this: Date) {
+    return ahead(this).getUTCDate();
+  });
+  jest.spyOn(Date.prototype, 'toLocaleDateString').mockImplementation(function (this: Date, locale, options) {
+    return format.call(this, locale, { timeZone: 'Australia/Brisbane', ...options });
+  });
   jest.useFakeTimers({
     now: new Date('2026-10-05T23:30:00Z'),
     advanceTimers: true,
@@ -480,6 +494,58 @@ it('writes nothing and stays put when the session changes while preparing', asyn
     URLS.REGISTER_ENTRIES('ordinary'),
     expect.objectContaining({ ledovaSessionEpoch: epoch + 1 }),
   );
+});
+
+it('does not go back when the screen is left while preparing', async () => {
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(answer).toBeDefined());
+  await view.unmount();
+  await act(async () => answer({ data: preparedFrom(preparations()[0]) }));
+  expect(mockGoBack).not.toHaveBeenCalled();
+});
+
+it('does not go back when the session changes while the corrections are marked to be read again', async () => {
+  let settle!: () => void;
+  const view = await open();
+  const key = correctionsKey(getSessionEpoch(), 'ordinary');
+  await complete(view);
+  const invalidate = jest.spyOn(client, 'invalidateQueries').mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }),
+  );
+  await submit(view);
+  await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: key }));
+  await act(() => invalidateSessionScope());
+  await act(async () => settle());
+  expect(mockGoBack).not.toHaveBeenCalled();
+  await view.findByTestId('prepare-correction-screen');
+});
+
+it.each([
+  ['entry', () => entriesKey(getSessionEpoch(), 'ordinary'), URLS.REGISTER_ENTRIES('ordinary')],
+  ['appointments', () => registerAppointmentsKey(getSessionEpoch()), APPOINTMENTS],
+])('holds preparation while it reads the %s again', async (_, key, url) => {
+  const view = await open();
+  await complete(view);
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeEnabled();
+  held = new Set([url]);
+  await act(async () => void client.invalidateQueries({ queryKey: key() }));
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled());
+  expect(view.getByTestId('prepare-correction-screen')).toBeTruthy();
+  await submit(view);
+  expect(uploads()).toEqual([]);
+  expect(preparations()).toEqual([]);
 });
 
 it('starts a fresh draft for a new session', async () => {

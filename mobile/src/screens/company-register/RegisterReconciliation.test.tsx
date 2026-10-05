@@ -540,6 +540,18 @@ it('reads nothing for the old session when an acknowledgement is refused after t
   await view.findByRole('button', { name: 'Ordinary shares register' });
 });
 
+it('offers no acknowledgement and no read-only note while the appointments cannot be read', async () => {
+  failing = new Set([APPOINTMENTS]);
+  const view = await openClass();
+  expect(await view.findByText('Your appointments could not be read, so register actions are hidden.')).toBeTruthy();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  expect(view.queryByRole('button', { name: acknowledge(1) })).toBeNull();
+  failing = new Set();
+  await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
+  expect(await view.findByRole('button', { name: acknowledge(1) })).toBeTruthy();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+});
+
 it('refuses a reconciliation of another class and offers a retry', async () => {
   reconciliations = [{ ...RECONCILIATION, token: 'preference' }];
   const view = await render(<CompanyRegisterScreen />, { wrapper });
