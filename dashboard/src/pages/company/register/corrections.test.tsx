@@ -535,7 +535,7 @@ it.each([
   );
 });
 
-it("lists every page of the company's corrections of this class's entries, newest first, with their particulars", async () => {
+it("lists every page of the class's corrections, newest first, each with the entry it corrects and its particulars", async () => {
   const approval = {
     uuid: 'decision-approve',
     kind: 'approve' as const,
@@ -578,21 +578,15 @@ it("lists every page of the company's corrections of this class's entries, newes
     rejectionReason: 'Superseded by the company-run correction',
     reviewedAt: '2026-09-30T05:00:00Z',
   });
-  const elsewhere = correction({
-    uuid: 'correction-elsewhere',
-    register: 'register-preference',
-    corrects: 'entry-elsewhere',
-    createdAt: '2026-10-06T01:00:00Z',
-  });
-  correctionPages = [page([elsewhere, retired], NEXT(CORRECTIONS, 2)), page([applied, correction()])];
+  correctionPages = [page([retired], NEXT(CORRECTIONS, 2)), page([applied, correction()])];
   await openClass();
   const list = await corrections();
   expect(api.get).toHaveBeenCalledWith(CORRECTIONS, {
-    params: { company: 'harbour', page: 1 },
+    params: { token: 'ordinary', page: 1 },
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(api.get).toHaveBeenCalledWith(CORRECTIONS, {
-    params: { company: 'harbour', page: 2 },
+    params: { token: 'ordinary', page: 2 },
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(api.get).toHaveBeenCalledWith(ENTRIES, { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) });
@@ -637,7 +631,6 @@ it("lists every page of the company's corrections of this class's entries, newes
   expect(rowText(oldest, COPY.ORIGINAL_CHANGES)).toBe(
     `Opening state · Entry 1 · Effective 2026-09-01Example Member: +9,007,199,254,740,993${COPY.UNNAMED_MEMBER('member-three')}: +5`,
   );
-  expect(within(list).queryByText(/correction-elsewhere|entry-elsewhere/)).toBeNull();
   for (const record of [newest, middle, oldest])
     expect(within(record).getByRole('button', { name: COPY.DOWNLOAD })).toBeTruthy();
   expect(
@@ -647,7 +640,7 @@ it("lists every page of the company's corrections of this class's entries, newes
   ).toEqual(['correction-new', 'correction-applied', 'correction-retired']);
 });
 
-it('reads no entries for the corrections when the company has none, and says so calmly', async () => {
+it('reads no further entries for a class without corrections, and says so calmly', async () => {
   correctionPages = [page([])];
   await openClass();
   expect(within(await corrections()).getByText(COPY.EMPTY)).toBeTruthy();
@@ -655,8 +648,27 @@ it('reads no entries for the corrections when the company has none, and says so 
   expect(reads(ENTRIES)).toBe(1);
 });
 
-it('refuses corrections that name another company and offers a retry', async () => {
-  correctionPages = [page([correction({ company: 'inland' })])];
+it.each([
+  ['the newest page', correction({ corrects: 'entry-reversal' }), [1]],
+  ['a later page', correction(), [1, 2]],
+] as const)(
+  "reads the class's register only until it finds an entry a correction reverses on %s",
+  async (_where, corrected, pages) => {
+    correctionPages = [page([corrected])];
+    entryPages = [...entryPages, page([])];
+    entryPages[1] = page([ISSUE, OPENING], NEXT(ENTRIES, 3));
+    await openClass();
+    expect(records(await corrections())).toHaveLength(1);
+    await history();
+    expect(api.get.mock.calls.filter(([url]) => url === ENTRIES).map(([, config]) => config.params.page)).toEqual([
+      1,
+      ...pages,
+    ]);
+  },
+);
+
+it("refuses corrections naming an entry outside the class's register, and offers a retry", async () => {
+  correctionPages = [page([correction({ corrects: 'entry-elsewhere' })])];
   await openClass();
   const list = await corrections();
   expect(within(list).getByRole('alert').textContent).toContain(

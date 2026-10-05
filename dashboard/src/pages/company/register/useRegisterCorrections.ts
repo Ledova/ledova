@@ -39,6 +39,18 @@ function readEntries(token: string, page: number, guard: () => void) {
   return guarded(guard, () => getRegisterEntries(apiClient, token, { page }, { ledovaSubmissionGuard: guard }));
 }
 
+async function readEntriesUntil(token: string, wanted: Set<string>, guard: () => void) {
+  const found = new Map<string, RegisterEntry>();
+  let page: number | undefined = 1;
+  while (page !== undefined && found.size < wanted.size) {
+    const { data } = await readEntries(token, page, guard);
+    data.results.filter((entry) => wanted.has(entry.uuid)).forEach((entry) => found.set(entry.uuid, entry));
+    assertNextPageAdvances(page, data);
+    page = getNextPageParam(data);
+  }
+  return found;
+}
+
 export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, guard: () => void) {
   const queryKey = entriesKey(owner, token);
   const query = useInfiniteQuery({
@@ -66,21 +78,19 @@ export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, g
   };
 }
 
-export function useClassCorrections(owner: OrderSubmissionOwner, company: string, token: string, guard: () => void) {
+export function useClassCorrections(owner: OrderSubmissionOwner, token: string, guard: () => void) {
   return useQuery({
     queryKey: correctionsKey(owner, token),
     queryFn: async (): Promise<ClassCorrection[]> => {
       const proposals = await readEveryPage((page) =>
-        guarded(guard, () => getRegisterCorrections(apiClient, { company, page }, { ledovaSubmissionGuard: guard })),
+        guarded(guard, () => getRegisterCorrections(apiClient, { token, page }, { ledovaSubmissionGuard: guard })),
       );
-      if (proposals.some((proposal) => proposal.company !== company))
-        throw new Error('The corrections did not identify this company.');
-      const entries = proposals.length ? await readEveryPage((page) => readEntries(token, page, guard)) : [];
-      const corrected = new Map(entries.map((entry) => [entry.uuid, entry]));
+      const corrected = await readEntriesUntil(token, new Set(proposals.map(({ corrects }) => corrects)), guard);
       return proposals
-        .flatMap((proposal) => {
+        .map((proposal) => {
           const entry = corrected.get(proposal.corrects);
-          return entry ? [{ proposal, entry }] : [];
+          if (!entry) throw new Error('The corrections named an entry outside this share class.');
+          return { proposal, entry };
         })
         .sort((left, right) => Date.parse(right.proposal.createdAt) - Date.parse(left.proposal.createdAt));
     },
@@ -104,17 +114,8 @@ export function useLatestReconciliation(owner: OrderSubmissionOwner, token: stri
 }
 
 export async function readClassEntry(token: string, uuid: string, guard: () => void) {
-  let page: number | undefined = 1;
-  while (page !== undefined) {
-    const { data } = await readEntries(token, page, guard);
-    const entry = data.results.find((row) => row.uuid === uuid);
-    if (entry) {
-      if (!entry.changes.every(({ shares }) => /^-?\d+$/.test(shares)))
-        throw new Error('The register entry did not state exact share changes.');
-      return entry;
-    }
-    assertNextPageAdvances(page, data);
-    page = getNextPageParam(data);
-  }
-  return null;
+  const entry = (await readEntriesUntil(token, new Set([uuid]), guard)).get(uuid);
+  if (entry && !entry.changes.every(({ shares }) => /^-?\d+$/.test(shares)))
+    throw new Error('The register entry did not state exact share changes.');
+  return entry ?? null;
 }

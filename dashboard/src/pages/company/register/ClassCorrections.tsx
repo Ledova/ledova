@@ -134,7 +134,7 @@ export function ClassCorrections({
 }) {
   const client = useQueryClient();
   const appointments = useOwnAppointments(owner, guard);
-  const corrections = useClassCorrections(owner, company, token, guard);
+  const corrections = useClassCorrections(owner, token, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const refresh = async () => {
     try {
