@@ -120,8 +120,8 @@ operating model on the positions as drafted.
    the last seven years, and reconcile it against the share structure ASIC
     holds. Fix any discrepancy with ASIC before relying on the instance. The
     [register import](../operations/register-foundation.md#importing-an-existing-register)
-    does this: it opens a class not yet on chain from the register, and staff
-    check its totals against the ASIC extract.
+    does this: it opens a class not yet on chain from the register. The company
+    states the ASIC extract's totals, and preparation refuses rows that differ.
 3. **Name who may make entries and who approves.** An officer instructs, a
    director approves, and the record shows both. Where the administrator is also
    a recipient of shares, someone else approves that entry.

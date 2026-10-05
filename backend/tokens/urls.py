@@ -2,6 +2,7 @@ from rest_framework.routers import DefaultRouter
 
 from tokens import views
 from tokens.views.register_correction import RegisterCorrectionViewSet
+from tokens.views.register_evidence import RegisterEvidenceViewSet
 from tokens.views.register_import import RegisterImportViewSet
 from tokens.views.register_instruction import RegisterInstructionViewSet
 from tokens.views.register_opening import (
@@ -16,6 +17,7 @@ router.register(r"register-corrections", RegisterCorrectionViewSet, basename="re
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
 router.register(r"register-imports", RegisterImportViewSet, basename="register-imports")
+router.register(r"register-evidence", RegisterEvidenceViewSet, basename="register-evidence")
 router.register(r"register-instructions", RegisterInstructionViewSet, basename="register-instructions")
 router.register(r"capital-increases", views.CapitalIncreaseViewSet, basename="capital-increases")
 router.register(r"issuance-requests", views.ShareIssuanceRequestViewSet, basename="issuance-requests")

@@ -29,7 +29,12 @@ participant eligibility remains part of #863. Its [records and API foundation](.
 retains company-scoped decisions while existing investment consumers remain until
 their coherent conversion. The first #864 increment lets a current appointee holding
 administration or a register capability read the company's register and retained
-register proposals; register commands and #865–#873 remain planned.
+register proposals. The second lets the company run register imports through the
+API: it uploads its own evidence, states the ASIC figures, and approves and
+applies the import with no Ledova staff review
+([import process](../operations/register-foundation.md#importing-an-existing-register)).
+The web and mobile import screens, #864's other register commands and #865–#873
+remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

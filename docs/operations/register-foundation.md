@@ -1053,12 +1053,11 @@ pre-platform former members. Imports follow the owner decisions of
 21 September 2026:
 - for a class already opened from the chain, the import adds particulars and
   former members and leaves holdings to the stored register;
-- for a class not yet on chain, the import is the opening;
-- a staff reviewer enters the ASIC extract's figures.
+- for a class not yet on chain, the import is the opening.
 
 The owner decided on 22 September 2026 that:
-- the applied import's reviewed copy and uploaded file are evidence, kept like
-  opening and correction evidence;
+- the applied import's copies of its evidence are kept like opening and
+  correction evidence;
 - a member's live verified identity wins over imported particulars;
 - a class an import opened records no issue, transfer or cessation until it is
   anchored on chain, because entries come only from chain completions;
@@ -1068,25 +1067,48 @@ The owner decided on 22 September 2026 that:
   second import. This is accepted during the synthetic experiment and settled
   before any real data.
 
-A share class takes one applied import. Submission, review and application each
-refuse another once one is applied, and a partial unique index backs them. The
-import names a staff-verified `SHARE_REGISTER` document (the company's current
-register, of which the import retains a private copy), a staff-verified ASIC
-extract, documentary authority as for an opening, and the register date:
+Since 5 October 2026 the company runs its imports itself, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+- the evidence is company-provided. The company uploads its current share
+  register and its ASIC extract, and states the extract's issued total and
+  member count for the class when it prepares the import. Ledova staff verify
+  neither, and every copy is shown as provided by the company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- an import submitted for the retired staff review and still waiting can only
+  be rejected. The company then prepares a new one.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The web and mobile import screens are planned; the API below is
+delivered.
+
+A share class takes one applied import. Preparation and application each
+refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-imports/` | Submit the import; return the retained request |
-| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, figures and decision |
-| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the retained register document |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
+| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
+| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
+| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the import's copy of the register document |
+| `GET /api/v1/tokens/register-imports/{uuid}/asic-file/` | Authenticated attachment of the import's copy of the ASIC extract |
+| `POST /api/v1/tokens/register-imports/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the comparison with the stored register and the preview digest |
+| `POST /api/v1/tokens/register-imports/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000031",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "token_id": "10000000-0000-4000-8000-000000000011",
-  "document_id": "10000000-0000-4000-8000-000000000032",
-  "asic_document_id": "10000000-0000-4000-8000-000000000033",
+  "register_evidence": "10000000-0000-4000-8000-000000000032",
+  "asic_evidence": "10000000-0000-4000-8000-000000000033",
+  "asic_issued_total": "100",
+  "asic_member_count": 1,
   "as_at": "2026-09-20",
   "members": [
     {"member": "10000000-0000-4000-8000-000000000024", "name": "Synthetic Member",
@@ -1104,71 +1126,103 @@ extract, documentary authority as for an opening, and the register date:
 }
 ```
 
+An upload is checked like every other upload, then kept privately with its
+SHA-256. An identical upload retry returns the first receipt; the same retry
+key with a different file conflicts. Uploads that no import uses are kept until
+production retention is decided (owner decision, 5 October 2026).
+
 A class is not yet on chain while its register has no entries, no issuance
 request for it has ever been approved and no register instruction for it has
 been applied: an undeployed class, or a deployed one never minted. Its import
 names each current member by a new member ID the company chooses or by an
 existing member of the company, and a former member may have ceased on the
-register date itself. Submission, review and application refuse such a class
-once an issue has been approved or an instruction applied for it: open it from
-the chain instead, then import its particulars.
+register date itself. Preparation and application refuse such a class once an
+issue has been approved or an instruction applied for it: open it from the chain
+instead, then import its particulars.
 
-Submission refuses rows that do not fit the stored columns, with a message
-naming the problem:
-- for an opened class, every current member must already be a member of the
-  company with a stored holding, and for any class no member may belong to
-  another company;
-- a name has at most 255 characters and a residential address at most 1,000;
-- `shares` is a whole number of at most 78 digits;
-- `amount_paid` is a plain amount such as `250.00`, with at most two decimal
-  places and eighteen whole digits, or `null` when not known;
-- dates may not follow the register date;
-- for an opened class, a former member must have ceased before the register's
+Preparation refuses, with a message naming the problem:
+- evidence that is not the preparer's own uploads for this company, of the right
+  kinds, or whose stored bytes no longer match their fingerprints;
+- stated figures that differ from the rows' total shares and member count;
+- for an opened class, a current member who is not already a member of the
+  company with a stored holding, and for any class a member of another company;
+- a name of more than 255 characters or a residential address of more than 1,000;
+- `shares` that is not a whole number of at most 78 digits;
+- an `amount_paid` that is not a plain amount such as `250.00`, with at most two
+  decimal places and eighteen whole digits, or `null` when not known;
+- dates that follow the register date;
+- for an opened class, a former member who ceased on or after the register's
   opening, because the stored register and the fold record later cessations;
-- a former member must have ceased within the former-member retention period
+- a former member who ceased before the former-member retention period
   (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), because the retention
-  job would purge an older one.
+  job would purge them.
 
-In **Admin → Tokens → Register imports** a staff reviewer with change permission
-opens the review. For each member it shows the imported name beside the
-member's linked wallets and current live identity, so names swapped between
-equal holdings show, and the stored date entered beside the imported one. It
-compares each imported holding with the stored one. A class not yet on chain has
-nothing stored or on chain to compare, so the ASIC figures and the names beside
-the holdings are the only check. The reviewer reads the ASIC extract, enters its
-issued total and member count for the class, confirms and applies. Application
-refuses:
-- figures that differ from the import's totals;
-- for an opened class, any holding that differs from the stored register, which
-  includes a member the import leaves out, and a former member who ceased on or
-  after the opening;
-- for a class not yet on chain, an approved issue or an applied instruction;
-- changed evidence or a changed ASIC extract;
-- a class that already has an applied import.
+The import keeps its own private copies of both files, each with a snapshot
+naming the upload, its size, type and SHA-256, and marked as provided by the
+company. An identical preparation retry returns the import; the same operation
+ID with any change conflicts.
+
+Each decision starts with a preview. For each member it shows the imported name
+beside the member's linked wallets and current live identity, so names swapped
+between equal holdings show, and the stored date entered beside the imported
+one. It compares each imported holding with the stored one. A class not yet on
+chain has nothing stored or on chain to compare, so the stated figures and the
+names beside the holdings are the only check. The preview lists what the
+decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `import_decided` | The import is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era import, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | A retained copy no longer matches its fingerprint |
+| `class_has_applied_import`, `class_not_openable`, `holdings_differ` | The class already took an import; a class not yet on chain had an issue approved or an instruction applied; an opened class's holdings differ from the rows, including a member the import leaves out |
+| `former_member_after_opening`, `former_member_before_retention` | A former member's date ceased fails the rules above |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the import, the decision, the person, the appointment,
+the reason and, for application, the register's sequence and head hash. The
+decision must carry the same digest, so any change in between conflicts. An
+identical decision retry with the same retry key returns the import; the same
+key with any change conflicts. Every step rechecks the appointment after taking
+the company lock, so a revocation that commits first refuses the decision and
+records nothing.
 
 For a class not yet on chain, application first opens the register in the same
 transaction. It creates the new members and records the opening entry: its
 operation ID is the import's UUID, it is dated the register date, it holds each
-member's shares, and the applying reviewer records it, so the register's
+member's shares, and the person applying it records it, so the register's
 sequence is 1. It links no wallets: a
 [reviewed link request](#reviewed-wallet-links-after-the-opening) links them. A
-class opened another way after submission takes the import by the opened
+class opened another way after preparation takes the import by the opened
 class's rules. Application then stores each member's particulars, except where
 the member already has particulars from an import with a later register date,
-and the imported former members. It keeps the figures and the register sequence
-on the request. Repeating an application with the same figures returns it;
-different figures conflict. Rejection with a reason stays available. The
-database keeps imports immutable and refuses:
-- forged decisions;
-- rows whose keys or types differ from what submission accepts;
+and the imported former members. It keeps the register sequence on the request.
+Rejection with a reason stays available until a decision applies or rejects the
+import. **Admin → Tokens → Register imports** shows imports and both copies as
+read-only history. The database keeps imports, uploads and decisions immutable
+and refuses:
+- an upload or preparation not made through the company command by a person
+  whose current appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprints, snapshots or stated figures differ
+  from the preparer's uploads and the rows;
+- rows whose keys or types differ from what preparation accepts;
 - a member of another company or, for an opened class, anyone not already a
   member of this company;
 - a former member who ceased on or after an opening the import did not record;
 - an import for a class not yet on chain that has an approved issue or an
   applied instruction;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era import, or an
+  application without a current approval;
+- an applied or rejected import without its matching decision, and a decision
+  whose import does not carry its effect when the transaction commits;
 - an application that opens a register unless the register's only entry is
   exactly that opening, with sequence 1, the import's UUID, members and shares,
-  register date and reviewer, and still nothing approved;
+  register date and the person applying it, and still nothing approved;
 - an application whose figures differ from the rows;
 - an application that leaves a member without particulars from it or from a
   later-dated import;
@@ -1195,11 +1249,12 @@ until it is.
 
 The daily retention job purges particulars once the member has held nothing in
 the company for the 2,557-day floor, and imported former members that long after
-their date ceased. It purges nothing else of an import. The applied import's
-reviewed copy, with every name and address it carried, and its uploaded register
-file are evidence, kept like opening and correction evidence: nothing expires
-them automatically during the synthetic experiment, and production retention is
-decided before any real data (owner decision, 22 September 2026).
+their date ceased. It purges nothing else of an import. The import, with every
+name and address it carried, its copies of the register document and ASIC
+extract, its decisions and the company's uploads are evidence, kept like opening
+and correction evidence: nothing expires them automatically during the
+synthetic experiment, and production retention is decided before any real data
+(owner decisions, 22 September and 5 October 2026).
 
 ## Reconciling with the chain
 

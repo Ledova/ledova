@@ -13,6 +13,7 @@ from documents.models import Document
 from shared.storage import PrivateMediaStorage, private_storage
 from tokens.models import (
     RegisterCorrection,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterImport,
     RegisterInstruction,
@@ -21,7 +22,6 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_imports import submit_import
 from tokens.services.register_openings import submit_opening
 from tokens.tests.test_company_pack import (
     ADMIN_STORAGES,
@@ -39,6 +39,11 @@ from tokens.tests.test_company_pack import (
     zipped,
 )
 from tokens.tests.test_register_events import DAY
+from tokens.tests.test_register_imports import (
+    owner_appointment,
+    prepared,
+    upload_evidence,
+)
 from users.models import InvestorClassification
 
 EVIDENCE_MODELS = (RegisterOpening, RegisterImport, RegisterCorrection, RegisterInstruction, RegisterWalletLink)
@@ -73,6 +78,8 @@ def stored_files(company):
     }
     for record in evidence_records(company):
         files[f"documents/evidence/{record._meta.model_name}/{record.pk}.pdf"] = read(record.file.name)
+        if getattr(record, "asic_file", None):
+            files[f"documents/evidence/{record._meta.model_name}-asic/{record.pk}.pdf"] = read(record.asic_file.name)
     return files
 
 
@@ -80,6 +87,7 @@ def stored_names(company):
     return sorted(
         [document.file.name for document in CompanyDocument.objects.filter(company=company) if document.file]
         + [record.file.name for record in evidence_records(company)]
+        + [record.asic_file.name for record in evidence_records(company) if getattr(record, "asic_file", None)]
     )
 
 
@@ -116,26 +124,40 @@ def with_opening_and_import(fixture):
         **authority_terms(label, "opening"),
     )
     holder = fixture.members["holder"]
-    imported = submit_import(
-        actor=company.owner,
-        operation_id=uuid4(),
-        token_id=fixture.preference.pk,
-        document_id=verified(fixture, DocumentType.SHARE_REGISTER, f"Synthetic {label} share register".encode()).pk,
-        asic_document_id=verified(fixture, DocumentType.ASIC_EXTRACT, f"Synthetic {label} ASIC extract".encode()).pk,
-        as_at=DAY.isoformat(),
-        members=[
-            {
-                "member": str(holder.pk),
-                "name": f"Synthetic {label} holder",
-                "residential_address": f"2 Synthetic {label} Street, Sydney NSW 2000",
-                "shares": "10",
-                "entered_on": DAY.isoformat(),
-                "amount_paid": None,
-            }
-        ],
-        former_members=[],
-        authority="director_resolution",
-        **authority_terms(label, "import"),
+    appointment = owner_appointment(company)
+    imported = prepared(
+        company.owner,
+        {
+            "operation_id": uuid4(),
+            "appointment": appointment.pk,
+            "token_id": fixture.preference.pk,
+            "register_evidence": upload_evidence(
+                company.owner,
+                appointment,
+                RegisterEvidenceKind.SHARE_REGISTER,
+                raw=f"Synthetic {label} share register".encode(),
+            ).pk,
+            "asic_evidence": upload_evidence(
+                company.owner,
+                appointment,
+                RegisterEvidenceKind.ASIC_EXTRACT,
+                raw=f"Synthetic {label} ASIC extract".encode(),
+            ).pk,
+            "as_at": DAY.isoformat(),
+            "members": [
+                {
+                    "member": str(holder.pk),
+                    "name": f"Synthetic {label} holder",
+                    "residential_address": f"2 Synthetic {label} Street, Sydney NSW 2000",
+                    "shares": "10",
+                    "entered_on": DAY.isoformat(),
+                    "amount_paid": None,
+                }
+            ],
+            "former_members": [],
+            "authority": "director_resolution",
+            **authority_terms(label, "import"),
+        },
     )
     return unopened, opening, imported
 
@@ -191,7 +213,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
 
         files = files_of(content)
         stored = stored_files(self.a.company)
-        self.assertEqual(len(stored), 9)
+        self.assertEqual(len(stored), 8)
         self.assertEqual(sorted(path for path in files if path.startswith("documents/")), sorted(stored))
         self.assertEqual({path: files[path] for path in stored}, stored)
         listed = {row["path"]: row for row in json.loads(files["manifest.json"])["files"]}
@@ -201,7 +223,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
         result = consume(content, *ISOLATED)
         self.assertEqual((result.returncode, result.stderr), (0, ""))
         self.assertIn(
-            "documents: 4 carried, 1 listed only, 5 evidence copies match their records", result.stdout.splitlines()
+            "documents: 2 carried, 1 listed only, 6 evidence copies match their records", result.stdout.splitlines()
         )
 
     def test_each_authority_record_names_the_copy_it_relied_on_by_path_and_digest(self):
@@ -235,8 +257,17 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                     (str(record.pk), path, sha256(files[path])),
                 )
                 self.assertEqual(files[path], read(record.file.name))
-                source = CompanyDocument.objects.get(pk=record.source_document)
-                self.assertEqual(files[path], read(source.file.name))
+                if kind == "import":
+                    self.assertEqual(files[path], read(record.register_evidence.file.name))
+                    asic_path = f"documents/evidence/registerimport-asic/{record.pk}.pdf"
+                    self.assertEqual(
+                        (listed["asic"]["path"], listed["asic"]["sha256"], listed["provided_by"]),
+                        (asic_path, sha256(files[asic_path]), "company"),
+                    )
+                    self.assertEqual(files[asic_path], read(record.asic_evidence.file.name))
+                else:
+                    source = CompanyDocument.objects.get(pk=record.source_document)
+                    self.assertEqual(files[path], read(source.file.name))
         self.assertEqual(
             files[f"documents/evidence/registercorrection/{self.a.correction.pk}.pdf"], evidence_of("pack-a")
         )
@@ -306,7 +337,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             f"| `documents/{resolution.pk}.pdf` | other | Synthetic pack-a board resolution | yes |",
             "| not carried: https://docs.example.test/pack-a/constitution | constitution | Synthetic pack-a "
             "constitution | no |",
-            "This pack carries 5 evidence copies.",
+            "This pack carries 6 evidence copies.",
             MEMBERS_EVIDENCE,
         ):
             with self.subTest(line=line):
@@ -401,8 +432,11 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
         copies = evidence_records(self.a.company)
         total = sum(document.file_size for document in documents)
         total += sum(private_storage().size(record.file.name) for record in copies)
+        total += sum(
+            private_storage().size(record.asic_file.name) for record in copies if getattr(record, "asic_file", None)
+        )
         self.assertNotEqual(sum(document.file.size for document in documents), sum(d.file_size for d in documents))
-        self.assertEqual((len(documents), len(copies)), (4, 5))
+        self.assertEqual((len(documents), len(copies)), (2, 5))
 
         with patch(CEILING, total - 1):
             self.refused(
@@ -480,7 +514,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             content = self.pack()
 
         self.assertEqual(sorted(set(read_names)), stored_names(self.a.company))
-        self.assertEqual(len(set(read_names)), 9)
+        self.assertEqual(len(set(read_names)), 8)
         self.assertEqual([name for name in read_names if not name.startswith(f"companies/{self.a.company.pk}/")], [])
         self.assertEqual(carried(content, outside), [])
         claim = InvestorClassification.objects.get(declared_basis="Synthetic pack-a allottee basis")

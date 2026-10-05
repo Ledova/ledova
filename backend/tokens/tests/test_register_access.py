@@ -13,20 +13,19 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
-from companies.tests.test_document_file_access import legacy_company_administrators
 from operators.models import Operator
 from shared.db import use_migrate, use_operator
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterExport, ShareToken
 from tokens.querysets import RegisterProposalQuerySet
 from tokens.services.register_corrections import submit_correction
-from tokens.services.register_imports import submit_import
 from tokens.services.register_openings import submit_link
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
 )
-from tokens.tests.test_register_imports import import_fixture, import_payload
+from tokens.tests.test_register_imports import import_fixture, import_payload, prepared
 from tokens.tests.test_register_links import link_fixture, link_payload
 from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_import import RegisterImportViewSet
@@ -59,12 +58,12 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
                 self.company,
                 self.token,
                 self.member,
-                self.reviewer,
-                register_document,
+                self.administrator,
+                register_copy,
                 asic,
                 _,
             ) = import_fixture()
-        self.proposal = self.submit(import_payload(self.token, register_document, asic, self.member))
+        self.proposal = self.submit(import_payload(self.token, register_copy, asic, self.member, self.administrator))
         self.other_owner = person(f"other-owner-{uuid4()}@example.test")
         with use_migrate():
             self.other_company = Company.objects.create(
@@ -76,12 +75,10 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
         with use_migrate():
             UserProfile.objects.get_or_create(user=self.owner, defaults={"full_name": "Register owner"})
         with use_operator():
-            self.administrator, self.other_administrator = legacy_company_administrators(
-                self.company, self.other_company
-            )
+            self.other_administrator = historical_owner_appointment(self.other_company)
 
     def submit(self, payload):
-        return submit_import(actor=self.owner, **payload)
+        return prepared(self.owner, payload)
 
     def appoint(self, capabilities, *, delegatable=(), inviter=None, expires_at=None):
         inviter = inviter or self.administrator
@@ -171,7 +168,6 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
         for label, user in (
             ("finance", finance),
             ("delegation only", delegation_only),
-            ("staff reviewer", self.reviewer),
             ("staff", staff),
             ("superuser", superuser),
         ):
@@ -274,8 +270,8 @@ class RegisterProposalFamiliesTest(APITransactionTestCase):
             self.link = submit_link(actor=link_owner, **link_payload(link_company, link_document))
             for owner in (correction_owner, link_owner):
                 UserProfile.objects.get_or_create(user=owner, defaults={"full_name": owner.email})
-            self.correction_administrator, self.link_administrator = legacy_company_administrators(
-                correction_document.company, link_company
+            self.correction_administrator, self.link_administrator = (
+                historical_owner_appointment(company) for company in (correction_document.company, link_company)
             )
 
     def reader(self, administrator):

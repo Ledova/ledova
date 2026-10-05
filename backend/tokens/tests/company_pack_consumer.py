@@ -276,6 +276,15 @@ def check_documents(files, manifest):
                         "records"
                     )
                 named.add(evidence["path"])
+                asic = record.get("asic") or {}
+                if asic.get("path"):
+                    content = listed_file(files, asic["path"])
+                    if (len(content), sha256(content)) != (asic["size"], asic["sha256"]):
+                        raise Refused(
+                            f"{asic['path']}: its size and SHA-256 are not the ASIC extract {source} {section} "
+                            f"{number} records"
+                        )
+                    named.add(asic["path"])
     unnamed = sorted(path for path in files if path.startswith(DOCUMENT_FOLDER) and path not in named)
     if unnamed:
         raise Refused(f"{unnamed[0]}: named by no document or authority record")

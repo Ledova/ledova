@@ -38,6 +38,8 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_company_pack.ScopedCompanyPackTest",
     "tokens.tests.test_company_pack_publications.ScopedCompanyPackPublicationsTest",
     "tokens.tests.test_register_imports.ScopedRegisterImportTest",
+    "tokens.tests.test_register_import_authority.ScopedRegisterImportAuthorityTest",
+    "tokens.tests.test_register_import_authority.ScopedRegisterImportDecisionGuardTest",
     "tokens.tests.test_register_instructions.ScopedRegisterInstructionTest",
     "tokens.tests.test_register_instructions.ScopedTransferInstructionTest",
     "tokens.tests.test_register_snapshot_scoped.ScopedRegisterSnapshotTest",

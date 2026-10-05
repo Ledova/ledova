@@ -69,6 +69,8 @@ SPECTACULAR_SETTINGS = {
         "RegisterCorrectionStatusEnum": "tokens.models.register_correction.RegisterCorrectionStatus",
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
         "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",
+        "RegisterEvidenceKindEnum": "tokens.models.register_evidence.RegisterEvidenceKind",
+        "RegisterImportDecisionKindEnum": "tokens.models.register_import.RegisterImportDecisionKind",
         "ShareRegisterWaitingReasonEnum": "tokens.services.register_inclusions.WAITING_REASONS",
     },
     "POSTPROCESSING_HOOKS": [

@@ -20,7 +20,7 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services.company_pack_chain import key, transaction_hash
-from tokens.services.company_pack_documents import evidence_path
+from tokens.services.company_pack_documents import asic_evidence_path, evidence_path
 from tokens.services.register import former_identity_label, months_after
 from tokens.services.register_inclusions import waiting_list
 from whitelist.models import WhitelistApproval, WhitelistChange
@@ -106,7 +106,22 @@ def authority(records) -> dict:
                     "document": record.asic_document,
                     "issued_total": _whole(record.asic_issued_total),
                     "member_count": record.asic_member_count,
+                    "sha256": record.asic_fingerprint,
+                    "size": record.asic_snapshot.get("file_size") if record.asic_snapshot else None,
+                    "path": asic_evidence_path(record) if record.asic_file else None,
                 },
+                provided_by="company" if record.preparing_appointment_id else "staff_verified",
+                decisions=[
+                    {
+                        "kind": decision.kind,
+                        "decided_by": _name(decision.decided_by),
+                        "decided_at": decision.decided_at,
+                        "reason": decision.reason,
+                    }
+                    for decision in record.decisions.select_related("decided_by__userprofile").order_by(
+                        "decided_at", "uuid"
+                    )
+                ],
                 register_sequence=record.register_sequence,
             )
             for record in records["imports"]
