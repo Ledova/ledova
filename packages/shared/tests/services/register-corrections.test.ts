@@ -44,7 +44,10 @@ it('reads entries, lists, prepares, previews, decides and downloads through the 
   await decideRegisterCorrection(api, 'correction-a', decision, SESSION);
   await downloadRegisterCorrectionFile(api, 'correction-a', SESSION);
   expect(get.mock.calls).toEqual([
-    ['/api/v1/tokens/class-a/register/entries/', { ...SESSION, params: { page: 2 } }],
+    [
+      '/api/v1/tokens/class-a/register/entries/',
+      { ...SESSION, params: { page: 2 }, paramsSerializer: { indexes: null } },
+    ],
     [
       '/api/v1/tokens/register-corrections/',
       { params: { company: 'company-a', register: 'register-a', status: 'submitted', page: 2 } },
@@ -60,6 +63,16 @@ it('reads entries, lists, prepares, previews, decides and downloads through the 
     ],
     ['/api/v1/tokens/register-corrections/correction-a/decide/', decision, SESSION],
   ]);
+});
+
+it('names each wanted register entry in its own entry parameter', async () => {
+  const api = axios.create({ baseURL: 'https://api.example.test' });
+  const get = jest.spyOn(api, 'get').mockResolvedValue({ data: { results: [] } });
+  await getRegisterEntries(api, 'class-a', { entry: ['entry-a', 'entry-b'], page: 1 });
+  const [url, config] = get.mock.calls[0]!;
+  expect(api.getUri({ ...config, url })).toBe(
+    'https://api.example.test/api/v1/tokens/class-a/register/entries/?entry=entry-a&entry=entry-b&page=1',
+  );
 });
 
 it('types the changes of every correction read and refuses changes it cannot read', async () => {
