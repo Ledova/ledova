@@ -18,7 +18,8 @@ from offerings.tests.factories import (
     eligible_subscriber,
     open_offering,
 )
-from shared.tests.tenants import an_acn, make_eligible, make_tenant, open_to_investors
+from shared.tests.company_eligibility import accept_company_eligibility
+from shared.tests.tenants import an_acn, make_eligible, make_tenant
 from tokens.models import ShareIssuance
 from tokens.services import atomic_swap_service
 from tokens.tests.market_fixtures import record_synthetic_admission
@@ -225,6 +226,7 @@ class ActionResponseContractTest(APITransactionTestCase):
         self.assertEqual(set(schema["required"]), set(body))
 
     def test_order_book_declares_aggregated_arrays_without_changing_the_market(self):
+        accept_company_eligibility(self.owner)
         for order in (self.owner.order, self.owner.counter_order):
             record_synthetic_admission(order)
         response = self.client.get(f"/api/v1/trading/tokens/{self.owner.deployed_token.uuid}/order-book/")
@@ -606,9 +608,8 @@ class ActionResponseContractTest(APITransactionTestCase):
     def test_subscription_create_schema_names_the_actual_detail_response(self):
         Subscription.objects.filter(user_account=self.owner.account).delete()
         configure_operator()
-        open_offering(self.owner)
-        open_to_investors(self.owner)
         eligible_subscriber(self.owner)
+        open_offering(self.owner)
         response = self.client.post(
             "/api/v1/subscriptions/",
             {

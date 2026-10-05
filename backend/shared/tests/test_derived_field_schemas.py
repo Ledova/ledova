@@ -22,6 +22,7 @@ from feature_flags.models import FeatureFlag
 from offerings.models import Offering, OfferingStatus
 from operators.models import Operator
 from shared.db import use_migrate
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import YieldToken
@@ -57,6 +58,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         return "T" in value.upper() and parsed.utcoffset() is not None
 
     def setUp(self):
+        Operator.get()
         media = tempfile.TemporaryDirectory()
         self.addCleanup(media.cleanup)
         settings = override_settings(MEDIA_ROOT=media.name)
@@ -184,32 +186,32 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assert_matches(field, body["assetTypeDisplay"])
         self.assertNotIn("enum", self.resolved(field))
 
-    def test_eligibility_without_an_account_keeps_both_nullable_identities(self):
+    def test_readiness_without_an_account_keeps_the_nullable_account_identity(self):
         user = get_user_model().objects.create_user(
             email="no-account@example.test", password="pw-12345678", is_active=True, is_email_verified=True
         )
         UserProfile.objects.create(user=user)
         self.client.force_authenticate(user)
         body = self.get_json(ELIGIBILITY)
-        self.assertFalse(body["isEligible"])
+        self.assertFalse(body["isReady"])
         self.assertEqual(body["reasons"], ["no_investor_account"])
         self.assertIsNone(body["account"])
-        self.assertIsNone(body["classification"])
+        self.assertEqual(set(body), {"isReady", "reasons", "account"})
         self.assert_matches(self.response_schema(ELIGIBILITY), body)
 
-    def test_eligibility_nests_the_existing_classification_after_it_becomes_live(self):
+    def test_account_readiness_declares_no_global_investment_permission_or_private_source(self):
         before = self.get_json(ELIGIBILITY)
         self.assertEqual(before["account"], str(self.owner.account.uuid))
-        self.assertIsNone(before["classification"])
+        self.assertFalse(before["isReady"])
+        self.assertEqual(set(before), {"isReady", "reasons", "account"})
         schema = self.response_schema(ELIGIBILITY)
         self.assert_matches(schema, before)
         self.assertEqual(self.resolved(schema["properties"]["account"]).get("format"), "uuid")
 
         make_eligible(self.owner)
         body = self.get_json(ELIGIBILITY)
-        self.assertTrue(body["isEligible"])
-        self.assertEqual(body["classification"]["uuid"], str(self.owner.investor_classification.uuid))
-        self.assertNotIn("evidenceFile", body["classification"])
+        self.assertEqual(body, {"isReady": True, "reasons": [], "account": str(self.owner.account.pk)})
+        self.assertIsNone(self.get_json("/api/operator/")["paymentInstructions"])
         self.assert_matches(schema, body)
 
     def test_operator_rails_allow_denied_empty_partial_and_staff_objects(self):
@@ -228,6 +230,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assert_matches(schema, body["paymentInstructions"])
 
         make_eligible(self.owner)
+        accept_company_eligibility(self.owner)
         body = self.get_json("/api/operator/")
         self.assertEqual(body["paymentInstructions"], {})
         self.assert_matches(schema, body["paymentInstructions"])
@@ -370,8 +373,14 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
 
     def test_directory_open_offering_keeps_null_or_exact_five_field_object(self):
         make_eligible(self.owner)
+        accept_company_eligibility(self.owner)
         open_to_investors(self.owner)
-        field = self.response_schema(DIRECTORY, page=True)["properties"]["openOffering"]
+        schema = self.response_schema(DIRECTORY, page=True)
+        field = schema["properties"]["openOffering"]
+        untraded = self.directory_row()
+        fields = ("lastPrice", "bestBid", "bestAsk")
+        self.assertEqual(tuple(untraded[name] for name in fields), (None, None, None))
+        self.assert_fields_match(schema, untraded, fields)
         self.assertIsNone(self.directory_row()["openOffering"])
         self.assert_matches(field, self.directory_row()["openOffering"])
         opened = timezone.now().replace(microsecond=0) - timedelta(days=1)
@@ -458,22 +467,24 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
             record_synthetic_admission(order)
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         make_eligible(self.owner)
-        open_to_investors(self.owner)
         fields = ("lastPrice", "bestBid", "bestAsk")
         schema = self.response_schema(TOKENS, page=True)
         body = self.get_json(TOKENS)["results"]
         draft = next(row for row in body if row["uuid"] == str(self.owner.token.uuid))
         self.assertEqual(tuple(draft[name] for name in fields), (None, None, None))
         self.assert_fields_match(schema, draft, fields)
-        untraded = self.directory_row()
+        untraded = next(row for row in body if row["uuid"] == str(self.owner.deployed_token.pk))
         self.assertIsNone(untraded["lastPrice"])
-        self.assert_fields_match(self.response_schema(DIRECTORY, page=True), untraded, fields)
+        self.assert_fields_match(schema, untraded, fields)
+        self.assertEqual(self.get_json(DIRECTORY)["results"], [])
         self.addCleanup(restore_every_migration)
         historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
         historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner.swap.pk).update(
             status="completed", completed_at=timezone.now()
         )
         restore_every_migration()
+        accept_company_eligibility(self.owner)
+        open_to_investors(self.owner)
         for path in (TOKENS, DIRECTORY):
             body = self.get_json(path)["results"]
             traded = next(row for row in body if row["uuid"] == str(self.owner.deployed_token.uuid))
