@@ -33,6 +33,7 @@ import { SettingsScreen } from '../screens/settings';
 import { DrawerProvider, useDrawer } from './DrawerContext';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
+import { useRegisterAccess } from '../screens/company-register/useCompanyRegister';
 import { useUserProfile } from '../screens/user-profile/useUserProfile';
 import type { ComponentType } from 'react';
 
@@ -78,6 +79,7 @@ const INVEST_MENU_ITEMS: MenuItem[] = [
 const SECONDARY_ITEMS: MenuItem[] = [
   { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
   { label: DESTINATIONS.companyTeam.title, icon: BuildingsIcon, action: 'tab', target: 'CompanyTeam' },
+  { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'CompanyRegister' },
   { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
   { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
   { label: 'Settings', icon: GearIcon, action: 'screen', target: 'Settings' },
@@ -185,6 +187,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading } = useRole();
+  const readsRegister = useRegisterAccess(!isLoading && !isCompany);
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
   const insets = useSafeAreaInsets();
@@ -197,6 +200,8 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
         params = { screen: 'Home', params: { screen: 'HomeMain' } };
       } else if (item.target === 'CompanyTeam') {
         params = { screen: 'Home', params: { screen: 'CompanyTeam' } };
+      } else if (item.target === 'CompanyRegister') {
+        params = { screen: 'Home', params: { screen: 'CompanyRegister' } };
       } else if (item.target === 'Directory') {
         params = { screen: 'Directory', params: { screen: 'DirectoryMain' } };
       } else if (item.target === 'Applications') {
@@ -264,7 +269,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
             </View>
           ))}
         <View style={styles.divider} />
-        {SECONDARY_ITEMS.map(renderItem)}
+        {SECONDARY_ITEMS.filter((item) => item.target !== 'CompanyRegister' || readsRegister).map(renderItem)}
         <Pressable
           accessibilityRole="link"
           style={styles.help}
