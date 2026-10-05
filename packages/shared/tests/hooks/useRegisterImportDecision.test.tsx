@@ -171,3 +171,50 @@ it('refreshes after the server refuses a preview, but not after a preview that n
   expect(onRefused).toHaveBeenCalledTimes(2);
   expect(hook.result.current.target).toBeNull();
 });
+
+it('takes a new retry key after the server refuses a decision, even for the same preview', async () => {
+  const { post, hook } = setup();
+  post
+    .mockResolvedValueOnce({ data: PREVIEW })
+    .mockRejectedValueOnce({ response: { status: 409, data: { detail: 'The register operation conflicts.' } } })
+    .mockResolvedValueOnce({ data: PREVIEW });
+  await act(() => hook.result.current.open('apply'));
+  expect(hook.result.current.target?.request.idempotencyKey).toBe('key-1');
+  await act(() => hook.result.current.confirm());
+  expect(hook.result.current.error).toBe('The register operation conflicts.');
+  await act(() => hook.result.current.open('apply'));
+  expect(hook.result.current.target?.request.idempotencyKey).toBe('key-2');
+});
+
+it('drops a preview whose guard refuses once it returns, consuming no retry key', async () => {
+  const { post, hook, guard } = setup();
+  guard
+    .mockImplementationOnce(() => undefined)
+    .mockImplementationOnce(() => {
+      throw new Error('Your signed-in account changed.');
+    });
+  post.mockResolvedValueOnce({ data: PREVIEW }).mockResolvedValueOnce({ data: PREVIEW });
+  await act(() => hook.result.current.open('apply'));
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(hook.result.current.target).toBeNull();
+  expect(hook.result.current.error).toBe('Your signed-in account changed.');
+  await act(() => hook.result.current.open('apply'));
+  expect(hook.result.current.target?.request.idempotencyKey).toBe('key-1');
+});
+
+it('reports no decision whose guard refuses once its response returns', async () => {
+  const { post, hook, guard, onDecided, onRefused } = setup();
+  post.mockResolvedValueOnce({ data: PREVIEW }).mockResolvedValueOnce({ data: applied('key-1') });
+  await act(() => hook.result.current.open('apply'));
+  guard
+    .mockImplementationOnce(() => undefined)
+    .mockImplementationOnce(() => {
+      throw new Error('Your signed-in account changed.');
+    });
+  await act(() => hook.result.current.confirm());
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(onDecided).not.toHaveBeenCalled();
+  expect(onRefused).not.toHaveBeenCalled();
+  expect(hook.result.current.target).toBeNull();
+  expect(hook.result.current.error).toBe('Your signed-in account changed.');
+});
