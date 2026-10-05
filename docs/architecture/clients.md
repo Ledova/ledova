@@ -519,35 +519,35 @@ effective and recorded dates, the changes as signed whole-share counts beside
 each member's name, the entry an entry corrects and the entry that reversed it.
 Holders of administration or `prepare` get **Correct this entry** on each
 correctable entry. Corrections list every page of the class's corrections,
-newest first, and the register is read from its newest page only until every
-entry they reverse is found. Each shows its stage, preparer, dates, the entry
-being corrected and the compensating changes, the authority, reference and
-reason, whether the company provided the authority document or staff verified
-it before corrections were company-run, the decision trail and any rejection
-reason, with a download of the authority document. Approve, Apply and Reject
-follow the import dialog through `useRegisterDecision`, whose preview adds the
-original and compensating changes and the register sequence; a retained
-staff-era correction offers only rejection, and a decision or refusal refreshes
-the corrections, entries, register and appointments. The reconciliation shows
-the latest record's status, block, compared register sequence and time, any
-failure, and each discrepancy as a sentence with its particulars and any
-acknowledgement: its reason, who made it, when, and whether the company or staff
-provided it. An appointment holding administration or `approve` acknowledges an
-acknowledgeable row with a reason of up to 1,000 characters through
-`useDiscrepancyAcknowledgement`; rows that need attribution say so and offer
-nothing, and an open acknowledgement holds when its record, row or appointment
-changes or cannot be read. **Correct this entry** opens
-`/company/register/:uuid/correct/:entry`, a page for every signed-in account like
-Register, which shows the entry and the exact inverse a correction records, and
-takes the authority document, the authority, an approving director for a
-resolution, the reference, the reason and an effective date no later than today
-in UTC. The upload keeps its own retry key and confirmed receipt, preparation
-reuses its operation only for an identical request, and both receipts are
-checked before the corrections are refreshed and the page returns to Register;
-a conflict refreshes the entry and appointments and takes a new operation.
-Readers see all of this read-only, a refresh that shows an appointment gone
-withdraws its controls, and every read, decision, acknowledgement, download and
-preparation is bound to the signed-in account.
+newest first, and each page's corrected entries are read by their UUIDs in one
+request. Each shows its stage, preparer, dates, the entry being corrected and
+the compensating changes, the authority, reference and reason, whether the
+company provided the authority document or staff verified it before corrections
+were company-run, the decision trail and any rejection reason, with a download
+of the authority document. Approve, Apply and Reject follow the import dialog
+through `useRegisterDecision`, whose preview adds the original and compensating
+changes and the register sequence; a retained staff-era correction offers only
+rejection, and a decision or refusal refreshes the corrections, entries,
+register and appointments. The reconciliation shows the latest record's status,
+block, compared register sequence and time, any failure, and each discrepancy as
+a sentence with its particulars and any acknowledgement: its reason, who made
+it, when, and whether the company or staff provided it. An appointment holding
+administration or `approve` acknowledges an acknowledgeable row with a reason of
+up to 1,000 characters through `useDiscrepancyAcknowledgement`; rows that need
+attribution say so and offer nothing, and an open acknowledgement holds when its
+record, row or appointment changes or cannot be read. **Correct this entry**
+opens `/company/register/:uuid/correct/:entry`, a page for every signed-in
+account like Register, which reads that entry of the class by its UUID, shows it
+and the exact inverse a correction records, and takes the authority document,
+the authority, an approving director for a resolution, the reference, the reason
+and an effective date no later than today in UTC. The upload keeps its own retry
+key and confirmed receipt, preparation reuses its operation only for an
+identical request, and both receipts are checked before the corrections are
+refreshed and the page returns to Register; a conflict refreshes the entry and
+appointments and takes a new operation. Readers see all of this read-only, a
+refresh that shows an appointment gone withdraws its controls, and every read,
+decision, acknowledgement, download and preparation is bound to the signed-in
+account.
 
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
