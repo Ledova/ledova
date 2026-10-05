@@ -122,7 +122,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `classes/<class id>/settlements.json` | Every settlement of the class that was admitted for execution: the signed order with its EIP-712 domain, both signatures, the transaction, its operation, the finalized receipt and the register entry |
 | `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and its transaction hash, the execution that sent it, and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
 | `classes/<class id>/former_members.json` | The former-member section of `register.csv`, from the same rows, each with the date until which s169(3) keeps it |
-| `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason and time |
+| `classes/<class id>/reconciliations.json` | Every reconciliation of the register with the chain, its discrepancies, and each acknowledgement's discrepancy, reason, acknowledger's name, time and `provided_by`: `company`, or `staff` for one recorded before acknowledgement was company-run |
 | `classes/<class id>/waiting.json` | `effects`: the [waiting list](register.md#api-and-export), or `null` where the API's is |
 | `classes/<class id>/due.json` | The class's rows of the [certificates and notice figures still due](register.md#outputs-due) |
 | `contracts/contracts.json` | The chain id, the compiler settings, the factory, settlement and registry addresses, each class's address, the owner it was deployed with and the settlement contract its approval targeted, each registry's owner, and both signing domains |
@@ -301,7 +301,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
   retained, all from the snapshot taken when it was submitted, and `path`, where
   the copy's bytes are under `documents/evidence/` (see [documents](#documents)).
-  The snapshot's company identity, storage path and owner id stay behind.
+  A company-run import or correction names no company document: its copy is of
+  the company's own upload, and its `document_type` is the upload's kind. The
+  snapshot's company identity, storage path and owner id stay behind.
 - **Reviewers are named, not numbered.** A reviewer is the full name on the
   staff member's profile, blank when there is none. No user id, submitter or
   staff email leaves: user ids appear only inside each entry's preimage.
@@ -333,7 +335,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   [s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)
   keeps it until. Ledova's own purge waits at least as long.
 - **Reconciliations** are every comparison of the register with the chain, with
-  its discrepancies and each acknowledgement's reason and time.
+  its discrepancies and each acknowledgement's reason, the name of the person who
+  acknowledged it, the time and `provided_by`: `company`, or `staff` for an
+  acknowledgement recorded before acknowledgement was company-run.
 - **Waiting and due** come from the services the register already has.
   `waiting.json` is `waiting_list(token)`, `null` where the API's list is.
   `due.json` is the class's rows of `outputs_due(company=company)`: given a
@@ -373,7 +377,12 @@ of those files is stored under `companies/<company id>/`
   kind keeps records with the same operation id from replacing each other's copy.
   A copy is carried even where its company document is also carried: the document may have
   changed or gone since the record was submitted, and the copy is what was
-  reviewed.
+  reviewed. A company-run import also keeps a copy of its ASIC extract, carried at
+  `documents/evidence/registerimport-asic/<record id>` and named by the record's
+  `asic.path` with its `asic.sha256` and `asic.size`. An import's or
+  correction's record carries `provided_by` (`company`, or `staff_verified` for
+  one made before imports or corrections were company-run) and its `decisions`,
+  each with its kind, the decider's name, time and any reason.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
@@ -513,12 +522,14 @@ contracts."
 synthetic company with two share classes: an opening; an issue of a paid
 subscription under an applied register instruction; one subscription paid and
 one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
-is a settlement order; a correction reversing the issue, reviewed and applied
-through the correction service; a reviewed wallet link; a former member; an
-approved capital increase; a pause; one listed and one lapsed wallet approval and
-an approval change; a discrepant reconciliation with its acknowledgement; and a
-registry check. Every authority record rests on a verified company document with
-bytes of its own. It produces the pack
+is a settlement order; a correction reversing the issue, prepared, approved and
+applied by the company owner's appointment through the correction service; a
+reviewed wallet link; a former member; an approved capital increase; a pause; one
+listed and one lapsed wallet approval and an approval change; a discrepant
+reconciliation with a staff-era and a company acknowledgement; and a registry
+check. Every authority record rests on evidence with bytes of its own: a verified
+company document, or for the correction the company's own `authority` upload. It
+produces the pack
 through the admin page and gives it to
 [company_pack_consumer.py](../../backend/tokens/tests/company_pack_consumer.py),
 run as `python -I -S company_pack_consumer.py pack.zip` in a subprocess with an
@@ -583,8 +594,8 @@ receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
 secp256k1: it checks that the pack is internally consistent and well-formed.
 
 [test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
-adds an opening, submitted on a third, unopened class, and an import, each
-through its submit service with a verified document, so that every kind of
+adds an opening, submitted on a third, unopened class with a verified document,
+and an import prepared from the company's own uploads, so that every kind of
 authority record retains a copy. Its tests find every document and evidence
 copy carried with the bytes storage holds and listed in the manifest, each
 record naming its copy, and the documents and the members' evidence statement

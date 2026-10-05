@@ -287,10 +287,7 @@ POLICIES = {
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "tokens_formerholder": (f"owner_id = {PRINCIPAL}", "false"),
-    "tokens_registercorrection": (
-        _company("company_id", VISIBLE_COMPANIES),
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
-    ),
+    "tokens_registercorrection": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermember": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermemberwallet": (
         _company("company_id", VISIBLE_COMPANIES),
@@ -308,10 +305,7 @@ POLICIES = {
     "tokens_registerentry": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerposition": ("register_id IN (SELECT uuid FROM tokens_shareregister)", "false"),
     "tokens_registerreconciliation": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
-    "tokens_registerimport": (
-        _company("company_id", VISIBLE_COMPANIES),
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
-    ),
+    "tokens_registerimport": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerinstruction": (
         _company("company_id", VISIBLE_COMPANIES),
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
@@ -603,9 +597,20 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
-    "tokens_registeracknowledgement": "Staff acknowledgements of register reconciliation discrepancies, recorded "
-    "by an operator command and read only by reconciliation on the operator connection. The issuer reads the "
-    "reconciliation result, which already reflects them.",
+    "tokens_registerevidence": "Immutable company-provided register evidence uploads, written by the bounded "
+    "register command on the operator connection and read there only through register-readable queries. Each "
+    "prepared import keeps its own copy of the files it used.",
+    "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
+    "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
+    "connection. Register readers see them through the import on the operator connection.",
+    "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
+    "corrections, each bound to the deciding appointment and written by the bounded register command on the "
+    "operator connection. Register readers see them through the correction on the operator connection.",
+    "tokens_registeracknowledgement": "Append-only acknowledgements of register reconciliation discrepancies. A "
+    "company's are written by the bounded register command on the operator connection, each bound to the "
+    "acknowledging appointment; retained staff-era rows came from a retired operator command. Register readers "
+    "read them through the reconciliation on the operator connection, and later reconciliation runs read them "
+    "there too.",
     "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
     "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
     "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "

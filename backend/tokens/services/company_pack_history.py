@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from offerings.models import Subscription, SubscriptionStatus
@@ -20,7 +21,7 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services.company_pack_chain import key, transaction_hash
-from tokens.services.company_pack_documents import evidence_path
+from tokens.services.company_pack_documents import asic_evidence_path, evidence_path
 from tokens.services.register import former_identity_label, months_after
 from tokens.services.register_inclusions import waiting_list
 from whitelist.models import WhitelistApproval, WhitelistChange
@@ -55,6 +56,22 @@ def _evidence(record):
         "sha256": snapshot.get("sha256"),
         "path": evidence_path(record),
     }
+
+
+def _provided_by(record):
+    return "company" if record.preparing_appointment_id else "staff_verified"
+
+
+def _decisions(record):
+    return [
+        {
+            "kind": decision.kind,
+            "decided_by": _name(decision.decided_by),
+            "decided_at": decision.decided_at,
+            "reason": decision.reason,
+        }
+        for decision in record.decisions.select_related("decided_by__userprofile").order_by("decided_at", "uuid")
+    ]
 
 
 def _decided(record, authority, **terms):
@@ -106,7 +123,12 @@ def authority(records) -> dict:
                     "document": record.asic_document,
                     "issued_total": _whole(record.asic_issued_total),
                     "member_count": record.asic_member_count,
+                    "sha256": record.asic_fingerprint,
+                    "size": record.asic_snapshot.get("file_size") if record.asic_snapshot else None,
+                    "path": asic_evidence_path(record) if record.asic_file else None,
                 },
+                provided_by=_provided_by(record),
+                decisions=_decisions(record),
                 register_sequence=record.register_sequence,
             )
             for record in records["imports"]
@@ -120,6 +142,8 @@ def authority(records) -> dict:
                 changes=correction.changes,
                 base_sequence=correction.base_sequence,
                 base_hash=correction.base_hash,
+                provided_by=_provided_by(correction),
+                decisions=_decisions(correction),
                 entry=correction.applied_entry_id,
             )
             for correction in records["corrections"]
@@ -340,13 +364,21 @@ def former_members(stored) -> list:
 
 
 def reconciliations(token) -> list:
+    acknowledgements = list(RegisterAcknowledgement.objects.filter(token_id=token.pk).order_by("created_at", "uuid"))
+    people = (
+        get_user_model()
+        .objects.select_related("userprofile")
+        .in_bulk({acknowledgement.acknowledged_by_id for acknowledgement in acknowledgements})
+    )
     acknowledged = defaultdict(list)
-    for acknowledgement in RegisterAcknowledgement.objects.filter(token_id=token.pk).order_by("created_at", "uuid"):
+    for acknowledgement in acknowledgements:
         acknowledged[acknowledgement.reconciliation_id].append(
             {
                 "discrepancy": acknowledgement.discrepancy,
                 "reason": acknowledgement.reason,
+                "acknowledged_by": _name(people.get(acknowledgement.acknowledged_by_id)),
                 "acknowledged_at": acknowledgement.created_at,
+                "provided_by": "company" if acknowledgement.appointment_id else "staff",
             }
         )
     return [

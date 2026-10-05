@@ -168,6 +168,52 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- `tokens/0085_company_register_corrections` and
+  `tokens/0086_company_register_correction_guards` make register corrections
+  company-run (#864), as `0083` and `0084` did for imports. `0085` adds
+  append-only correction decisions, operator-only, adds the preparing appointment
+  and the `authority` upload to corrections, makes the staff-era document UUID
+  nullable with a check constraint pinning the two shapes, and closes owners'
+  direct correction inserts. `0086` admits `authority` uploads to the evidence
+  guard and installs the decision guards: decisions bind the person, the company
+  command and a current appointment and carry a digest the database recomputes,
+  and the correction guard admits only company-run preparation and outcomes that
+  match a decision. Nothing is backfilled. Corrections still waiting for the
+  retired staff review stay readable and can only be rejected by the company; the
+  admin keeps corrections as read-only history and the review page is gone. This
+  release adds no client, and the decision kind enum is renamed
+  `RegisterDecisionKindEnum` in the API schema. An integration that submitted
+  corrections now prepares them, naming its `appointment` and an
+  `authority_evidence` upload where it named a company `document_id`. Reversing
+  `0086` refuses once any `authority` upload, correction decision or company-run
+  correction exists; reversing `0085` then restores owners' direct submissions.
+- `tokens/0083_company_register_imports` and
+  `tokens/0084_company_register_import_guards` make register imports company-run
+  (#864). `0083` adds company-provided evidence uploads and append-only import
+  decisions, both operator-only, adds the preparing appointment, both uploads,
+  the ASIC extract copy and its snapshot to imports, and closes owners' direct
+  import inserts. `0084` installs the guards: uploads and decisions bind the
+  person, the company command and a current appointment, decisions carry a
+  digest the database recomputes, and the import guard admits only company-run
+  preparation and outcomes that match a decision. Nothing is backfilled. Imports
+  still waiting for the retired staff review stay readable and can only be
+  rejected by the company; the admin keeps imports as read-only history and the
+  review page is gone. This release adds no client. Reversing `0084` refuses
+  once any upload, decision or company-run import exists; reversing `0083` then
+  restores owners' direct submissions.
+- `tokens/0087_company_discrepancy_acknowledgements` makes reconciliation
+  discrepancy acknowledgement a company step (#864). It adds the acknowledging
+  appointment and a retry key to acknowledgements, with a check that a row has
+  both or neither and one acknowledgement per person and key, and replaces the
+  acknowledgement guard `0070` installed: an acknowledgement must come through
+  the company command, by the person it names, from that person's current
+  appointment holding `admin` or `approve`, for a row of the class's latest
+  reconciliation. The staff requirement and the `register_acknowledge` command
+  are gone. Nothing is backfilled: staff-era acknowledgements keep both new
+  fields empty, still explain their rows and read as provided by staff. The
+  release adds the `/api/v1/tokens/register-reconciliations/` routes and no
+  client. Reversing `0087` refuses once any company acknowledgement exists;
+  otherwise it restores the staff guard exactly as `0070` installed it.
 - #864's register reads by appointment need no migration. Deploy the backend
   before or with the clients: the new web and mobile Register read
   `GET /api/v1/tokens/register/`, which an older backend does not serve, while

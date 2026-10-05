@@ -32,6 +32,16 @@ PRE_ADMINISTRATION_POLICIES = {
     ),
 }
 
+OWNER_SUBMITTED = (
+    f"company_id IN (SELECT {VISIBLE_COMPANIES}())",
+    f"company_id IN (SELECT {MANAGEABLE_COMPANIES}()) AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+)
+
+PRE_COMPANY_DECISION_POLICIES = {
+    "tokens_registerimport": ("tokens_registerimportdecision", OWNER_SUBMITTED),
+    "tokens_registercorrection": ("tokens_registercorrectiondecision", OWNER_SUBMITTED),
+}
+
 TABLE_CREATION_AFTER_INITIAL_GRANTS = (
     {
         table: ("tokens", "0062_register_foundation")
@@ -169,6 +179,11 @@ def install_tables(schema_editor, tables):
                 cursor.execute("SELECT to_regprocedure('app_company_administration_ids()') IS NOT NULL")
                 if not cursor.fetchone()[0]:
                     readable, writable = PRE_ADMINISTRATION_POLICIES[table]
+            if table in PRE_COMPANY_DECISION_POLICIES:
+                decisions, older = PRE_COMPANY_DECISION_POLICIES[table]
+                cursor.execute("SELECT to_regclass(%s) IS NOT NULL", [decisions])
+                if not cursor.fetchone()[0]:
+                    readable, writable = older
             cursor.execute("SELECT to_regclass(%s) IS NOT NULL", [table])
             if not cursor.fetchone()[0]:
                 continue

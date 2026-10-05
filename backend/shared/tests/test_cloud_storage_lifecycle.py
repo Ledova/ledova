@@ -28,6 +28,7 @@ from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
     RegisterCorrection,
+    RegisterEvidence,
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
@@ -36,13 +37,13 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_corrections import submit_correction
 from tokens.services.register_instructions import submit_instruction
 from tokens.services.register_openings import submit_link, submit_opening
 from tokens.tests.instruction_fixtures import instruction_payload
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
+    prepared,
 )
 from tokens.tests.test_register_events import register_fixture
 from tokens.tests.test_register_links import link_fixture, link_payload
@@ -174,6 +175,8 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterOpening, "file"),
                         (RegisterWalletLink, "file"),
                         (RegisterImport, "file"),
+                        (RegisterImport, "asic_file"),
+                        (RegisterEvidence, "file"),
                         (RegisterInstruction, "file"),
                         (Publication, "file"),
                         (PublicationEvent, "evidence"),
@@ -188,10 +191,12 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterOpening,
                     RegisterWalletLink,
                     RegisterImport,
+                    RegisterEvidence,
                     RegisterInstruction,
                     Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterImport.asic_file", connected)
                 self.assertIn("shared.storage.sweep:shareholders.PublicationEvent.evidence", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):
@@ -270,20 +275,22 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 self.assertEqual(objects.files[proposal.file.name], original)
                 self.assertTrue(RegisterWalletLink.objects.filter(pk=proposal.pk).exists())
 
-    def test_retained_correction_copy_survives_source_deletion_and_orphan_sweep(self):
+    def test_retained_correction_copy_and_its_upload_survive_the_orphan_sweep(self):
         for backend in ("s3", "gcs"):
             with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
-                owner, reviewer, document, issue = correction_fixture()
-                proposal = submit_correction(actor=owner, **correction_payload(document, issue))
+                owner, _, appointment, issue, evidence = correction_fixture()
+                proposal = prepared(owner, correction_payload(issue, evidence, appointment))
                 original = objects.files[proposal.file.name]
-                document.delete()
+                self.assertEqual(objects.files[evidence.file.name], original)
                 orphan = storage.save("companies/interrupted-correction.bin", ContentFile(PDF))
                 for key in objects.files:
                     objects.modified[key] = timezone.now() - GRACE - timedelta(seconds=1)
                 result = sweep_orphaned_files(storage=storage)
                 self.assertEqual(result["deleted"], 1)
                 self.assertNotIn(orphan, objects.files)
-                self.assertEqual(objects.files[proposal.file.name], original)
+                self.assertEqual(
+                    (objects.files[proposal.file.name], objects.files[evidence.file.name]), (original, original)
+                )
                 self.assertTrue(RegisterCorrection.objects.filter(pk=proposal.pk).exists())
 
     def test_a_live_cloud_object_is_protected_while_an_old_orphan_is_removed(self):

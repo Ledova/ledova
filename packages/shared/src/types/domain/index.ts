@@ -19,6 +19,7 @@ export * from './company';
 export * from './company-authority';
 export * from './company-eligibility';
 export * from './company-token';
+export * from './register-import';
 export * from './feature-flag';
 export * from './operator';
 export * from './offering';

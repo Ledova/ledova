@@ -17,7 +17,7 @@ export const REGISTER_COPY = {
     'download is logged.',
   NOT_OPENED_NOTE:
     'The register for this share class has not been opened yet, so no members are listed and the CSV cannot be ' +
-    'downloaded. An approved register opening starts it.',
+    'downloaded. An approved register opening or an applied register import starts it.',
   WAITING_NOTE: (count: number) =>
     `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded, ` +
     'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, such as one ' +

@@ -280,6 +280,8 @@ REGISTER_CORRECTION_ROUTES = {
     "list": ("get", "/api/v1/tokens/register-corrections/"),
     "detail": ("get", "/api/v1/tokens/register-corrections/{uuid}/"),
     "file": ("get", "/api/v1/tokens/register-corrections/{uuid}/file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-corrections/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-corrections/{uuid}/decide/"),
 }
 REGISTER_OPENING_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-openings/"),
@@ -298,6 +300,15 @@ REGISTER_IMPORT_ROUTES = {
     "list": ("get", "/api/v1/tokens/register-imports/"),
     "detail": ("get", "/api/v1/tokens/register-imports/{uuid}/"),
     "file": ("get", "/api/v1/tokens/register-imports/{uuid}/file/"),
+    "asic_file": ("get", "/api/v1/tokens/register-imports/{uuid}/asic-file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-imports/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-imports/{uuid}/decide/"),
+    "evidence": ("post", "/api/v1/tokens/register-evidence/"),
+}
+REGISTER_RECONCILIATION_ROUTES = {
+    "list": ("get", "/api/v1/tokens/register-reconciliations/"),
+    "detail": ("get", "/api/v1/tokens/register-reconciliations/{uuid}/"),
+    "acknowledge": ("post", "/api/v1/tokens/register-reconciliations/{uuid}/acknowledge/"),
 }
 PUBLICATION_ROUTES = {
     "list": ("get", "/api/v1/publications/"),
@@ -1266,7 +1277,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
         }
     )
-    def test_register_correction_routes_keep_evidence_private_and_review_operator_only(self):
+    def test_register_correction_routes_keep_evidence_private_and_decisions_company_bound(self):
         from tokens.models import RegisterCorrection
         from tokens.tests.test_register_corrections import (
             correction_fixture,
@@ -1274,9 +1285,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         )
 
         with self.as_an_operator_would():
-            owner, reviewer, document, issue = correction_fixture()
+            owner, _, appointment, issue, evidence = correction_fixture()
         self.client.force_authenticate(owner)
-        payload = correction_payload(document, issue)
+        payload = correction_payload(issue, evidence, appointment)
         response = self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         proposal_id = response.json()["uuid"]
@@ -1296,26 +1307,49 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.assertEqual(self.client.get(path).status_code, 401)
             self.assertEqual(self.client.get(listing).status_code, 401)
             self.client.force_authenticate(owner)
-        self.client.force_authenticate(self.actors[0].user)
-        self.assertEqual(
-            self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json").status_code, 404
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_CORRECTION_ROUTES[name][1].format(uuid=proposal_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(proposal_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.post(REGISTER_CORRECTION_ROUTES["create"][1], payload, format="json")
+            self.assertEqual(denied.status_code, 404, denied.content)
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_CORRECTION_ROUTES["decision_preview"][1].format(uuid=proposal_id), decision, format="json"
         )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_CORRECTION_ROUTES["decide"][1].format(uuid=proposal_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
         self.client.force_authenticate(None)
-        review = reverse("admin:tokens_registercorrection_review", args=[proposal_id])
-        evidence = reverse("admin:tokens_registercorrection_evidence", args=[proposal_id])
+        evidence_path = reverse("admin:tokens_registercorrection_evidence", args=[proposal_id])
         for actor, expected in zip(self.actors, (302, 403, 200)):
             self.client.force_login(actor.user)
-            response = self.client.get(review)
-            self.assertEqual(response.status_code, expected)
-            self.assertEqual(self.client.get(evidence).status_code, expected)
-            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
-            response = self.client.post(review, {"confirmation": confirmation, "reviewed": "on", "decision": "apply"})
-            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
-            with self.as_an_operator_would():
-                self.assertEqual(
-                    RegisterCorrection.objects.get(pk=proposal_id).status, "applied" if expected == 200 else "submitted"
-                )
+            self.assertEqual(self.client.get(evidence_path).status_code, expected)
             self.client.logout()
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterCorrection.objects.get(pk=proposal_id).status, "submitted")
 
     @override_settings(
         STORAGES={
@@ -1438,20 +1472,25 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
         }
     )
-    def test_register_import_routes_keep_evidence_private_and_review_operator_only(self):
+    def test_register_import_routes_keep_evidence_private_and_decisions_company_bound(self):
         from tokens.models import RegisterImport
-        from tokens.tests.test_register_imports import import_fixture, import_payload
+        from tokens.tests.test_register_imports import (
+            DOCUMENT_BYTES,
+            import_fixture,
+            import_payload,
+            stated,
+        )
 
         with self.as_an_operator_would():
-            owner, _, token, member, _, register_document, asic, _ = import_fixture()
+            owner, company, token, member, appointment, register_copy, asic, _ = import_fixture()
         self.client.force_authenticate(owner)
-        payload = import_payload(token, register_document, asic, member)
+        payload = stated(import_payload(token, register_copy, asic, member, appointment))
         response = self.client.post(REGISTER_IMPORT_ROUTES["create"][1], payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         proposal_id = response.json()["uuid"]
         listing = REGISTER_IMPORT_ROUTES["list"][1]
         self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [proposal_id])
-        for name in ("detail", "file"):
+        for name in ("detail", "file", "asic_file"):
             path = REGISTER_IMPORT_ROUTES[name][1].format(uuid=proposal_id)
             self.assertEqual(self.client.get(path).status_code, 200)
             for actor in self.actors:
@@ -1465,34 +1504,108 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.assertEqual(self.client.get(path).status_code, 401)
             self.assertEqual(self.client.get(listing).status_code, 401)
             self.client.force_authenticate(owner)
-        self.client.force_authenticate(self.actors[0].user)
-        self.assertEqual(self.client.post(REGISTER_IMPORT_ROUTES["create"][1], payload, format="json").status_code, 404)
-        self.client.force_authenticate(None)
-        review = reverse("admin:tokens_registerimport_review", args=[proposal_id])
-        evidence = reverse("admin:tokens_registerimport_evidence", args=[proposal_id])
-        for actor, expected in zip(self.actors, (302, 403, 200)):
-            self.client.force_login(actor.user)
-            response = self.client.get(review)
-            self.assertEqual(response.status_code, expected)
-            self.assertEqual(self.client.get(evidence).status_code, expected)
-            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
-            response = self.client.post(
-                review,
-                {
-                    "confirmation": confirmation,
-                    "reviewed": "on",
-                    "decision": "apply",
-                    "asic_issued_total": "100",
-                    "asic_member_count": "1",
-                },
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_IMPORT_ROUTES[name][1].format(uuid=proposal_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(proposal_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        upload = {
+            "company_id": str(company.pk),
+            "appointment": str(appointment.pk),
+            "kind": "share_register",
+            "idempotency_key": str(uuid4()),
+        }
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.post(
+                REGISTER_IMPORT_ROUTES["evidence"][1],
+                {**upload, "file": SimpleUploadedFile("register.pdf", DOCUMENT_BYTES, content_type="application/pdf")},
+                format="multipart",
             )
-            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
-            with self.as_an_operator_would():
-                self.assertEqual(
-                    RegisterImport.objects.get(pk=proposal_id).status,
-                    "applied" if expected == 200 else "submitted",
-                )
-            self.client.logout()
+            self.assertEqual(denied.status_code, 404, denied.content)
+            self.assertEqual(
+                self.client.post(REGISTER_IMPORT_ROUTES["create"][1], payload, format="json").status_code, 404
+            )
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_IMPORT_ROUTES["decision_preview"][1].format(uuid=proposal_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_IMPORT_ROUTES["decide"][1].format(uuid=proposal_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
+        self.client.force_authenticate(None)
+        for name in ("evidence", "asic"):
+            path = reverse(f"admin:tokens_registerimport_{name}", args=[proposal_id])
+            for actor, expected in zip(self.actors, (302, 403, 200)):
+                self.client.force_login(actor.user)
+                self.assertEqual(self.client.get(path).status_code, expected)
+                self.client.logout()
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterImport.objects.get(pk=proposal_id).status, "submitted")
+
+    def test_register_reconciliation_routes_keep_rows_and_acknowledgements_company_bound(self):
+        from tokens.models import RegisterAcknowledgement
+        from tokens.tests.test_register_acknowledgement_authority import (
+            acknowledgement_fixture,
+            reconciled,
+        )
+
+        with self.as_an_operator_would():
+            owner, _, token, member, appointment = acknowledgement_fixture()
+            record_id = str(reconciled(token, member).pk)
+        listing = REGISTER_RECONCILIATION_ROUTES["list"][1]
+        detail = REGISTER_RECONCILIATION_ROUTES["detail"][1].format(uuid=record_id)
+        acknowledge = REGISTER_RECONCILIATION_ROUTES["acknowledge"][1].format(uuid=record_id)
+        body = {
+            "appointment": str(appointment.pk),
+            "discrepancy": 0,
+            "reason": "Accepted by the directors",
+            "idempotency_key": str(uuid4()),
+        }
+        requests = (
+            lambda path: self.client.get(path),
+            lambda path: self.client.post(path, body, format="json"),
+        )
+        self.client.force_authenticate(owner)
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [record_id])
+        self.assertEqual(self.client.get(detail).status_code, 200)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            for send, path in zip(requests, (detail, acknowledge)):
+                denied = send(path)
+                missing = send(path.replace(record_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.assertEqual(self.rows(self.client.get(listing)), [])
+        self.client.force_authenticate(None)
+        for send, path in zip((*requests, requests[0]), (detail, acknowledge, listing)):
+            self.assertEqual(send(path).status_code, 401)
+        with self.as_an_operator_would():
+            self.assertFalse(RegisterAcknowledgement.objects.exists())
+        self.client.force_authenticate(owner)
+        acknowledged = requests[1](acknowledge)
+        self.assertEqual(acknowledged.status_code, 201, acknowledged.content)
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterAcknowledgement.objects.get().acknowledged_by_id, owner.pk)
 
     @override_settings(
         STORAGES={

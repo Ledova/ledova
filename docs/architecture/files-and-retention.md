@@ -33,7 +33,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
-| Register correction authority | `companies/`; retained request prevents ordinary deletion; interrupted-copy orphans are swept |
+| Register correction authority | `companies/`; the company's upload and the correction's copy are retained with their rows; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
 | Company document | `companies/`; swept after becoming an orphan |
@@ -114,11 +114,13 @@ A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents
 and its payment records' remittance evidence, all stored under `companies/`. No file stored under `users/` or `documents/` leaves in a pack.
 
-Correction requests retain a private copy of the reviewed authority document,
-with its content and company binding. During the synthetic experiment those
-requests and files have no automatic expiry. The database refuses ordinary row
-deletion; the existing orphan sweep removes only unreferenced copies. See the
-[correction workflow](../operations/register-foundation.md#reviewed-compensating-corrections).
+Corrections retain a private copy of the company's authority upload, with its
+size, type and SHA-256; one made before corrections were company-run retains its
+copy of the staff-verified company document. During the synthetic experiment
+those corrections, uploads and files have no automatic expiry. The database
+refuses ordinary row deletion; the existing orphan sweep removes only
+unreferenced copies. See the
+[correction workflow](../operations/register-foundation.md#compensating-corrections).
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
 retain a separate private upload and immutable person/company/terms/content

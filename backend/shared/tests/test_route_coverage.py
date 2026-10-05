@@ -120,6 +120,8 @@ def matrix_routes():
         add(method, path)
     for method, path in matrix.REGISTER_IMPORT_ROUTES.values():
         add(method, path)
+    for method, path in matrix.REGISTER_RECONCILIATION_ROUTES.values():
+        add(method, path)
     for method, path in matrix.REGISTER_INSTRUCTION_ROUTES.values():
         add(method, path)
     for method, path in matrix.PUBLICATION_ROUTES.values():

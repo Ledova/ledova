@@ -187,8 +187,9 @@ and [backend verification](../development/testing.md#backend-verification).
 The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
 not proof of director authority. The company-document admin provides its
-content-verification prerequisite; the correction and opening workflows below
-are its current consumers.
+content-verification prerequisite; the opening, wallet link and register
+instruction workflows below are its current consumers. Imports and corrections
+use company-provided evidence instead.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -215,41 +216,62 @@ fingerprints.
 
 This is a record of what was verified at a time. Storage can become unavailable
 or be changed outside the application, and validity can expire without a database
-write. The correction and opening consumers therefore recheck the current file
+write. The opening consumers therefore recheck the current file
 against the recorded fingerprint, the company and the proposed change, and the
 validity dates; the historical `is_verified` flag alone is insufficient. No
 background storage monitoring or deletion/retention change is introduced here.
 Documentary authority and an exact proposed register change remain separate
 requirements of each approval workflow.
 
-## Reviewed compensating corrections
+## Compensating corrections
 
-The synthetic stored register accepts owner-submitted requests to reverse one
-identified entry exactly. This is a compensation, not an editable replacement:
-the original entry and its hash remain, and the new entry names the original.
-Applying it changes the stored holdings the register routes serve; it broadcasts
-no chain change. Replacement transactions and reconciliation remain #647 work.
+A correction reverses one identified entry exactly. This is a compensation, not
+an editable replacement: the original entry and its hash remain, and the new
+entry names the original. Applying it changes the stored holdings the register
+routes serve; it broadcasts no chain change. Replacement transactions and
+reconciliation remain #647 work.
 
-An external issuer integration can use these authenticated routes:
+Since 5 October 2026 the company runs its corrections itself, as it runs its
+[imports](#importing-an-existing-register), under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+- the evidence is company-provided. The company uploads the director resolution
+  or court order that authorises the correction as an `authority` upload. Ledova
+  staff do not verify it, and the correction's copy is shown as provided by the
+  company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- a correction submitted for the retired staff review and still waiting can only
+  be rejected. The company then prepares a new one.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The web and mobile correction screens are planned; the API below is
+delivered.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-corrections/` | Submit the owner's precise correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision/evidence metadata and decision |
-| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the retained authority file |
+| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
+| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register` and `status` |
+| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision and evidence, stage and decisions |
+| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the correction's copy of the authority document |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
 For a synthetic exercise, use the register foundation command to create an
-opening and identify the entry to compensate. Upload a synthetic signed resolution
-through the existing company document route and have permitted staff complete its
-content review. Submit this JSON as that company's owner, replacing UUIDs with
-those from the exercise:
+opening and identify the entry to compensate, and upload a synthetic signed
+resolution as an `authority` upload. Then prepare, replacing UUIDs with those
+from the exercise:
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000001",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "corrects_id": "10000000-0000-4000-8000-000000000002",
-  "document_id": "10000000-0000-4000-8000-000000000003",
+  "authority_evidence": "10000000-0000-4000-8000-000000000003",
   "effective_on": "2026-09-20",
   "authority": "director_resolution",
   "approving_director": "Synthetic Director",
@@ -258,49 +280,92 @@ those from the exercise:
 }
 ```
 
-The service derives the exact inverse share changes and captures the register's
-current sequence/hash. The effective date may be today (UTC) or earlier, since a
-rectification can be backdated; submission refuses a later one, which would hold
-back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
-until that date. One reviewed uploaded file must include the authority for
-this precise correction. A director resolution names the approving director;
+Preparation derives the exact inverse share changes and captures the register's
+current sequence and head hash. The effective date may be today (UTC) or earlier,
+since a rectification can be backdated; preparation refuses a later one, which
+would hold back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
+until that date. A director resolution names the approving director;
 `court_order` instead uses a court reference and an empty `approving_director`.
-An owner account is not proof of director authority. Staff document verification
-alone does not approve the correction. External-only links and legacy verification
-flags without content binding cannot supply its evidence.
+An owner account is not proof of director authority.
 
-In **Admin → Tokens → Register corrections**, open the request's review link.
-An active staff user with change permission must inspect the retained file, named
-authority, company identity, original entry, inverse quantities, date and register
-revision, then explicitly confirm authority and choose **Approve and apply**.
-The confirmation is reviewer-specific and expires after fifteen minutes. Approval,
-its compensating entry and the holdings projection commit together; a failure
-rolls them all back. Repeated identical submission/decision returns the existing
-result, while conflicting UUID reuse is refused. The database prevents rewriting
-or deleting the request and prevents the customer role from deciding it.
+Preparation refuses, with a message naming the problem:
+- an entry of a company in which the caller holds no current appointment;
+- evidence that is not the preparer's own `authority` upload for this company,
+  or whose stored bytes no longer match its fingerprint;
+- an entry already corrected, or one with no changes;
+- an inverse that would take a stored holding below zero.
 
-A changed register revision, company identity or original document makes
-application unavailable. Missing, rejected, expired or altered evidence also
-refuses application, including replacement with different bytes of the same size.
-A retained copy is checked against the verified content again at application.
-Reject an obsolete request with a reason, then submit corrected intent with a new
-UUID and freshly reviewed evidence. Rejection remains available even when a file
-is unavailable. An already compensated entry cannot be compensated a second time.
-An inverse that would make a current holding negative is refused by the existing
-register guard. Use the foundation verifier to check the resulting event chain
-and projection; that is not a claim of chain reconciliation.
+The correction keeps its own private copy of the upload, with a snapshot naming
+the upload, its size, type and SHA-256, and marked as provided by the company.
+An identical preparation retry returns the correction; the same operation ID
+with any change conflicts.
 
-The owner chose private retention without automatic expiry for correction
-requests and authority files during the synthetic-only experiment. Ordinary
-request deletion is blocked. Deleting the original company document does not
-delete the retained copy or decision, but prevents a pending request from being
-applied. Committed copies are protected by their retained row; copies left by a
-rolled-back or interrupted submission fall under the existing 24-hour orphan
-sweep. Account/company deletion still respects protected register relations.
-Production retention needs its own decision before real data is admitted.
-Classification evidence, former-member retention and export records have
-independent policies; this choice does not change them. Export records follow
-the 2,557-day floor, purged by the daily retention job.
+Each decision starts with a preview, which shows the original entry's changes
+beside their inverse and lists what the decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `correction_decided` | The correction is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era correction, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
+| `register_changed` | The register has a newer entry than the revision preparation captured |
+| `entry_already_corrected` | Another correction of the same entry was applied |
+| `position_would_go_negative` | Applying the inverse would take a stored holding below zero |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the correction, the decision, the person, the
+appointment, the reason and, for application, the register's sequence and head
+hash. The decision must carry the same digest, so any change in between
+conflicts. An identical decision retry with the same retry key returns the
+correction; the same key with any change conflicts. Every step rechecks the
+appointment after taking the company lock, so a revocation that commits first
+refuses the decision and records nothing.
+
+Application records the compensating entry, whose operation ID is the
+correction's UUID and which the person applying it records, with the decision
+and the holdings projection; a failure rolls them all back. A correction the
+register has moved past cannot be applied: reject it with a reason and prepare a
+new one against the current register. Rejection stays available until a decision
+applies or rejects the correction, including when the retained copy is
+unavailable. An already compensated entry cannot be compensated a second time.
+**Admin → Tokens → Register corrections** shows corrections and their copies as
+read-only history. The database keeps corrections, uploads and decisions
+immutable and refuses:
+- a preparation not made through the company command by a person whose current
+  appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own `authority` upload for the company;
+- a preparation whose changes are not the exact inverse, whose register revision
+  is not current, whose entry is already corrected, whose authority fields are
+  incomplete or whose effective date is after today;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era correction, or an
+  application without a current approval;
+- an applied or rejected correction without its matching decision, and a
+  decision whose correction does not carry its effect when the transaction
+  commits;
+- an application whose entry is not the exact compensating entry, recorded by
+  the person applying it directly after the revision preparation captured.
+
+Use the foundation verifier to check the resulting event chain and projection;
+that is not a claim of chain reconciliation.
+
+The owner chose private retention without automatic expiry for corrections and
+their authority files during the synthetic-only experiment. Ordinary deletion is
+blocked. A correction made before corrections were company-run keeps its copy of
+the staff-verified company document; deleting that document deletes neither the
+copy nor the decision. Committed copies are protected by their retained row;
+copies left by a rolled-back or interrupted preparation fall under the existing
+24-hour orphan sweep. The company's uploads are kept like import evidence
+(owner decision, 5 October 2026). Account/company deletion still respects
+protected register relations. Production retention needs its own decision before
+real data is admitted. Classification evidence, former-member retention and
+export records have independent policies; this choice does not change them.
+Export records follow the 2,557-day floor, purged by the daily retention job.
 
 ## Approved opening capture and wallet links
 
@@ -1053,12 +1118,11 @@ pre-platform former members. Imports follow the owner decisions of
 21 September 2026:
 - for a class already opened from the chain, the import adds particulars and
   former members and leaves holdings to the stored register;
-- for a class not yet on chain, the import is the opening;
-- a staff reviewer enters the ASIC extract's figures.
+- for a class not yet on chain, the import is the opening.
 
 The owner decided on 22 September 2026 that:
-- the applied import's reviewed copy and uploaded file are evidence, kept like
-  opening and correction evidence;
+- the applied import's copies of its evidence are kept like opening and
+  correction evidence;
 - a member's live verified identity wins over imported particulars;
 - a class an import opened records no issue, transfer or cessation until it is
   anchored on chain, because entries come only from chain completions;
@@ -1068,25 +1132,49 @@ The owner decided on 22 September 2026 that:
   second import. This is accepted during the synthetic experiment and settled
   before any real data.
 
-A share class takes one applied import. Submission, review and application each
-refuse another once one is applied, and a partial unique index backs them. The
-import names a staff-verified `SHARE_REGISTER` document (the company's current
-register, of which the import retains a private copy), a staff-verified ASIC
-extract, documentary authority as for an opening, and the register date:
+Since 5 October 2026 the company runs its imports itself, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+- the evidence is company-provided. The company uploads its current share
+  register and its ASIC extract, and states the extract's issued total and
+  member count for the class when it prepares the import. Ledova staff verify
+  neither, and every copy is shown as provided by the company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- an import submitted for the retired staff review and still waiting can only
+  be rejected. The company then prepares a new one.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The API below and the
+[import screens](../architecture/clients.md#company-managed-client-work) on
+Register in both clients are delivered.
+
+A share class takes one applied import. Preparation and application each
+refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-imports/` | Submit the import; return the retained request |
-| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, figures and decision |
-| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the retained register document |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, or `authority` for a [correction](#compensating-corrections), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
+| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
+| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
+| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the import's copy of the register document |
+| `GET /api/v1/tokens/register-imports/{uuid}/asic-file/` | Authenticated attachment of the import's copy of the ASIC extract |
+| `POST /api/v1/tokens/register-imports/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the comparison with the stored register and the preview digest |
+| `POST /api/v1/tokens/register-imports/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000031",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "token_id": "10000000-0000-4000-8000-000000000011",
-  "document_id": "10000000-0000-4000-8000-000000000032",
-  "asic_document_id": "10000000-0000-4000-8000-000000000033",
+  "register_evidence": "10000000-0000-4000-8000-000000000032",
+  "asic_evidence": "10000000-0000-4000-8000-000000000033",
+  "asic_issued_total": "100",
+  "asic_member_count": 1,
   "as_at": "2026-09-20",
   "members": [
     {"member": "10000000-0000-4000-8000-000000000024", "name": "Synthetic Member",
@@ -1104,71 +1192,103 @@ extract, documentary authority as for an opening, and the register date:
 }
 ```
 
+An upload is checked like every other upload, then kept privately with its
+SHA-256. An identical upload retry returns the first receipt; the same retry
+key with a different file conflicts. Uploads that no import uses are kept until
+production retention is decided (owner decision, 5 October 2026).
+
 A class is not yet on chain while its register has no entries, no issuance
 request for it has ever been approved and no register instruction for it has
 been applied: an undeployed class, or a deployed one never minted. Its import
 names each current member by a new member ID the company chooses or by an
 existing member of the company, and a former member may have ceased on the
-register date itself. Submission, review and application refuse such a class
-once an issue has been approved or an instruction applied for it: open it from
-the chain instead, then import its particulars.
+register date itself. Preparation and application refuse such a class once an
+issue has been approved or an instruction applied for it: open it from the chain
+instead, then import its particulars.
 
-Submission refuses rows that do not fit the stored columns, with a message
-naming the problem:
-- for an opened class, every current member must already be a member of the
-  company with a stored holding, and for any class no member may belong to
-  another company;
-- a name has at most 255 characters and a residential address at most 1,000;
-- `shares` is a whole number of at most 78 digits;
-- `amount_paid` is a plain amount such as `250.00`, with at most two decimal
-  places and eighteen whole digits, or `null` when not known;
-- dates may not follow the register date;
-- for an opened class, a former member must have ceased before the register's
+Preparation refuses, with a message naming the problem:
+- evidence that is not the preparer's own uploads for this company, of the right
+  kinds, or whose stored bytes no longer match their fingerprints;
+- stated figures that differ from the rows' total shares and member count;
+- for an opened class, a current member who is not already a member of the
+  company with a stored holding, and for any class a member of another company;
+- a name of more than 255 characters or a residential address of more than 1,000;
+- `shares` that is not a whole number of at most 78 digits;
+- an `amount_paid` that is not a plain amount such as `250.00`, with at most two
+  decimal places and eighteen whole digits, or `null` when not known;
+- dates that follow the register date;
+- for an opened class, a former member who ceased on or after the register's
   opening, because the stored register and the fold record later cessations;
-- a former member must have ceased within the former-member retention period
+- a former member who ceased before the former-member retention period
   (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), because the retention
-  job would purge an older one.
+  job would purge them.
 
-In **Admin → Tokens → Register imports** a staff reviewer with change permission
-opens the review. For each member it shows the imported name beside the
-member's linked wallets and current live identity, so names swapped between
-equal holdings show, and the stored date entered beside the imported one. It
-compares each imported holding with the stored one. A class not yet on chain has
-nothing stored or on chain to compare, so the ASIC figures and the names beside
-the holdings are the only check. The reviewer reads the ASIC extract, enters its
-issued total and member count for the class, confirms and applies. Application
-refuses:
-- figures that differ from the import's totals;
-- for an opened class, any holding that differs from the stored register, which
-  includes a member the import leaves out, and a former member who ceased on or
-  after the opening;
-- for a class not yet on chain, an approved issue or an applied instruction;
-- changed evidence or a changed ASIC extract;
-- a class that already has an applied import.
+The import keeps its own private copies of both files, each with a snapshot
+naming the upload, its size, type and SHA-256, and marked as provided by the
+company. An identical preparation retry returns the import; the same operation
+ID with any change conflicts.
+
+Each decision starts with a preview. For each member it shows the imported name
+beside the member's linked wallets and current live identity, so names swapped
+between equal holdings show, and the stored date entered beside the imported
+one. It compares each imported holding with the stored one. A class not yet on
+chain has nothing stored or on chain to compare, so the stated figures and the
+names beside the holdings are the only check. The preview lists what the
+decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `import_decided` | The import is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era import, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | A retained copy no longer matches its fingerprint |
+| `class_has_applied_import`, `class_not_openable`, `holdings_differ` | The class already took an import; a class not yet on chain had an issue approved or an instruction applied; an opened class's holdings differ from the rows, including a member the import leaves out |
+| `former_member_after_opening`, `former_member_before_retention` | A former member's date ceased fails the rules above |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the import, the decision, the person, the appointment,
+the reason and, for application, the register's sequence and head hash. The
+decision must carry the same digest, so any change in between conflicts. An
+identical decision retry with the same retry key returns the import; the same
+key with any change conflicts. Every step rechecks the appointment after taking
+the company lock, so a revocation that commits first refuses the decision and
+records nothing.
 
 For a class not yet on chain, application first opens the register in the same
 transaction. It creates the new members and records the opening entry: its
 operation ID is the import's UUID, it is dated the register date, it holds each
-member's shares, and the applying reviewer records it, so the register's
+member's shares, and the person applying it records it, so the register's
 sequence is 1. It links no wallets: a
 [reviewed link request](#reviewed-wallet-links-after-the-opening) links them. A
-class opened another way after submission takes the import by the opened
+class opened another way after preparation takes the import by the opened
 class's rules. Application then stores each member's particulars, except where
 the member already has particulars from an import with a later register date,
-and the imported former members. It keeps the figures and the register sequence
-on the request. Repeating an application with the same figures returns it;
-different figures conflict. Rejection with a reason stays available. The
-database keeps imports immutable and refuses:
-- forged decisions;
-- rows whose keys or types differ from what submission accepts;
+and the imported former members. It keeps the register sequence on the request.
+Rejection with a reason stays available until a decision applies or rejects the
+import. **Admin → Tokens → Register imports** shows imports and both copies as
+read-only history. The database keeps imports, uploads and decisions immutable
+and refuses:
+- an upload or preparation not made through the company command by a person
+  whose current appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprints, snapshots or stated figures differ
+  from the preparer's uploads and the rows;
+- rows whose keys or types differ from what preparation accepts;
 - a member of another company or, for an opened class, anyone not already a
   member of this company;
 - a former member who ceased on or after an opening the import did not record;
 - an import for a class not yet on chain that has an approved issue or an
   applied instruction;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era import, or an
+  application without a current approval;
+- an applied or rejected import without its matching decision, and a decision
+  whose import does not carry its effect when the transaction commits;
 - an application that opens a register unless the register's only entry is
   exactly that opening, with sequence 1, the import's UUID, members and shares,
-  register date and reviewer, and still nothing approved;
+  register date and the person applying it, and still nothing approved;
 - an application whose figures differ from the rows;
 - an application that leaves a member without particulars from it or from a
   later-dated import;
@@ -1195,11 +1315,12 @@ until it is.
 
 The daily retention job purges particulars once the member has held nothing in
 the company for the 2,557-day floor, and imported former members that long after
-their date ceased. It purges nothing else of an import. The applied import's
-reviewed copy, with every name and address it carried, and its uploaded register
-file are evidence, kept like opening and correction evidence: nothing expires
-them automatically during the synthetic experiment, and production retention is
-decided before any real data (owner decision, 22 September 2026).
+their date ceased. It purges nothing else of an import. The import, with every
+name and address it carried, its copies of the register document and ASIC
+extract, its decisions and the company's uploads are evidence, kept like opening
+and correction evidence: nothing expires them automatically during the
+synthetic experiment, and production retention is decided before any real data
+(owner decisions, 22 September and 5 October 2026).
 
 ## Reconciling with the chain
 
@@ -1225,8 +1346,8 @@ with the stored register under the share-class lock that completions take:
   held for attribution accounts for its own transfer but moves nothing, since
   its place relative to the opening is what is unknown.
 
-A transfer of zero shares is ignored, and a discrepancy staff have
-[acknowledged](#acknowledging-a-discrepancy) is treated as explained.
+A transfer of zero shares is ignored, and an
+[acknowledged](#acknowledging-a-discrepancy) discrepancy is treated as explained.
 
 The stored register row is locked for the comparison, so a correction cannot
 land between reading the supply and reading the holdings. A snapshot below the
@@ -1259,24 +1380,64 @@ python manage.py register_reconcile --token TOKEN_UUID
 
 It prints the retained record. The database refuses to rewrite or delete a
 reconciliation, or to record one inconsistent with its status. Only the
-operator records them, and the issuer reads its own. Downgrading `tokens/0070`
-refuses while any exist.
+operator records them. The issuer reads its own, and register readers read them
+through the [reconciliation API](#acknowledging-a-discrepancy). Downgrading
+`tokens/0070` refuses while any exist.
 
 ### Acknowledging a discrepancy
 
-The register itself cannot follow a divergence it did not cause: no reviewed
-entry records an outside transfer, and a correction only compensates an
-existing entry. Once staff have investigated a divergence and accepted it, they
-acknowledge it, one row at a time, from the share class's latest
-reconciliation, from `backend/`:
+The register itself cannot follow a divergence it did not cause: no entry
+records an outside transfer, and a correction only compensates an existing
+entry. Once the company has investigated a divergence and accepted it, it
+acknowledges it, one row at a time, from the share class's latest
+reconciliation. Since 5 October 2026 this is one company step, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+a current appointment holding `admin` or `approve` acknowledges one specific
+discrepancy with a written reason. There is no Ledova staff step and no second
+person. Staff permissions, company ownership alone and shareholding grant no
+acknowledgement. The company cannot start a reconciliation; the six-hourly job
+and the operator's `register_reconcile` run them. The web and mobile screens are
+planned; the API below is delivered.
 
-```bash
-python manage.py register_acknowledge --reconciliation RECONCILIATION_UUID \
-    --discrepancy POSITION --reason "WHY IT IS ACCEPTED" --actor STAFF_USER_ID
+| Method and route | Result |
+| --- | --- |
+| `GET /api/v1/tokens/register-reconciliations/` | Paginated reconciliations, newest first, of share classes whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `token` |
+| `GET /api/v1/tokens/register-reconciliations/{uuid}/` | The record: status, block, register sequence, any failure, whether it is the class's `latest`, and each discrepancy as stored with `acknowledgeable` and its `acknowledgement` |
+| `POST /api/v1/tokens/register-reconciliations/{uuid}/acknowledge/` | Acknowledge one discrepancy; return the reconciliation |
+
+```json
+{
+  "appointment": "10000000-0000-4000-8000-000000000030",
+  "discrepancy": 0,
+  "reason": "The directors accept the transfer the two holders made outside the platform",
+  "idempotency_key": "10000000-0000-4000-8000-000000000051"
+}
 ```
 
-`POSITION` counts from zero through the record's `discrepancies`, in the order
-`register_reconcile` prints them. Later runs treat the row as explained:
+`discrepancy` counts from zero through the record's `discrepancies`, in the
+order the API lists them. A row is `acknowledgeable` while its reconciliation is
+the class's latest, its kind can be acknowledged and nothing acknowledges it yet.
+Its `acknowledgement` is `null`, or the reason, the acknowledger's name, the time
+and `provided_by`: `company`, or `staff` for an acknowledgement recorded before
+acknowledgement was company-run, which shows no name.
+
+A new acknowledgement answers `201`. An identical retry with the same
+`idempotency_key` answers `200` with the same acknowledgement, even after a later
+reconciliation; the same key with any change answers `409`. The request records
+nothing and refuses:
+- a reconciliation of a class whose register the caller cannot read, as not
+  found;
+- an appointment that is not the caller's current appointment holding `admin` or
+  `approve`, as not found;
+- a caller who does not meet the issuer identity check the operator requires;
+- a reconciliation that is not the class's latest: for a row of an older record,
+  wait for the next run and use it;
+- a position outside the record's discrepancies;
+- an `attribution` or `missing_transfer` row;
+- a row already acknowledged;
+- a blank reason, or one of more than 1,000 characters.
+
+Later runs treat the row as explained:
 
 - an acknowledged `unrecognised_transfer` is not reported again for that
   transaction hash;
@@ -1295,14 +1456,27 @@ need the attribution procedure, which is still
 [#647](https://github.com/Ledova/ledova/issues/647) work.
 
 Each acknowledgement is retained with the reconciliation, the exact row, the
-reason, the staff member and the time, and the command prints it. The command
-takes rows of the latest reconciliation only, under the share-class lock a run
-holds, so no divergence is counted twice; for a row of an older record,
-reconcile again and use the new one. The database refuses to change or delete
-an acknowledgement, a row that is not verbatim in the class's reconciliation, a
-second acknowledgement of the same row, a blank reason, a user who is not
-active staff, and any insert from the app role. Only the operator reads them;
-the issuer sees the reconciliation result they produce.
+reason, the person, their appointment and the time. The company register
+command rechecks the appointment after taking the company lock, and takes the
+share-class lock a run holds, so a revocation that commits first refuses it and
+no divergence is counted twice. The database keeps acknowledgements immutable and refuses:
+- an acknowledgement not made through the company command for the class's
+  company, by the person it names;
+- an appointment that is not that person's current appointment holding `admin`
+  or `approve`, and a missing retry key;
+- a row of any reconciliation but the class's latest, a row that is not verbatim
+  in it, an `attribution` or `missing_transfer` row and a blank reason;
+- a second acknowledgement of the same row, and a second use of a person's retry
+  key;
+- any insert from the app role.
+
+Only the operator connection reads them. Register readers see them through the
+reconciliation API, and the
+[company pack](../architecture/company-pack.md#approvals-and-history) lists each
+one with who acknowledged it and whether the company or staff did. Staff
+acknowledged discrepancies through an operator command, `register_acknowledge`,
+until 5 October 2026. That command is retired; the acknowledgements it recorded
+are kept unchanged and still explain their rows.
 
 Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
 and [register architecture](../architecture/register.md).

@@ -32,10 +32,13 @@ Register export records share this clock, measured from the export. So do
 imported former members, from their date ceased, and a member's recorded
 particulars, from the last date the member held shares in the company. The same
 daily job purges them all (owner decisions, 21 September 2026). It removes
-nothing else of a register import: the applied import's reviewed copy and its
-uploaded register file are evidence, kept like opening and correction evidence
-with no automatic expiry during the synthetic experiment, and their production
-retention is decided before any real data (owner decision, 22 September 2026).
+nothing else of a register import or correction: the import, its copies of the
+register document and ASIC extract, a correction's copy of its authority
+document, and the company's evidence uploads of kind `share_register`,
+`asic_extract` or `authority`, including those no import or correction used, are
+evidence, kept like opening evidence with no automatic expiry during the
+synthetic experiment. Their production retention is decided before any real data
+(owner decisions, 22 September and 5 October 2026).
 
 [Publications to members](../architecture/shareholder-publications.md#retention)
 share the same floor and setting, measured from the publication, and a

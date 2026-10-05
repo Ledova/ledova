@@ -5,6 +5,8 @@ from uuid import uuid4
 from django.utils import timezone
 
 from companies.models import CompanyDocument, DocumentType
+from companies.services.document_review import private_document_bytes
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
 from shared.seeds.synthetic.chain.story import ALLOTTED
@@ -12,16 +14,19 @@ from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     IssuanceStatus,
+    RegisterDecisionKind,
+    RegisterEvidenceKind,
     RegisterPosition,
     RegisterReconciliationStatus,
     ShareIssuance,
     ShareToken,
 )
 from tokens.services.former_holders import fold_former_holders
+from tokens.services.register_evidence import retain_register_evidence
 from tokens.services.register_imports import (
     decide_import,
-    prepare_import_review,
-    submit_import,
+    prepare_import,
+    preview_import_decision,
 )
 from tokens.services.register_inclusions import waiting_effects
 from tokens.services.register_instructions import (
@@ -177,15 +182,35 @@ def import_particulars(share_class, records):
         }
         for member in share_class.former
     ]
-    documents = CompanyDocument.objects.filter(company=token.company, is_verified=True)
-    register = documents.filter(document_type=DocumentType.SHARE_REGISTER).latest("verified_at")
-    extract = documents.filter(document_type=DocumentType.ASIC_EXTRACT).latest("verified_at")
-    proposal = submit_import(
-        actor=token.company.owner,
+    company = token.company
+    appointment = historical_owner_appointment(company)
+    documents = CompanyDocument.objects.filter(company=company, is_verified=True)
+    copies = {
+        kind: retain_register_evidence(
+            actor=company.owner,
+            company_id=company.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            name=document.name,
+            raw=private_document_bytes(document.file),
+            mime_type=document.mime_type,
+        )[0]
+        for kind, document in (
+            (RegisterEvidenceKind.SHARE_REGISTER, documents.filter(document_type=DocumentType.SHARE_REGISTER)),
+            (RegisterEvidenceKind.ASIC_EXTRACT, documents.filter(document_type=DocumentType.ASIC_EXTRACT)),
+        )
+        for document in (document.latest("verified_at"),)
+    }
+    proposal, _ = prepare_import(
+        actor=company.owner,
         operation_id=uuid4(),
+        appointment=appointment.pk,
         token_id=token.pk,
-        document_id=register.pk,
-        asic_document_id=extract.pk,
+        register_evidence=copies[RegisterEvidenceKind.SHARE_REGISTER].pk,
+        asic_evidence=copies[RegisterEvidenceKind.ASIC_EXTRACT].pk,
+        asic_issued_total=str(sum(int(row["shares"]) for row in rows)),
+        asic_member_count=len(rows),
         as_at=today.isoformat(),
         members=rows,
         former_members=former,
@@ -194,15 +219,20 @@ def import_particulars(share_class, records):
         authority_reference=f"{reference_prefix(token)}-IMP-{share_class.symbol}",
         reason="Add each member's particulars, date entered and amount paid from the company's own register.",
     )
-    _, _, confirmation = prepare_import_review(proposal_id=proposal.pk, reviewer=records.operations)
-    return decide_import(
-        proposal_id=proposal.pk,
-        reviewer=records.operations,
-        confirmation=confirmation,
-        decision="apply",
-        asic_issued_total=sum(int(row["shares"]) for row in rows),
-        asic_member_count=len(rows),
-    )
+    for kind in (RegisterDecisionKind.APPROVE, RegisterDecisionKind.APPLY):
+        _, preview = preview_import_decision(
+            actor=company.owner, import_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        proposal = decide_import(
+            actor=company.owner,
+            import_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+    return proposal
 
 
 def settle(share_class, records):

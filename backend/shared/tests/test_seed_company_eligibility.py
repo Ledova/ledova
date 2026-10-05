@@ -14,13 +14,15 @@ from companies.models import (
 )
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, principal_of, use_migrate, use_operator
+from shared.seeds.synthetic.authority import (
+    OWNER_PROVENANCE,
+    historical_owner_appointment,
+)
 from shared.seeds.synthetic.chain.offerings import historical_subscription
 from shared.seeds.synthetic.chain.population import _investor
 from shared.seeds.synthetic.eligibility import (
-    OWNER_PROVENANCE,
     accept_source,
     company_approver,
-    historical_owner_appointment,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies

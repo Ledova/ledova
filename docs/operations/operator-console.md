@@ -8,6 +8,13 @@ retires routine platform-staff register gates as replacement company tools are
 implemented. Product-mode selection is already removed; the remaining
 configuration and staff workflows below describe current behaviour.
 
+The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+is the private-company share register and share workflows. Crypto on-ramp
+purchases are optional personal investor activity; company purchases must be
+refused, with the current restriction gap tracked in
+[#920](https://github.com/Ledova/ledova/issues/920). This does not remove company
+share-wallet operations or their authority, execution and recovery safeguards.
+
 The singleton represents the platform operator organisation and its technical
 configuration; staff accounts are individual people working within its granted
 permissions. Neither makes an employee a company-appointed register
@@ -36,6 +43,16 @@ operations officer and the superuser can open the console.
 The model normalizes ABN, BSB and the EVM receiving address. The payment-reference
 prefix is **2–10 letters or digits**, uppercased, leaving room for an eight-character
 code within the 18-character reference limit.
+
+The current operator bank-transfer and stablecoin payment instructions and
+staff-attested subscription receipts remain implementation details. AUD must be
+a valid payment option for share purchases, rather than only a price currency or
+AUDY settlement asset. Company-managed primary payments belong to
+[#868](https://github.com/Ledova/ledova/issues/868); secondary payment and
+settlement work belongs to [#869](https://github.com/Ledova/ledova/issues/869).
+The new rail/provider, verification, reconciliation, refund and secondary
+settlement design are not yet chosen; existing operator settings do not decide
+them or authorise a live service.
 
 Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`. The resolver is `operators/settlement.py`; do not use

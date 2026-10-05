@@ -27,16 +27,21 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review and admin-only outputs. An import can open a register and retain members
-with no wallet, but an imported non-chain class currently accepts neither issue
-nor transfer instructions; publications also require a deployed or paused class.
-Supporting non-paid employee grants and other changes to a non-tokenised register
-therefore needs real ledger/workflow work. A wallet is required only when the
-chosen action uses the chain. A non-chain issue or transfer must record its real
-approved ledger effect, never a fabricated chain completion. Later tokenisation
-must mirror existing authorised holdings without issuing those shares again.
-Unsupported tokenisation and corporate actions
-must stay explicit rather than appear available after a permission change.
+review of openings, links and instructions, and admin-only outputs. Imports and
+corrections are company-run: the company provides the evidence, states an
+import's ASIC figures, and its appointments approve and apply them. Its
+appointments holding `admin` or `approve` also acknowledge reconciliation
+discrepancies. An import can open a register and retain members with no wallet,
+but an imported non-chain class currently accepts neither issue nor transfer
+instructions; publications also require a deployed or paused class. Supporting
+non-paid employee grants and
+other changes to a non-tokenised register therefore needs real ledger/workflow
+work. A wallet is required only when the chosen action uses the chain. A
+non-chain issue or transfer must record its real approved ledger effect, never a
+fabricated chain completion. Later tokenisation must mirror existing authorised
+holdings without issuing those shares again. Unsupported tokenisation and
+corporate actions must stay explicit rather than appear available after a
+permission change.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection
@@ -93,11 +98,12 @@ that waited, still recorded by the transferor, whose signed order is the
 instrument. A transfer the directors decline is not modelled: its settlement
 keeps waiting and stays on the waiting list.
 
-Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
-now bind documentary authority to an exact reversal and register revision.
-Permitted staff review and application commit together, retaining the original
-entry and private evidence. An applied correction changes the stored holdings
-the reads below serve; it performs no chain reconciliation.
+Company-run [compensating corrections](../operations/register-foundation.md#compensating-corrections)
+bind the company's own authority document to an exact reversal and register
+revision. The company's appointments approve and apply them, and application
+commits the entry with its decision, retaining the original entry and private
+evidence. An applied correction changes the stored holdings the reads below
+serve; it performs no chain reconciliation.
 
 ## Membership and identity
 
@@ -434,11 +440,13 @@ Every chain transfer after the opening must be accounted for by a recorded
 effect, a waiting effect or an in-flight platform operation. Holdings and supply
 must equal the stored ones plus those pending movements. Each run is retained as
 `matched`, `discrepant` or `failed`; a chain failure fails the reconciliation,
-never the register. A transfer of zero shares is ignored. Staff can acknowledge
-an investigated divergence, one row at a time with a reason, in an append-only
-record only the operator writes; later runs treat it as explained. The
+never the register. A transfer of zero shares is ignored. A current company
+appointment holding `admin` or `approve` acknowledges an investigated divergence
+through the API, one row of the latest reconciliation at a time with a reason,
+in an append-only record that keeps the earlier staff acknowledgements; later
+runs treat each acknowledged row as explained. The
 [runbook](../operations/register-foundation.md#reconciling-with-the-chain) lists
-the discrepancies and what each asks of an operator.
+the discrepancies and what each asks.
 
 ## Former members
 

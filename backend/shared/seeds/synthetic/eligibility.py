@@ -1,21 +1,19 @@
 from datetime import timedelta
 from uuid import NAMESPACE_URL, uuid5
 
-from django.conf import settings
-from django.db import connections
 from django.db.models import Q
 from django.utils import timezone
 
 from companies.models import (
     CompanyAppointment,
     CompanyCapability,
-    CompanyLegacyOwnerSource,
 )
 from companies.services.authority import DECLARATION_VERSION
 from companies.services.authority_requests import _requester_principal
 from companies.services.team import accept_team_invitation, issue_team_invitation
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.db import use_operator
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.population import _synthetic_accounts, companies
 from users.models import InvestorClassification, InvestorClassificationStatus
 from users.models.company_eligibility import CompanyEligibilityDecisionOutcome
@@ -29,7 +27,6 @@ from users.services.company_eligibility import (
 )
 from users.services.company_eligibility_consumption import company_eligibility
 
-OWNER_PROVENANCE = "synthetic historical company owner"
 DECISION_DAYS = 90
 
 
@@ -37,58 +34,6 @@ def seed_key(operation, *identifiers):
     return uuid5(
         NAMESPACE_URL, "/".join(str(value) for value in ("ledova/synthetic/eligibility", operation, *identifiers))
     )
-
-
-def historical_owner_appointment(company):
-    with use_migrate(), atomic(durable=True):
-        existing = (
-            CompanyAppointment.objects.filter(company=company, appointee=company.owner)
-            .filter(Q(request__isnull=False) | Q(legacy_owner__isnull=False))
-            .first()
-        )
-        if existing is not None:
-            return existing
-        selected_db = connections[current_alias()]
-        with selected_db.cursor() as cursor:
-            cursor.execute("SELECT current_user")
-            if cursor.fetchone()[0] != settings.RLS_ROLES["migrate"]:
-                raise RuntimeError("Synthetic historical owner sources require the configured migration role.")
-            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-            cursor.execute(
-                "ALTER TABLE companies_companylegacyownersource DISABLE TRIGGER companies_legacy_owner_source_identity"
-            )
-            cursor.execute(
-                "ALTER TABLE companies_companyappointment DISABLE TRIGGER companies_initial_appointment_identity"
-            )
-        try:
-            with atomic():
-                profile = company.owner.userprofile
-                source = CompanyLegacyOwnerSource.objects.create(
-                    company=company,
-                    owner=company.owner,
-                    owner_profile=profile,
-                    provenance=OWNER_PROVENANCE,
-                )
-                appointment = CompanyAppointment.objects.create(
-                    company=company,
-                    appointee=company.owner,
-                    appointee_profile=profile,
-                    legacy_owner=source,
-                    capabilities=[CompanyCapability.ADMIN],
-                    delegatable_capabilities=sorted(CompanyCapability.values),
-                )
-                with selected_db.cursor() as cursor:
-                    cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-        finally:
-            with selected_db.cursor() as cursor:
-                cursor.execute(
-                    "ALTER TABLE companies_companylegacyownersource "
-                    "ENABLE TRIGGER companies_legacy_owner_source_identity"
-                )
-                cursor.execute(
-                    "ALTER TABLE companies_companyappointment ENABLE TRIGGER companies_initial_appointment_identity"
-                )
-        return appointment
 
 
 def company_approver(company, actor):

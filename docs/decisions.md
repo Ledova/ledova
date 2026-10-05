@@ -56,6 +56,30 @@ include reading the register. The owner's amendment recorded on #860 also lets
 #864 start before #863 closes, except member-wallet links, which wait until #863
 closes.
 
+For company-run imports the owner decided four more questions the same day
+([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5988960147)).
+Application needs an approval whose approver's appointment is still current;
+otherwise a current approver approves again. An import submitted for the retired
+staff review and still waiting can only be rejected, and the company prepares a
+new one. Evidence uploads that no import uses are kept until production
+retention is decided. Evidence downloads are not logged; that can be added later
+for every register proposal at once.
+
+The owner applied the same rules to company-run corrections the same day
+(recorded on #864 and #860): a current `admin` appointment may take every step
+and `prepare`, `approve` and `apply` are the narrower delegate capabilities, with
+rejection taking `approve`; application needs an approval whose approver still
+holds a current appointment; the company's authority document is company-provided
+evidence with no Ledova staff verification; a correction still waiting for the
+retired staff review can only be rejected; and evidence downloads are not logged.
+
+For reconciliation discrepancies the owner decided the same day
+([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
+that acknowledgement is one company step: a current appointment holding `admin`
+or `approve` acknowledges one specific discrepancy of the latest reconciliation
+with a written reason. There is no Ledova staff step and no second person, and
+#864 adds no new approver-conflict rule.
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose
@@ -171,17 +195,22 @@ same floor and purge; the owner chose that the same day in
 In the same decision, an import of an existing register depends on the class.
 For a class already opened from the chain, it adds particulars and pre-platform
 former members. For a class not yet on chain, it becomes the opening, and later
-tokenising mints mirror it rather than add shares. A staff reviewer enters the
-ASIC extract's issued total and member count, and application refuses a mismatch.
+tokenising mints mirror it rather than add shares. A staff reviewer entered the
+ASIC extract's issued total and member count, and application refused a mismatch;
+since 5 October 2026 the company states them when it prepares the import
+([company-run register authority](#company-run-register-authority-and-evidence)).
 An entry recorded automatically names the person who authorised its change: the
 staff member who approved an issue, or the transferor whose signed order is a
 transfer's instrument, rather than the company owner or a service account that
 took no action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
-A reconciliation divergence that staff have investigated and accepted is
+A reconciliation divergence that has been investigated and accepted is
 acknowledged, one discrepancy at a time with a reason, in an append-only record
-only the operator writes, and later runs treat it as explained, so a share class
-can return to `matched`. Transfers of zero shares are ignored, because anyone
-can emit one. Both were chosen on 22 September 2026 in
+only the operator connection writes, and later runs treat it as explained, so a
+share class can return to `matched`. Staff acknowledged them until 5 October
+2026, when acknowledgement became a company step
+([company-run register authority](#company-run-register-authority-and-evidence)).
+Transfers of zero shares are ignored, because anyone can emit one. Both were
+chosen on 22 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
 The same decision settled two import questions. An applied import's reviewed
 copy and uploaded register file are evidence, kept like opening and correction
@@ -498,6 +527,41 @@ each ballot withheld and read counts in place of readers.
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.
 
+## Registry priority, crypto on-ramp and AUD payments
+
+**Owner decision, 5 October 2026**, supplied directly in the active Codex session
+and recorded in [#860](https://github.com/Ledova/ledova/issues/860#issuecomment-5991923610):
+
+- The core product is the private-company share registry and issuing, managing,
+  transferring and purchasing company shares.
+- Companies must not buy Bitcoin, Ethereum or other cryptocurrencies through
+  Ledova's on-ramp. Only investors in their personal investing capacity may use
+  it; crypto purchasing is optional and is not a core feature.
+- AUD must be a valid payment method for purchasing company shares. AUD
+  offering pricing alone, an AUD-valued deposit or an AUD-denominated
+  stablecoin does not establish direct AUD payment support.
+
+This supersedes the earlier unrestricted Buy crypto availability; its placement
+inside Wallets and the historical delivery record remain retained. Current API
+wallet ownership and both clients' company entry points do not yet enforce the
+new restriction. [#920](https://github.com/Ledova/ledova/issues/920) owns that
+gap. A company appointment or share-operation wallet grants no on-ramp purchase
+permission; authorised company wallet operations remain separate.
+
+The owner has not selected the payment rails/provider, collection, receipt
+verification, reconciliation, refund or secondary AUD settlement mechanics.
+[#868](https://github.com/Ledova/ledova/issues/868) owns primary company/provider
+payment workflows; [#869](https://github.com/Ledova/ledova/issues/869) owns
+secondary payments and settlement. Record those choices for the owner before
+implementation. Core share journeys must not require a crypto on-ramp purchase.
+Preserve existing instructions, payment evidence and the current prefunded
+stablecoin protocol until an authorised replacement or extension lands.
+Receipt, issue authority, execution and register effect remain distinct.
+
+The existing company-managed programme lanes and dependencies are unchanged.
+This decision neither selects a payment integration nor authorises live
+operation or real funds.
+
 ## Payments and settlement
 
 Under the [3 October plan](architecture/company-managed-registers.md#delivery-sequence),
@@ -505,6 +569,12 @@ primary subscription instructions and receipt/refund decisions become company
 or appointed-provider workflows. Existing instruction snapshots are preserved.
 Secondary market prefunding and atomic settlement below remain separate; the
 plan does not turn a payment receipt into authority to issue shares.
+
+The [5 October decision](#registry-priority-crypto-on-ramp-and-aud-payments)
+requires AUD share-payment support while leaving its implementation choices
+open. The prefunding and stablecoin mechanism below describes the current
+experimental secondary protocol; it is not a direct AUD settlement design or a
+requirement to purchase cryptocurrency through the on-ramp.
 
 **A secondary buyer funds before placing an offer** (owner decision, 25 September
 2026, on [#645](https://github.com/Ledova/ledova/issues/645)). Buy-order
@@ -620,6 +690,10 @@ appointments and actions; signup account type alone must not grant company autho
   inside Wallets rather than menu items. The coin-price page and favourites are
   deleted; the Buy crypto step shows the current price. Amounts are in AUD
   everywhere, with no display-currency choice.
+  The [5 October owner decision](#registry-priority-crypto-on-ramp-and-aud-payments)
+  supersedes unrestricted Buy crypto availability: purchases are optional and
+  investor-only; companies must not use the on-ramp to buy cryptocurrency.
+  Sending and authorised company share-wallet operations remain separate.
 - **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product.
 - **Titles in the page.** For page titles the owner chose "Title in the page":

@@ -1,8 +1,9 @@
 import React from 'react';
 import { cleanup, render } from '@testing-library/react-native';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
-import { HomeStackNavigator } from './HomeStackNavigator';
-import { CompanyStackNavigator } from './CompanyStackNavigator';
+import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
+import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
+import { CompanyStackNavigator, type CompanyStackParamList } from './CompanyStackNavigator';
 
 const mockScreens: { name: string; component?: unknown; options?: unknown }[] = [];
 jest.mock('@react-navigation/native-stack', () => ({
@@ -29,6 +30,9 @@ jest.mock('../screens/company-team/CompanyTeamScreen', () => ({ CompanyTeamScree
 jest.mock('../screens/eligibility-records/CompanyEligibilityScreen', () => ({ CompanyEligibilityScreen: () => null }));
 jest.mock('../screens/eligibility-records/ParticipantEligibilityScreen', () => ({
   ParticipantEligibilityScreen: () => null,
+}));
+jest.mock('../screens/company-register/PrepareRegisterImportScreen', () => ({
+  PrepareRegisterImportScreen: () => null,
 }));
 
 afterEach(async () => {
@@ -62,6 +66,19 @@ it.each([HomeStackNavigator, CompanyStackNavigator])(
   },
 );
 
+it.each([HomeStackNavigator, CompanyStackNavigator])(
+  'registers import preparation beside the register with a back action',
+  async (Navigator) => {
+    await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
+    expect(mockScreens.find((screen) => screen.name === 'PrepareRegisterImport')).toEqual(
+      expect.objectContaining({
+        component: PrepareRegisterImportScreen,
+        options: expect.objectContaining({ title: '', headerBackVisible: true }),
+      }),
+    );
+  },
+);
+
 it('registers participant requests in the always reachable Home stack', async () => {
   await render(<HomeStackNavigator onNotifications={jest.fn()} unreadCount={0} />);
   expect(mockScreens.find((screen) => screen.name === 'ParticipantEligibility')).toEqual(
@@ -70,6 +87,13 @@ it('registers participant requests in the always reachable Home stack', async ()
       options: expect.objectContaining({ headerBackVisible: true }),
     }),
   );
+});
+
+it('types the import preparation params alike in both register stacks', () => {
+  const home: HomeStackParamList['PrepareRegisterImport'] = { tokenUuid: 'ordinary', companyUuid: 'paper' };
+  const company: CompanyStackParamList['PrepareRegisterImport'] = home;
+  const back: HomeStackParamList['PrepareRegisterImport'] = company;
+  expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper' });
 });
 
 it('registers the register in Home with a back action and keeps it as the Company tab landing', async () => {

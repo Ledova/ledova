@@ -23,7 +23,7 @@ import apiClient from '@services/apiClient';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
-import { appointmentReceipt, currentAppointment, sameScope, scopeLabels } from './appointments';
+import { appointmentReceipt, currentAppointment, ownAppointmentsKey, sameScope, scopeLabels } from './appointments';
 
 export default function CompanyTeamPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -55,7 +55,7 @@ function OwnTeam({
     )
       throw new Error('Your signed-in account changed. Reopen company team.');
   }, [client, currentOwner, owner]);
-  const ownKey = ['company-appointments', owner.userUuid, owner.ownerAccountUuid];
+  const ownKey = ownAppointmentsKey(owner);
   const invitationKey = ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
   const [company, setCompany] = useState('');
   const [sourceId, setSourceId] = useState('');

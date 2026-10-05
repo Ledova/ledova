@@ -3,23 +3,24 @@ from collections import defaultdict
 from datetime import date
 from uuid import UUID
 
-from django.contrib.auth import get_user_model
-from django.core import signing
+from django.core.files.base import ContentFile
+from django.db import IntegrityError
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import Company, CompanyDocument, DocumentType
-from shared.db import atomic
-from tokens.constants import (
-    REGISTER_IMPORT_ADDRESS_LENGTH,
-    REGISTER_IMPORT_REVIEW_MAX_AGE,
-)
+from companies.models import CompanyCapability
+from companies.services.authority_requests import _requester_principal
+from shared.db import use_operator
+from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     ImportedFormerMember,
     RegisterEntry,
     RegisterEntryKind,
+    RegisterEvidence,
+    RegisterEvidenceKind,
     RegisterImport,
+    RegisterImportDecision,
     RegisterInstruction,
     RegisterMember,
     RegisterMemberParticulars,
@@ -31,23 +32,23 @@ from tokens.models import (
 )
 from tokens.services.former_holders import retention_cutoff
 from tokens.services.register import _member_identity
+from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_evidence import (
+    discard,
+    evidence_snapshot,
+    matching_bytes,
+    own_evidence_bytes,
+)
 from tokens.services.register_instructions import APPROVED
 from tokens.services.register_openings import (
     _authority_values,
-    _check_decision,
-    _check_evidence,
     _check_uninitialized,
-    _completed_decision,
-    _confirm,
     _members_of,
-    _replayed,
-    _retain,
-    _reviewer,
 )
 from whitelist.services.identity import identities_for
 
-SALT = "tokens.register-import"
 MEMBER_FIELDS = {"member", "name", "residential_address", "shares", "entered_on", "amount_paid"}
 FORMER_FIELDS = {"name", "residential_address", "shares", "ceased_on"}
 TEXT_LIMITS = {
@@ -56,6 +57,7 @@ TEXT_LIMITS = {
 }
 SHARE_DIGITS = RegisterPosition._meta.get_field("shares").max_digits
 MONEY = re.compile(r"(0|[1-9][0-9]{0,17})([.][0-9]{1,2})?")
+EVIDENCE_REFUSAL = "Name the share register and the ASIC extract you uploaded for this company."
 
 
 def _text(value, label):
@@ -134,15 +136,6 @@ def _rows(members, former_members, as_at):
     )
 
 
-def _asic_document(company, document_id):
-    document = CompanyDocument.objects.filter(
-        pk=document_id, company=company, document_type=DocumentType.ASIC_EXTRACT, is_verified=True
-    ).first()
-    if document is None or not document.verified_fingerprint:
-        raise ValidationError("Name a staff-verified ASIC extract of this company.")
-    return document
-
-
 def _opening(token):
     return RegisterEntry.objects.filter(register__token=token, kind=RegisterEntryKind.OPENING).first()
 
@@ -179,13 +172,38 @@ def _check_former(former, opening):
             )
 
 
-def submit_import(
+def _stated(asic_issued_total, asic_member_count, current):
+    try:
+        total, count = int(str(asic_issued_total)), int(str(asic_member_count))
+    except (TypeError, ValueError):
+        raise ValidationError("State the ASIC extract's issued total and member count for this class.") from None
+    imported_total = sum(int(row["shares"]) for row in current)
+    if (total, count) != (imported_total, len(current)):
+        raise ValidationError(
+            f"The ASIC extract shows {total} shares held by {count} members; the import has "
+            f"{imported_total} shares held by {len(current)} members."
+        )
+    return total, count
+
+
+def _company_of(actor, token_id):
+    with use_operator(), _requester_principal(actor.pk):
+        company_id = ShareToken.objects.filter(pk=token_id).values_list("company_id", flat=True).first()
+    if company_id is None:
+        raise NotFound("Share class not found.")
+    return company_id
+
+
+def prepare_import(
     *,
     actor,
     operation_id,
+    appointment,
     token_id,
-    document_id,
-    asic_document_id,
+    register_evidence,
+    asic_evidence,
+    asic_issued_total,
+    asic_member_count,
     as_at,
     members,
     former_members,
@@ -194,11 +212,9 @@ def submit_import(
     authority_reference,
     reason,
 ):
-    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
-        raise PermissionDenied("An active company owner must submit the register import.")
     try:
-        operation_id, token_id, document_id, asic_document_id = (
-            UUID(str(value)) for value in (operation_id, token_id, document_id, asic_document_id)
+        operation_id, appointment, token_id, register_evidence, asic_evidence = (
+            UUID(str(value)) for value in (operation_id, appointment, token_id, register_evidence, asic_evidence)
         )
         as_at = date.fromisoformat(str(as_at))
     except (ValueError, TypeError, AttributeError):
@@ -207,63 +223,92 @@ def submit_import(
         raise ValidationError("The register date cannot be in the future.")
     values = _authority_values(authority, approving_director, authority_reference, reason)
     current, former = _rows(members, former_members, as_at)
-    with atomic():
-        token = ShareToken.objects.select_related("company").filter(pk=token_id).first()
-        if token is None:
-            raise NotFound("Share class not found.")
-        company = Company.objects.select_for_update(no_key=True).filter(pk=token.company_id, owner=actor).first()
-        if company is None:
-            raise NotFound("Share class not found.")
-        existing = _replayed(
-            RegisterImport,
-            operation_id,
-            {
-                **values,
-                "token_id": token.pk,
-                "as_at": as_at,
-                "members": current,
-                "former_members": former,
-                "source_document": document_id,
-                "asic_document": asic_document_id,
-                "submitted_by_id": actor.pk,
-            },
-        )
-        if existing:
-            return existing
-        opening = _opening(token)
-        _check_unapplied(token)
-        _check_former(former, opening)
-        if opening is None:
-            _check_openable(token)
-            _members_of(company, current)
-        else:
-            known = set(
-                RegisterMember.objects.filter(company=company, uuid__in=[row["member"] for row in current]).values_list(
-                    "uuid", flat=True
-                )
+    total, count = _stated(asic_issued_total, asic_member_count, current)
+    proposal = None
+    try:
+        with register_command(actor, _company_of(actor, token_id), "register_import_prepare") as (
+            company,
+            current_actor,
+            profile,
+            operator,
+        ):
+            source = register_appointment(
+                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
             )
-            if {row["member"] for row in current} != {str(member) for member in known}:
-                raise ValidationError("Every imported member must already be a member of this company.")
-        if not CompanyDocument.objects.filter(
-            pk=document_id, company=company, document_type=DocumentType.SHARE_REGISTER
-        ).exists():
-            raise ValidationError("The import's evidence must be the company's current share register document.")
-        asic = _asic_document(company, asic_document_id)
-        return _retain(
-            RegisterImport(
+            token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
+            if token is None:
+                raise NotFound("Share class not found.")
+            existing = RegisterImport.objects.filter(pk=operation_id).first()
+            if existing is not None:
+                expected = {
+                    **values,
+                    "company_id": company.pk,
+                    "token_id": token.pk,
+                    "as_at": as_at,
+                    "members": current,
+                    "former_members": former,
+                    "register_evidence_id": register_evidence,
+                    "asic_evidence_id": asic_evidence,
+                    "asic_issued_total": total,
+                    "asic_member_count": count,
+                    "preparing_appointment_id": source.pk,
+                    "submitted_by_id": current_actor.pk,
+                }
+                if any(getattr(existing, key) != value for key, value in expected.items()):
+                    raise RegisterChangeConflict()
+                return existing, False
+            register_copy = RegisterEvidence.objects.select_for_update().filter(pk=register_evidence).first()
+            asic_copy = RegisterEvidence.objects.select_for_update().filter(pk=asic_evidence).first()
+            register_raw = own_evidence_bytes(
+                register_copy, RegisterEvidenceKind.SHARE_REGISTER, company, current_actor, EVIDENCE_REFUSAL
+            )
+            asic_raw = own_evidence_bytes(
+                asic_copy, RegisterEvidenceKind.ASIC_EXTRACT, company, current_actor, EVIDENCE_REFUSAL
+            )
+            opening = _opening(token)
+            _check_unapplied(token)
+            _check_former(former, opening)
+            if opening is None:
+                _check_openable(token)
+                _members_of(company, current)
+            else:
+                known = set(
+                    RegisterMember.objects.filter(
+                        company=company, uuid__in=[row["member"] for row in current]
+                    ).values_list("uuid", flat=True)
+                )
+                if {row["member"] for row in current} != {str(member) for member in known}:
+                    raise ValidationError("Every imported member must already be a member of this company.")
+            proposal = RegisterImport(
                 uuid=operation_id,
                 company=company,
                 token=token,
                 as_at=as_at,
                 members=current,
                 former_members=former,
-                asic_document=asic.pk,
-                asic_fingerprint=asic.verified_fingerprint,
+                preparing_appointment=source,
+                register_evidence=register_copy,
+                asic_evidence=asic_copy,
+                evidence_fingerprint=register_copy.sha256,
+                evidence_snapshot=evidence_snapshot(register_copy),
+                asic_fingerprint=asic_copy.sha256,
+                asic_snapshot=evidence_snapshot(asic_copy),
+                asic_issued_total=total,
+                asic_member_count=count,
+                submitted_by=current_actor,
                 **values,
-            ),
-            document_id,
-            actor,
-        )
+            )
+            proposal.file.save("register.bin", ContentFile(register_raw), save=False)
+            proposal.asic_file.save("asic.bin", ContentFile(asic_raw), save=False)
+            try:
+                proposal.save(force_insert=True)
+            except IntegrityError:
+                raise RegisterChangeConflict() from None
+            return proposal, True
+    except BaseException:
+        if proposal is not None:
+            discard(proposal.file, proposal.asic_file)
+        raise
 
 
 def _holdings(token_id):
@@ -312,51 +357,7 @@ def _review_rows(proposal, comparison):
     return rows
 
 
-def _check_holdings(comparison):
-    differing = [row for row in comparison if row["imported"] != row["stored"]]
-    if differing:
-        raise ValidationError(
-            "The import's holdings differ from the stored register for "
-            + ", ".join(f"{row['member']} (import {row['imported']}, stored {row['stored']})" for row in differing)
-            + ". Reject it and submit an import as at the stored holdings."
-        )
-
-
-def _check_asic(proposal, company):
-    document = _asic_document(company, proposal.asic_document)
-    if document.verified_fingerprint != proposal.asic_fingerprint:
-        raise ValidationError("The ASIC extract changed after submission. Submit a fresh import.")
-
-
-def _preview(proposal, reviewer):
-    return {"proposal": str(proposal.pk), "reviewer": reviewer.pk, "evidence": proposal.evidence_fingerprint}
-
-
-def prepare_import_review(*, proposal_id, reviewer):
-    reviewer = _reviewer(reviewer, RegisterImport)
-    proposal = RegisterImport.objects.select_related("company", "token").get(pk=proposal_id)
-    if proposal.status != "submitted":
-        raise ValidationError("This register import already has a decision.")
-    _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
-    _check_asic(proposal, proposal.company)
-    _check_unapplied(proposal.token)
-    if _opening(proposal.token) is None:
-        _check_openable(proposal.token)
-    comparison = _review_rows(proposal, _comparison(proposal))
-    return proposal, comparison, signing.dumps(_preview(proposal, reviewer), salt=SALT)
-
-
-def _figures(asic_issued_total, asic_member_count):
-    try:
-        total, count = int(str(asic_issued_total)), int(str(asic_member_count))
-    except (TypeError, ValueError):
-        raise ValidationError("Enter the ASIC extract's issued total and member count for this class.") from None
-    if total < 0 or count < 0:
-        raise ValidationError("Enter the ASIC extract's issued total and member count for this class.")
-    return total, count
-
-
-def _open(proposal, token, reviewer):
+def _open(proposal, token, actor):
     _check_openable(token)
     register = _check_uninitialized(token)
     for row in proposal.members:
@@ -367,104 +368,125 @@ def _open(proposal, token, reviewer):
         kind=RegisterEntryKind.OPENING,
         changes=[{"member": row["member"], "shares": row["shares"]} for row in proposal.members],
         effective_on=proposal.as_at,
-        recorded_by=reviewer,
+        recorded_by=actor,
     )
 
 
-def _completed_import(proposal, reviewer, decision, rejection_reason, figures):
-    if figures is not None and figures != (proposal.asic_issued_total, proposal.asic_member_count):
-        raise RegisterChangeConflict()
-    return _completed_decision(proposal, reviewer, decision, rejection_reason)
+def _effect_requirements(proposal):
+    unmet = []
+    try:
+        matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
+        matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)
+    except ValidationError:
+        unmet.append("evidence_unavailable")
+    token = proposal.token
+    if RegisterImport.objects.filter(token=token, status="applied").exists():
+        unmet.append("class_has_applied_import")
+    opening = _opening(token)
+    if opening is None:
+        try:
+            _check_openable(token)
+        except ValidationError:
+            unmet.append("class_not_openable")
+    elif any(row["imported"] != row["stored"] for row in _comparison(proposal)):
+        unmet.append("holdings_differ")
+    cutoff = retention_cutoff()
+    for row in proposal.former_members:
+        ceased_on = date.fromisoformat(row["ceased_on"])
+        if opening is not None and ceased_on >= opening.effective_on:
+            unmet.append("former_member_after_opening")
+        if ceased_on < cutoff:
+            unmet.append("former_member_before_retention")
+    return unmet
 
 
-def decide_import(
-    *,
-    proposal_id,
-    reviewer,
-    confirmation,
-    decision,
-    rejection_reason="",
-    asic_issued_total=None,
-    asic_member_count=None,
-):
-    reviewer = _reviewer(reviewer, RegisterImport)
-    _check_decision(decision, rejection_reason)
-    figures = _figures(asic_issued_total, asic_member_count) if decision == "apply" else None
-    initial = RegisterImport.objects.get(pk=proposal_id)
-    if initial.status != "submitted":
-        return _completed_import(initial, reviewer, decision, rejection_reason, figures)
-    with atomic():
-        company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
-        token = ShareToken.objects.select_for_update().get(pk=initial.token_id)
-        document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
-        proposal = RegisterImport.objects.select_for_update().get(pk=proposal_id)
-        if proposal.status != "submitted":
-            return _completed_import(proposal, reviewer, decision, rejection_reason, figures)
-        if decision == "apply":
-            _confirm(confirmation, SALT, REGISTER_IMPORT_REVIEW_MAX_AGE, _preview(proposal, reviewer))
-            _check_evidence(proposal, company, document)
-            _check_asic(proposal, company)
-            _check_unapplied(token)
-            total, count = figures
-            imported_total = sum(int(row["shares"]) for row in proposal.members)
-            if (total, count) != (imported_total, len(proposal.members)):
-                raise ValidationError(
-                    f"The ASIC extract shows {total} shares held by {count} members; the import has "
-                    f"{imported_total} shares held by {len(proposal.members)} members."
-                )
-            opening = _opening(token)
-            _check_former(proposal.former_members, opening)
-            if opening is None:
-                _open(proposal, token, reviewer)
-            else:
-                _check_holdings(_comparison(proposal))
-            newer = {
-                str(member)
-                for member in RegisterMemberParticulars.objects.filter(
-                    member_id__in=[row["member"] for row in proposal.members], source_import__as_at__gt=proposal.as_at
-                ).values_list("member_id", flat=True)
-            }
-            for row in proposal.members:
-                if row["member"] in newer:
-                    continue
-                RegisterMemberParticulars.objects.update_or_create(
-                    member_id=row["member"],
-                    defaults={
-                        "name": row["name"],
-                        "residential_address": row["residential_address"],
-                        "source_import": proposal,
-                    },
-                )
-            ImportedFormerMember.objects.bulk_create(
-                ImportedFormerMember(
-                    token=token,
-                    name=row["name"],
-                    residential_address=row["residential_address"],
-                    shares_at_cessation=row["shares"],
-                    ceased_on=row["ceased_on"],
-                    source_import=proposal,
-                )
-                for row in proposal.former_members
-            )
-            proposal.status = "applied"
-            proposal.asic_issued_total = total
-            proposal.asic_member_count = count
-            proposal.register_sequence = ShareRegister.objects.get(token=token).sequence
-        else:
-            proposal.status = "rejected"
-            proposal.rejection_reason = rejection_reason
-        proposal.reviewed_by = reviewer
-        proposal.reviewed_at = timezone.now()
-        proposal.save(
-            update_fields=[
-                "status",
-                "reviewed_by",
-                "reviewed_at",
-                "rejection_reason",
-                "asic_issued_total",
-                "asic_member_count",
-                "register_sequence",
-                "updated_at",
-            ]
+def _details(proposal):
+    register = ShareRegister.objects.filter(token_id=proposal.token_id).first()
+    imported_total = sum(int(row["shares"]) for row in proposal.members)
+    return {
+        "opens_register": _opening(proposal.token) is None,
+        "register_sequence": register.sequence if register is not None else 0,
+        "comparison": _review_rows(proposal, _comparison(proposal)),
+        "stated_total": None if proposal.asic_issued_total is None else str(proposal.asic_issued_total),
+        "stated_member_count": proposal.asic_member_count,
+        "imported_total": str(imported_total),
+        "imported_member_count": len(proposal.members),
+    }
+
+
+def _lock(proposal):
+    token = ShareToken.objects.select_for_update().get(pk=proposal.token_id)
+    list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
+    return RegisterImport.objects.select_for_update().get(pk=proposal.pk)
+
+
+def _apply(proposal, actor, decision):
+    token = proposal.token
+    if _opening(token) is None:
+        _open(proposal, token, actor)
+    newer = {
+        str(member)
+        for member in RegisterMemberParticulars.objects.filter(
+            member_id__in=[row["member"] for row in proposal.members], source_import__as_at__gt=proposal.as_at
+        ).values_list("member_id", flat=True)
+    }
+    for row in proposal.members:
+        if row["member"] in newer:
+            continue
+        RegisterMemberParticulars.objects.update_or_create(
+            member_id=row["member"],
+            defaults={
+                "name": row["name"],
+                "residential_address": row["residential_address"],
+                "source_import": proposal,
+            },
         )
-        return proposal
+    ImportedFormerMember.objects.bulk_create(
+        ImportedFormerMember(
+            token=token,
+            name=row["name"],
+            residential_address=row["residential_address"],
+            shares_at_cessation=row["shares"],
+            ceased_on=row["ceased_on"],
+            source_import=proposal,
+        )
+        for row in proposal.former_members
+    )
+    proposal.status = "applied"
+    proposal.register_sequence = ShareRegister.objects.get(token=token).sequence
+    proposal.reviewed_by = actor
+    proposal.reviewed_at = decision.decided_at
+    proposal.save(update_fields=["status", "register_sequence", "reviewed_by", "reviewed_at", "updated_at"])
+
+
+IMPORTS = DecisionFamily(
+    model=RegisterImport,
+    decision_model=RegisterImportDecision,
+    field="register_import",
+    operation="register_import",
+    approved_function="tokens_register_import_approved",
+    digest_function="tokens_register_import_decision_digest",
+    effect_requirements=_effect_requirements,
+    lock=_lock,
+    apply=_apply,
+)
+
+
+def preview_import_decision(*, actor, import_id, appointment, kind, reason=""):
+    return preview(
+        IMPORTS, _details, actor=actor, proposal_id=import_id, appointment=appointment, kind=kind, reason=reason
+    )
+
+
+def decide_import(*, actor, import_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
+    return decide(
+        IMPORTS,
+        actor=actor,
+        proposal_id=import_id,
+        appointment=appointment,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        preview_digest=preview_digest,
+        confirmation=confirmation,
+        reason=reason,
+    )

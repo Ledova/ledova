@@ -52,6 +52,7 @@ from tokens.models import (
     PauseChange,
     RegisterAcknowledgement,
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterInstruction,
     RegisterReconciliation,
@@ -66,11 +67,7 @@ from tokens.models import (
 from tokens.models.choices import TransferOrderType
 from tokens.services.company_pack import COMPILER, produce_company_pack
 from tokens.services.register import REGISTER_HEADERS, export_rows, months_after
-from tokens.services.register_corrections import (
-    decide_correction,
-    prepare_correction_review,
-    submit_correction,
-)
+from tokens.services.register_corrections import prepare_correction
 from tokens.services.register_events import open_register, record_entry
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -82,14 +79,20 @@ from tokens.services.register_openings import (
     prepare_link_review,
     submit_link,
 )
+from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.services.settlement_context import configured_domain
+from tokens.tests.test_register_acknowledgement_authority import (
+    staff_era_acknowledgement,
+)
 from tokens.tests.test_register_certificates import (
     entered,
     member_of,
     unused_address,
     wallet_of,
 )
+from tokens.tests.test_register_corrections import decide
 from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.test_register_imports import owner_appointment, upload_evidence
 from tokens.tests.test_register_workflow_events import (
     SETTLEMENT,
     SettledTransferFixtures,
@@ -111,6 +114,8 @@ RECORDED_AT = datetime(2026, 9, 21, 4, 5, 6, tzinfo=utc_zone.utc)
 LAPSED_AT = datetime(2026, 9, 1, tzinfo=utc_zone.utc)
 PAYMENT_DUE_AT = datetime(2026, 9, 30, 6, 0, tzinfo=utc_zone.utc)
 RENEWED_UNTIL = datetime(2027, 3, 1, tzinfo=utc_zone.utc)
+SUPPLY_DISCREPANCY = {"kind": "supply", "chain": "190", "expected": "175"}
+OUTSIDE_TRANSFER = {"kind": "unrecognised_transfer", "transaction": "0x" + "ce" * 32, "block": 118}
 INSTRUCTION = "SYNTHETIC-PACK-INSTRUCTION-1"
 RECIPIENT = "Synthetic Successor Registry Pty Ltd"
 OPERATOR = "0x" + "0e" * 20
@@ -132,8 +137,6 @@ CLASS_FILES = (
 SUBJECTS = ("allotment", "correction", "link")
 REVIEW_PERMISSIONS = (
     "change_companydocument",
-    "change_registercorrection",
-    "view_registercorrection",
     "change_registerinstruction",
     "view_registerinstruction",
     "change_registerwalletlink",
@@ -312,18 +315,29 @@ def awaiting_subscriptions(tenant, addresses, reviewer, label):
     return subscriptions
 
 
-def corrected(register, issue, reviewer, document, label):
-    proposal = submit_correction(
-        actor=register.company.owner,
+def effect_checked(mode):
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(f"SET CONSTRAINTS tokens_register_correction_decision_effect {mode}")
+
+
+def corrected(register, issue, label):
+    owner = register.company.owner
+    appointment = owner_appointment(register.company)
+    evidence = upload_evidence(owner, appointment, RegisterEvidenceKind.AUTHORITY, raw=evidence_of(label))
+    proposal, _ = prepare_correction(
+        actor=owner,
         operation_id=uuid4(),
+        appointment=appointment.pk,
         corrects_id=issue.pk,
-        document_id=document.pk,
+        authority_evidence=evidence.pk,
         effective_on=DAY,
         authority="director_resolution",
         **authority_terms(label, "correction"),
     )
-    _, confirmation = prepare_correction_review(proposal_id=proposal.pk, reviewer=reviewer)
-    return decide_correction(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+    effect_checked("IMMEDIATE")
+    decide(owner, appointment, proposal, "approve")
+    effect_checked("DEFERRED")
+    return decide(owner, appointment, proposal, "apply")
 
 
 def linked(company, member, reviewer, document, label):
@@ -394,22 +408,23 @@ def approval_change(company, registry, holder, reviewer):
     return WhitelistChange.objects.get(pk=change.pk)
 
 
-def reconciled(token, reviewer, label):
-    discrepancy = {"kind": "supply", "chain": "190", "expected": "175"}
+def reconciled(company, token, reviewer, label):
     record = RegisterReconciliation.objects.create(
         token=token,
         status="discrepant",
         block_number=120,
         block_hash="0x" + "cd" * 32,
         register_sequence=4,
-        discrepancies=[discrepancy],
+        discrepancies=[SUPPLY_DISCREPANCY, OUTSIDE_TRANSFER],
     )
-    RegisterAcknowledgement.objects.create(
-        token_id=token.pk,
-        reconciliation=record,
-        discrepancy=discrepancy,
+    staff_era_acknowledgement(record, 1, f"Synthetic {label} transfer acknowledged by staff", reviewer)
+    acknowledge_discrepancy(
+        actor=company.owner,
+        reconciliation_id=record.pk,
+        appointment=owner_appointment(company).pk,
+        discrepancy=0,
         reason=f"Synthetic {label} supply acknowledged",
-        acknowledged_by_id=reviewer.pk,
+        idempotency_key=uuid4(),
     )
     return record
 
@@ -482,7 +497,7 @@ def pack_company(label):
         effective_on=DAY,
         recorded_by=company.owner,
     )
-    correction = corrected(register, issue, reviewer, document, label)
+    correction = corrected(register, issue, label)
     link = linked(company, members["holder"], reviewer, document, label)
     former = unused_address()
     FormerHolder.objects.create(
@@ -525,7 +540,7 @@ def pack_company(label):
         increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
         pause=paused(company, ordinary),
         change=approval_change(company, registry, addresses["holder"], reviewer),
-        reconciliation=reconciled(ordinary, reviewer, label),
+        reconciliation=reconciled(company, ordinary, reviewer, label),
     )
 
 
@@ -552,6 +567,7 @@ def records_of(fixture):
             f"Synthetic {fixture.label} reviewer",
             f"Synthetic {fixture.label} director",
             f"Synthetic {fixture.label} supply acknowledged",
+            f"Synthetic {fixture.label} transfer acknowledged by staff",
             *(authority_terms(fixture.label, subject)["authority_reference"] for subject in SUBJECTS),
             sha256(evidence_of(fixture.label)),
             fixture.document.pk,
@@ -1297,6 +1313,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
     def test_the_authority_file_carries_each_decision_with_its_director_reviewer_and_evidence_digest(self):
         correction, instruction = self.a.correction, self.a.allotment.instruction
         entries = self.read("entries.json", self.a.ordinary)
+        content = evidence_of("pack-a")
 
         self.assertEqual(
             self.read("authority.json", self.a.ordinary),
@@ -1304,16 +1321,38 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                 "openings": [],
                 "imports": [],
                 "corrections": [
-                    self.decided(
-                        correction,
-                        "correction",
-                        corrects=str(self.a.issue.pk),
-                        effective_on=DAY.isoformat(),
-                        changes=[{"member": str(self.a.members["allottee"].pk), "shares": "-25"}],
-                        base_sequence=3,
-                        base_hash=entries[2]["entry_hash"],
-                        entry=entries[3]["uuid"],
-                    )
+                    {
+                        **self.decided(
+                            correction,
+                            "correction",
+                            corrects=str(self.a.issue.pk),
+                            effective_on=DAY.isoformat(),
+                            changes=[{"member": str(self.a.members["allottee"].pk), "shares": "-25"}],
+                            base_sequence=3,
+                            base_hash=entries[2]["entry_hash"],
+                            provided_by="company",
+                            decisions=[
+                                {
+                                    "kind": decision.kind,
+                                    "decided_by": "pack-a owner",
+                                    "decided_at": decision.decided_at.isoformat(),
+                                    "reason": "",
+                                }
+                                for decision in correction.decisions.order_by("decided_at", "uuid")
+                            ],
+                            entry=entries[3]["uuid"],
+                        ),
+                        "evidence": {
+                            "document": None,
+                            "document_type": "authority",
+                            "name": "authority.pdf",
+                            "mime_type": "application/pdf",
+                            "size": len(content),
+                            "sha256": sha256(content),
+                            "path": f"documents/evidence/registercorrection/{correction.pk}.pdf",
+                        },
+                        "reviewer": "pack-a owner",
+                    }
                 ],
                 "instructions": [
                     self.decided(
@@ -1334,6 +1373,13 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         self.assertEqual(
             (entries[3]["kind"], entries[3]["operation_id"], entries[3]["corrects"]),
             ("correction", str(correction.pk), str(self.a.issue.pk)),
+        )
+        self.assertEqual(
+            [
+                decision["kind"]
+                for decision in self.read("authority.json", self.a.ordinary)["corrections"][0]["decisions"]
+            ],
+            ["approve", "apply"],
         )
         self.assertEqual(
             self.read("authority.json", self.a.preference),
@@ -1587,8 +1633,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
 
     def test_the_reconciliations_file_carries_each_comparison_its_discrepancies_and_acknowledgements(self):
         record = self.a.reconciliation
-        acknowledgement = RegisterAcknowledgement.objects.get(reconciliation=record)
-        discrepancy = {"kind": "supply", "chain": "190", "expected": "175"}
+        staff_era, company_run = RegisterAcknowledgement.objects.filter(reconciliation=record).order_by("created_at")
 
         self.assertEqual(
             self.read("reconciliations.json", self.a.ordinary),
@@ -1600,14 +1645,23 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                     "block_number": 120,
                     "block_hash": "0x" + "cd" * 32,
                     "register_sequence": 4,
-                    "discrepancies": [discrepancy],
+                    "discrepancies": [SUPPLY_DISCREPANCY, OUTSIDE_TRANSFER],
                     "failure": "",
                     "acknowledgements": [
                         {
-                            "discrepancy": discrepancy,
+                            "discrepancy": OUTSIDE_TRANSFER,
+                            "reason": "Synthetic pack-a transfer acknowledged by staff",
+                            "acknowledged_by": "Synthetic pack-a reviewer",
+                            "acknowledged_at": staff_era.created_at.isoformat(),
+                            "provided_by": "staff",
+                        },
+                        {
+                            "discrepancy": SUPPLY_DISCREPANCY,
                             "reason": "Synthetic pack-a supply acknowledged",
-                            "acknowledged_at": acknowledgement.created_at.isoformat(),
-                        }
+                            "acknowledged_by": "pack-a owner",
+                            "acknowledged_at": company_run.created_at.isoformat(),
+                            "provided_by": "company",
+                        },
                     ],
                 }
             ],
