@@ -23,6 +23,7 @@ export function ClassImports({
   const imports = useRegisterImports(epoch, company, register.token.uuid);
   const { appointments, steps } = useImportAppointments(epoch, company);
   const settle = () => Promise.all([imports.refetch(), refreshHolders()]);
+  const refused = () => Promise.all([imports.refetch(), refreshHolders(), appointments.refetch()]);
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
@@ -78,7 +79,7 @@ export function ClassImports({
                 steps={steps}
                 last={index === imports.data.length - 1}
                 onSettled={settle}
-                onStale={appointments.refetch}
+                onRefused={refused}
               />
             ))
           )}

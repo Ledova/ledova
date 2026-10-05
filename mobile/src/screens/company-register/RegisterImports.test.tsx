@@ -601,7 +601,7 @@ it('leaves the cached history unchanged when a decision receipt cannot be confir
   expect(client.getQueryState(key)).toEqual(cached);
 });
 
-it('retries an interrupted decision under its key and takes a new key once the preview changes', async () => {
+it('retries an interrupted decision under its key, without rereading appointments, until the preview changes', async () => {
   post
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockRejectedValueOnce(new Error('Network Error'))
@@ -610,6 +610,7 @@ it('retries an interrupted decision under its key and takes a new key once the p
     .mockResolvedValueOnce({ data: { ...PREVIEW, previewDigest: 'b'.repeat(64) } })
     .mockRejectedValueOnce(new Error('Network Error'));
   const view = await openClass();
+  const appointmentReads = reads(APPOINTMENTS);
   const decide = () => post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_DECIDE('import-new'));
   for (let attempt = 0; attempt < 3; attempt++) {
     await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
@@ -624,6 +625,7 @@ it('retries an interrupted decision under its key and takes a new key once the p
     KEY(2),
   ]);
   expect((decide()[2][1] as { previewDigest: string }).previewDigest).toBe('b'.repeat(64));
+  expect(reads(APPOINTMENTS)).toBe(appointmentReads);
 });
 
 it('drops an open decision when the session changes and ignores its late answer', async () => {

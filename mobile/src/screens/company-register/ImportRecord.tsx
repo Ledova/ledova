@@ -89,14 +89,14 @@ export function ImportRecord({
   steps,
   last,
   onSettled,
-  onStale,
+  onRefused,
 }: {
   proposal: RegisterImport;
   epoch: number;
   steps?: Record<RegisterImportStep, OwnCompanyAppointment | undefined>;
   last: boolean;
   onSettled: () => Promise<unknown>;
-  onStale: () => Promise<unknown>;
+  onRefused: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
   const totals = registerImportTotals(proposal.members);
@@ -151,7 +151,7 @@ export function ImportRecord({
                   epoch={epoch}
                   description={description}
                   onSettled={onSettled}
-                  onStale={onStale}
+                  onRefused={onRefused}
                 />
               )
             );

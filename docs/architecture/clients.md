@@ -112,10 +112,10 @@ except where the person's appointments are read. On mobile, each decision opens
 in a dialog, Prepare an import opens a form in the same stack, and the retained
 register document and ASIC extract open through the session-bound document copy.
 Register reads the person's appointments itself rather than through Company
-team's cache: a revocation on Company team or Representative authority, pull to
-refresh, and any preview or decision that fails read them again. The import and
-appointment reads and every upload, preview, decision and preparation are bound
-to the session the screen opened under.
+team's cache, and reads them again after a revocation on Company team or
+Representative authority, a pull to refresh, or a decision or preview the server
+refuses. The import and appointment reads and every upload, preview, decision
+and preparation are bound to the session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
 register access. A class
 opens its register and request histories, deployment and share request actions.
