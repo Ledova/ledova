@@ -21,7 +21,7 @@ from companies.services.team import (
 )
 from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
@@ -33,13 +33,16 @@ from tokens.models import (
     RegisterOpening,
     RegisterOpeningDecision,
     ShareRegister,
+    ShareToken,
 )
+from tokens.services import register_openings
 from tokens.services.register_authority import APPOINTMENT_NOT_FOUND
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import evidence_snapshot
 from tokens.services.register_openings import decide_opening, prepare_opening
 from tokens.tests.evidence_fixtures import staff_user, upload_evidence
 from tokens.tests.test_register_access import person
+from tokens.tests.test_register_acknowledgement_authority import locked
 from tokens.tests.test_register_corrections import correction_fixture
 from tokens.tests.test_register_import_authority import AppointsTeam
 from tokens.tests.test_register_openings import (
@@ -123,6 +126,40 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
         proposal = self.prepared_by_the_owner()
         decide(self.owner, self.administrator, proposal, "approve")
         self.assertEqual(decide(self.owner, self.administrator, proposal, "apply").status, "applied")
+
+    def test_the_chain_is_read_only_outside_transactions(self):
+        held = []
+        read = self.node.block
+
+        def recording(identifier):
+            held.append(any(connections[alias].in_atomic_block for alias in connections))
+            return read(identifier)
+
+        self.node.client.w3.eth.get_block.side_effect = recording
+        proposal = self.prepared_by_the_owner()
+        reads = [len(held)]
+        for kind in ("approve", "apply"):
+            decide(self.owner, self.administrator, proposal, kind)
+            reads.append(len(held))
+        self.assertTrue(0 < reads[0] < reads[1] < reads[2], reads)
+        self.assertNotIn(True, held)
+
+    def test_an_application_is_recorded_under_the_company_and_share_class_locks(self):
+        probe = connections[MIGRATE_ALIAS].copy(alias="opening-lock-probe")
+        self.addCleanup(probe.close)
+        proposal = self.prepared_by_the_owner()
+        decide(self.owner, self.administrator, proposal, "approve")
+        check = register_openings._check_uninitialized
+        observed = []
+
+        def probed(token):
+            observed.append(locked(probe, self.company, self.tenant.token))
+            return check(token)
+
+        with patch.object(register_openings, "_check_uninitialized", side_effect=probed):
+            self.assertEqual(decide(self.owner, self.administrator, proposal, "apply").status, "applied")
+        self.assertEqual(observed, [(True, True)])
+        self.assertEqual(locked(probe, self.company, self.tenant.token), (False, False))
 
     def test_appointments_without_preparation_and_platform_roles_prepare_nothing(self):
         reader, reading_appointment = self.appoint([CompanyCapability.READ_REGISTER])
@@ -334,10 +371,15 @@ class RegisterOpeningAuthorityTest(OpeningAuthorityFixture, StubUploadDependenci
         self.assertEqual((first.pk, created, again.pk, repeated), (first.pk, True, first.pk, False))
         preparer, preparing = self.appoint([CompanyCapability.PREPARE])
         other = upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.AUTHORITY)
+        with use_migrate():
+            other_class = ShareToken.objects.create(
+                company=self.company, name="Synthetic preference shares", symbol="OPNP", total_supply="1000"
+            )
         for actor, changes in (
             (self.owner, {"reason": "Changed"}),
             (self.owner, {"authority": "court_order", "approving_director": ""}),
             (self.owner, {"authority_evidence": other.pk}),
+            (self.owner, {"token_id": other_class.pk}),
             (self.owner, {"mapping": [{**payload["mapping"][0], "member": str(uuid4())}, payload["mapping"][1]]}),
             (preparer, {"appointment": preparing.pk}),
         ):

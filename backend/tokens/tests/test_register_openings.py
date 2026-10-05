@@ -476,6 +476,9 @@ class RegisterOpeningTest(TransactionTestCase):
         with self.assertRaisesMessage(ValidationError, "boundary_changed"):
             self.decide(proposal, "approve")
         orphaned["hash"] = boundary["block"]["hash"]
+        self.node.client.assert_expected_chain.return_value = CHAIN_ID + 1
+        self.assertEqual(self.unmet(proposal, "approve"), ["boundary_changed"])
+        self.node.client.assert_expected_chain.return_value = CHAIN_ID
         self.decide(proposal, "approve")
         with self.settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 1}}):
             self.assertEqual(self.unmet(proposal), ["boundary_changed"])
@@ -1008,6 +1011,7 @@ class RegisterOpeningApiTest(APITransactionTestCase):
         self.assertEqual(self.client.delete(detail).status_code, 405)
         for query, expected in (
             ({"company": str(self.tenant.company.pk)}, [row["uuid"]]),
+            ({"company": str(uuid4())}, []),
             ({"token": str(self.tenant.token.pk)}, [row["uuid"]]),
             ({"token": str(uuid4())}, []),
             ({"status": "submitted"}, [row["uuid"]]),
@@ -1049,7 +1053,8 @@ class RegisterOpeningMigrationTest(TransactionTestCase):
     def configured(self):
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(self.GUARDS)]
+                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
+                [list(self.GUARDS + self.FUNCTIONS)],
             )
             return cursor.fetchall()
 
@@ -1075,7 +1080,7 @@ class RegisterOpeningMigrationTest(TransactionTestCase):
         self.addCleanup(restore_every_migration)
         previous = ("tokens", "0087_company_discrepancy_acknowledgements")
         company_run, closed, pinned = self.installed(), self.insert_policy(), self.configured()
-        self.assertEqual(pinned, [(name, self.PINNED) for name in sorted(self.GUARDS)])
+        self.assertEqual(pinned, [(name, self.PINNED) for name in sorted(self.GUARDS + self.FUNCTIONS)])
         self.assertIn("tokens_registeropeningdecision", dict(company_run)["tokens_guard_register_opening"])
         self.assertNotIn("TG_OP <> 'UPDATE'", dict(company_run)["tokens_guard_register_opening_history"])
         self.assertNotIn("submitted_by_id", closed)
