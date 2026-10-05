@@ -16,6 +16,14 @@ sets out their replacement with company-scoped authority and self-service.
 The [product page](docs/product.md) distinguishes this direction from the
 features currently available in each client.
 
+The core is the private-company share registry and issuing, managing,
+transferring and purchasing company shares. Crypto purchases through the
+on-ramp are optional investor functionality; companies must not use it to buy
+Bitcoin, Ethereum or other cryptocurrencies. AUD is a required share-payment
+method, with payment mechanics still to be decided. The
+[5 October product decision](docs/decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+records the current enforcement and payment gaps separately from these rules.
+
 > **Experimental and unaudited.** Use only synthetic data on a local development
 > chain or supported public testnet. Ledova is not production ready and must not
 > be used with real funds, securities, companies, identities, wallets or personal

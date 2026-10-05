@@ -14,6 +14,16 @@ participants follows the [regulatory pathway](../regulatory-pathway.md).
 
 ## Company register decisions alongside trading
 
+[Share purchases must support AUD payment](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments).
+The current secondary protocol requires pre-funded wallets and a configured
+stablecoin settlement asset; an AUD price or AUDY balance does not deliver a
+direct AUD payment method. [#869](https://github.com/Ledova/ledova/issues/869)
+tracks the secondary payment and settlement design, which remains undecided.
+Preserve the protocol below until that design is selected and implemented;
+optional personal investor on-ramp purchases must not become a prerequisite for
+share purchases. Company share-wallet approval, transfer decisions and register
+actions remain separate from the ban on company crypto on-ramp purchases.
+
 The [company-managed plan](company-managed-registers.md#required-self-service-workflows)
 replaces routine staff review/application of the company's transfer instruction
 with company-capability decisions. Preserve director conflicts, exact settlement

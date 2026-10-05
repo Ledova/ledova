@@ -12,19 +12,33 @@ import {
 import { useRole } from '@hooks/useRole';
 import apiClient from '@services/apiClient';
 
-const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
+export const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
 
-function registerKey(owner: OrderSubmissionOwner | null) {
+export function registerKey(owner: OrderSubmissionOwner | null) {
   return ['tokens', 'register', owner?.userUuid, owner?.ownerAccountUuid];
 }
 
-export function useCompanyRegister(owner: OrderSubmissionOwner) {
-  const [selected, setSelected] = useState('');
-  const classes = useQuery({
+export function useRegisterClasses(owner: OrderSubmissionOwner) {
+  return useQuery({
     queryKey: [...registerKey(owner), 'classes'],
     queryFn: () => readEveryPage((page) => getRegisterClasses(apiClient, { page })),
     ...READ_TIMING,
   });
+}
+
+export async function readRegister(uuid: string) {
+  const { data: register } = await getCompanyTokenHolders(apiClient, uuid);
+  const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
+  if (register.issuedSupply !== null) quantities.push(register.issuedSupply);
+  if (register.token.uuid !== uuid || quantities.some((value) => !/^\d+$/.test(value))) {
+    throw new Error('Register did not identify exact share quantities for this class');
+  }
+  return register;
+}
+
+export function useCompanyRegister(owner: OrderSubmissionOwner) {
+  const [selected, setSelected] = useState('');
+  const classes = useRegisterClasses(owner);
   const listed = classes.data ?? [];
   const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
     ([uuid, name]) => ({ uuid, name }),
@@ -34,18 +48,7 @@ export function useCompanyRegister(owner: OrderSubmissionOwner) {
   const registers = useQuery({
     queryKey: [...registerKey(owner), 'holders', ...uuids],
     enabled: uuids.length > 0,
-    queryFn: () =>
-      Promise.all(
-        uuids.map(async (uuid) => {
-          const { data: register } = await getCompanyTokenHolders(apiClient, uuid);
-          const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
-          if (register.issuedSupply !== null) quantities.push(register.issuedSupply);
-          if (register.token.uuid !== uuid || quantities.some((value) => !/^\d+$/.test(value))) {
-            throw new Error('Register did not identify exact share quantities for this class');
-          }
-          return register;
-        }),
-      ),
+    queryFn: () => Promise.all(uuids.map(readRegister)),
     ...READ_TIMING,
   });
   return { classes, companies, company, selectCompany: setSelected, registers };
@@ -63,6 +66,17 @@ export function useRegisterEntry() {
   return access.isSuccess && access.data;
 }
 
+export function saveFile(data: Blob, name: string) {
+  const url = URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function useRegisterDownload(uuid: string, symbol: string | undefined) {
   const { owner, boundary } = useSubmissionOwner();
   return useMutation({
@@ -74,14 +88,7 @@ export function useRegisterDownload(uuid: string, symbol: string | undefined) {
       guard();
       const { data } = await downloadTokenRegister(apiClient, uuid);
       guard();
-      const url = URL.createObjectURL(data);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `register-${symbol ?? uuid}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      saveFile(data, `register-${symbol ?? uuid}.csv`);
     },
   });
 }

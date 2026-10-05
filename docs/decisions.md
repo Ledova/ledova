@@ -517,6 +517,41 @@ each ballot withheld and read counts in place of readers.
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.
 
+## Registry priority, crypto on-ramp and AUD payments
+
+**Owner decision, 5 October 2026**, supplied directly in the active Codex session
+and recorded in [#860](https://github.com/Ledova/ledova/issues/860#issuecomment-5991923610):
+
+- The core product is the private-company share registry and issuing, managing,
+  transferring and purchasing company shares.
+- Companies must not buy Bitcoin, Ethereum or other cryptocurrencies through
+  Ledova's on-ramp. Only investors in their personal investing capacity may use
+  it; crypto purchasing is optional and is not a core feature.
+- AUD must be a valid payment method for purchasing company shares. AUD
+  offering pricing alone, an AUD-valued deposit or an AUD-denominated
+  stablecoin does not establish direct AUD payment support.
+
+This supersedes the earlier unrestricted Buy crypto availability; its placement
+inside Wallets and the historical delivery record remain retained. Current API
+wallet ownership and both clients' company entry points do not yet enforce the
+new restriction. [#920](https://github.com/Ledova/ledova/issues/920) owns that
+gap. A company appointment or share-operation wallet grants no on-ramp purchase
+permission; authorised company wallet operations remain separate.
+
+The owner has not selected the payment rails/provider, collection, receipt
+verification, reconciliation, refund or secondary AUD settlement mechanics.
+[#868](https://github.com/Ledova/ledova/issues/868) owns primary company/provider
+payment workflows; [#869](https://github.com/Ledova/ledova/issues/869) owns
+secondary payments and settlement. Record those choices for the owner before
+implementation. Core share journeys must not require a crypto on-ramp purchase.
+Preserve existing instructions, payment evidence and the current prefunded
+stablecoin protocol until an authorised replacement or extension lands.
+Receipt, issue authority, execution and register effect remain distinct.
+
+The existing company-managed programme lanes and dependencies are unchanged.
+This decision neither selects a payment integration nor authorises live
+operation or real funds.
+
 ## Payments and settlement
 
 Under the [3 October plan](architecture/company-managed-registers.md#delivery-sequence),
@@ -524,6 +559,12 @@ primary subscription instructions and receipt/refund decisions become company
 or appointed-provider workflows. Existing instruction snapshots are preserved.
 Secondary market prefunding and atomic settlement below remain separate; the
 plan does not turn a payment receipt into authority to issue shares.
+
+The [5 October decision](#registry-priority-crypto-on-ramp-and-aud-payments)
+requires AUD share-payment support while leaving its implementation choices
+open. The prefunding and stablecoin mechanism below describes the current
+experimental secondary protocol; it is not a direct AUD settlement design or a
+requirement to purchase cryptocurrency through the on-ramp.
 
 **A secondary buyer funds before placing an offer** (owner decision, 25 September
 2026, on [#645](https://github.com/Ledova/ledova/issues/645)). Buy-order
@@ -639,6 +680,10 @@ appointments and actions; signup account type alone must not grant company autho
   inside Wallets rather than menu items. The coin-price page and favourites are
   deleted; the Buy crypto step shows the current price. Amounts are in AUD
   everywhere, with no display-currency choice.
+  The [5 October owner decision](#registry-priority-crypto-on-ramp-and-aud-payments)
+  supersedes unrestricted Buy crypto availability: purchases are optional and
+  investor-only; companies must not use the on-ramp to buy cryptocurrency.
+  Sending and authorised company share-wallet operations remain separate.
 - **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product.
 - **Titles in the page.** For page titles the owner chose "Title in the page":

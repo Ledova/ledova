@@ -6,6 +6,15 @@ How payment, refund, scale-back and share allotment fit together.
 
 ## Company-managed primary relationship
 
+[AUD is a required payment option for purchasing company shares](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments),
+not merely a price display or an AUDY stablecoin balance.
+[#868](https://github.com/Ledova/ledova/issues/868) owns the company-managed
+primary payment work. The payment rail/provider, receipt verification,
+reconciliation and refund design remain undecided. Do not require a crypto
+on-ramp purchase or conversion to use the AUD payment option. The current bank
+transfer and stablecoin instructions and staff-attested receipts below are the
+existing implementation, not the completed company-managed AUD design.
+
 The [accepted plan](company-managed-registers.md#delivery-sequence) replaces the
 admin-only acceptance, receipt/refund recording and allotment paths with
 company-capability workflows. Company or appointed-provider payment settings

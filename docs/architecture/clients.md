@@ -6,9 +6,17 @@ How dashboard and mobile consume shared TypeScript and design tokens.
 
 ## Company-managed client work
 
+The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+is the private-company share register and share issuance, management, transfers
+and purchases. Crypto on-ramp purchases are optional personal investor actions;
+companies must not buy cryptocurrency through the on-ramp. Company share-wallet
+operations remain distinct from buying cryptocurrency. AUD is a required share
+payment option, with its payment and settlement design still to be decided.
+
 This page describes the current clients, including their company selection and
 read-only staff decision records. Register access follows current appointments
-as well as ownership; most other company selection remains owner or
+as well as ownership, and the register import steps in both clients follow
+current appointments alone; most other company selection remains owner or
 administrator scoped. The
 [accepted company-managed plan](company-managed-registers.md#required-self-service-workflows)
 requires web and mobile forms for company appointments and the supported
@@ -30,8 +38,9 @@ no chain action.
 Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
-absent field must not hide it. The detailed current screen descriptions below
-do not claim these company-managed controls are shipped.
+absent field must not hide it. Apart from the register imports in both clients,
+the detailed current screen descriptions below do not claim these company-managed
+controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -103,6 +112,18 @@ read (as the company owner or through a current register appointment), grouped b
 company with a company choice when there is more than one, and the stored
 register of each class of the chosen company, with exact share quantities and
 complete-read failure states.
+Showing a class's members also shows its
+[register imports](../operations/register-foundation.md#importing-an-existing-register)
+with the history, steps and checks of the dashboard's Register, described below,
+except where the person's appointments are read. On mobile, each decision opens
+in a dialog, which closes when a refresh withdraws its step; Prepare an import
+opens a form in the same stack; and the retained register document and ASIC
+extract open through the session-bound document copy.
+Register reads the person's appointments itself rather than through Company
+team's cache, and reads them again after a revocation on Company team or
+Representative authority, a pull to refresh, or a decision or preview the server
+refuses. The import and appointment reads and every upload, preview, decision
+and preparation are bound to the session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
 register access. A class
 opens its register and request histories, deployment and share request actions.
@@ -177,10 +198,13 @@ requests only publications addressed to the person and retains member voting.
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
 new person is never guarded by, or signs up against, the previous person's
-account. Buying crypto and sending are actions on Wallets for every account,
-not menu items, and the dashboard has no coin-price page or favourites. On both
-clients, Send opens its form directly when Wallets has read exactly one verified
-wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
+account. The current clients expose Buy crypto on Wallets to every account;
+[#920](https://github.com/Ledova/ledova/issues/920) tracks restricting that action
+and its API to personal investor use and refusing company use. This restriction
+is accepted policy, not yet an implemented guarantee. Buying crypto and sending
+are Wallets actions rather than menu items, and the dashboard has no coin-price
+page or favourites. On both clients, Send opens its form directly when Wallets
+has read exactly one verified wallet on the networks it lists (Ethereum, Bitcoin and Base), and otherwise asks
 which wallet to send from: when several are verified, when none is, and when
 Wallets could not read them. A form opened directly, mobile's Bitcoin form
 included, offers Cancel where Back would return to a choice never made. The web
@@ -449,6 +473,43 @@ reviewed issuance and **Raise authorised shares** requests. Share arithmetic use
 whole integers; submission refuses quantities or a resulting authorised cap above
 the current request limit of 2,147,483,647 instead of rounding them. Staff still
 prepare outputs on written instruction.
+
+Each class on the dashboard's Register also lists its
+[register imports](../operations/register-foundation.md#importing-an-existing-register),
+newest first across every page: stage, preparer, dates, the ASIC figures the
+company stated beside the rows' totals, whether the company provided the
+evidence or staff verified it before imports were company-run, the decision
+trail and any rejection reason, with downloads of the import's register document
+and, where kept, its ASIC extract; a decided staff-era import shows when it was
+decided. The person's own current appointments, read through the same
+account-bound cache as Company team, decide which steps a prepared import
+offers. Only an active, effective appointment before its expiry counts:
+approval and rejection need administration or `approve`, and application
+administration or `apply`. A retained staff-era import offers only rejection,
+and a reader with none of these steps sees the history with a read-only note.
+Each decision opens a dialog driven by the shared `useRegisterImportDecision`:
+it previews the decision and shows the comparison with the stored register,
+unmet requirements in words, the stated and imported figures and, before an
+application that opens the register, the note that the class will not be on
+chain. A rejection is previewed again with its reason. Confirming records
+exactly the previewed decision, with a retry key reused only for the same
+preview, and only while the step's current appointment is still the one it was
+previewed with. A recorded decision refreshes the imports and the register; a
+decision or preview the server refuses also refreshes the person's
+appointments. Holders of administration or `prepare` get **Prepare an
+import** while the class has no applied import. It opens
+`/company/register/:uuid/import`, a page for every signed-in account like
+Register, which shows the class and its company and takes the company's current
+share register and ASIC extract, the register date, the authority, the member
+rows, former members and the stated ASIC figures. An opened class lists one row
+per current holder with its member and shares fixed; a class whose register is
+not opened takes rows under new member IDs with editable shares. The stated
+figures must match the rows before preparation. Each upload keeps its own retry
+key and its confirmed receipt for an unchanged file, preparation reuses its
+operation only for an identical request, and every receipt is checked before the
+imports are refreshed and the page returns to Register. Every read, decision,
+download and preparation is bound to the signed-in account, and a failed refresh
+keeps an open draft but holds preparation until a retry succeeds.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
