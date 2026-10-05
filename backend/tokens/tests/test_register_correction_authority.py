@@ -30,6 +30,7 @@ from tokens.models import (
     RegisterCorrectionDecision,
     RegisterEvidence,
     RegisterEvidenceKind,
+    ShareRegister,
 )
 from tokens.services.register_corrections import decide_correction, prepare_correction
 from tokens.services.register_events import record_entry
@@ -440,6 +441,11 @@ class RegisterCorrectionAuthorityTest(CorrectionAuthorityFixture, StubUploadDepe
         self.assertEqual(refused.status_code, 400, refused.content)
         listed = client.get(CORRECTIONS, {"register": str(self.issue.register_id), "status": "applied"}).json()
         self.assertEqual([row["uuid"] for row in listed["results"]], [proposal["uuid"]])
+        with use_operator():
+            token = str(ShareRegister.objects.get(pk=self.issue.register_id).token_id)
+        by_class = client.get(CORRECTIONS, {"token": token}).json()["results"]
+        self.assertEqual([row["uuid"] for row in by_class], [proposal["uuid"]])
+        self.assertEqual(client.get(CORRECTIONS, {"token": str(uuid4())}).json()["results"], [])
 
 
 class RegisterCorrectionDecisionGuardTest(CorrectionAuthorityFixture, APITransactionTestCase):

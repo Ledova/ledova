@@ -103,6 +103,7 @@ describe('which signed-in pages an account can open', () => {
     'company',
     'companyRegister',
     'companyRegisterImport',
+    'companyRegisterCorrection',
     'companyTeam',
     'companyListing',
   ] as const)('lets an investor open %s, a page for everyone', (key) => {
@@ -131,13 +132,16 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['wallets', 'transactions', 'companyRegister', 'companyRegisterImport'] as const)(
-    'lets a company open %s, a page for everyone',
-    (key) => {
-      open(key, 'company');
-      expect(opened(key)).toBe(true);
-    },
-  );
+  it.each([
+    'wallets',
+    'transactions',
+    'companyRegister',
+    'companyRegisterImport',
+    'companyRegisterCorrection',
+  ] as const)('lets a company open %s, a page for everyone', (key) => {
+    open(key, 'company');
+    expect(opened(key)).toBe(true);
+  });
 
   it.each(['companyClass', 'companyAuthority', 'companyOffering', 'companyPublications'] as const)(
     'lets a company open %s, a company page',
@@ -223,6 +227,14 @@ describe('which signed-in pages an account can open', () => {
     expect(DESTINATIONS.companyRegisterImport.path).toBe('/company/register/:uuid/import');
     expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/import');
     expect(opened('companyRegisterImport')).toBe(true);
+    expect(screen.queryByText('companyClass')).toBeNull();
+  });
+
+  it('opens the correction page of a register entry at its own address beneath its share class', () => {
+    open('companyRegisterCorrection', 'investor');
+    expect(DESTINATIONS.companyRegisterCorrection.path).toBe('/company/register/:uuid/correct/:entry');
+    expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/correct/:entry');
+    expect(opened('companyRegisterCorrection')).toBe(true);
     expect(screen.queryByText('companyClass')).toBeNull();
   });
 

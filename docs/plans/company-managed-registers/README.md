@@ -21,11 +21,10 @@ Company-specific participant eligibility and client/consumer conversion remain i
 The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
 lets #864 start before #863 closes, except member-wallet links, which wait for #863.
 #864's first increment delivers register reads by appointment, its second
-company-run imports through the API and both clients, its third company-run
-corrections through the API, its fourth company acknowledgement of
-reconciliation discrepancies through the API, and its fifth company-run openings
-from the chain through the API; the correction, acknowledgement and opening
-screens and its other register commands remain planned. #865–#873 remain
+company-run imports, its third company-run corrections and its fourth company
+acknowledgement of reconciliation discrepancies, each through the API and both
+clients, and its fifth company-run openings from the chain through the API; the
+opening screens and its other register commands remain planned. #865–#873 remain
 dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private

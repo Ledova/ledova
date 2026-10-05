@@ -248,14 +248,15 @@ Since 5 October 2026 the company runs its corrections itself, as it runs its
   be rejected. The company then prepares a new one.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The web and mobile correction screens are planned; the API below is
-delivered.
+steps. The Register screen in both clients lists each class's entries and
+corrections and runs these steps, through the API below.
 
 | Method and route | Result |
 | --- | --- |
+| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
 | `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register` and `status` |
+| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register`, `token` (the share class) and `status` |
 | `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision and evidence, stage and decisions |
 | `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the correction's copy of the authority document |
 | `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest |
@@ -280,6 +281,8 @@ from the exercise:
 }
 ```
 
+An entry is `correctable` while it has changes and no correction reverses it;
+preparation still refuses an inverse that would take a holding below zero.
 Preparation derives the exact inverse share changes and captures the register's
 current sequence and head hash. The effective date may be today (UTC) or earlier,
 since a rectification can be backdated; preparation refuses a later one, which
@@ -1485,8 +1488,9 @@ a current appointment holding `admin` or `approve` acknowledges one specific
 discrepancy with a written reason. There is no Ledova staff step and no second
 person. Staff permissions, company ownership alone and shareholding grant no
 acknowledgement. The company cannot start a reconciliation; the six-hourly job
-and the operator's `register_reconcile` run them. The web and mobile screens are
-planned; the API below is delivered.
+and the operator's `register_reconcile` run them. The Register screen in both
+clients shows each class's latest reconciliation and takes acknowledgements,
+through the API below.
 
 | Method and route | Result |
 | --- | --- |
@@ -1506,9 +1510,10 @@ planned; the API below is delivered.
 `discrepancy` counts from zero through the record's `discrepancies`, in the
 order the API lists them. A row is `acknowledgeable` while its reconciliation is
 the class's latest, its kind can be acknowledged and nothing acknowledges it yet.
-Its `acknowledgement` is `null`, or the reason, the acknowledger's name, the time
-and `provided_by`: `company`, or `staff` for an acknowledgement recorded before
-acknowledgement was company-run, which shows no name.
+Its `acknowledgement` is `null`, or the reason, the acknowledging `appointment`,
+the acknowledger's name, the time and `provided_by`: `company`, or `staff` for an
+acknowledgement recorded before acknowledgement was company-run, which shows no
+appointment or name.
 
 A new acknowledgement answers `201`. An identical retry with the same
 `idempotency_key` answers `200` with the same acknowledgement, even after a later

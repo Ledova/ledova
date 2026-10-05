@@ -15,11 +15,13 @@ export function Section({ title, children }: { title: string; children: ReactNod
 export function LinkRow({
   to,
   label,
+  context,
   aside,
   children,
 }: {
   to: string;
   label: string;
+  context?: string;
   aside?: ReactNode;
   children?: ReactNode;
 }) {
@@ -31,6 +33,12 @@ export function LinkRow({
           className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-mid"
         >
           {label}
+          {context && (
+            <>
+              {' '}
+              <span className="sr-only">({context})</span>
+            </>
+          )}
         </Link>
         {children}
       </div>

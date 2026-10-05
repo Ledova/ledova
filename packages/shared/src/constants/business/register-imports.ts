@@ -1,4 +1,4 @@
-import type { RegisterImportDecisionKind } from '../../types';
+import type { RegisterDecisionKind } from '../../types';
 
 export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
   appointment_capability_required: 'Your appointment does not include this step.',
@@ -40,12 +40,12 @@ export const REGISTER_IMPORT_COPY = {
     applied: 'Applied',
     rejected: 'Rejected',
   } as Record<string, string>,
-  DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' } as Record<RegisterImportDecisionKind, string>,
+  DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
     approve: 'Approve this import exactly as prepared.',
     apply: 'Apply this import to the register now. This cannot be undone.',
     reject: 'Reject this import with the reason given.',
-  } as Record<RegisterImportDecisionKind, string>,
+  } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
   STATED_FIGURES: (total: string, count: number) =>
     `ASIC extract, as stated by the company: ${total} shares held by ${count} ${count === 1 ? 'member' : 'members'}`,

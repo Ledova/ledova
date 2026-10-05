@@ -7680,6 +7680,37 @@
         ],
         "type": "object"
       },
+      "PaginatedShareRegisterEntryList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ShareRegisterEntry"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedShareTokenListList": {
         "properties": {
           "count": {
@@ -9077,6 +9108,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "providedBy": {
             "readOnly": true,
             "type": "string"
@@ -9089,6 +9127,7 @@
         "required": [
           "acknowledgedAt",
           "acknowledgedByName",
+          "appointment",
           "providedBy",
           "reason"
         ],
@@ -12415,6 +12454,91 @@
           "waitingEffects"
         ],
         "type": "object"
+      },
+      "ShareRegisterEntry": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ShareRegisterEntryChange"
+            },
+            "type": "array"
+          },
+          "correctable": {
+            "type": "boolean"
+          },
+          "correctedBy": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "corrects": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ShareRegisterEntryKindEnum"
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changes",
+          "correctable",
+          "correctedBy",
+          "corrects",
+          "effectiveOn",
+          "kind",
+          "recordedAt",
+          "sequence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "ShareRegisterEntryChange": {
+        "properties": {
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "name",
+          "shares"
+        ],
+        "type": "object"
+      },
+      "ShareRegisterEntryKindEnum": {
+        "description": "* `opening` - Opening state\n* `issue` - Issue\n* `transfer` - Transfer\n* `cessation` - Cessation\n* `correction` - Compensating correction",
+        "enum": [
+          "opening",
+          "issue",
+          "transfer",
+          "cessation",
+          "correction"
+        ],
+        "type": "string"
       },
       "ShareRegisterHolder": {
         "properties": {
@@ -21318,6 +21442,14 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -23355,6 +23487,66 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/entries/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_entries_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entry",
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedShareRegisterEntryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

@@ -1,11 +1,12 @@
 import csv
+from uuid import UUID
 
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from companies.models import Company
@@ -18,6 +19,7 @@ from tokens.serializers import (
     ShareIssuanceCreateSerializer,
     ShareIssuanceListSerializer,
     ShareIssuanceRequestSerializer,
+    ShareRegisterEntrySerializer,
     ShareRegisterHolderSerializer,
     ShareRegisterWaitingEffectSerializer,
     ShareTokenCreateSerializer,
@@ -34,6 +36,7 @@ from tokens.services.register import (
     REGISTER_HEADERS,
     api_holders,
     export_rows,
+    stored_entries,
     stored_register,
     stored_waiting_list,
 )
@@ -61,6 +64,7 @@ class ShareTokenViewSet(
             "issuances",
             "holders",
             "register",
+            "register_entries",
             "register_export",
             "register_waiting",
         }
@@ -77,11 +81,12 @@ class ShareTokenViewSet(
         "settlement is visible only to its parties, so it reads what no policy admits to the issuer and "
         "the classification refuses any other connection. "
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator. "
-        "Register reads (the class list, holders, export and waiting effects) also admit a current company "
-        "appointment holding administration or a register capability, alongside the owner."
+        "Register entries name each changed member as the register does, from the same identity sources. "
+        "Register reads (the class list, holders, entries, export and waiting effects) also admit a current "
+        "company appointment holding administration or a register capability, alongside the owner."
     )
 
-    register_reads = frozenset({"register", "holders", "register_export", "register_waiting"})
+    register_reads = frozenset({"register", "holders", "register_entries", "register_export", "register_waiting"})
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -291,6 +296,20 @@ class ShareTokenViewSet(
     @action(detail=True, methods=["get"], url_path="register/waiting")
     def register_waiting(self, request, uuid=None):
         return Response({"effects": stored_waiting_list(self.get_object())})
+
+    @extend_schema(
+        responses=ShareRegisterEntrySerializer(many=True),
+        filters=False,
+        parameters=[OpenApiParameter("entry", OpenApiTypes.UUID, many=True)],
+    )
+    @action(detail=True, methods=["get"], url_path="register/entries")
+    def register_entries(self, request, uuid=None):
+        try:
+            wanted = [UUID(value) for value in request.query_params.getlist("entry")]
+        except ValueError:
+            raise ValidationError({"entry": "Name each entry by its UUID."}) from None
+        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted)
+        return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
 
     @extend_schema(responses={(200, "text/csv"): OpenApiTypes.STR})
     @action(detail=True, methods=["get"], url_path="register/export", http_method_names=["get", "options"])

@@ -196,7 +196,11 @@ initialised, current members with their wallets, the stored issued supply, the
 number of completed effects still waiting to be recorded, and former members
 with their fold freshness. `GET /api/v1/tokens/{uuid}/register/waiting/` lists
 those waiting effects in chain order, each with its wallets, shares and the
-reason it waits. `GET /api/v1/tokens/register/` lists the share classes whose
+reason it waits. `GET /api/v1/tokens/{uuid}/register/entries/` pages through the
+recorded entries, newest first, each change naming its member as the register
+does, with the links between an entry and the
+[correction](../operations/register-foundation.md#compensating-corrections) that
+reverses it. `GET /api/v1/tokens/register/` lists the share classes whose
 register the caller may read, filterable by `company_uuid`. These routes and
 `GET /api/v1/tokens/{uuid}/register/export/` admit the company owner and anyone
 holding a current company appointment with `admin`, `read_register`, `prepare`,

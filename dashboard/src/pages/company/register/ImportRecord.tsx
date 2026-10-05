@@ -3,37 +3,30 @@ import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_DECISIONS,
   REGISTER_IMPORT_UNMET_COPY,
   apiErrorSentence,
   downloadRegisterImportFile,
   formatDateTime,
   formatShareCount,
   registerImportTotals,
-  useRegisterImportDecision,
-  type OwnCompanyAppointment,
+  useRegisterDecision,
+  type RegisterDecisionKind,
   type RegisterImport,
-  type RegisterImportDecisionKind,
-  type RegisterImportStep,
+  type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, Status } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
+import { DecisionTrail } from './DecisionTrail';
+import { DOWNLOAD_FAILED, STAGE_TONES, STEP_CHANGED, retainedName, type RegisterSteps } from './proposals';
 import { saveFile } from './useCompanyRegister';
 
-export type ImportSteps = Partial<Record<RegisterImportStep, OwnCompanyAppointment>>;
+type Decision = ReturnType<typeof useRegisterDecision<RegisterImport, RegisterImportDecisionPreview>>;
 
-type Decision = ReturnType<typeof useRegisterImportDecision>;
-
-const TONES: Record<string, Tone> = { submitted: 'waiting', approved: 'moving', applied: 'done', rejected: 'closed' };
-const KINDS: RegisterImportDecisionKind[] = ['approve', 'apply', 'reject'];
-const DOWNLOAD_FAILED = 'The file could not be downloaded. Try again.';
-
-function fileName(snapshot: unknown, fallback: string) {
-  const name = (snapshot as { name?: unknown } | null)?.name;
-  return typeof name === 'string' && name ? name : fallback;
-}
+const KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
 
 function DecisionPanel({
   kind,
@@ -43,7 +36,7 @@ function DecisionPanel({
   onReason,
   onPreview,
 }: {
-  kind: RegisterImportDecisionKind;
+  kind: RegisterDecisionKind;
   decision: Decision;
   current: boolean;
   reason: string;
@@ -81,7 +74,7 @@ function DecisionPanel({
       )}
       {preview && !current && (
         <p role="alert" className="text-sm text-error-light">
-          Your appointment for this step changed or could not be checked. Cancel and start this decision again.
+          {STEP_CHANGED}
         </p>
       )}
       {decision.busy && !preview && (
@@ -158,14 +151,14 @@ export function ImportRecord({
   onRefused,
 }: {
   proposal: RegisterImport;
-  steps: ImportSteps;
+  steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
 }) {
-  const [active, setActive] = useState<RegisterImportDecisionKind | null>(null);
+  const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
-  const options = (kind: RegisterImportDecisionKind) => ({
+  const options = (kind: RegisterDecisionKind) => ({
     appointment: steps[kind]?.uuid,
     newKey: () => crypto.randomUUID(),
     guard,
@@ -176,9 +169,9 @@ export function ImportRecord({
     },
     onRefused,
   });
-  const approve = useRegisterImportDecision(apiClient, proposal, options('approve'));
-  const apply = useRegisterImportDecision(apiClient, proposal, options('apply'));
-  const reject = useRegisterImportDecision(apiClient, proposal, options('reject'));
+  const approve = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('approve'));
+  const apply = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('apply'));
+  const reject = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, options('reject'));
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;
@@ -192,13 +185,13 @@ export function ImportRecord({
       saveFile(
         data,
         copy === 'asic'
-          ? fileName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
-          : fileName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
+          ? retainedName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
+          : retainedName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
       );
     },
   });
   const totals = registerImportTotals(proposal.members);
-  const kinds: RegisterImportDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
+  const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
   const target = decision?.target;
   const current = !!active && !!target && steps[active]?.uuid === target.request.appointment;
@@ -209,7 +202,7 @@ export function ImportRecord({
     current &&
     target.preview.canDecide &&
     (active !== 'reject' || target.request.reason === reason.trim());
-  const begin = (kind: RegisterImportDecisionKind) => {
+  const begin = (kind: RegisterDecisionKind) => {
     if (active || busy) return;
     setReason('');
     setActive(kind);
@@ -224,27 +217,14 @@ export function ImportRecord({
     <li className="flex flex-col gap-3 py-4">
       <Rows>
         <Row label="Stage">
-          <Status tone={TONES[proposal.stage] ?? 'waiting'}>
+          <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
             {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
           </Status>
         </Row>
         {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
         <Row label="Register date">{proposal.asAt}</Row>
-        {[...proposal.decisions]
-          .sort((left, right) => Date.parse(left.decidedAt) - Date.parse(right.decidedAt))
-          .map((item) => (
-            <Row key={item.uuid} label={REGISTER_IMPORT_COPY.DECISIONS[item.kind]}>
-              {item.decidedByName || 'Not provided'} · {formatDateTime(item.decidedAt)}
-              {item.reason && ` · ${item.reason}`}
-            </Row>
-          ))}
-        {proposal.decisions.length === 0 && proposal.reviewedAt && (
-          <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
-        )}
-        {proposal.status === 'rejected' && proposal.rejectionReason && (
-          <Row label="Rejection reason">{proposal.rejectionReason}</Row>
-        )}
+        <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
       </Rows>
       <p className="text-sm text-text-muted">
         {proposal.providedBy === 'company'
