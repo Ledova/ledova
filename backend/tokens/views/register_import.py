@@ -1,3 +1,4 @@
+from django.db.models import BooleanField, DateTimeField, F, Func
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -27,6 +28,21 @@ from tokens.views.register_proposal import RegisterProposalViewSet
 FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
 
 
+def _with_decisions(queryset):
+    return (
+        queryset.select_related("preparing_appointment__appointee_profile")
+        .prefetch_related("decisions__appointment__appointee_profile")
+        .annotate(
+            approval_current=Func(
+                F("uuid"),
+                Func(function="clock_timestamp", output_field=DateTimeField()),
+                function="tokens_register_import_approved",
+                output_field=BooleanField(),
+            )
+        )
+    )
+
+
 @extend_schema_view(
     list=extend_schema(
         parameters=[
@@ -54,12 +70,10 @@ class RegisterImportViewSet(RegisterProposalViewSet):
             value = self.request.query_params.get(name)
             if value:
                 queryset = queryset.filter(**{field: value})
-        return queryset.select_related("preparing_appointment__appointee_profile").prefetch_related(
-            "decisions__appointment__appointee_profile"
-        )
+        return _with_decisions(queryset)
 
     def _respond(self, proposal, status=200):
-        current = self.filter_queryset(self.get_queryset()).get(pk=proposal.pk)
+        current = _with_decisions(self.get_queryset()).get(pk=proposal.pk)
         return Response(RegisterImportSerializer(current).data, status=status)
 
     @extend_schema(
