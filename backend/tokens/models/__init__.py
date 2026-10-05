@@ -36,12 +36,12 @@ from .register_correction import (
     RegisterCorrectionAuthority,
     RegisterCorrectionStatus,
 )
+from .register_decision import RegisterDecisionKind
 from .register_evidence import RegisterEvidence, RegisterEvidenceKind
 from .register_import import (
     ImportedFormerMember,
     RegisterImport,
     RegisterImportDecision,
-    RegisterImportDecisionKind,
     RegisterMemberParticulars,
 )
 from .register_instruction import RegisterInstruction, RegisterInstructionKind
@@ -86,6 +86,7 @@ __all__ = [
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
     "RegisterCorrectionStatus",
+    "RegisterDecisionKind",
     "RegisterEntry",
     "RegisterEntryKind",
     "ImportedFormerMember",
@@ -93,7 +94,6 @@ __all__ = [
     "RegisterEvidenceKind",
     "RegisterImport",
     "RegisterImportDecision",
-    "RegisterImportDecisionKind",
     "RegisterInstruction",
     "RegisterInstructionKind",
     "RegisterMemberParticulars",

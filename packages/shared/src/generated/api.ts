@@ -4371,6 +4371,7 @@ export interface ApiComponents {
       reason: string;
     };
     RegisterCorrectionStatusEnum: 'submitted' | 'applied' | 'rejected';
+    RegisterDecisionKindEnum: 'approve' | 'apply' | 'reject';
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
@@ -4454,7 +4455,7 @@ export interface ApiComponents {
       appointment: string;
       confirmation: boolean;
       idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       previewDigest: string;
       reason?: string;
     };
@@ -4465,11 +4466,10 @@ export interface ApiComponents {
       decidedByName: string;
       digest: string;
       idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason: string;
       uuid: string;
     };
-    RegisterImportDecisionKindEnum: 'approve' | 'apply' | 'reject';
     RegisterImportDecisionPreview: {
       canDecide: boolean;
       comparison: ApiComponents['schemas']['RegisterImportPreviewRow'][];
@@ -4484,7 +4484,7 @@ export interface ApiComponents {
     };
     RegisterImportDecisionRequestRequest: {
       appointment: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };
     RegisterImportPreviewRow: {

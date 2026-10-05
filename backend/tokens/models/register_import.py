@@ -9,6 +9,7 @@ from tokens.models.register_correction import (
     RegisterCorrectionAuthority,
     RegisterCorrectionStatus,
 )
+from tokens.models.register_decision import RegisterDecision
 from tokens.querysets import RegisterProposalQuerySet
 
 
@@ -89,24 +90,10 @@ class RegisterImport(BaseModel):
         ]
 
 
-class RegisterImportDecisionKind(models.TextChoices):
-    APPROVE = "approve", "Approve"
-    APPLY = "apply", "Apply"
-    REJECT = "reject", "Reject"
-
-
-class RegisterImportDecision(BaseModel):
+class RegisterImportDecision(RegisterDecision):
     register_import = models.ForeignKey(RegisterImport, on_delete=models.PROTECT, related_name="decisions")
-    kind = models.CharField(max_length=8, choices=RegisterImportDecisionKind.choices)
-    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
-    appointment = models.ForeignKey("companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+")
-    idempotency_key = models.UUIDField()
-    digest = models.CharField(max_length=64)
-    reason = models.CharField(max_length=1000, blank=True)
-    decided_at = models.DateTimeField()
 
-    class Meta:
-        ordering = ["decided_at", "uuid"]
+    class Meta(RegisterDecision.Meta):
         constraints = [
             models.UniqueConstraint(
                 fields=["decided_by", "idempotency_key"], name="one_register_import_decision_per_key"

@@ -9211,6 +9211,15 @@
         ],
         "type": "string"
       },
+      "RegisterDecisionKindEnum": {
+        "description": "* `approve` - Approve\n* `apply` - Apply\n* `reject` - Reject",
+        "enum": [
+          "approve",
+          "apply",
+          "reject"
+        ],
+        "type": "string"
+      },
       "RegisterDeviceTokenRequest": {
         "properties": {
           "deviceType": {
@@ -9654,7 +9663,7 @@
             "type": "string"
           },
           "kind": {
-            "$ref": "#/components/schemas/RegisterImportDecisionKindEnum"
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
           },
           "previewDigest": {
             "minLength": 1,
@@ -9709,7 +9718,7 @@
           "kind": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/RegisterImportDecisionKindEnum"
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
               }
             ],
             "readOnly": true
@@ -9737,15 +9746,6 @@
           "uuid"
         ],
         "type": "object"
-      },
-      "RegisterImportDecisionKindEnum": {
-        "description": "* `approve` - Approve\n* `apply` - Apply\n* `reject` - Reject",
-        "enum": [
-          "approve",
-          "apply",
-          "reject"
-        ],
-        "type": "string"
       },
       "RegisterImportDecisionPreview": {
         "properties": {
@@ -9809,7 +9809,7 @@
             "type": "string"
           },
           "kind": {
-            "$ref": "#/components/schemas/RegisterImportDecisionKindEnum"
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
           },
           "reason": {
             "default": "",

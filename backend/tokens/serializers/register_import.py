@@ -6,7 +6,12 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterImportDecision,
-    RegisterImportDecisionKind,
+)
+from tokens.serializers.register_decision import (
+    RegisterDecidedSerializer,
+    RegisterDecideSerializer,
+    RegisterDecisionRequestSerializer,
+    RegisterDecisionSerializer,
 )
 
 DIGITS = r"^(0|[1-9][0-9]{0,77})$"
@@ -61,16 +66,12 @@ class RegisterImportCreateSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=1000)
 
 
-class RegisterImportDecisionRequestSerializer(serializers.Serializer):
-    appointment = serializers.UUIDField()
-    kind = serializers.ChoiceField(choices=RegisterImportDecisionKind.choices)
-    reason = serializers.CharField(max_length=1000, required=False, allow_blank=True, default="")
+class RegisterImportDecisionRequestSerializer(RegisterDecisionRequestSerializer):
+    pass
 
 
-class RegisterImportDecideSerializer(RegisterImportDecisionRequestSerializer):
-    idempotency_key = serializers.UUIDField()
-    preview_digest = serializers.RegexField(regex=r"^[0-9a-f]{64}$")
-    confirmation = serializers.BooleanField()
+class RegisterImportDecideSerializer(RegisterDecideSerializer):
+    pass
 
 
 class RegisterImportPreviewRowSerializer(serializers.Serializer):
@@ -98,29 +99,12 @@ class RegisterImportDecisionPreviewSerializer(serializers.Serializer):
     imported_member_count = serializers.IntegerField()
 
 
-class RegisterImportDecisionSerializer(serializers.ModelSerializer):
-    decided_by_name = serializers.CharField(source="appointment.appointee_profile.full_name", read_only=True)
-
-    class Meta:
+class RegisterImportDecisionSerializer(RegisterDecisionSerializer):
+    class Meta(RegisterDecisionSerializer.Meta):
         model = RegisterImportDecision
-        fields = [
-            "uuid",
-            "kind",
-            "decided_by",
-            "decided_by_name",
-            "appointment",
-            "idempotency_key",
-            "digest",
-            "reason",
-            "decided_at",
-        ]
-        read_only_fields = fields
 
 
-class RegisterImportSerializer(serializers.ModelSerializer):
-    stage = serializers.SerializerMethodField()
-    provided_by = serializers.SerializerMethodField()
-    prepared_by_name = serializers.SerializerMethodField()
+class RegisterImportSerializer(RegisterDecidedSerializer):
     decisions = RegisterImportDecisionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -160,16 +144,3 @@ class RegisterImportSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
-
-    def get_stage(self, obj) -> str:
-        if obj.status != "submitted":
-            return obj.status
-        return "approved" if obj.approval_current else "submitted"
-
-    def get_provided_by(self, obj) -> str:
-        return "company" if obj.preparing_appointment_id else "staff_verified"
-
-    def get_prepared_by_name(self, obj) -> str | None:
-        if obj.preparing_appointment is None:
-            return None
-        return obj.preparing_appointment.appointee_profile.full_name or ""

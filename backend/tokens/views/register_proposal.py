@@ -1,7 +1,23 @@
+from django.db.models import BooleanField, DateTimeField, F, Func
 from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework.decorators import action
 
 from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
+
+
+def with_decisions(queryset, approved_function):
+    return (
+        queryset.select_related("preparing_appointment__appointee_profile")
+        .prefetch_related("decisions__appointment__appointee_profile")
+        .annotate(
+            approval_current=Func(
+                F("uuid"),
+                Func(function="clock_timestamp", output_field=DateTimeField()),
+                function=approved_function,
+                output_field=BooleanField(),
+            )
+        )
+    )
 
 
 class RegisterProposalViewSet(AuthenticatedReadOnlyViewSet):
