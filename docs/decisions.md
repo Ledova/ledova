@@ -80,6 +80,20 @@ or `approve` acknowledges one specific discrepancy of the latest reconciliation
 with a written reason. There is no Ledova staff step and no second person, and
 #864 adds no new approver-conflict rule.
 
+For members' particulars the owner decided the same day
+([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
+that the company changes a member's name and residential address under the same
+rules: a current `admin` appointment may prepare, approve, apply and reject;
+`prepare`, `approve` and `apply` are the narrower delegates, with rejection
+taking `approve`; application needs an approval whose approver still holds a
+current appointment; and one person may take every step, with no new
+approver-conflict rule. A change needs a reason and one supporting document the
+company provides, shown as provided by the company with no Ledova staff
+verification. Between imports and company changes the latest "as at" date wins,
+and a member's live verified identity still wins over both, as decided on
+22 September 2026. Shareholders managing their own particulars is separate work
+in [#866](https://github.com/Ledova/ledova/issues/866).
+
 ### Company representative verification
 
 On 4 October 2026 (Australia/Sydney), the owner chose

@@ -40,7 +40,11 @@ The fourth lets a current company approver or administrator acknowledge a
 reconciliation discrepancy through the API, with a written reason and no Ledova
 staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
 The Register in both clients also lists each class's entries and runs those
-corrections and acknowledgements. #864's other register commands and #865–#873
+corrections and acknowledgements. The fifth lets the company change a member's
+name and residential address through the API, with a reason and its own
+supporting document, the latest "as at" date winning between imports and changes
+([particulars changes](../operations/register-foundation.md#changing-a-members-particulars));
+their client screens are planned. #864's other register commands and #865–#873
 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.

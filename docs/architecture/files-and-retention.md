@@ -34,6 +34,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | --- | --- |
 | Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
 | Register correction authority | `companies/`; the company's upload and the correction's copy are retained with their rows; interrupted-copy orphans are swept |
+| Particulars change supporting document | `companies/`; the company's upload and the change's copy are retained with their rows; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
 | Company document | `companies/`; swept after becoming an orphan |
@@ -121,6 +122,15 @@ those corrections, uploads and files have no automatic expiry. The database
 refuses ordinary row deletion; the existing orphan sweep removes only
 unreferenced copies. See the
 [correction workflow](../operations/register-foundation.md#compensating-corrections).
+
+A change to a member's particulars retains a private copy of the company's
+`supporting` upload, with its size, type and SHA-256, and its own copy of the
+name and residential address it recorded. Like an import, the change, its copy
+and the upload are kept with the register with no automatic expiry during the
+synthetic experiment, while the member's particulars themselves are purged
+2,557 days after the member last held shares in the company. The database
+refuses ordinary deletion of the change. See
+[changing a member's particulars](../operations/register-foundation.md#changing-a-members-particulars).
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
 retain a separate private upload and immutable person/company/terms/content

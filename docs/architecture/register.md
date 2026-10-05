@@ -27,12 +27,13 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review of openings, links and instructions, and admin-only outputs. Imports and
-corrections are company-run: the company provides the evidence, states an
-import's ASIC figures, and its appointments approve and apply them. Its
-appointments holding `admin` or `approve` also acknowledge reconciliation
-discrepancies. An import can open a register and retain members with no wallet,
-but an imported non-chain class currently accepts neither issue nor transfer
+review of openings, links and instructions, and admin-only outputs. Imports,
+corrections and changes to members' particulars are company-run: the company
+provides the evidence, states an import's ASIC figures, and its appointments
+approve and apply them. Its appointments holding `admin` or `approve` also
+acknowledge reconciliation discrepancies. An import can open a register and
+retain members with no wallet, but an imported non-chain class currently accepts
+neither issue nor transfer
 instructions; publications also require a deployed or paused class. Supporting
 non-paid employee grants and
 other changes to a non-tokenised register therefore needs real ledger/workflow
@@ -130,16 +131,18 @@ wallets' completed allotments. Resolved stamps that differ in name or residentia
 address make the member `ambiguous`, as live identities that differ do. The row
 names the source and stamp date. Where neither resolves, particulars recorded by
 an [import](../operations/register-foundation.md#importing-an-existing-register)
-fill in: the member is a `member` named by its recorded name and residential
-address, with the identity source "Recorded register particulars". Particulars
-never replace a live identity or hide an ambiguous one (owner decision,
-22 September 2026). Otherwise a name without a resolved stamp remains
-unidentified. Old unstamped issuances are not backfilled by guessing identity.
+or a company's [particulars change](../operations/register-foundation.md#changing-a-members-particulars)
+fill in, from whichever is dated latest: the member is a `member` named by its
+recorded name and residential address, with the identity source "Recorded
+register particulars". Particulars never replace a live identity or hide an
+ambiguous one (owner decisions, 22 September and 5 October 2026). Otherwise a
+name without a resolved stamp remains unidentified. Old unstamped issuances are
+not backfilled by guessing identity.
 
 A treasury label is not a live identity: it names a bare address and carries no
 residential address. So a member held at a labelled treasury address, such as an
-employee share trust, takes its recorded name and residential address from an
-import's particulars when it has them, with the identity source "Recorded
+employee share trust, takes its recorded name and residential address from its
+recorded particulars when it has them, with the identity source "Recorded
 register particulars", and stays typed `treasury`. The CSV, the inspection copy,
 certificates, the notice figures, the holders API and the publication roll all
 read it that way, and so does the [former-member fold](#former-members) for a
@@ -457,9 +460,9 @@ the discrepancies and what each asks.
 `former_holders.py` folds `Transfer` history through the provider's finalized
 block and records cessations in `FormerHolder`. Particulars are frozen at first
 recorded cessation: current profile at recording, otherwise a resolved allotment
-stamp no later than cessation, otherwise the particulars an import recorded for
-the member the wallet is linked to, otherwise a name recorded at allotment,
-otherwise unknown. A labelled treasury address takes those imported particulars
+stamp no later than cessation, otherwise the particulars recorded for the
+member the wallet is linked to, otherwise a name recorded at allotment,
+otherwise unknown. A labelled treasury address takes those recorded particulars
 before its label. Refolding does not rewrite them.
 
 The fold sees wallets, not members. A cessation of a wallet linked to a member
