@@ -551,9 +551,18 @@ it.each([
   ['appointments', APPOINTMENTS],
 ])('shows a new session no form until its own %s read answers', async (_, url) => {
   const view = await open();
+  const epoch = getSessionEpoch();
   held = new Set([url]);
   await act(() => invalidateSessionScope());
-  expect(await view.findByText('Loading the share class…')).toBeTruthy();
+  const requested = () =>
+    get.mock.calls
+      .filter(([, config]) => config?.ledovaSessionEpoch === epoch + 1)
+      .map(([called]) => called)
+      .sort();
+  await waitFor(() => expect(requested()).toEqual([APPOINTMENTS, URLS.HOLDERS('ordinary')].sort()));
+  await waitFor(() => expect(client.isFetching()).toBe(1));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+  expect(view.getByText('Loading the share class…')).toBeTruthy();
   expect(view.queryByTestId('prepare-import-screen')).toBeNull();
   expect(view.queryByText('Member ID member-1')).toBeNull();
 });
