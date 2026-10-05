@@ -38,8 +38,9 @@ no chain action.
 Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
-absent field must not hide it. Apart from the register imports in both clients,
-the detailed current screen descriptions below do not claim these company-managed
+absent field must not hide it. Apart from the register imports, register
+history, corrections and discrepancy acknowledgement in both clients, the
+detailed current screen descriptions below do not claim these company-managed
 controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
@@ -598,9 +599,8 @@ the API delivers: services for a class's register entries, its corrections and
 its reconciliations, a check of each receipt against its request, their copy,
 the `companyRegisterCorrection` destination at
 `/company/register/:uuid/correct/:entry` and `useDiscrepancyAcknowledgement`.
-`useRegisterDecision` decides corrections as it decides imports. The web and
-mobile correction and acknowledgement screens are being built; neither client
-shows corrections or reconciliations yet.
+`useRegisterDecision` decides corrections as it decides imports. The dashboard
+and mobile Register screens described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

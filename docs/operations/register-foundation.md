@@ -248,8 +248,8 @@ Since 5 October 2026 the company runs its corrections itself, as it runs its
   be rejected. The company then prepares a new one.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The web and mobile correction screens are planned; the API below is
-delivered.
+steps. The Register screen in both clients lists each class's entries and
+corrections and runs these steps, through the API below.
 
 | Method and route | Result |
 | --- | --- |
@@ -1399,8 +1399,9 @@ a current appointment holding `admin` or `approve` acknowledges one specific
 discrepancy with a written reason. There is no Ledova staff step and no second
 person. Staff permissions, company ownership alone and shareholding grant no
 acknowledgement. The company cannot start a reconciliation; the six-hourly job
-and the operator's `register_reconcile` run them. The web and mobile screens are
-planned; the API below is delivered.
+and the operator's `register_reconcile` run them. The Register screen in both
+clients shows each class's latest reconciliation and takes acknowledgements,
+through the API below.
 
 | Method and route | Result |
 | --- | --- |
