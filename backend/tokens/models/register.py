@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from shared.models import BaseModel
+from tokens.querysets import RegisterReconciliationQuerySet
 
 from .share_token import ShareToken
 
@@ -67,6 +68,7 @@ class RegisterReconciliationStatus(models.TextChoices):
 
 
 class RegisterReconciliation(BaseModel):
+    objects = RegisterReconciliationQuerySet.as_manager()
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_reconciliations")
     status = models.CharField(max_length=12, choices=RegisterReconciliationStatus.choices, editable=False)
     block_number = models.PositiveBigIntegerField(null=True, editable=False)
@@ -87,11 +89,25 @@ class RegisterAcknowledgement(BaseModel):
     discrepancy = models.JSONField(editable=False)
     reason = models.CharField(max_length=1000, editable=False)
     acknowledged_by_id = models.PositiveBigIntegerField(editable=False)
+    appointment = models.ForeignKey(
+        "companies.CompanyAppointment", on_delete=models.PROTECT, null=True, related_name="+", editable=False
+    )
+    idempotency_key = models.UUIDField(null=True, editable=False)
 
     class Meta:
         ordering = ["created_at", "uuid"]
         constraints = [
             models.UniqueConstraint(fields=["reconciliation", "discrepancy"], name="register_acknowledged_once"),
+            models.CheckConstraint(
+                condition=models.Q(appointment__isnull=True, idempotency_key__isnull=True)
+                | models.Q(appointment__isnull=False, idempotency_key__isnull=False),
+                name="register_acknowledgement_exact_provenance",
+            ),
+            models.UniqueConstraint(
+                fields=["acknowledged_by_id", "idempotency_key"],
+                condition=models.Q(idempotency_key__isnull=False),
+                name="one_register_acknowledgement_per_key",
+            ),
         ]
 
 

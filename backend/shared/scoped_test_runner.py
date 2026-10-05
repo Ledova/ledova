@@ -32,6 +32,8 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_openings_scoped.ScopedRegisterOpeningTest",
     "tokens.tests.test_register_openings_scoped.ScopedRegisterWalletLinkTest",
     "tokens.tests.test_register_reconciliation.ScopedRegisterReconciliationTest",
+    "tokens.tests.test_register_acknowledgement_authority.ScopedRegisterAcknowledgementAuthorityTest",
+    "tokens.tests.test_register_acknowledgement_authority.ScopedRegisterAcknowledgementGuardTest",
     "tokens.tests.test_register_export_audit.ScopedRegisterExportAuditTest",
     "tokens.tests.test_market_admin.ScopedMarketAdminTest",
     "tokens.tests.test_register_notice_figures.ScopedNoticeFiguresTest",

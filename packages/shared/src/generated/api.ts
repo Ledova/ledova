@@ -1919,6 +1919,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-reconciliations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_reconciliations_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-reconciliations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_reconciliations_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-reconciliations/{uuid}/acknowledge/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_reconciliations_acknowledge_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register/': {
     parameters: {
       query?: never;
@@ -4022,6 +4070,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterOpening'][];
     };
+    PaginatedRegisterReconciliationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterReconciliation'][];
+    };
     PaginatedRegisterWalletLinkList: {
       count: number;
       next?: string | null;
@@ -4335,6 +4389,18 @@ export interface ApiComponents {
       nextClosesAt: string | null;
       openResolutions: number;
     };
+    RegisterAcknowledgement: {
+      acknowledgedAt: string;
+      acknowledgedByName: string | null;
+      providedBy: string;
+      reason: string;
+    };
+    RegisterAcknowledgeRequest: {
+      appointment: string;
+      discrepancy: number;
+      idempotencyKey: string;
+      reason: string;
+    };
     RegisterCorrection: {
       appliedEntry: string | null;
       approvingDirector: string;
@@ -4374,6 +4440,20 @@ export interface ApiComponents {
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
+    };
+    RegisterDiscrepancy: {
+      acknowledgeable: boolean;
+      acknowledgement: ApiComponents['schemas']['RegisterAcknowledgement'] | null;
+      address?: string;
+      block?: number;
+      chain?: string;
+      detail?: string;
+      effect?: string;
+      expected?: string;
+      kind: string;
+      member?: string;
+      source?: string;
+      transaction?: string;
     };
     RegisterEvidence: {
       appointment: string;
@@ -4563,6 +4643,19 @@ export interface ApiComponents {
       reason: string;
       tokenId: string;
     };
+    RegisterReconciliation: {
+      blockHash: string;
+      blockNumber: number | null;
+      createdAt: string;
+      discrepancies: ApiComponents['schemas']['RegisterDiscrepancy'][];
+      failure: string;
+      latest: boolean;
+      registerSequence: number | null;
+      status: ApiComponents['schemas']['RegisterReconciliationStatusEnum'];
+      token: string;
+      uuid: string;
+    };
+    RegisterReconciliationStatusEnum: 'matched' | 'discrepant' | 'failed';
     RegisterWalletLink: {
       approvingDirector: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
@@ -8934,6 +9027,86 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_reconciliations_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterReconciliationList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_reconciliations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterReconciliation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_reconciliations_acknowledge_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAcknowledgeRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAcknowledgeRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAcknowledgeRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterReconciliation'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterReconciliation'];
         };
       };
     };

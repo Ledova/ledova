@@ -7556,6 +7556,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterReconciliationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterReconciliation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterWalletLinkList": {
         "properties": {
           "count": {
@@ -9006,6 +9037,63 @@
         ],
         "type": "object"
       },
+      "RegisterAcknowledgeRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "discrepancy": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "discrepancy",
+          "idempotencyKey",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "RegisterAcknowledgement": {
+        "properties": {
+          "acknowledgedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "acknowledgedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acknowledgedAt",
+          "acknowledgedByName",
+          "providedBy",
+          "reason"
+        ],
+        "type": "object"
+      },
       "RegisterCorrection": {
         "properties": {
           "appliedEntry": {
@@ -9231,6 +9319,57 @@
         "required": [
           "deviceType",
           "pushToken"
+        ],
+        "type": "object"
+      },
+      "RegisterDiscrepancy": {
+        "properties": {
+          "acknowledgeable": {
+            "type": "boolean"
+          },
+          "acknowledgement": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterAcknowledgement"
+              }
+            ],
+            "nullable": true
+          },
+          "address": {
+            "type": "string"
+          },
+          "block": {
+            "type": "integer"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "member": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "transaction": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "acknowledgeable",
+          "acknowledgement",
+          "kind"
         ],
         "type": "object"
       },
@@ -10226,6 +10365,86 @@
           "tokenId"
         ],
         "type": "object"
+      },
+      "RegisterReconciliation": {
+        "properties": {
+          "blockHash": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "discrepancies": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterDiscrepancy"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "failure": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "latest": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "registerSequence": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterReconciliationStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "createdAt",
+          "discrepancies",
+          "failure",
+          "latest",
+          "registerSequence",
+          "status",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterReconciliationStatusEnum": {
+        "description": "* `matched` - Matched\n* `discrepant` - Discrepant\n* `failed` - Failed",
+        "enum": [
+          "matched",
+          "discrepant",
+          "failed"
+        ],
+        "type": "string"
       },
       "RegisterWalletLink": {
         "properties": {
@@ -21683,6 +21902,182 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-reconciliations/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_reconciliations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterReconciliationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-reconciliations/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_reconciliations_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterReconciliation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-reconciliations/{uuid}/acknowledge/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_reconciliations_acknowledge_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAcknowledgeRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAcknowledgeRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAcknowledgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterReconciliation"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterReconciliation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

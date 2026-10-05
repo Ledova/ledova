@@ -606,9 +606,11 @@ OPERATOR_ONLY = {
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
     "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the import on the operator connection.",
-    "tokens_registeracknowledgement": "Staff acknowledgements of register reconciliation discrepancies, recorded "
-    "by an operator command and read only by reconciliation on the operator connection. The issuer reads the "
-    "reconciliation result, which already reflects them.",
+    "tokens_registeracknowledgement": "Append-only acknowledgements of register reconciliation discrepancies. A "
+    "company's are written by the bounded register command on the operator connection, each bound to the "
+    "acknowledging appointment; retained staff-era rows came from a retired operator command. Register readers "
+    "read them through the reconciliation on the operator connection, and later reconciliation runs read them "
+    "there too.",
     "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
     "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
     "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "
