@@ -1416,8 +1416,9 @@ Every six hours, at :50 UTC, `reconcile_every_register` reconciles each share
 class that has an applied opening; a class an import opened has none and is not
 reconciled. It reads the chain; it writes only
 reconciliation records, never a register entry. It captures a fresh canonical
-snapshot at the finality boundary, as an opening's review does, and compares it
-with the stored register under the share-class lock that completions take:
+snapshot at the finality boundary, as an opening's preparation does, and
+compares it with the stored register under the share-class lock that completions
+take:
 
 - every chain transfer after the opening boundary must be a recorded effect, a
   completed effect still waiting to be recorded, or an issuance or settlement
