@@ -119,11 +119,48 @@ except where the person's appointments are read. On mobile, each decision opens
 in a dialog, which closes when a refresh withdraws its step; Prepare an import
 opens a form in the same stack; and the retained register document and ASIC
 extract open through the session-bound document copy.
+The class's register entries follow, newest first and 25 at a time with Load
+more: each entry's kind, sequence, effective date and signed share changes with
+member names, the entry it corrects and the entry that reversed it. Then
+come its [corrections](../operations/register-foundation.md#compensating-corrections),
+newest first: stage, preparer, dates, the corrected entry and its inverse
+changes, the authority, approving director, reference and reason, whether the
+company provided the authority document or staff verified it before corrections
+were company-run, the decision trail, any rejection reason and the document's
+download. The API names a correction's register but no client read names a
+class's register, so the app reads every page of the class's entries and of the
+company's corrections and keeps those correcting one of the class's entries; a
+repeated entry, a link to an entry the read missed or a share change that is not
+whole hides the entries and corrections and offers a retry. Last comes the
+class's latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain):
+status, chain block, compared register sequence and time, any failure text, and
+each discrepancy in words with its details and acknowledgement (reason, who,
+when, and whether the company or, earlier, staff gave it); rows needing
+attribution say so, and a class without a reconciliation says that plainly.
+Administration or `prepare` adds **Correct this entry** to a correctable entry. It
+opens a form in the same stack that shows the entry and the exact inverse it
+records and takes the authority document, the authority, the approving director
+of a resolution, the reference, the reason and an effective date no later than
+today (UTC), defaulting to today. The upload keeps its own retry key and confirmed
+receipt, preparation reuses its operation only for an identical request, and the
+corrections are refreshed once the receipt is confirmed; a conflict reads the
+entry and appointments again and takes a new operation. Approval and rejection
+(administration or `approve`) and application (administration or `apply`) of a
+correction use the same preview-first dialog as imports, showing the original and
+inverse changes and the register sequence; a retained staff-era correction offers
+only rejection. A recorded or refused correction decision reads the
+corrections, entries, holders and appointments again. Administration or `approve`
+adds **Acknowledge** to an acknowledgeable discrepancy, which
+[acknowledges](../operations/register-foundation.md#acknowledging-a-discrepancy)
+it with a reason of up to 1,000 characters and reads the reconciliation again; a
+refusal also reads the appointments.
 Register reads the person's appointments itself rather than through Company
-team's cache, and reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, or a decision or preview the server
-refuses. The import and appointment reads and every upload, preview, decision
-and preparation are bound to the session the screen opened under.
+team's cache, and hides every register action while they cannot be read. It
+reads them again after a revocation on Company team or
+Representative authority, a pull to refresh, a correction decision, or a decision,
+preview or acknowledgement the server refuses. Every register read and every
+upload, preview, decision, acknowledgement and preparation is bound to the
+session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
 register access. A class
 opens its register and request histories, deployment and share request actions.
