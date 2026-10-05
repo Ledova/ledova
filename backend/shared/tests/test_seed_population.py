@@ -249,6 +249,11 @@ class SyntheticPopulationTest(APITestCase):
             if claim.status in ("verified", "rejected", "revoked"):
                 self.assertTrue(claim.reviewed_by.is_active and claim.reviewed_by.is_staff)
                 self.assertGreaterEqual(claim.reviewed_at, claim.submitted_at)
+            if claim.status == "withdrawn":
+                self.assertIsNone(claim.withdrawn_by_id)
+                self.assertIsNone(claim.reviewed_by_id)
+                self.assertGreaterEqual(claim.reviewed_at, claim.submitted_at)
+                self.assertLess(claim.reviewed_at, timezone.now())
             if claim.category == InvestorCategory.ACCOUNTANT_CERTIFICATE:
                 self.assertTrue(claim.certifier_name and claim.certifier_body and claim.certifier_membership_number)
             if claim.is_live and claim.certificate_issued_at:

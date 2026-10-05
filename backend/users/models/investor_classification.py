@@ -141,6 +141,13 @@ class InvestorClassification(BaseModel):
         help_text="Staff member who reviewed the claim",
     )
     reviewed_at = models.DateTimeField(blank=True, null=True)
+    withdrawn_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        editable=False,
+        related_name="+",
+    )
     review_notes = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
 
@@ -229,11 +236,16 @@ class InvestorClassification(BaseModel):
         self.rejection_reason = reason
         self.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at"])
 
-    def withdraw(self):
+    def withdraw(self, withdrawn_by=None):
+        from users.services.investor_classification import withdraw_classification
+
         self._require_status([InvestorClassificationStatus.SUBMITTED], InvestorClassificationStatus.WITHDRAWN)
-        self.status = InvestorClassificationStatus.WITHDRAWN
-        self.reviewed_at = timezone.now()
-        self.save(update_fields=["status", "reviewed_at", "updated_at"])
+        classification = withdraw_classification(actor=withdrawn_by, classification_id=self.pk)
+        self.status = classification.status
+        self.reviewed_at = classification.reviewed_at
+        self.withdrawn_by = classification.withdrawn_by
+        self.updated_at = classification.updated_at
+        return self
 
     def revoke(self, reviewed_by, reason):
         self._require_status([InvestorClassificationStatus.VERIFIED], InvestorClassificationStatus.REVOKED)

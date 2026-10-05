@@ -44,9 +44,9 @@ class ScopedClassificationIssuerTest(RunsOnTheScopedConnection, StubUploadDepend
         if 'FROM "companies_company"' in sql or 'INSERT INTO "users_investorclassification"' in sql:
             connection = context["connection"]
             with connection.cursor() as cursor:
-                cursor.execute("SELECT current_user")
-                role = cursor.fetchone()[0]
-            self.statements.append((connection.alias, role, sql, params))
+                cursor.execute("SELECT current_user, current_setting('app.user_id', true)")
+                role, principal = cursor.fetchone()
+            self.statements.append((connection.alias, role, principal, sql, params))
         return execute(sql, params, many, context)
 
     def submit(self, company):
@@ -62,7 +62,7 @@ class ScopedClassificationIssuerTest(RunsOnTheScopedConnection, StubUploadDepend
             format="multipart",
         )
 
-    def test_a_hidden_active_issuer_is_validated_by_uuid_and_the_claim_is_written_as_the_app(self):
+    def test_a_hidden_active_issuer_and_claim_are_bound_to_the_actual_applicant_under_the_operator(self):
         with acting_for(self.user.pk):
             self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
         with ExitStack() as stack:
@@ -72,17 +72,30 @@ class ScopedClassificationIssuerTest(RunsOnTheScopedConnection, StubUploadDepend
         self.assertEqual(response.status_code, 201, response.content)
         self.assertEqual(response.json()["company"], str(self.company.pk))
         operator_reads = [row for row in self.statements if row[0] == OPERATOR_ALIAS]
-        self.assertEqual(len(operator_reads), 1)
-        _, role, sql, params = operator_reads[0]
-        self.assertEqual(role, settings.RLS_ROLES[OPERATOR_ALIAS])
-        self.assertTrue(sql.startswith('SELECT "companies_company"."uuid" FROM '), sql)
+        self.assertEqual(len(operator_reads), 3)
+        issuer_reads = [row for row in operator_reads if row[3].startswith("SELECT")]
+        self.assertEqual(len(issuer_reads), 2)
+        _, _, _, lookup, params = issuer_reads[0]
+        self.assertTrue(lookup.startswith('SELECT "companies_company"."uuid" FROM '), lookup)
         self.assertIn(self.company.pk, params)
         self.assertIn(CompanyStatus.ACTIVE, params)
-        self.assertTrue(any(alias == APP_ALIAS and sql.startswith("INSERT") for alias, _, sql, _ in self.statements))
+        _, _, _, locked, params = issuer_reads[1]
+        self.assertIn("FOR NO KEY UPDATE", locked)
+        self.assertIn(self.company.pk, params)
+        self.assertIn(CompanyStatus.ACTIVE, params)
+        inserts = [row for row in operator_reads if row[3].startswith("INSERT")]
+        self.assertEqual(len(inserts), 1)
+        self.assertTrue(inserts[0][3].startswith('INSERT INTO "users_investorclassification"'), inserts[0][3])
+        for alias, role, principal, _, _ in operator_reads:
+            self.assertEqual(alias, OPERATOR_ALIAS)
+            self.assertEqual(role, settings.RLS_ROLES[OPERATOR_ALIAS])
+        for _, _, principal, _, _ in (issuer_reads[1], inserts[0]):
+            self.assertEqual(principal, str(self.user.pk))
         with acting_for(self.user.pk):
             self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
             self.assertEqual(InvestorClassification.objects.get(pk=response.json()["uuid"]).company_id, self.company.pk)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
+        self.assertIn(principal_of(OPERATOR_ALIAS), (None, ""))
 
     def test_inactive_unknown_and_malformed_issuers_are_refused_before_an_active_issuer_succeeds(self):
         with use_migrate():

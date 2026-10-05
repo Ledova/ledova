@@ -63,6 +63,7 @@ def run(mode, row_id, detail):
     if mode == "reverse_inclusion":
         from shared.tests.schema import migrate_to
 
+        report("schema_preparation", target="0063_swap_finalized_receipt")
         migrate_to([("tokens", "0063_swap_finalized_receipt")])
     report("loaded")
     command("run")

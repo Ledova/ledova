@@ -19,8 +19,9 @@ from documents.services.extraction import render_first_page, run_extraction
 from documents.services.retention import purge_expired_documents
 from documents.tasks.extract import extract_document
 from operators.models import Operator
-from shared.db import atomic
+from shared.db import atomic, use_migrate
 from shared.services.orphaned_files import orphaned_files
+from shared.tests.evidence_retention import installed_evidence_retention_policy
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from users.models import InvestorClassification, UserAccount, UserProfile
 from users.models.investor_classification import RETENTION_CLOCK
@@ -49,21 +50,23 @@ class EvidenceCase(StubUploadDependencies):
         settings = override_settings(PRIVATE_MEDIA_ROOT=directory.name, STORAGES=STORAGES)
         settings.enable()
         self.addCleanup(settings.disable)
+        self.enterContext(installed_evidence_retention_policy())
         self.owner = evidence_owner("payslip-owner")
         self.other = evidence_owner("payslip-other")
-        self.claim = InvestorClassification.objects.create(
-            user_account=self.owner.account,
-            category="professional_investor",
-            declaration_accepted=True,
-            declaration_text="Synthetic declaration",
-            submitted_at=timezone.now(),
-        )
-        self.document = Document.objects.create(
-            uploaded_by=self.owner.user,
-            original_filename="support.pdf",
-            file=ContentFile(PDF, name="support.pdf"),
-            mime_type="application/pdf",
-        )
+        with use_migrate():
+            self.claim = InvestorClassification.objects.create(
+                user_account=self.owner.account,
+                category="professional_investor",
+                declaration_accepted=True,
+                declaration_text="Synthetic declaration",
+                submitted_at=timezone.now(),
+            )
+            self.document = Document.objects.create(
+                uploaded_by=self.owner.user,
+                original_filename="support.pdf",
+                file=ContentFile(PDF, name="support.pdf"),
+                mime_type="application/pdf",
+            )
 
     def attach(self):
         with self.captureOnCommitCallbacks(execute=True):
@@ -137,9 +140,10 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
         response = self.client.post(self.url + "attach/", {"classification": str(self.claim.pk)}, format="json")
         self.assertEqual(response.status_code, 404)
         self.client.force_authenticate(self.owner.user)
-        foreign = InvestorClassification.objects.create(
-            user_account=self.other.account, category="professional_investor"
-        )
+        with use_migrate():
+            foreign = InvestorClassification.objects.create(
+                user_account=self.other.account, category="professional_investor"
+            )
         response = self.client.post(self.url + "attach/", {"classification": str(foreign.pk)}, format="json")
         self.assertEqual(response.status_code, 404)
         self.document.refresh_from_db()
@@ -148,16 +152,18 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
     def test_a_reviewed_or_withdrawn_claim_does_not_accept_new_evidence(self):
         for status in RETENTION_CLOCK:
             with self.subTest(status=status):
-                InvestorClassification.objects.filter(pk=self.claim.pk).update(status=status)
+                with use_migrate():
+                    InvestorClassification.objects.filter(pk=self.claim.pk).update(status=status)
                 response = self.client.post(self.url + "attach/", {"classification": str(self.claim.pk)}, format="json")
                 self.assertEqual(response.status_code, 400, response.content)
 
     def test_attached_evidence_cannot_be_retargeted_or_deleted(self):
         self.attach()
         self.assertEqual(self.client.delete(self.url).status_code, 400)
-        other_claim = InvestorClassification.objects.create(
-            user_account=self.owner.account, category="professional_investor", status="withdrawn"
-        )
+        with use_migrate():
+            other_claim = InvestorClassification.objects.create(
+                user_account=self.owner.account, category="professional_investor", status="withdrawn"
+            )
         response = self.client.post(self.url + "attach/", {"classification": str(other_claim.pk)}, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("already attached", str(response.json()))
@@ -196,7 +202,8 @@ class SupportingPayslipApiTest(EvidenceCase, APITestCase):
 
         pdf = fitz.open()
         pdf.new_page().insert_text((72, 72), "Synthetic supporting payslip")
-        self.document.file.save("synthetic.pdf", ContentFile(pdf.tobytes()), save=True)
+        with use_migrate():
+            self.document.file.save("synthetic.pdf", ContentFile(pdf.tobytes()), save=True)
         pdf.close()
         original_name = self.document.file.name
         with (
@@ -393,9 +400,10 @@ class SupportingPayslipRetentionTest(EvidenceCase, TestCase):
         self.attach()
         self.extraction()
         horizon = timezone.now()
-        InvestorClassification.objects.filter(pk=self.claim.pk).update(
-            status="withdrawn", reviewed_at=horizon - timedelta(days=30)
-        )
+        with use_migrate():
+            InvestorClassification.objects.filter(pk=self.claim.pk).update(
+                status="withdrawn", reviewed_at=horizon - timedelta(days=30)
+            )
         client = APIClient()
         client.force_authenticate(self.owner.user)
         with patch("django.utils.timezone.now", return_value=horizon):
@@ -417,9 +425,10 @@ class SupportingPayslipRetentionTest(EvidenceCase, TestCase):
         )
         for status, clock in RETENTION_CLOCK.items():
             with self.subTest(status=status):
-                InvestorClassification.objects.filter(pk=self.claim.pk).update(
-                    status=status, **{clock: timezone.now() - timedelta(days=31)}
-                )
+                with use_migrate():
+                    InvestorClassification.objects.filter(pk=self.claim.pk).update(
+                        status=status, **{clock: timezone.now() - timedelta(days=31)}
+                    )
                 self.assertTrue(Document.objects.retention_due(timezone.now()).filter(pk=self.document.pk).exists())
         result = purge_expired_documents(timezone.now())
         self.assertEqual(result, {"purged": 1, "failed": 0})
@@ -435,28 +444,35 @@ class SupportingPayslipRetentionTest(EvidenceCase, TestCase):
     def test_submitted_and_undated_verified_claims_keep_supporting_evidence(self):
         self.attach()
         for status in ("submitted", "verified"):
-            InvestorClassification.objects.filter(pk=self.claim.pk).update(status=status, expires_at=None)
+            with use_migrate():
+                InvestorClassification.objects.filter(pk=self.claim.pk).update(status=status, expires_at=None)
             self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=3650))["purged"], 0)
-        with override_settings(CLASSIFICATION_EVIDENCE_RETENTION_DAYS=0):
-            InvestorClassification.objects.filter(pk=self.claim.pk).update(
-                status="withdrawn", reviewed_at=timezone.now() - timedelta(days=3650)
-            )
+        with override_settings(CLASSIFICATION_EVIDENCE_RETENTION_DAYS=0), installed_evidence_retention_policy():
+            with use_migrate():
+                InvestorClassification.objects.filter(pk=self.claim.pk).update(
+                    status="withdrawn", reviewed_at=timezone.now() - timedelta(days=3650)
+                )
             self.assertEqual(purge_expired_documents(timezone.now())["purged"], 0)
         self.assertEqual((self.root / self.document.file.name).read_bytes(), PDF)
 
     def test_unattached_evidence_has_a_shorter_clock_and_storage_failure_is_retryable(self):
         self.extraction()
         self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=6))["purged"], 0)
+        self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=8)), {"purged": 0, "failed": 0})
+        with use_migrate():
+            Document.objects.filter(pk=self.document.pk).update(created_at=timezone.now() - timedelta(days=8))
         with patch.object(type(self.document.file.storage), "delete", side_effect=OSError("storage unavailable")):
-            self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=8)), {"purged": 0, "failed": 1})
+            self.assertEqual(purge_expired_documents(timezone.now()), {"purged": 0, "failed": 1})
         self.document.refresh_from_db()
         self.assertTrue(self.document.file)
         self.assertEqual(self.document.extractions.count(), 1)
-        self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=8)), {"purged": 1, "failed": 0})
+        self.assertEqual(purge_expired_documents(timezone.now()), {"purged": 1, "failed": 0})
 
     def test_a_late_extraction_cannot_recreate_content_after_purge(self):
         def complete_after_purge(**kwargs):
-            self.assertEqual(purge_expired_documents(timezone.now() + timedelta(days=8))["purged"], 1)
+            with use_migrate():
+                Document.objects.filter(pk=self.document.pk).update(created_at=timezone.now() - timedelta(days=8))
+            self.assertEqual(purge_expired_documents(timezone.now())["purged"], 1)
             return SimpleNamespace(
                 parsed=SimpleNamespace(model_dump=lambda **kwargs: {"gross_pay": "9999"}),
                 raw_output="late private data",

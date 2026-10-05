@@ -13,7 +13,11 @@ this folder records scope, sequencing and documentation traceability. Phases 1
 and 2 are delivered: #861 retired product modes and #862 established company
 authority, with its final foundation delivered by [PR #911](https://github.com/Ledova/ledova/pull/911)
 at commit `13684719c5245f1d61809d46e37a904f833e1c6d`. The [company activation increment](company-activation.md) implements the activation
-part of #863. Company-specific participant eligibility remains in that issue;
+part of #863, delivered through [PR #913](https://github.com/Ledova/ledova/pull/913).
+[PR #914](https://github.com/Ledova/ledova/pull/914) aligns the authority lock prefixes.
+The [eligibility records and API foundation](company-eligibility.md) retains scoped
+requests and company decisions without supplying investment permission.
+Company-specific participant eligibility and client/consumer conversion remain in that issue;
 #864–#873 remain planned and dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private

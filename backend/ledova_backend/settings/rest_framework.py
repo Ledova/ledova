@@ -40,6 +40,11 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
+        "OutcomeEnum": "tokens.models.swap_approval_submission.ApprovalSubmissionOutcome.choices",
+        "CompanyEligibilityDecisionOutcomeEnum": (
+            "users.models.company_eligibility.CompanyEligibilityDecisionOutcome.choices"
+        ),
+        "CompanyEligibilityRequestOutcomeEnum": "users.serializers.company_eligibility.REQUEST_OUTCOME_CHOICES",
         "CompanyAppointmentStatusEnum": ["active", "expired", "revoked"],
         "CompanyAppointmentSourceEnum": ["initial", "invitation", "legacy_owner"],
         "CompanyCapabilityEnum": "companies.models.authority_request.CompanyCapability.choices",

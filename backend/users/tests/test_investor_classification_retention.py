@@ -9,6 +9,8 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from shared.db import use_migrate
+from shared.tests.evidence_retention import installed_evidence_retention_policy
 from users.models import InvestorClassification, InvestorClassificationStatus
 from users.services.investor_classification import purge_expired_evidence
 from users.tasks.retention import purge_classification_evidence
@@ -31,8 +33,9 @@ ADMIN_STORAGES = {
 
 
 def age(classification, **fields):
-    InvestorClassification.objects.filter(pk=classification.pk).update(**fields)
-    classification.refresh_from_db()
+    with use_migrate():
+        InvestorClassification.objects.filter(pk=classification.pk).update(**fields)
+        classification.refresh_from_db()
     return classification
 
 
@@ -40,6 +43,7 @@ def age(classification, **fields):
 class EvidencePurgeSweepTest(TestCase):
 
     def setUp(self):
+        self.enterContext(installed_evidence_retention_policy())
         self.reviewer = User.objects.create_superuser(email="retention-staff@example.test", password="pw-12345678")
         self.long_past = timezone.now() - timedelta(days=RETENTION_DAYS + 1)
         self.just_inside = timezone.now() - timedelta(days=RETENTION_DAYS - 1)
@@ -142,10 +146,21 @@ class EvidencePurgeSweepTest(TestCase):
         self._rejected("fails", self.long_past)
         self._rejected("succeeds", self.long_past)
 
-        with patch.object(FieldFile, "delete", side_effect=[OSError("gone"), None]):
+        delete = FieldFile.delete
+        failed_once = False
+
+        def fail_first_then_delete(field_file, *args, **kwargs):
+            nonlocal failed_once
+            if not failed_once:
+                failed_once = True
+                raise OSError("gone")
+            return delete(field_file, *args, **kwargs)
+
+        with patch.object(FieldFile, "delete", autospec=True, side_effect=fail_first_then_delete):
             result = purge_expired_evidence(timezone.now(), 200)
 
         self.assertEqual(result, {"purged": 1, "failed": 1})
+        self.assertEqual(InvestorClassification.objects.exclude(evidence_file="").count(), 1)
 
     def test_the_batch_limit_is_respected(self):
         self._rejected("batch-a", self.long_past)
@@ -162,7 +177,8 @@ class EvidencePurgeSweepTest(TestCase):
     def test_a_retention_of_zero_purges_nothing(self):
         claim = self._rejected("never", self.long_past)
 
-        self.assertEqual(purge_expired_evidence(timezone.now(), 200)["purged"], 0)
+        with installed_evidence_retention_policy():
+            self.assertEqual(purge_expired_evidence(timezone.now(), 200)["purged"], 0)
         claim.refresh_from_db()
         self.assertTrue(bool(claim.evidence_file))
 
@@ -185,6 +201,7 @@ class EvidencePurgeSweepTest(TestCase):
 class EvidenceReadHorizonTest(APITestCase):
 
     def setUp(self):
+        self.enterContext(installed_evidence_retention_policy())
         self.reviewer = User.objects.create_superuser(email="horizon-staff@example.test", password="pw-12345678")
         self.user, self.account = make_investor("horizon")
         self.claim = attach_evidence(rejected_classification(self.account, self.reviewer))

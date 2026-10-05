@@ -11,6 +11,13 @@ from shared.db.policies import UNSCOPED
 from shared.tests import test_cross_tenant_routes as matrix
 from shared.tests import test_route_coverage as coverage
 from shared.tests.test_route_coverage import EXEMPT
+from users.models import CompanyEligibilityRequest
+from users.serializers.company_eligibility import (
+    CompanyEligibilityRequestCreateSerializer,
+    CompanyEligibilityRequestPreviewSerializer,
+    CompanyEligibilityUUIDField,
+)
+from users.views.company_eligibility import CompanyEligibilityRequestViewSet
 
 BACKEND = coverage.__file__.rsplit("/backend/", 1)[0] + "/backend"
 
@@ -155,6 +162,35 @@ class TakesNoIdentifierReasonsTest(SimpleTestCase):
 
 
 class CreationReasonsTest(SimpleTestCase):
+
+    def test_own_eligibility_requests_require_authenticated_exact_source_and_target_identifiers(self):
+        routes = routes_for("OWN_ELIGIBILITY_REQUEST")
+        expected = {
+            ("post", "/api/v1/company-eligibility/requests/"): CompanyEligibilityRequestCreateSerializer,
+            ("post", "/api/v1/company-eligibility/requests/preview/"): CompanyEligibilityRequestPreviewSerializer,
+        }
+        self.assertEqual(routes, sorted(expected))
+        for route in routes:
+            with self.subTest(route=route):
+                callback, _ = CALLBACKS[route]
+                view = view_for(route)
+                self.assertIs(view, CompanyEligibilityRequestViewSet)
+                self.assertEqual(permissions_for(route), ["IsAuthenticated"])
+                self.assertIs(view.scoped_model, CompanyEligibilityRequest)
+                self.assertIs(view.queryset.model, CompanyEligibilityRequest)
+                self.assertTrue(view.queryset.query.is_empty())
+                instance = view(**getattr(callback, "initkwargs", {}))
+                instance.action = callback.actions[route[0]]
+                serializer_class = instance.get_serializer_class()
+                self.assertIs(serializer_class, expected[route])
+                self.assertEqual(writable_relations(route), {})
+                fields = serializer_class().fields
+                for name in ("source", "company", "offering"):
+                    self.assertIsInstance(fields[name], CompanyEligibilityUUIDField)
+                    self.assertFalse(fields[name].read_only)
+                self.assertTrue(fields["source"].required)
+                self.assertEqual((fields["quantity"].min_value, fields["quantity"].max_value), (1, 2147483647))
+                self.assertTrue({"user", "user_account", "appointment"}.isdisjoint(fields))
 
     def test_a_creation_route_that_claims_no_writable_relation_has_none(self):
         for route in routes_for("CREATES_OWN_ROW"):
