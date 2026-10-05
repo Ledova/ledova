@@ -1647,6 +1647,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-corrections/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_corrections_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-corrections/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_corrections_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-corrections/{uuid}/file/': {
     parameters: {
       query?: never;
@@ -4339,6 +4371,7 @@ export interface ApiComponents {
       appliedEntry: string | null;
       approvingDirector: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string | null;
       authorityReference: string;
       baseHash: string;
       baseSequence: number;
@@ -4346,31 +4379,75 @@ export interface ApiComponents {
       company: string;
       corrects: string;
       createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterCorrectionDecision'][];
       effectiveOn: string;
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
+      preparedByName: string | null;
+      preparingAppointment: string | null;
+      providedBy: string;
       reason: string;
       register: string;
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
-      sourceDocument: string;
+      sourceDocument: string | null;
+      stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       uuid: string;
     };
     RegisterCorrectionAuthorityEnum: 'director_resolution' | 'court_order';
+    RegisterCorrectionChange: {
+      member: string;
+      shares: string;
+    };
     RegisterCorrectionCreateRequest: {
+      appointment: string;
       approvingDirector?: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string;
       authorityReference: string;
       correctsId: string;
-      documentId: string;
       effectiveOn: string;
       operationId: string;
       reason: string;
     };
+    RegisterCorrectionDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterCorrectionDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterCorrectionDecisionPreview: {
+      canDecide: boolean;
+      changes: ApiComponents['schemas']['RegisterCorrectionChange'][];
+      effectiveOn: string;
+      originalChanges: ApiComponents['schemas']['RegisterCorrectionChange'][];
+      previewDigest: string;
+      registerSequence: number;
+      unmetRequirements: string[];
+    };
+    RegisterCorrectionDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
     RegisterCorrectionStatusEnum: 'submitted' | 'applied' | 'rejected';
+    RegisterDecisionKindEnum: 'approve' | 'apply' | 'reject';
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
@@ -4388,7 +4465,7 @@ export interface ApiComponents {
       sha256: string;
       uuid: string;
     };
-    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract';
+    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority';
     RegisterEvidenceUploadRequest: {
       appointment: string;
       companyId: string;
@@ -4454,7 +4531,7 @@ export interface ApiComponents {
       appointment: string;
       confirmation: boolean;
       idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       previewDigest: string;
       reason?: string;
     };
@@ -4465,11 +4542,10 @@ export interface ApiComponents {
       decidedByName: string;
       digest: string;
       idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason: string;
       uuid: string;
     };
-    RegisterImportDecisionKindEnum: 'approve' | 'apply' | 'reject';
     RegisterImportDecisionPreview: {
       canDecide: boolean;
       comparison: ApiComponents['schemas']['RegisterImportPreviewRow'][];
@@ -4484,7 +4560,7 @@ export interface ApiComponents {
     };
     RegisterImportDecisionRequestRequest: {
       appointment: string;
-      kind: ApiComponents['schemas']['RegisterImportDecisionKindEnum'];
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };
     RegisterImportPreviewRow: {
@@ -8379,8 +8455,11 @@ export interface ApiOperations {
   api_v1_tokens_register_corrections_list: {
     parameters: {
       query?: {
+        company?: string;
         ordering?: string;
         page?: number;
+        register?: string;
+        status?: 'applied' | 'rejected' | 'submitted';
       };
       header?: never;
       path?: never;
@@ -8413,6 +8492,14 @@ export interface ApiOperations {
       };
     };
     responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCorrection'];
+        };
+      };
       201: {
         headers: {
           [name: string]: unknown;
@@ -8440,6 +8527,60 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterCorrection'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCorrection'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_corrections_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCorrectionDecisionPreview'];
         };
       };
     };

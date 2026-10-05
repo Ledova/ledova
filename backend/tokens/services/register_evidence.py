@@ -5,10 +5,51 @@ from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
 from companies.models import CompanyCapability
+from companies.services.document_review import private_document_bytes
 from shared.uploads import read_bounded, validate_upload
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterEvidence, RegisterEvidenceKind
 from tokens.services.register_authority import register_appointment, register_command
+
+
+def evidence_snapshot(evidence):
+    return {
+        "provided_by": "company",
+        "evidence": str(evidence.pk),
+        "company": str(evidence.company_id),
+        "document_type": evidence.kind,
+        "name": evidence.original_filename,
+        "file_size": evidence.file_size,
+        "mime_type": evidence.mime_type,
+        "sha256": evidence.sha256,
+    }
+
+
+def matching_bytes(stored, size, digest):
+    try:
+        raw = private_document_bytes(stored)
+    except ValidationError:
+        raw = b""
+    if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
+        raise ValidationError("A retained evidence file no longer matches its record. Upload it and prepare again.")
+    return raw
+
+
+def own_evidence_bytes(evidence, kind, company, actor, refusal):
+    if (
+        evidence is None
+        or evidence.kind != kind
+        or evidence.company_id != company.pk
+        or evidence.uploaded_by_id != actor.pk
+    ):
+        raise ValidationError(refusal)
+    return matching_bytes(evidence.file, evidence.file_size, evidence.sha256)
+
+
+def discard(*files):
+    for stored in files:
+        if stored and stored._committed:
+            stored.storage.delete(stored.name)
 
 
 def _retained(prior, company, kind, appointment, size, mime_type, digest):
@@ -26,7 +67,7 @@ def _retained(prior, company, kind, appointment, size, mime_type, digest):
 
 def retain_register_evidence(*, actor, company_id, appointment, kind, idempotency_key, name, raw, mime_type):
     if kind not in RegisterEvidenceKind.values:
-        raise ValidationError("Choose a share register or an ASIC extract.")
+        raise ValidationError("Choose a share register, an ASIC extract or an authority document.")
     digest = hashlib.sha256(raw).hexdigest()
     evidence = None
     try:
@@ -55,8 +96,8 @@ def retain_register_evidence(*, actor, company_id, appointment, kind, idempotenc
                 raise RegisterChangeConflict() from None
             return evidence, True
     except BaseException:
-        if evidence is not None and evidence.file and evidence.file._committed:
-            evidence.file.storage.delete(evidence.file.name)
+        if evidence is not None:
+            discard(evidence.file)
         raise
 
 

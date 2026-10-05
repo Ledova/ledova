@@ -27,9 +27,9 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review of openings, links, corrections and instructions, and admin-only outputs.
-Imports are company-run: the company provides the evidence and states the ASIC
-figures, and its appointments approve and apply them. An import can open a
+review of openings, links and instructions, and admin-only outputs. Imports and
+corrections are company-run: the company provides the evidence, states an
+import's ASIC figures, and its appointments approve and apply them. An import can open a
 register and retain members with no wallet, but an imported non-chain class
 currently accepts neither issue nor transfer instructions; publications also
 require a deployed or paused class. Supporting non-paid employee grants and
@@ -96,11 +96,12 @@ that waited, still recorded by the transferor, whose signed order is the
 instrument. A transfer the directors decline is not modelled: its settlement
 keeps waiting and stays on the waiting list.
 
-Owner-submitted [compensating corrections](../operations/register-foundation.md#reviewed-compensating-corrections)
-now bind documentary authority to an exact reversal and register revision.
-Permitted staff review and application commit together, retaining the original
-entry and private evidence. An applied correction changes the stored holdings
-the reads below serve; it performs no chain reconciliation.
+Company-run [compensating corrections](../operations/register-foundation.md#compensating-corrections)
+bind the company's own authority document to an exact reversal and register
+revision. The company's appointments approve and apply them, and application
+commits the entry with its decision, retaining the original entry and private
+evidence. An applied correction changes the stored holdings the reads below
+serve; it performs no chain reconciliation.
 
 ## Membership and identity
 

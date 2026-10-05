@@ -52,6 +52,7 @@ from tokens.models import (
     PauseChange,
     RegisterAcknowledgement,
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterInstruction,
     RegisterReconciliation,
@@ -66,11 +67,7 @@ from tokens.models import (
 from tokens.models.choices import TransferOrderType
 from tokens.services.company_pack import COMPILER, produce_company_pack
 from tokens.services.register import REGISTER_HEADERS, export_rows, months_after
-from tokens.services.register_corrections import (
-    decide_correction,
-    prepare_correction_review,
-    submit_correction,
-)
+from tokens.services.register_corrections import prepare_correction
 from tokens.services.register_events import open_register, record_entry
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -89,7 +86,9 @@ from tokens.tests.test_register_certificates import (
     unused_address,
     wallet_of,
 )
+from tokens.tests.test_register_corrections import decide
 from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.test_register_imports import owner_appointment, upload_evidence
 from tokens.tests.test_register_workflow_events import (
     SETTLEMENT,
     SettledTransferFixtures,
@@ -132,8 +131,6 @@ CLASS_FILES = (
 SUBJECTS = ("allotment", "correction", "link")
 REVIEW_PERMISSIONS = (
     "change_companydocument",
-    "change_registercorrection",
-    "view_registercorrection",
     "change_registerinstruction",
     "view_registerinstruction",
     "change_registerwalletlink",
@@ -312,18 +309,29 @@ def awaiting_subscriptions(tenant, addresses, reviewer, label):
     return subscriptions
 
 
-def corrected(register, issue, reviewer, document, label):
-    proposal = submit_correction(
-        actor=register.company.owner,
+def effect_checked(mode):
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(f"SET CONSTRAINTS tokens_register_correction_decision_effect {mode}")
+
+
+def corrected(register, issue, label):
+    owner = register.company.owner
+    appointment = owner_appointment(register.company)
+    evidence = upload_evidence(owner, appointment, RegisterEvidenceKind.AUTHORITY, raw=evidence_of(label))
+    proposal, _ = prepare_correction(
+        actor=owner,
         operation_id=uuid4(),
+        appointment=appointment.pk,
         corrects_id=issue.pk,
-        document_id=document.pk,
+        authority_evidence=evidence.pk,
         effective_on=DAY,
         authority="director_resolution",
         **authority_terms(label, "correction"),
     )
-    _, confirmation = prepare_correction_review(proposal_id=proposal.pk, reviewer=reviewer)
-    return decide_correction(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+    effect_checked("IMMEDIATE")
+    decide(owner, appointment, proposal, "approve")
+    effect_checked("DEFERRED")
+    return decide(owner, appointment, proposal, "apply")
 
 
 def linked(company, member, reviewer, document, label):
@@ -482,7 +490,7 @@ def pack_company(label):
         effective_on=DAY,
         recorded_by=company.owner,
     )
-    correction = corrected(register, issue, reviewer, document, label)
+    correction = corrected(register, issue, label)
     link = linked(company, members["holder"], reviewer, document, label)
     former = unused_address()
     FormerHolder.objects.create(
@@ -1297,6 +1305,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
     def test_the_authority_file_carries_each_decision_with_its_director_reviewer_and_evidence_digest(self):
         correction, instruction = self.a.correction, self.a.allotment.instruction
         entries = self.read("entries.json", self.a.ordinary)
+        content = evidence_of("pack-a")
 
         self.assertEqual(
             self.read("authority.json", self.a.ordinary),
@@ -1304,16 +1313,38 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
                 "openings": [],
                 "imports": [],
                 "corrections": [
-                    self.decided(
-                        correction,
-                        "correction",
-                        corrects=str(self.a.issue.pk),
-                        effective_on=DAY.isoformat(),
-                        changes=[{"member": str(self.a.members["allottee"].pk), "shares": "-25"}],
-                        base_sequence=3,
-                        base_hash=entries[2]["entry_hash"],
-                        entry=entries[3]["uuid"],
-                    )
+                    {
+                        **self.decided(
+                            correction,
+                            "correction",
+                            corrects=str(self.a.issue.pk),
+                            effective_on=DAY.isoformat(),
+                            changes=[{"member": str(self.a.members["allottee"].pk), "shares": "-25"}],
+                            base_sequence=3,
+                            base_hash=entries[2]["entry_hash"],
+                            provided_by="company",
+                            decisions=[
+                                {
+                                    "kind": decision.kind,
+                                    "decided_by": "pack-a owner",
+                                    "decided_at": decision.decided_at.isoformat(),
+                                    "reason": "",
+                                }
+                                for decision in correction.decisions.order_by("decided_at", "uuid")
+                            ],
+                            entry=entries[3]["uuid"],
+                        ),
+                        "evidence": {
+                            "document": None,
+                            "document_type": "authority",
+                            "name": "authority.pdf",
+                            "mime_type": "application/pdf",
+                            "size": len(content),
+                            "sha256": sha256(content),
+                            "path": f"documents/evidence/registercorrection/{correction.pk}.pdf",
+                        },
+                        "reviewer": "pack-a owner",
+                    }
                 ],
                 "instructions": [
                     self.decided(
@@ -1334,6 +1365,13 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         self.assertEqual(
             (entries[3]["kind"], entries[3]["operation_id"], entries[3]["corrects"]),
             ("correction", str(correction.pk), str(self.a.issue.pk)),
+        )
+        self.assertEqual(
+            [
+                decision["kind"]
+                for decision in self.read("authority.json", self.a.ordinary)["corrections"][0]["decisions"]
+            ],
+            ["approve", "apply"],
         )
         self.assertEqual(
             self.read("authority.json", self.a.preference),

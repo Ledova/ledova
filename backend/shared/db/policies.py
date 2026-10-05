@@ -287,10 +287,7 @@ POLICIES = {
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "tokens_formerholder": (f"owner_id = {PRINCIPAL}", "false"),
-    "tokens_registercorrection": (
-        _company("company_id", VISIBLE_COMPANIES),
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
-    ),
+    "tokens_registercorrection": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermember": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermemberwallet": (
         _company("company_id", VISIBLE_COMPANIES),
@@ -606,6 +603,9 @@ OPERATOR_ONLY = {
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
     "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the import on the operator connection.",
+    "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
+    "corrections, each bound to the deciding appointment and written by the bounded register command on the "
+    "operator connection. Register readers see them through the correction on the operator connection.",
     "tokens_registeracknowledgement": "Staff acknowledgements of register reconciliation discrepancies, recorded "
     "by an operator command and read only by reconciliation on the operator connection. The issuer reads the "
     "reconciliation result, which already reflects them.",
