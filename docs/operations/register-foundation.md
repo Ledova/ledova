@@ -253,10 +253,10 @@ corrections and runs these steps, through the API below.
 
 | Method and route | Result |
 | --- | --- |
-| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable` |
+| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
 | `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register` and `status` |
+| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register`, `token` (the share class) and `status` |
 | `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision and evidence, stage and decisions |
 | `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the correction's copy of the authority document |
 | `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest |
