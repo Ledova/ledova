@@ -9,6 +9,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from authentication.email import normalize_email
 from authentication.managers.user import EmailLookupResult, EmailLookupState
 from authentication.services import TokenService
+from operators.models import Operator
 from users.models import FinancialProfile, UserAccount, UserProfile
 
 User = get_user_model()
@@ -16,6 +17,7 @@ User = get_user_model()
 
 class UserMutationLifecycleTest(APITestCase):
     def setUp(self):
+        Operator.get()
         self.owner = User.objects.create_user(
             email="lifecycle-owner@example.test",
             password="pw-12345678",

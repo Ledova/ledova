@@ -8,6 +8,7 @@ from authentication.email import EmailError, normalize_email
 from authentication.managers.user import EmailLookupState
 from authentication.models.user import CustomUser
 from authentication.services.tokens import TokenService
+from companies.services.authority_requests import _requester_principal
 from users.models import UserAccount
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -73,7 +74,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     def save_model(self, request, obj, form, change):
-        with invalidation_writer_context(request.user):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
             account = (
                 UserAccount.objects.select_for_update(no_key=True).filter(user_profile__user_id=obj.pk).first()
                 if change
