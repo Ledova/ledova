@@ -75,9 +75,9 @@ class SwapSettlementStorageTest(TransactionTestCase):
         fixture = make_execution("settlement-sign-guard")
         swap = fixture.swap
         service = swap_service(self)
-        signature = (
-            SELLER.sign_message(encode_typed_data(full_message=service.get_typed_data(swap))).signature.to_0x_hex()
-        )
+        signature = SELLER.sign_message(
+            encode_typed_data(full_message=service.get_typed_data(swap))
+        ).signature.to_0x_hex()
         verify = service.verify_signature
 
         def change(*args):
