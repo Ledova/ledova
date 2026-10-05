@@ -1,49 +1,44 @@
 import { Text, View } from 'react-native';
-import { REGISTER_IMPORT_COPY, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  REGISTER_IMPORT_COPY,
+  type OwnCompanyAppointment,
+  type RegisterStep,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { ImportRecord } from './ImportRecord';
 import { useCompanyStyles } from './styles';
-import { useImportAppointments, useRegisterImports } from './useCompanyRegister';
+import { useRegisterImports } from './useCompanyRegister';
 
 export function ClassImports({
   epoch,
   company,
   register,
+  steps,
   refreshHolders,
+  refreshAppointments,
   onPrepare,
 }: {
   epoch: number;
   company: string;
   register: TokenHoldersResponse;
+  steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   refreshHolders: () => Promise<unknown>;
+  refreshAppointments: () => Promise<unknown>;
   onPrepare: () => void;
 }) {
   const styles = useCompanyStyles();
   const name = register.token.name;
   const imports = useRegisterImports(epoch, company, register.token.uuid);
-  const { appointments, steps } = useImportAppointments(epoch, company);
   const settle = () => Promise.all([imports.refetch(), refreshHolders()]);
-  const refused = () => Promise.all([imports.refetch(), refreshHolders(), appointments.refetch()]);
+  const refused = () => Promise.all([imports.refetch(), refreshHolders(), refreshAppointments()]);
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
         {REGISTER_IMPORT_COPY.TITLE}
       </Text>
-      {appointments.isError ? (
-        <View style={styles.group}>
-          <Text accessibilityRole="alert" style={styles.error}>
-            Your appointments could not be read, so import actions are hidden.
-          </Text>
-          <Action
-            label="Retry appointments"
-            accessibilityLabel={`Retry appointments for ${name}`}
-            disabled={appointments.isFetching}
-            onPress={() => void appointments.refetch()}
-          />
-        </View>
-      ) : (
-        steps &&
-        !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>
+      {steps && !Object.values(steps).some(Boolean) && (
+        <Text style={styles.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>
       )}
       {imports.isPending ? (
         <Text style={styles.muted}>Loading imports…</Text>

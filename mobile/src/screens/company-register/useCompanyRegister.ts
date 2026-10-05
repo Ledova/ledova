@@ -17,7 +17,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
-const IMPORT_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
+const REGISTER_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
 
 export function checkedRegister(uuid: string, register: TokenHoldersResponse) {
   const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
@@ -40,7 +40,7 @@ export const importsKey = (epoch: number, token?: string) => [
   'imports',
   ...(token ? [token] : []),
 ];
-export const importAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
+export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 async function readClasses(epoch: number, page: number, signal: AbortSignal) {
   assertSessionEpoch(epoch);
@@ -112,7 +112,7 @@ export function useCompanyRegister(epoch: number) {
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
         queryClient.refetchQueries({ queryKey: importsKey(epoch), type: 'active' }),
-        queryClient.refetchQueries({ queryKey: importAppointmentsKey(epoch), type: 'active' }),
+        queryClient.refetchQueries({ queryKey: registerAppointmentsKey(epoch), type: 'active' }),
       ]),
   };
 }
@@ -142,9 +142,9 @@ export function useRegisterImports(epoch: number, company: string, token: string
   });
 }
 
-export function useImportAppointments(epoch: number, company: string) {
+export function useRegisterAppointments(epoch: number, company: string) {
   const appointments = useQuery({
-    queryKey: importAppointmentsKey(epoch),
+    queryKey: registerAppointmentsKey(epoch),
     queryFn: ({ signal }) =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
@@ -155,7 +155,7 @@ export function useImportAppointments(epoch: number, company: string) {
   });
   const steps = appointments.isSuccess
     ? (Object.fromEntries(
-        IMPORT_STEPS.map((step) => [step, appointmentForRegisterStep(appointments.data, company, step)]),
+        REGISTER_STEPS.map((step) => [step, appointmentForRegisterStep(appointments.data, company, step)]),
       ) as Record<RegisterStep, OwnCompanyAppointment | undefined>)
     : undefined;
   return { appointments, steps };
