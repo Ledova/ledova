@@ -21,11 +21,12 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterAcknowledgement, RegisterReconciliation, ShareToken
+from tokens.services import register_reconciliation
 from tokens.services.register_authority import APPOINTMENT_NOT_FOUND
 from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.tests.test_register_access import person
@@ -106,7 +107,7 @@ def staff_era_acknowledgement(record, index, reason, staff):
         )
 
 
-def forge(record, company_id, actor, appointment, *, index=0, operation=OPERATION, **changes):
+def forge(record, company_id, actor, appointment, *, index=0, operation=OPERATION, lock_timeout=None, **changes):
     fields = {
         "token_id": record.token_id,
         "reconciliation": record,
@@ -118,7 +119,23 @@ def forge(record, company_id, actor, appointment, *, index=0, operation=OPERATIO
         **changes,
     }
     with company_operation(actor, company_id, operation), atomic():
+        if lock_timeout:
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SELECT set_config('lock_timeout', %s, true)", [lock_timeout])
         return RegisterAcknowledgement.objects.create(**fields)
+
+
+def locked(probe, company, token):
+    found = []
+    for table, key in (("companies_company", company.pk), ("tokens_sharetoken", token.pk)):
+        with probe.cursor() as cursor:
+            try:
+                cursor.execute(f"SELECT uuid FROM {table} WHERE uuid = %s FOR UPDATE NOWAIT", [key])
+            except DatabaseError:
+                found.append(True)
+                continue
+            found.append(cursor.fetchall() != [(key,)])
+    return tuple(found)
 
 
 class AcknowledgementFixtures(AppointsTeam):
@@ -279,6 +296,21 @@ class RegisterAcknowledgementAuthorityTest(AcknowledgementFixtures, APITransacti
         acknowledge(self.owner, self.administrator, self.record, 0, reason="x" * 1000)
         self.assertEqual([row[4] for row in self.recorded()], ["x" * 1000])
 
+    def test_an_acknowledgement_is_recorded_under_the_company_and_share_class_locks(self):
+        probe = connections[MIGRATE_ALIAS].copy(alias="acknowledgement-lock-probe")
+        self.addCleanup(probe.close)
+        row = register_reconciliation._row
+        observed = []
+
+        def probed(reconciliation, discrepancy):
+            observed.append(locked(probe, self.company, self.token))
+            return row(reconciliation, discrepancy)
+
+        with patch.object(register_reconciliation, "_row", side_effect=probed):
+            acknowledge(self.owner, self.administrator, self.record, 0)
+        self.assertEqual(observed, [(True, True)])
+        self.assertEqual(locked(probe, self.company, self.token), (False, False))
+
     def test_the_api_lists_reads_and_acknowledges_and_a_register_reader_cannot_acknowledge(self):
         approver, approving = self.appoint([CompanyCapability.APPROVE])
         reader, reading = self.appoint([CompanyCapability.READ_REGISTER])
@@ -422,6 +454,22 @@ class RegisterAcknowledgementGuardTest(AcknowledgementFixtures, APITransactionTe
         revoke_company_appointment(requester=self.owner, appointment_id=self.administrator.pk)
         self.assert_refused(REFUSED, lambda: self.forge(record=newer))
         self.assertEqual(self.recorded(), [])
+
+    def test_the_database_checks_an_acknowledgement_under_the_company_and_share_class_locks(self):
+        probe = connections[MIGRATE_ALIAS].copy(alias="acknowledgement-guard-probe")
+        self.addCleanup(probe.close)
+        for table, key in (("companies_company", self.company.pk), ("tokens_sharetoken", self.token.pk)):
+            probe.set_autocommit(False)
+            try:
+                with probe.cursor() as cursor:
+                    cursor.execute(f"SELECT uuid FROM {table} WHERE uuid = %s FOR UPDATE", [key])
+                with self.subTest(locked=table):
+                    self.assert_refused("lock timeout", lambda: self.forge(lock_timeout="200ms"))
+            finally:
+                probe.rollback()
+                probe.set_autocommit(True)
+        self.forge()
+        self.assertEqual(len(self.recorded()), 1)
 
     def test_the_app_role_records_nothing_even_where_it_holds_the_table(self):
         app = settings.RLS_ROLES["app"]
