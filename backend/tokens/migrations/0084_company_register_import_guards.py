@@ -9,7 +9,7 @@ IMPORT_GUARD_AS_0077_INSTALLED_IT = OPENING_IMPORT.IMPORT_GUARD
 FUNCTIONS = """
 CREATE FUNCTION tokens_register_appointment_current(appointment_uuid uuid, issuer uuid, actor bigint,
     capability text, at_time timestamptz) RETURNS boolean
-LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
     SELECT EXISTS (SELECT 1 FROM companies_companyappointment appointment
         JOIN authentication_customuser person ON person.id = appointment.appointee_id
         JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
@@ -25,13 +25,13 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
                 OR appointment.capabilities @> jsonb_build_array(capability)));
 $$;
 CREATE FUNCTION tokens_register_evidence_snapshot(evidence tokens_registerevidence) RETURNS jsonb
-LANGUAGE sql IMMUTABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE sql IMMUTABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
     SELECT jsonb_build_object('provided_by', 'company', 'evidence', evidence.uuid::text,
         'company', evidence.company_id::text, 'document_type', evidence.kind, 'name', evidence.original_filename,
         'file_size', evidence.file_size, 'mime_type', evidence.mime_type, 'sha256', evidence.sha256);
 $$;
 CREATE FUNCTION tokens_register_import_approved(import_uuid uuid, at_time timestamptz) RETURNS boolean
-LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
     SELECT EXISTS (SELECT 1 FROM tokens_registerimportdecision decision
         JOIN tokens_registerimport proposal ON proposal.uuid = decision.register_import_id
         WHERE decision.register_import_id = import_uuid AND decision.kind = 'approve'
@@ -40,7 +40,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
 $$;
 CREATE FUNCTION tokens_register_import_decision_digest(import_uuid uuid, decision_kind text, actor bigint,
     appointment_uuid uuid, decision_reason text) RETURNS text
-LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
     SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'import', import_uuid::text,
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid::text, 'reason', decision_reason,
         'register', CASE WHEN decision_kind = 'apply' THEN (SELECT jsonb_build_object('sequence', register.sequence,
@@ -49,7 +49,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public AS $$
             WHERE proposal.uuid = import_uuid) END)::text, 'UTF8')), 'hex');
 $$;
 CREATE FUNCTION tokens_guard_register_evidence() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
     principal bigint;
     at_time timestamptz;
@@ -80,7 +80,7 @@ $$;
 CREATE TRIGGER tokens_register_evidence_guard BEFORE INSERT OR UPDATE OR DELETE ON tokens_registerevidence
     FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_evidence();
 CREATE FUNCTION tokens_guard_register_import_decision() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
     principal bigint;
     at_time timestamptz;
@@ -121,7 +121,7 @@ CREATE TRIGGER tokens_register_import_decision_guard
     BEFORE INSERT OR UPDATE OR DELETE ON tokens_registerimportdecision
     FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_import_decision();
 CREATE FUNCTION tokens_check_register_import_decision() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public AS $$
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
     proposal tokens_registerimport;
 BEGIN
@@ -293,6 +293,7 @@ def install_company_imports(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(_with_roles(cursor, FUNCTIONS))
         cursor.execute(_with_roles(cursor, IMPORT_GUARD))
+        cursor.execute("ALTER FUNCTION tokens_guard_register_import() SET search_path = pg_catalog, public, pg_temp")
 
 
 def remove_company_imports(apps, schema_editor):

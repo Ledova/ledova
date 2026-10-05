@@ -482,7 +482,7 @@ def _requirements(proposal, kind, appointment, reason):
     if kind == RegisterImportDecisionKind.APPLY and not approved:
         approvals = proposal.decisions.filter(kind=RegisterImportDecisionKind.APPROVE).exists()
         unmet.append("approval_lapsed" if approvals else "approval_required")
-    if proposal.status == "submitted":
+    if proposal.status == "submitted" and "appointment_capability_required" not in unmet:
         unmet.extend(_effect_requirements(proposal))
     return sorted(set(unmet))
 
@@ -603,7 +603,6 @@ def decide_import(*, actor, import_id, appointment, kind, idempotency_key, previ
         token = ShareToken.objects.select_for_update().get(pk=initial.token_id)
         list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
         proposal = RegisterImport.objects.select_for_update().select_related("token").get(pk=initial.pk)
-        source = register_appointment(company, current_actor, profile, operator, appointment)
         preview = _preview(proposal, current_actor, source, kind, reason)
         if preview["preview_digest"] != preview_digest:
             raise RegisterChangeConflict()

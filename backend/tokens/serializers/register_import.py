@@ -164,8 +164,7 @@ class RegisterImportSerializer(serializers.ModelSerializer):
     def get_stage(self, obj) -> str:
         if obj.status != "submitted":
             return obj.status
-        approved = any(decision.kind == RegisterImportDecisionKind.APPROVE for decision in obj.decisions.all())
-        return "approved" if approved else "submitted"
+        return "approved" if obj.approval_current else "submitted"
 
     def get_provided_by(self, obj) -> str:
         return "company" if obj.preparing_appointment_id else "staff_verified"

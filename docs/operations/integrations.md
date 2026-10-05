@@ -226,6 +226,17 @@ backend log.
 
 ## On-ramp
 
+The on-ramp is an optional personal investor feature, outside the core
+private-company register and share workflows. Companies must not buy
+cryptocurrency through it. [#920](https://github.com/Ledova/ledova/issues/920)
+tracks the current client/API restriction gap; these configuration settings do
+not establish that it is enforced. Configuring Transak does not select an AUD
+share-payment provider or make conversion a prerequisite for buying shares. The
+[AUD payment design](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+remains undecided in [#868](https://github.com/Ledova/ledova/issues/868) and
+[#869](https://github.com/Ledova/ledova/issues/869). Keep company share-wallet and
+transaction safeguards distinct from this optional service.
+
 | Variable                                                                              | Default     | Required                 |
 | ------------------------------------------------------------------------------------- | ----------- | ------------------------ |
 | `TRANSAK_API_KEY`, `TRANSAK_API_SECRET`, `TRANSAK_API_URL`, `TRANSAK_API_GATEWAY_URL` | empty       | Yes to enable the widget |

@@ -37,8 +37,10 @@ from tokens.tests.test_register_imports import (
     decision_digest,
     forge_decision,
     forge_outcome,
+    forged_fields,
     import_fixture,
     import_payload,
+    insert_forged,
     prepared,
     preview,
     staff_user,
@@ -51,20 +53,7 @@ EVIDENCE = "/api/v1/tokens/register-evidence/"
 IMPORTS = "/api/v1/tokens/register-imports/"
 
 
-class RegisterImportAuthorityTest(StubUploadDependencies, APITransactionTestCase):
-    def setUp(self):
-        with use_operator():
-            (
-                self.owner,
-                self.company,
-                self.token,
-                self.member,
-                self.administrator,
-                self.register_copy,
-                self.asic,
-                _,
-            ) = import_fixture()
-
+class AppointsTeam:
     def appoint(self, capabilities, *, expires_at=None):
         appointee = person(f"appointee-{uuid4()}@example.test")
         _, code, _ = issue_team_invitation(
@@ -80,6 +69,21 @@ class RegisterImportAuthorityTest(StubUploadDependencies, APITransactionTestCase
             requester=appointee, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
         )
         return appointee, appointment
+
+
+class RegisterImportAuthorityTest(AppointsTeam, StubUploadDependencies, APITransactionTestCase):
+    def setUp(self):
+        with use_operator():
+            (
+                self.owner,
+                self.company,
+                self.token,
+                self.member,
+                self.administrator,
+                self.register_copy,
+                self.asic,
+                _,
+            ) = import_fixture()
 
     def prepare_as(self, actor, appointment, **changes):
         register_copy = upload_evidence(actor, appointment, RegisterEvidenceKind.SHARE_REGISTER)
@@ -211,12 +215,20 @@ class RegisterImportAuthorityTest(StubUploadDependencies, APITransactionTestCase
         proposal = prepared(
             self.owner, import_payload(self.token, self.register_copy, self.asic, self.member, self.administrator)
         )
+        client = APIClient()
+        client.force_authenticate(self.owner)
+
+        def stage():
+            return client.get(f"{IMPORTS}{proposal.pk}/").json()["stage"]
+
         decide(approver, approving, proposal, "approve")
         self.assertEqual(preview(self.owner, self.administrator, proposal, "apply")["unmet_requirements"], [])
+        self.assertEqual(stage(), "approved")
         revoke_company_appointment(requester=self.owner, appointment_id=approving.pk)
         self.assertEqual(
             preview(self.owner, self.administrator, proposal, "apply")["unmet_requirements"], ["approval_lapsed"]
         )
+        self.assertEqual(stage(), "submitted")
         with self.assertRaisesMessage(ValidationError, "approval_lapsed"):
             decide(self.owner, self.administrator, proposal, "apply")
         decide(self.owner, self.administrator, proposal, "approve")
@@ -358,7 +370,7 @@ class RegisterImportAuthorityTest(StubUploadDependencies, APITransactionTestCase
         self.assertEqual(client.get(IMPORTS, {"status": "submitted"}).json()["results"], [])
 
 
-class RegisterImportDecisionGuardTest(APITransactionTestCase):
+class RegisterImportDecisionGuardTest(AppointsTeam, APITransactionTestCase):
     def setUp(self):
         with use_operator():
             (
@@ -381,14 +393,15 @@ class RegisterImportDecisionGuardTest(APITransactionTestCase):
                 write()
             raise RuntimeError("rollback")
 
-    def evidence_row(self, operation="register_evidence", **changes):
+    def evidence_row(self, operation="register_evidence", actor=None, appointment=None, **changes):
         evidence_id = uuid4()
+        actor = actor or self.owner
         fields = {
             "uuid": evidence_id,
             "company": self.company,
             "kind": RegisterEvidenceKind.SHARE_REGISTER,
-            "uploaded_by": self.owner,
-            "appointment": self.administrator,
+            "uploaded_by": actor,
+            "appointment": appointment or self.administrator,
             "idempotency_key": uuid4(),
             "file": f"companies/{self.company.pk}/register-evidence/{evidence_id}/{uuid4()}.bin",
             "original_filename": "register.pdf",
@@ -397,7 +410,7 @@ class RegisterImportDecisionGuardTest(APITransactionTestCase):
             "sha256": "a" * 64,
             **changes,
         }
-        with company_operation(self.owner, self.company.pk, operation), atomic():
+        with company_operation(actor, self.company.pk, operation), atomic():
             RegisterEvidence.objects.create(**fields)
 
     def test_the_database_admits_only_exact_company_provided_evidence(self):
@@ -453,6 +466,60 @@ class RegisterImportDecisionGuardTest(APITransactionTestCase):
             ):
                 with self.assertRaisesMessage(DatabaseError, "append-only"), atomic():
                     write()
+
+    def test_the_database_admits_each_step_only_from_an_appointment_holding_it(self):
+        reader, reading = self.appoint([CompanyCapability.READ_REGISTER])
+        preparer, preparing = self.appoint([CompanyCapability.PREPARE])
+        approver, approving = self.appoint([CompanyCapability.APPROVE])
+        for actor, appointment in ((reader, reading), (approver, approving)):
+            with self.subTest(upload_by=actor.email):
+                self.assert_refused(
+                    "current preparation authority",
+                    lambda: self.evidence_row(actor=actor, appointment=appointment),
+                )
+        with self.assertRaises(RuntimeError), atomic():
+            self.evidence_row(actor=preparer, appointment=preparing)
+            raise RuntimeError("rollback")
+        refused = "exact current company authority"
+        for actor, appointment, kind, reason in (
+            (reader, reading, "approve", ""),
+            (preparer, preparing, "approve", ""),
+            (preparer, preparing, "reject", "Not mine to reject"),
+        ):
+            with self.subTest(decided_by=actor.email, kind=kind):
+                self.assert_refused(
+                    refused, lambda: forge_decision(self.proposal, kind, actor, appointment, reason=reason)
+                )
+        with self.assertRaises(RuntimeError), atomic():
+            forge_decision(self.proposal, "approve", approver, approving)
+            raise RuntimeError("rollback")
+
+    def test_the_database_admits_an_import_only_from_its_preparers_own_uploads(self):
+        preparer, preparing = self.appoint([CompanyCapability.PREPARE])
+        theirs = prepared(
+            preparer,
+            import_payload(
+                self.token,
+                upload_evidence(preparer, preparing, RegisterEvidenceKind.SHARE_REGISTER),
+                upload_evidence(preparer, preparing, RegisterEvidenceKind.ASIC_EXTRACT),
+                self.member,
+                preparing,
+            ),
+        )
+        forged = forged_fields(theirs)
+        mine = forged_fields(self.proposal)
+        register_copy = ("register_evidence", "evidence_fingerprint", "evidence_snapshot")
+        asic_copy = ("asic_evidence", "asic_fingerprint", "asic_snapshot")
+        for borrowed in (register_copy + asic_copy, register_copy, asic_copy):
+            with self.subTest(borrowed=borrowed):
+                self.assert_refused(
+                    "exact current intent",
+                    lambda: insert_forged({**mine, **{name: forged[name] for name in borrowed}}, self.owner),
+                )
+        with self.assertRaises(RuntimeError), atomic():
+            insert_forged(forged, preparer)
+            insert_forged(mine, self.owner)
+            raise RuntimeError("rollback")
 
     def test_an_outcome_needs_its_own_decision_and_a_decision_needs_its_own_outcome(self):
         forge_decision(self.proposal, "approve", self.owner, self.administrator)

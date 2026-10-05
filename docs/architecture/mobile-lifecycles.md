@@ -181,6 +181,13 @@ prompt behavior are not established by them. Android owning-window focus and glo
 modal/lock stacking remain separate #13 checks, and a form-completion signal is
 not server verification approval.
 
+The [product policy](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+limits the optional buy-crypto on-ramp to personal investor use and excludes
+company purchases. The current audience/API restriction is a tracked gap in
+[#920](https://github.com/Ledova/ledova/issues/920); the lifecycle controls below
+do not establish that restriction. Company share-wallet operations keep their
+own authority and signing safeguards.
+
 The buy-crypto provider uses the same admission and session lifetime. A widget
 URL carries the session epoch captured before its request; a late response after
 logout, cancellation, account change or owner unmount cannot open the provider.

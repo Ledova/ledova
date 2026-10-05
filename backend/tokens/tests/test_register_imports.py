@@ -261,6 +261,30 @@ def forge_outcome(proposal, actor, decision, **fields):
         )
 
 
+def forged_fields(proposal):
+    return {
+        field.name: getattr(proposal, field.name)
+        for field in RegisterImport._meta.fields
+        if field.name not in ("uuid", "created_at", "updated_at", "file", "asic_file")
+    }
+
+
+def insert_forged(fields, actor, operation="register_import_prepare", **changes):
+    forged_id = uuid4()
+    company_id = fields["company"].pk
+    folder = f"companies/{company_id}/register-imports/{forged_id}"
+    with company_operation(actor, company_id, operation), atomic():
+        RegisterImport.objects.create(
+            **{
+                **fields,
+                **changes,
+                "uuid": forged_id,
+                "file": f"{folder}/{uuid4()}.bin",
+                "asic_file": f"{folder}/{uuid4()}.bin",
+            }
+        )
+
+
 def live_wallet(company, member, address, name, residence=RESIDENCE):
     user = get_user_model().objects.create_user(email=f"live-{uuid4()}@example.test", password="pw-12345678")
     profile = UserProfile.objects.create(user=user, full_name=name, residential_address=residence)
@@ -499,6 +523,28 @@ class RegisterImportTest(TransactionTestCase):
         self.assertEqual(RegisterImportDecision.objects.filter(register_import=proposal).count(), 1)
         with self.assertRaisesMessage(ValidationError, "already_approved"):
             self.decide(proposal, "approve")
+        self.assertEqual(self.decide(proposal, "apply").status, "applied")
+
+    def test_a_register_change_after_an_apply_preview_refuses_the_stale_decision(self):
+        proposal = self.submit()
+        self.decide(proposal, "approve")
+        stale = self.preview(proposal)["preview_digest"]
+        other = create_member(company_id=self.company.pk, member_id=uuid4())
+        self.move(self.member, other, 100)
+        self.move(other, self.member, 100)
+        self.assertEqual(self.unmet(proposal), [])
+        with self.assertRaises(RegisterChangeConflict):
+            decide_import(
+                actor=self.owner,
+                import_id=proposal.pk,
+                appointment=self.appointment.pk,
+                kind="apply",
+                idempotency_key=uuid4(),
+                preview_digest=stale,
+                confirmation=True,
+            )
+        proposal.refresh_from_db()
+        self.assertEqual((proposal.status, proposal.decisions.count()), ("submitted", 1))
         self.assertEqual(self.decide(proposal, "apply").status, "applied")
 
     def test_holdings_that_change_after_preparation_keep_it_from_applying_and_it_can_be_rejected(self):
@@ -810,27 +856,6 @@ class RegisterImportTest(TransactionTestCase):
         heading = rows.index(FORMER_MEMBER_HEADERS)
         self.assertEqual(rows[heading + 1][0], "Fred Former")
 
-    def forged_fields(self, proposal):
-        return {
-            field.name: getattr(proposal, field.name)
-            for field in RegisterImport._meta.fields
-            if field.name not in ("uuid", "created_at", "updated_at", "file", "asic_file")
-        }
-
-    def insert_forged(self, fields, actor=None, operation="register_import_prepare", **changes):
-        forged_id = uuid4()
-        folder = f"companies/{self.company.pk}/register-imports/{forged_id}"
-        with company_operation(actor or self.owner, self.company.pk, operation), atomic():
-            RegisterImport.objects.create(
-                **{
-                    **fields,
-                    **changes,
-                    "uuid": forged_id,
-                    "file": f"{folder}/{uuid4()}.bin",
-                    "asic_file": f"{folder}/{uuid4()}.bin",
-                }
-            )
-
     def test_the_database_refuses_forged_imports_rewrites_and_deletion(self):
         proposal = self.submit()
         with company_operation(self.owner, self.company.pk, "register_import_apply"):
@@ -844,7 +869,7 @@ class RegisterImportTest(TransactionTestCase):
             ):
                 with self.assertRaises(DatabaseError), atomic():
                     write()
-        forged = self.forged_fields(proposal)
+        forged = forged_fields(proposal)
         member = proposal.members[0]
         without_amount = {key: value for key, value in member.items() if key != "amount_paid"}
         former = proposal.former_members[0]
@@ -865,14 +890,12 @@ class RegisterImportTest(TransactionTestCase):
             {"status": "applied"},
         ):
             with self.subTest(changes=changes):
-                self.assert_refused("exact current intent", lambda: self.insert_forged(forged, **changes))
+                self.assert_refused("exact current intent", lambda: insert_forged(forged, self.owner, **changes))
         for actor, operation in ((self.owner, "register_import_approve"), (self.staff, "register_import_prepare")):
             with self.subTest(actor=actor.email, operation=operation):
-                self.assert_refused(
-                    "exact current intent", lambda: self.insert_forged(forged, actor=actor, operation=operation)
-                )
+                self.assert_refused("exact current intent", lambda: insert_forged(forged, actor, operation=operation))
         with self.assertRaises(RuntimeError), atomic():
-            self.insert_forged(forged)
+            insert_forged(forged, self.owner)
             raise RuntimeError("rollback")
         self.assertEqual(RegisterImport.objects.count(), 1)
 
@@ -1089,21 +1112,21 @@ class RegisterImportTest(TransactionTestCase):
     def test_the_database_admits_an_opening_import_only_for_an_eligible_class_and_its_companys_members(self):
         token = self.unopened()
         proposal = self.submit(**self.opening_import(token))
-        forged = self.forged_fields(proposal)
+        forged = forged_fields(proposal)
         _, _, _, stranger, _, _ = register_fixture()
         row = proposal.members[0]
         alone = {"asic_issued_total": int(row["shares"]), "asic_member_count": 1}
         self.assert_refused(
             "exact current intent",
-            lambda: self.insert_forged(forged, members=[{**row, "member": str(stranger.pk)}], **alone),
+            lambda: insert_forged(forged, self.owner, members=[{**row, "member": str(stranger.pk)}], **alone),
         )
         with self.assertRaises(RuntimeError), atomic():
-            self.insert_forged(forged, members=[{**row, "member": str(uuid4())}], **alone)
+            insert_forged(forged, self.owner, members=[{**row, "member": str(uuid4())}], **alone)
             raise RuntimeError("rollback")
         ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot").approve(
             self.staff
         )
-        self.assert_refused("exact current intent", lambda: self.insert_forged(forged))
+        self.assert_refused("exact current intent", lambda: insert_forged(forged, self.owner))
         self.assertEqual(RegisterImport.objects.count(), 1)
 
     def test_an_import_opened_class_reads_not_on_chain_with_nothing_waiting_until_a_completion(self):
