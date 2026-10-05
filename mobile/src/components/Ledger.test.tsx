@@ -1,8 +1,8 @@
 import React, { createRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { cleanup, fireEvent, render, renderHook, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, within } from '@testing-library/react-native';
 import { useAppTheme } from '../contexts';
-import { Choice, Disclosure, LinkRow, Row, Rows, SwitchRow } from './Ledger';
+import { Action, Choice, Disclosure, LinkRow, Row, Rows, SwitchRow } from './Ledger';
 
 afterEach(async () => {
   await cleanup();
@@ -213,3 +213,50 @@ it('asks for the value it is switched to, and is disabled when told', async () =
   await view.rerender(<SwitchRow label="Directory" checked onChange={change} disabled />);
   expect(view.getByLabelText('Directory').props.disabled).toBe(true);
 });
+
+it.each(['touch', 'accessibility'] as const)(
+  'activates a company action once through %s and refuses it after disabling',
+  async (route) => {
+    const apply = jest.fn();
+    const view = await render(<Action label="Apply decision" onPress={apply} />);
+    const button = view.getByRole('button', { name: 'Apply decision' });
+    if (route === 'touch') {
+      await fireEvent.press(button);
+    } else {
+      await fireEvent(button, 'accessibilityTap');
+    }
+    expect(apply).toHaveBeenCalledTimes(1);
+
+    await view.rerender(<Action label="Apply decision" onPress={apply} disabled />);
+    const disabled = view.getByRole('button', { name: 'Apply decision', disabled: true });
+    await fireEvent.press(disabled);
+    await act(() => disabled.props.onAccessibilityTap());
+    expect(apply).toHaveBeenCalledTimes(1);
+  },
+);
+
+it.each(['radio', 'checkbox'] as const)(
+  'keeps %s selection state through accessible activation and disabled refusal',
+  async (role) => {
+    const select = jest.fn();
+    const view = await render(
+      <Choice label="Accept declaration" accessibilityRole={role} selected={false} onPress={select} />,
+    );
+    const choice = view.getByRole(role, { name: 'Accept declaration', checked: false, selected: false });
+    await fireEvent(choice, 'accessibilityTap');
+    expect(select).toHaveBeenCalledTimes(1);
+
+    await view.rerender(
+      <Choice label="Accept declaration" accessibilityRole={role} selected onPress={select} disabled />,
+    );
+    const disabled = view.getByRole(role, {
+      name: 'Accept declaration',
+      checked: true,
+      selected: true,
+      disabled: true,
+    });
+    await fireEvent.press(disabled);
+    await act(() => disabled.props.onAccessibilityTap());
+    expect(select).toHaveBeenCalledTimes(1);
+  },
+);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { ApiClientProvider, USER_PROFILE_FIELDS } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
 import { UserProfileScreen } from './UserProfileScreen';
@@ -57,4 +57,43 @@ describe('every field USER_PROFILE_FIELDS names is one this screen actually rend
 
     await waitFor(() => expect(view.getByText(A_MESSAGE[field])).toBeTruthy());
   });
+});
+
+it('saves edits from named profile fields once through accessible Continue and locks the form while saving', async () => {
+  let finishSave!: (result: { data: object }) => void;
+  api.patch.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishSave = resolve;
+      }),
+  );
+  const view = await render(
+    <ApiClientProvider client={apiClient}>
+      <UserProfileScreen />
+    </ApiClientProvider>,
+  );
+  await waitFor(() => expect(view.getByLabelText('Full Name')).toHaveDisplayValue('Synthetic Person'));
+  await fireEvent.changeText(view.getByLabelText('Full Name'), 'Synthetic Representative');
+  await fireEvent.changeText(view.getByLabelText('Residential Address'), '2 Test Street, Sydney NSW 2000');
+  await fireEvent.changeText(view.getByLabelText('Phone Number'), '416234567');
+  await fireEvent(view.getByRole('button', { name: 'Continue' }), 'accessibilityTap');
+
+  expect(api.patch).toHaveBeenCalledTimes(1);
+  expect(api.patch).toHaveBeenCalledWith('/api/user-profiles/profile-1/', {
+    fullName: 'Synthetic Representative',
+    dateOfBirth: '1990-01-01',
+    residentialAddress: '2 Test Street, Sydney NSW 2000',
+    phoneCountryCode: '+61',
+    phoneNumber: '416234567',
+  });
+  for (const label of ['Full Name', 'Residential Address', 'Phone Number']) {
+    expect(view.getByLabelText(label)).toBeDisabled();
+  }
+  expect(view.getByRole('button', { name: 'Date of Birth' })).toBeDisabled();
+  const saving = view.getByRole('button', { name: 'Continue', busy: true, disabled: true });
+  await fireEvent.press(saving);
+  await act(() => saving.props.onAccessibilityTap());
+  expect(api.patch).toHaveBeenCalledTimes(1);
+  await act(() => finishSave({ data: {} }));
+  expect(view.getByRole('button', { name: 'Continue' })).toBeEnabled();
 });

@@ -15,6 +15,8 @@ interface SecondaryButtonProps {
 
   children: React.ReactNode;
 
+  accessibilityLabel?: string;
+
   fullWidth?: boolean;
 
   size?: 'small' | 'medium' | 'large';

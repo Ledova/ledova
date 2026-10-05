@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render } from '@testing-library/react-native';
 import { DatePickerField } from './DatePickerField';
 
 jest.mock('@react-native-community/datetimepicker', () => {
@@ -28,4 +28,25 @@ it('opens the date sheet on the card, titled by its field, with Cancel before Do
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
   expect(view.queryByRole('header', { name: 'From date' })).toBeNull();
   expect(change).not.toHaveBeenCalled();
+});
+
+it('opens the named date control through native accessibility activation without inventing a date change', async () => {
+  const change = jest.fn();
+  const view = await render(<DatePickerField label="Date of Birth" value={new Date(1990, 0, 2)} onChange={change} />);
+  const opener = view.getByRole('button', { name: 'Date of Birth', expanded: false });
+  expect(opener.props.accessibilityValue).toEqual({ text: '02/01/1990' });
+  await fireEvent(opener, 'accessibilityTap');
+  expect(view.getByRole('button', { name: 'Date of Birth', expanded: true })).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Date of Birth' })).toBeTruthy();
+  await fireEvent(view.getByRole('button', { name: 'Done' }), 'accessibilityTap');
+  expect(view.queryByRole('header', { name: 'Date of Birth' })).toBeNull();
+  expect(change).not.toHaveBeenCalled();
+});
+
+it('refuses touch and direct native activation while the date field is disabled', async () => {
+  const view = await render(<DatePickerField label="Date of Birth" onChange={jest.fn()} disabled />);
+  const opener = view.getByRole('button', { name: 'Date of Birth', disabled: true });
+  await fireEvent.press(opener);
+  await act(() => opener.props.onAccessibilityTap());
+  expect(view.queryByRole('header', { name: 'Date of Birth' })).toBeNull();
 });
