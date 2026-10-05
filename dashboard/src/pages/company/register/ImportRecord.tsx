@@ -11,31 +11,22 @@ import {
   formatShareCount,
   registerImportTotals,
   useRegisterDecision,
-  type OwnCompanyAppointment,
   type RegisterDecisionKind,
   type RegisterImport,
   type RegisterImportDecisionPreview,
-  type RegisterStep,
 } from '@ledova/shared';
-import { Row, Rows, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, Status } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
+import { DecisionTrail } from './DecisionTrail';
+import { DOWNLOAD_FAILED, STAGE_TONES, STEP_CHANGED, retainedName, type RegisterSteps } from './proposals';
 import { saveFile } from './useCompanyRegister';
-
-export type ImportSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
 
 type Decision = ReturnType<typeof useRegisterDecision<RegisterImport, RegisterImportDecisionPreview>>;
 
-const TONES: Record<string, Tone> = { submitted: 'waiting', approved: 'moving', applied: 'done', rejected: 'closed' };
 const KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
-const DOWNLOAD_FAILED = 'The file could not be downloaded. Try again.';
-
-function fileName(snapshot: unknown, fallback: string) {
-  const name = (snapshot as { name?: unknown } | null)?.name;
-  return typeof name === 'string' && name ? name : fallback;
-}
 
 function DecisionPanel({
   kind,
@@ -83,7 +74,7 @@ function DecisionPanel({
       )}
       {preview && !current && (
         <p role="alert" className="text-sm text-error-light">
-          Your appointment for this step changed or could not be checked. Cancel and start this decision again.
+          {STEP_CHANGED}
         </p>
       )}
       {decision.busy && !preview && (
@@ -160,7 +151,7 @@ export function ImportRecord({
   onRefused,
 }: {
   proposal: RegisterImport;
-  steps: ImportSteps;
+  steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
@@ -194,8 +185,8 @@ export function ImportRecord({
       saveFile(
         data,
         copy === 'asic'
-          ? fileName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
-          : fileName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
+          ? retainedName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
+          : retainedName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
       );
     },
   });
@@ -226,27 +217,14 @@ export function ImportRecord({
     <li className="flex flex-col gap-3 py-4">
       <Rows>
         <Row label="Stage">
-          <Status tone={TONES[proposal.stage] ?? 'waiting'}>
+          <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
             {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
           </Status>
         </Row>
         {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
         <Row label="Register date">{proposal.asAt}</Row>
-        {[...proposal.decisions]
-          .sort((left, right) => Date.parse(left.decidedAt) - Date.parse(right.decidedAt))
-          .map((item) => (
-            <Row key={item.uuid} label={REGISTER_IMPORT_COPY.DECISIONS[item.kind]}>
-              {item.decidedByName || 'Not provided'} · {formatDateTime(item.decidedAt)}
-              {item.reason && ` · ${item.reason}`}
-            </Row>
-          ))}
-        {proposal.decisions.length === 0 && proposal.reviewedAt && (
-          <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
-        )}
-        {proposal.status === 'rejected' && proposal.rejectionReason && (
-          <Row label="Rejection reason">{proposal.rejectionReason}</Row>
-        )}
+        <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
       </Rows>
       <p className="text-sm text-text-muted">
         {proposal.providedBy === 'company'
