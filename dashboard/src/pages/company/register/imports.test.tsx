@@ -7,6 +7,7 @@ import {
   COMPANY_AUTHORITY_DECLARATION,
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   COMPANY_TOKEN_ENDPOINTS,
+  REGISTER_CORRECTION_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_UNMET_COPY,
   USER_PREFERENCES_QUERY_KEY,
@@ -18,6 +19,7 @@ import {
   type RegisterImport,
   type RegisterImportDecideRequest,
   type RegisterImportDecisionPreview,
+  type RegisterEntry,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import CompanyRegisterPage from '.';
@@ -29,6 +31,9 @@ vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const HOLDERS = COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary');
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
+const ENTRIES = COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary');
+const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
+const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PREVIEW = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_PREVIEW('import-new');
 const DECIDE = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_DECIDE('import-new');
@@ -38,6 +43,7 @@ const WALLET = `0x${'1'.repeat(40)}`;
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 let client: QueryClient;
 let imports: RegisterImport[];
+let entries: RegisterEntry[];
 let appointments: OwnCompanyAppointment[];
 let previewFor: (body: { kind: RegisterDecisionKind; reason: string }) => RegisterImportDecisionPreview;
 let decideFor: (body: RegisterImportDecideRequest) => Promise<{ data: RegisterImport }>;
@@ -272,6 +278,7 @@ beforeEach(() => {
   let keys = 0;
   vi.spyOn(crypto, 'randomUUID').mockImplementation(() => KEY(++keys) as ReturnType<typeof crypto.randomUUID>);
   imports = [proposal()];
+  entries = [];
   appointments = [appointment(['admin'])];
   previewFor = () => preview();
   decideFor = async (body) => ({ data: decided(body) });
@@ -281,6 +288,8 @@ beforeEach(() => {
     if (url === HOLDERS) return { data: holders() };
     if (url === IMPORTS) return page(imports);
     if (url === APPOINTMENTS) return page(appointments);
+    if (url === ENTRIES) return page(entries);
+    if (url === CORRECTIONS || url === RECONCILIATIONS) return page([]);
     if (url.endsWith('/file/') || url.endsWith('/asic-file/'))
       return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);
@@ -527,6 +536,42 @@ it('previews an approval, then records exactly the previewed decision and refres
   expect(reads(HOLDERS)).toBe(holdersRead + 1);
   expect(await within(section).findByText(COPY.STAGES.approved)).toBeTruthy();
   expect(within(section).getByText(`Example Decider · ${formatDateTime('2026-10-05T02:00:00Z')}`)).toBeTruthy();
+});
+
+it.each([
+  ['recorded', async (body: RegisterImportDecideRequest) => ({ data: decided(body) })],
+  [
+    'refused',
+    async () => {
+      throw { response: { status: 409, data: { detail: 'The register operation conflicts.' } } };
+    },
+  ],
+] as const)('refreshes the class register entries once an applied import is %s', async (_outcome, decide) => {
+  decideFor = decide;
+  const section = await openClass();
+  const register = (await screen.findByRole('heading', { level: 3, name: REGISTER_CORRECTION_COPY.ENTRIES_TITLE }))
+    .parentElement!;
+  expect(await within(register).findByText(REGISTER_CORRECTION_COPY.ENTRIES_EMPTY)).toBeTruthy();
+  const read = reads(ENTRIES);
+  entries = [
+    {
+      uuid: 'entry-opening',
+      sequence: 1,
+      kind: 'opening',
+      effectiveOn: '2026-09-20',
+      recordedAt: '2026-10-05T02:00:00Z',
+      changes: [{ member: 'member-one', name: 'Example Member', shares: '9007199254740993' }],
+      corrects: null,
+      correctedBy: null,
+      correctable: true,
+    },
+  ];
+  const dialog = await openDecision(records(section)[0], 'apply');
+  await within(dialog).findByText('Example Live Member');
+  fireEvent.click(confirmButton(dialog, 'apply'));
+  await waitFor(() => expect(reads(ENTRIES)).toBe(read + 1));
+  expect(await within(register).findByText(REGISTER_CORRECTION_COPY.ENTRY_KINDS.opening)).toBeTruthy();
+  expect(within(register).getByText('Example Member: +9,007,199,254,740,993')).toBeTruthy();
 });
 
 it('lists unmet requirements in words and keeps the decision unconfirmable while any remain', async () => {

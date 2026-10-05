@@ -6,6 +6,7 @@ import { ownAppointmentsKey } from '../team/appointments';
 import { ImportRecord } from './ImportRecord';
 import { registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
+import { entriesKey } from './useRegisterCorrections';
 import { importsKey, useOwnAppointments, useRegisterImports } from './useRegisterImports';
 
 export function ClassImports({
@@ -31,9 +32,9 @@ export function ClassImports({
     }
     await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
   };
-  const decided = () => refresh([importsKey(owner, token), [...registerKey(owner), 'holders']]);
-  const refused = () =>
-    refresh([importsKey(owner, token), [...registerKey(owner), 'holders'], ownAppointmentsKey(owner)]);
+  const changed = [importsKey(owner, token), [...registerKey(owner), 'holders'], entriesKey(owner, token)];
+  const decided = () => refresh(changed);
+  const refused = () => refresh([...changed, ownAppointmentsKey(owner)]);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{REGISTER_IMPORT_COPY.TITLE}</h3>
