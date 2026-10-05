@@ -245,12 +245,16 @@ function fields(element: HTMLElement) {
     .map((term) => [term.textContent, term.nextElementSibling?.textContent]);
 }
 
+const ACKNOWLEDGE_ROW = new RegExp(`^${COPY.ACKNOWLEDGE} \\(discrepancy \\d+\\)$`);
+
 function offered(element: HTMLElement) {
-  return records(element).map((record) => !!within(record).queryByRole('button', { name: COPY.ACKNOWLEDGE }));
+  return records(element).map((record) => !!within(record).queryByRole('button', { name: ACKNOWLEDGE_ROW }));
 }
 
 async function openAcknowledgement(element: HTMLElement, index: number) {
-  fireEvent.click(within(records(element)[index]).getByRole('button', { name: COPY.ACKNOWLEDGE }));
+  fireEvent.click(
+    within(records(element)[index]).getByRole('button', { name: `${COPY.ACKNOWLEDGE} (discrepancy ${index + 1})` }),
+  );
   return screen.findByRole('dialog', { name: DIALOG });
 }
 
@@ -346,7 +350,7 @@ it("shows a matched reconciliation's block, compared register sequence and time,
   ]);
   expect(within(section).queryByText(COPY.FAILED_NOTE)).toBeNull();
   expect(within(section).queryByRole('listitem')).toBeNull();
-  expect(within(section).queryByRole('button', { name: COPY.ACKNOWLEDGE })).toBeNull();
+  expect(within(section).queryByRole('button', { name: ACKNOWLEDGE_ROW })).toBeNull();
 });
 
 it('words each discrepancy as a sentence with its particulars and offers acknowledgement only where it can be', async () => {

@@ -181,6 +181,7 @@ export function ClassReconciliation({
                       <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEABLE_NOTE}</p>
                       <PageAction
                         label={COPY.ACKNOWLEDGE}
+                        context={`discrepancy ${index + 1}`}
                         disabled={acknowledgement.busy}
                         onClick={() => begin(index)}
                       />

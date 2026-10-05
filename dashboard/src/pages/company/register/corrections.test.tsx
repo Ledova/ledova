@@ -336,15 +336,18 @@ function rowText(element: HTMLElement, label: string) {
   return within(element).getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
 }
 
+function action(label: string) {
+  return new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(`);
+}
+
 function decisionLabels(record: HTMLElement) {
   return within(record)
-    .queryAllByRole('button')
-    .map((button) => button.textContent)
-    .filter((label) => ['Approve', 'Apply', 'Reject'].includes(label ?? ''));
+    .queryAllByRole('button', { name: /^(Approve|Apply|Reject) \(/ })
+    .map((button) => button.textContent?.split(' (')[0]);
 }
 
 async function openDecision(record: HTMLElement, kind: RegisterDecisionKind) {
-  fireEvent.click(within(record).getByRole('button', { name: COPY.DECISIONS[kind] }));
+  fireEvent.click(within(record).getByRole('button', { name: action(COPY.DECISIONS[kind]) }));
   return screen.findByRole('dialog', { name: `${COPY.DECISIONS[kind]} correction` });
 }
 
@@ -484,7 +487,7 @@ it('keeps the first copy of an entry a later page repeats with a newer state', a
   const transfer = records(register)[1];
   expect(within(transfer).getByText('Entry 3')).toBeTruthy();
   expect(within(transfer).queryByText(/^Reversed by/)).toBeNull();
-  expect(within(transfer).getByRole('link', { name: COPY.PREPARE })).toBeTruthy();
+  expect(within(transfer).getByRole('link', { name: action(COPY.PREPARE) })).toBeTruthy();
 });
 
 it('refuses entry pages whose next link does not advance', async () => {
@@ -569,7 +572,7 @@ it.each([
   await waitFor(() => expect(records(register)).toHaveLength(4));
   expect(
     within(register)
-      .queryAllByRole('link', { name: COPY.PREPARE })
+      .queryAllByRole('link', { name: action(COPY.PREPARE) })
       .map((link) => link.getAttribute('href')),
   ).toEqual(
     offered
@@ -680,12 +683,32 @@ it("lists every page of the class's corrections, newest first, each with the ent
     `Opening state · Entry 1 · Effective 2026-09-01Example Member: +9,007,199,254,740,993${COPY.UNNAMED_MEMBER('member-three')}: +5`,
   );
   for (const record of [newest, middle, oldest])
-    expect(within(record).getByRole('button', { name: COPY.DOWNLOAD })).toBeTruthy();
+    expect(within(record).getByRole('button', { name: action(COPY.DOWNLOAD) })).toBeTruthy();
   expect(
     client
       .getQueryData<unknown[]>([...ACCOUNT, 'corrections', 'ordinary'])
       ?.map((item) => (item as { proposal: RegisterCorrection }).proposal.uuid),
   ).toEqual(['correction-new', 'correction-applied', 'correction-retired']);
+});
+
+it('names each repeated control after its visible label, then the entry it concerns', async () => {
+  await openClass();
+  const [record] = records(await corrections());
+  expect(
+    within(record)
+      .getAllByRole('button')
+      .map((button) => button.textContent),
+  ).toEqual([
+    `${COPY.DOWNLOAD} (correction of entry 2)`,
+    'Approve (correction of entry 2)',
+    'Apply (correction of entry 2)',
+    'Reject (correction of entry 2)',
+  ]);
+  expect(within(record).getByRole('button', { name: 'Approve (correction of entry 2)' })).toBeTruthy();
+  expect(within(record).getByText(COPY.DECISIONS.approve).className).toBe('');
+  expect(within(record).getAllByText('(correction of entry 2)', { selector: '.sr-only' })).toHaveLength(4);
+  const register = await history();
+  expect(within(register).getByRole('link', { name: `${COPY.PREPARE} (entry 4)` })).toBeTruthy();
 });
 
 it('reads no further entries for a class without corrections, and says so calmly', async () => {
@@ -771,9 +794,9 @@ it.each([
   expect(within(list).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(within(list).getByText('Example Preparer')).toBeTruthy();
   expect(decisionLabels(records(list)[0])).toEqual([]);
-  expect(within(register).queryByRole('link', { name: COPY.PREPARE })).toBeNull();
+  expect(within(register).queryByRole('link', { name: action(COPY.PREPARE) })).toBeNull();
   expect(records(register)).toHaveLength(2);
-  expect(within(list).getByRole('button', { name: COPY.DOWNLOAD })).toBeTruthy();
+  expect(within(list).getByRole('button', { name: action(COPY.DOWNLOAD) })).toBeTruthy();
 });
 
 it.each([
@@ -963,13 +986,13 @@ it('withdraws every step and correction link once a refresh shows the appointmen
   const list = await corrections();
   const register = await history();
   expect(decisionLabels(records(list)[0])).toEqual(['Approve', 'Apply', 'Reject']);
-  expect(within(register).getAllByRole('link', { name: COPY.PREPARE })).toHaveLength(1);
+  expect(within(register).getAllByRole('link', { name: action(COPY.PREPARE) })).toHaveLength(1);
   appointments = [appointment(['admin'], { status: 'revoked', isEffective: false, revokedAt: '2026-10-05T03:00:00Z' })];
   await act(async () => {
     await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
   });
   await waitFor(() => expect(decisionLabels(records(list)[0])).toEqual([]));
-  expect(within(register).queryByRole('link', { name: COPY.PREPARE })).toBeNull();
+  expect(within(register).queryByRole('link', { name: action(COPY.PREPARE) })).toBeNull();
   expect(within(list).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
@@ -985,7 +1008,7 @@ it('withholds every step while the appointments cannot be read, and offers their
     ),
   );
   expect(decisionLabels(records(list)[0])).toEqual([]);
-  expect(within(register).queryByRole('link', { name: COPY.PREPARE })).toBeNull();
+  expect(within(register).queryByRole('link', { name: action(COPY.PREPARE) })).toBeNull();
   expect(within(list).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
   fail = false;
   fireEvent.click(within(list).getByRole('button', { name: 'Retry appointments' }));
@@ -1150,7 +1173,7 @@ it('drops a preview that returns after the signed-in account changed', async () 
   const pending = deferred<{ data: RegisterCorrectionDecisionPreview }>();
   api.post.mockImplementation((url: string) => (url === PREVIEW ? pending.promise : Promise.reject(new Error(url))));
   await openClass();
-  fireEvent.click(within(records(await corrections())[0]).getByRole('button', { name: 'Approve' }));
+  fireEvent.click(within(records(await corrections())[0]).getByRole('button', { name: action('Approve') }));
   await waitFor(() => expect(writes(PREVIEW)).toHaveLength(1));
   act(switchAccount);
   await act(async () => pending.resolve({ data: preview() }));
@@ -1264,9 +1287,9 @@ it('downloads the authority document under its retained name, or a named fallbac
   correctionPages = [page([correction(), staffEra({ uuid: 'correction-staff' })])];
   await openClass();
   const [company, staff] = records(await corrections());
-  fireEvent.click(within(company).getByRole('button', { name: COPY.DOWNLOAD }));
+  fireEvent.click(within(company).getByRole('button', { name: action(COPY.DOWNLOAD) }));
   await waitFor(() => expect(saved).toEqual(['signed-resolution.pdf']));
-  fireEvent.click(within(staff).getByRole('button', { name: COPY.DOWNLOAD }));
+  fireEvent.click(within(staff).getByRole('button', { name: action(COPY.DOWNLOAD) }));
   await waitFor(() => expect(saved).toEqual(['signed-resolution.pdf', 'register-correction-correction-staff']));
   expect(api.get).toHaveBeenCalledWith(FILE, { ledovaSubmissionGuard: expect.any(Function), responseType: 'blob' });
 });
@@ -1275,7 +1298,7 @@ it('says when the authority document could not be downloaded', async () => {
   serve((url) => (url === FILE ? Promise.reject(new Error('Unavailable')) : undefined));
   await openClass();
   const [record] = records(await corrections());
-  fireEvent.click(within(record).getByRole('button', { name: COPY.DOWNLOAD }));
+  fireEvent.click(within(record).getByRole('button', { name: action(COPY.DOWNLOAD) }));
   expect((await within(record).findByRole('alert')).textContent).toBe('The file could not be downloaded. Try again.');
 });
 
@@ -1285,7 +1308,7 @@ it('saves no authority document whose download returns after the signed-in accou
   await openClass();
   const [record] = records(await corrections());
   serve((url) => (url === FILE ? pending.promise : undefined));
-  fireEvent.click(within(record).getByRole('button', { name: COPY.DOWNLOAD }));
+  fireEvent.click(within(record).getByRole('button', { name: action(COPY.DOWNLOAD) }));
   await waitFor(() => expect(reads(FILE)).toBe(1));
   act(switchAccount);
   await act(async () => pending.resolve({ data: new Blob(['%PDF synthetic']) }));

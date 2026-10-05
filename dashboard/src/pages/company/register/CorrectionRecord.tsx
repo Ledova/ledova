@@ -163,6 +163,7 @@ export function CorrectionRecord({
       saveFile(data, retainedName(proposal.evidenceSnapshot, `register-correction-${proposal.uuid}`));
     },
   });
+  const context = `correction of entry ${entry.sequence}`;
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
   const target = decision?.target;
@@ -213,7 +214,12 @@ export function CorrectionRecord({
         {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
       </p>
       <div className="flex flex-wrap gap-2">
-        <PageAction label={COPY.DOWNLOAD} disabled={download.isPending} onClick={() => download.mutate()} />
+        <PageAction
+          label={COPY.DOWNLOAD}
+          context={context}
+          disabled={download.isPending}
+          onClick={() => download.mutate()}
+        />
       </div>
       {download.isError && (
         <p role="alert" className="text-sm text-error-light">
@@ -223,7 +229,13 @@ export function CorrectionRecord({
       {available.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {available.map((kind) => (
-            <PageAction key={kind} label={COPY.DECISIONS[kind]} disabled={busy} onClick={() => begin(kind)} />
+            <PageAction
+              key={kind}
+              label={COPY.DECISIONS[kind]}
+              context={context}
+              disabled={busy}
+              onClick={() => begin(kind)}
+            />
           ))}
         </div>
       )}

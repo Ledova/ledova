@@ -91,6 +91,7 @@ function EntryHistory({
                         .replace(':uuid', token)
                         .replace(':entry', entry.uuid)}
                       label={COPY.PREPARE}
+                      context={`entry ${entry.sequence}`}
                     />
                   )}
                 </li>
