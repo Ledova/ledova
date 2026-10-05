@@ -21,6 +21,8 @@ import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
+const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
+const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const NO_REGISTER = REGISTER_COPY.NO_REGISTER;
 let client: QueryClient;
 
@@ -72,6 +74,12 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
   return { data: { results: classes, count: classes.length, next, previous: null } };
 }
 
+function noImports(url: string) {
+  return url === IMPORTS || url === APPOINTMENTS
+    ? { data: { results: [], count: 0, next: null, previous: null } }
+    : null;
+}
+
 function show(role: AccountRole = 'company', content: ReactNode = <CompanyRegisterPage />, title = 'Register') {
   prepareCompanyClient(client, role);
   client.setQueryData(['userAccount'], { data: { role } });
@@ -79,7 +87,7 @@ function show(role: AccountRole = 'company', content: ReactNode = <CompanyRegist
 }
 
 function serve(value = register()) {
-  api.get.mockImplementation(async (url: string) => (url === REGISTER ? page() : { data: value }));
+  api.get.mockImplementation(async (url: string) => noImports(url) ?? (url === REGISTER ? page() : { data: value }));
 }
 
 function readUrls() {
@@ -147,7 +155,7 @@ it('reads every register class page and renders exact stored shares with each me
       return config?.params?.page === 2
         ? page([harbour('preference')])
         : page([harbour('ordinary')], 'https://example.test/tokens/register/?page=2');
-    return { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
+    return noImports(url) ?? { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
   });
   show();
   expect(await screen.findByText('Preference shares')).toBeTruthy();
@@ -170,6 +178,9 @@ it('reads every register class page and renders exact stored shares with each me
     REGISTER,
     COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'),
     COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
+    IMPORTS,
+    APPOINTMENTS,
+    IMPORTS,
   ]);
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
@@ -221,9 +232,10 @@ it.each([null, 2])('keeps waiting effects %s distinct from a current register', 
   serve(register('ordinary', { waitingEffects }));
   show();
   await openOrdinary();
-  expect(screen.getByRole('status').textContent).toContain(
-    waitingEffects === null ? 'could not be checked' : '2 completed issues or transfers wait',
+  const note = screen.getByText(
+    waitingEffects === null ? /could not be checked/ : /2 completed issues or transfers wait/,
   );
+  expect(note.getAttribute('role')).toBe('status');
   expect(screen.getByText('Example Member')).toBeTruthy();
 });
 
@@ -258,10 +270,12 @@ it('retains unresolved identity and wallet-less members without inventing a name
 
 it('opens each class in place under its row, all closed at first, independently and from the keyboard', async () => {
   const user = userEvent.setup();
-  api.get.mockImplementation(async (url: string) =>
-    url === REGISTER
-      ? page([harbour('ordinary'), harbour('preference')])
-      : { data: register(url.includes('preference') ? 'preference' : 'ordinary') },
+  api.get.mockImplementation(
+    async (url: string) =>
+      noImports(url) ??
+      (url === REGISTER
+        ? page([harbour('ordinary'), harbour('preference')])
+        : { data: register(url.includes('preference') ? 'preference' : 'ordinary') }),
   );
   show();
   const ordinary = await screen.findByRole('button', { name: /Ordinary shares/ });
@@ -342,7 +356,7 @@ it('opens the register to an investor-role appointee, with members and the CSV b
       if (exportFails) throw new Error('Unavailable');
       return { data: new Blob(['Synthetic register'], { type: 'text/csv' }) };
     }
-    return { data: register() };
+    return noImports(url) ?? { data: register() };
   });
   show('investor');
   await openOrdinary();
@@ -383,7 +397,7 @@ it.each([
       return new Promise((resolve) => {
         finish = resolve;
       });
-    return Promise.resolve({ data: register() });
+    return Promise.resolve(noImports(url) ?? { data: register() });
   });
   show('investor');
   await openOrdinary();

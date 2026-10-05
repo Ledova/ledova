@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -13,9 +13,11 @@ import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
+import { ClassImports } from './ClassImports';
 import { ClassRegister } from './ClassRegister';
 import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
+import { ownerGuard } from './useRegisterImports';
 
 function RegisterPage({ selection, children }: { selection?: ReactNode; children: ReactNode }) {
   return (
@@ -52,10 +54,12 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
 }
 
 export default function CompanyRegisterPage() {
-  const { owner } = useSubmissionOwner();
+  const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   if (owner && !preferences.isError)
-    return <OwnRegister key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} />;
+    return (
+      <OwnRegister key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
+    );
   return (
     <RegisterPage>
       {preferences.isLoading ? (
@@ -67,7 +71,14 @@ export default function CompanyRegisterPage() {
   );
 }
 
-function OwnRegister({ owner }: { owner: OrderSubmissionOwner }) {
+function OwnRegister({
+  owner,
+  currentOwner,
+}: {
+  owner: OrderSubmissionOwner;
+  currentOwner: () => OrderSubmissionOwner | null;
+}) {
+  const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
   const rows = useOpenRows();
   const { role } = useRole();
@@ -127,6 +138,7 @@ function OwnRegister({ owner }: { owner: OrderSubmissionOwner }) {
                 )}
                 <RegisterDownload register={register} />
                 <ClassRegister register={register} />
+                <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
               </Disclosure>
             </li>
           ))}
