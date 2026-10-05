@@ -148,6 +148,7 @@ class ProviderCallsOutsideTheApplyTransactionTest(TransactionTestCase):
 @override_settings(SUMSUB_WEBHOOK_SECRET=SUMSUB_SECRET, KYC_PROVIDER="sumsub")
 class SumsubApprovalReadsOutsideAnyTransactionTest(TransactionTestCase):
     def setUp(self):
+        Operator.get()
         user = User.objects.create_user(email="sumsub-outside@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(
             user=user,

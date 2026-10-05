@@ -113,6 +113,7 @@ def get_verification_status(user_profile: UserProfile) -> dict:
                 update_status_from_normalized(user_profile, normalized)
         except Exception as e:
             logger.warning(f"Failed to fetch live status for applicant {applicant_id}, using cached data: {e}")
+            user_profile.refresh_from_db()
 
     response_data = {
         "provider": user_profile.kyc_provider,
