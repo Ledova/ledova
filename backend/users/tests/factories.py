@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
+from shared.db import use_migrate
 from users.models import (
     InvestorCategory,
     InvestorClassification,
@@ -44,34 +45,39 @@ def make_classification(account, **overrides):
         "submitted_at": timezone.now(),
     }
     fields.update(overrides)
-    classification = InvestorClassification.objects.create(**fields)
+    with use_migrate():
+        classification = InvestorClassification.objects.create(**fields)
     return classification
 
 
 def attach_evidence(classification, payload=b"evidence bytes"):
-    classification.evidence_file.save(f"{classification.uuid}.pdf", ContentFile(payload), save=True)
+    with use_migrate():
+        classification.evidence_file.save(f"{classification.uuid}.pdf", ContentFile(payload), save=True)
     return classification
 
 
 def verified_classification(account, reviewer, **overrides):
     expires_at = overrides.pop("expires_at", timezone.now() + timezone.timedelta(days=365))
     classification = make_classification(account, **overrides)
-    classification.verify(reviewed_by=reviewer, expires_at=expires_at)
-    classification.refresh_from_db()
+    with use_migrate():
+        classification.verify(reviewed_by=reviewer, expires_at=expires_at)
+        classification.refresh_from_db()
     return classification
 
 
 def revoked_classification(account, reviewer, **overrides):
     classification = verified_classification(account, reviewer, **overrides)
-    classification.revoke(reviewed_by=reviewer, reason="No longer holds")
-    classification.refresh_from_db()
+    with use_migrate():
+        classification.revoke(reviewed_by=reviewer, reason="No longer holds")
+        classification.refresh_from_db()
     return classification
 
 
 def rejected_classification(account, reviewer, **overrides):
     classification = make_classification(account, **overrides)
-    classification.reject(reviewed_by=reviewer, reason="Evidence insufficient")
-    classification.refresh_from_db()
+    with use_migrate():
+        classification.reject(reviewed_by=reviewer, reason="Evidence insufficient")
+        classification.refresh_from_db()
     return classification
 
 

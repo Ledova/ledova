@@ -4,10 +4,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
+from companies.services.authority_requests import _requester_principal
 from documents.models import Document, DocumentExtraction, ExtractionStatus
 from documents.services.document import create_document
 from documents.tasks.extract import extract_document
@@ -18,6 +20,7 @@ from shared.db import (
     OPERATOR_ALIAS,
     current_alias,
     principal_of,
+    use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -112,7 +115,7 @@ class ScopedDocumentExtractionTest(RunsOnTheScopedConnection, TransactionTestCas
         self.assertEqual(len(self.extractions_of(self.other)), 1)
 
     def test_retention_withdrawn_between_enqueue_and_run_skips_under_the_uploader(self):
-        with use_operator():
+        with use_migrate():
             Document.objects.filter(pk=self.uploader.document.pk).update(purged_at=timezone.now())
         observed = []
         with ExitStack() as stack:
@@ -138,11 +141,13 @@ class ScopedDocumentExtractionTest(RunsOnTheScopedConnection, TransactionTestCas
 
     def test_the_upload_producer_captures_the_uploader_as_the_principal(self):
         before = self.queued()
-        with use_operator():
+        with self.uploader.document.file.open("rb") as source:
+            upload = SimpleUploadedFile("queued.pdf", source.read(), content_type="application/pdf")
+        with use_operator(), _requester_principal(self.uploader.user.pk):
             document = create_document(
                 self.uploader.user,
                 {
-                    "file": self.uploader.document.file,
+                    "file": upload,
                     "mime_type": "application/pdf",
                     "document_type": "payslip",
                 },

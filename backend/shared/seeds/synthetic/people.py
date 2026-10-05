@@ -23,7 +23,7 @@ from documents.schemas import PayslipExtraction
 from integrations.kyc.pep import pep_data_from_labels
 from integrations.sumsub.client import SumSubService
 from portfolios.models import Portfolio
-from shared.db import atomic
+from shared.db import atomic, use_migrate
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.paper import pdf
@@ -379,8 +379,10 @@ def _review(classification, claim, seeded):
     if claim.status == "submitted":
         return
     if claim.status == "withdrawn":
-        with frozen(claim.reviewed_at):
-            classification.withdraw()
+        with use_migrate(), frozen(claim.reviewed_at):
+            classification.status = InvestorClassificationStatus.WITHDRAWN
+            classification.reviewed_at = claim.reviewed_at
+            classification.save(update_fields=["status", "reviewed_at", "updated_at"])
         return
     if claim.status == "rejected":
         with frozen(claim.reviewed_at):

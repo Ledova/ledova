@@ -6,6 +6,7 @@ from shared.db.policies import (
     AWAITING_RLS,
     BYPASSES_THE_POLICIES,
     DISCOVERABLE_COMPANIES,
+    ELIGIBILITY_COMPANIES,
     FRAMEWORK,
     HAS_A_TOKEN_ON_THE_MARKET,
     HELPERS,
@@ -49,6 +50,10 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         "companies_companyappointmentrevocation": ("companies", "0015_self_declared_company_appointments"),
         "companies_companyteaminvitation": ("companies", "0017_company_team_invitations"),
         "companies_companylegacyownersource": ("companies", "0019_legacy_owner_appointments"),
+        "users_companyeligibilityrequest": ("users", "0032_company_eligibility_records"),
+        "users_companyeligibilitydecision": ("users", "0032_company_eligibility_records"),
+        "users_companyeligibilityrequestwithdrawal": ("users", "0032_company_eligibility_records"),
+        "users_companyeligibilityrevocation": ("users", "0032_company_eligibility_records"),
         "tokens_registercorrection": ("tokens", "0064_reviewed_register_corrections"),
         "tokens_registermemberwallet": ("tokens", "0065_register_opening"),
         "tokens_registeropening": ("tokens", "0065_register_opening"),
@@ -91,6 +96,13 @@ def install(schema_editor):
 
     with schema_editor.connection.cursor() as cursor:
         for name, body in HELPERS.items():
+            if name == ELIGIBILITY_COMPANIES:
+                cursor.execute(
+                    "SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'users' "
+                    "AND name = '0032_company_eligibility_records')"
+                )
+                if not cursor.fetchone()[0]:
+                    continue
             cursor.execute(
                 "SELECT EXISTS (SELECT 1 FROM django_migrations WHERE app = 'companies' "
                 "AND name = '0020_company_administration')"

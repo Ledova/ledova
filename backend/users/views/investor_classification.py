@@ -12,6 +12,7 @@ from users.serializers.investor_classification import (
     InvestorEligibilitySerializer,
 )
 from users.services.eligibility import investor_eligibility
+from users.services.investor_classification import create_classification
 
 
 class InvestorClassificationViewSet(
@@ -36,8 +37,11 @@ class InvestorClassificationViewSet(
             queryset = queryset.submitted()
         return queryset.select_related("user_account", "company")
 
+    def perform_create(self, serializer):
+        serializer.instance = create_classification(actor=self.request.user, validated_data=serializer.validated_data)
+
     def destroy(self, request, *args, **kwargs):
-        self.get_object().withdraw()
+        self.get_object().withdraw(withdrawn_by=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(responses=InvestorEligibilitySerializer)
