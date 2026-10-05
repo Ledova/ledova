@@ -8414,6 +8414,7 @@ export interface ApiOperations {
   api_v1_tokens_register_entries_list: {
     parameters: {
       query?: {
+        entry?: string[];
         page?: number;
       };
       header?: never;

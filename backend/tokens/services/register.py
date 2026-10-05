@@ -475,12 +475,15 @@ def stored_waiting_list(token):
         return waiting_list(token.pk)
 
 
-def stored_entries(token, paginate) -> list[dict]:
+def stored_entries(token, paginate, wanted=()) -> list[dict]:
+    entries = RegisterEntry.objects.filter(register__token=token)
+    if wanted:
+        entries = entries.filter(pk__in=wanted)
     with _snapshot():
         entries = paginate(
-            RegisterEntry.objects.filter(register__token=token)
-            .annotate(corrected_by=Subquery(RegisterEntry.objects.filter(corrects=OuterRef("pk")).values("pk")))
-            .order_by("-sequence")
+            entries.annotate(
+                corrected_by=Subquery(RegisterEntry.objects.filter(corrects=OuterRef("pk")).values("pk"))
+            ).order_by("-sequence")
         )
         people = member_identities(
             token, sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
