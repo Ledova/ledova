@@ -69,20 +69,30 @@ wait is bounded by the time left. `ledova-guest-settle.log` records either
 settling or a budget gap: the guest stayed busy, a reading was unavailable or
 malformed (unconfirmed), or a reading arrived after the budget. The emulator gets
 the runner's four vCPUs, and `mobile/scripts/tests/emulator-policy.test.mjs`
-fails if the launch drops below four or the settle no longer runs between boot
-and the first build.
+executes the actual setup and prebuild shell blocks with isolated tool stubs.
+It checks one emulator launch, at least four vCPUs, and completed foreground
+boot and settle commands before prebuild. The helper's separate tests check
+its real polling and budget behaviour; the shell controls do not boot Android.
 
-Both settings answer the SystemUI ANR in #880. Android's own post-boot work
-drives the guest's 1-minute load to 27–37 even with four vCPUs. The two failed
-runs gave the emulator two vCPUs and started a 14-minute build about 20 seconds
-after boot on the same runner; the "System UI isn't responding" dialog was
-already on screen at the first app launch, before the scanner tests were built.
-Seven of the eight two-vCPU runs that kept ANR records recorded a Google Play
-services ANR within minutes of boot. Of the 39 Android runs between the change
-(3 October 2026) and 4 October, none failed; one recorded an ANR, a background
-dialer job during the settle, before any build or test. The SystemUI thread
-itself was never captured, so its place in that saturation is inferred from
-timing and conditions rather than a trace.
+These settings mitigate the resource conditions investigated in
+[#880](https://github.com/Ledova/ledova/issues/880). In the
+[two original failures](https://github.com/Ledova/ledova/actions/runs/37093359335)
+([second run](https://github.com/Ledova/ledova/actions/runs/37096677489)), a
+SystemUI dialog held focus before the scanner tests were built. Neither bundle
+retains the original SystemUI reason, thread trace or onset resource record,
+so its cause remains unestablished. Captured Google Play services ANRs belong
+to separate processes and do not establish the SystemUI cause.
+
+A 5 October 2026 audit through 00:37 UTC covered 62 completed Android jobs:
+21 with two vCPUs and 41 with four. Both failures occurred in the first cohort;
+the second had no failed job. This comparison is observational across different
+CI hosts. Four vCPUs and settling do not eliminate background ANRs: both a
+[dialer job](https://github.com/Ledova/ledova/actions/runs/37229379278) and
+[Google Play services](https://github.com/Ledova/ledova/actions/runs/37242070985)
+recorded ANRs during settling in successful four-vCPU runs. No retained event
+identifies a SystemUI ANR. Early collectors retain a bounded observation
+interval; missing original traces remain a gap, and successful later jobs do
+not resolve it.
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves
