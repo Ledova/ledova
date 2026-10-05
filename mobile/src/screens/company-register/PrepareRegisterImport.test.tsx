@@ -77,6 +77,7 @@ let client: QueryClient;
 let holders: typeof opened;
 let appointments: unknown[];
 let readsFail: boolean;
+let held: Set<string>;
 let evidenceChanges: object[];
 let uploadFailures: unknown[];
 let prepareAnswer: jest.Mock;
@@ -203,6 +204,7 @@ beforeEach(() => {
   holders = opened;
   appointments = [appointment('appointment-prepare', ['prepare'])];
   readsFail = false;
+  held = new Set();
   evidenceChanges = [];
   uploadFailures = [];
   let keys = 0;
@@ -213,6 +215,7 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   get.mockReset().mockImplementation(async (url) => {
     if (readsFail) throw new Error('Unavailable');
+    if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (url === URLS.HOLDERS('ordinary')) return { data: holders };
     if (url === APPOINTMENTS) return { data: { results: appointments, next: null, count: appointments.length } };
     throw new Error(`Unexpected ${url}`);
@@ -526,4 +529,101 @@ it('tells an opened class without current members that it has none to import, wi
   expect(view.getAllByText(NO_HOLDERS)).toHaveLength(2);
   expect(view.queryByText('Add each current member of this class.')).toBeNull();
   expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
+});
+
+it('starts a fresh draft for a new session', async () => {
+  holders = unopened;
+  const view = await open();
+  await fireEvent.press(view.getByRole('button', { name: 'Add a member' }));
+  await fireEvent.changeText(view.getByLabelText('Member 1 name'), 'Casey Member');
+  await fireEvent.changeText(view.getByLabelText('Reason'), 'Draft reason');
+  await fireEvent.press(view.getByRole('button', { name: 'Choose the share register' }));
+  await view.findByRole('button', { name: 'Replace the share register' });
+  await act(() => invalidateSessionScope());
+  await view.findByTestId('prepare-import-screen');
+  expect(view.queryByLabelText('Member 1 name')).toBeNull();
+  expect(view.getByLabelText('Reason').props.value).toBe('');
+  expect(view.getByRole('button', { name: 'Choose the share register' })).toBeTruthy();
+});
+
+it.each([
+  ['class', URLS.HOLDERS('ordinary')],
+  ['appointments', APPOINTMENTS],
+])('shows a new session no form until its own %s read answers', async (_, url) => {
+  const view = await open();
+  held = new Set([url]);
+  await act(() => invalidateSessionScope());
+  expect(await view.findByText('Loading the share class…')).toBeTruthy();
+  expect(view.queryByTestId('prepare-import-screen')).toBeNull();
+  expect(view.queryByText('Member ID member-1')).toBeNull();
+});
+
+it.each([
+  [
+    'a register date after today',
+    'Register date',
+    '2999-01-01',
+    'Enter the register date as YYYY-MM-DD, no later than today.',
+  ],
+  [
+    'a date entered after the register date',
+    'Member 1 date entered',
+    '2026-09-21',
+    'Complete each current member’s name, residential address, shares and date entered, no later than the register date.',
+  ],
+  [
+    'an amount paid with three decimal places',
+    'Member 1 amount paid',
+    '250.005',
+    'Enter each amount paid as a plain amount such as 250.00, or leave it blank when it is not known.',
+  ],
+  [
+    'no approving director for a resolution',
+    'Approving director',
+    ' ',
+    'Name the director who approved the resolution.',
+  ],
+  ['no reason', 'Reason', ' ', 'Enter the authority reference and the reason for the import.'],
+])('holds preparation for %s', async (_, label, value, problem) => {
+  const view = await open();
+  await complete(view);
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled();
+  await fireEvent.changeText(view.getByLabelText(label), value);
+  expect(view.getByText(problem)).toBeTruthy();
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
+});
+
+it('holds preparation until each added former member is complete', async () => {
+  const view = await open();
+  await complete(view);
+  await fireEvent.press(view.getByRole('button', { name: 'Add a former member' }));
+  expect(
+    view.getByText(
+      'Complete each former member’s name, residential address, shares and date ceased, no later than the register date.',
+    ),
+  ).toBeTruthy();
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
+  const entries: [string, string][] = [
+    ['Former member 1 name', 'Fred Former'],
+    ['Former member 1 residential address', '2 Synthetic Road'],
+    ['Former member 1 shares', '40'],
+    ['Former member 1 date ceased', '2022-03-01'],
+  ];
+  for (const [entry, value] of entries) await fireEvent.changeText(view.getByLabelText(entry), value);
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled();
+});
+
+it('uploads a refused file again under a new key', async () => {
+  uploadFailures = [{ response: { status: 400, data: ['Upload a PDF, PNG or JPEG file.'] } }];
+  const view = await open();
+  await complete(view);
+  await fireEvent.press(view.getByRole('button', { name: COPY.PREPARE }));
+  expect(await view.findByText('Upload a PDF, PNG or JPEG file.')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: COPY.PREPARE }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(uploads().map(([, form]) => [field(form, 'kind'), field(form, 'idempotency_key')])).toEqual([
+    ['share_register', KEY(1)],
+    ['share_register', KEY(2)],
+    ['asic_extract', KEY(3)],
+  ]);
 });

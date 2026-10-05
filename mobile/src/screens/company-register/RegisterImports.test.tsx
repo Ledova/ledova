@@ -150,6 +150,8 @@ let importPages: unknown[][];
 let appointments: unknown[];
 let importsFail: boolean;
 let appointmentsFail: boolean;
+let held: Set<string>;
+let fileAnswer: Promise<unknown> | null;
 
 function appointment(uuid: string, capabilities: string[], changes: object = {}) {
   return {
@@ -222,6 +224,8 @@ beforeEach(() => {
   appointments = [appointment('appointment-admin', ['admin'])];
   importsFail = false;
   appointmentsFail = false;
+  held = new Set();
+  fileAnswer = null;
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
   client = new QueryClient({
@@ -230,6 +234,7 @@ beforeEach(() => {
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
     const number = (config?.params as { page?: number } | undefined)?.page ?? 1;
+    if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === URLS.REGISTER_IMPORTS) {
@@ -243,7 +248,7 @@ beforeEach(() => {
       if (appointmentsFail) throw new Error('Appointments unavailable');
       return page(appointments);
     }
-    if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return PDF;
+    if (url === URLS.REGISTER_IMPORT_FILE('import-new')) return fileAnswer ?? PDF;
     if (url === URLS.REGISTER_IMPORT_ASIC_FILE('import-new')) return PDF;
     throw new Error(`Unexpected ${url}`);
   });
@@ -363,6 +368,16 @@ it('opens preparation for the class and withdraws it once the class has an appli
   await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
   await view.findByText('Applied · as at 20 September 2026');
   expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();
+});
+
+it('withdraws every import step once a pull to refresh reads the appointment as revoked', async () => {
+  const view = await openClass();
+  expect(view.getByRole('button', { name: step('Approve') })).toBeTruthy();
+  appointments = [revoked('appointment-admin', ['admin'])];
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
+  await waitFor(() => expect(view.queryByRole('button', { name: step('Approve') })).toBeNull());
+  expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();
+  expect(view.getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
 it('previews an approval, records exactly that decision and refetches the class imports and holders', async () => {
@@ -630,6 +645,41 @@ it('drops an open decision when the session changes and ignores its late answer'
   expect(view.queryByText(COPY.DECISION_RECEIPT_FAILED)).toBeNull();
 });
 
+it('opens no share sheet for a retained copy answered after the session changes', async () => {
+  const late = deferred();
+  fileAnswer = late.promise;
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER) }));
+  await waitFor(() => expect(get).toHaveBeenCalledWith(URLS.REGISTER_IMPORT_FILE('import-new'), expect.anything()));
+  await act(() => invalidateSessionScope());
+  await act(async () => late.resolve(PDF));
+  await view.findByRole('button', { name: 'Ordinary shares register' });
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+});
+
+it('shows a new session no import history or step before its own imports answer', async () => {
+  const view = await openClass();
+  expect(view.getByRole('button', { name: step('Approve') })).toBeTruthy();
+  held = new Set([URLS.REGISTER_IMPORTS, APPOINTMENTS]);
+  await act(() => invalidateSessionScope());
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText('Loading imports…')).toBeTruthy();
+  expect(view.queryByText('Prepared · as at 20 September 2026')).toBeNull();
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
+});
+
+it('offers a new session no import step before its own appointments answer', async () => {
+  const view = await openClass();
+  expect(view.getByRole('button', { name: step('Approve') })).toBeTruthy();
+  held = new Set([APPOINTMENTS]);
+  await act(() => invalidateSessionScope());
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  await view.findByText('Prepared · as at 20 September 2026');
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
+  expect(view.queryByRole('button', { name: `${COPY.PREPARE} for Ordinary shares` })).toBeNull();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+});
+
 it('hides a class history after a failed read and offers a retry', async () => {
   const view = await openClass();
   importsFail = true;
@@ -654,4 +704,30 @@ it('withholds import actions while the appointments cannot be read', async () =>
   appointmentsFail = false;
   await fireEvent.press(view.getByRole('button', { name: 'Retry appointments for Ordinary shares' }));
   expect(await view.findByRole('button', { name: step('Approve') })).toBeTruthy();
+});
+
+it.each([
+  ['another class', { token: 'preference' }],
+  ['another company', { company: 'garden' }],
+])('refuses an import history that names %s', async (_, foreign) => {
+  importPages = [[retired], [{ ...submitted, ...foreign }]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText('The imports could not be loaded.')).toBeTruthy();
+  expect(view.queryByText('Rejected · as at 1 September 2026')).toBeNull();
+  expect(view.queryByRole('button', { name: step('Approve') })).toBeNull();
+});
+
+it('keeps a decision open while its preview is answered', async () => {
+  const late = deferred();
+  post.mockReturnValueOnce(late.promise as ReturnType<typeof post>);
+  const view = await openClass();
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  expect(await view.findByText('Previewing the decision…')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  await fireEvent.press(view.getByTestId('modal-backdrop-Approve import'));
+  expect(view.getByText('Previewing the decision…')).toBeTruthy();
+  await act(async () => late.resolve({ data: PREVIEW }));
+  expect(await view.findByText(COPY.CONFIRMATIONS.approve)).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeEnabled();
 });
