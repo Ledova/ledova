@@ -150,8 +150,7 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
             ):
                 raise RegisterChangeConflict()
             return family.model.objects.get(pk=decided)
-        family.lock(initial)
-        proposal = family.model.objects.select_for_update().get(pk=initial.pk)
+        proposal = family.lock(initial)
         if _digest(family, proposal, kind, current_actor, source, reason) != preview_digest:
             raise RegisterChangeConflict()
         unmet = _requirements(family, proposal, kind, source, reason)
