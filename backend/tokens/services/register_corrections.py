@@ -176,6 +176,7 @@ def _details(proposal):
 
 def _lock(proposal):
     ShareRegister.objects.select_for_update().get(pk=proposal.register_id)
+    return RegisterCorrection.objects.select_for_update().get(pk=proposal.pk)
 
 
 def _apply(proposal, actor, decision):

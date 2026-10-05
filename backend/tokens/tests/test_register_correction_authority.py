@@ -702,7 +702,7 @@ class RegisterCorrectionDecisionGuardTest(CorrectionAuthorityFixture, APITransac
         with use_operator():
             self.assertEqual(RegisterCorrection.objects.get(pk=self.proposal.pk).status, "submitted")
 
-    def test_a_temporary_table_cannot_stand_in_for_the_decision_or_evidence_tables(self):
+    def test_a_temporary_table_cannot_stand_in_for_the_decision_table(self):
         operator = connection.ops.quote_name(settings.RLS_ROLES["operator"])
         decided_at = timezone.now()
         with use_migrate(), self.assertRaises(RuntimeError), atomic():
