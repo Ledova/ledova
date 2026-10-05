@@ -324,6 +324,18 @@ it.each([
   expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
 });
 
+it('offers a retained staff-era import only rejection, beside a company import that offers every step', async () => {
+  const waiting = { ...retired, uuid: 'import-staff', status: 'submitted', stage: 'submitted', decisions: [] };
+  importPages = [[{ ...waiting, rejectionReason: '', reviewedAt: null }], [submitted]];
+  const view = await openClass();
+  expect(view.getByText('Prepared · as at 1 September 2026')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Reject import import-staff' })).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Approve import import-staff' })).toBeNull();
+  expect(view.queryByRole('button', { name: 'Apply import import-staff' })).toBeNull();
+  for (const kind of ['Approve', 'Apply', 'Reject'])
+    expect(view.getByRole('button', { name: `${kind} import import-new` })).toBeTruthy();
+});
+
 it('opens preparation for the class and withdraws it once the class has an applied import', async () => {
   appointments = [appointment('appointment-prepare', ['prepare'])];
   const view = await openClass();

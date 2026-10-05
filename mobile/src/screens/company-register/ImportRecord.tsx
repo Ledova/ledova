@@ -88,6 +88,7 @@ export function ImportRecord({
 }) {
   const styles = useCompanyStyles();
   const totals = registerImportTotals(proposal.members);
+  const kinds: RegisterImportDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
@@ -122,7 +123,7 @@ export function ImportRecord({
       {!!proposal.asicSnapshot && <ImportCopy uuid={proposal.uuid} copy="asic" epoch={epoch} />}
       {proposal.status === 'submitted' && steps && (
         <View style={styles.choices}>
-          {DECISION_KINDS.map((kind) => {
+          {kinds.map((kind) => {
             const appointment = steps[kind];
             return (
               appointment && (
