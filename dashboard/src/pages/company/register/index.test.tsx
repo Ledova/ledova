@@ -21,7 +21,7 @@ import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
-const NO_REGISTER = /You have no company register to show/;
+const NO_REGISTER = REGISTER_COPY.NO_REGISTER;
 let client: QueryClient;
 
 interface Listed {

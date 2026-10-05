@@ -111,10 +111,7 @@ function OwnRegister({ owner }: { owner: OrderSubmissionOwner }) {
           busy={classes.isFetching || registers.isFetching}
         />
       ) : companies.length === 0 ? (
-        <p className="py-3 text-sm text-text-muted">
-          You have no company register to show. Share classes appear here for companies you own or where your current
-          appointment lets you read the register.
-        </p>
+        <p className="py-3 text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its register.</p>
       ) : registers.isPending ? (

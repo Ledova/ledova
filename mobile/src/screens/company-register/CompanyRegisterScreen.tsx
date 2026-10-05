@@ -45,10 +45,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
             <Action label="Retry register" disabled={isFetching} onPress={() => void refresh()} />
           </View>
         ) : companies.length === 0 ? (
-          <Text style={styles.muted}>
-            There is no company register to show. Share classes appear here for companies you own or where your company
-            appointment includes register access.
-          </Text>
+          <Text style={styles.muted}>{REGISTER_COPY.NO_REGISTER}</Text>
         ) : !company ? (
           <Text style={styles.muted}>Choose a company above.</Text>
         ) : registers.isPending ? (

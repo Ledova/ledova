@@ -593,6 +593,9 @@ appointments and actions; signup account type alone must not grant company autho
   staff-reviewed cap request named Raise authorised shares.
   The role stays as chosen at sign-up;
   staff set "both" in admin, and a customer cannot change it afterwards.
+  Since #864 an account without the company role also reaches Register, from
+  Settings on the web and the drawer on mobile, when a current company
+  appointment grants register access.
 - **Names follow the product's terms.** Holdings replaces Home; Notices replaces
   Publications and Dividends; Activity replaces Transactions; Applications
   replaces Subscriptions; Market replaces Trading, and the coin-price page that

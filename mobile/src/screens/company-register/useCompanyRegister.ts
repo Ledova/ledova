@@ -2,7 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   canOpen,
-  COMPANY_TOKEN_ENDPOINTS,
+  getCompanyTokenHolders,
   getRegisterClasses,
   readEveryPage,
   useUserPreferences,
@@ -81,10 +81,7 @@ export function useCompanyRegister(epoch: number) {
       Promise.all(
         company!.classes.map(async ({ uuid }) => {
           assertSessionEpoch(epoch);
-          const { data } = await apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid), {
-            ledovaSessionEpoch: epoch,
-            signal,
-          });
+          const { data } = await getCompanyTokenHolders(apiClient, uuid, { ledovaSessionEpoch: epoch, signal });
           assertSessionEpoch(epoch);
           return checkedRegister(uuid, data);
         }),

@@ -63,8 +63,10 @@ export const getRegisterClasses = (
 ) =>
   apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.REGISTER, { ...config, params });
 
-export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid));
+export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  config === undefined
+    ? apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid))
+    : apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid), config);
 
 export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { responseType: 'blob' });
