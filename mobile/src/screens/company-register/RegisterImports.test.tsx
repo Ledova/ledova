@@ -105,7 +105,7 @@ const retired = {
   members: [ROW],
   rejectionReason: 'Superseded by a company import',
   reviewedAt: '2026-10-01T02:00:00Z',
-  createdAt: '2026-09-25T01:00:00Z',
+  createdAt: '2026-10-02T09:00:00+10:00',
   decisions: [
     {
       uuid: 'decision-old',
@@ -303,6 +303,13 @@ it('reads every page of a class import history newest first and shares its retai
   });
   expect(view.getByRole('button', { name: copyOf(COPY.DOWNLOAD_REGISTER, OLD) })).toBeTruthy();
   expect(view.queryByRole('button', { name: copyOf(COPY.DOWNLOAD_ASIC, OLD) })).toBeNull();
+});
+
+it('shows a decision without a recorded decider name by its time alone', async () => {
+  importPages = [[{ ...retired, decisions: [{ ...retired.decisions[0], decidedByName: '' }] }], [submitted]];
+  const view = await openClass();
+  expect(view.getByText(formatDateTime('2026-10-01T02:00:00Z'))).toBeTruthy();
+  expect(view.queryByText(` · ${formatDateTime('2026-10-01T02:00:00Z')}`)).toBeNull();
 });
 
 it.each([

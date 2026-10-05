@@ -120,7 +120,7 @@ export function ImportRecord({
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
         {proposal.decisions.map((decision) => (
           <Row key={decision.uuid} label={DECIDED[decision.kind]}>
-            {decision.decidedByName} · {formatDateTime(decision.decidedAt)}
+            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
           </Row>
         ))}
         {!!proposal.rejectionReason && <Row label="Rejection reason">{proposal.rejectionReason}</Row>}

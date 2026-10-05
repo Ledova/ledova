@@ -34,7 +34,7 @@ export function useCompanyAccess() {
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
-export const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
+const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
 export const importsKey = (epoch: number, token?: string) => [
   ...registerKey(epoch),
   'imports',
@@ -137,7 +137,7 @@ export function useRegisterImports(epoch: number, company: string, token: string
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The imports do not belong to this share class');
       }
-      return rows.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
   });
 }
