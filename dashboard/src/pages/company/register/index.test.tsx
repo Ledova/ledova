@@ -254,7 +254,7 @@ it('does not present an unopened register as an empty opened register, zero issu
   expect(screen.getByText('Not opened')).toBeTruthy();
   expect(screen.getByText('Not recorded')).toBeTruthy();
   expect(screen.queryByText(/Current members/)).toBeNull();
-  expect(screen.getByText(/An approved register opening starts it/)).toBeTruthy();
+  expect(screen.getByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(true);
 });
 
