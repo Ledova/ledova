@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from companies.services.authority_requests import _requester_principal
 from users.models import UserAccount
 from users.models.financial_profile import FinancialProfile
 from users.models.user_profile import UserProfile
@@ -49,7 +50,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     inlines = [FinancialProfileInline]
 
     def save_model(self, request, obj, form, change):
-        with invalidation_writer_context(request.user):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
             account = (
                 UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=obj.pk).first()
                 if change

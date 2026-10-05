@@ -23,6 +23,7 @@ from integrations.tests.sumsub_payloads import (
     step,
     verification_steps,
 )
+from operators.models import Operator
 from shared.models import Country
 from users.models import UserAccount, UserProfile
 from users.services import identity
@@ -33,6 +34,7 @@ STATUS_URL = "/api/users/identity-verification/status/"
 
 
 def a_person(email, **profile_fields):
+    Operator.get()
     user = User.objects.create_user(email=email, password="pw-12345678")
     profile = UserProfile.objects.create(
         user=user, citizenship_country=Country.get_or_create_for_code("AU"), **profile_fields

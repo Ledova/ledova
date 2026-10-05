@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from companies.services.authority_requests import _requester_principal
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING
 from users.models import UserAccount
 from users.models.user_account import AccountRole
@@ -16,7 +17,7 @@ class UserAccountAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid", "activation_date", "created_at", "updated_at")
 
     def save_model(self, request, obj, form, change):
-        with invalidation_writer_context(request.user):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
             previous = UserAccount.objects.select_for_update(no_key=True).get(pk=obj.pk) if change else None
             statuses = (
                 (ACCOUNT_STATUS_ACTIVE,)

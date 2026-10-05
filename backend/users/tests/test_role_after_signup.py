@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
+from operators.models import Operator
 from users.models import UserAccount, UserProfile
 from users.models.user_account import AccountRole
 from users.serializers.user_account import BOTH_IS_SET_BY_STAFF, ROLE_IS_SET
@@ -11,9 +12,10 @@ from users.serializers.user_profile import SIGNUP_IS_COMPLETE
 User = get_user_model()
 
 
-class TheRoleIsChosenAtSignUpTest(APITestCase):
+class TheRoleIsChosenAtSignUpTest(APITransactionTestCase):
 
     def setUp(self):
+        Operator.get()
         self.user = User.objects.create_user(email="role@example.test", password="pw-12345678", is_active=True)
         self.profile = UserProfile.objects.create(user=self.user)
         self.account = UserAccount.objects.create(account_number="ACC-ROLE", user_profile=self.profile)
@@ -87,6 +89,7 @@ class TheRoleIsChosenAtSignUpTest(APITestCase):
 class StaffSetTheRoleInAdminTest(TestCase):
 
     def test_staff_can_set_both_after_sign_up_is_complete(self):
+        Operator.get()
         self.client.force_login(User.objects.create_superuser(email="staff@example.test", password="pw-12345678"))
         user = User.objects.create_user(email="both@example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user, is_signup_completed=True)

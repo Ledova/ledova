@@ -10,7 +10,8 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from shared.db import use_migrate
+from operators.models import Operator
+from shared.db import acting_for, use_migrate
 from shared.tests.evidence_retention import installed_evidence_retention_policy
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from users.admin.investor_classification import InvestorClassificationAdmin
@@ -32,6 +33,7 @@ DETAIL = "/api/investor-classifications/{}/"
 
 class _EvidenceCase(StubUploadDependencies):
     def setUp(self):
+        Operator.get()
         self.root = tempfile.TemporaryDirectory()
         self.addCleanup(self.root.cleanup)
         self.override = override_settings(PRIVATE_MEDIA_ROOT=self.root.name, MEDIA_ROOT=self.root.name)
@@ -205,7 +207,8 @@ class NoOperatorPathHardDeletesTest(_EvidenceCase, TestCase):
         claim = self.a_claim()
         stored = self.stored_files()
 
-        lifecycle.delete_account(self.user)
+        with acting_for(self.user.pk):
+            lifecycle.delete_account(self.user)
 
         claim.refresh_from_db()
         self.assertEqual(claim.status, InvestorClassificationStatus.SUBMITTED)
