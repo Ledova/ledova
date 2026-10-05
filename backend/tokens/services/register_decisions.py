@@ -26,6 +26,10 @@ CAPABILITY = {
 }
 
 
+def _nothing_to_check(proposal, kind):
+    return []
+
+
 @dataclass(frozen=True)
 class DecisionFamily:
     model: type
@@ -37,6 +41,7 @@ class DecisionFamily:
     effect_requirements: Callable
     lock: Callable
     apply: Callable
+    before_command: Callable = _nothing_to_check
 
     @property
     def subject(self):
@@ -67,7 +72,7 @@ def _check_kind(kind, reason):
         raise ValidationError("A rejection reason may have at most 1000 characters.")
 
 
-def _requirements(family, proposal, kind, appointment, reason):
+def _requirements(family, proposal, kind, appointment, reason, checked):
     unmet = []
     if not holds(appointment, CAPABILITY[kind]):
         unmet.append("appointment_capability_required")
@@ -90,6 +95,7 @@ def _requirements(family, proposal, kind, appointment, reason):
         unmet.append("approval_lapsed" if approvals else "approval_required")
     if proposal.status == "submitted" and "appointment_capability_required" not in unmet:
         unmet.extend(family.effect_requirements(proposal))
+        unmet.extend(checked)
     return sorted(set(unmet))
 
 
@@ -104,12 +110,13 @@ def _readable(family, actor, proposal_id):
 def preview(family, details, *, actor, proposal_id, appointment, kind, reason):
     _check_kind(kind, reason)
     initial = _readable(family, actor, proposal_id)
+    checked = family.before_command(initial, kind)
     with company_operation(actor, initial.company_id, f"{family.operation}_preview"):
         proposal = family.model.objects.select_related("company").get(pk=initial.pk)
         current_actor = type(actor).objects.get(pk=actor.pk)
         profile = UserProfile.objects.filter(user=current_actor).first()
         source = register_appointment(proposal.company, current_actor, profile, Operator.get(), appointment)
-        unmet = _requirements(family, proposal, kind, source, reason)
+        unmet = _requirements(family, proposal, kind, source, reason, checked)
         return proposal, {
             "preview_digest": _digest(family, proposal, kind, current_actor, source, reason),
             "unmet_requirements": unmet,
@@ -131,6 +138,7 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         raise ValidationError(f"Confirm the exact register {family.subject} decision.")
     _check_kind(kind, reason)
     initial = _readable(family, actor, proposal_id)
+    checked = family.before_command(initial, kind)
     with register_command(actor, initial.company_id, f"{family.operation}_{kind}") as (
         company,
         current_actor,
@@ -153,7 +161,7 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         proposal = family.lock(initial)
         if _digest(family, proposal, kind, current_actor, source, reason) != preview_digest:
             raise RegisterChangeConflict()
-        unmet = _requirements(family, proposal, kind, source, reason)
+        unmet = _requirements(family, proposal, kind, source, reason, checked)
         if unmet:
             raise ValidationError({"unmet_requirements": unmet})
         try:
