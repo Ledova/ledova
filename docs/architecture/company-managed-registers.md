@@ -26,8 +26,13 @@ this read access supplies no administrative capability or private document acces
 The [administrator activation increment](../plans/company-managed-registers/company-activation.md)
 adds evidenced company activation without routine staff onboarding. Company-specific
 participant eligibility remains part of #863. Its [records and API foundation](../plans/company-managed-registers/company-eligibility.md)
-retains company-scoped decisions while existing investment consumers remain until
-their coherent conversion. Dependent workflows #864–#873 remain planned.
+landed through [PR #915](https://github.com/Ledova/ledova/pull/915).
+[PR #917](https://github.com/Ledova/ledova/pull/917) implements the coherent
+consumer/client conversion: current exact-company investment admission, separate
+account readiness, authenticated market streams and retained private source
+history. New eligibility-loss instructions can only remove wallet approval; new global
+staff classification decisions are retired. Dependent workflows #864–#873 remain
+planned, and their company offering, issuance and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

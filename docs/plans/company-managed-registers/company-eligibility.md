@@ -3,8 +3,10 @@
 [Implementation index](README.md) · [Company activation](company-activation.md)
 
 Participant requests and personal company decisions retain their exact company,
-source and action scope. The coherent [#863](https://github.com/Ledova/ledova/issues/863)
-cutover uses current decisions for the bounded consumers below. Wallet possession
+source and action scope. [PR #915](https://github.com/Ledova/ledova/pull/915)
+delivered the records and API foundation; [PR #917](https://github.com/Ledova/ledova/pull/917)
+implements the coherent [#863](https://github.com/Ledova/ledova/issues/863) cutover
+using current decisions for the bounded consumers below. Wallet possession
 and technical company wallet approval remain separate; eligibility cannot add or
 renew a wallet approval.
 
@@ -90,8 +92,9 @@ exact-company decisions. The account-readiness response (`account`, `isReady`,
 no company permission. Streams authenticate a fresh JWT and live refresh session
 before connection, matching events and heartbeats, and recheck current decision
 and evidence. Cached Django session users do not authenticate the stream.
-This increment does not establish the later company-managed offering/issuance
-programme, physical-device or live-operation acceptance.
+Company-managed offering, issuance and register workflows remain planned under
+#864–#873. Browser/mobile source and synthetic tests do not establish native builds,
+physical-device acceptance, fresh external-provider checks or live operation.
 
 The service and statement guards acquire the bounded company/product,
 account/actor/profile, settings, appointment, source/document and retained-record
@@ -126,18 +129,27 @@ Empty reversal preserves the old source data. Once new records or actual source
 withdrawal attribution exist, reversal refuses to discard their history or
 protections. Rehearse upgrades and empty/populated reversal with ordinary/scoped,
 role/catalogue, isolation, SQL forgery, clock and real contention controls before
-release. This foundation does not establish fresh provider, web/mobile journey,
-physical-device or live-operation acceptance.
+release. The pull request records actual checks and remaining verification gaps;
+implemented forms do not replace the later complete web/mobile journey evidence.
 
 ## Consumer and source cutover
 
 General accountant/professional decisions can support secondary admission.
 Associated-person decisions are issuer-bound primary eligibility; product
 claims bind the actual offering, quantity, AUD amount and terms. New
-subscriptions, listing effects and swap signature effects retain their original
-company decision and recheck evidence, standing and current expiry after waits.
-Historical NULL provenance and already paid/submitted execution retain their
-original recovery paths; migrations infer no decisions for old records.
+subscriptions, order creation, modification and swap signature effects retain
+their actual company decision and recheck evidence, standing and current expiry
+after waits. Directory and market admission is limited to the company or exact
+product covered by the current decision; another company's acceptance supplies
+no permission. Subscription draft, submission and acceptance also require an
+approved offering within its opening period, a deployed token with a contract
+and an active issuer open to investors. Eligibility grants no offering publication
+or technical acceptance authority.
+
+Losing investment eligibility does not hide the holder's retained subscription,
+order or swap records. Historical rows keep NULL provenance. Already paid
+subscriptions and submitted chain transactions retain their original execution
+and recovery paths; migrations infer no decisions for old records.
 
 Multiple submitted private sources are permitted. Company acceptance does not
 mark a source globally verified. Historical staff review fields remain; new
@@ -150,7 +162,8 @@ original facts before the change in the same bounded transaction and dispatch
 after commit, preserving the actual holder, permitted staff actor or explicit
 provider automation. Deferred guards require the declared loss and exact model
 permission. Workers use the restricted operator in autocommit, recover the
-original unresolved outgoing transaction first and may only remove approval.
+original unresolved outgoing transaction first and admit only `REMOVE`; they
+cannot add or renew approval.
 Another current general decision prevents decision-based removal. A legacy
 approval lacking a retained cause is reported without inventing an actor.
 

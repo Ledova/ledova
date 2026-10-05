@@ -16,10 +16,15 @@ at commit `13684719c5245f1d61809d46e37a904f833e1c6d`. The [company activation in
 part of #863, delivered through [PR #913](https://github.com/Ledova/ledova/pull/913).
 [PR #914](https://github.com/Ledova/ledova/pull/914) aligns the authority lock prefixes.
 The [eligibility records and API foundation](company-eligibility.md) landed through
-[PR #915](https://github.com/Ledova/ledova/pull/915). Its coherent consumer/client
-cutover uses current exact-company decisions, preserves private source history,
-and retires global staff classification authority. Browser/mobile forms expose
-preview, confirmation and retained history with personal prepare/approve queues.
+[PR #915](https://github.com/Ledova/ledova/pull/915).
+[PR #917](https://github.com/Ledova/ledova/pull/917) implements the coherent
+consumer/client cutover using current exact-company decisions, separate account
+readiness and authenticated market streams. It preserves private source history,
+restricts new eligibility-loss instructions to removing wallet approval and retires
+global staff classification authority. Browser/mobile forms expose preview,
+confirmation and retained history with personal prepare/approve queues; uncertain
+commands can be replayed within the running session. The [eligibility guide](company-eligibility.md)
+records the admission, recovery and verification boundaries.
 The later programme still owns company offering, issuance and register workflows;
 #864–#873 remain planned and dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
