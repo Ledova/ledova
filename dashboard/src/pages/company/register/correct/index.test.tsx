@@ -732,6 +732,7 @@ it('keeps the draft but holds preparation after a failed refresh until a retry s
   );
   expect(submitButton().disabled).toBe(true);
   fireEvent.click(submitButton());
+  fireEvent.submit(submitButton().closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
   serve();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));

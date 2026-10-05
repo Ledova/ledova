@@ -659,6 +659,52 @@ it('records and refreshes nothing when an acknowledgement returns after the sign
   expect(screen.queryByRole('dialog')).toBeNull();
 });
 
+it('keeps the acknowledgement dialog open while the acknowledgement is being recorded', async () => {
+  const pending = deferred<{ data: RegisterReconciliation }>();
+  acknowledgeFor = () => pending.promise;
+  const section = await openClass();
+  const dialog = await openAcknowledgement(section, 0);
+  fireEvent.change(reasonField(dialog), { target: { value: 'Accepted' } });
+  fireEvent.click(confirmButton(dialog));
+  await waitFor(() => expect(acknowledgements()).toHaveLength(1));
+  fireEvent.keyDown(dialog, { key: 'Escape' });
+  expect(reasonField(screen.getByRole('dialog', { name: DIALOG })).value).toBe('Accepted');
+  await act(async () =>
+    pending.resolve({ data: acknowledged(acknowledgements()[0][1] as RegisterAcknowledgeRequest) }),
+  );
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('refreshes nothing when a refused acknowledgement returns after the signed-in account changed', async () => {
+  let refuse!: (failure: unknown) => void;
+  acknowledgeFor = () =>
+    new Promise((_resolve, reject) => {
+      refuse = reject;
+    });
+  const section = await openClass();
+  const dialog = await openAcknowledgement(section, 0);
+  fireEvent.change(reasonField(dialog), { target: { value: 'Accepted' } });
+  fireEvent.click(confirmButton(dialog));
+  await waitFor(() => expect(acknowledgements()).toHaveLength(1));
+  act(switchAccount);
+  await act(async () =>
+    refuse({ response: { status: 400, data: { detail: 'This discrepancy is already acknowledged.' } } }),
+  );
+  expect(client.getQueryState(RECONCILIATION_KEY)?.isInvalidated).toBe(false);
+  expect(client.getQueryState(APPOINTMENTS_KEY)?.isInvalidated).toBe(false);
+});
+
+it('shows no read-only note while the appointments are still loading', async () => {
+  const pending = deferred<ReturnType<typeof page>>();
+  serve((url) => (url === APPOINTMENTS ? pending.promise : undefined));
+  const section = await openClass();
+  expect(within(section).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  expect(offered(section).some(Boolean)).toBe(false);
+  await act(async () => pending.resolve(page([appointment(['admin'])])));
+  await waitFor(() => expect(offered(section).some(Boolean)).toBe(true));
+  expect(within(section).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+});
+
 it('keeps each account to its own reconciliation, showing none of the previous account while its own loads', async () => {
   const section = await openClass();
   expect(within(section).getByText(TRANSACTION)).toBeTruthy();

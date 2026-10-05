@@ -1109,6 +1109,49 @@ it('records nothing on the page or in the cache when a decision returns after th
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+it('keeps a decision dialog open while its decision is being recorded', async () => {
+  const pending = deferred<{ data: RegisterCorrection }>();
+  decideFor = () => pending.promise;
+  await openClass();
+  const dialog = await openDecision(records(await corrections())[0], 'approve');
+  await previewed(dialog);
+  fireEvent.click(confirmButton(dialog, 'approve'));
+  await waitFor(() => expect(writes(DECIDE)).toHaveLength(1));
+  fireEvent.keyDown(dialog, { key: 'Escape' });
+  expect(screen.getByRole('dialog', { name: 'Approve correction' })).toBeTruthy();
+  await act(async () => pending.resolve({ data: decided(writes(DECIDE)[0][1] as RegisterCorrectionDecideRequest) }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('refreshes nothing when a refused decision returns after the signed-in account changed', async () => {
+  let refuse!: (failure: unknown) => void;
+  decideFor = () =>
+    new Promise((_resolve, reject) => {
+      refuse = reject;
+    });
+  await openClass();
+  const dialog = await openDecision(records(await corrections())[0], 'apply');
+  await previewed(dialog);
+  fireEvent.click(confirmButton(dialog, 'apply'));
+  await waitFor(() => expect(writes(DECIDE)).toHaveLength(1));
+  act(switchAccount);
+  await act(async () => refuse({ response: { status: 409, data: { detail: 'The register operation conflicts.' } } }));
+  expect(client.getQueryState([...ACCOUNT, 'corrections', 'ordinary'])?.isInvalidated).toBe(false);
+  expect(client.getQueryState(APPOINTMENTS_KEY)?.isInvalidated).toBe(false);
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('keeps no register entries whose read returns after the signed-in account changed', async () => {
+  const pending = deferred<Paged<RegisterEntry>>();
+  correctionPages = [page([])];
+  serve((url) => (url === ENTRIES ? pending.promise : undefined));
+  await openClass();
+  expect(await screen.findByText('Loading register entries…')).toBeTruthy();
+  act(switchAccount);
+  await act(async () => pending.resolve(page([REVERSAL, TRANSFER])));
+  expect(client.getQueryData([...ACCOUNT, 'entries', 'ordinary'])).toBeUndefined();
+});
+
 it('keeps each account to its own entries and corrections, showing none of the previous account while its own load', async () => {
   await openClass();
   expect(within(await corrections()).getByText('Example Preparer')).toBeTruthy();
