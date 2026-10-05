@@ -241,8 +241,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
     def test_deleted_wallet_removal_job_survives_a_failure_before_admission(self):
         self.submit_approval()
         job_id, payload = self.delete_wallet_with_queued_removal()
-        with patch.object(changes, "registry_for", side_effect=ConnectionError("Synthetic registry outage")):
+        with patch.object(
+            eligibility_invalidation, "registry_for", side_effect=ConnectionError("Synthetic registry outage")
+        ) as registry_outage:
             self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 1))
+        registry_outage.assert_called_once_with(self.company, self.node.client)
         with use_operator():
             self.assertEqual(WhitelistChange.objects.count(), 1)
 
@@ -273,14 +276,25 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         job_id, payload = self.delete_wallet_with_queued_removal()
         self.node.confirmed = False
         self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 1))
+        with use_operator():
+            removal = WhitelistChange.objects.get(action="remove")
+            attempt = SignedAttempt.objects.get(operation=removal.operation)
+            signed = (attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction))
+            next_nonce = attempt.signer.next_nonce
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3]])
         self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 2))
         with use_operator():
             removal = WhitelistChange.objects.get(action="remove")
             self.assertEqual(removal.status, "executing")
             attempt = SignedAttempt.objects.get(operation=removal.operation)
-            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            self.assertEqual((attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction)), signed)
+            self.assertEqual(attempt.signer.next_nonce, next_nonce)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            confirmed_receipt = receipt(attempt)
+            self.node.receipts[attempt.tx_hash] = confirmed_receipt
             self.node.expiries[ADDRESS] = 0
-        self.assertEqual(len(self.node.broadcasts), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3], signed[3]])
         self.assertEqual(recover_whitelist_changes.func()["completed"], 1)
 
         self.run_removal_job(job_id)
@@ -288,6 +302,16 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         self.assert_removal_complete(job_id, payload, 3)
         with use_operator():
             self.assertEqual(WhitelistChange.objects.filter(action="remove").count(), 1)
+            removal.refresh_from_db()
+            self.assertEqual(removal.operation.current_attempt_id, signed[0])
+            self.assertEqual(removal.operation.block_number, confirmed_receipt["blockNumber"])
+            self.assertEqual(removal.operation.block_hash, confirmed_receipt["blockHash"])
+            self.assertEqual(removal.operation.gas_used, confirmed_receipt["gasUsed"])
+            attempt.refresh_from_db()
+            self.assertEqual((attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction)), signed)
+            self.assertEqual(attempt.signer.next_nonce, next_nonce)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3], signed[3]])
 
     def test_deleted_wallet_removal_job_retains_its_actual_holder_after_login_deactivation(self):
         self.submit_approval()

@@ -39,9 +39,9 @@ const LEDES: Partial<Record<DestinationKey, string>> = {
     "The stored register records your company's members and their shares; wallet balances do not replace it.",
   companyPublications: "Staff prepare and publish these records on your company's written instruction.",
   eligibilityRequests:
-    'Company eligibility records are being prepared. Accepted records do not yet change investment access.',
+    'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.',
   companyEligibility:
-    'Company eligibility records are being prepared. Accepted records do not yet change investment access.',
+    'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.',
 };
 const EMPTY = { results: [], count: 0, next: null, previous: null };
 const UUID = '7f1c2a9e';
