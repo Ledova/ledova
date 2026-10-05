@@ -109,8 +109,9 @@ Showing a class's members also shows its
 [register imports](../operations/register-foundation.md#importing-an-existing-register)
 with the history, steps and checks of the dashboard's Register, described below,
 except where the person's appointments are read. On mobile, each decision opens
-in a dialog, Prepare an import opens a form in the same stack, and the retained
-register document and ASIC extract open through the session-bound document copy.
+in a dialog, which closes when a refresh withdraws its step; Prepare an import
+opens a form in the same stack; and the retained register document and ASIC
+extract open through the session-bound document copy.
 Register reads the person's appointments itself rather than through Company
 team's cache, and reads them again after a revocation on Company team or
 Representative authority, a pull to refresh, or a decision or preview the server
