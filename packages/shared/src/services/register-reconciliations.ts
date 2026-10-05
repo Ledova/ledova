@@ -28,9 +28,6 @@ export const getRegisterReconciliations = (
       data: { ...response.data, results: response.data.results.map(registerReconciliationOf) },
     }));
 
-export const getRegisterReconciliation = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<RegisterReconciliation>(COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATION(uuid), config).then(withRows);
-
 export const acknowledgeRegisterDiscrepancy = (
   apiClient: AxiosInstance,
   uuid: string,

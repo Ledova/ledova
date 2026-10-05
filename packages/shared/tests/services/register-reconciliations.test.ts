@@ -2,7 +2,6 @@ import axios from 'axios';
 import { REGISTER_RECONCILIATION_COPY } from '../../src/constants/business/register-reconciliations';
 import {
   acknowledgeRegisterDiscrepancy,
-  getRegisterReconciliation,
   getRegisterReconciliations,
 } from '../../src/services/register-reconciliations';
 
@@ -44,23 +43,18 @@ const RECORD = { uuid: 'reconciliation-a', discrepancies: [ACKNOWLEDGED, OPEN, S
 
 afterEach(() => jest.restoreAllMocks());
 
-it('lists, reads and acknowledges through the reconciliation routes', async () => {
+it('lists and acknowledges through the reconciliation routes', async () => {
   const api = axios.create();
-  const get = jest
-    .spyOn(api, 'get')
-    .mockResolvedValueOnce({ data: { results: [] } })
-    .mockResolvedValueOnce({ data: RECORD });
+  const get = jest.spyOn(api, 'get').mockResolvedValueOnce({ data: { results: [] } });
   const post = jest.spyOn(api, 'post').mockResolvedValue({ data: RECORD });
   const request = { appointment: 'appointment-a', discrepancy: 1, reason: 'Accepted', idempotencyKey: 'key-a' };
   await getRegisterReconciliations(api, { company: 'company-a', token: 'class-a', page: 2 }, SESSION);
-  await getRegisterReconciliation(api, 'reconciliation-a');
   await acknowledgeRegisterDiscrepancy(api, 'reconciliation-a', request, SESSION);
   expect(get.mock.calls).toEqual([
     [
       '/api/v1/tokens/register-reconciliations/',
       { ...SESSION, params: { company: 'company-a', token: 'class-a', page: 2 } },
     ],
-    ['/api/v1/tokens/register-reconciliations/reconciliation-a/', {}],
   ]);
   expect(post.mock.calls).toEqual([
     ['/api/v1/tokens/register-reconciliations/reconciliation-a/acknowledge/', request, SESSION],
@@ -69,13 +63,9 @@ it('lists, reads and acknowledges through the reconciliation routes', async () =
 
 it('checks the discrepancies of every reconciliation read and refuses rows it cannot read', async () => {
   const api = axios.create();
-  jest
-    .spyOn(api, 'get')
-    .mockResolvedValueOnce({ data: { results: [RECORD], next: null } })
-    .mockResolvedValueOnce({ data: RECORD });
+  jest.spyOn(api, 'get').mockResolvedValueOnce({ data: { results: [RECORD], next: null } });
   jest.spyOn(api, 'post').mockResolvedValueOnce({ data: RECORD });
   expect((await getRegisterReconciliations(api)).data.results).toEqual([RECORD]);
-  expect((await getRegisterReconciliation(api, 'reconciliation-a')).data).toEqual(RECORD);
   expect((await acknowledgeRegisterDiscrepancy(api, 'reconciliation-a', {} as never)).data).toEqual(RECORD);
   for (const discrepancies of [
     undefined,
@@ -98,10 +88,6 @@ it('checks the discrepancies of every reconciliation read and refuses rows it ca
       REGISTER_RECONCILIATION_COPY.UNREADABLE,
     );
   }
-  jest.spyOn(api, 'get').mockResolvedValueOnce({ data: { ...RECORD, discrepancies: [{ kind: 'supply' }] } });
-  await expect(getRegisterReconciliation(api, 'reconciliation-a')).rejects.toThrow(
-    REGISTER_RECONCILIATION_COPY.UNREADABLE,
-  );
   jest.spyOn(api, 'get').mockResolvedValueOnce({ data: { results: [{ ...RECORD, discrepancies: null }], next: null } });
   await expect(getRegisterReconciliations(api)).rejects.toThrow(REGISTER_RECONCILIATION_COPY.UNREADABLE);
 });

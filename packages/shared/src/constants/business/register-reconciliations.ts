@@ -50,9 +50,6 @@ export const REGISTER_RECONCILIATION_COPY = {
   },
   ACKNOWLEDGEABLE_NOTE: 'Acknowledge it once the company has investigated its cause and accepted it.',
   ATTRIBUTION_NOTE: 'It cannot be acknowledged. It needs attribution, which Ledova does not provide yet.',
-  NOT_LATEST_NOTE:
-    "Only the latest reconciliation's discrepancies can be acknowledged. For a row of an older one, wait for the " +
-    'next reconciliation.',
   ACKNOWLEDGEMENT_NOTE:
     'An acknowledgement explains a divergence the company has investigated and accepted. It records nothing in the ' +
     'register, whose holdings stay as recorded, and later reconciliations treat the row as explained.',
