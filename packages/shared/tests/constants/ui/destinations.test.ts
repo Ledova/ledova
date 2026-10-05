@@ -100,6 +100,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       publications: 'Notices',
       companyClass: 'Share class',
       companyRegister: 'Register',
+      companyRegisterImport: 'Register',
       company: 'Company',
       companyAuthority: 'Representative authority',
       companyTeam: 'Company team',
