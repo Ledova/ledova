@@ -7,7 +7,8 @@ from eth_account.messages import encode_typed_data
 from web3 import Web3
 
 from blockchain.models import BlockchainTransaction
-from shared.db import use_migrate, use_operator
+from companies.services.authority_requests import _requester_principal
+from shared.db import use_app, use_migrate, use_operator
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_eligible, make_tenant
 from tokens.models import (
@@ -100,8 +101,8 @@ def persisted_outcome(swap):
     )
 
 
-def sign_swap(swap, signature, signer_address, participant="seller"):
+def sign_swap(swap, signature, signer_address, participant="seller", *, user=None):
     party = swap.sell_order if participant == "seller" else swap.buy_order
-    return swap_execution.submit_signature(
-        swap, signature, signer_address, user=party.owner_account.user_profile.user, participant=participant
-    )
+    user = user or party.owner_account.user_profile.user
+    with use_app(), _requester_principal(user.pk):
+        return swap_execution.submit_signature(swap, signature, signer_address, user=user, participant=participant)

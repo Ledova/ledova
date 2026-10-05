@@ -38,12 +38,15 @@ FINALIZED_HASH = "0x" + "dd" * 32
 NEXT_NONCE = 7
 
 
-def make_execution(label, *, issuer=None):
+def make_execution(label, *, issuer=None, issuer_decision=None):
     seller = make_tenant(f"{label}-seller", with_swap=False)
     buyer = make_tenant(f"{label}-buyer", with_swap=False)
     make_eligible(seller)
     make_eligible(buyer)
-    issuer_decision = accept_company_eligibility(issuer or seller)
+    if issuer_decision is None:
+        if issuer is not None:
+            make_eligible(issuer)
+        issuer_decision = accept_company_eligibility(issuer or seller)
     if issuer is not None:
         seller_decision = accept_company_eligibility(seller, issuer_decision=issuer_decision)
     else:

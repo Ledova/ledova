@@ -27,6 +27,7 @@ from shared.db import (
     reset_principal,
     set_principal,
     use_app,
+    use_migrate,
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
@@ -59,38 +60,42 @@ class SwapExecutionStorageFixtures:
         self.sign_swap(self.swap)
 
     def make_swap(self):
-        sell = TransferOrder.objects.create(
-            token=self.seller.deployed_token,
-            payment_asset=self.seller.refs.stablecoin,
-            wallet=self.seller.wallet,
-            owner_account=self.seller.account,
-            wallet_address=self.seller.wallet.address,
-            order_type="sell",
-            quantity=20,
-            filled_quantity=10,
-            price_per_share="1.50",
-            status="pending_signature",
-        )
-        buy = TransferOrder.objects.create(
-            token=self.seller.deployed_token,
-            payment_asset=self.seller.refs.stablecoin,
-            wallet=self.buyer.wallet,
-            owner_account=self.buyer.account,
-            wallet_address=self.buyer.wallet.address,
-            order_type="buy",
-            quantity=20,
-            filled_quantity=10,
-            price_per_share="1.50",
-            status="pending_signature",
-        )
-        return atomic_swap_service.create_swap_order(sell, buy, share_amount=10)
+        with use_migrate():
+            sell = TransferOrder.objects.create(
+                token=self.seller.deployed_token,
+                payment_asset=self.seller.refs.stablecoin,
+                wallet=self.seller.wallet,
+                owner_account=self.seller.account,
+                wallet_address=self.seller.wallet.address,
+                order_type="sell",
+                quantity=20,
+                filled_quantity=10,
+                price_per_share="1.50",
+                status="pending_signature",
+            )
+            buy = TransferOrder.objects.create(
+                token=self.seller.deployed_token,
+                payment_asset=self.seller.refs.stablecoin,
+                wallet=self.buyer.wallet,
+                owner_account=self.buyer.account,
+                wallet_address=self.buyer.wallet.address,
+                order_type="buy",
+                quantity=20,
+                filled_quantity=10,
+                price_per_share="1.50",
+                status="pending_signature",
+            )
+            return atomic_swap_service.create_swap_order(sell, buy, share_amount=10)
 
     def sign_swap(self, swap):
         message = encode_typed_data(full_message=swap.settlement_context["typed_data"])
         swap.seller_signature = self.seller_key.sign_message(message).signature.hex()
         swap.buyer_signature = self.buyer_key.sign_message(message).signature.hex()
         swap.status = "ready"
-        swap.save(update_fields=["seller_signature", "buyer_signature", "status"])
+        with use_migrate():
+            swap.save(update_fields=["seller_signature", "buyer_signature", "status"])
+        self.assertIsNone(swap.seller_eligibility_decision_id)
+        self.assertIsNone(swap.buyer_eligibility_decision_id)
 
     def fields(self, swap=None, **changes):
         swap = swap or self.swap
@@ -477,16 +482,18 @@ class SwapExecutionAppChecks(SwapExecutionStorageFixtures):
         values.pop("uuid")
         values.pop("created_at")
         values.pop("updated_at")
-        app_buy = TransferOrder.objects.create(
-            token=self.seller.deployed_token,
-            payment_asset=self.seller.refs.stablecoin,
-            wallet=self.seller.wallet,
-            owner_account=self.seller.account,
-            wallet_address=self.seller.wallet.address,
-            order_type="buy",
-            quantity=20,
-            price_per_share="1.50",
-        )
+        with use_migrate():
+            app_buy = TransferOrder.objects.create(
+                token=self.seller.deployed_token,
+                payment_asset=self.seller.refs.stablecoin,
+                wallet=self.seller.wallet,
+                owner_account=self.seller.account,
+                wallet_address=self.seller.wallet.address,
+                order_type="buy",
+                quantity=20,
+                price_per_share="1.50",
+            )
+        self.assertIsNone(app_buy.eligibility_decision_id)
         values.update(
             buy_order_id=app_buy.pk, buyer_wallet_id=self.seller.wallet.pk, buyer_address=self.seller.wallet.address
         )
