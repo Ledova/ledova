@@ -107,7 +107,7 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isPreparedRegisterLink } from './register-links';
+export { isPreparedRegisterLink, registerLinkMemberLabels } from './register-links';
 export {
   hasWholeShares,
   isPreparedRegisterOpening,
