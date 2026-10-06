@@ -117,13 +117,16 @@ Showing a class's members also shows, for a deployed or paused class, its
 [openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
 read on every page with the class's `token` filter, newest first and each once:
 stage, the boundary block and its date, preparer, dates, each holding at the
-boundary as its member's name or a numbered new member, with its shares and
-address, the authority, approving director, reference and reason, whether the
-company provided the authority document or staff verified it before openings
-were company-run, the decision trail, any rejection reason and the document's
+boundary, largest first, with its shares and address and the member it maps
+to: an existing member by name, or numbered as an unnamed member when it has
+none, and a member the opening creates numbered as a new member; then the
+authority, approving director, reference and reason, whether the company
+provided the authority document or staff verified it before openings were
+company-run, the decision trail, any rejection reason and the document's
 download. An opening without a captured boundary says so. An opening's step and
 download labels name its block and when it was prepared, and openings of
-another company or class, or with a mapping that cannot be read, fail the read.
+another company or class, with a mapping that cannot be read or with a holding
+that is not a whole number of shares, fail the read.
 Its [register imports](../operations/register-foundation.md#importing-an-existing-register)
 follow with the history, steps and checks of the dashboard's Register, described below,
 except where the person's appointments are read. On mobile, each decision opens
@@ -174,17 +177,29 @@ refusal also reads the appointments. Its dialog keeps the appointment it opened
 with and holds confirmation if a refresh changes it.
 Administration or `prepare` gets **Open this register** while a deployed or
 paused class's register is not opened. It opens a form in the same stack that
-reads the class's holdings on chain at the current block, saying when the chain
-can't be read now, and maps each holding address to its linked member, which
-stays fixed, or to a member chosen on the page: a linked member, a numbered new
-member under a new ID that several addresses may share, or another new member.
-It takes the authority document, the authority, the approving director of a
-resolution, the reference and the reason. The upload keeps its own retry key and
-confirmed receipt, preparation reuses its operation only for an identical
-request, and the openings are refreshed once the receipt is confirmed; a
-conflict reads the holdings and appointments again and takes a new operation,
-and a refusal because the holdings moved shows the server's reason, says the
-holdings moved and offers to reload them, keeping the choices that still apply.
+reads the class's holdings on chain at the current block, largest first,
+saying when the chain can't be read now and refusing holdings that are not
+whole numbers of shares. The holdings are read again only on request (Reload
+the holdings or Retry) or after a conflict, never on focus, on reconnect or with
+the other register reads, and preparation is held while the holdings, the
+appointments or the class are being read again. The form maps each holding
+address to its linked member, which stays fixed, or to a member chosen on the
+page: a linked member, a new member under a new ID that several addresses may
+share, or another new member. Members are labelled as the Register will list
+them, by first appearance with the largest holding first: by name, or numbered
+as an unnamed member or a new member. Choices are kept by address: a re-read
+drops a choice only when its address no longer holds or is now linked, or its
+linked member no longer holds, and the page then says the choices were reset
+until a choice changes or the opening is prepared. It takes the authority
+document, the authority, the approving director of a resolution, the reference
+and the reason. The upload keeps its own retry key and confirmed receipt,
+preparation reuses its operation only for an identical request, and the
+openings are refreshed once the receipt is confirmed; a conflict reads the
+holdings and appointments again and takes a new operation, a 404 from the
+holdings read or from preparation reads the appointments again, so the form
+gives way to the read-only note once the appointment is gone, and a refusal
+with the holdings-moved code shows the server's reason, says the holdings moved
+and offers to reload them, keeping the choices that still apply.
 Approval and rejection (administration or `approve`) and application
 (administration or `apply`) of an opening use the same preview-first dialog,
 showing the effective date and the register's first entry with member names,
