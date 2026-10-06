@@ -176,6 +176,7 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
         return;
       }
       setError(apiErrorSentence(cause, FAILED, FAILED));
+      if (status === 400) await Promise.all([waiting.refetch(), members.refetch()]);
       if (status === 409) await Promise.all([waiting.refetch(), members.refetch(), appointments.refetch()]);
       if (status === 404) await appointments.refetch();
     } finally {

@@ -546,19 +546,29 @@ it.each<[string, typeof Platform.OS, string[][]]>([
   },
 );
 
-it('shows a refusal in the server’s words, reads nothing again and prepares the next attempt under a new operation id', async () => {
+it('shows a refusal in the server’s words and reads the wallets and members again, keeping each choice by address', async () => {
   const refusal = 'A mapped wallet address is already linked to a member of this company.';
   prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [refusal] } });
   const view = await open();
   await map(view);
   await complete(view);
   const before = [reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)];
+  wallets = [WALLETS[0], WALLETS[2]];
   await submit(view);
   expect(await view.findByText(refusal)).toBeTruthy();
-  expect([reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)]).toEqual(before);
+  await waitFor(() => expect(view.queryByText(BEA)).toBeNull());
+  expect([reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)]).toEqual([before[0] + 1, before[1] + 1, before[2]]);
+  expect(view.getByText(refusal)).toBeTruthy();
+  expect([1, 2].map((number) => memberOf(view, number))).toEqual(['Alex Member', NEW_ONE]);
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
+  await settled(view);
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
+  expect(preparations()[1].mapping).toEqual([
+    { address: ADA, member: MEMBER_A },
+    { address: CY, member: KEY(1) },
+  ]);
 });
 
 it('reads the appointments again after a refused preparation and withdraws the form once the appointment is gone', async () => {
