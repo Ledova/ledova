@@ -207,11 +207,38 @@ with the boundary note before approval or application and the holdings note
 before application; a retained staff-era opening offers only rejection. A
 recorded or refused opening decision reads the openings, entries, holders and
 appointments again.
+After the share classes, Register lists the chosen company's
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars),
+read on every page with the company filter, newest first and each once: the
+member by their current register name, or as a member not named on the current
+register, the proposed name, residential address and as-at date, the reason,
+preparer and dates, that the company provided the supporting document, the
+decision trail, any rejection reason and the document's download. Changes of
+another company fail the read, and a change's step and download labels name its
+member, as-at date and when it was prepared. Approval and rejection
+(administration or `approve`) and application (administration or `apply`) use
+the same preview-first dialog, showing the member's current particulars, or that
+none are recorded, beside the proposal, with the note that the latest as-at date
+wins between imports and changes and live verified identity wins over both
+before approval or application. A recorded or refused particulars decision reads
+the changes, holders, any open register entries and appointments again.
+Administration or `prepare` adds **Change particulars** to each current member
+of an opened class. It opens a form in the same stack that reads the class
+register to name the member as Register does, or neutrally, and takes the name,
+residential address, an as-at date no later than today (UTC), defaulting to
+today, the reason and the company's supporting document. The upload keeps its
+own retry key and confirmed receipt, preparation reuses its operation only for
+an identical request, and the changes are refreshed once the receipt is
+confirmed; a conflict reads the class register and appointments again and takes
+a new operation, a refusal shows the server's words, and a 404 reads the
+appointments again, so the form gives way to the read-only note once the
+appointment is gone.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, an opening or correction decision,
-or a decision, preview or acknowledgement the server refuses. Every register read and every
+Representative authority, a pull to refresh, an opening, correction or
+particulars decision, or a decision, preview or acknowledgement the server
+refuses. Every register read and every
 upload, preview, decision, acknowledgement and preparation is bound to the
 session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
