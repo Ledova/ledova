@@ -105,10 +105,22 @@ class RegisterOpeningHoldersTest(AppointsTeam, APITransactionTestCase):
                     "date": datetime.fromtimestamp(block["timestamp"], timezone.utc).date().isoformat(),
                 },
                 "holdings": [
-                    {"address": ALICE, "shares": "945", "member": None, "memberName": None},
-                    {"address": ADA, "shares": "25", "member": str(quiet.pk), "memberName": None},
-                    {"address": CY, "shares": "25", "member": str(named.pk), "memberName": "Live Cy"},
-                    {"address": BOB, "shares": "5", "member": None, "memberName": None},
+                    {"address": ALICE, "shares": "945", "member": None, "memberName": None, "memberExists": False},
+                    {
+                        "address": ADA,
+                        "shares": "25",
+                        "member": str(quiet.pk),
+                        "memberName": None,
+                        "memberExists": True,
+                    },
+                    {
+                        "address": CY,
+                        "shares": "25",
+                        "member": str(named.pk),
+                        "memberName": "Live Cy",
+                        "memberExists": True,
+                    },
+                    {"address": BOB, "shares": "5", "member": None, "memberName": None, "memberExists": False},
                 ],
             },
         )

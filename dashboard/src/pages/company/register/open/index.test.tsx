@@ -66,10 +66,10 @@ function holders(holdings: RegisterOpeningHolders['holdings'] = HOLDINGS): Regis
 }
 
 const HOLDINGS: RegisterOpeningHolders['holdings'] = [
-  { address: BO, shares: '9007199254740993', member: null, memberName: null },
-  { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member' },
-  { address: CY, shares: '5', member: null, memberName: null },
-  { address: DEE, shares: '1', member: null, memberName: null },
+  { address: BO, shares: '9007199254740993', member: null, memberName: null, memberExists: false },
+  { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member', memberExists: true },
+  { address: CY, shares: '5', member: null, memberName: null, memberExists: false },
+  { address: DEE, shares: '1', member: null, memberName: null, memberExists: false },
 ];
 
 function appointment(
@@ -385,8 +385,8 @@ it('lets several addresses share one new member and an unlinked address join a l
 
 it('names an unnamed linked member as a member, and offers it to the unlinked addresses', async () => {
   chain = holders([
-    { address: ADA, shares: '20', member: MEMBER_ADA, memberName: null },
-    { address: BO, shares: '5', member: null, memberName: null },
+    { address: ADA, shares: '20', member: MEMBER_ADA, memberName: null, memberExists: true },
+    { address: BO, shares: '5', member: null, memberName: null, memberExists: false },
   ]);
   show();
   await ready();
@@ -507,7 +507,7 @@ it.each([
   ['a holders read that fails otherwise', () => Promise.reject(new Error('Network Error'))],
   [
     'holdings that are not whole share counts',
-    () => ({ data: holders([{ address: ADA, shares: '1.5', member: null, memberName: null }]) }),
+    () => ({ data: holders([{ address: ADA, shares: '1.5', member: null, memberName: null, memberExists: false }]) }),
   ],
 ])('shows %s as an incomplete register with a retry', async (_what, answer) => {
   serve((url) => (url === HOLDERS ? answer() : undefined));
@@ -532,10 +532,10 @@ it("after a holdings-moved refusal shows the server's message and reloads the ho
   expect(screen.getByText(COPY.HOLDINGS_MOVED)).toBeTruthy();
   const before = reads(HOLDERS);
   chain = holders([
-    { address: EVE, shares: '7', member: null, memberName: null },
-    { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member' },
-    { address: BO, shares: '3', member: null, memberName: null },
-    { address: CY, shares: '5', member: null, memberName: null },
+    { address: EVE, shares: '7', member: null, memberName: null, memberExists: false },
+    { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member', memberExists: true },
+    { address: BO, shares: '3', member: null, memberName: null, memberExists: false },
+    { address: CY, shares: '5', member: null, memberName: null, memberExists: false },
   ]);
   fireEvent.click(screen.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
   expect(screen.queryByRole('alert')).toBeNull();

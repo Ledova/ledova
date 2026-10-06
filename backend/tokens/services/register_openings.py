@@ -156,7 +156,12 @@ def _linked_elsewhere(company, links):
 
 def _holder(row, links, people):
     member = links.get(row["address"].lower())
-    return {**row, "member": member, "member_name": None if member is None else people[UUID(member)].name or None}
+    return {
+        **row,
+        "member": member,
+        "member_name": None if member is None else people[UUID(member)].name or None,
+        "member_exists": member is not None,
+    }
 
 
 def opening_holders(token):
