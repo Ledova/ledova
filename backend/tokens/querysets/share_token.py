@@ -49,10 +49,12 @@ class ShareTokenQuerySet(QuerySet):
 
         return self.annotate(issued_shares=completed_supply_annotation(OuterRef("pk")))
 
-    def with_open_offering(self):
+    def with_open_offering(self, allowed_offering_ids=None):
         from offerings.models import Offering
 
         offering = Offering.objects.filter(token=OuterRef("pk")).open_now().order_by("-created_at")
+        if allowed_offering_ids is not None:
+            offering = offering.filter(pk__in=allowed_offering_ids)
         return self.annotate(
             open_offering_uuid=Subquery(offering.values("uuid")[:1]),
             open_offering_price=Subquery(offering.values("price_per_share")[:1]),

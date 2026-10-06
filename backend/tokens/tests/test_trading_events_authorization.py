@@ -1,14 +1,14 @@
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, AsyncMock, Mock, patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from authentication.services.tokens import TokenService
-from companies.models import Company
 from feature_flags.models import FeatureFlag
 from shared.api.schema_hooks import _stream_response
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
 from tokens.events import (
     TRADING_EVENT_TYPES,
@@ -18,10 +18,7 @@ from tokens.events import (
 from tokens.models import ShareToken
 from tokens.models.choices import ShareTokenStatus, ShareTokenType
 from tokens.views.trading_events import _event_stream, _format_public_trading_event
-from users.models.investor_classification import (
-    InvestorClassification,
-    InvestorClassificationStatus,
-)
+from users.services.investor_classification import withdraw_classification
 
 User = get_user_model()
 
@@ -70,6 +67,12 @@ class _FakeRedis:
 
 
 class TradingEventDisclosureTest(TestCase):
+    def setUp(self):
+        self.request = object()
+        self.current = self.enterContext(
+            patch("tokens.views.trading_events._stream_is_current", new_callable=AsyncMock, return_value=True)
+        )
+
     @patch("tokens.events._get_redis_client")
     def test_publisher_payload_contains_no_order_or_swap_identifier(self, get_client):
         client = Mock()
@@ -153,7 +156,7 @@ class TradingEventDisclosureTest(TestCase):
         client = _FakeRedis(pubsub)
 
         with patch("tokens.views.trading_events.aioredis.from_url", return_value=client):
-            stream = _event_stream(token_uuid)
+            stream = _event_stream(self.request, 1, token_uuid)
             connected = await anext(stream)
             public_event = await anext(stream)
             await stream.aclose()
@@ -166,6 +169,8 @@ class TradingEventDisclosureTest(TestCase):
         self.assertEqual(pubsub.unsubscribed_from, TRADING_EVENTS_CHANNEL)
         self.assertTrue(pubsub.closed)
         self.assertTrue(client.closed)
+        self.assertEqual(self.current.await_count, 2)
+        self.current.assert_awaited_with(self.request, 1, token_uuid)
 
     async def test_a_renamed_connection_event_is_shared_by_the_schema_and_emitter(self):
         client = _FakeRedis(_FakePubSub([]))
@@ -174,7 +179,7 @@ class TradingEventDisclosureTest(TestCase):
             patch("tokens.views.trading_events.aioredis.from_url", return_value=client),
         ):
             declared = _stream_response()["content"]["text/event-stream"]["schema"]["x-sse-connection-event"]
-            stream = _event_stream(str(uuid4()))
+            stream = _event_stream(self.request, 1, str(uuid4()))
             try:
                 first = await anext(stream)
             finally:
@@ -188,7 +193,7 @@ class TradingEventDisclosureTest(TestCase):
         client = _FakeRedis(pubsub)
 
         with patch("tokens.views.trading_events.aioredis.from_url", return_value=client):
-            stream = _event_stream(str(uuid4()))
+            stream = _event_stream(self.request, 1, str(uuid4()))
             with self.assertRaises(ConnectionError):
                 await anext(stream)
 
@@ -201,7 +206,7 @@ class TradingEventDisclosureTest(TestCase):
         client = _FakeRedis(pubsub)
 
         with patch("tokens.views.trading_events.aioredis.from_url", return_value=client):
-            stream = _event_stream(str(uuid4()))
+            stream = _event_stream(self.request, 1, str(uuid4()))
             await anext(stream)
             with self.assertRaises(ConnectionError):
                 await stream.aclose()
@@ -216,25 +221,19 @@ class TradingEventsAuthorizationTest(TestCase):
 
     def setUp(self):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
-        self.issuer = User.objects.create_user(
-            email="issuer@sse.example.test",
-            password="pw-12345678",
-            is_active=True,
-        )
+        issuer = make_tenant("sse-issuer")
+        make_eligible(issuer)
+        self.issuer_decision = accept_company_eligibility(issuer)
+        self.issuer = issuer.user
+        self.company = issuer.company
         self.eligible = make_tenant("sse-eligible")
         make_eligible(self.eligible)
+        self.decision = accept_company_eligibility(self.eligible, issuer_decision=self.issuer_decision)
         self.investor = self.eligible.user
         self.investor_access, self.investor_refresh = TokenService.issue(self.investor)
 
         self.ineligible = make_tenant("sse-ineligible")
         self.ineligible_access = TokenService.issue(self.ineligible.user)[0]
-        self.company = Company.objects.create(
-            owner=self.issuer,
-            name="SSE Market Pty Ltd",
-            company_type="private",
-            acn="123456789",
-            status="active",
-        )
         self.deployed_token = self._make_token("LIVE", ShareTokenStatus.DEPLOYED)
         self.addressless_token = self._make_token("NOADDR", ShareTokenStatus.DEPLOYED)
         ShareToken.objects.filter(pk=self.addressless_token.pk).update(contract_address=None)
@@ -255,7 +254,7 @@ class TradingEventsAuthorizationTest(TestCase):
     def _authenticate_cookie(self, access_token):
         self.client.cookies["access"] = access_token
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_an_eligible_investor_unrelated_to_the_issuer_can_subscribe(self, event_stream):
         self._authenticate_cookie(self.investor_access)
 
@@ -265,9 +264,9 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual(response["Content-Type"], "text/event-stream")
         self.assertEqual(response["Cache-Control"], "no-cache")
         self.assertEqual(response["X-Accel-Buffering"], "no")
-        event_stream.assert_called_once_with(str(self.deployed_token.uuid))
+        event_stream.assert_called_once_with(ANY, self.investor.pk, str(self.deployed_token.uuid))
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_authorization_header_can_subscribe_to_deployed_market_token(self, event_stream):
         response = self.client.get(
             self.endpoint,
@@ -276,9 +275,9 @@ class TradingEventsAuthorizationTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        event_stream.assert_called_once_with(str(self.deployed_token.uuid))
+        event_stream.assert_called_once_with(ANY, self.investor.pk, str(self.deployed_token.uuid))
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_nonpublic_and_unknown_targets_are_indistinguishable(self, event_stream):
         self._authenticate_cookie(self.investor_access)
         targets = (
@@ -299,7 +298,7 @@ class TradingEventsAuthorizationTest(TestCase):
 
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_an_ineligible_investor_is_refused_exactly_as_a_phantom_token_is(self, event_stream):
         self._authenticate_cookie(self.ineligible_access)
 
@@ -311,25 +310,25 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual((deployed.status_code, deployed.content), (phantom.status_code, phantom.content))
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
-    def test_eligibility_is_lost_with_the_classification_that_carried_it(self, event_stream):
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
+    def test_eligibility_is_lost_when_the_holder_withdraws_its_shared_source(self, event_stream):
         self._authenticate_cookie(self.investor_access)
         self.assertEqual(self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)}).status_code, 200)
 
-        InvestorClassification.objects.filter(user_account=self.eligible.account).update(
-            status=InvestorClassificationStatus.REVOKED
-        )
+        withdraw_classification(actor=self.investor, classification_id=self.decision.request.source_id)
 
         response = self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)})
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, b"Token not found")
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_staff_receives_the_same_public_target_boundary(self, event_stream):
         staff = make_tenant("sse-staff", staff=True)
         make_eligible(staff)
         self._authenticate_cookie(TokenService.issue(staff.user)[0])
+        self.assertEqual(self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)}).status_code, 404)
+        accept_company_eligibility(staff, issuer_decision=self.issuer_decision)
 
         deployed_response = self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)})
         draft_response = self.client.get(self.endpoint, {"token": str(self.draft_token.uuid)})
@@ -337,9 +336,9 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual(deployed_response.status_code, 200)
         self.assertEqual(draft_response.status_code, 404)
         self.assertEqual(draft_response.content, b"Token not found")
-        event_stream.assert_called_once_with(str(self.deployed_token.uuid))
+        event_stream.assert_called_once_with(ANY, staff.user.pk, str(self.deployed_token.uuid))
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_anonymous_request_is_rejected_before_stream_creation(self, event_stream):
         response = self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)})
 
@@ -347,7 +346,7 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual(response.content, b"Unauthorized")
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_revoked_cookie_token_is_rejected_before_stream_creation(self, event_stream):
         self._authenticate_cookie(self.investor_access)
         TokenService.revoke(self.investor_refresh)
@@ -358,7 +357,7 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual(response.content, b"Unauthorized")
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_disabled_user_is_rejected_before_stream_creation(self, event_stream):
         self._authenticate_cookie(self.investor_access)
         self.investor.is_active = False
@@ -370,7 +369,7 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual(response.content, b"Unauthorized")
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_valid_query_string_token_is_rejected_like_an_anonymous_request(self, event_stream):
         anonymous = self.client.get(self.endpoint, {"token": str(self.deployed_token.uuid)})
 
@@ -384,7 +383,7 @@ class TradingEventsAuthorizationTest(TestCase):
         self.assertEqual((response.status_code, response.content), (anonymous.status_code, anonymous.content))
         event_stream.assert_not_called()
 
-    @patch("tokens.views.trading_events._event_stream", side_effect=lambda _token_uuid: _empty_stream())
+    @patch("tokens.views.trading_events._event_stream", side_effect=lambda *_args: _empty_stream())
     def test_query_string_token_does_not_widen_or_narrow_cookie_and_header_transports(self, event_stream):
         other_access = TokenService.issue(
             User.objects.create_user(

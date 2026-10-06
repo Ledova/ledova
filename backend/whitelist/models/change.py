@@ -14,7 +14,46 @@ class WhitelistAuthority(models.TextChoices):
     OPERATOR_API = "operator_api", "Operator API"
     WHITELIST_ADMIN = "whitelist_admin", "Whitelist administration"
     SUBSCRIPTION_ADMIN = "subscription_admin", "Subscription administration"
-    CLASSIFICATION_REFRESH = "refresh", "Classification refresh"
+    CLASSIFICATION_REFRESH = "refresh", "Eligibility invalidation"
+
+
+class WhitelistInvalidationCause(models.TextChoices):
+    SOURCE_WITHDRAWAL = "source_withdrawal", "Source withdrawn by its holder"
+    REQUEST_WITHDRAWAL = "request_withdrawal", "Company request withdrawn by its holder"
+    COMPANY_REVOCATION = "company_revocation", "Company decision revoked"
+    EXPIRY = "expiry", "Eligibility expired automatically"
+    EVIDENCE_PURGE = "evidence_purge", "Evidence purged automatically"
+    STANDING_LOSS = "standing_loss", "Account standing lost"
+    IDENTITY_LOSS = "identity_loss", "Configured identity lost"
+    WALLET_REMOVAL = "wallet_removal", "Wallet removed or verification lost"
+
+
+class WhitelistEligibilityInvalidation(BaseModel):
+    user_account = models.ForeignKey("users.UserAccount", on_delete=models.PROTECT, related_name="+")
+    cause = models.CharField(max_length=32, choices=WhitelistInvalidationCause.choices, editable=False)
+    chain_id = models.PositiveBigIntegerField(editable=False)
+    initiated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
+    wallet_id = models.UUIDField(null=True, editable=False)
+    address = models.CharField(max_length=42, blank=True, editable=False)
+    facts = models.JSONField(editable=False)
+    cause_fields = models.JSONField(default=list, editable=False)
+    invalidated_at = models.DateTimeField(editable=False)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(cause__in=["standing_loss", "identity_loss", "wallet_removal"]),
+                name="whitelist_invalidation_retained_cause",
+            ),
+            models.CheckConstraint(condition=models.Q(chain_id__gt=0), name="whitelist_invalidation_chain"),
+            models.CheckConstraint(
+                condition=models.Q(cause="wallet_removal", wallet_id__isnull=False, address__regex=r"^0x[0-9a-f]{40}$")
+                | ~models.Q(cause="wallet_removal") & models.Q(wallet_id__isnull=True, address=""),
+                name="whitelist_invalidation_wallet_scope",
+            ),
+        ]
 
 
 class WhitelistChangeStatus(models.TextChoices):
@@ -33,8 +72,18 @@ class WhitelistChange(BaseModel):
     company_id = models.UUIDField(editable=False)
     expires_at = models.DateTimeField(null=True, editable=False)
     intent = models.JSONField(editable=False)
-    initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", null=True)
     authority = models.CharField(max_length=20, choices=WhitelistAuthority.choices, editable=False)
+    eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
+    eligibility_invalidation = models.ForeignKey(
+        WhitelistEligibilityInvalidation, on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
+    invalidation_cause = models.CharField(
+        max_length=32, choices=WhitelistInvalidationCause.choices, blank=True, editable=False
+    )
+    invalidated_at = models.DateTimeField(null=True, editable=False)
     requested_wallet_id = models.UUIDField(null=True, editable=False)
     entry_id = models.UUIDField(null=True, editable=False)
     operation = models.OneToOneField(

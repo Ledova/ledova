@@ -14,9 +14,10 @@ from jsonschema import Draft4Validator, RefResolver
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import AssetChainDeployment
-from companies.models import Company, CompanyStatus
+from companies.models import Company
 from operators.settlement import require_deployment
 from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.utils.typed_data import signable_message, typed_data_digest
@@ -44,6 +45,8 @@ from tokens.tests.order_submission_fixtures import (
     SubmissionFixtures,
     pending_submission,
 )
+from users.constants import ACCOUNT_STATUS_ACTIVE
+from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
 MARKET = "/api/v1/trading/tokens/"
@@ -155,14 +158,35 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         self.assertEqual(self.recover().json()["order"]["uuid"], first.json()["order"]["uuid"])
 
     def test_recovery_uses_original_terms_after_order_mutation_and_signature_expiry(self):
+        self.patch("tokens.services.order_modification_service.share_token_service", new=self.balance)
         signed = self.signed_body()
         first = self.create(signed)
         self.assertEqual(first.status_code, 201, first.content)
         order_id = first.json()["order"]["uuid"]
-        with use_operator():
-            TransferOrder.objects.filter(pk=order_id).update(
-                quantity=15, price_per_share=Decimal("3.00"), status="cancelled"
+        for purpose, changes in (
+            ("modify", {"new_quantity": "15", "new_min_quantity": "0", "new_price_per_share": "3.00"}),
+            ("cancel", {}),
+        ):
+            identity = {"action_id": str(uuid4()), "owner_account_uuid": str(self.tenant.account.pk)}
+            response = self.client.post(
+                f"/api/v1/trading/orders/{order_id}/{purpose}/message/", {**identity, **changes}, format="json"
             )
+            self.assertEqual(response.status_code, 200, response.content)
+            challenge = response.json()["challenge"]
+            response = self.client.post(
+                f"/api/v1/trading/orders/{order_id}/{purpose}/",
+                {
+                    **identity,
+                    "digest": challenge["digest"],
+                    "signature": OWNER.sign_message(
+                        signable_message(challenge["domain"], challenge["types"], challenge["message"])
+                    ).signature.to_0x_hex(),
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+            self.assertEqual(response.json()["status"], "applied")
+        with use_operator():
             deadline = SigningChallenge.objects.get(digest=signed["digest"]).expires_at
         with patch("tokens.models.signing_challenge.timezone.now", return_value=deadline + timedelta(days=1)):
             recovered = self.create(self.body())
@@ -177,7 +201,9 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         self.assertEqual((result["intent"]["quantity"], result["intent"]["pricePerShare"]), ("10", "2.50"))
         self.assertEqual(refreshed.json(), result)
         self.assertIsNone(result["challenge"])
-        self.assertEqual(len(self.events), 1)
+        self.assertEqual(
+            [event for event, _, _, _ in self.events], ["order_created", "order_modified", "order_cancelled"]
+        )
 
     def test_a_recorded_business_refusal_spends_once_and_remains_refused_when_conditions_improve(self):
         signed = self.signed_body(self.body(order_type="sell"))
@@ -201,7 +227,9 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
         counter = self.counter_order()
         with use_operator():
             AssetChainDeployment.objects.filter(asset=self.tenant.refs.stablecoin, chain="base").update(decimals=0)
+        with use_migrate():
             TransferOrder.objects.filter(pk=counter.pk).update(quantity=3, price_per_share=Decimal("1.23"))
+        with use_operator():
             before_counter = TransferOrder.objects.filter(pk=counter.pk).values().get()
             before_swaps = SwapOrder.objects.count()
         body = self.body(quantity=3, price_per_share="1.23")
@@ -227,6 +255,7 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
             self.assertEqual(TransferOrder.objects.count(), self.initial_order_count)
             self.assertEqual(SwapOrder.objects.count(), before_swaps)
             self.assertEqual(TransferOrder.objects.filter(pk=counter.pk).values().get(), before_counter)
+        with use_migrate():
             TransferOrder.objects.filter(pk=counter.pk).update(price_per_share=Decimal("1.00"))
         self.assertEqual(self.create(signed).json(), result)
         with use_operator():
@@ -467,10 +496,12 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
     def test_a_paused_class_leaves_the_market_and_the_directory_and_takes_no_new_order(self):
         with use_operator():
             issuer = make_tenant("submission-paused-issuer")
-            with use_migrate():
-                Company.objects.filter(pk=issuer.company.pk).update(
-                    status=CompanyStatus.ACTIVE, is_open_to_investors=True
-                )
+        with use_migrate():
+            UserProfile.objects.filter(pk=issuer.profile.pk).update(is_id_verified=True)
+            UserAccount.objects.filter(pk=issuer.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+            Company.objects.filter(pk=issuer.company.pk).update(is_open_to_investors=True)
+        issuer_decision = accept_company_eligibility(issuer)
+        accept_company_eligibility(self.tenant, issuer_decision=issuer_decision)
         token = str(issuer.deployed_token.pk)
 
         def listed(route):
@@ -484,11 +515,14 @@ class SubmissionRecoveryChecks(SubmissionFixtures):
             ShareToken.objects.filter(pk=issuer.deployed_token.pk).update(status=ShareTokenStatus.PAUSED)
 
         refused = self.message(self.body(token=token))
+        missing = self.message(self.body(token=str(uuid4())))
 
         self.assertNotIn(token, listed(MARKET))
         self.assertNotIn(token, listed(DIRECTORY))
-        self.assertEqual(refused.status_code, 400, refused.content)
-        self.assertEqual(list(refused.json()), ["token"])
+        self.assertEqual(missing.status_code, 404, missing.content)
+        self.assertEqual(refused.status_code, 404, refused.content)
+        self.assertEqual(list(refused.json()), ["detail"])
+        self.assertEqual(refused.json(), missing.json())
         with use_operator():
             self.assertFalse(OrderSubmission.objects.filter(token_id=issuer.deployed_token.pk).exists())
 
@@ -790,6 +824,11 @@ class ScopedOrderSubmissionRecoveryTest(
     def test_hidden_foreign_issuer_metadata_falls_back_without_widening_token_visibility(self):
         with use_operator():
             issuer = make_tenant("submission-issuer")
+        with use_migrate():
+            UserProfile.objects.filter(pk=issuer.profile.pk).update(is_id_verified=True)
+            UserAccount.objects.filter(pk=issuer.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
+        issuer_decision = accept_company_eligibility(issuer)
+        accept_company_eligibility(self.tenant, issuer_decision=issuer_decision)
         body = self.body(token=str(issuer.deployed_token.pk))
         signed = self.signed_body(body)
         created = self.create(signed)

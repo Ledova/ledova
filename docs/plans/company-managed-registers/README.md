@@ -15,9 +15,16 @@ authority, with its final foundation delivered by [PR #911](https://github.com/L
 at commit `13684719c5245f1d61809d46e37a904f833e1c6d`. The [company activation increment](company-activation.md) implements the activation
 part of #863, delivered through [PR #913](https://github.com/Ledova/ledova/pull/913).
 [PR #914](https://github.com/Ledova/ledova/pull/914) aligns the authority lock prefixes.
-The [eligibility records and API foundation](company-eligibility.md) retains scoped
-requests and company decisions without supplying investment permission.
-Company-specific participant eligibility and client/consumer conversion remain in that issue.
+The [eligibility records and API foundation](company-eligibility.md) landed through
+[PR #915](https://github.com/Ledova/ledova/pull/915).
+[PR #917](https://github.com/Ledova/ledova/pull/917) implements the coherent
+consumer/client cutover using current exact-company decisions, separate account
+readiness and authenticated market streams. It preserves private source history,
+restricts new eligibility-loss instructions to removing wallet approval and retires
+global staff classification authority. Browser/mobile forms expose preview,
+confirmation and retained history with personal prepare/approve queues; uncertain
+commands can be replayed within the running session. The [eligibility guide](company-eligibility.md)
+records the admission, recovery and verification boundaries.
 The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
 lets #864 start before #863 closes, except member-wallet links, which wait for #863.
 #864's first increment delivers register reads by appointment, its second
@@ -25,7 +32,8 @@ company-run imports, its third company-run corrections, its fourth company
 acknowledgement of reconciliation discrepancies, its fifth company-run openings
 from the chain and its sixth company-run changes to a member's particulars, each
 through the API and both clients; its other register commands remain planned.
-#865–#873 remain dependency-ordered.
+#865–#873 remain dependency-ordered and own the later company offering, issuance
+and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured

@@ -31,10 +31,10 @@ from offerings.services.subscription import (
 from offerings.tasks import allot_subscription_task, reconcile_subscriptions
 from offerings.tests.factories import (
     configure_operator,
-    eligible_subscriber,
     forget_fixture_subscriptions,
     instruct,
 )
+from shared.db import acting_for
 from tokens.models import (
     IssuanceStatus,
     RequestStatus,
@@ -58,12 +58,12 @@ PRICE = Decimal("2.50")
 
 class AllotmentChainMixin(ChainTestMixin):
     def setUp(self):
-        super().setUp()
+        super().setUp(company_activation=True)
         self.defer = patch(DEFER).start()
         self.addCleanup(patch.stopall)
         forget_fixture_subscriptions()
         configure_operator()
-        eligible_subscriber(self.tenant)
+        self.admit_current_participant(self.tenant)
         self.wallet = Wallet.objects.get(address=self.investor)
 
     def _offering(self):
@@ -79,9 +79,11 @@ class AllotmentChainMixin(ChainTestMixin):
         )
 
     def _allottable(self, offering, quantity):
-        subscription = create_draft(offering, self.tenant.account, self.wallet, quantity, self.tenant.user)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        with acting_for(self.tenant.user.pk):
+            subscription = create_draft(offering, self.tenant.account, self.wallet, quantity, self.tenant.user)
+            submit(subscription, submitted_by=self.tenant.user)
+        with acting_for(self.staff.pk):
+            accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
         confirm_payment(
             subscription,

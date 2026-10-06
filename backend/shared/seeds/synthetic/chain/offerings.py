@@ -1,13 +1,22 @@
 import textwrap
 from datetime import timedelta
 
+from django.utils import timezone
+
 from companies.models import CompanyDocument, DocumentType
-from offerings.models import Offering, OfferingExemption, SubscriptionStatus
+from companies.services.authority_requests import _requester_principal
+from offerings.models import (
+    Offering,
+    OfferingExemption,
+    Subscription,
+    SubscriptionStatus,
+)
 from offerings.services.offering import submit_offering, transition_offering
 from offerings.services.subscription import (
     EXPIRY_NOTE,
     accept,
     allot_batch,
+    amount_for,
     confirm_payment,
     create_draft,
     issue_instruction,
@@ -17,7 +26,7 @@ from offerings.services.subscription import (
     submit,
     withdraw,
 )
-from shared.db import atomic
+from shared.db import atomic, use_migrate, use_operator
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.registers import (
@@ -158,15 +167,46 @@ def _payment_hash(application, number):
     )
 
 
+def historical_subscription(application, offering, account, wallet, user):
+    with use_migrate(), atomic(), frozen(application.created_at):
+        subscription = Subscription.objects.create(
+            offering=offering,
+            user_account=account,
+            wallet=wallet,
+            submitted_by=user,
+            company_id=offering.company_id,
+            company_name=offering.token.company.display_name,
+            token_name=offering.token.name,
+            token_symbol=offering.token.symbol,
+            currency=offering.price_currency,
+            quantity=application.quantity,
+            price_per_share=offering.price_per_share,
+            amount_due=amount_for(offering, application.quantity),
+        )
+        if application.submitted_at:
+            Subscription.objects.filter(pk=subscription.pk).update(
+                status=SubscriptionStatus.ACCEPTED if application.accepted_at else SubscriptionStatus.SUBMITTED,
+                submitted_at=application.submitted_at,
+                accepted_at=application.accepted_at,
+                updated_at=application.accepted_at or application.submitted_at,
+            )
+            subscription.refresh_from_db()
+        return subscription
+
+
 def apply_application(application, offering, records):
     account = records.account(application.investor)
     user = account.user_profile.user
     wallet = records.wallet(application.investor, application.address)
-    with atomic(), frozen(application.created_at):
-        subscription = create_draft(offering, account, wallet, application.quantity, submitted_by=user)
-    if application.submitted_at:
-        with frozen(application.submitted_at):
-            submit(subscription, submitted_by=user)
+    historical = offering.closes_at is not None and offering.closes_at <= timezone.now()
+    if historical:
+        subscription = historical_subscription(application, offering, account, wallet, user)
+    else:
+        with use_operator(), _requester_principal(user.pk), frozen(application.created_at):
+            subscription = create_draft(offering, account, wallet, application.quantity, submitted_by=user)
+        if application.submitted_at:
+            with use_operator(), _requester_principal(user.pk), frozen(application.submitted_at):
+                submit(subscription, submitted_by=user)
     if application.status == WITHDRAWN:
         with frozen(application.closed_at):
             withdraw(subscription, application.reason)
@@ -175,8 +215,8 @@ def apply_application(application, offering, records):
         with frozen(application.closed_at):
             reject(subscription, application.reason)
         return subscription
-    if application.accepted_at:
-        with frozen(application.accepted_at):
+    if application.accepted_at and not historical:
+        with use_operator(), _requester_principal(records.operations.pk), frozen(application.accepted_at):
             accept(subscription)
     if application.instructed_at:
         with frozen(application.instructed_at):

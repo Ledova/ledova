@@ -31,7 +31,7 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
 }
 
 export default function DirectoryPage() {
-  const { tokens, isEligible, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
+  const { tokens, isReady, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
 
   if (isLoading) return <Page loading />;
 
@@ -46,15 +46,16 @@ export default function DirectoryPage() {
     );
   }
 
-  if (!isEligible) {
+  if (!isReady) {
     return (
       <Page>
-        <Section title="Verify your investor status">
+        <Section title="Check your investor account">
           <p className="py-2 text-sm text-text-muted">
-            The directory shows share classes available to eligible investors. Submit your evidence for the operator to
-            review.
+            Account and identity checks are prerequisites. Each company separately decides eligibility for its
+            offerings.
           </p>
           <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
+          <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
         </Section>
       </Page>
     );
@@ -67,7 +68,13 @@ export default function DirectoryPage() {
     <Page>
       {tokens.length === 0 ? (
         <Section title="Share classes">
-          <p className="py-3 text-sm text-text-muted">No share classes available.</p>
+          <p className="py-3 text-sm text-text-muted">
+            No share classes available under your current company decisions.
+          </p>
+          <p className="text-sm text-text-muted">
+            Use the company or offering UUID supplied to you to request eligibility.
+          </p>
+          <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
         </Section>
       ) : (
         [...issuers.entries()].map(([uuid, classes]) => {

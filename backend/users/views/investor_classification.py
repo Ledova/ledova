@@ -11,7 +11,7 @@ from users.serializers.investor_classification import (
     InvestorClassificationSerializer,
     InvestorEligibilitySerializer,
 )
-from users.services.eligibility import investor_eligibility
+from users.services.eligibility import investor_readiness
 from users.services.investor_classification import create_classification
 
 
@@ -47,5 +47,5 @@ class InvestorClassificationViewSet(
     @extend_schema(responses=InvestorEligibilitySerializer)
     @action(detail=False, methods=["get"])
     def eligibility(self, request):
-        outcome = investor_eligibility(request.user)
+        outcome = investor_readiness(request.user)
         return Response(InvestorEligibilitySerializer(outcome, context=self.get_serializer_context()).data)

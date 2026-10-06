@@ -19,6 +19,10 @@ import { registerAppointmentsKey } from '../company-register/useCompanyRegister'
 import { CompanyTeamScreen } from './CompanyTeamScreen';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 

@@ -155,14 +155,14 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             eligible_subscriber,
             open_offering,
         )
-        from shared.tests.tenants import make_tenant, open_to_investors
+        from shared.tests.tenants import make_tenant
 
         with use_operator():
             subscriber = make_tenant("scoped-issuance-subscriber")
             configure_operator()
-            open_to_investors(self.tenant)
+            eligible_subscriber(self.tenant)
             subscriber.offering = open_offering(self.tenant)
-            eligible_subscriber(subscriber)
+            eligible_subscriber(subscriber, issuer_decision=self.tenant.eligibility_decision)
             subscription = allottable_subscription(subscriber, quantity=10)
         with acting_for(subscriber.user.pk):
             Subscription.objects.filter(pk=subscription.pk).update(payment_notes="Investor payment note")

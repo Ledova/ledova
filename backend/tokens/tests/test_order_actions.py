@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import acting_for, atomic, use_operator
+from shared.db import acting_for, atomic, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
@@ -41,8 +41,10 @@ class OrderActionRecoveryChecks(ActionFixtures):
 
     def test_context_is_read_only_and_first_price_only_replacement_keeps_exact_quantities(self):
         exact = 9007199254740993
-        with use_operator():
+        self.assertIsNone(self.order.eligibility_decision_id)
+        with use_migrate():
             TransferOrder.objects.filter(pk=self.order.pk).update(quantity=exact, min_quantity=exact - 1)
+        with use_operator():
             initial_challenges = SigningChallenge.objects.count()
         context = self.context()
         self.assertEqual(context.status_code, 200, context.content)
@@ -109,7 +111,8 @@ class OrderActionRecoveryChecks(ActionFixtures):
         self.assertEqual(self.recover().json(), result.json())
 
     def test_both_issuance_and_execution_provider_reads_are_outside_transactions(self):
-        with use_operator():
+        self.assertIsNone(self.order.eligibility_decision_id)
+        with use_migrate():
             TransferOrder.objects.filter(pk=self.order.pk).update(order_type="sell")
         result = self.execute("modify", self.signed("modify", self.modify_body()))
         self.assertEqual(result.status_code, 200, result.content)
@@ -117,7 +120,8 @@ class OrderActionRecoveryChecks(ActionFixtures):
         self.assertEqual(result.json()["status"], "applied")
 
     def test_provider_failure_remains_pending_and_unspent(self):
-        with use_operator():
+        self.assertIsNone(self.order.eligibility_decision_id)
+        with use_migrate():
             TransferOrder.objects.filter(pk=self.order.pk).update(order_type="sell")
         signed = self.signed("modify", self.modify_body())
         self.balance.get_token_balance.side_effect = RuntimeError("Synthetic provider outage")
@@ -370,6 +374,7 @@ class ScopedOrderActionRecoveryTest(RunsOnTheScopedConnection, OrderActionRecove
     def test_a_hidden_token_does_not_hide_the_owned_terminal_action_or_its_recorded_display(self):
         with use_operator():
             other = make_tenant("hidden-action-token")
+        with use_migrate():
             self.order = TransferOrder.objects.create(
                 token=other.deployed_token,
                 payment_asset=self.tenant.refs.stablecoin,
@@ -381,6 +386,7 @@ class ScopedOrderActionRecoveryTest(RunsOnTheScopedConnection, OrderActionRecove
                 min_quantity=0,
                 price_per_share="2.50",
             )
+        self.assertIsNone(self.order.eligibility_decision_id)
         signed = self.signed()
         first = self.execute("cancel", signed)
         self.assertEqual(first.status_code, 200, first.content)

@@ -14,6 +14,7 @@ from offerings.tests.factories import (
     eligible_subscriber,
     forget_fixture_subscriptions,
     open_offering,
+    subscription_technical_actor,
 )
 from shared.db import APP_ALIAS, acting_for, atomic, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -42,15 +43,19 @@ class ApplicationRetentionCases:
             forget_fixture_subscriptions()
             configure_operator()
             self.offering = open_offering(self.issuer)
-            eligible_subscriber(self.investor)
             with use_migrate():
                 Company.objects.filter(pk=self.issuer.company.pk).update(
-                    trading_name="Synthetic retained company", is_open_to_investors=True, status=CompanyStatus.ACTIVE
+                    trading_name="Synthetic retained company", is_open_to_investors=True
                 )
+            eligible_subscriber(self.issuer)
+            eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
+            self.technical = subscription_technical_actor()
             self.offering = Offering.objects.with_relations().get(pk=self.offering.pk)
             self.application = draft_subscription(self.investor, offering=self.offering)
-            submit(self.application, submitted_by=self.investor.user)
-            accept(self.application)
+            with acting_for(self.investor.user.pk):
+                submit(self.application, submitted_by=self.investor.user)
+            with acting_for(self.technical.pk):
+                accept(self.application)
             issue_instruction(self.application, rail="bank_transfer")
             self.draft = draft_subscription(self.investor, offering=self.offering)
         self.client.force_authenticate(self.investor.user)
@@ -160,6 +165,7 @@ class ApplicationRetentionCases:
 
     def test_parent_renames_and_currency_changes_do_not_rewrite_existing_applications(self):
         with self.operator():
+            original = Subscription.objects.filter(pk=self.draft.pk).values().get()
             with use_migrate():
                 Company.objects.filter(pk=self.issuer.company.pk).update(
                     name="Renamed legal company", trading_name="New name"
@@ -167,8 +173,15 @@ class ApplicationRetentionCases:
             ShareToken.objects.filter(pk=self.offering.token_id).update(name="New class", symbol="NEW")
             Offering.objects.filter(pk=self.offering.pk).update(price_currency="USD", price_per_share=Decimal("9.00"))
         response = self.client.post(f"{BASE}{self.draft.uuid}/submit/", {})
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(response.json(), {"detail": "The subscription's frozen offering terms have changed."})
+        with self.operator():
+            self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).values().get(), original)
+        response = self.client.get(f"{BASE}{self.draft.uuid}/")
         self.assertEqual(response.status_code, 200, response.content)
         self.assert_identity(response.json())
+        self.assertEqual(response.json()["status"], SubscriptionStatus.DRAFT)
+        self.assertIsNone(response.json()["submittedAt"])
         response = self.client.get(f"{BASE}{self.application.uuid}/")
         self.assert_identity(response.json())
         self.assertEqual(response.json()["paymentInstruction"]["currency"], "AUD")
@@ -220,6 +233,8 @@ class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedC
 
     def test_hidden_parent_updates_cannot_change_the_owner_or_parent_or_insert(self):
         with self.operator():
+            eligible_subscriber(self.bystander)
+            eligible_subscriber(self.investor, issuer_decision=self.bystander.eligibility_decision)
             other_offering = open_offering(self.bystander)
             other = draft_subscription(self.investor, offering=other_offering)
             with use_migrate():
@@ -231,6 +246,8 @@ class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedC
                 self.assertEqual(cursor.fetchone(), (settings.RLS_ROLES[APP_ALIAS], False, False))
             self.assertFalse(Offering.objects.filter(pk=self.offering.pk).exists())
             self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).update(payment_notes="Retained"), 1)
+            original = Subscription.objects.filter(pk=self.draft.pk).values().get()
+            count = Subscription.objects.count()
             for values in (
                 {"company_id": self.investor.company.pk},
                 {"company_id": None},
@@ -238,9 +255,15 @@ class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedC
                 {"offering_id": other_offering.pk, "company_id": other.company_id},
             ):
                 with self.subTest(values=values):
-                    with self.assertRaisesMessage(DatabaseError, "cannot be derived"), atomic():
+                    with self.assertRaisesMessage(
+                        DatabaseError, "Retain the exact subscription applicant and frozen economics"
+                    ) as raised, atomic():
                         Subscription.objects.filter(pk=self.draft.pk).update(**values)
-            with self.assertRaisesMessage(DatabaseError, "cannot be derived"), atomic():
+                    self.assertEqual(getattr(raised.exception.__cause__, "sqlstate", None), "23514")
+                    self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).values().get(), original)
+            with self.assertRaisesMessage(
+                DatabaseError, "Subscription admission requires the exact bounded current command"
+            ) as raised, atomic():
                 Subscription.objects.create(
                     offering_id=self.offering.pk,
                     company_id=self.issuer.company.pk,
@@ -254,3 +277,6 @@ class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedC
                     price_per_share=Decimal("2.50"),
                     amount_due=Decimal("25.00"),
                 )
+            self.assertEqual(getattr(raised.exception.__cause__, "sqlstate", None), "23514")
+            self.assertEqual(Subscription.objects.count(), count)
+            self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).values().get(), original)

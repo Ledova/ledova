@@ -8,13 +8,14 @@ from rest_framework.test import APITransactionTestCase
 from companies.models import Company
 from feature_flags.models import FeatureFlag
 from shared.db import APP_ALIAS, acting_for, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import (
     SYNTHETIC_SETTLEMENT_CONTRACT,
     save_swap_with_context,
 )
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from tokens.models import ShareToken, SwapOrder, TransferOrder
 from tokens.tests.market_fixtures import record_synthetic_admission
 
@@ -32,37 +33,57 @@ class TradingRetentionTest(APITransactionTestCase):
             self.token = self.issuer.deployed_token
             self.buy = self.order(self.buyer, "buy")
             self.sell = self.order(self.seller, "sell")
-            record_synthetic_admission(self.buy)
-            record_synthetic_admission(self.sell)
+            with use_migrate():
+                record_synthetic_admission(self.buy)
+                record_synthetic_admission(self.sell)
             self.legacy_order = self.order(self.buyer, "buy")
             self.swap = self.make_swap()
             self.original = {"tokenName": self.token.name, "tokenSymbol": self.token.symbol}
         self.client.force_authenticate(self.buyer.user)
 
     def order(self, tenant, side):
-        return TransferOrder.objects.create(
-            token=self.token,
-            payment_asset=self.issuer.refs.stablecoin,
-            owner_account=tenant.account,
-            wallet=tenant.wallet,
-            wallet_address=tenant.wallet.address,
-            order_type=side,
-            quantity=10,
-            price_per_share=Decimal("1.50"),
-        )
+        with use_migrate():
+            order = TransferOrder.objects.create(
+                token=self.token,
+                payment_asset=self.issuer.refs.stablecoin,
+                owner_account=tenant.account,
+                wallet=tenant.wallet,
+                wallet_address=tenant.wallet.address,
+                order_type=side,
+                quantity=10,
+                price_per_share=Decimal("1.50"),
+            )
+            order.refresh_from_db()
+            self.assertEqual(
+                (
+                    order.eligibility_decision_id,
+                    order.creation_submission_id,
+                    order.last_modification_eligibility_decision_id,
+                ),
+                (None, None, None),
+            )
+        return order
+
+    def admit_current_market(self):
+        make_eligible(self.issuer)
+        issuer_decision = accept_company_eligibility(self.issuer)
+        for tenant in (self.buyer, self.seller):
+            make_eligible(tenant)
+            accept_company_eligibility(tenant, issuer_decision=issuer_decision)
 
     def make_swap(self):
-        return save_swap_with_context(
-            sell_order=self.sell,
-            buy_order=self.buy,
-            share_token=self.token,
-            payment_asset=self.issuer.refs.stablecoin,
-            seller_address=self.seller.wallet.address,
-            buyer_address=self.buyer.wallet.address,
-            share_amount=2,
-            payment_amount=300,
-            nonce=uuid4().int % (2**62),
-        )
+        with use_migrate():
+            return save_swap_with_context(
+                sell_order=self.sell,
+                buy_order=self.buy,
+                share_token=self.token,
+                payment_asset=self.issuer.refs.stablecoin,
+                seller_address=self.seller.wallet.address,
+                buyer_address=self.buyer.wallet.address,
+                share_amount=2,
+                payment_amount=300,
+                nonce=uuid4().int % (2**62),
+            )
 
     def pause(self):
         with use_operator():
@@ -83,6 +104,7 @@ class TradingRetentionTest(APITransactionTestCase):
         return response.json()
 
     def test_visible_orders_keep_current_class_identity_and_both_parties_see_the_swap(self):
+        self.admit_current_market()
         self.assertEqual(self.orders()["count"], 2)
         self.assertEqual(self.row()["tokenName"], self.original["tokenName"])
         for tenant in (self.buyer, self.seller):
@@ -192,6 +214,7 @@ class TradingRetentionTest(APITransactionTestCase):
 
 class ScopedTradingRetentionTest(RunsOnTheScopedConnection, TradingRetentionTest):
     def test_class_disappears_under_the_non_bypass_buyer_role_while_records_remain(self):
+        self.admit_current_market()
         with acting_for(self.buyer.user.pk):
             with connections[APP_ALIAS].cursor() as cursor:
                 cursor.execute("SELECT current_user, rolbypassrls FROM pg_roles WHERE rolname = current_user")

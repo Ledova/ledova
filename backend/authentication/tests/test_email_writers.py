@@ -6,6 +6,7 @@ from django.urls import reverse
 from authentication.admin.user import CustomUserAdmin, CustomUserCreationForm
 from authentication.email import EMAIL_ERROR, EmailError
 from authentication.services.tokens import TokenService
+from shared.db import acting_for, principal_of, use_operator
 
 User = get_user_model()
 
@@ -182,6 +183,15 @@ class EmailAdminChangeTests(TestCase):
         self.assertEqual(self.target.email, "member@example.test")
         self.assertTrue(self.target.is_email_verified)
         self.assert_sessions_live(sessions, True)
+
+    def test_admin_save_restores_an_existing_caller_principal(self):
+        request = RequestFactory().post(self.change_url)
+        request.user = self.superuser
+        model_admin = CustomUserAdmin(User, admin.site)
+
+        with use_operator(), acting_for(self.other.pk):
+            model_admin.save_model(request, self.target, None, True)
+            self.assertEqual(principal_of(), str(self.other.pk))
 
     def test_colliding_and_invalid_addresses_are_form_errors_not_constraint_failures(self):
         sessions = self.issue_sessions()

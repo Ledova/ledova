@@ -7,16 +7,13 @@ from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyDocument, DocumentType
 from offerings.models import Offering, OfferingExemption, OfferingStatus
+from offerings.tests.factories import eligible_subscriber
 from shared.db import use_migrate
-from shared.tests.tenants import (
-    make_associated,
-    make_eligible,
-    make_tenant,
-    open_to_investors,
-)
+from shared.tests.tenants import make_tenant, open_to_investors
 from shared.tests.test_cross_tenant_routes import _body
 from shared.tests.upload_fixtures import pdf_bytes
 from tokens.models import ShareToken, ShareTokenStatus
+from users.models import InvestorCategory
 
 DIRECTORY = "/api/v1/directory/tokens/"
 MEMORANDUM = pdf_bytes(pages=2)
@@ -75,8 +72,9 @@ class OfferingDocumentsTest(APITestCase):
     def setUp(self):
         self.investor = make_tenant("doc-investor")
         self.issuer = make_tenant("doc-issuer")
-        make_eligible(self.investor)
+        eligible_subscriber(self.issuer)
         open_to_investors(self.issuer)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         self.token = self.issuer.deployed_token
         self.memorandum = offer_document(self.issuer.company)
         self.issuer.offering.documents.add(self.memorandum)
@@ -148,7 +146,9 @@ class OfferingDocumentsTest(APITestCase):
     def test_another_companys_document_is_not_reached_through_this_share_class(self):
         publish(self.issuer.offering)
         other = make_tenant("doc-other-issuer")
+        eligible_subscriber(other)
         open_to_investors(other)
+        eligible_subscriber(self.investor, issuer_decision=other.eligibility_decision)
         publish(other.offering)
         theirs = offer_document(other.company, name="Their memorandum")
         other.offering.documents.add(theirs)
@@ -268,6 +268,7 @@ class OfferingDocumentsFollowTheDirectoryTest(APITestCase):
     def setUp(self):
         self.investor = make_tenant("dir-doc-investor")
         self.issuer = make_tenant("dir-doc-issuer")
+        eligible_subscriber(self.issuer)
         open_to_investors(self.issuer)
         publish(self.issuer.offering)
         self.token = self.issuer.deployed_token
@@ -291,43 +292,46 @@ class OfferingDocumentsFollowTheDirectoryTest(APITestCase):
         self.assert_a_phantom(self.token)
 
     def test_an_eligible_investor_reaches_the_documents(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
 
         self.assertEqual(self.client.get(documents_of(self.token)).status_code, 200)
         self.assertEqual(self.client.get(file_of(self.token, self.memorandum)).status_code, 200)
 
     def test_a_company_that_is_not_open_to_investors_shares_nothing(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         with use_migrate():
             Company.objects.filter(pk=self.issuer.company.pk).update(is_open_to_investors=False)
 
         self.assert_a_phantom(self.token)
 
     def test_a_paused_share_class_leaves_the_directory_with_its_documents(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         ShareToken.objects.filter(pk=self.token.pk).update(status=ShareTokenStatus.PAUSED)
 
         self.assert_a_phantom(self.token)
 
     def test_an_association_reaches_the_named_issuer_and_no_other(self):
         stranger = make_tenant("dir-doc-stranger")
+        eligible_subscriber(stranger)
         open_to_investors(stranger)
         publish(stranger.offering)
         stranger.offering.documents.add(offer_document(stranger.company))
-        make_associated(self.investor, self.issuer.company)
+        eligible_subscriber(
+            self.investor, issuer_decision=self.issuer.eligibility_decision, category=InvestorCategory.ASSOCIATED_PERSON
+        )
 
         self.assertEqual(self.client.get(file_of(self.token, self.memorandum)).status_code, 200)
         self.assert_a_phantom(stranger.deployed_token)
 
     def test_a_malformed_document_identifier_is_not_found(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
 
         response = self.client.get(f"{documents_of(self.token)}not-a-uuid/file/")
 
         self.assertEqual(response.status_code, 404)
 
     def test_an_anonymous_caller_is_refused(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         self.client.force_authenticate(None)
 
         self.assertEqual(self.client.get(documents_of(self.token)).status_code, 401)

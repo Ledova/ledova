@@ -11,6 +11,7 @@ import django
 
 
 def report(stage, **values):
+    from django.conf import settings
     from django.db import connections
 
     from shared.db import current_alias, principal_of
@@ -18,7 +19,19 @@ def report(stage, **values):
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SELECT pg_backend_pid(), current_user")
         pid, role = cursor.fetchone()
-    print(json.dumps({"stage": stage, "pid": pid, "role": role, "principal": principal_of(), **values}), flush=True)
+    print(
+        json.dumps(
+            {
+                "stage": stage,
+                "pid": pid,
+                "role": role,
+                "principal": principal_of(),
+                "private_media_root": str(settings.PRIVATE_MEDIA_ROOT),
+                **values,
+            }
+        ),
+        flush=True,
+    )
 
 
 def released():
@@ -32,6 +45,7 @@ def run():
 
     incoming = json.loads(sys.stdin.readline())
     settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
+    settings.PRIVATE_MEDIA_ROOT = os.environ["ORDER_TEST_PRIVATE_MEDIA_ROOT"]
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.RLS_ROLE_PER_REQUEST = False
     settings.ALLOWED_HOSTS = ["testserver"]
@@ -45,7 +59,7 @@ def run():
     from django.db import connections
     from rest_framework.test import APIClient
 
-    from shared.db import set_principal, use_operator
+    from shared.db import current_alias, set_principal, use_operator
     from tokens.models import ShareToken, SwapOrder
     from tokens.services import atomic_swap_service, pause_changes, swap_execution
 
@@ -79,14 +93,16 @@ def run():
 
             @contextmanager
             def announcing_transaction(*args, **kwargs):
+                outer = not connections[current_alias()].in_atomic_block
                 with transaction(*args, **kwargs):
-                    report("locking")
+                    if outer:
+                        report("locking")
                     yield
 
-            def holding_signature(swap, value):
+            def holding_signature(swap, value, *, eligibility_decision):
                 report("signature-locked")
                 released()
-                return add_signature(swap, value)
+                return add_signature(swap, value, eligibility_decision=eligibility_decision)
 
             stack.enter_context(patch.object(atomic_swap_service, "verify_signature", side_effect=verified))
             stack.enter_context(patch.object(swap_execution, "atomic", announcing_transaction))

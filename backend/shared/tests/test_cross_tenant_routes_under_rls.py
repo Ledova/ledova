@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from unittest import TestSuite, defaultTestLoader, skipUnless
 
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import connection, connections, transaction
 from django.test import SimpleTestCase
 from django.urls import resolve
 
@@ -94,6 +94,18 @@ class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection
 
     @contextmanager
     def undone_before_the_next_case(self, route=None, actor=None):
+        if route and (route.method, route.path) in {
+            ("patch", "/api/user-accounts/{account}/"),
+            ("delete", "/api/wallets/{spare_wallet}/"),
+        }:
+            self.assertEqual(current_alias(), APP_ALIAS)
+            self.assertFalse(connections[APP_ALIAS].in_atomic_block)
+            with transaction.atomic(using=OPERATOR_ALIAS):
+                yield
+                with connections[OPERATOR_ALIAS].cursor() as cursor:
+                    cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+                transaction.set_rollback(True, using=OPERATOR_ALIAS)
+            return
         if (
             route
             and route.method == "post"

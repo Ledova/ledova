@@ -14,7 +14,7 @@ from rest_framework.test import APITransactionTestCase
 
 from operators.models import Operator
 from operators.settlement import require_deployment
-from shared.db import current_alias, use_operator
+from shared.db import current_alias, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.utils.token_amounts import token_base_units_ceiling
 from shared.utils.typed_data import signable_message
@@ -62,7 +62,7 @@ class ActionProcessChecks(ActionFixtures):
                 self.assertTrue(consumed)
                 self.assertEqual((self.order.quantity, self.order.modification_count, log_count), (12, 1, 3))
                 events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
-                self.assertEqual(events, [{"event": "order_modified", "alias": "app"}])
+                self.assertEqual(events, [{"event": "order_modified", "alias": "operator"}])
             else:
                 self.assertEqual(recovered.json()["status"], "pending")
                 self.assertFalse(consumed)
@@ -95,7 +95,7 @@ class ActionProcessChecks(ActionFixtures):
             one = self.child("pause", directory, first)
             locked = one.read()
             self.assertEqual(locked["stage"], "locked")
-            self.assertEqual(locked["database_user"], settings.RLS_ROLES["app"])
+            self.assertEqual(locked["database_user"], settings.RLS_ROLES["operator"])
             two = self.child("compete", directory, second)
             selecting = two.read()
             self.assertEqual(selecting["stage"], "selecting")
@@ -113,7 +113,7 @@ class ActionProcessChecks(ActionFixtures):
             )
             self.assertEqual(original["body"], recovered["body"])
             events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
-            self.assertEqual(events, [{"event": "order_modified", "alias": "app"}])
+            self.assertEqual(events, [{"event": "order_modified", "alias": "operator"}])
         with use_operator():
             self.order.refresh_from_db()
             self.assertEqual((self.order.quantity, self.order.modification_count), (12, 1))
@@ -123,7 +123,8 @@ class ActionProcessChecks(ActionFixtures):
 
     def assert_competing_raises_share_the_current_balance(self, order_type, quantity, increased):
         self.payment_balance = 6000
-        with use_operator():
+        self.assertIsNone(self.order.eligibility_decision_id)
+        with use_migrate():
             self.order.order_type = order_type
             self.order.quantity = quantity
             self.order.save(update_fields=["order_type", "quantity"])
@@ -193,13 +194,17 @@ class ActionProcessChecks(ActionFixtures):
         with use_operator():
             Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
             Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
-            TransferOrder.objects.filter(token=self.tenant.deployed_token).update(status=TransferOrderStatus.CANCELLED)
+            with use_migrate():
+                TransferOrder.objects.filter(
+                    token=self.tenant.deployed_token, eligibility_decision__isnull=True
+                ).update(status=TransferOrderStatus.CANCELLED)
             self.counterparty = Wallet.objects.create(
                 user_account=self.tenant.account,
                 address=OTHER_KEY.address,
                 chain="base",
                 verification_status="VERIFIED",
             )
+        with use_migrate():
             self.candidate = TransferOrder.objects.create(
                 token=self.tenant.deployed_token,
                 payment_asset=self.tenant.refs.stablecoin,
@@ -306,7 +311,9 @@ class ActionProcessChecks(ActionFixtures):
             matcher = OrderChild(self, "order_submission_worker", "compete", directory, body=create)
             matching = matcher.read()
             self.assertEqual(matching["stage"], "selecting")
-            wait_for_row_lock(self, matching["pid"], "customer_accounts_account", holding["pid"])
+            wait_for_row_lock(
+                self, matching["pid"], "tokens_sharetoken", holding["pid"], row_pk=self.tenant.deployed_token.pk
+            )
             action.release()
             applied, matched = action.read(), matcher.read()
             self.assertEqual((action.wait(), matcher.wait()), (0, 0), (action.error_output(), matcher.error_output()))
@@ -369,7 +376,7 @@ class ActionProcessChecks(ActionFixtures):
         ) as pool:
             child = self.child("pause", Path(temporary), signed)
             locked = child.read()
-            self.assertEqual((locked["stage"], locked["database_user"]), ("locked", settings.RLS_ROLES["app"]))
+            self.assertEqual((locked["stage"], locked["database_user"]), ("locked", settings.RLS_ROLES["operator"]))
             writing = pool.submit(change_verification)
             self.assertTrue(connected.wait(5), "The authorization writer did not connect")
             wait_for_row_lock(self, pids["writer"], "wallets", locked["pid"])

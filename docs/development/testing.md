@@ -49,11 +49,22 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 
 ## Backend verification
 
-CI runs three backend suites, the ordinary suite in shard jobs of its own, and a
-backend change runs all three locally before it is called green. A change to a policy,
-a role grant or the test settings can pass two and fail the third, because each
-sees something the others cannot. From `backend/`, the commands CI runs, though CI
-splits the first across shard jobs (below):
+CI runs three backend scopes: ordinary, scoped, and roles/catalogue. All three
+must pass for the combined merging head before a backend change is called green.
+A change to a policy, a role grant or the test settings can pass two and fail the
+third, because each sees something the others cannot. A successful CI run that
+actually executes all three checks satisfies these full checks; it need not be
+duplicated by full local runs.
+
+Use focused local checks while developing. Run additional local verification
+when a changed environment or behaviour is not covered by CI, a failure needs
+reproduction, or an unresolved concern warrants it. Retain the source and
+environment of reused evidence; results from an earlier head do not prove a
+changed combined head. Do not suppress a required suite or delete a failing
+regression to obtain green checks. This implements the owner's
+[6 October reduced-testing instruction](https://github.com/Ledova/ledova/issues/860#issuecomment-6014194017).
+From `backend/`, the commands CI runs, though CI splits the first across shard
+jobs (below):
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput

@@ -92,7 +92,7 @@ beforeEach(() => {
   get.mockReset().mockImplementation(async (url, config) => {
     const page = (config?.params as { page?: number } | undefined)?.page ?? 1;
     if (failure === url || failure === `${url}${page}`) throw new Error('Synthetic read unavailable');
-    if (url === eligibilityUrl) return { data: { isEligible: eligible } };
+    if (url === eligibilityUrl) return { data: { isReady: eligible } };
     if (url === listUrl) return { data: pages[page] };
     if (url === detailUrl) {
       if (notFound) throw { response: { status: 404 } };
@@ -137,12 +137,13 @@ it.each([
   expect(get).toHaveBeenCalledWith(listUrl, { params: { page: 1 } });
 });
 
-it('shows verification before reading classes and navigates to the existing Verification destination', async () => {
+it('fetches the bounded catalogue without treating readiness as company admission and links to Verification', async () => {
   eligible = false;
+  pages = { 1: { results: [], next: null } };
   const view = await render(<DirectoryScreen />, { wrapper });
   await fireEvent.press(await view.findByText('Verification'));
   expect(mockParentNavigate).toHaveBeenCalledWith('InvestorEligibility');
-  expect(get.mock.calls.map(([url]) => url)).toEqual([eligibilityUrl]);
+  expect(get.mock.calls.map(([url]) => url)).toEqual([eligibilityUrl, listUrl]);
 });
 
 it('reads all class pages, keeps the simple cache separate and opens the selected class', async () => {
@@ -167,9 +168,9 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
     failure = url;
     const view = await render(<DirectoryScreen />, { wrapper });
     expect(await view.findByText(/The directory could not be loaded/)).toBeTruthy();
-    expect(view.queryByText('No share classes available.')).toBeNull();
+    expect(view.queryByText('No share classes available under your current company decisions.')).toBeNull();
     expect(view.queryByText('Ordinary shares')).toBeNull();
-    expect(view.queryByText('Verify your investor status')).toBeNull();
+    expect(view.queryByText('Check your investor account')).toBeNull();
     failure = null;
     await fireEvent.press(view.getByText('Try again'));
     expect(await view.findByText('Ordinary shares')).toBeTruthy();
@@ -179,12 +180,12 @@ it.each([eligibilityUrl, listUrl, `${listUrl}2`])(
 it('shows a reliable empty directory only after both reads succeed', async () => {
   pages = { 1: { results: [], next: null } };
   const view = await render(<DirectoryScreen />, { wrapper });
-  expect(await view.findByText('No share classes available.')).toBeTruthy();
+  expect(await view.findByText('No share classes available under your current company decisions.')).toBeTruthy();
   expect(view.getByText('Share classes')).toBeTruthy();
-  expect(view.queryByText('Verify your investor status')).toBeNull();
+  expect(view.queryByText('Check your investor account')).toBeNull();
 });
 
-it('removes cached classes after a failed eligibility refresh or revoked eligibility', async () => {
+it('hides cached classes during failed readiness checks and requires current account prerequisites', async () => {
   const view = await render(<DirectoryScreen />, { wrapper });
   expect(await view.findByText('Ordinary shares')).toBeTruthy();
   failure = eligibilityUrl;
@@ -196,7 +197,7 @@ it('removes cached classes after a failed eligibility refresh or revoked eligibi
   failure = null;
   eligible = false;
   await fireEvent.press(view.getByText('Try again'));
-  expect(await view.findByText('Verify your investor status')).toBeTruthy();
+  expect(await view.findByText('Check your investor account')).toBeTruthy();
   expect(view.queryByText('Ordinary shares')).toBeNull();
 });
 

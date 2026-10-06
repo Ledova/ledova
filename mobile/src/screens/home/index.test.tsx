@@ -6,6 +6,10 @@ import { HomeScreen } from './index';
 import { apiClient } from '../../services/apiClient';
 
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 jest.mock('./components/HoldingWork', () => ({ HoldingWork: () => null }));
 jest.mock('./useHoldingWork', () => ({ useHoldingWork: () => ({ refresh: jest.fn(), isRefreshing: false }) }));
 

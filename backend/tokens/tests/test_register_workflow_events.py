@@ -17,7 +17,7 @@ from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
 from companies.models import Company
-from companies.tests.test_document_file_access import admit_company_administrator
+from companies.tests.test_document_file_access import invite_company_administrator
 from shared.db import use_migrate, use_operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -443,7 +443,8 @@ class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
             with use_migrate():
                 Company.objects.filter(pk=self.swap.share_token.company_id).update(owner=self.owner)
             company = Company.objects.get(pk=self.swap.share_token.company_id)
-            admit_company_administrator(company)
+            initial = company.appointments.select_related("appointee").get(request__isnull=False)
+            invite_company_administrator(company, initial, self.owner)
             self.reviewer = instruction_reviewer()
             self.document = verified_authority(company, self.reviewer)
 

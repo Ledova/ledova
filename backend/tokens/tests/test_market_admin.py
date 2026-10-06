@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from blockchain.tests.outgoing_fixtures import admitted_signer
-from shared.db import use_operator
+from shared.db import acting_for, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import (
     ADMIN_STORAGES,
@@ -279,13 +279,14 @@ class SettlementTransactionPageTest(TransactionTestCase):
         self.fixture = make_execution("settlement-page")
         admitted_signer(chain_id=settings.BLOCKCHAIN_CHAIN_ID)
         for participant, key in (("seller", SELLER), ("buyer", BUYER)):
-            self.swap = swap_execution.submit_signature(
-                self.fixture.swap,
-                self.fixture.signatures[participant],
-                key.address,
-                user=getattr(self.fixture, participant).user,
-                participant=participant,
-            )
+            with acting_for(getattr(self.fixture, participant).user.pk):
+                self.swap = swap_execution.submit_signature(
+                    self.fixture.swap,
+                    self.fixture.signatures[participant],
+                    key.address,
+                    user=getattr(self.fixture, participant).user,
+                    participant=participant,
+                )
         self.relayed = self.swap.transaction
         swap_execution.recover(self.relayed.pk, client=ExecutionNode(self.relayed.function_args).client)
         self.relayed.refresh_from_db()
@@ -313,8 +314,24 @@ class ScopedMarketAdminTest(RunsOnTheScopedConnection, APITransactionTestCase):
 
     def setUp(self):
         with use_operator():
-            self.first = make_market_tenant("scoped-market-one")
-            self.second = make_market_tenant("scoped-market-two")
+            with use_migrate():
+                self.first = make_market_tenant("scoped-market-one")
+                self.second = make_market_tenant("scoped-market-two")
+                for tenant in (self.first, self.second):
+                    self.assertEqual(
+                        list(
+                            TransferOrder.objects.filter(pk__in=[tenant.order.pk, tenant.counter_order.pk]).values_list(
+                                "eligibility_decision_id", flat=True
+                            )
+                        ),
+                        [None, None],
+                    )
+                    self.assertEqual(
+                        SwapOrder.objects.filter(pk=tenant.swap.pk)
+                        .values_list("seller_eligibility_decision_id", "buyer_eligibility_decision_id")
+                        .get(),
+                        (None, None),
+                    )
             viewer = staff_user("scoped-market-viewer")
             for model in MARKET:
                 viewer = grant(viewer, admin.site._registry[model], "view")

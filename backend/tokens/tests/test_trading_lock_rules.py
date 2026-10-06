@@ -10,6 +10,7 @@ NO_KEY_AUTHORITY_LOCKS = {
     ("services/swap_execution.py", "_lock_authority"),
     ("services/token_transfer_service.py", "create_order_and_match"),
     ("services/trading_order_create.py", "_lock_authorized_wallet"),
+    ("services/trading_admission.py", "lock_participant"),
 }
 FOREIGN_AUTHORITY_LOCK = ("services/token_transfer_service.py", "_lock_foreign_matching_authority")
 SINGLE_ROW_ORDER_LOCKS = {("services/order_actions.py", "_authorized_order"): 1}

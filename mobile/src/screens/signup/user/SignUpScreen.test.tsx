@@ -34,8 +34,8 @@ async function filledIn() {
       <SignUpScreen />
     </ApiClientProvider>,
   );
-  await fireEvent.changeText(view.getByPlaceholderText('your@email.com'), 'synthetic@example.test');
-  await fireEvent.changeText(view.getByPlaceholderText('••••••••'), 'long enough');
+  await fireEvent.changeText(view.getByLabelText('Email'), 'synthetic@example.test');
+  await fireEvent.changeText(view.getByLabelText('Password'), 'long enough');
   return view;
 }
 

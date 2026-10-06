@@ -628,6 +628,9 @@ OPERATOR_ONLY = {
     "sweep replays it; the participant's own connection never reads a signed broadcast capability.",
     "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "
     "associations. Public membership reads never read this private recovery journal.",
+    "whitelist_whitelisteligibilityinvalidation": "Retained account, identity and wallet invalidation facts and "
+    "actual human or automatic attribution, written in the original bounded operator transaction. Only the "
+    "invalidation worker reads these private cause records.",
     "documents_documentread": "Append-only administrative document read records, written on the operator "
     "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
     "file names, extraction values or file contents, and outlive document content purges.",

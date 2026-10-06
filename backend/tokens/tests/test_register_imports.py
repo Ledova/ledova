@@ -14,7 +14,7 @@ from rest_framework.test import APIClient, APITransactionTestCase
 from web3 import Web3
 
 from companies.services.administration import company_operation
-from offerings.tests.factories import allottable_subscription
+from offerings.tests.factories import allottable_subscription, eligible_subscriber
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.seeds.synthetic.authority import historical_owner_appointment
@@ -1265,6 +1265,7 @@ class ImportOpenedInstructionTest(TransactionTestCase):
 
     def test_an_applied_register_instruction_keeps_a_class_from_being_opened_by_an_import(self):
         proposal = self.submit()
+        eligible_subscriber(self.tenant)
         allottable_subscription(self.tenant)
         self.assertFalse(ShareIssuanceRequest.objects.filter(token=self.token, status__in=APPROVED).exists())
         refusal = "has an approved issue or an applied register instruction"

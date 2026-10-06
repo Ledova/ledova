@@ -24,6 +24,7 @@ from offerings.services.subscription import (
     scale_back,
 )
 from operators.exceptions import SettlementAssetNotDeployedException
+from shared.db import acting_for
 from shared.utils.admin_actions import admin_action_re_path
 from shared.utils.admin_display import action_buttons
 from tokens.admin._helpers import short_hex, status_badge
@@ -535,7 +536,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 def _run_accept(subscription, request, data):
     if subscription.status == SubscriptionStatus.SUBMITTED:
-        accept(subscription)
+        with acting_for(request.user.pk):
+            accept(subscription)
     issue_instruction(
         subscription,
         rail=data["settlement_rail"],

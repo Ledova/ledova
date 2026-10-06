@@ -1,4 +1,4 @@
-from django.utils import timezone
+from django.db import connections
 from rest_framework.exceptions import PermissionDenied
 
 from companies.identity import company_identity, registered_name
@@ -13,13 +13,19 @@ from companies.models import (
 from companies.services.administration import company_operation, lock_company_actor
 from companies.validators import digits_of
 from integrations.abr import lookup_company
-from shared.db import atomic
+from shared.db import atomic, current_alias
 
 ABR_COMPANY_TYPES = {
     CompanyType.PROPRIETARY: "PRV",
     CompanyType.PUBLIC: "PUB",
     CompanyType.UNLISTED_PUBLIC: "PUB",
 }
+
+
+def registry_check_timestamp():
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT clock_timestamp()")
+        return cursor.fetchone()[0]
 
 
 def begin_registry_check(company, purpose, initiated_by):
@@ -47,6 +53,7 @@ def _begin_registry_check(company, purpose, initiated_by, **provenance):
         company=company,
         initiated_by=initiated_by,
         purpose=purpose,
+        started_at=registry_check_timestamp(),
         requested_name=company.name,
         requested_acn=company.acn,
         requested_abn=company.abn,
@@ -116,7 +123,7 @@ def complete_registry_check(check, observation):
         if check.completed_at is not None:
             return check
         check.status, check.reason = observation_result(check, observation)
-        check.completed_at = timezone.now()
+        check.completed_at = registry_check_timestamp()
         check.registry_abn = observation.abn
         check.registry_acn = observation.acn
         for field in (

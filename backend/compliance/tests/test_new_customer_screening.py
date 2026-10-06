@@ -12,6 +12,7 @@ from assets.models import Asset
 from compliance.models import TransactionScreening
 from compliance.services.transaction_monitoring import TransactionMonitoringService
 from integrations.kyc.base import NormalizedVerificationResult
+from operators.models import Operator
 from shared.models import Country
 from users.models import UserAccount, UserProfile
 from users.services import identity
@@ -26,6 +27,7 @@ GREEN = NormalizedVerificationResult(verification_status="completed", review_res
 class NewCustomerScreeningTest(TestCase):
     @classmethod
     def setUpTestData(cls):
+        Operator.get()
         call_command("sync_monitoring_rules", stdout=StringIO())
         cls.ether = Asset.objects.create(symbol="ETH", name="Ether", asset_type="native_crypto", is_verified=True)
 

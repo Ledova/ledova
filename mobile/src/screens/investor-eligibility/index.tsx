@@ -1,24 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getCompanies, getErrorMessage, formatDate } from '@ledova/shared';
+import { getErrorMessage, formatDate, isUuid } from '@ledova/shared';
 import type { CertifierBody, InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
-import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
+import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 const CLAIM_ERROR_FALLBACK = 'The claim was refused. Please check the details and try again.';
 
 function claimState(claim: InvestorClassification) {
-  if (claim.isLive) return claim.expiresAt ? `Verified until ${formatDate(claim.expiresAt)}` : 'Verified';
-  if (claim.isExpired) return 'Expired';
-  if (claim.status === 'submitted') return 'Awaiting review';
+  if (claim.status === 'submitted') return 'Available to share';
+  if (claim.status === 'verified')
+    return claim.isExpired ? 'Historical verification expired' : 'Historical verification';
   return claim.statusDisplay;
 }
 
@@ -51,12 +50,6 @@ export function InvestorEligibilityScreen() {
   const [deleteError, setDeleteError] = useState<{ uuid: string; message: string } | null>(null);
   const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
-  const companiesQuery = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => getCompanies(apiClient),
-    enabled: needsCompany,
-  });
-  const companies = companiesQuery.isError ? [] : (companiesQuery.data?.data.results ?? []);
   const reset = useCallback(() => {
     draftGeneration.current++;
     setCategory(null);
@@ -74,16 +67,14 @@ export function InvestorEligibilityScreen() {
     draftGeneration.current++;
     setter(value);
   }
-  const openClaim = classifications.some((claim) => claim.status === 'submitted');
   const busy = isSubmitting || document.isSubmitting;
-  const blocked = isLoading || hasError || isRefreshing || openClaim || isDeleting;
+  const blocked = isLoading || hasError || isRefreshing || isDeleting;
   const isComplete =
     !!file &&
     !!category &&
     !!eligibility?.account &&
     declaredBasis.trim() !== '' &&
-    (!needsCompany ||
-      (!companiesQuery.isError && !companiesQuery.isFetching && companies.some((item) => item.uuid === company))) &&
+    (!needsCompany || isUuid(company.trim())) &&
     (!needsCertifier ||
       (certificateIssuedAt !== '' &&
         certifierName.trim() !== '' &&
@@ -108,7 +99,7 @@ export function InvestorEligibilityScreen() {
           category,
           declaredBasis: declaredBasis.trim(),
           file: uploadFile,
-          company: needsCompany ? company : undefined,
+          company: needsCompany ? company.trim() : undefined,
           certificateIssuedAt: needsCertifier ? certificateIssuedAt : undefined,
           certifierName: needsCertifier ? certifierName.trim() : undefined,
           certifierBody: needsCertifier ? (certifierBody as CertifierBody) : undefined,
@@ -154,6 +145,7 @@ export function InvestorEligibilityScreen() {
     <>
       <Page
         title="Verification"
+        actions={<EligibilityLinks participant />}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing && !isLoading}
@@ -171,13 +163,9 @@ export function InvestorEligibilityScreen() {
           readNotice
         ) : (
           <>
-            <Section title="Investor status">
-              <Text style={styles.message}>
-                {eligibility?.isEligible
-                  ? 'You can see and subscribe to offerings'
-                  : 'You cannot subscribe to offerings yet'}
-              </Text>
-              {!eligibility?.isEligible &&
+            <Section title="Account readiness">
+              <Text style={styles.message}>{eligibility?.isReady ? 'Account ready' : 'Account checks needed'}</Text>
+              {!eligibility?.isReady &&
                 (eligibility?.reasons ?? []).map((reason) => (
                   <Text key={reason} style={styles.message}>
                     {REASON_TEXT[reason] ?? reason}
@@ -186,25 +174,17 @@ export function InvestorEligibilityScreen() {
               <Text style={styles.help}>{WHOLESALE_ONLY_NOTICE}</Text>
             </Section>
             <Section title="How you qualify">
-              {openClaim && (
-                <Text style={styles.message}>
-                  Your evidence is awaiting review. Withdraw that claim before submitting another.
-                </Text>
-              )}
               {CATEGORIES.map((item, index) => (
                 <View key={item.category} style={[styles.item, index === CATEGORIES.length - 1 && styles.lastItem]}>
                   <Text style={styles.label}>
                     {item.label} ({item.section})
                   </Text>
                   <Text style={styles.message}>{item.evidence}</Text>
-                  {classifications.some((claim) => claim.category === item.category && claim.isLive) && (
-                    <Text style={styles.message}>Verified</Text>
-                  )}
                   <Action
                     label="Attach evidence"
                     accessibilityLabel={`Attach evidence for ${item.label}`}
                     onPress={() => changeField(setCategory, item.category)}
-                    disabled={openClaim || !eligibility?.account || isRefreshing || isDeleting}
+                    disabled={!eligibility?.account || isRefreshing || isDeleting}
                   />
                 </View>
               ))}
@@ -219,6 +199,8 @@ export function InvestorEligibilityScreen() {
                     <Rows>
                       <Row label="Status">{claimState(claim)}</Row>
                       <Row label="Submitted">{formatDate(claim.createdAt)}</Row>
+                      {claim.reviewedAt && <Row label="Historically reviewed">{formatDate(claim.reviewedAt)}</Row>}
+                      {claim.expiresAt && <Row label="Historical expiry">{formatDate(claim.expiresAt)}</Row>}
                     </Rows>
                     {claim.rejectionReason && <Text style={styles.message}>{claim.rejectionReason}</Text>}
                     {deleteError?.uuid === claim.uuid && (
@@ -240,8 +222,9 @@ export function InvestorEligibilityScreen() {
             </Section>
             <Section title="What happens next">
               <Text style={styles.message}>
-                The operator reviews your evidence and records its expiry. Verified evidence makes offerings available;
-                renew it before it expires.
+                Save private evidence, then choose the exact company or known offering in Eligibility requests and
+                consent to sharing it. The company records its decision. Account readiness and historical reviews do not
+                grant investment access; new actions recheck the current company decision and its scope.
               </Text>
             </Section>
           </>
@@ -265,7 +248,7 @@ export function InvestorEligibilityScreen() {
         }
         actions={
           <Action
-            label={busy ? 'Submitting…' : 'Submit for review'}
+            label={busy ? 'Submitting…' : 'Save private evidence'}
             onPress={() => void handleSubmit()}
             disabled={!isComplete || blocked || busy || document.isPicking}
             primary
@@ -274,11 +257,6 @@ export function InvestorEligibilityScreen() {
       >
         <Text style={styles.message}>{spec?.evidence}</Text>
         {readNotice}
-        {openClaim && (
-          <Text accessibilityRole="alert" style={styles.message}>
-            A claim is now awaiting review. Withdraw it before submitting another.
-          </Text>
-        )}
         {claimError && (
           <Text accessibilityRole="alert" style={styles.error}>
             {claimError}
@@ -286,35 +264,21 @@ export function InvestorEligibilityScreen() {
         )}
         {needsCompany && (
           <View style={styles.group}>
-            <Text style={styles.label}>Issuer</Text>
-            {companiesQuery.isLoading ? (
-              <Text style={styles.message}>Loading issuers…</Text>
-            ) : companiesQuery.isError ? (
-              <>
-                <Text accessibilityRole="alert" style={styles.error}>
-                  Issuers could not be loaded.
-                </Text>
-                <Action
-                  label="Try issuers again"
-                  onPress={() => void companiesQuery.refetch()}
-                  disabled={companiesQuery.isFetching}
-                />
-              </>
-            ) : companies.length === 0 ? (
-              <Text style={styles.message}>No issuer is available for this account.</Text>
-            ) : (
-              <View style={styles.choices}>
-                {companies.map((item) => (
-                  <Choice
-                    key={item.uuid}
-                    label={item.name}
-                    selected={company === item.uuid}
-                    accessibilityRole="radio"
-                    onPress={() => changeField(setCompany, item.uuid)}
-                  />
-                ))}
-              </View>
-            )}
+            <Text style={styles.label}>Issuer company UUID</Text>
+            <TextInput
+              accessibilityLabel="Issuer company UUID"
+              value={company}
+              onChangeText={(value) => {
+                if (!busy) changeField(setCompany, value);
+              }}
+              editable={!busy}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+            <Text style={styles.help}>
+              Enter the exact company UUID provided by the issuer. The server checks that it is active.
+            </Text>
           </View>
         )}
         {needsCertifier && (

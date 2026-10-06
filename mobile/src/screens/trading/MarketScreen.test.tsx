@@ -66,7 +66,7 @@ jest.mock('@ledova/shared', () => {
       error: mockTokensError ? new Error('fictional') : null,
       refetch: mockRefetches[0],
     }),
-    useInvestorEligibilityQuery: () => ({ data: { isEligible: true }, refetch: mockRefetches[1] }),
+    useInvestorReadinessQuery: () => ({ data: { isReady: true }, refetch: mockRefetches[1] }),
     useOrderBook: () => ({ data: null, isLoading: false, refetch: mockRefetches[7] }),
     useSwapOrdersMulti: () => ({ data: [], refetch: mockRefetches[6] }),
   };

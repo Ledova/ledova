@@ -330,6 +330,7 @@ export function CompanyRegistrationScreen() {
                     />
                   </View>
                   <TextInput
+                    accessibilityLabel="Company Name"
                     style={[styles.input, styles.inputWithIcon, errors.name && styles.inputError]}
                     value={form.name}
                     onChangeText={(value) => setFieldValue('name', value)}
@@ -345,6 +346,7 @@ export function CompanyRegistrationScreen() {
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Trading Name (optional)</Text>
                 <TextInput
+                  accessibilityLabel="Trading Name"
                   style={[styles.input, errors.tradingName && styles.inputError]}
                   value={form.tradingName}
                   onChangeText={(value) => setFieldValue('tradingName', value)}
@@ -375,6 +377,7 @@ export function CompanyRegistrationScreen() {
                 <View style={[styles.fieldContainer, styles.flex1]}>
                   <Text style={styles.label}>ACN *</Text>
                   <TextInput
+                    accessibilityLabel="ACN"
                     style={[styles.input, errors.acn && styles.inputError]}
                     value={form.acn}
                     onChangeText={(value) => setFieldValue('acn', value)}
@@ -390,6 +393,7 @@ export function CompanyRegistrationScreen() {
                 <View style={[styles.fieldContainer, styles.flex1]}>
                   <Text style={styles.label}>ABN (optional)</Text>
                   <TextInput
+                    accessibilityLabel="ABN"
                     style={[styles.input, errors.abn && styles.inputError]}
                     value={form.abn}
                     onChangeText={(value) => setFieldValue('abn', value)}

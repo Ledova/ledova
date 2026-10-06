@@ -22,6 +22,7 @@ from assets.models import AssetSnapshot
 from assets.services.valuation import aud_value
 from companies.identity import company_identity
 from companies.models import Company, CompanyStatus, DocumentType
+from companies.services.authority_requests import _requester_principal
 from companies.services.document_review import verified_document_snapshot
 from companies.validators import abn_is_valid, acn_is_valid
 from compliance.models import (
@@ -32,11 +33,13 @@ from compliance.models import (
 from compliance.services.transaction_monitoring import check_rule
 from documents.models import Document, DocumentExtraction
 from integrations.kyc.constants import VERIFICATION_STATUS_CHOICES
+from shared.db import use_operator
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic import identities, keys
 from shared.seeds.synthetic.plan import MINIMUM_INVESTORS, WINDOW_DAYS, stream
 from shared.seeds.synthetic.story import build_plan
 from users.models import (
+    CompanyEligibilityDecision,
     DeviceToken,
     InvestorClassification,
     Notification,
@@ -44,7 +47,8 @@ from users.models import (
     UserProfile,
 )
 from users.models.investor_classification import DECLARATION_TEXT, InvestorCategory
-from users.services.eligibility import investor_eligibility
+from users.services.company_eligibility_consumption import company_eligibility
+from users.services.eligibility import investor_readiness
 from users.services.notifications import transaction_message
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services.wallets import (
@@ -212,7 +216,10 @@ class SyntheticPopulationTest(APITestCase):
         tester = User.objects.get(email=DEMO_INVESTOR_EMAIL)
         account = UserAccount.objects.get(user_profile__user=tester)
 
-        self.assertTrue(investor_eligibility(tester).is_eligible)
+        with use_operator(), _requester_principal(tester.pk):
+            self.assertTrue(investor_readiness(tester).is_ready)
+            company = Company.objects.get(owner__email=DEMO_OWNER_EMAIL)
+            self.assertTrue(company_eligibility(account, company, purpose="secondary").is_eligible)
         self.assertGreater(Notification.objects.filter(user=tester, is_archived=False).count(), 25)
         self.assertGreater(Transaction.objects.filter(wallet__user_account=account).count(), 25)
         self.assertEqual(
@@ -226,6 +233,27 @@ class SyntheticPopulationTest(APITestCase):
         self.assertTrue(Document.objects.filter(uploaded_by=tester, classification__isnull=False).exists())
         self.assertTrue(tester.userprofile.phone_number and tester.userprofile.residential_address)
         self.assertLess(tester.date_joined, timezone.now() - timedelta(days=150))
+
+    def test_new_company_decisions_record_nonstaff_pa_and_the_real_holder_consents(self):
+        decisions = CompanyEligibilityDecision.objects.select_related(
+            "request__source", "request__submitted_by", "decided_by", "appointment__invitation"
+        )
+        self.assertGreater(decisions.count(), 0)
+        for decision in decisions:
+            self.assertFalse(decision.decided_by.is_staff)
+            self.assertIsNotNone(decision.appointment.invitation_id)
+            self.assertTrue({"prepare", "approve"}.issubset(decision.appointment.capabilities))
+            self.assertEqual(decision.appointment.company_id, decision.request.company_id)
+            self.assertEqual(decision.appointment.appointee_id, decision.decided_by_id)
+            self.assertEqual(decision.request.submitted_by_id, decision.request.user_account.user_profile.user_id)
+            self.assertTrue(decision.request.sharing_accepted and decision.request.declaration_accepted)
+            self.assertLess(decision.request.source.submitted_at, decision.decided_at)
+            with use_operator(), _requester_principal(decision.request.submitted_by_id):
+                self.assertTrue(
+                    company_eligibility(
+                        decision.request.user_account, decision.request.company, purpose="primary"
+                    ).is_eligible
+                )
 
     def test_the_founder_tester_owns_an_active_company_with_its_history(self):
         founder = User.objects.get(email=DEMO_OWNER_EMAIL)

@@ -26,8 +26,10 @@ class ExpiryProcessesRespectExecutionClaimsTest(ExpiryFixtures, TransactionTestC
         self.now = datetime.now(UTC)
         self.clock.return_value = self.now
 
-    def wait_for_row_lock(self, child, table, blocker_pid=None):
-        workers.SwapWorkersUseOneCurrentClaimTest.wait_for_row_lock(self, child, table, blocker_pid)
+    def wait_for_row_lock(self, child, table, blocker_pid=None, *, admission_target=None):
+        workers.SwapWorkersUseOneCurrentClaimTest.wait_for_row_lock(
+            self, child, table, blocker_pid, admission_target=admission_target
+        )
 
     def completing_signature(self, swap):
         return (
@@ -60,14 +62,14 @@ class ExpiryProcessesRespectExecutionClaimsTest(ExpiryFixtures, TransactionTestC
         signature = self.completing_signature(swap)
         store = SwapOrder.add_seller_signature
 
-        def admitted(order, value):
+        def admitted(order, value, *, eligibility_decision):
             expiry.send("run")
             expiry.receive("expiring")
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 holder = cursor.fetchone()[0]
             self.wait_for_row_lock(expiry, "tokens_transferorder", holder)
-            return store(order, value)
+            return store(order, value, eligibility_decision=eligibility_decision)
 
         with patch.object(SwapOrder, "add_seller_signature", admitted):
             self.assertEqual(sign_swap(swap, signature, SELLER.address).status, SwapOrderStatus.EXECUTING)
@@ -93,7 +95,7 @@ class ExpiryProcessesRespectExecutionClaimsTest(ExpiryFixtures, TransactionTestC
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 holder = cursor.fetchone()[0]
-            self.wait_for_row_lock(admission, "tokens_transferorder", holder)
+            self.wait_for_row_lock(admission, "tokens_transferorder", holder, admission_target=swap.pk)
 
         self.publisher.side_effect = released
         with use_operator():

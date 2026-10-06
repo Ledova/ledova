@@ -820,7 +820,7 @@ class RegisterParticularsMigrationTest(TransactionTestCase):
 
     def test_upgrade_dates_each_members_imported_particulars_from_its_import(self):
         self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0089_company_register_opening_guards")])
+        migrate_to([("tokens", "0082_company_eligibility_admission")])
         owner, _, token, member, appointment, register_copy, asic, _ = import_fixture()
         proposal = prepared_import(
             owner, import_payload(token, register_copy, asic, member, appointment, as_at="2026-09-01")
@@ -841,7 +841,7 @@ class RegisterParticularsMigrationTest(TransactionTestCase):
     def test_reversal_restores_the_earlier_guards_and_upload_kinds_then_reapplies(self):
         self.addCleanup(restore_every_migration)
         every = self.GUARDS + self.FUNCTIONS
-        previous = ("tokens", "0089_company_register_opening_guards")
+        previous = ("tokens", "0082_company_eligibility_admission")
         company_run, pinned = self.installed(every), self.configured(every)
         self.assertEqual(pinned, [(name, self.PINNED) for name in sorted(every)])
         self.assertIn("'supporting'", dict(company_run)["tokens_guard_register_evidence"])

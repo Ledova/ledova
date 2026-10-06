@@ -5,6 +5,7 @@ import { Platform, Text, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { getRandomValues } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
+import { Buffer } from 'buffer';
 import EventSource from 'react-native-sse';
 import { apiClient, rotateRefreshToken } from '../src/services/apiClient';
 import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from '../src/services/tokenStorage';
@@ -17,6 +18,7 @@ import { failureCategory, NativeProbeAssertion } from './diagnostics';
 import { DocumentCopy, pickDocumentCopy, shareDocumentCopy } from '../src/services/documentCopies';
 import { getSessionEpoch } from '../src/services/sessionScope';
 import { ScannerBridgeProbe } from './ScannerBridgeProbe';
+import documentFixture from './documentFixture.json';
 
 type Check = { name: string; passed: boolean; failure?: { category: string; stage: string } };
 const pair = { accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' };
@@ -184,44 +186,95 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     }
     requireTrue(refused);
   });
-  await check('multipart upload and binary download', async () => {
-    const file = new File(Paths.cache, 'ledova-native-probe.txt');
-    const picked = new File(Paths.cache, 'DocumentPicker', '11111111-1111-1111-1111-111111111111.txt');
+  await check('multipart upload and binary download', async (stage) => {
+    stage('document-fixture-decode');
+    const bytes = new Uint8Array(Buffer.from(documentFixture.base64, 'base64'));
+    const file = new File(Paths.cache, documentFixture.name);
+    const picked = new File(Paths.cache, 'DocumentPicker', '11111111-1111-1111-1111-111111111111.pdf');
     let copy: DocumentCopy | null = null;
     let release: (() => void) | undefined;
     try {
+      stage('document-fixture-create');
       file.create({ overwrite: true });
-      file.write('synthetic-fixture');
+      stage('document-fixture-write');
+      file.write(bytes);
+      stage('document-picker-create');
       picked.create({ intermediates: true, overwrite: true });
-      picked.write('synthetic-fixture');
+      stage('document-picker-write');
+      picked.write(bytes);
+      stage('document-picker-adopt');
       copy = await pickDocumentCopy(
         () => true,
         async () => ({
           canceled: false,
-          assets: [{ uri: picked.uri, name: 'synthetic.txt', mimeType: 'text/plain', size: 17, lastModified: 0 }],
+          assets: [
+            {
+              uri: picked.uri,
+              name: documentFixture.name,
+              mimeType: documentFixture.mimeType,
+              size: bytes.length,
+              lastModified: 0,
+            },
+          ],
         }),
       );
       requireTrue(copy && !picked.info().exists);
+      requireTrue(copy.file.name === documentFixture.name && copy.file.type === documentFixture.mimeType);
+      stage('document-copy-lease');
       release = copy.acquire();
       copy.retire();
       requireTrue(new File(copy.file.uri).info().exists);
       const form = new FormData();
       form.append('file', copy.file as unknown as Blob);
+      stage('document-multipart-upload');
       const uploaded = await apiClient.post<{ valid: boolean }>('/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
         ledovaSessionEpoch: getSessionEpoch(),
       });
+      stage('document-multipart-response');
       requireTrue(uploaded.data.valid);
+      stage('document-copy-release');
       release();
       requireTrue(!new File(copy.file.uri).info().exists);
-      requireTrue((await file.text()) === 'synthetic-fixture');
+      stage('document-fixture-readback');
+      requireTrue((await file.base64()) === documentFixture.base64);
+      stage('document-binary-download');
       const downloaded = await apiClient.get<ArrayBuffer>('/download', { responseType: 'arraybuffer' });
-      requireTrue(String.fromCharCode(...new Uint8Array(downloaded.data)) === 'synthetic-fixture');
+      stage('document-binary-response');
+      const returned = new Uint8Array(downloaded.data);
+      requireTrue(returned.length === bytes.length && returned.every((value, index) => value === bytes[index]));
     } finally {
       copy?.retire();
       release?.();
       if (picked.info().exists) picked.delete();
       if (file.exists) file.delete();
+    }
+  });
+  await check('unsupported document MIME is refused without retaining a picker copy', async () => {
+    const picked = new File(Paths.cache, 'DocumentPicker', '33333333-3333-3333-3333-333333333333.txt');
+    let adopted = false;
+    let refused = false;
+    try {
+      picked.create({ intermediates: true, overwrite: true });
+      picked.write('synthetic-fixture');
+      try {
+        const copy = await pickDocumentCopy(
+          () => true,
+          async () => ({
+            canceled: false,
+            assets: [{ uri: picked.uri, name: 'synthetic.txt', mimeType: 'text/plain', size: 17, lastModified: 0 }],
+          }),
+        );
+        if (copy) {
+          adopted = true;
+          copy.retire();
+        }
+      } catch (error) {
+        refused = error instanceof Error && error.message === 'Choose a PDF, PNG or JPEG document.';
+      }
+      requireTrue(refused && !adopted && !picked.info().exists);
+    } finally {
+      if (picked.info().exists) picked.delete();
     }
   });
   await check('picker copies that were never adopted are swept after a pick', async () => {

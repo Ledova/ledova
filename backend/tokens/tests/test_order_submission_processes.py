@@ -85,7 +85,9 @@ class SubmissionProcessChecks(SubmissionFixtures):
             self.assertEqual(selecting["stage"], "selecting")
             self.assertEqual(selecting["database_user"], settings.RLS_ROLES["operator"])
             self.assertNotEqual(locked["pid"], selecting["pid"])
-            wait_for_row_lock(self, selecting["pid"], "tokens_ordersubmission", locked["pid"])
+            wait_for_row_lock(
+                self, selecting["pid"], "tokens_sharetoken", locked["pid"], row_pk=self.tenant.deployed_token.pk
+            )
             one.release()
             original = one.read()
             recovered = two.read()
@@ -116,7 +118,7 @@ class SubmissionProcessChecks(SubmissionFixtures):
                 TransferOrder.objects.filter(wallet=self.wallet, order_type="sell").values_list("quantity", flat=True)
             )
 
-    def concurrent_creates(self, first, second, table, statuses):
+    def concurrent_creates(self, first, second, statuses):
         with tempfile.TemporaryDirectory(prefix="order-submission-pair-") as temporary:
             directory = Path(temporary)
             one = OrderChild(self, WORKER, "matching", directory, body=first)
@@ -125,7 +127,9 @@ class SubmissionProcessChecks(SubmissionFixtures):
             selecting = two.read()
             self.assertEqual((matching["stage"], selecting["stage"]), ("matching", "selecting"))
             self.assertNotEqual(matching["pid"], selecting["pid"])
-            wait_for_row_lock(self, selecting["pid"], table, matching["pid"])
+            wait_for_row_lock(
+                self, selecting["pid"], "tokens_sharetoken", matching["pid"], row_pk=self.tenant.deployed_token.pk
+            )
             one.release()
             results = (one.read(), two.read())
             self.assertEqual((one.wait(), two.wait()), (0, 0))
@@ -139,15 +143,15 @@ class SubmissionProcessChecks(SubmissionFixtures):
             return tuple(result["body"] for result in results)
 
     def test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment(self):
-        _, refused = self.concurrent_creates(self.sell(90), self.sell(90), "wallets", (201, 400))
+        _, refused = self.concurrent_creates(self.sell(90), self.sell(90), (201, 400))
         self.assertEqual((refused["status"], refused["refusal"]["code"]), ("refused", "insufficient_balance"))
         self.assertEqual(self.sell_quantities(), [90])
 
     def test_two_sells_that_fit_the_balance_together_both_open_after_waiting(self):
-        self.concurrent_creates(self.sell(40), self.sell(40), "wallets", (201, 201))
+        self.concurrent_creates(self.sell(40), self.sell(40), (201, 201))
         self.assertEqual(self.sell_quantities(), [40, 40])
 
-    def test_crossing_creates_on_two_wallets_wait_on_the_account_and_match_once(self):
+    def test_crossing_creates_on_two_wallets_wait_on_the_token_and_match_once(self):
         resting = self.counter_order()
         with use_operator():
             original_swaps = SwapOrder.objects.count()
@@ -161,7 +165,7 @@ class SubmissionProcessChecks(SubmissionFixtures):
             ),
             signer=COUNTERPARTY,
         )
-        matched, rested = self.concurrent_creates(buy, sell, "customer_accounts_account", (201, 201))
+        matched, rested = self.concurrent_creates(buy, sell, (201, 201))
         self.assertEqual((matched["status"], rested["status"]), ("created", "created"))
         self.assertEqual(matched["match"]["counterOrder"], str(resting.pk))
         self.assertIsNone(rested["match"])

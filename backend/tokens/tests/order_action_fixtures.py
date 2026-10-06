@@ -7,10 +7,12 @@ from django.db import connections
 from eth_account import Account
 
 from feature_flags.models import FeatureFlag
-from shared.db import acting_for, current_alias, use_operator
+from shared.db import acting_for, current_alias, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import OrderActionSubmission, SigningChallenge, TransferOrder
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 OWNER = Account.from_key("0x" + "81" * 32)
@@ -27,18 +29,25 @@ class ActionFixtures:
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.tenant = make_tenant("order-action")
             make_eligible(self.tenant)
-            self.wallet = Wallet.objects.create(user_account=self.tenant.account, address=OWNER.address, chain="base")
-            self.order = TransferOrder.objects.create(
-                token=self.tenant.deployed_token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=self.wallet,
-                owner_account=self.tenant.account,
-                wallet_address=self.wallet.address,
-                order_type="buy",
-                quantity=10,
-                min_quantity=0,
-                price_per_share=Decimal("2.50"),
+            self.wallet = Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=OWNER.address,
+                chain="base",
+                verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
+            with use_migrate():
+                self.order = TransferOrder.objects.create(
+                    token=self.tenant.deployed_token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=self.wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=self.wallet.address,
+                    order_type="buy",
+                    quantity=10,
+                    min_quantity=0,
+                    price_per_share=Decimal("2.50"),
+                )
+        self.eligibility_decision = accept_company_eligibility(self.tenant)
         self.client.force_authenticate(self.tenant.user)
         self.action_id = uuid4()
         self.events = []

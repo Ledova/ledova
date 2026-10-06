@@ -1,18 +1,19 @@
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APITransactionTestCase
 from web3 import Web3
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.tests.tenants import a_profile, an_eligible_investor, reference_data
+from shared.db import use_migrate, use_operator
+from shared.tests.tenants import an_account, an_eligible_investor, reference_data
 from shared.tests.under_the_policies import what_the_policies_admit_to
-from tokens.exceptions import InvalidRecipientAddressException
-from tokens.models import ShareToken, TransferOrder
+from tokens.models import ShareToken, SwapOrder, TransferOrder
 from tokens.models.choices import (
     ShareTokenStatus,
     ShareTokenType,
@@ -22,6 +23,7 @@ from tokens.models.choices import (
 from tokens.serializers import TransferOrderCreateSerializer
 from tokens.services import token_transfer_service
 from tokens.tests.market_fixtures import record_synthetic_admission
+from tokens.tests.order_submission_fixtures import SubmissionFixtures
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
@@ -312,76 +314,65 @@ class TransferOrderOwnershipBindingTest(APITestCase):
             list(TransferOrder.objects.advertised_liquidity().sell_orders().filter(token=self.token)), [valid_candidate]
         )
 
-    @patch("tokens.services.share_token_service")
-    @patch("tokens.events.publish_trading_event")
-    @patch("tokens.services.token_transfer_service.whitelist")
-    @patch("tokens.services.token_transfer_service.get_base_chain_client")
-    def test_service_persists_wallet_and_account_snapshot(
-        self, get_client, whitelist_service, _publish_trading_event, share_tokens
-    ):
-        chain_client = Mock()
-        chain_client.is_valid_address.return_value = True
-        chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
-        get_client.return_value = chain_client
-        whitelist_service.is_whitelisted.return_value = True
-        share_tokens.get_token_balance.return_value = 10**30
 
-        service = token_transfer_service
-        self.enterContext(patch.object(service, "find_matching_orders", return_value=(row for row in ())))
-        order, match = service.create_order_and_match(
-            token=self.token,
-            order_type=TransferOrderType.BUY,
-            actor=self.user,
-            wallet=self.wallet,
-            owner_account=self.account,
-            wallet_address=self.wallet.address,
-            quantity=2,
-            price_per_share=Decimal("1.50"),
-            payment_asset=reference_data().stablecoin,
-        )
-
-        self.assertIsNone(match)
-        self.assertEqual(order.wallet, self.wallet)
-        self.assertEqual(order.owner_account, self.account)
+class CurrentTransferOrderOwnershipBindingTest(SubmissionFixtures, APITransactionTestCase):
+    def test_service_persists_genuine_admission_wallet_and_account_snapshot(self):
+        signed = self.signed_body(self.body(quantity=2, price_per_share="1.50"))
+        with use_operator():
+            swaps_before = SwapOrder.objects.count()
+        with patch.object(
+            token_transfer_service, "create_order_and_match", wraps=token_transfer_service.create_order_and_match
+        ) as create_order:
+            response = self.create(signed)
+        self.assertEqual(response.status_code, 201, response.content)
+        create_order.assert_called_once()
+        submission = self.submission()
+        with use_operator():
+            order = TransferOrder.objects.get(pk=submission.order_id)
+            self.assertEqual(SwapOrder.objects.count(), swaps_before)
+        self.assertEqual(order.wallet_id, self.wallet.pk)
+        self.assertEqual(order.owner_account_id, self.tenant.account.pk)
         self.assertEqual(order.wallet_address, Web3.to_checksum_address(self.wallet.address))
+        self.assertEqual(order.creation_submission_id, submission.pk)
+        self.assertEqual(order.eligibility_decision_id, self.eligibility_decision.pk)
+        self.assertEqual(submission.eligibility_decision_id, self.eligibility_decision.pk)
+        self.assertIsNone(submission.initial_swap_id)
+        self.assertEqual(create_order.call_args.kwargs["admission"].decision.pk, self.eligibility_decision.pk)
+        self.assertEqual(create_order.call_args.kwargs["submission"].pk, submission.pk)
 
-    @patch("tokens.services.token_transfer_service.whitelist")
-    @patch("tokens.services.token_transfer_service.get_base_chain_client")
-    def test_service_rejects_wallet_changed_after_validation(self, get_client, whitelist_service):
-        chain_client = Mock()
-        chain_client.is_valid_address.return_value = True
-        chain_client.to_checksum_address.side_effect = Web3.to_checksum_address
-        get_client.return_value = chain_client
-        whitelist_service.is_whitelisted.return_value = True
-
-        Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="PENDING")
-
-        with self.assertRaises(InvalidRecipientAddressException):
-            token_transfer_service.create_order_and_match(
-                token=self.token,
-                order_type=TransferOrderType.BUY,
-                actor=self.user,
-                wallet=self.wallet,
-                owner_account=self.account,
-                wallet_address=self.wallet.address,
-                quantity=2,
-                price_per_share=Decimal("1.50"),
-                payment_asset=reference_data().stablecoin,
-            )
-
-        Wallet.objects.filter(pk=self.wallet.pk).update(verification_status="VERIFIED")
-        replacement_account = UserAccount.objects.create(user_profile=a_profile("wallet-moved-to"))
-        Wallet.objects.filter(pk=self.wallet.pk).update(user_account=replacement_account)
-
-        with self.assertRaises(InvalidRecipientAddressException):
-            token_transfer_service.create_order_and_match(
-                token=self.token,
-                order_type=TransferOrderType.BUY,
-                actor=self.user,
-                wallet=self.wallet,
-                owner_account=self.account,
-                wallet_address=self.wallet.address,
-                quantity=2,
-                price_per_share=Decimal("1.50"),
-                payment_asset=reference_data().stablecoin,
-            )
+    def test_execution_refuses_a_wallet_changed_after_challenge_issuance_without_spending(self):
+        with use_migrate():
+            other_account = an_account("binding-moved-to")
+        with use_operator():
+            swaps_before = SwapOrder.objects.count()
+        changes = (
+            ({"verification_status": "PENDING"}, "Select a verified EVM wallet from your own account."),
+            ({"user_account": other_account}, "Select a wallet from your own account."),
+        )
+        for fields, detail in changes:
+            with self.subTest(fields=list(fields)):
+                self.submission_id = uuid4()
+                signed = self.signed_body(self.body(quantity=2, price_per_share="1.50"))
+                with use_migrate():
+                    Wallet.objects.filter(pk=self.wallet.pk).update(**fields)
+                try:
+                    with patch.object(
+                        token_transfer_service,
+                        "create_order_and_match",
+                        wraps=token_transfer_service.create_order_and_match,
+                    ) as create_order:
+                        refused = self.create(signed)
+                    self.assertEqual(refused.status_code, 400, refused.content)
+                    self.assertEqual(
+                        refused.json(), {"walletUuid": detail if "verification_status" in fields else [detail]}
+                    )
+                    create_order.assert_not_called()
+                    self.assert_pending_and_unspent(signed)
+                    with use_operator():
+                        self.assertEqual(SwapOrder.objects.count(), swaps_before)
+                finally:
+                    with use_migrate():
+                        Wallet.objects.filter(pk=self.wallet.pk).update(
+                            verification_status="VERIFIED", user_account=self.tenant.account
+                        )
+        self.assertEqual(self.create(signed).status_code, 201)

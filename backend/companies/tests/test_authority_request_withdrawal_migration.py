@@ -48,14 +48,16 @@ class CompanyAuthorityRequestWithdrawalMigrationTest(StubUploadDependencies, Tra
         original = {field.attname: getattr(self.proposal, field.attname) for field in self.proposal._meta.fields}
         MigrationExecutor(connection).migrate([OLD])
         executor = MigrationExecutor(connection)
-        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        historical = executor.loader.project_state(applied_nodes).apps
         before = historical.get_model("companies", "CompanyAuthorityRequest").objects.get(pk=self.proposal.pk)
         self.assertEqual({field.attname: getattr(before, field.attname) for field in before._meta.fields}, original)
         with before.file.open("rb") as source:
             self.assertEqual(source.read(), PDF)
         MigrationExecutor(connection).migrate([NEW])
         executor = MigrationExecutor(connection)
-        historical = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+        historical = executor.loader.project_state(applied_nodes).apps
         with use_operator():
             after = (
                 historical.get_model("companies", "CompanyAuthorityRequest")

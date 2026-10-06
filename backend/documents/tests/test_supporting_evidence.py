@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.files.base import ContentFile
 from django.db.models import ProtectedError
 from django.test import TestCase, TransactionTestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
@@ -292,12 +292,17 @@ class SupportingPayslipAdminTest(EvidenceCase, TestCase):
         self.assertTrue(
             DocumentRead.objects.filter(actor_id=reviewer.pk, document_uuid=self.document.pk, kind="document").exists()
         )
-        denied = self.client.post(
+        with self.assertRaises(NoReverseMatch):
             reverse("admin:users_investorclassification_transition", args=[self.claim.pk, "verify"])
+        denied = self.client.post(
+            reverse("admin:users_investorclassification_change", args=[self.claim.pk]), {"status": "verified"}
         )
         self.assertEqual(denied.status_code, 403)
         self.claim.refresh_from_db()
         self.assertEqual(self.claim.status, "submitted")
+        self.assertIsNone(self.claim.reviewed_by_id)
+        self.assertIsNone(self.claim.reviewed_at)
+        self.assertEqual((self.root / self.document.file.name).read_bytes(), PDF)
 
     def test_operations_reads_of_metadata_file_and_raw_extraction_are_recorded(self):
         self.attach()

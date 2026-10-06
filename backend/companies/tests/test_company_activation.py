@@ -1,7 +1,8 @@
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import datetime, timedelta
 from threading import Barrier, Event
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -13,7 +14,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import Company, CompanyRegistryCheck
+from companies.models import Company, CompanyRegistryCheck, RegistryCheckPurpose
 from companies.services.activation import activate_company
 from companies.services.administration import company_operation
 from companies.services.authority import (
@@ -23,6 +24,7 @@ from companies.services.authority import (
 )
 from companies.services.authority_requests import submit_authority_request
 from companies.services.company import register_company, transition_company
+from companies.services.registry import begin_registry_check, complete_registry_check
 from companies.services.team import (
     accept_team_invitation,
     issue_team_invitation,
@@ -115,6 +117,114 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
 
     def service(self, **changes):
         return activate_company(actor=self.user, company_id=self.company.pk, **{**self.payload(), **changes})
+
+    def database_timestamp(self):
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute("SELECT clock_timestamp()")
+            return cursor.fetchone()[0]
+
+    def test_registry_start_uses_database_time_despite_skewed_application_default(self):
+        started_at = CompanyRegistryCheck._meta.get_field("started_at")
+        for hours in (-24, 24):
+            with self.subTest(application_clock_offset_hours=hours):
+                skewed = timezone.now() + timedelta(hours=hours)
+                before = self.database_timestamp()
+                with patch.object(started_at, "get_default", return_value=skewed):
+                    receipt = begin_registry_check(self.company, RegistryCheckPurpose.AUTHORITY, self.user)
+                after = self.database_timestamp()
+                self.assertIsInstance(receipt.started_at, datetime)
+                self.assertGreaterEqual(receipt.started_at, before)
+                self.assertLessEqual(receipt.started_at, after)
+                with use_operator():
+                    stored = CompanyRegistryCheck.objects.get(pk=receipt.pk)
+                    self.assertEqual(stored.started_at, receipt.started_at)
+
+    def test_registry_completion_uses_database_time_despite_application_clock_skew(self):
+        for hours in (-24, 24):
+            with self.subTest(application_clock_offset_hours=hours):
+                receipt = begin_registry_check(self.company, RegistryCheckPurpose.AUTHORITY, self.user)
+                before = self.database_timestamp()
+                clock = SimpleNamespace(now=Mock(return_value=before + timedelta(hours=hours)))
+                with patch("companies.services.registry.timezone", clock, create=True):
+                    completed = complete_registry_check(receipt, matching_observation(self.company))
+                after = self.database_timestamp()
+                self.assertEqual(completed.pk, receipt.pk)
+                self.assertEqual(completed.status, "passed")
+                self.assertIsInstance(completed.completed_at, datetime)
+                self.assertGreaterEqual(completed.completed_at, before)
+                self.assertLessEqual(completed.completed_at, after)
+                self.assertGreaterEqual(completed.completed_at, completed.started_at)
+                with use_operator():
+                    stored = CompanyRegistryCheck.objects.get(pk=receipt.pk)
+                    company = Company.objects.get(pk=self.company.pk)
+                    self.assertEqual(stored.completed_at, completed.completed_at)
+                    self.assertEqual(company.registry_check_id, receipt.pk)
+                    self.assertEqual(company.registry_checked_at, completed.completed_at)
+
+    def test_passed_activation_resume_uses_database_time_despite_application_clock_skew(self):
+        original = Company.save
+
+        def refuse_initial_effect(company, *args, **kwargs):
+            if company.status == "active":
+                raise DatabaseError("Synthetic failed company effect")
+            return original(company, *args, **kwargs)
+
+        for index, hours in enumerate((-24, 24)):
+            with self.subTest(application_clock_offset_hours=hours):
+                if index:
+                    self.company = register_company(
+                        owner=self.user,
+                        name="Second Clock Activation Pty Ltd",
+                        acn="987654320",
+                        primary_contact_data={"first_name": "Synthetic", "last_name": "Administrator"},
+                    )
+                    self.source = self.admit(self.user, self.company)
+                    self.key = uuid4()
+                self.provider.return_value = matching_observation(self.company)
+                with patch.object(Company, "save", refuse_initial_effect), self.assertRaisesMessage(
+                    DatabaseError, "Synthetic failed company effect"
+                ):
+                    self.service()
+                with use_operator():
+                    receipt = CompanyRegistryCheck.objects.get(idempotency_key=self.key)
+                    self.assertEqual(receipt.status, "passed")
+                    self.assertIsNotNone(receipt.completed_at)
+                    self.assertIsNone(receipt.applied_at)
+                    self.company.refresh_from_db()
+                    revision = self.company.lifecycle_revision
+                    self.assertEqual(self.company.status, "draft")
+                    self.assertIsNone(self.company.activated_at)
+                self.assertEqual(self.provider.call_count, index + 1)
+                before = self.database_timestamp()
+                clock = SimpleNamespace(now=Mock(return_value=before + timedelta(hours=hours)))
+                with patch("companies.services.activation.timezone", clock):
+                    company, restored = self.service()
+                after = self.database_timestamp()
+                self.assertEqual(restored.pk, receipt.pk)
+                self.assertIsInstance(restored.applied_at, datetime)
+                self.assertGreaterEqual(restored.applied_at, before)
+                self.assertLessEqual(restored.applied_at, after)
+                self.assertGreaterEqual(restored.applied_at, restored.completed_at)
+                self.assertEqual(company.status, "active")
+                self.assertEqual(company.activated_at, restored.applied_at)
+                self.assertEqual(company.lifecycle_revision, revision + 1)
+                with use_operator():
+                    stored = CompanyRegistryCheck.objects.get(pk=receipt.pk)
+                    current = Company.objects.get(pk=company.pk)
+                    self.assertEqual(stored.applied_at, restored.applied_at)
+                    self.assertEqual(current.activated_at, restored.applied_at)
+                    self.assertEqual(current.lifecycle_revision, revision + 1)
+                    self.assertEqual(CompanyRegistryCheck.objects.filter(idempotency_key=self.key).count(), 1)
+                    self.assertEqual(
+                        CompanyRegistryCheck.objects.filter(company=company, applied_at__isnull=False).count(), 1
+                    )
+                with patch("companies.services.activation.timezone", clock):
+                    replayed_company, replayed = self.service()
+                self.assertEqual(replayed.pk, restored.pk)
+                self.assertEqual(replayed.applied_at, restored.applied_at)
+                self.assertEqual(replayed_company.activated_at, restored.applied_at)
+                self.assertEqual(replayed_company.lifecycle_revision, revision + 1)
+                self.assertEqual(self.provider.call_count, index + 1)
 
     def test_actual_admission_activates_without_staff_upload_checklist_or_invented_review(self):
         response = self.activate()

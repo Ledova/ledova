@@ -34,26 +34,13 @@ class WhitelistEntryQuerySet(QuerySet):
         )
 
     def needing_standing_review(self):
-        from users.models import InvestorClassification, UserAccount
+        from users.models import UserAccount
         from users.services.eligibility import REFUSED_ACCOUNT_STATUSES
         from whitelist.models import WhitelistApproval, WhitelistStatus
 
-        live_classifications = (
-            InvestorClassification.objects.filter(user_account_id=OuterRef("entry__wallet__user_account_id"))
-            .live()
-            .for_company(OuterRef("company_id"))
-        )
-        approvals = (
-            WhitelistApproval.objects.filter(entry_id=OuterRef("pk"))
-            .alias(has_live_classification=Exists(live_classifications))
-            .filter(
-                Q(pk__in=WhitelistApproval.objects.live().values("pk"))
-                | Q(status__in=[WhitelistStatus.PENDING, WhitelistStatus.FAILED])
-                | (
-                    Q(entry__wallet__user_account__user_profile__user__is_active=False, has_live_classification=True)
-                    & ~Q(entry__wallet__user_account__account_status__in=REFUSED_ACCOUNT_STATUSES)
-                )
-            )
+        approvals = WhitelistApproval.objects.filter(entry_id=OuterRef("pk")).filter(
+            Q(pk__in=WhitelistApproval.objects.live().values("pk"))
+            | Q(status__in=[WhitelistStatus.PENDING, WhitelistStatus.FAILED])
         )
         return self.filter(
             Q(wallet__user_account__user_profile__user__is_active=False)

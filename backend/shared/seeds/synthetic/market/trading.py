@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from datetime import timedelta
 from decimal import Decimal
 
@@ -6,8 +5,10 @@ from eth_account import Account
 from eth_account.messages import encode_typed_data
 from web3 import Web3
 
+from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
+from shared.db import use_operator
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.settlement import (
     BALANCE_METHODS,
@@ -38,7 +39,7 @@ from tokens.services.trading_order_create import (
 )
 
 TRANSACTION_INTEGERS = ("value", "gas", "gasPrice", "nonce", "chainId")
-EXPIRY_RUN = timedelta(minutes=18)
+EXPIRY_DELAY = timedelta(seconds=1)
 REFUSED = "The {side} order {key} was not created: {code} {detail}"
 MISMATCHED = "The {side} order {key} matched {actual}, and the plan has it match {planned}."
 NOT_CANCELLED = "The cancellation of {key} ended {status}."
@@ -57,7 +58,7 @@ def _party(order, market):
     return wallet, account, account.user_profile.user
 
 
-def place(order, market, at=None):
+def place(order, market):
     token = market.tokens[order.listing]
     wallet, account, user = _party(order, market)
     data = {
@@ -74,7 +75,7 @@ def place(order, market, at=None):
         "owner_account": account,
     }
     key = market.keyring.key(wallet.address)
-    with frozen(at) if at else nullcontext():
+    with use_operator(), _requester_principal(user.pk):
         issued = issue_order_submission(user, data)
         challenge = issued.challenge
         signature = _sign(key, signable_message(challenge["domain"], challenge["types"], challenge["message"]))
@@ -106,7 +107,7 @@ def cancel(order, market):
     _, account, user = _party(order, market)
     data = {"action_id": seeded_id("cancel", order.key), "owner_account_uuid": account.pk}
     key = market.keyring.key(order.address)
-    with frozen(order.cancelled_at):
+    with use_operator(), _requester_principal(user.pk):
         issued = issue_order_action(user, transfer.pk, OrderActionPurpose.CANCEL, data)
         challenge = issued.challenge
         signature = _sign(key, signable_message(challenge["domain"], challenge["types"], challenge["message"]))
@@ -124,9 +125,9 @@ def cancel(order, market):
 
 def lapse(fill, market):
     taker = market.plan.order(fill.taker)
-    submission = place(taker, market, at=taker.placed_at)
+    submission = place(taker, market)
     swap = matched(taker, submission, fill.maker, market)
-    with frozen(taker.placed_at + EXPIRY_RUN) as moment:
+    with frozen(swap.expires_at + EXPIRY_DELAY) as moment:
         if not expire_unclaimed_swap(swap, moment):
             raise ChainStepFailed(NOT_EXPIRED.format(key=fill.taker))
     if taker.fate == HELD:
@@ -172,10 +173,11 @@ def settle(swap, market):
     for role, order in (("seller", swap.sell_order), ("buyer", swap.buy_order)):
         wallet = order.wallet
         user = wallet.user_account.user_profile.user
-        _approve(swap, role, order, wallet, user, market)
-        typed = atomic_swap_service.get_typed_data(swap)
-        signature = _sign(market.keyring.key(wallet.address), encode_typed_data(full_message=typed))
-        swap = swap_execution.submit_signature(swap, signature, wallet.address, user=user, participant=role)
+        with use_operator(), _requester_principal(user.pk):
+            _approve(swap, role, order, wallet, user, market)
+            typed = atomic_swap_service.get_typed_data(swap)
+            signature = _sign(market.keyring.key(wallet.address), encode_typed_data(full_message=typed))
+            swap = swap_execution.submit_signature(swap, signature, wallet.address, user=user, participant=role)
     market.run()
     swap.refresh_from_db()
     if swap.status == SwapOrderStatus.EXECUTING and swap.transaction_id:

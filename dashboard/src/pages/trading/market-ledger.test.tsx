@@ -173,7 +173,7 @@ it('keeps listed supply exact and hides stale listed classes on a read error', (
     selectedTokenUuid: null,
     onSelectToken: vi.fn(),
     isLoading: false,
-    isEligible: true,
+    isReady: true,
   };
   const view = render(<MarketOverview {...props} />);
   expect(screen.getByText('9,007,199,254,740,993')).toBeTruthy();

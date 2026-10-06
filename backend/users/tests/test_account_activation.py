@@ -11,6 +11,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from integrations.kyc.base import NormalizedVerificationResult
+from operators.models import Operator
 from shared.models import Country
 from users.constants import (
     ACCOUNT_STATUS_ACTIVE,
@@ -48,8 +49,9 @@ def an_account(label, citizenship="AU", **fields):
     return UserAccount.objects.create(account_number=f"ACC-{label.upper()}"[:20], user_profile=profile, **fields)
 
 
-class IdentityCheckActivationTest(TestCase):
+class IdentityCheckActivationTest(TransactionTestCase):
     def setUp(self):
+        Operator.get()
         patch(PUSH_TASK).start()
         self.addCleanup(patch.stopall)
 
@@ -167,6 +169,7 @@ class ActivationOnSaveTest(TestCase):
 
 class StaffActivationTest(TestCase):
     def setUp(self):
+        Operator.get()
         self.client.force_login(User.objects.create_superuser(email="staff@activation.example.test", password="pw"))
         patch(REFRESH).start()
         self.addCleanup(patch.stopall)

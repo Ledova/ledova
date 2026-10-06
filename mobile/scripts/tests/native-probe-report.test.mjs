@@ -276,6 +276,29 @@ test('the report server retains only allowlisted failure category and stage valu
     assert.equal(await server.post({ checks: [control] }), 200);
     assert.deepEqual(server.result().checks, [control]);
   }
+  for (const stage of [
+    'document-fixture-decode',
+    'document-fixture-create',
+    'document-fixture-write',
+    'document-picker-create',
+    'document-picker-write',
+    'document-picker-adopt',
+    'document-copy-lease',
+    'document-multipart-upload',
+    'document-multipart-response',
+    'document-copy-release',
+    'document-fixture-readback',
+    'document-binary-download',
+    'document-binary-response',
+  ]) {
+    const control = {
+      name: 'multipart upload and binary download',
+      passed: false,
+      failure: { category: 'unknown', stage },
+    };
+    assert.equal(await server.post({ checks: [control] }), 200);
+    assert.deepEqual(server.result().checks, [control]);
+  }
   for (const failure of [
     { category: 'synthetic-secret', stage: 'check' },
     { category: 'unknown', stage: 'synthetic-secret' },
@@ -294,6 +317,11 @@ async function publication(filename) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ledova-probe-publication-')));
   const output = path.join(root, 'results');
   fs.mkdirSync(path.join(root, 'scripts'));
+  fs.mkdirSync(path.join(root, 'native-tests'));
+  fs.copyFileSync(
+    path.join(mobile, 'native-tests/documentFixture.json'),
+    path.join(root, 'native-tests/documentFixture.json'),
+  );
   fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
   for (const module of ['android-test-packages.mjs', 'screen-content.mjs', 'window-focus.mjs']) {
     fs.copyFileSync(path.join(mobile, 'scripts', module), path.join(root, 'scripts', module));

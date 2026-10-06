@@ -4860,9 +4860,10 @@
         "type": "object"
       },
       "HttpStatusEnum": {
-        "description": "* `400` - 400\n* `409` - 409",
+        "description": "* `400` - 400\n* `403` - 403\n* `409` - 409",
         "enum": [
           400,
+          403,
           409
         ],
         "type": "integer"
@@ -5191,16 +5192,7 @@
             "readOnly": true,
             "type": "string"
           },
-          "classification": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/InvestorClassification"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
-          "isEligible": {
+          "isReady": {
             "type": "boolean"
           },
           "reasons": {
@@ -5212,8 +5204,7 @@
         },
         "required": [
           "account",
-          "classification",
-          "isEligible",
+          "isReady",
           "reasons"
         ],
         "type": "object"
@@ -6380,11 +6371,12 @@
         "type": "object"
       },
       "OrderActionRefusalCodeEnum": {
-        "description": "* `order_cancellation_failed` - order_cancellation_failed\n* `order_modification_failed` - order_modification_failed\n* `order_modification_conflict` - order_modification_conflict",
+        "description": "* `order_cancellation_failed` - order_cancellation_failed\n* `order_modification_failed` - order_modification_failed\n* `order_modification_conflict` - order_modification_conflict\n* `investor_not_eligible` - investor_not_eligible",
         "enum": [
           "order_cancellation_failed",
           "order_modification_failed",
-          "order_modification_conflict"
+          "order_modification_conflict",
+          "investor_not_eligible"
         ],
         "type": "string"
       },
@@ -24569,7 +24561,7 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "description": "Server-sent events for one deployed share class. The connection opens with a `connected` event carrying `{\"status\": \"ok\"}`, then emits one named event per trading change with an empty data object: the event name is the whole signal, and the client refetches on it. A comment line `: heartbeat` is sent every 30 seconds so an idle connection is not closed by an intermediary. The stream is scoped by users.services.eligibility: an ineligible caller and a phantom token are the same 404.",
+                  "description": "Server-sent events for one deployed share class. The connection opens with a `connected` event carrying `{\"status\": \"ok\"}`, then emits one named event per trading change with an empty data object: the event name is the whole signal, and the client refetches on it. A comment line `: heartbeat` is sent every 30 seconds so an idle connection is not closed by an intermediary. A current company-general secondary eligibility decision for this share class's issuer is required. An ineligible caller and a phantom token are the same 404. Access is checked again before the connection event, each matching trading event and every heartbeat; losing access closes the stream.",
                   "type": "string",
                   "x-sse-connection-event": "connected",
                   "x-sse-events": [
@@ -24834,12 +24826,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderSubmission"
+                    },
+                    {
+                      "additionalProperties": {},
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Signature refused."
+            "description": "Retained eligibility refusal, or an ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -25259,12 +25258,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderActionSubmission"
+                    },
+                    {
+                      "additionalProperties": {},
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Signature refused."
+            "description": "Recorded eligibility refusal or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -25423,12 +25429,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderActionSubmission"
+                    },
+                    {
+                      "additionalProperties": {},
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Signature refused."
+            "description": "Recorded eligibility refusal or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -25587,12 +25600,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderActionSubmission"
+                    },
+                    {
+                      "additionalProperties": {},
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Signature refused."
+            "description": "Recorded eligibility refusal or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -25751,12 +25771,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {},
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderActionSubmission"
+                    },
+                    {
+                      "additionalProperties": {},
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Signature refused."
+            "description": "Recorded eligibility refusal or ordinary signature refusal."
           },
           "404": {
             "content": {

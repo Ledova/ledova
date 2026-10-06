@@ -29,6 +29,7 @@ def run():
     from django.conf import settings
 
     settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
+    settings.PRIVATE_MEDIA_ROOT = os.environ["ORDER_TEST_PRIVATE_MEDIA_ROOT"]
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.RLS_ROLE_PER_REQUEST = False
     settings.ALLOWED_HOSTS = ["testserver"]
@@ -63,6 +64,7 @@ def run():
     original_spend = service.spend
     original_create = token_transfer_service.create_order_and_match
     original_find = service._find_submission
+    original_execute = service._execute_authorized_submission
     original_matching = token_transfer_service.find_matching_orders
     original_match = token_transfer_service.match_orders
     original_candidate = token_transfer_service._match_candidate
@@ -89,9 +91,9 @@ def run():
         released()
         return submission
 
-    def find_after_announcing(*args):
+    def execute_after_announcing(*args, **kwargs):
         notify("selecting")
-        return original_find(*args)
+        return original_execute(*args, **kwargs)
 
     def match_after_pausing(order):
         notify("matching")
@@ -143,7 +145,9 @@ def run():
         elif phase == "pause":
             stack.enter_context(patch.object(service, "_find_submission", side_effect=find_then_pause))
         elif phase == "compete":
-            stack.enter_context(patch.object(service, "_find_submission", side_effect=find_after_announcing))
+            stack.enter_context(
+                patch.object(service, "_execute_authorized_submission", side_effect=execute_after_announcing)
+            )
         elif phase == "matching":
             stack.enter_context(
                 patch.object(token_transfer_service, "find_matching_orders", side_effect=match_after_pausing)

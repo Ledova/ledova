@@ -128,7 +128,7 @@ export {
 export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,
-  getInvestorEligibility,
+  getInvestorReadiness,
   submitInvestorClassification,
   deleteInvestorClassification,
 } from './investorClassifications';
@@ -170,3 +170,4 @@ export {
   castBallot,
 } from './publications';
 export { getShareHoldings } from './share-holdings';
+export * from './company-eligibility';

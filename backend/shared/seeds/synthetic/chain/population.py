@@ -1,15 +1,17 @@
 from django.db.models import Q
 
 from companies.models import Company
+from companies.services.authority_requests import _requester_principal
 from shared.constants import BLOCKCHAIN_BASE
+from shared.db import use_operator
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic.chain.plan import Candidate, Firm, HoldingWallet
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.story import COMPANY_SPECS, DEMO_COMPANY
-from users.models import InvestorClassification, UserAccount
+from users.models import UserAccount
 from users.models.investor_classification import InvestorCategory
 from users.models.user_account import AccountRole
-from users.services.eligibility import account_eligibility
+from users.services.company_eligibility_consumption import company_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
@@ -62,23 +64,25 @@ def _base_wallets(account):
 
 
 def _investor(account, wallets, active):
-    eligible = frozenset(key for key, company in active.items() if account_eligibility(account, company).is_eligible)
-    live = list(InvestorClassification.objects.filter(user_account=account).live().select_related("company"))
+    holder = account.user_profile.user
+    with use_operator(), _requester_principal(holder.pk):
+        admitted = {
+            key: outcome
+            for key, company in active.items()
+            if (outcome := company_eligibility(account, company, purpose="primary")).is_eligible
+        }
     associated = frozenset(
-        key
-        for key, company in active.items()
-        if any(
-            claim.category == InvestorCategory.ASSOCIATED_PERSON and claim.company_id == company.pk for claim in live
-        )
+        key for key, outcome in admitted.items() if outcome.request.category == InvestorCategory.ASSOCIATED_PERSON
     )
-    reviewed = [claim.reviewed_at for claim in live if claim.reviewed_at]
+    sources = [outcome.request.source for outcome in admitted.values()]
+    source_history = [source.reviewed_at or source.submitted_at for source in sources]
     verified = account.user_profile.verified_at
-    ready = max([verified, min(reviewed)]) if eligible and reviewed and verified else None
+    ready = max([verified, min(source_history)]) if source_history and verified else None
     return {
-        "companies": eligible,
+        "companies": frozenset(admitted),
         "associated": associated,
         "ready_at": ready,
-        "large_only": bool(live) and all(claim.category == InvestorCategory.PRODUCT_VALUE for claim in live),
+        "large_only": False,
     }
 
 

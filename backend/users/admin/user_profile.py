@@ -1,7 +1,13 @@
 from django.contrib import admin
 
+from companies.services.authority_requests import _requester_principal
+from users.models import UserAccount
 from users.models.financial_profile import FinancialProfile
 from users.models.user_profile import UserProfile
+from users.services.company_eligibility import _configuration
+from whitelist.models import WhitelistInvalidationCause
+from whitelist.services.eligibility_invalidation import invalidation_writer_context
+from whitelist.services.refresh import enqueue_for_account
 
 
 class FinancialProfileInline(admin.StackedInline):
@@ -42,6 +48,29 @@ class UserProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid", "created_at", "updated_at")
     list_select_related = ("user", "citizenship_country")
     inlines = [FinancialProfileInline]
+
+    def save_model(self, request, obj, form, change):
+        with _requester_principal(request.user.pk), invalidation_writer_context(request.user):
+            account = (
+                UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=obj.pk).first()
+                if change
+                else None
+            )
+            previous = UserProfile.objects.select_for_update(no_key=True).get(pk=obj.pk) if change else None
+            if (
+                previous is not None
+                and previous.is_id_verified
+                and not obj.is_id_verified
+                and account is not None
+                and _configuration().investor_kyc_required
+            ):
+                enqueue_for_account(
+                    account.pk,
+                    request.user,
+                    cause=WhitelistInvalidationCause.IDENTITY_LOSS,
+                    cause_fields=["is_id_verified"],
+                )
+            super().save_model(request, obj, form, change)
 
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))

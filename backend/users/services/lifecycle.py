@@ -10,41 +10,48 @@ from authentication.email import normalize_email
 from authentication.managers.user import EmailLookupState
 from authentication.services import TokenService
 from portfolios.models import Portfolio
-from shared.db import atomic
 from shared.utils.token_amounts import plain_amount
 from users.models import FinancialProfile, UserAccount, UserProfile
 from wallets.models import Transaction, Wallet
+from whitelist.services.eligibility_invalidation import invalidation_writer_context
+from whitelist.services.refresh import enqueue_for_account
 
 logger = logging.getLogger(__name__)
 
 
-@atomic()
 def delete_account(user):
-    logger.info("Account deletion requested")
+    with invalidation_writer_context(user):
+        logger.info("Account deletion requested")
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    tombstone = normalize_email(f"deleted_{user.id}_{timestamp}_{uuid4().hex}@deleted.invalid")
-    if user.__class__.objects.resolve_email(tombstone).state is not EmailLookupState.ABSENT:
-        raise serializers.ValidationError({"error": ["Account deletion could not be completed."]})
-    user.email = tombstone
-    user.is_active = False
-    user.is_email_verified = False
-    user.save(update_fields=["email", "is_active", "is_email_verified"])
+        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile__user_id=user.pk).first()
+        user.refresh_from_db(from_queryset=user.__class__.objects.select_for_update(no_key=True))
+        cause_fields = [field for field in ("is_active", "is_email_verified") if getattr(user, field)]
 
-    TokenService.revoke_all(user)
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        tombstone = normalize_email(f"deleted_{user.id}_{timestamp}_{uuid4().hex}@deleted.invalid")
+        if user.__class__.objects.resolve_email(tombstone).state is not EmailLookupState.ABSENT:
+            raise serializers.ValidationError({"error": ["Account deletion could not be completed."]})
+        user.email = tombstone
+        user.is_active = False
+        user.is_email_verified = False
+        if cause_fields and account is not None:
+            enqueue_for_account(account.pk, user, cause_fields=cause_fields)
+        user.save(update_fields=["email", "is_active", "is_email_verified"])
 
-    try:
-        profile = UserProfile.objects.get(user=user)
-        profile.full_name = "Deleted User"
-        profile.phone_country_code = None
-        profile.phone_number = None
-        profile.residential_address = None
-        profile.date_of_birth = None
-        profile.save()
-    except UserProfile.DoesNotExist:
-        pass
+        TokenService.revoke_all(user)
 
-    logger.info("Account successfully deleted")
+        try:
+            profile = UserProfile.objects.get(user=user)
+            profile.full_name = "Deleted User"
+            profile.phone_country_code = None
+            profile.phone_number = None
+            profile.residential_address = None
+            profile.date_of_birth = None
+            profile.save()
+        except UserProfile.DoesNotExist:
+            pass
+
+        logger.info("Account successfully deleted")
 
 
 def export_account_data(user):
