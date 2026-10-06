@@ -322,7 +322,7 @@ and tasks the worker would run. It adds:
   price. One buyer is approved for the company first, and one buys an odd lot of
   eight shares.
 - Registers: each company enters its first-time buyers' wallets as members under
-  a reviewed wallet link and records the day's transfers under one applied
+  a company-run wallet link and records the day's transfers under one applied
   transfer instruction per class, so every register reconciles matched with
   nothing waiting. Each deposit writes its recipient's AUDY holding and each
   settled trade the buyer's and the seller's share and AUDY holdings from the

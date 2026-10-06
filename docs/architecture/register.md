@@ -27,8 +27,8 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review of links and instructions, and admin-only outputs. Openings, imports,
-corrections and changes to members' particulars are company-run: the company
+review of instructions, and admin-only outputs. Openings, imports, corrections,
+wallet links and changes to members' particulars are company-run: the company
 provides the evidence, states an import's ASIC figures, and its appointments
 approve and apply them. Its appointments holding `admin` or `approve` also
 acknowledge reconciliation discrepancies. An import can open a register and
@@ -56,9 +56,9 @@ is the opening instead: it records the company's existing register as the
 opening entry, checked against the ASIC extract's figures, and captures no chain
 boundary, so nothing is recorded, waiting or reconciled for that class until it
 is on chain. A wallet the
-opening did not map is linked to a member only by a
-[reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
-carrying staff-verified documentary authority.
+opening did not map is linked to a member only by a company-run
+[wallet link](../operations/register-foundation.md#linking-wallets-after-the-opening)
+under the company's own authority document.
 Opening preparation and decisions, and an operator report, classify completed
 effects against that boundary from evidence both sides record: each completion's
 finalized receipt, and the canonical transfer history the boundary retains. A

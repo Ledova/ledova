@@ -26,13 +26,14 @@ confirmation and retained history with personal prepare/approve queues; uncertai
 commands can be replayed within the running session. The [eligibility guide](company-eligibility.md)
 records the admission, recovery and verification boundaries.
 The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)
-lets #864 start before #863 closes, except member-wallet links, which wait for #863.
-#864's first increment delivers register reads by appointment, its second
+let #864 start before #863 closed, except member-wallet links, which waited for
+#863. #864's first increment delivers register reads by appointment, its second
 company-run imports, its third company-run corrections, its fourth company
 acknowledgement of reconciliation discrepancies and its fifth company-run
 openings from the chain, each through the API and both clients, and its sixth
-company-run changes to a member's particulars through the API, with their client
-screens planned; its other register commands remain planned. #865–#873 remain
+and seventh company-run changes to a member's particulars and company-run
+member-wallet links through the API, with their client screens planned; its
+other register commands remain planned. #865–#873 remain
 dependency-ordered and own the later company offering, issuance and register
 workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and

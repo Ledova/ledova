@@ -168,6 +168,30 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- `tokens/0092_company_register_wallet_links` and
+  `tokens/0093_company_register_wallet_link_guards` make member-wallet links
+  company-run (#864), as `0088` and `0089` did for openings. `0092` adds
+  append-only link decisions, operator-only, adds the preparing appointment and
+  the `authority` upload to links, makes the staff-era document UUID nullable
+  with a check constraint pinning the two shapes, and closes owners' direct link
+  inserts. `0093` replaces, by exact single replacements, the link guard `0067`
+  installed: a link is inserted only by a company-run preparation from the
+  preparer's own `authority` upload, and an outcome must match a decision by the
+  same person at the same time. The new decision guards bind the person, the
+  company command and a current appointment, and the decision carries a digest
+  the database recomputes, binding, for application, the current links of the
+  mapped addresses. Nothing is backfilled. Links still waiting for the retired
+  staff review stay readable and can only be rejected by the company; the admin
+  keeps links as read-only history, the review page is gone, and the synthetic
+  staff seed no longer grants the link change permission. This release adds the
+  decision routes and `GET /api/v1/tokens/register-links/waiting-wallets/`, and
+  no client. An integration that submitted links now prepares them, naming its
+  `appointment` and an `authority_evidence` upload where it named a company
+  `document_id`. Reversing `0093` refuses once any company-run link or link
+  decision exists, which covers the `authority` uploads those links use; `0086`'s
+  reversal still refuses while any other `authority` upload exists. Otherwise it
+  restores the guard exactly as `0067` installed it, and reversing `0092` then
+  restores owners' direct submissions.
 - `tokens/0090_company_particulars_changes` and
   `tokens/0091_company_particulars_change_guards` let a company change a
   member's particulars (#864). `0090` adds company-run particulars changes,
