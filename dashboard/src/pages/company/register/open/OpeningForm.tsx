@@ -69,7 +69,6 @@ export function OpeningForm({
   holders,
   appointment,
   blocked,
-  reloading,
   onReload,
   onConflict,
 }: {
@@ -80,7 +79,6 @@ export function OpeningForm({
   holders: RegisterOpeningHolders;
   appointment: OwnCompanyAppointment;
   blocked: boolean;
-  reloading: boolean;
   onReload: () => void;
   onConflict: () => void;
 }) {
@@ -359,7 +357,6 @@ export function OpeningForm({
           <p className="text-sm text-text-muted">{COPY.HOLDINGS_MOVED}</p>
           <PageAction
             label={COPY.RELOAD_HOLDINGS}
-            disabled={reloading}
             onClick={() => {
               clear();
               onReload();

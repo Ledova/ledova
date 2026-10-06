@@ -132,7 +132,6 @@ function OwnOpening({
             holders={holders.data}
             appointment={appointment}
             blocked={stale}
-            reloading={holders.isFetching}
             onReload={() => void holders.refetch()}
             onConflict={() => {
               void holders.refetch();

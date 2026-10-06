@@ -819,6 +819,33 @@ it('disables every field while the opening is being prepared', async () => {
   expect(await screen.findByText('Register page')).toBeTruthy();
 });
 
+it('prepares once when Prepare is pressed twice at once', async () => {
+  show();
+  await ready();
+  complete();
+  act(() => {
+    submitButton().click();
+    submitButton().click();
+  });
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads()).toHaveLength(1);
+  expect(preparations()).toHaveLength(1);
+});
+
+it('sends nothing further once the page closes while its upload is pending', async () => {
+  const pending = deferred<{ data: RegisterEvidence }>();
+  uploadFor = () => pending.promise;
+  const view = show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await waitFor(() => expect(uploads()).toHaveLength(1));
+  view.unmount();
+  await act(async () => pending.resolve({ data: receipt(uploads()[0]) }));
+  expect(preparations()).toHaveLength(0);
+  expect(client.getQueryState(OPENINGS_KEY)?.isInvalidated).toBe(false);
+});
+
 it('uploads nothing further and prepares nothing when an upload returns after the signed-in account changed', async () => {
   const pending = deferred<{ data: RegisterEvidence }>();
   uploadFor = () => pending.promise;

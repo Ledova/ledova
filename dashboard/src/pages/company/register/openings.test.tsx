@@ -719,6 +719,17 @@ it('shows no opening entry for a staff-era opening whose boundary was never capt
   expect(within(dialog).queryByText('Effective on')).toBeNull();
 });
 
+it('opens one decision at a time', async () => {
+  await openClass();
+  const [record] = records(await openings());
+  const dialog = await openDecision(record, 'approve');
+  await previewed(dialog);
+  fireEvent.click(within(record).getByRole('button', { name: action(COPY.DECISIONS.apply) }));
+  expect(screen.getByRole('dialog', { name: 'Approve opening' })).toBeTruthy();
+  expect(screen.queryByRole('dialog', { name: 'Apply opening' })).toBeNull();
+  expect(writes(PREVIEW).map(([, body]) => body.kind)).toEqual(['approve']);
+});
+
 it('previews and records each step under the appointment that holds it', async () => {
   appointments = [
     appointment(['approve'], { uuid: 'appointment-b' }),
