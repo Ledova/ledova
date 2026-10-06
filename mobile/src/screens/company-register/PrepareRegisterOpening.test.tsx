@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import {
@@ -240,6 +240,8 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
   jest.restoreAllMocks();
 });
 
@@ -484,6 +486,7 @@ it('reads the holdings and appointments again after a conflict and prepares unde
   expect(reads(APPOINTMENTS)).toBeGreaterThan(before[1]);
   expect(view.queryByText(COPY.HOLDINGS_MOVED)).toBeNull();
   await waitFor(() => expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeEnabled());
+  expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
@@ -509,7 +512,9 @@ it('says the holdings moved when the server refuses the mapping, and maps the re
   expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
   expect(memberOf(view, 3)).toBe('Not chosen yet');
   expect(view.getByText(UNMAPPED)).toBeTruthy();
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
   await choose(view, COPY.NEW_MEMBER_NUMBERED(1), 3);
+  expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
@@ -566,6 +571,69 @@ it('forgets a choice of a linked member that no longer holds once the holdings a
   expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
   expect(memberOf(view, 3)).toBe('Not chosen yet');
   expect(view.queryByLabelText('Alex Member for holding 3')).toBeNull();
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
+});
+
+it('drops the choice of an address that is now linked, says so, and keeps the others', async () => {
+  prepareAnswer.mockRejectedValueOnce(movedRefusal());
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await view.findByText(COPY.HOLDINGS_MOVED);
+  holdings = [HOLDINGS[0], holding(BEA, '40', MEMBER_B, 'Blair Member'), HOLDINGS[2], HOLDINGS[3]];
+  await fireEvent.press(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
+  expect(await view.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  expect(memberOf(view, 2)).toBe('Blair Member');
+  expect(view.queryByLabelText(`${COPY.NEW_MEMBER} for holding 2`)).toBeNull();
+  expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(memberOf(view, 4)).toBe('Alex Member');
+});
+
+it('says some member choices were reset after a re-read drops one, until the opening is prepared', async () => {
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockRejectedValueOnce(movedRefusal()).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await view.findByText(COPY.HOLDINGS_MOVED);
+  holdings = [HOLDINGS[0], HOLDINGS[1]];
+  await fireEvent.press(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
+  expect(await view.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  await submit(view);
+  await waitFor(() => expect(answer).toBeDefined());
+  expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  await act(async () => answer({ data: preparedFrom(preparations()[1]) }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(preparations()[1].mapping).toEqual([
+    { address: ADA, member: MEMBER_A },
+    { address: BEA, member: KEY(1) },
+  ]);
+});
+
+it('reads the holdings again only on request, not on focus, reconnect or a refresh of the share classes', async () => {
+  const view = await open();
+  await map(view);
+  const holdingsRead = holdingReads().length;
+  const appointmentsRead = reads(APPOINTMENTS);
+  await act(async () => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
+  await act(async () => {
+    onlineManager.setOnline(false);
+    onlineManager.setOnline(true);
+  });
+  await act(async () => void client.invalidateQueries({ queryKey: ['company-tokens'] }));
+  await waitFor(() => expect(reads(APPOINTMENTS)).toBeGreaterThan(appointmentsRead));
+  expect(holdingReads()).toHaveLength(holdingsRead);
+  expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
 });
 
 it.each([

@@ -54,7 +54,7 @@ const recordsKey = (records: string) => (epoch: number, scope?: string) => [
 ];
 export const importsKey = recordsKey('imports');
 export const openingsKey = recordsKey('openings');
-export const openingHoldersKey = recordsKey('opening-holders');
+export const openingHoldersKey = (epoch: number, token: string) => ['opening-holders', epoch, token];
 export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
@@ -206,6 +206,8 @@ export function useOpeningHolders(epoch: number, token: string) {
       if (!hasWholeShares(data.holdings)) throw new Error('The chain holdings record a share count that is not whole');
       return data;
     },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
