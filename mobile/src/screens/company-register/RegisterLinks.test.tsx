@@ -216,6 +216,7 @@ let linkAnswers: Map<number, () => Promise<unknown>>;
 let waiting: unknown[];
 let waitingAnswer: (() => Promise<unknown>) | null;
 let appointments: unknown[];
+let failing: Set<string>;
 
 function appointment(uuid: string, capabilities: string[], changes: object = {}) {
   return {
@@ -292,6 +293,7 @@ beforeEach(() => {
   waiting = [WALLET];
   waitingAnswer = null;
   appointments = [appointment('appointment-admin', ['admin'])];
+  failing = new Set();
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
   mockNavigate.mockReset();
@@ -301,6 +303,7 @@ beforeEach(() => {
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
     const number = ((config?.params ?? {}) as Params).page ?? 1;
+    if (failing.has(url)) throw new Error('Unavailable');
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === HOLDERS) return { data: register };
     if (url === APPOINTMENTS) return page(appointments);
@@ -531,6 +534,24 @@ it('refreshes after a refused decision and withdraws the steps a revoked appoint
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
+it('withholds every wallet link step while the appointments cannot be read, and offers them after its own retry', async () => {
+  failing = new Set([APPOINTMENTS]);
+  const view = await openRegister();
+  expect(
+    await section(view).findByText('Your appointments could not be read, so wallet link actions are hidden.'),
+  ).toBeTruthy();
+  expect(section(view).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  for (const kind of KINDS) expect(view.queryByRole('button', { name: step(kind) })).toBeNull();
+  expect(view.queryByRole('button', { name: step('reject', STAFF_ERA) })).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
+  failing = new Set();
+  await fireEvent.press(section(view).getByRole('button', { name: 'Retry appointments for wallet links' }));
+  expect(await view.findByRole('button', { name: step('approve') })).toBeTruthy();
+  expect(view.getByRole('button', { name: step('reject', STAFF_ERA) })).toBeTruthy();
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled());
+  expect(section(view).queryByRole('alert')).toBeNull();
+});
+
 it('reads the appointments again after a refused waiting-wallets read and withdraws Link waiting wallets once the appointment is gone', async () => {
   let refuse!: (reason: unknown) => void;
   waitingAnswer = () =>
@@ -556,6 +577,19 @@ it('refuses wallet links that name another company, and reads them again on requ
   linkPages = [[LINK]];
   await fireEvent.press(view.getByRole('button', { name: 'Retry wallet links' }));
   expect(await view.findByText(NEW_HEADING)).toBeTruthy();
+});
+
+it('shows a new session no wallet link, step or waiting wallet before its own reads answer', async () => {
+  const view = await openRegister();
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled());
+  expect(view.getByRole('button', { name: step('approve') })).toBeTruthy();
+  linkAnswers.set(1, () => new Promise(() => {}));
+  waitingAnswer = () => new Promise(() => {});
+  await act(() => sessionScope.invalidateSessionScope());
+  expect(await view.findByText('Loading wallet links…')).toBeTruthy();
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled());
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
+  expect(view.queryByRole('button', { name: step('approve') })).toBeNull();
 });
 
 it('keeps every page under the session it was read for and shows a later session only its own links', async () => {

@@ -65,7 +65,7 @@ const holder = (member: string, name: string | null, holderType: string) => ({
   enteredOn: '2026-10-04',
   wallets: [],
 });
-const register = {
+const REGISTER = {
   token: { uuid: 'ordinary', name: 'ordinary shares', symbol: 'ORD', status: 'deployed', totalSupply: '1000' },
   issuedSupply: '20',
   initialized: true,
@@ -86,7 +86,9 @@ const WALLETS: Wallet[] = [
   wallet(CY, 1, null, null),
 ];
 let client: QueryClient;
+let register: typeof REGISTER;
 let wallets: Wallet[];
+let held: Set<string>;
 let appointments: unknown[];
 let waitingAnswer: (() => Promise<unknown>) | null;
 let evidenceChanges: object[];
@@ -212,7 +214,9 @@ async function complete(view: Awaited<ReturnType<typeof render>>) {
 beforeEach(() => {
   resetFiles();
   append = jest.spyOn(FormData.prototype, 'append');
+  register = REGISTER;
   wallets = WALLETS;
+  held = new Set();
   appointments = [appointment('appointment-prepare', ['prepare'])];
   waitingAnswer = null;
   evidenceChanges = [];
@@ -223,6 +227,7 @@ beforeEach(() => {
   mockGoBack.mockReset();
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   get.mockReset().mockImplementation(async (url) => {
+    if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (url === URLS.REGISTER)
       return {
         data: {
@@ -419,6 +424,20 @@ it('lists and numbers the waiting wallets in the order a link records them, not 
   ]);
 });
 
+it('drops a choice once its member leaves the class registers, and says the choices were reset', async () => {
+  prepareAnswer.mockRejectedValueOnce({ response: { status: 409, data: { detail: CONFLICT } } });
+  const view = await open();
+  await map(view);
+  await complete(view);
+  register = { ...REGISTER, totalHolders: 1, holders: [REGISTER.holders[1]] };
+  await submit(view);
+  expect(await view.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', NEW_ONE, NEW_ONE]);
+  expect(view.queryByLabelText('Alex Member for wallet 1')).toBeNull();
+  expect(view.getByLabelText(`${UNNAMED_ONE} for wallet 1`)).toBeTruthy();
+  expect(view.getByText(UNMAPPED)).toBeTruthy();
+});
+
 it.each<[string, typeof Platform.OS, string[][]]>([
   ['iOS', 'ios', [[COPY.CHOICES_RESET]]],
   ['Android', 'android', []],
@@ -536,6 +555,16 @@ it('prepares nothing when the upload receipt cannot be confirmed, then uploads t
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(uploads().map(([, form]) => field(form, 'idempotency_key'))).toEqual([KEY(2), KEY(3)]);
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(4)]);
+});
+
+it('shows a new session no form before its own read of the company’s members answers', async () => {
+  const view = await open();
+  held = new Set([URLS.REGISTER]);
+  await act(() => sessionScope.invalidateSessionScope());
+  await waitFor(() => expect(client.isFetching()).toBe(1));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+  expect(view.getByText('Loading the company’s members…')).toBeTruthy();
+  expect(view.queryByTestId('prepare-link-screen')).toBeNull();
 });
 
 it('writes nothing and stays put when the session changes while preparing, and starts the new session afresh', async () => {
