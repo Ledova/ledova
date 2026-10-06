@@ -435,6 +435,27 @@ it('reads the appointments again after preparation is refused as not found, with
   expect(screen.queryByLabelText(COPY.SUPPORTING_DOCUMENT)).toBeNull();
 });
 
+it("prepares while another company's register cannot be read", async () => {
+  const inland = { ...LISTED, uuid: 'preference', companyUuid: 'inland', companyName: 'Inland Example Pty Ltd' };
+  appointments = [
+    appointment(['prepare']),
+    appointment(['prepare'], { uuid: 'appointment-b', company: 'inland', companyName: inland.companyName }),
+  ];
+  serve((url) => {
+    if (url === REGISTER) return page([LISTED, inland]);
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference')) return Promise.reject(new Error('Unavailable'));
+    return undefined;
+  });
+  show();
+  await ready();
+  await waitFor(() => expect(client.getQueryState([...ACCOUNT, 'holders', 'preference'])?.status).toBe('error'));
+  complete();
+  expect(screen.queryByRole('alert')).toBeNull();
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(preparations()[0].appointment).toBe('appointment-a');
+});
+
 it('shows an appointee without a prepare capability the read-only note, no form and no register read', async () => {
   appointments = [appointment(['approve', 'apply'])];
   show();

@@ -95,7 +95,8 @@ function OwnParticulars({
     for (const read of registers) if (read.isError) void read.refetch();
   };
   const fetching = classes.isFetching || appointments.isFetching || registers.some((read) => read.isFetching);
-  const stale = classes.isError || appointments.isError || registers.some((read) => read.isError);
+  const stale =
+    classes.isError || appointments.isError || (found ? found.read.isError : registers.some((read) => read.isError));
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
