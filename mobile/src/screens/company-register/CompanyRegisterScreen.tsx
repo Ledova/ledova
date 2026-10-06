@@ -11,6 +11,7 @@ import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
+import { CompanyParticulars } from './CompanyParticulars';
 import { ClassRegister } from './ClassRegister';
 import { RegisterDownload } from './RegisterDownload';
 
@@ -114,6 +115,14 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           })
         )}
       </Section>
+      {company && registers.isSuccess && (
+        <CompanyParticulars
+          epoch={epoch}
+          company={company.uuid}
+          registers={registers.data}
+          refreshHolders={registers.refetch}
+        />
+      )}
       <Section title="Register instructions">
         <Text style={styles.muted}>
           The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection
