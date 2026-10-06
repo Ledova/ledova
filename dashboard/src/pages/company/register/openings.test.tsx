@@ -152,9 +152,9 @@ function opening(overrides: Partial<RegisterOpeningRecord> = {}): RegisterOpenin
       blockHash: `0x${'e'.repeat(64)}`,
       date: '2026-09-20',
       holdings: [
+        { address: DEE, shares: '5', member: NEW_TWO, memberName: null, memberExists: false },
         { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member', memberExists: true },
         { address: BO, shares: '9007199254740993', member: NEW_ONE, memberName: null, memberExists: false },
-        { address: DEE, shares: '5', member: NEW_TWO, memberName: null, memberExists: false },
         { address: CY, shares: '5', member: NEW_ONE, memberName: null, memberExists: false },
       ],
     },
