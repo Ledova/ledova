@@ -29,7 +29,11 @@ from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
+from tokens.exceptions import (
+    RegisterChangeConflict,
+    RegisterOpeningHoldingsMoved,
+    RegisterUnavailableException,
+)
 from tokens.models import (
     RegisterEntry,
     RegisterEvidenceKind,
@@ -412,7 +416,7 @@ class RegisterOpeningTest(TransactionTestCase):
             ],
         ):
             with self.subTest(mapping=mapping):
-                with self.assertRaisesMessage(ValidationError, "cover exactly the wallet addresses holding shares"):
+                with self.assertRaises(RegisterOpeningHoldingsMoved):
                     self.submit(operation_id=uuid4(), mapping=mapping)
         self.assertFalse(RegisterOpening.objects.exists())
 
@@ -1045,6 +1049,23 @@ class RegisterOpeningApiTest(APITransactionTestCase):
                 }
             ],
         )
+
+    def test_a_mapping_the_holdings_no_longer_match_is_refused_with_a_stable_code(self):
+        refused = self.client.post(OPENINGS, {**self.payload, "mapping": self.payload["mapping"][:1]}, format="json")
+        self.assertEqual(
+            (refused.status_code, refused.json()),
+            (
+                400,
+                {
+                    "detail": (
+                        "The opening mapping must cover exactly the wallet addresses holding shares at the captured "
+                        "boundary."
+                    ),
+                    "code": "opening_holdings_moved",
+                },
+            ),
+        )
+        self.assertFalse(RegisterOpening.objects.exists())
 
     def test_the_list_reads_member_identities_only_for_openings_that_map_an_existing_member(self):
         def prepare(members=None):
