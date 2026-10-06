@@ -36,6 +36,15 @@ export async function readRegister(uuid: string) {
   return register;
 }
 
+export function registersQuery(owner: OrderSubmissionOwner, uuids: string[]) {
+  return {
+    queryKey: [...registerKey(owner), 'holders', ...uuids],
+    enabled: uuids.length > 0,
+    queryFn: () => Promise.all(uuids.map(readRegister)),
+    ...READ_TIMING,
+  };
+}
+
 export function useCompanyRegister(owner: OrderSubmissionOwner) {
   const [selected, setSelected] = useState('');
   const classes = useRegisterClasses(owner);
@@ -45,12 +54,7 @@ export function useCompanyRegister(owner: OrderSubmissionOwner) {
   );
   const company = companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected);
   const uuids = listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
-  const registers = useQuery({
-    queryKey: [...registerKey(owner), 'holders', ...uuids],
-    enabled: uuids.length > 0,
-    queryFn: () => Promise.all(uuids.map(readRegister)),
-    ...READ_TIMING,
-  });
+  const registers = useQuery(registersQuery(owner, uuids));
   return { classes, companies, company, selectCompany: setSelected, registers };
 }
 

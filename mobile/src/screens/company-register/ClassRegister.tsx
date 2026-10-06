@@ -1,9 +1,21 @@
 import { Text, View } from 'react-native';
-import { formatShareCount, HOLDER_TYPE_LABELS, REGISTER_COPY, type TokenHoldersResponse } from '@ledova/shared';
-import { Row, Rows } from '../../components/Ledger';
+import {
+  formatShareCount,
+  HOLDER_TYPE_LABELS,
+  REGISTER_COPY,
+  REGISTER_PARTICULARS_COPY,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
+import { Action, Row, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from './styles';
 
-export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
+export function ClassRegister({
+  register,
+  onChangeParticulars,
+}: {
+  register: TokenHoldersResponse;
+  onChangeParticulars?: (member: string) => void;
+}) {
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
@@ -29,33 +41,45 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
           {register.holders.length === 0 ? (
             <Text style={styles.muted}>No current members are recorded for this class.</Text>
           ) : (
-            register.holders.map((holder, index) => (
-              <View
-                key={holder.member}
-                style={[styles.entry, index === register.holders.length - 1 && styles.lastEntry]}
-              >
-                <Text style={styles.heading}>{holder.name || HOLDER_TYPE_LABELS[holder.holderType]}</Text>
-                <Text style={styles.text}>
-                  {formatShareCount(holder.balance)} {holder.balance === '1' ? 'share' : 'shares'}
-                </Text>
-                <Text style={styles.muted}>
-                  {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {holder.enteredOn}
-                </Text>
-                {holder.holderType === 'ambiguous' && <Text style={styles.muted}>{REGISTER_COPY.AMBIGUOUS_NOTE}</Text>}
-                {holder.holderType === 'unidentified' && (
-                  <Text style={styles.muted}>{REGISTER_COPY.UNIDENTIFIED_NOTE}</Text>
-                )}
-                {holder.wallets.length === 0 ? (
-                  <Text style={styles.muted}>{REGISTER_COPY.NO_WALLET}</Text>
-                ) : (
-                  holder.wallets.map((wallet) => (
-                    <Text selectable key={wallet.address} style={styles.muted}>
-                      {wallet.address} · {wallet.whitelistStatus}
-                    </Text>
-                  ))
-                )}
-              </View>
-            ))
+            register.holders.map((holder, index) => {
+              const label = holder.name || HOLDER_TYPE_LABELS[holder.holderType];
+              return (
+                <View
+                  key={holder.member}
+                  style={[styles.entry, index === register.holders.length - 1 && styles.lastEntry]}
+                >
+                  <Text style={styles.heading}>{label}</Text>
+                  <Text style={styles.text}>
+                    {formatShareCount(holder.balance)} {holder.balance === '1' ? 'share' : 'shares'}
+                  </Text>
+                  <Text style={styles.muted}>
+                    {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {holder.enteredOn}
+                  </Text>
+                  {holder.holderType === 'ambiguous' && (
+                    <Text style={styles.muted}>{REGISTER_COPY.AMBIGUOUS_NOTE}</Text>
+                  )}
+                  {holder.holderType === 'unidentified' && (
+                    <Text style={styles.muted}>{REGISTER_COPY.UNIDENTIFIED_NOTE}</Text>
+                  )}
+                  {holder.wallets.length === 0 ? (
+                    <Text style={styles.muted}>{REGISTER_COPY.NO_WALLET}</Text>
+                  ) : (
+                    holder.wallets.map((wallet) => (
+                      <Text selectable key={wallet.address} style={styles.muted}>
+                        {wallet.address} · {wallet.whitelistStatus}
+                      </Text>
+                    ))
+                  )}
+                  {onChangeParticulars && (
+                    <Action
+                      label={REGISTER_PARTICULARS_COPY.PREPARE}
+                      accessibilityLabel={`${REGISTER_PARTICULARS_COPY.PREPARE} for ${label} in ${register.token.name}`}
+                      onPress={() => onChangeParticulars(holder.member)}
+                    />
+                  )}
+                </View>
+              );
+            })
           )}
         </>
       )}

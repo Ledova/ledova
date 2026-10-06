@@ -53,10 +53,10 @@ The Register in both clients runs those openings too. The sixth lets the
 company change a member's name and residential address through the API, with a
 reason and its own supporting document, the latest "as at" date winning between
 imports and changes
-([particulars changes](../operations/register-foundation.md#changing-a-members-particulars));
-its client screens are planned. The seventh lets the company link member wallets
-through the API with its own authority document, recording the issues and
-transfers that waited for a link
+([particulars changes](../operations/register-foundation.md#changing-a-members-particulars)),
+and the Register in both clients runs those changes too. The seventh lets the
+company link member wallets through the API with its own authority document,
+recording the issues and transfers that waited for a link
 ([wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening));
 its client screens are planned. #864's other register commands and #865–#873
 remain planned. Their company offering, issuance and register authority is

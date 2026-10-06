@@ -4,6 +4,7 @@ import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegist
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
+import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
 import { CompanyStackNavigator, type CompanyStackParamList } from './CompanyStackNavigator';
 
@@ -41,6 +42,9 @@ jest.mock('../screens/company-register/PrepareRegisterCorrectionScreen', () => (
 }));
 jest.mock('../screens/company-register/PrepareRegisterOpeningScreen', () => ({
   PrepareRegisterOpeningScreen: () => null,
+}));
+jest.mock('../screens/company-register/PrepareRegisterParticularsScreen', () => ({
+  PrepareRegisterParticularsScreen: () => null,
 }));
 
 afterEach(async () => {
@@ -81,6 +85,8 @@ it.each([
   ['correction', 'PrepareRegisterCorrection', PrepareRegisterCorrectionScreen, CompanyStackNavigator],
   ['opening', 'PrepareRegisterOpening', PrepareRegisterOpeningScreen, HomeStackNavigator],
   ['opening', 'PrepareRegisterOpening', PrepareRegisterOpeningScreen, CompanyStackNavigator],
+  ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, HomeStackNavigator],
+  ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, CompanyStackNavigator],
 ])('registers %s preparation beside the register with a back action', async (_, name, component, Navigator) => {
   await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
   expect(mockScreens.find((screen) => screen.name === name)).toEqual(
@@ -124,6 +130,17 @@ it('types the opening preparation params alike in both register stacks', () => {
   const company: CompanyStackParamList['PrepareRegisterOpening'] = home;
   const back: HomeStackParamList['PrepareRegisterOpening'] = company;
   expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper' });
+});
+
+it('types the particulars preparation params alike in both register stacks', () => {
+  const home: HomeStackParamList['PrepareRegisterParticulars'] = {
+    tokenUuid: 'ordinary',
+    companyUuid: 'paper',
+    memberUuid: 'member-1',
+  };
+  const company: CompanyStackParamList['PrepareRegisterParticulars'] = home;
+  const back: HomeStackParamList['PrepareRegisterParticulars'] = company;
+  expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper', memberUuid: 'member-1' });
 });
 
 it('registers the register in Home with a back action and keeps it as the Company tab landing', async () => {

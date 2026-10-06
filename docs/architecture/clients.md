@@ -39,9 +39,9 @@ Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
 absent field must not hide it. Apart from the register imports, openings,
-register history, corrections and discrepancy acknowledgement in both clients,
-the detailed current screen descriptions below do not claim these
-company-managed controls are shipped.
+particulars changes, register history, corrections and discrepancy
+acknowledgement in both clients, the detailed current screen descriptions below
+do not claim these company-managed controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -207,11 +207,38 @@ with the boundary note before approval or application and the holdings note
 before application; a retained staff-era opening offers only rejection. A
 recorded or refused opening decision reads the openings, entries, holders and
 appointments again.
+After the share classes, Register lists the chosen company's
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars),
+read on every page with the company filter, newest first and each once: the
+member by their current register name, or as a member not named on the current
+register, the proposed name, residential address and as-at date, the reason,
+preparer and dates, that the company provided the supporting document, the
+decision trail, any rejection reason and the document's download. Changes of
+another company fail the read, and a change's step and download labels name its
+member, as-at date and when it was prepared. Approval and rejection
+(administration or `approve`) and application (administration or `apply`) use
+the same preview-first dialog, showing the member's current particulars, or that
+none are recorded, beside the proposal, with the note that the latest as-at date
+wins between imports and changes and live verified identity wins over both
+before approval or application. A recorded or refused particulars decision reads
+the changes, holders, any open register entries and appointments again.
+Administration or `prepare` adds **Change particulars** to each current member
+of an opened class. It opens a form in the same stack that reads the class
+register to name the member as Register does, or neutrally, and takes the name,
+residential address, an as-at date no later than today (UTC), defaulting to
+today, the reason and the company's supporting document. The upload keeps its
+own retry key and confirmed receipt, preparation reuses its operation only for
+an identical request, and the changes are refreshed once the receipt is
+confirmed; a conflict reads the class register and appointments again and takes
+a new operation, a refusal shows the server's words, and a 404 reads the
+appointments again, so the form gives way to the read-only note once the
+appointment is gone.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, an opening or correction decision,
-or a decision, preview or acknowledgement the server refuses. Every register read and every
+Representative authority, a pull to refresh, an opening, correction or
+particulars decision, or a decision, preview or acknowledgement the server
+refuses. Every register read and every
 upload, preview, decision, acknowledgement and preparation is bound to the
 session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
@@ -692,6 +719,42 @@ download and decision control is named for screen readers after its visible
 label and when its opening was prepared, and every read, decision, download and
 preparation is bound to the signed-in account.
 
+Once the selected company's registers are read, the dashboard's Register also
+lists that company's
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars)
+in a section of their own, read on every page with the company filter, newest
+first and each once: the member, by their name on the company's current register
+or as a member not named on it, the stage, preparer and dates, the proposed name,
+residential address and as-at date, the reason, the decision trail and any
+rejection reason, with the note that the company provided the supporting
+document and its download. Approve, Apply and Reject use the decision dialog the
+other register commands share, through `useRegisterDecision` with the
+particulars family: its preview shows the member's current particulars, or that
+none are recorded, beside the proposed ones, and before approval or application
+notes that the latest as-at date wins between imports and changes while a
+member's live verified identity wins over both. Confirming needs the step's
+current appointment to be the one previewed, a rejection takes a reason of up to
+1,000 characters, and a decision or refusal refreshes the changes, the registers
+that name the members, their entries and the person's appointments. Readers with
+none of these steps see the changes read-only. Holders of administration or
+`prepare` get **Change particulars** on each current member a class lists. It
+opens `/company/register/members/:member/particulars`, a page for every
+signed-in account like Register, which finds the member among the current
+members of the companies where the person may prepare, shows their current
+register name and company with the same precedence note, and takes the
+company's supporting document, the new name and residential address, an as-at
+date no later than today in UTC, defaulting to today, and the reason. The upload
+keeps its own retry key and confirmed receipt, preparation reuses its operation
+only for an identical request, and both receipts are checked before the changes
+are refreshed and the page returns to Register. A conflict reads the member's
+register and the appointments again and takes a new operation, a refusal shows
+the server's words, and a refusal as not found reads the appointments again, so
+the form is withdrawn once the appointment is gone. Each repeated download and
+decision control is named for screen readers after its visible label, the member
+and when the change was prepared, and each **Change particulars** after the
+member; every read, decision, download and preparation is bound to the signed-in
+account.
+
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 [discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
@@ -717,6 +780,20 @@ that every share count is whole, label each mapped member once (by name, or
 numbered as an unnamed or a new member) and recognise a holdings-moved refusal by
 its `opening_holdings_moved` code. The dashboard and mobile opening screens
 described above are built on this layer.
+
+`packages/shared` also holds the client layer for company-run
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars):
+services for particulars changes (list with the company, member and status
+filters, prepare, decision preview, decide and the supporting document
+download), `isPreparedRegisterParticularsChange`, which checks a prepared change
+against every field of its request, `REGISTER_PARTICULARS_DECISIONS` for
+`useRegisterDecision` with the generic decision receipt check, the particulars
+copy with a sentence for every requirement a particulars decision can leave
+unmet and a note that the latest as-at date wins between imports and changes
+while a member's live verified identity wins over both, and the
+`companyRegisterParticulars` destination at
+`/company/register/members/:member/particulars`. The dashboard and mobile
+particulars screens described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
