@@ -51,6 +51,7 @@ export const REGISTER_LINK_COPY = {
   MAPPING_NOTE:
     'Choose the member who owns each wallet: an existing member, or a new member that applying the link creates. ' +
     'Choose the same member for wallets that belong to one person.',
+  CHOICES_RESET: 'The waiting wallets changed, so some member choices were reset. Check each wallet before preparing.',
   WAITING: (count: number) =>
     `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} for this wallet to ` +
     'be linked',
