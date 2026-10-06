@@ -3,6 +3,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS,
   formatDateTime,
   HOLDER_TYPE_LABELS,
+  openingMemberLabels,
   REGISTER_LINK_COPY as COPY,
   REGISTER_LINK_DECISIONS,
   type OwnCompanyAppointment,
@@ -17,7 +18,7 @@ import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
 
-type Mapped = { address: string; member: string; memberExists: boolean };
+type Mapped = { member: string; memberExists: boolean };
 type Status = Pick<RegisterLinkDecisionPreview['links'][number], 'walletProof' | 'holderType' | 'holderName'>;
 
 const DECISION_KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
@@ -29,7 +30,12 @@ const DECIDED: Record<RegisterDecisionKind, string> = {
 
 const walletCount = (count: number) => `${count} ${count === 1 ? 'wallet' : 'wallets'}`;
 
-export function WalletStatus({ wallet, member }: { wallet: Status; member: string }) {
+const labelsOf = (rows: Mapped[], names: Map<string, string>) =>
+  openingMemberLabels(
+    rows.map(({ member, memberExists }) => ({ member, memberName: names.get(member) ?? null, memberExists })),
+  );
+
+export function WalletStatus({ wallet, member }: { wallet: Status; member: string | undefined }) {
   const styles = useCompanyStyles();
   return (
     <>
@@ -47,13 +53,14 @@ export function WalletStatus({ wallet, member }: { wallet: Status; member: strin
 function LinkPreview({
   kind,
   preview,
-  memberOf,
+  names,
 }: {
   kind: RegisterDecisionKind;
   preview: RegisterLinkDecisionPreview;
-  memberOf: (row: Mapped) => string;
+  names: Map<string, string>;
 }) {
   const styles = useCompanyStyles();
+  const labels = labelsOf(preview.links, names);
   return (
     <>
       {kind === 'apply' && <Text style={styles.text}>{COPY.APPLY_NOTE}</Text>}
@@ -63,7 +70,7 @@ function LinkPreview({
           <Text selectable style={styles.text}>
             {row.address}
           </Text>
-          <WalletStatus wallet={row} member={memberOf(row)} />
+          <WalletStatus wallet={row} member={labels.get(row.member)} />
         </View>
       ))}
       <Text style={styles.muted}>{COPY.STATUS_NOTE}</Text>
@@ -92,8 +99,7 @@ export function LinkRecord({
   const wallets = walletCount(link.mappingSummary.length);
   const prepared = formatDateTime(link.createdAt);
   const description = `${stage.toLowerCase()} wallet link for ${wallets}, prepared on ${prepared}`;
-  const memberOf = ({ member, memberExists }: Mapped) =>
-    names.get(member) ?? (memberExists ? COPY.EXISTING_MEMBER : COPY.NEW_MEMBER);
+  const labels = labelsOf(link.mappingSummary, names);
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
@@ -120,7 +126,7 @@ export function LinkRecord({
       <Text style={styles.heading}>{COPY.WALLETS}</Text>
       {link.mappingSummary.map((row) => (
         <View key={row.address}>
-          <Text style={styles.text}>{memberOf(row)}</Text>
+          <Text style={styles.text}>{labels.get(row.member)}</Text>
           <Text selectable style={styles.muted}>
             {row.address}
           </Text>
@@ -157,7 +163,7 @@ export function LinkRecord({
                   onSettled={onSettled}
                   onRefused={onSettled}
                 >
-                  {(preview) => <LinkPreview kind={kind} preview={preview} memberOf={memberOf} />}
+                  {(preview) => <LinkPreview kind={kind} preview={preview} names={names} />}
                 </RegisterDecision>
               )
             );
