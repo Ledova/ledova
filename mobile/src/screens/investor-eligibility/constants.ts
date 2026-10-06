@@ -1,4 +1,4 @@
-import type { CertifierBody, InvestorCategory, InvestorEligibilityReason } from '@ledova/shared';
+import type { CertifierBody, InvestorCategory, InvestorReadinessReason } from '@ledova/shared';
 
 export const CATEGORIES: {
   category: InvestorCategory;
@@ -38,12 +38,12 @@ export const CERTIFIER_BODIES: { value: CertifierBody; label: string }[] = [
   { value: 'ipa', label: 'Institute of Public Accountants' },
 ];
 
-export const REASON_TEXT: Record<InvestorEligibilityReason, string> = {
+export const REASON_TEXT: Record<InvestorReadinessReason, string> = {
   no_investor_account: 'This login has no investor account.',
   account_not_in_good_standing: 'Your account is not in good standing.',
-  identity_not_verified: 'Every holder on the account must finish identity verification.',
-  no_live_classification: 'No verified wholesale investor classification is in force.',
-  amount_below_product_value_threshold: 'This subscription is below the AUD 500,000 threshold you rely on.',
+  identity_not_verified: 'Finish the configured identity verification for your account.',
+  actor_not_ready: 'Your login must be active and your email verified.',
+  principal_required: 'Sign in again to check your own account.',
 };
 
 export const WHOLESALE_ONLY_NOTICE =

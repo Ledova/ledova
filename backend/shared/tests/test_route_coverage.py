@@ -19,8 +19,10 @@ CREATES_OWN_ROW_SCOPED_FK = (
 )
 SELF_SCOPED = "Acts only on the caller's own rows and takes no identifier."
 ELIGIBILITY_SCOPED = (
-    "Cross-tenant listing scoped by users.services.eligibility rather than by owner, "
-    "and the documented exception in docs/architecture/tenancy.md. Pinned by MARKET_ROUTES and DIRECTORY_ROUTES."
+    "Cross-tenant listings require the holder's current eligibility decisions for the exact company, "
+    "category and applicable offering through users.services.eligibility. Directory and secondary market "
+    "purposes have distinct scopes. Pinned by users/tests/test_company_eligibility_read_consumers.py "
+    "and MARKET_ROUTES and DIRECTORY_ROUTES."
 )
 NOT_MATRIX_AUTHENTICABLE = (
     "It cannot become a ROUTES row however well it reads as one: the cross-tenant matrix authenticates "
@@ -29,12 +31,11 @@ NOT_MATRIX_AUTHENTICABLE = (
     "naming its scoping call and the test file that pins it instead."
 )
 ELIGIBILITY_SCOPED_ASYNC = (
-    "Scoped by users.services.eligibility exactly as the market listing beside it is: "
-    "tokens.services.trading_events.resolve_streamable_token_uuid returns None unless "
-    "investor_eligibility(user).is_eligible, and only then asks whether the token is deployed with a "
-    "contract address - the same queryset the market listing serves. An ineligible caller therefore gets "
-    "the same 404 as a phantom uuid, without a token lookup, so the two are indistinguishable by timing "
-    "as well as by body. Pinned by tokens/tests/test_trading_events_authorization.py. "
+    "tokens.services.trading_events.streamable_token_uuid requires the actual authenticated holder "
+    "and a current company decision in a permitted general category for the deployed token's exact issuer. "
+    "Foreign and unavailable tokens answer 404. The stream rechecks the holder and exact company decision "
+    "before each matched event and heartbeat. Pinned by tokens/tests/test_trading_events_authorization.py "
+    "and tokens/tests/test_company_eligibility_trading_stream.py. "
 ) + NOT_MATRIX_AUTHENTICABLE
 STAFF_UNSCOPED = (
     "Staff-only and deliberately unscoped: CompanyViewSet.get_queryset returns Company.objects.all() "

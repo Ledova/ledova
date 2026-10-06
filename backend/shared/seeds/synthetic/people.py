@@ -100,7 +100,7 @@ def _adopt_identity(person, user, seeded):
 
 def apply_person(person, seeded):
     user = seeded.users[person.key]
-    with atomic():
+    with use_migrate(), atomic():
         profile = UserProfile.objects.get(user=user)
         account = profile.user_account
         _sign_up(person, user, profile, account, seeded)
@@ -109,12 +109,8 @@ def apply_person(person, seeded):
         UserPreferences.objects.filter(user_profile=profile).update(transaction_alerts=person.alerts_enabled)
         for plan in person.wallets:
             _wallet(plan, account, seeded)
-        open_claim = InvestorClassification.objects.filter(
-            user_account=account, status=InvestorClassificationStatus.SUBMITTED
-        ).exists()
         for claim in person.claims:
-            if claim.existing or not (person.existing and open_claim):
-                _claim(claim, person, user, account, seeded)
+            _claim(claim, person, user, account, seeded)
         for payslip in person.payslips:
             _payslip(payslip, user)
         for device in person.devices:
@@ -378,23 +374,17 @@ def _save_evidence(classification, claim, person):
 def _review(classification, claim, seeded):
     if claim.status == "submitted":
         return
-    if claim.status == "withdrawn":
-        with use_migrate(), frozen(claim.reviewed_at):
-            classification.status = InvestorClassificationStatus.WITHDRAWN
-            classification.reviewed_at = claim.reviewed_at
-            classification.save(update_fields=["status", "reviewed_at", "updated_at"])
-        return
-    if claim.status == "rejected":
-        with frozen(claim.reviewed_at):
-            classification.reject(reviewed_by=seeded.users[claim.reviewer], reason=claim.rejection_reason)
-        return
-    verified_at = claim.verified_at or claim.reviewed_at
-    verifier = seeded.users[claim.verifier or claim.reviewer]
-    with frozen(verified_at):
-        classification.verify(reviewed_by=verifier, expires_at=claim.expires_at, notes=claim.review_notes)
-    if claim.status == "revoked":
-        with frozen(claim.reviewed_at):
-            classification.revoke(reviewed_by=seeded.users[claim.reviewer], reason=claim.rejection_reason)
+    fields = {"status": claim.status, "reviewed_at": claim.reviewed_at, "updated_at": claim.reviewed_at}
+    if claim.status != "withdrawn":
+        fields.update(
+            reviewed_by=seeded.users[claim.reviewer],
+            expires_at=claim.expires_at,
+            review_notes=claim.review_notes,
+            rejection_reason=claim.rejection_reason,
+        )
+    with use_migrate():
+        InvestorClassification.objects.filter(pk=classification.pk).update(**fields)
+    classification.refresh_from_db()
 
 
 def _adopt_claim(claim, person, account, seeded):

@@ -103,7 +103,7 @@ class InvestorClassification(BaseModel):
         null=True,
         blank=True,
         related_name="investor_classifications",
-        help_text="Set only for an associated person; empty means the claim applies to every offering.",
+        help_text="Source issuer for an associated person. Company eligibility requires a separate retained decision.",
     )
     category = models.CharField(max_length=30, choices=InvestorCategory.choices)
     status = models.CharField(
@@ -162,11 +162,6 @@ class InvestorClassification(BaseModel):
             models.Index(fields=["status"]),
         ]
         constraints = [
-            models.UniqueConstraint(
-                fields=["user_account"],
-                condition=models.Q(status=InvestorClassificationStatus.SUBMITTED),
-                name="investor_classification_one_open_submission",
-            ),
             models.CheckConstraint(
                 condition=models.Q(
                     category=InvestorCategory.ASSOCIATED_PERSON,
@@ -219,23 +214,6 @@ class InvestorClassification(BaseModel):
                 from_status=self.get_status_display(), to_status=to_status.label
             )
 
-    def verify(self, reviewed_by, expires_at, notes=""):
-        self._require_status([InvestorClassificationStatus.SUBMITTED], InvestorClassificationStatus.VERIFIED)
-        self.status = InvestorClassificationStatus.VERIFIED
-        self.reviewed_by = reviewed_by
-        self.reviewed_at = timezone.now()
-        self.review_notes = notes
-        self.expires_at = expires_at
-        self.save(update_fields=["status", "reviewed_by", "reviewed_at", "review_notes", "expires_at", "updated_at"])
-
-    def reject(self, reviewed_by, reason):
-        self._require_status([InvestorClassificationStatus.SUBMITTED], InvestorClassificationStatus.REJECTED)
-        self.status = InvestorClassificationStatus.REJECTED
-        self.reviewed_by = reviewed_by
-        self.reviewed_at = timezone.now()
-        self.rejection_reason = reason
-        self.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at"])
-
     def withdraw(self, withdrawn_by=None):
         from users.services.investor_classification import withdraw_classification
 
@@ -246,11 +224,3 @@ class InvestorClassification(BaseModel):
         self.withdrawn_by = classification.withdrawn_by
         self.updated_at = classification.updated_at
         return self
-
-    def revoke(self, reviewed_by, reason):
-        self._require_status([InvestorClassificationStatus.VERIFIED], InvestorClassificationStatus.REVOKED)
-        self.status = InvestorClassificationStatus.REVOKED
-        self.reviewed_by = reviewed_by
-        self.reviewed_at = timezone.now()
-        self.rejection_reason = reason
-        self.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at"])

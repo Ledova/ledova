@@ -1,25 +1,24 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
+from django.db import connections
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from companies.models import Company
 from offerings.models import Offering, OfferingStatus
 from offerings.serializers import DIRECTORY_COMPANY_FIELDS
-from shared.tests.tenants import (
-    make_associated,
-    make_eligible,
-    make_tenant,
-    open_to_investors,
-)
+from offerings.tests.factories import eligible_subscriber
+from shared.db import current_alias, use_operator
+from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import ShareIssuance
 from tokens.models.choices import IssuanceStatus
 from users.models import (
-    InvestorClassification,
-    InvestorClassificationStatus,
+    InvestorCategory,
     UserProfile,
 )
+from users.services.investor_classification import withdraw_classification
 
 LIST = "/api/v1/directory/tokens/"
 
@@ -32,6 +31,7 @@ class DirectoryEligibilityTest(APITestCase):
     def setUp(self):
         self.investor = make_tenant("investor")
         self.issuer = make_tenant("issuer")
+        eligible_subscriber(self.issuer)
         open_to_investors(self.issuer)
         self.client.force_authenticate(self.investor.user)
 
@@ -48,14 +48,14 @@ class DirectoryEligibilityTest(APITestCase):
         self.assertEqual(real.content, phantom.content)
 
     def test_eligible_caller_sees_the_listed_share_class(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         response = self.client.get(LIST)
         self.assertEqual(response.status_code, 200)
         self.assertEqual([row["uuid"] for row in response.json()["results"]], [str(self.issuer.deployed_token.uuid)])
         self.assertEqual(self.client.get(_detail(self.issuer.deployed_token)).status_code, 200)
 
     def test_a_company_not_open_to_investors_never_appears(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         Company.objects.filter(pk=self.issuer.company.pk).update(is_open_to_investors=False)
         response = self.client.get(LIST)
         self.assertEqual(response.json()["results"], [])
@@ -64,7 +64,7 @@ class DirectoryEligibilityTest(APITestCase):
         self.assertEqual(real.content, phantom.content)
 
     def test_an_undeployed_share_class_never_appears(self):
-        make_eligible(self.investor)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         response = self.client.get(LIST)
         listed = {row["uuid"] for row in response.json()["results"]}
         self.assertNotIn(str(self.issuer.token.uuid), listed)
@@ -74,11 +74,12 @@ class DirectoryPayloadTest(APITestCase):
     def setUp(self):
         self.investor = make_tenant("investor")
         self.issuer = make_tenant("issuer")
-        make_eligible(self.investor)
-        open_to_investors(self.issuer)
         Company.objects.filter(pk=self.issuer.company.pk).update(
             trading_name="Issuer Trading", industry="Agriculture", city="Byron Bay", state="NSW"
         )
+        eligible_subscriber(self.issuer)
+        open_to_investors(self.issuer)
+        eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
         self.client.force_authenticate(self.investor.user)
 
     def _row(self):
@@ -161,9 +162,14 @@ class DirectoryAssociatedPersonTest(APITestCase):
         self.holder = make_tenant("associate")
         self.named = make_tenant("named-issuer")
         self.stranger = make_tenant("stranger-issuer")
+        eligible_subscriber(self.named)
+        eligible_subscriber(self.stranger)
         open_to_investors(self.named)
         open_to_investors(self.stranger)
-        self.association = make_associated(self.holder, self.named.company)
+        eligible_subscriber(
+            self.holder, issuer_decision=self.named.eligibility_decision, category=InvestorCategory.ASSOCIATED_PERSON
+        )
+        self.association = self.holder.eligibility_decision.request.source
         self.client.force_authenticate(self.holder.user)
 
     def _listed(self):
@@ -190,48 +196,56 @@ class DirectoryAssociatedPersonTest(APITestCase):
         self.assertEqual(self._listed(), [])
         self._is_a_phantom(self.named.deployed_token)
 
-    def test_a_revoked_association_empties_the_directory_and_hides_the_named_issuer(self):
-        InvestorClassification.objects.filter(pk=self.association.pk).update(
-            status=InvestorClassificationStatus.REVOKED
-        )
+    def test_a_withdrawn_association_empties_the_directory_and_hides_the_named_issuer(self):
+        withdraw_classification(actor=self.holder.user, classification_id=self.association.pk)
         self.assertEqual(self._listed(), [])
         self._is_a_phantom(self.named.deployed_token)
 
-    def test_an_expired_association_empties_the_directory_and_hides_the_named_issuer(self):
-        InvestorClassification.objects.filter(pk=self.association.pk).update(
-            expires_at=timezone.now() - timedelta(minutes=1)
-        )
+    def test_an_expired_associated_decision_empties_the_directory_and_hides_the_named_issuer(self):
+        withdraw_classification(actor=self.holder.user, classification_id=self.association.pk)
+        with patch("shared.seeds.synthetic.eligibility.DECISION_DAYS", 5 / 86400):
+            eligible_subscriber(
+                self.holder,
+                issuer_decision=self.named.eligibility_decision,
+                category=InvestorCategory.ASSOCIATED_PERSON,
+            )
+        decision = self.holder.eligibility_decision
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT pg_sleep(GREATEST(0, EXTRACT(EPOCH FROM %s::timestamptz - clock_timestamp())) + 0.02)",
+                [decision.expires_at],
+            )
+            cursor.execute("SELECT clock_timestamp() >= %s", [decision.expires_at])
+            self.assertIs(cursor.fetchone()[0], True)
         self.assertEqual(self._listed(), [])
         self._is_a_phantom(self.named.deployed_token)
 
-    def test_an_association_never_reaches_a_second_issuer_it_does_not_name(self):
-        make_associated(self.holder, self.stranger.company)
+    def test_two_exact_associated_decisions_reach_only_their_named_issuers(self):
+        eligible_subscriber(
+            self.holder, issuer_decision=self.stranger.eligibility_decision, category=InvestorCategory.ASSOCIATED_PERSON
+        )
         self.assertEqual(
             sorted(self._listed()),
             sorted([str(self.named.deployed_token.uuid), str(self.stranger.deployed_token.uuid)]),
         )
 
-    def test_a_general_claim_beside_the_association_reaches_every_issuer(self):
+    def test_a_global_claim_beside_the_association_grants_no_other_issuer(self):
         make_eligible(self.holder)
-        self.assertEqual(
-            sorted(self._listed()),
-            sorted([str(self.named.deployed_token.uuid), str(self.stranger.deployed_token.uuid)]),
-        )
-        self.assertEqual(self.client.get(_detail(self.stranger.deployed_token)).status_code, 200)
+        self.assertEqual(self._listed(), [str(self.named.deployed_token.uuid)])
+        self._is_a_phantom(self.stranger.deployed_token)
 
     def test_an_unverified_holder_reaches_nothing_even_with_a_live_association(self):
         UserProfile.objects.filter(pk=self.holder.profile.pk).update(is_id_verified=False)
         self.assertEqual(self._listed(), [])
         self._is_a_phantom(self.named.deployed_token)
 
-    def test_a_general_claim_alone_still_reaches_every_issuer(self):
+    def test_a_global_claim_alone_supplies_no_company_permission(self):
         outsider = make_tenant("general-holder")
         make_eligible(outsider)
         self.client.force_authenticate(outsider.user)
-        self.assertEqual(
-            sorted(self._listed()),
-            sorted([str(self.named.deployed_token.uuid), str(self.stranger.deployed_token.uuid)]),
-        )
+        self.assertEqual(self._listed(), [])
+        self._is_a_phantom(self.named.deployed_token)
+        self._is_a_phantom(self.stranger.deployed_token)
 
     def test_a_holder_with_neither_claim_still_reaches_nothing(self):
         nobody = make_tenant("nobody")

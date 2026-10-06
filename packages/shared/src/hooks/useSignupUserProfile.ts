@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { COUNTRIES, type CountryData } from '../constants/countries';
@@ -52,6 +53,7 @@ const validateUserProfile = (form: UserProfileFormData): UserProfileFormValidati
 
 export function useSignupUserProfile() {
   const apiClient = useApiClient();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<UserProfileFormData>({
     fullName: '',
     dateOfBirth: '',
@@ -203,6 +205,7 @@ export function useSignupUserProfile() {
       };
 
       await updateUserProfile(apiClient, existingProfileUuid, formattedData);
+      await queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
 
       onSuccess();
     } catch (error: unknown) {

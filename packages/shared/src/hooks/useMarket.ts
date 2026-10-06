@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
 import { TRADING_CONFIG } from '../constants/business/trading';
-import { getInvestorEligibility } from '../services/investorClassifications';
+import { getInvestorReadiness } from '../services/investorClassifications';
 import { getOrderBook, getShareTokens } from '../services/trading';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
@@ -28,11 +28,11 @@ export function useOrderBook(tokenUuid: string | undefined) {
   });
 }
 
-export function useInvestorEligibilityQuery() {
+export function useInvestorReadinessQuery() {
   const apiClient = useApiClient();
   return useQuery({
     queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient),
+    queryFn: () => getInvestorReadiness(apiClient),
     select: (response) => response.data,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });

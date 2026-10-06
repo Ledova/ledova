@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CACHE_TIMING, getInvestorClassifications, getInvestorEligibility, readEveryPage } from '@ledova/shared';
+import { CACHE_TIMING, getInvestorClassifications, getInvestorReadiness, readEveryPage } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 export function useInvestorEligibility() {
@@ -7,7 +7,7 @@ export function useInvestorEligibility() {
 
   const eligibilityQuery = useQuery({
     queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient),
+    queryFn: () => getInvestorReadiness(apiClient),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 

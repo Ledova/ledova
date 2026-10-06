@@ -209,6 +209,7 @@ export function EmailConfirmationScreen() {
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>Verification Code</Text>
                 <TextInput
+                  accessibilityLabel="Verification Code"
                   style={styles.codeInput}
                   placeholder="000000"
                   placeholderTextColor={theme.colors.form.placeholder}

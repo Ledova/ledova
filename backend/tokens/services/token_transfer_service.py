@@ -28,7 +28,6 @@ from tokens.models import (
 )
 from tokens.services.trading_locks import lock_orders
 from users.models import UserAccount
-from users.services.eligibility import require_investor_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.models.wallet import Blockchain
@@ -261,6 +260,10 @@ def create_order_and_match(
     price_per_share,
     payment_asset,
     min_quantity: int = 0,
+    *,
+    admission,
+    submission,
+    order_id,
 ) -> tuple[TransferOrder, Optional[dict]]:
     try:
         wallet = (
@@ -297,7 +300,7 @@ def create_order_and_match(
     if not whitelist.is_whitelisted(token.contract_address, canonical_wallet_address):
         raise CreateOrderNotWhitelistedException(canonical_wallet_address)
 
-    require_investor_eligibility(actor, token.company)
+    admission.require_current()
 
     if order_type == TransferOrderType.SELL:
         from tokens.services import share_token_service
@@ -322,6 +325,9 @@ def create_order_and_match(
             )
 
     order = TransferOrder.objects.create(
+        uuid=order_id,
+        creation_submission=submission,
+        eligibility_decision=admission.decision,
         token=token,
         order_type=order_type,
         wallet=wallet,
@@ -333,6 +339,7 @@ def create_order_and_match(
         payment_asset=payment_asset,
         filled_quantity=0,
     )
+    order.refresh_from_db()
 
     from tokens.events import publish_trading_event
 

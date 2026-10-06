@@ -20,6 +20,7 @@ from integrations.tests.sumsub_payloads import (
     step,
     verification_steps,
 )
+from operators.models import Operator
 from shared.models import Country
 from users.models import UserAccount, UserProfile
 from users.services import identity
@@ -33,6 +34,7 @@ PUSH_TASK = "users.tasks.notifications.send_push_notification"
 @override_settings(SUMSUB_WEBHOOK_SECRET=SECRET)
 class SumSubWebhookCase(APITestCase):
     def setUp(self):
+        Operator.get()
         user = User.objects.create_user(email="sumsub@example.test", password="pw-12345678")
         self.profile = UserProfile.objects.create(user=user, kyc_provider="sumsub", sumsub_applicant_id="app-1")
         self.account = UserAccount.objects.create(account_number="SUMSUB-ACC", user_profile=self.profile)

@@ -7,6 +7,7 @@ import { Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { HoldingWork } from './components/HoldingWork';
 import { useHoldingWork } from './useHoldingWork';
+import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   const [expanded, setExpanded] = useState(false);
@@ -85,6 +86,7 @@ export function HomeScreen() {
   return (
     <Page
       title="Holdings"
+      actions={<EligibilityLinks company />}
       refreshControl={
         <RefreshControl
           refreshing={(isFetching && !isPending) || work.isRefreshing}

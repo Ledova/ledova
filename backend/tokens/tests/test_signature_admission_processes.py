@@ -13,6 +13,7 @@ from rest_framework.test import APITransactionTestCase
 from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
 from blockchain.tests.outgoing_fixtures import KEY
 from shared.db import current_alias, use_operator
+from shared.tests.row_contention import RealRowContention
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import PauseChange, ShareToken, SwapOrder, TransferOrder
 from tokens.services import pause_changes, pause_recovery
@@ -25,18 +26,21 @@ from tokens.tests.swap_state_fixtures import BUYER, SELLER
 
 @skipUnless(connection.vendor == "postgresql", "Requires independent PostgreSQL row locks")
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY)
-class SignatureAdmissionProcessesTest(SubmissionFixtures, APITransactionTestCase):
+class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, APITransactionTestCase):
     def setUp(self):
         super().setUp()
         self.directory = Path(self.enterContext(tempfile.TemporaryDirectory()))
         with use_operator():
-            self.fixture = make_execution("admission-process", issuer=self.tenant)
+            self.fixture = make_execution(
+                "admission-process", issuer=self.tenant, issuer_decision=self.eligibility_decision
+            )
         self.swap = self.fixture.swap
 
     def stage(self, child, expected):
         event = child.read()
         self.assertEqual(event.get("stage"), expected, (event, child.error_output()))
         self.assertIn(event["role"], ("ledova_app", "ledova_operator"))
+        self.assertEqual(event["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
             self.assertNotEqual(event["pid"], cursor.fetchone()[0])
@@ -168,7 +172,7 @@ class SignatureAdmissionProcessesTest(SubmissionFixtures, APITransactionTestCase
         self.assertEqual([json.loads(line)["event"] for line in state[5].splitlines()], ["swap_signed"])
         self.assert_new_signature_refused("buyer")
 
-    def test_creation_finishes_its_deferred_token_reference_while_signature_waits_for_wallet(self):
+    def test_creation_finishes_its_deferred_token_reference_while_signature_waits_for_the_same_token(self):
         issuer = self.tenant
         self.tenant = self.fixture.seller
         self.wallet = self.fixture.orders[0].wallet
@@ -188,7 +192,12 @@ class SignatureAdmissionProcessesTest(SubmissionFixtures, APITransactionTestCase
         signer.release()
         locking = self.stage(signer, "locking")
         self.assertNotEqual(locking["pid"], holding["pid"])
-        wait_for_row_lock(self, locking["pid"], "wallets", holding["pid"])
+        wait_for_row_lock(self, locking["pid"], "tokens_sharetoken", holding["pid"], self.swap.share_token_id)
+        inspection = connections["default"].copy()
+        try:
+            self.assert_row_lock(inspection, self.wallet, held=True)
+        finally:
+            inspection.close()
         with connections["default"].cursor() as cursor:
             cursor.execute(
                 "SELECT mode FROM pg_locks WHERE pid=%s AND relation='tokens_sharetoken'::regclass AND granted",

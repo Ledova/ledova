@@ -7,6 +7,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from blockchain.models import BlockchainTransaction
+from shared.db import acting_for
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import SwapOrder, TransferOrder
@@ -26,13 +27,15 @@ class TheSweepFindsOnlyStuckSwapsTest(TransactionTestCase):
     def admit(self, label):
         fixture = make_execution(label)
         for participant, key in (("seller", SELLER), ("buyer", BUYER)):
-            swap = swap_execution.submit_signature(
-                fixture.swap,
-                fixture.signatures[participant],
-                key.address,
-                user=getattr(fixture, participant).user,
-                participant=participant,
-            )
+            actor = getattr(fixture, participant).user
+            with acting_for(actor.pk):
+                swap = swap_execution.submit_signature(
+                    fixture.swap,
+                    fixture.signatures[participant],
+                    key.address,
+                    user=actor,
+                    participant=participant,
+                )
         return swap.transaction
 
     def age(self, record, minutes):

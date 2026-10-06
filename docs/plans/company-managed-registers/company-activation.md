@@ -84,6 +84,11 @@ case-fold map and the same whitespace collapse as the existing Python identity
 function. Receipt writes lock the declared company before any receipt row,
 preserving the service's lock order.
 
+Registry start, completion and application times are sampled from the current
+database connection after the required locks. Receipt times and their company
+projections stay equal when application and database hosts have different clocks.
+Provider observation timestamps retain their original provenance.
+
 ## Upgrade and technical recovery
 
 Migration `0021_company_activation` adds attempt provenance and effect guards

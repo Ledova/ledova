@@ -1,109 +1,19 @@
-from django import forms
-from django.contrib import admin, messages
-from django.http import Http404, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
+from django.contrib import admin
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.html import format_html
 
 from documents.services.access import may_review_documents
-from shared.utils.admin_actions import admin_action_re_path
-from shared.utils.admin_display import action_buttons
 from shared.utils.admin_files import admin_file_path
 from tokens.admin._helpers import status_badge
-from users.exceptions import InvalidClassificationTransitionException
 from users.models import InvestorClassification, InvestorClassificationStatus
-from users.services import transition_classification
 
 STATUS_COLORS = {
     InvestorClassificationStatus.SUBMITTED: "#17a2b8",
     InvestorClassificationStatus.VERIFIED: "#28a745",
     InvestorClassificationStatus.REJECTED: "#dc3545",
     InvestorClassificationStatus.REVOKED: "#343a40",
-}
-
-
-class VerifyForm(forms.Form):
-    expires_at = forms.DateTimeField(
-        label="Expires At",
-        help_text="The claim stops counting from this moment. Two years from the certificate date by default.",
-        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
-    )
-    notes = forms.CharField(
-        required=False,
-        label="Review Notes",
-        help_text="What you checked, and against which document.",
-        widget=forms.Textarea(attrs={"rows": 4, "cols": 60}),
-    )
-
-
-class ReasonForm(forms.Form):
-    reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 4, "cols": 60}))
-
-    def __init__(self, *args, label, help_text, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["reason"].label = label
-        self.fields["reason"].help_text = help_text
-
-
-TRANSITIONS = {
-    "verify": dict(
-        method="verify",
-        form="verify",
-        title="Verify Classification",
-        alert="warning",
-        heading="Wholesale Investor Verification",
-        intro=(
-            "You are confirming that the evidence attached to this claim supports it. The account can see and "
-            "subscribe to offerings until the expiry you set here."
-        ),
-        legend="Verification Details",
-        button=("Verify Classification", "btn-success"),
-        done="Classification verified.",
-    ),
-    "reject": dict(
-        method="reject",
-        form="reason",
-        title="Reject Classification",
-        alert="warning",
-        heading="Warning",
-        intro=(
-            "You are about to reject this wholesale investor claim. The account stays ineligible and can submit a "
-            "fresh claim with better evidence."
-        ),
-        legend="Rejection Details",
-        label="Rejection Reason",
-        help="Say what the evidence failed to show.",
-        button=("Reject Classification", "btn-danger"),
-        done="Classification rejected.",
-        level=messages.WARNING,
-    ),
-    "revoke": dict(
-        method="revoke",
-        form="reason",
-        title="Revoke Classification",
-        alert="danger",
-        heading="Warning",
-        intro=(
-            "You are about to revoke a verified classification. The account becomes ineligible immediately and "
-            "cannot subscribe to any offering until a fresh claim is verified."
-        ),
-        legend="Revocation Details",
-        label="Revocation Reason",
-        help="Say why the claim no longer holds.",
-        button=("Revoke Classification", "btn-dark"),
-        done="Classification revoked.",
-        level=messages.WARNING,
-    ),
-}
-
-STATUS_BUTTONS = {
-    InvestorClassificationStatus.SUBMITTED: [
-        ("✓ Verify", "verify", "#28a745"),
-        ("✗ Reject", "reject", "#dc3545"),
-    ],
-    InvestorClassificationStatus.VERIFIED: [("⏸ Revoke", "revoke", "#343a40")],
-    InvestorClassificationStatus.REJECTED: [("Claim Rejected", None, "#e9ecef", "#6c757d")],
-    InvestorClassificationStatus.REVOKED: [("Claim Revoked", None, "#e9ecef", "#6c757d")],
 }
 
 
@@ -142,14 +52,13 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
         "rejection_reason",
         "expires_at",
         "liveness",
-        "status_actions",
         "created_at",
         "updated_at",
     ]
 
     fieldsets = [
         ("Claim", {"fields": ["uuid", "user_account", "company", "category", "declared_basis"]}),
-        ("Status & Actions", {"fields": ["status", "liveness", "expires_at", "status_actions"]}),
+        ("Historical source status", {"fields": ["status", "liveness", "expires_at"]}),
         (
             "Declaration",
             {"fields": ["declaration_accepted", "declaration_text"], "classes": ["collapse"]},
@@ -202,22 +111,6 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
         url = reverse("admin:users_investorclassification_evidence", args=[obj.uuid])
         return format_html('<a href="{}" target="_blank">Open evidence</a>', url)
 
-    @admin.display(description="Quick Actions")
-    def status_actions(self, obj):
-        if obj.pk is None:
-            return "-"
-        return action_buttons(
-            [
-                (label, self._action_url(obj, slug), *colors)
-                for label, slug, *colors in STATUS_BUTTONS.get(obj.status, [])
-            ]
-        )
-
-    def _action_url(self, obj, slug):
-        if slug is None:
-            return None
-        return reverse("admin:users_investorclassification_transition", args=[obj.uuid, slug])
-
     def get_urls(self):
         custom_urls = [
             admin_file_path(
@@ -225,12 +118,6 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
                 "<uuid:uuid>/evidence/",
                 "users_investorclassification_evidence",
                 self._resolve_evidence,
-            ),
-            admin_action_re_path(
-                self,
-                rf"^(?P<uuid>[0-9a-f-]+)/(?P<action>{'|'.join(TRANSITIONS)})/$",
-                "users_investorclassification_transition",
-                self.transition_view,
             ),
         ]
         return custom_urls + super().get_urls()
@@ -241,10 +128,10 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
             return fieldsets
         return [*fieldsets, ("Supporting payslips", {"fields": ["supporting_evidence"]})]
 
-    @admin.display(description="Supporting evidence (requires human review)")
+    @admin.display(description="Private supporting evidence")
     def supporting_evidence(self, obj):
         return format_html(
-            '<a href="{}?classification__exact={}">Review supporting payslips and extraction history</a>',
+            '<a href="{}?classification__exact={}">Read supporting payslips and extraction history</a>',
             reverse("admin:documents_document_changelist"),
             obj.pk,
         )
@@ -255,37 +142,11 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
             raise Http404("No evidence")
         return classification, classification.evidence_file, classification.evidence_mime_type
 
-    def _build_form(self, request, classification, spec):
-        if spec["form"] == "verify":
-            return VerifyForm(request.POST or None, initial={"expires_at": classification.default_expiry})
-        return ReasonForm(request.POST or None, label=spec["label"], help_text=spec["help"])
+    def has_add_permission(self, request):
+        return False
 
-    def transition_view(self, request, classification, action):
-        spec = TRANSITIONS[action]
-        change_url = reverse("admin:users_investorclassification_change", args=[classification.pk])
-        form = self._build_form(request, classification, spec)
-
-        if request.method != "POST" or not form.is_valid():
-            context = {
-                **self.admin_site.each_context(request),
-                "title": f"{spec['title']}: {classification.uuid}",
-                "subtitle": None,
-                "opts": self.opts,
-                "classification": classification,
-                "form": form,
-                "transition": spec,
-                "intro": spec["intro"],
-            }
-            return render(request, "admin/users/investorclassification/transition_form.html", context)
-
-        kwargs = {"reviewed_by": request.user, **form.cleaned_data}
-        try:
-            transition_classification(classification, spec["method"], **kwargs)
-        except InvalidClassificationTransitionException as exc:
-            messages.error(request, str(exc.detail))
-        else:
-            messages.add_message(request, spec.get("level", messages.SUCCESS), spec["done"])
-        return HttpResponseRedirect(change_url)
+    def has_change_permission(self, request, obj=None):
+        return False
 
     def has_delete_permission(self, request, obj=None):
         return False

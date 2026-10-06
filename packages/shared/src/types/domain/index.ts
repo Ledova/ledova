@@ -17,6 +17,7 @@ export * from './hardware-wallet';
 export * from './trading';
 export * from './company';
 export * from './company-authority';
+export * from './company-eligibility';
 export * from './company-token';
 export * from './register-command';
 export * from './register-import';

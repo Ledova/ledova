@@ -16,16 +16,27 @@ def run(directory, phase, transaction_id):
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test"
     from django.conf import settings
 
-    database = json.loads(os.environ["SWAP_EXECUTION_TEST_DATABASE"])
-    if database["ENGINE"] != "django.db.backends.postgresql":
+    databases = json.loads(os.environ["SWAP_EXECUTION_TEST_DATABASES"])
+    database = databases["default"]
+    if any(config["ENGINE"] != "django.db.backends.postgresql" for config in databases.values()):
         raise RuntimeError("Swap crash evidence requires PostgreSQL")
-    settings.DATABASES = {"default": database}
+    if any(
+        (config["NAME"], config["HOST"], config["PORT"]) != (database["NAME"], database["HOST"], database["PORT"])
+        for config in databases.values()
+    ):
+        raise RuntimeError("Swap crash roles require the same database")
+    settings.DATABASES = databases
+    settings.PRIVATE_MEDIA_ROOT = os.environ["SWAP_EXECUTION_TEST_PRIVATE_MEDIA_ROOT"]
+    if phase == "admission":
+        settings.RLS_AMBIENT_ALIAS = "app"
+        settings.RLS_ROLE_PER_REQUEST = False
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
     django.setup()
 
     from django.contrib.auth import get_user_model
+    from django.db import connections
     from django.db.models import QuerySet
     from web3 import Web3
 
@@ -35,6 +46,8 @@ def run(directory, phase, transaction_id):
         SignedAttempt,
     )
     from blockchain.services import outgoing
+    from companies.services.authority_requests import _requester_principal
+    from shared.db import current_alias, principal_of, use_app
     from tokens.models import SwapOrder
     from tokens.services import swap_execution
     from tokens.tests.swap_execution_fixtures import ExecutionNode, execution_receipt
@@ -42,12 +55,31 @@ def run(directory, phase, transaction_id):
 
     if phase == "admission":
         admission = json.loads(os.environ["SWAP_EXECUTION_TEST_ADMISSION"])
-        with patch.object(swap_execution, "publish_trading_event"):
+        with (
+            use_app(),
+            _requester_principal(admission["actor_id"]),
+            patch.object(swap_execution, "publish_trading_event"),
+        ):
+            actor = get_user_model().objects.get(pk=admission["actor_id"])
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SELECT current_database(), current_user")
+                current_database, role = cursor.fetchone()
+            print(
+                json.dumps(
+                    {
+                        "private_media_root": str(settings.PRIVATE_MEDIA_ROOT),
+                        "database": current_database,
+                        "role": role,
+                        "principal": principal_of(),
+                    }
+                ),
+                flush=True,
+            )
             swap_execution.submit_signature(
                 SwapOrder.objects.get(pk=admission["swap_uuid"]),
                 admission["signature"],
                 BUYER.address,
-                user=get_user_model().objects.get(pk=admission["actor_id"]),
+                user=actor,
                 participant="buyer",
             )
         os.kill(os.getpid(), signal.SIGKILL)
@@ -144,7 +176,7 @@ def run(directory, phase, transaction_id):
         result = swap_execution.recover(transaction_id, client=node.client)
     if phase == "race-winner":
         (directory / "winner-finished").touch()
-    print(json.dumps({"status": result}))
+    print(json.dumps({"status": result, "private_media_root": str(settings.PRIVATE_MEDIA_ROOT)}))
 
 
 if __name__ == "__main__":

@@ -126,6 +126,13 @@ class EligibilityMigrationChecks:
         with connection.schema_editor() as schema_editor:
             migration.operations[-1].database_backwards("users", schema_editor, state, state)
 
+    def reverse_guards_preflight(self):
+        executor = MigrationExecutor(connection)
+        migration = executor.loader.get_migration(*GUARDS)
+        state = executor.loader.project_state([GUARDS])
+        with connection.schema_editor() as schema_editor:
+            migration.operations[0].database_backwards("users", schema_editor, state, state)
+
     def assert_refuses_before_ddl(self, reverse, message):
         before = self.catalogue(), self.retained_records(include_eligibility=True)
         ddl = []
@@ -218,7 +225,8 @@ class CompanyEligibilityEmptyMigrationTest(EligibilityMigrationChecks, Transacti
         try:
             migrate_to([OLD])
             executor = MigrationExecutor(connection)
-            apps = executor.loader.project_state(list(executor.loader.applied_migrations)).apps
+            applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
+            apps = executor.loader.project_state(applied_nodes).apps
             files = self.historical_evidence(apps)
             before_catalogue = self.catalogue()
             before_records = self.retained_records(legacy_source=True)
@@ -274,10 +282,7 @@ class CompanyEligibilityPopulatedMigrationTest(
             self.created_request()
             before_bytes = self.private_bytes(self.source.evidence_file)
             self.assert_refuses_before_ddl(
-                lambda: migrate_to([RECORDS]), "Retain the guards protecting recorded company eligibility"
-            )
-            self.assert_refuses_before_ddl(
-                lambda: migrate_to([OLD]), "Retain the guards protecting recorded company eligibility"
+                self.reverse_guards_preflight, "Retain the guards protecting recorded company eligibility"
             )
             self.assert_refuses_before_ddl(self.reverse_records_preflight, "Retain company eligibility history")
             self.assertEqual(self.private_bytes(self.source.evidence_file), before_bytes)
@@ -295,11 +300,7 @@ class CompanyEligibilityPopulatedMigrationTest(
                 self.assertIsNone(self.source.reviewed_by_id)
                 self.assertFalse(CompanyEligibilityRequest.objects.exists())
             self.assert_refuses_before_ddl(
-                lambda: migrate_to([RECORDS]),
-                "Retain the guards protecting actual participant withdrawal attribution",
-            )
-            self.assert_refuses_before_ddl(
-                lambda: migrate_to([OLD]),
+                self.reverse_guards_preflight,
                 "Retain the guards protecting actual participant withdrawal attribution",
             )
             self.assert_refuses_before_ddl(

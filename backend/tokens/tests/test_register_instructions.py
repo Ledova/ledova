@@ -21,7 +21,11 @@ from companies.tests.test_document_file_access import (
     make_document,
 )
 from offerings.models import Subscription, SubscriptionStatus
-from offerings.tests.factories import open_offering, paid_subscription
+from offerings.tests.factories import (
+    eligible_subscriber,
+    open_offering,
+    paid_subscription,
+)
 from shared.db import atomic, current_alias, use_operator
 from shared.db.principal import PRINCIPAL_SETTING
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -122,6 +126,7 @@ class RegisterInstructionTest(TransactionTestCase):
         )
 
     def test_submission_binds_the_exact_items_verified_evidence_and_a_retained_copy(self):
+        eligible_subscriber(self.tenant)
         subscription = paid_subscription(self.tenant, quantity=12)
         proposal = self.submit(
             items=[
@@ -181,6 +186,7 @@ class RegisterInstructionTest(TransactionTestCase):
         self.assertFalse(RegisterInstruction.objects.exists())
 
     def test_submission_lists_only_items_awaiting_approval_or_earlier_approvals(self):
+        eligible_subscriber(self.tenant)
         unpaid = paid_subscription(self.tenant, quantity=12)
         Subscription.objects.filter(pk=unpaid.pk).update(status=SubscriptionStatus.SUBMITTED)
         unpaid.refresh_from_db()
@@ -314,6 +320,7 @@ class RegisterInstructionTest(TransactionTestCase):
         with self.assertRaises(DatabaseError), atomic():
             proposal.delete()
         stranger = make_tenant("instruction-forger")
+        eligible_subscriber(stranger)
         open_offering(stranger)
         subscription = paid_subscription(stranger, quantity=10)
         item = proposal.items[0]

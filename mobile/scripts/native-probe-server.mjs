@@ -9,6 +9,15 @@ import { URL } from 'node:url';
 import { setTimeout, clearTimeout, setInterval, clearInterval } from 'node:timers';
 
 const directory = path.resolve(process.argv[2]);
+const documentFixture = JSON.parse(
+  fs.readFileSync(new URL('../native-tests/documentFixture.json', import.meta.url), 'utf8'),
+);
+const documentBytes = Buffer.from(documentFixture.base64, 'base64');
+if (
+  documentBytes.length !== documentFixture.bytes ||
+  createHash('sha256').update(documentBytes).digest('hex') !== documentFixture.sha256
+)
+  throw new Error('The native document fixture is incomplete.');
 const host = process.argv[3] === 'ios' ? 'localhost' : '10.0.2.2';
 fs.mkdirSync(directory, { recursive: true });
 function publishJson(filename, value) {
@@ -198,6 +207,19 @@ const failureStages = new Set([
   'rotated-refresh-read',
   'sign-out',
   'signed-out-session-read',
+  'document-fixture-decode',
+  'document-fixture-create',
+  'document-fixture-write',
+  'document-picker-create',
+  'document-picker-write',
+  'document-picker-adopt',
+  'document-copy-lease',
+  'document-multipart-upload',
+  'document-multipart-response',
+  'document-copy-release',
+  'document-fixture-readback',
+  'document-binary-download',
+  'document-binary-response',
   'missing-ref',
   'missing-method',
   'inactive-admitted',
@@ -243,8 +265,8 @@ function handler(kind) {
     }
     if (route === '/download') {
       counts.download++;
-      response.writeHead(200, { 'Content-Type': 'application/octet-stream' });
-      response.end('synthetic-fixture');
+      response.writeHead(200, { 'Content-Type': documentFixture.mimeType });
+      response.end(documentBytes);
       return;
     }
     const chunks = [];
@@ -255,7 +277,8 @@ function handler(kind) {
       else chunks.push(chunk);
     });
     request.on('end', () => {
-      const body = Buffer.concat(chunks).toString();
+      const bodyBytes = Buffer.concat(chunks);
+      const body = bodyBytes.toString();
       if (route === '/target') {
         if (body.includes('synthetic-refresh-and-sign-in')) counts.redirectBody++;
         if (request.headers.authorization === 'Bearer synthetic-access') counts.redirectBearer++;
@@ -283,10 +306,19 @@ function handler(kind) {
       }
       if (route === '/upload') {
         counts.upload++;
+        const boundary = /boundary="?([^";]+)"?/i.exec(request.headers['content-type'] ?? '');
+        const headerEnd = bodyBytes.indexOf(Buffer.from('\r\n\r\n'));
+        const payloadEnd = boundary ? bodyBytes.indexOf(Buffer.from(`\r\n--${boundary[1]}--`), headerEnd + 4) : -1;
+        const headers = bodyBytes.subarray(0, headerEnd).toString();
         response.end(
           JSON.stringify({
             valid:
-              body.includes('synthetic-fixture') && request.headers['content-type']?.includes('multipart/form-data'),
+              headerEnd >= 0 &&
+              payloadEnd > headerEnd &&
+              bodyBytes.subarray(headerEnd + 4, payloadEnd).equals(documentBytes) &&
+              headers.includes(`filename="${documentFixture.name}"`) &&
+              /content-type:\s*application\/pdf(?:\r\n|$)/i.test(headers) &&
+              request.headers['content-type']?.includes('multipart/form-data'),
           }),
         );
         return;

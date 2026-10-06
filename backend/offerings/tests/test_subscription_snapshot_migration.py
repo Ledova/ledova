@@ -57,6 +57,8 @@ class SubscriptionSnapshotMigrationTest(TransactionTestCase):
         with self.as_app(two.user), self.assertRaisesMessage(DatabaseError, "cannot be derived"), transaction.atomic():
             historical.objects.filter(pk=first.pk).update(payment_notes="Blocked after reversal")
         migrate_to(AFTER)
+        self.assertIn("OLD.company_id IS NOT NULL", self.trigger_body())
+        restore_every_migration()
         self.assertEqual(Subscription.objects.get(pk=one.subscription.pk).company_name, first.company_name)
         self.assertIn("OLD.company_id IS NOT NULL", self.trigger_body())
 

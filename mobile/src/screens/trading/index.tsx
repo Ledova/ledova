@@ -5,7 +5,7 @@ import { useQueryClient, type QueryCacheNotifyEvent } from '@tanstack/react-quer
 import type { ShareToken, TransferOrder, CreateOrderRequest, SwapOrder, Wallet } from '@ledova/shared';
 import {
   selectSwapSettlement,
-  useInvestorEligibilityQuery,
+  useInvestorReadinessQuery,
   useOrderBook,
   useOrderSubmissions,
   useOrderActions,
@@ -70,8 +70,8 @@ export function TradingScreen() {
 
   const tokensQuery = useShareTokens();
   const tokens = tokensQuery.isError ? [] : (tokensQuery.data ?? []);
-  const eligibilityQuery = useInvestorEligibilityQuery();
-  const isEligible = !eligibilityQuery.isError && !!eligibilityQuery.data?.isEligible;
+  const eligibilityQuery = useInvestorReadinessQuery();
+  const isReady = !eligibilityQuery.isError && !!eligibilityQuery.data?.isReady;
   const tradingWallets = useUserTradingWallets();
   const { wallets, actionWallets, walletAddresses } = tradingWallets;
   const currentWallets = useRef(wallets);
@@ -106,7 +106,7 @@ export function TradingScreen() {
       tokensQuery.isFetching ||
       eligibilityQuery.isError ||
       eligibilityQuery.isFetching ||
-      !isEligible
+      !isReady
     );
   const ordersBlocked = walletReadsBlocked || !!(userOrders.error || userOrders.isFetching);
   const swapsBlocked = walletReadsBlocked || !!(swapOrders.isError || swapOrders.isFetching);
@@ -288,7 +288,7 @@ export function TradingScreen() {
         {(eligibilityQuery.isError || tradingWallets.error) && (
           <Section title="Trading details unavailable">
             <Text accessibilityRole="alert" style={styles.error}>
-              {eligibilityQuery.isError ? 'Eligibility could not be loaded.' : 'Wallets could not be loaded.'}
+              {eligibilityQuery.isError ? 'Account readiness could not be loaded.' : 'Wallets could not be loaded.'}
             </Text>
             <Action label="Retry trading details" onPress={() => void handleRefresh()} />
           </Section>
@@ -298,7 +298,7 @@ export function TradingScreen() {
           selectedTokenUuid={effectiveTokenUuid}
           onSelectToken={handleSelectToken}
           isLoading={tokensQuery.isLoading || eligibilityQuery.isLoading}
-          isEligible={isEligible}
+          isReady={isReady}
           error={tokensQuery.error || eligibilityQuery.error}
           onRetry={() => void handleRefresh()}
           disabled={showCreateOrder || newOrdersBlocked}

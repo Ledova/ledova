@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APITransactionTestCase
 
 from assets.models import AssetChainDeployment
 from offerings.models import (
@@ -25,7 +25,10 @@ from offerings.tests.factories import (
     eligible_subscriber,
     forget_fixture_subscriptions,
     open_offering,
+    subscription_technical_actor,
 )
+from shared.db import acting_for, use_operator
+from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from users.models import InvestorClassification
 
@@ -40,7 +43,16 @@ class SubscriptionApiTest(APITestCase):
         configure_operator(stablecoin=self.stablecoin)
         self.offering = open_offering(self.tenant, stablecoin=self.stablecoin)
         eligible_subscriber(self.tenant)
+        self.technical = subscription_technical_actor()
         self.client.force_authenticate(self.tenant.user)
+
+    def _submit(self, subscription):
+        with acting_for(self.tenant.user.pk):
+            return submit(subscription, submitted_by=self.tenant.user)
+
+    def _accept(self, subscription):
+        with acting_for(self.technical.pk):
+            return accept(subscription)
 
     def _payload(self, **overrides):
         return {
@@ -67,8 +79,10 @@ class SubscriptionApiTest(APITestCase):
             expires_at=timezone.now() - timedelta(days=1)
         )
         response = self.client.post(BASE, self._payload(), format="json")
-        self.assertEqual(response.status_code, 400, response.content)
-        self.assertIn("offering", response.json())
+        self.assertEqual(response.status_code, 403, response.content)
+        self.assertEqual(
+            response.json(), {"detail": "This account is not eligible to invest. (no_live_company_decision)"}
+        )
         self.assertFalse(Subscription.objects.exists())
 
     def test_an_offering_that_has_not_opened_is_not_a_choice(self):
@@ -111,22 +125,12 @@ class SubscriptionApiTest(APITestCase):
         self.assertEqual([row["uuid"] for row in response.json()["results"]], [str(mine.uuid)])
 
     def test_an_issuer_lists_its_own_applications_and_not_those_made_to_its_offering(self):
-        investor = make_tenant("api-investor")
-        eligible_subscriber(investor)
-        forget_fixture_subscriptions()
-        mine = draft_subscription(self.tenant)
-        theirs = draft_subscription(investor, offering=self.offering)
-
-        listed = self.client.get(BASE).json()["results"]
-        received = self.client.get(f"/api/v1/offerings/{self.offering.uuid}/subscriptions/").json()["results"]
-
-        self.assertEqual([row["uuid"] for row in listed], [str(mine.uuid)])
-        self.assertIn(str(theirs.uuid), [row["uuid"] for row in received])
+        assert_issuer_application_reads(self)
 
     def test_the_detail_nests_the_bank_instruction_read_only(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
 
         body = self.client.get(f"{BASE}{subscription.uuid}/").json()
@@ -139,8 +143,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_the_detail_carries_its_currency_and_when_each_step_happened(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         subscription.refresh_from_db()
 
         body = self.client.get(f"{BASE}{subscription.uuid}/").json()
@@ -152,8 +156,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_the_detail_nests_the_stablecoin_instruction(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.STABLECOIN, settlement_asset=self.stablecoin)
 
         instruction = self.client.get(f"{BASE}{subscription.uuid}/").json()["paymentInstruction"]
@@ -163,8 +167,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_a_paid_subscription_stops_asking_for_money(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
         confirm_payment(
             subscription,
@@ -181,8 +185,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_a_part_payment_that_leaves_it_awaiting_keeps_the_instruction(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
         confirm_payment(
             subscription,
@@ -198,8 +202,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_only_an_awaiting_subscription_carries_an_instruction(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
         detail = f"{BASE}{subscription.uuid}/"
 
@@ -213,8 +217,8 @@ class SubscriptionApiTest(APITestCase):
 
     def test_a_deployment_withdrawn_after_the_instruction_leaves_the_detail_readable(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=SettlementRail.STABLECOIN, settlement_asset=self.stablecoin)
         AssetChainDeployment.objects.filter(asset=self.stablecoin, chain="base").update(is_active=False)
 
@@ -274,3 +278,33 @@ class SubscriptionSurvivesDeletionTest(APITestCase):
         self.assertEqual(response.status_code, 409, response.content)
         self.assertTrue(Subscription.objects.filter(pk=self.subscription.pk).exists())
         self.assertTrue(Offering.objects.filter(pk=self.offering.pk).exists())
+
+
+def assert_issuer_application_reads(case):
+    with use_operator():
+        investor = make_tenant("api-investor")
+        eligible_subscriber(investor, issuer_decision=case.tenant.eligibility_decision)
+        forget_fixture_subscriptions()
+        mine = draft_subscription(case.tenant)
+        theirs = draft_subscription(investor, offering=case.offering)
+        case.assertEqual(investor.eligibility_decision.request.company_id, case.tenant.company.pk)
+    listed = case.client.get(BASE)
+    received = case.client.get(f"/api/v1/offerings/{case.offering.uuid}/subscriptions/")
+    case.assertEqual(listed.status_code, 200, listed.content)
+    case.assertEqual(received.status_code, 200, received.content)
+    case.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(mine.uuid)])
+    case.assertIn(str(theirs.uuid), [row["uuid"] for row in received.json()["results"]])
+
+
+class ScopedSubscriptionIssuerReadTest(RunsOnTheScopedConnection, APITransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        with use_operator():
+            self.tenant = make_tenant("scoped-api-issuer")
+            configure_operator()
+            self.offering = open_offering(self.tenant)
+            eligible_subscriber(self.tenant)
+        self.client.force_authenticate(self.tenant.user)
+
+    def test_an_issuer_lists_its_own_applications_and_not_those_made_to_its_offering(self):
+        assert_issuer_application_reads(self)

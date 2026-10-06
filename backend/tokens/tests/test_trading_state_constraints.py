@@ -88,7 +88,17 @@ class RecordedSwapStatesSurviveTheExecutionGuardsTest(TransactionTestCase):
         restore_every_migration()
         self.assertEqual(
             list(SwapOrder.objects.filter(pk__in=keys).order_by("pk").values()),
-            [row | {"finalized_receipt": None} for row in before],
+            [
+                row
+                | {
+                    "finalized_receipt": None,
+                    "seller_eligibility_decision_id": None,
+                    "seller_eligibility_admitted_at": None,
+                    "buyer_eligibility_decision_id": None,
+                    "buyer_eligibility_admitted_at": None,
+                }
+                for row in before
+            ],
         )
         for offset, (status, swap) in enumerate(recorded.items()):
             swap.refresh_from_db()

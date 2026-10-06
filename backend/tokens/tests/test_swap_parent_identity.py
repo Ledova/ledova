@@ -12,9 +12,11 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 from rest_framework.test import APIClient, APITransactionTestCase
 
+from blockchain.models import OutgoingOperation, SignedAttempt
 from feature_flags.models import FeatureFlag
 from operators.settlement import require_deployment
-from shared.db import atomic, current_alias, reset_principal, use_operator
+from shared.db import atomic, current_alias, reset_principal, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile, make_eligible, make_tenant
@@ -33,6 +35,7 @@ from tokens.tests.swap_state_fixtures import (
     CONTRACT,
     SELLER,
     make_swap,
+    persisted_outcome,
 )
 from users.models import UserAccount
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -196,12 +199,26 @@ class SwapParentMigrationTest(TransactionTestCase):
         self.addCleanup(self.restore)
 
     def restore(self):
-        if self.old_apps:
-            migrate_to(BEFORE)
-            self.old_apps.get_model("tokens", "TransferOrder").objects.filter(pk=self.parent.pk).update(
-                **{k: v for k, v in self.parent_before.items() if k != "uuid"}
+        try:
+            if self.old_apps:
+                migrate_to(BEFORE)
+                historical_order = self.old_apps.get_model("tokens", "TransferOrder")
+                fields = {field.attname for field in historical_order._meta.concrete_fields}
+                historical_order.objects.filter(pk=self.parent.pk).update(
+                    **{k: v for k, v in self.parent_before.items() if k != "uuid" and k in fields}
+                )
+        finally:
+            restore_every_migration()
+        admission_fields = (
+            "eligibility_decision_id",
+            "creation_submission_id",
+            "last_modification_eligibility_decision_id",
+        )
+        with use_migrate():
+            self.assertEqual(
+                TransferOrder.objects.filter(pk=self.parent.pk).values(*admission_fields).get(),
+                {field: None for field in admission_fields},
             )
-        restore_every_migration()
 
     def test_preflight_refuses_wallet_and_captured_owner_drift_without_rewriting_rows(self):
         other = make_tenant("parent-drift-target", with_swap=False)
@@ -281,20 +298,28 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                     chain="base",
                     verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
                 )
-                self.orders[role] = TransferOrder.objects.create(
-                    token=self.parties["seller"].deployed_token,
-                    payment_asset=tenant.refs.stablecoin,
-                    wallet=wallet,
-                    owner_account=tenant.account,
-                    wallet_address=wallet.address,
-                    order_type=kind,
-                    quantity=40,
-                    filled_quantity=10,
-                    price_per_share="1.50",
-                    status=TransferOrderStatus.PARTIALLY_FILLED,
+                with use_migrate():
+                    self.orders[role] = TransferOrder.objects.create(
+                        token=self.parties["seller"].deployed_token,
+                        payment_asset=tenant.refs.stablecoin,
+                        wallet=wallet,
+                        owner_account=tenant.account,
+                        wallet_address=wallet.address,
+                        order_type=kind,
+                        quantity=40,
+                        filled_quantity=10,
+                        price_per_share="1.50",
+                        status=TransferOrderStatus.PARTIALLY_FILLED,
+                    )
+            with use_migrate():
+                self.swap = atomic_swap_service.create_swap_order(
+                    self.orders["seller"], self.orders["buyer"], share_amount=10
                 )
-            self.swap = atomic_swap_service.create_swap_order(
-                self.orders["seller"], self.orders["buyer"], share_amount=10
+            issuer_decision = accept_company_eligibility(self.parties["seller"])
+            accept_company_eligibility(self.parties["buyer"], issuer_decision=issuer_decision)
+            self.assertEqual(
+                [(order.eligibility_decision_id, order.creation_submission_id) for order in self.orders.values()],
+                [(None, None), (None, None)],
             )
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self.client = APIClient()
@@ -345,7 +370,18 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             format="json",
         )
 
-    def test_either_caller_can_relay_either_captured_first_signature_without_private_parent_reads(self):
+    def admission_state(self):
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute("SELECT task_name, args FROM procrastinate_jobs ORDER BY id")
+            return (
+                persisted_outcome(self.swap),
+                OutgoingOperation.objects.count(),
+                SignedAttempt.objects.count(),
+                cursor.fetchall(),
+                self.event.call_count,
+            )
+
+    def test_each_signer_admits_its_first_signature_and_either_caller_replays_without_private_parent_reads(self):
         for caller in ("seller", "buyer"):
             for signer in ("seller", "buyer"):
                 with self.subTest(caller=caller, signer=signer):
@@ -358,20 +394,33 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                     lookup = self.client.get(self.url, self.identity)
                     self.assertEqual(lookup.status_code, 200, lookup.content)
                     self.event.reset_mock()
+                    before = self.admission_state()
                     response = self.post_signature(signer)
+                    if caller != signer:
+                        self.assertEqual(response.status_code, 400, response.content)
+                        self.assertEqual(
+                            response.json(), {"detail": "The authenticated participant must be the signing party"}
+                        )
+                        self.assertEqual(self.admission_state(), before)
+                        self.choose_caller(signer)
+                        self.assert_private_boundary()
+                        response = self.post_signature(signer)
                     self.assertEqual(response.status_code, 200, response.content)
                     with use_operator():
                         self.swap.refresh_from_db()
                     self.assertEqual(getattr(self.swap, f"{signer}_signature"), self.signature(signer))
                     self.assertEqual(self.event.call_count, 1)
+                    self.choose_caller(caller)
                     replay = self.post_signature(signer)
                     self.assertEqual(replay.status_code, 200, replay.content)
                     self.assertEqual(self.event.call_count, 1)
                     self.assert_private_boundary()
 
     def test_second_signature_admits_once_and_app_recovery_cannot_release_private_parents(self):
+        self.choose_caller("buyer")
         first = self.post_signature("buyer")
         self.assertEqual(first.status_code, 200, first.content)
+        self.choose_caller("seller")
         with patch("tokens.services.swap_execution.get_base_chain_client") as provider:
             second = self.post_signature("seller")
             self.assertEqual(second.status_code, 200, second.content)
@@ -451,15 +500,17 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
         self.assertTrue(Wallet.objects.filter(pk=other.pk).exists())
-        control = TransferOrder.objects.create(
-            token=self.orders["seller"].token,
-            owner_account_id=other.user_account_id,
-            wallet=other,
-            wallet_address=other.address,
-            order_type=TransferOrderType.SELL,
-            quantity=2,
-            price_per_share="1.50",
-        )
+        with use_migrate():
+            control = TransferOrder.objects.create(
+                token=self.orders["seller"].token,
+                owner_account_id=other.user_account_id,
+                wallet=other,
+                wallet_address=other.address,
+                order_type=TransferOrderType.SELL,
+                quantity=2,
+                price_per_share="1.50",
+            )
+        self.assertIsNone(control.eligibility_decision_id)
         self.assertTrue(TransferOrder.objects.filter(pk=control.pk).exists())
         with self.assertRaisesMessage(IntegrityError, "An order owner identity cannot change"), atomic():
             TransferOrder.objects.filter(pk=self.orders["seller"].pk).update(wallet=other, wallet_address=other.address)
@@ -471,7 +522,6 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         for model, pk, changes, restore in (
             (Wallet, wallet_id, {"chain": "polygon"}, {"chain": "base"}),
             (Wallet, wallet_id, {"address": "0x" + "85" * 20}, {"address": SELLER.address}),
-            (TransferOrder, order_id, {"payment_asset": None}, {"payment_asset_id": self.swap.payment_asset_id}),
         ):
             with self.subTest(changes=changes):
                 with use_operator():
@@ -482,14 +532,21 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                 finally:
                     with use_operator():
                         model.objects.filter(pk=pk).update(**restore)
-        with use_operator():
+        with use_operator(), self.assertRaisesMessage(
+            IntegrityError, "Retain the original trading payment asset"
+        ), atomic():
             TransferOrder.objects.filter(pk=order_id).update(payment_asset=None)
+        with use_migrate():
+            self.assertIsNone(self.orders["seller"].eligibility_decision_id)
+            TransferOrder.objects.filter(pk=order_id).update(payment_asset=None)
+        with use_operator():
+            self.orders["seller"].refresh_from_db()
             self.swap = atomic_swap_service.create_swap_order(
                 self.orders["seller"], self.orders["buyer"], share_amount=10
             )
         self.choose_caller("seller")
         self.assertIsNone(self.swap.settlement_context["seller"]["payment_asset_uuid"])
-        self.assertEqual(self.post_signature("buyer").status_code, 200)
+        self.assertEqual(self.post_signature("seller").status_code, 200)
 
     def test_new_private_parent_insert_remains_refused_with_a_valid_snapshot(self):
         with use_operator():
@@ -520,15 +577,15 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
             return valid
 
         with patch.object(atomic_swap_service, "verify_signature", retire):
-            response = self.post_signature("buyer")
+            response = self.post_signature("seller")
         self.assertEqual(response.status_code, 404, response.content)
         with use_operator():
             self.swap.refresh_from_db()
-        self.assertFalse(self.swap.buyer_signature)
+        self.assertFalse(self.swap.seller_signature)
         self.event.assert_not_called()
         with use_operator():
             UserAccount.objects.filter(pk=seller_account.pk).update(user_profile=self.parties["seller"].profile)
-        self.assertEqual(self.post_signature("buyer").status_code, 200)
+        self.assertEqual(self.post_signature("seller").status_code, 200)
 
     def test_bound_caller_cannot_rebind_child_identity_or_use_wrong_route_identity(self):
         original = self.swap.settlement_context
@@ -559,9 +616,9 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         self.assertEqual(self.swap.settlement_context, original)
         self.assertFalse(self.swap.buyer_signature)
         self.event.assert_not_called()
-        self.assertEqual(self.post_signature("buyer").status_code, 200)
+        self.assertEqual(self.post_signature("seller").status_code, 200)
 
-    def test_operator_without_app_principal_keeps_the_original_both_visible_parent_path(self):
+    def test_operator_without_app_principal_cannot_add_a_new_signature_but_the_bound_signer_can(self):
         with use_operator():
             reset_principal(current_alias())
             with connections[current_alias()].cursor() as cursor:
@@ -569,9 +626,12 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
                     "SELECT tokens_swap_has_current_party(s) FROM tokens_swaporder s WHERE uuid = %s", [self.swap.pk]
                 )
                 self.assertFalse(cursor.fetchone()[0])
-            self.assertEqual(
-                SwapOrder.objects.filter(pk=self.swap.pk).update(seller_signature=self.signature("seller")), 1
-            )
+            before = self.admission_state()
+            with self.assertRaisesMessage(DatabaseError, "Bind the exact trading command"), atomic():
+                SwapOrder.objects.filter(pk=self.swap.pk).update(seller_signature=self.signature("seller"))
+            self.assertEqual(self.admission_state(), before)
+        self.choose_caller("seller")
+        self.assertEqual(self.post_signature("seller").status_code, 200)
         with use_operator():
             self.swap.refresh_from_db()
         self.assertEqual(self.swap.seller_signature, self.signature("seller"))

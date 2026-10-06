@@ -277,6 +277,7 @@ export function UserProfileScreen() {
                     />
                   </View>
                   <TextInput
+                    accessibilityLabel="Full Name"
                     style={[styles.input, styles.inputWithIcon, errors.fullName ? styles.inputError : null]}
                     placeholder="John Doe"
                     placeholderTextColor={theme.colors.text.muted}
@@ -296,6 +297,7 @@ export function UserProfileScreen() {
                   placeholder="DD/MM/YYYY"
                   maximumDate={new Date()}
                   minimumDate={new Date(1900, 0, 1)}
+                  disabled={isSubmitting}
                 />
                 {errors.dateOfBirth && <Text style={styles.fieldError}>{errors.dateOfBirth.join(' ')}</Text>}
               </View>
@@ -317,6 +319,7 @@ export function UserProfileScreen() {
                     disabled={isSubmitting}
                   />
                   <TextInput
+                    accessibilityLabel="Phone Number"
                     style={[styles.input, styles.phoneInput, errors.phoneNumber ? styles.inputError : null]}
                     placeholder="416 004 021"
                     placeholderTextColor={theme.colors.text.muted}
@@ -341,6 +344,7 @@ export function UserProfileScreen() {
                     />
                   </View>
                   <TextInput
+                    accessibilityLabel="Residential Address"
                     style={[
                       styles.input,
                       styles.inputWithIcon,

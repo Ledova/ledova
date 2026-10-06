@@ -1,9 +1,13 @@
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
+from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic
 from wallets.constants import WALLET_VERIFICATION_STATUS_PENDING
 from wallets.models import Wallet
+from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
+from whitelist.services.eligibility_invalidation import invalidation_writer_context
+from whitelist.services.refresh import enqueue_for_wallet
 
 DUPLICATE_WALLET = "This wallet address has already been added to your account on this network."
 
@@ -42,3 +46,11 @@ def update_wallet(wallet, fields):
         _refuse_duplicate(wallet)
         raise
     return wallet
+
+
+def delete_wallet(user, wallet_id):
+    with invalidation_writer_context(user):
+        wallet = Wallet.objects.owned_by(user).select_for_update().get(pk=wallet_id)
+        if wallet.chain == BLOCKCHAIN_BASE:
+            enqueue_for_wallet(wallet.pk, user, WALLET_REFRESH_DELAY_SECONDS, remove_only=True)
+        wallet.delete()

@@ -151,7 +151,15 @@ class TradingOrderViewSet(AuthenticatedListViewSet):
                 description="A recorded business refusal snapshot, or an ordinary request/challenge validation error.",
             ),
             401: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Authentication required."),
-            403: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Signature refused."),
+            403: OpenApiResponse(
+                response={
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/OrderSubmission"},
+                        {"type": "object", "additionalProperties": {}},
+                    ]
+                },
+                description="Retained eligibility refusal, or an ordinary signature refusal.",
+            ),
             404: OpenApiResponse(response=OpenApiTypes.OBJECT, description="No currently authorized submission."),
             409: OpenApiResponse(
                 response=OpenApiTypes.OBJECT, description="Original terms conflict or challenge spent."
@@ -167,7 +175,11 @@ class TradingOrderViewSet(AuthenticatedListViewSet):
         serializer.is_valid(raise_exception=True)
         result = execute_order_submission(request.user, serializer.validated_data)
         if result.submission.status == OrderSubmissionStatus.REFUSED:
-            response_status = status.HTTP_400_BAD_REQUEST
+            response_status = (
+                status.HTTP_403_FORBIDDEN
+                if result.submission.refusal_code == "investor_not_eligible"
+                else status.HTTP_400_BAD_REQUEST
+            )
         else:
             response_status = status.HTTP_201_CREATED if result.created else status.HTTP_200_OK
         return Response(submission_snapshot(result.submission), status=response_status)

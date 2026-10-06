@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.db import connections
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
@@ -7,8 +8,8 @@ from django.utils.safestring import mark_safe
 from web3 import Web3
 
 from shared.constants import BLOCKCHAIN_BASE
+from shared.db import current_alias
 from shared.utils.admin_actions import admin_action_path
-from users.services.eligibility import account_eligibility
 from wallets.models import Wallet
 from whitelist.admin_actions import confirm_changes
 from whitelist.models import (
@@ -21,19 +22,29 @@ from whitelist.models import (
 from whitelist.services.identity import entry_identity
 
 
-def entry_eligibility(wallet):
-    if wallet is None:
+def entry_eligibility(wallet, company):
+    if wallet is None or company is None:
         return None
-    return account_eligibility(wallet.user_account)
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(
+            "SELECT EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
+            "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
+            "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
+            "AND proposal.category IN ('accountant_certificate', 'professional_investor') "
+            "AND users_company_eligibility_decision_facts_current("
+            "decision.uuid, proposal.user_account_id, proposal.company_id, "
+            "'secondary', NULL, NULL, clock_timestamp()))",
+            [wallet.user_account_id, company.pk],
+        )
+        return cursor.fetchone()[0] is True
 
 
 def eligibility_warning(wallet):
-    outcome = entry_eligibility(wallet)
-    if outcome is None or outcome.is_eligible:
+    if wallet is None:
         return ""
     return (
-        "This wallet's account is not an eligible wholesale investor "
-        f"({', '.join(outcome.reasons)}). Whitelisting the address does not make it one."
+        "Each company's current eligibility decision and private evidence are checked for new actions. "
+        "Whitelisting the address does not make its holder eligible."
     )
 
 
@@ -201,14 +212,20 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     wallet_owner.short_description = "Owner"
     wallet_owner.admin_order_field = "wallet__user_account__uuid"
 
-    @admin.display(description="Investor Eligibility")
+    @admin.display(description="Company eligibility decisions")
     def investor_eligibility(self, obj):
-        outcome = entry_eligibility(obj.wallet if obj.wallet_id else None)
-        if outcome is None:
+        if not obj.wallet_id:
             return "-"
-        if outcome.is_eligible:
-            return mark_safe('<span style="color: #28a745;">Eligible</span>')
-        return format_html('<span style="color: #dc3545;">{}</span>', ", ".join(outcome.reasons))
+        decisions = [
+            f"{approval.company.name}: "
+            + (
+                "current company decision; new actions recheck evidence"
+                if entry_eligibility(obj.wallet, approval.company)
+                else "no current company decision"
+            )
+            for approval in obj.approvals.all()
+        ]
+        return "; ".join(decisions) if decisions else "No company approval"
 
     @admin.display(description="Holder standing")
     def holder_standing(self, obj):

@@ -85,6 +85,14 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
         blank=True,
         help_text="EIP-712 signature from buyer",
     )
+    seller_eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
+    seller_eligibility_admitted_at = models.DateTimeField(null=True, blank=True)
+    buyer_eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
+    buyer_eligibility_admitted_at = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(
         max_length=20,
@@ -115,6 +123,24 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
         verbose_name_plural = "Swap Orders"
         ordering = ["-created_at"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    seller_eligibility_decision__isnull=True, seller_eligibility_admitted_at__isnull=True
+                )
+                | (
+                    models.Q(seller_eligibility_decision__isnull=False, seller_eligibility_admitted_at__isnull=False)
+                    & ~models.Q(seller_signature="")
+                ),
+                name="swap_seller_eligibility_signature_pair",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(buyer_eligibility_decision__isnull=True, buyer_eligibility_admitted_at__isnull=True)
+                | (
+                    models.Q(buyer_eligibility_decision__isnull=False, buyer_eligibility_admitted_at__isnull=False)
+                    & ~models.Q(buyer_signature="")
+                ),
+                name="swap_buyer_eligibility_signature_pair",
+            ),
             models.UniqueConstraint(fields=["nonce"], name="unique_swap_nonce"),
             models.CheckConstraint(condition=models.Q(share_amount__gt=0), name="swap_order_positive_shares"),
             models.CheckConstraint(condition=models.Q(payment_amount__gt=0), name="swap_order_positive_payment"),
@@ -185,21 +211,41 @@ class SwapOrder(DerivesWalletsFromOrders, BaseModel):
             self.expires_at = timezone.now() + timedelta(hours=default_hours)
         super().save(*args, **kwargs)
 
-    def add_seller_signature(self, signature: str):
+    def add_seller_signature(self, signature: str, *, eligibility_decision):
         self.seller_signature = signature
+        self.seller_eligibility_decision = eligibility_decision
         if self.buyer_signature:
             self.status = SwapOrderStatus.READY
         else:
             self.status = SwapOrderStatus.SELLER_SIGNED
-        self.save(update_fields=["seller_signature", "status", "updated_at"])
+        self.save(
+            update_fields=[
+                "seller_signature",
+                "seller_eligibility_decision",
+                "seller_eligibility_admitted_at",
+                "status",
+                "updated_at",
+            ]
+        )
+        self.refresh_from_db(fields=["seller_eligibility_admitted_at"])
 
-    def add_buyer_signature(self, signature: str):
+    def add_buyer_signature(self, signature: str, *, eligibility_decision):
         self.buyer_signature = signature
+        self.buyer_eligibility_decision = eligibility_decision
         if self.seller_signature:
             self.status = SwapOrderStatus.READY
         else:
             self.status = SwapOrderStatus.BUYER_SIGNED
-        self.save(update_fields=["buyer_signature", "status", "updated_at"])
+        self.save(
+            update_fields=[
+                "buyer_signature",
+                "buyer_eligibility_decision",
+                "buyer_eligibility_admitted_at",
+                "status",
+                "updated_at",
+            ]
+        )
+        self.refresh_from_db(fields=["buyer_eligibility_admitted_at"])
 
     def mark_executing(self, tx_hash: str = "", transaction: "BlockchainTransaction" = None):
         self.status = SwapOrderStatus.EXECUTING

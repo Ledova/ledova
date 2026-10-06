@@ -33,7 +33,11 @@ class OrderChild:
             stdout=subprocess.PIPE,
             stderr=self.errors,
             bufsize=0,
-            env={**os.environ, "ORDER_TEST_DATABASES": json.dumps(worker_databases(), default=str)},
+            env={
+                **os.environ,
+                "ORDER_TEST_DATABASES": json.dumps(worker_databases(), default=str),
+                "ORDER_TEST_PRIVATE_MEDIA_ROOT": str(settings.PRIVATE_MEDIA_ROOT),
+            },
         )
         case.addCleanup(self.close)
         payload = {
@@ -79,7 +83,7 @@ class OrderChild:
         self.errors.close()
 
 
-def wait_for_row_lock(case, waiter, table, blocker):
+def wait_for_row_lock(case, waiter, table, blocker, row_pk=None):
     deadline = time.monotonic() + 10
     observed = None
     while time.monotonic() < deadline:
@@ -90,7 +94,13 @@ def wait_for_row_lock(case, waiter, table, blocker):
                 [blocker, waiter],
             )
             observed = cursor.fetchone()
-        if observed and observed[1] and observed[2] == "Lock" and f'"{table}"' in observed[0]:
+        if (
+            observed
+            and observed[1]
+            and observed[2] == "Lock"
+            and f'"{table}"' in observed[0]
+            and (row_pk is None or str(row_pk).replace("-", "") in observed[0].replace("-", ""))
+        ):
             return
         time.sleep(0.01)
     case.fail(f"Backend {waiter} never waited for the {table} row held by {blocker}: {observed}")

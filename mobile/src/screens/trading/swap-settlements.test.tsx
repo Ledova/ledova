@@ -149,7 +149,7 @@ jest.mock('@ledova/shared', () => ({
     data: [{ uuid: '70000000-0000-4000-8000-000000000005', symbol: 'DEP' }],
     refetch: jest.fn(),
   }),
-  useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+  useInvestorReadinessQuery: () => ({ data: { isReady: true } }),
   useOrderBook: () => ({ data: null }),
   useSwapOrdersMulti: () => ({ data: mockSwaps, refetch: jest.fn() }),
 }));

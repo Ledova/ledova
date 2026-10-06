@@ -1,18 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from threading import Barrier
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import connections
 from django.test import TransactionTestCase
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import use_operator
+from shared.db import acting_for, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.utils.typed_data import signable_message
+from shared.utils.typed_data import recover_typed_data_signer, signable_message
 from tokens.models import (
     OrderActionSubmission,
+    OrderSubmission,
+    SigningChallenge,
     SwapOrder,
     TransferOrder,
     TransferOrderStatus,
@@ -33,32 +34,89 @@ CANCELLED = TransferOrderStatus.CANCELLED
 
 
 class TheBookNeverCrossesTest(BookFixtures, TransactionTestCase):
-    def rest_at_the_same_moment(self, *submissions):
+    def create_together(self, *submissions):
         together = Barrier(len(submissions), timeout=10)
-        rest = TransferOrder.rest_or_hold
-
-        def rest_then_wait(order):
-            rest(order)
-            together.wait()
 
         def submit(submission):
             try:
-                return execute_order_submission(*submission)
+                together.wait()
+                with acting_for(submission[0].pk):
+                    return execute_order_submission(*submission)
             finally:
                 connections.close_all()
 
-        with patch.object(TransferOrder, "rest_or_hold", rest_then_wait), ThreadPoolExecutor(len(submissions)) as pool:
+        with ThreadPoolExecutor(len(submissions)) as pool:
             results = [future.result(timeout=30) for future in [pool.submit(submit, item) for item in submissions]]
         return sorted((self.created(result) for result in results), key=lambda order: (order.created_at, order.pk))
 
-    def test_two_crossing_orders_resting_at_the_same_moment_are_uncrossed_by_one_sweep(self):
+    def test_two_current_orders_created_together_match_without_crossing_the_book(self):
         seller, buyer, other = self.traders[1:4]
         self.place(other, SELL, 10, "2.20")
         self.place(other, BUY, 10, "1.90")
         ask = self.signed_submission(seller, SELL, 10, "2.00")
         bid = self.signed_submission(buyer, BUY, 10, "2.00")
 
-        older, newer = self.rest_at_the_same_moment(ask, bid)
+        older, newer = self.create_together(ask, bid)
+
+        for order in (older, newer):
+            self.assertIsNotNone(order.eligibility_decision_id)
+            self.assertIsNotNone(order.creation_submission_id)
+        self.assert_uncrossed()
+        self.assert_state(older, MATCHED, 10)
+        self.assert_state(newer, MATCHED, 10)
+        self.assertEqual(self.pending(older).pk, self.pending(newer).pk)
+        self.assertEqual(self.book(), ([(Decimal("1.90"), 10)], [(Decimal("2.20"), 10)]))
+
+    def retained_signed_order(self, trader, side):
+        _, signed = self.signed_submission(trader, side, 10, "2.00")
+        with use_migrate():
+            submission = OrderSubmission.objects.get(
+                owner_account=trader.account, submission_id=signed["submission_id"]
+            )
+            challenge = SigningChallenge.objects.get(digest=signed["digest"], submission=submission)
+            self.assertEqual(
+                recover_typed_data_signer(
+                    challenge.payload["domain"],
+                    challenge.payload["types"],
+                    challenge.payload["message"],
+                    signed["signature"],
+                ),
+                trader.wallet.address,
+            )
+            order = TransferOrder.objects.create(
+                token=self.token,
+                wallet=trader.wallet,
+                owner_account=trader.account,
+                wallet_address=trader.wallet.address,
+                order_type=side,
+                quantity=10,
+                price_per_share=Decimal("2.00"),
+                payment_asset=trader.tenant.refs.stablecoin,
+            )
+            challenge.mark_consumed(signed["signature"])
+            submission.status = "created"
+            submission.order = order
+            submission.executed_challenge = challenge
+            submission.resolved_at = challenge.consumed_at
+            submission.save(update_fields=["status", "order", "executed_challenge", "resolved_at"])
+            self.assertIsNone(submission.eligibility_decision_id)
+        return order
+
+    def test_two_retained_crossing_orders_are_uncrossed_by_one_sweep(self):
+        seller, buyer, other = self.traders[1:4]
+        self.place(other, SELL, 10, "2.20")
+        self.place(other, BUY, 10, "1.90")
+        older, newer = [self.retained_signed_order(trader, side) for trader, side in ((seller, SELL), (buyer, BUY))]
+        for order in (older, newer):
+            self.assertEqual(
+                (
+                    order.eligibility_decision_id,
+                    order.creation_submission_id,
+                    order.last_modification_action_id,
+                    order.last_modification_eligibility_decision_id,
+                ),
+                (None, None, None, None),
+            )
 
         self.assertEqual((older.status, newer.status), (OPEN, OPEN))
         bids, asks = self.book()

@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from threading import Event
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import connections
@@ -9,6 +10,7 @@ from eth_account.messages import encode_typed_data
 from rest_framework.exceptions import NotFound
 
 from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.row_contention import RealRowContention
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder
@@ -36,12 +38,23 @@ class SwapAuthorityLockOrderTest(RealRowContention, TransactionTestCase):
             self.account = self.swap.sell_order.owner_account
             self.profile = self.account.user_profile
             self.actor = self.profile.user
-        self.signature = SELLER.sign_message(
-            encode_typed_data(full_message=self.swap.settlement_context["typed_data"])
-        ).signature.hex()
+            accept_company_eligibility(
+                SimpleNamespace(
+                    user=self.actor,
+                    profile=self.profile,
+                    account=self.account,
+                    company=self.swap.share_token.company,
+                )
+            )
+        self.signature = (
+            "0x"
+            + SELLER.sign_message(
+                encode_typed_data(full_message=self.swap.settlement_context["typed_data"])
+            ).signature.hex()
+        )
 
     def sign(self):
-        return sign_swap(self.swap, self.signature, SELLER.address)
+        return sign_swap(self.swap, self.signature, SELLER.address, user=self.actor)
 
     def test_new_signature_locks_wallet_before_account_actor_and_profile(self):
         self.while_row_is_held(self.sign, self.wallet, free=(self.account, self.actor, self.profile))

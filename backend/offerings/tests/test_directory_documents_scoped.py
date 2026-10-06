@@ -7,6 +7,7 @@ from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyDocument
 from offerings.models import OfferingStatus
+from offerings.tests.factories import eligible_subscriber
 from offerings.tests.test_directory_documents import (
     MEMORANDUM,
     documents_of,
@@ -17,7 +18,7 @@ from offerings.tests.test_directory_documents import (
 )
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, acting_for, principal_of, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
+from shared.tests.tenants import make_tenant, open_to_investors
 
 
 class ScopedDirectoryDocumentsTest(RunsOnTheScopedConnection, APITransactionTestCase):
@@ -26,7 +27,8 @@ class ScopedDirectoryDocumentsTest(RunsOnTheScopedConnection, APITransactionTest
         with use_operator():
             self.reader = make_tenant("scoped-doc-reader")
             self.issuer = make_tenant("scoped-doc-issuer")
-            make_eligible(self.reader)
+            eligible_subscriber(self.issuer)
+            eligible_subscriber(self.reader, issuer_decision=self.issuer.eligibility_decision)
             open_to_investors(self.issuer)
             publish(self.issuer.offering)
             self.memorandum = offer_document(self.issuer.company)

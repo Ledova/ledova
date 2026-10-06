@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   USER_PREFERENCES_QUERY_KEY,
+  DESTINATIONS,
   getCompanyTeam,
   getCompanyTeamInvitations,
   getErrorMessage,
@@ -15,7 +16,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
-import { Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
@@ -231,6 +232,9 @@ function OwnTeam({
   const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? '';
   return (
     <Page>
+      <Section title="Company eligibility">
+        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
+      </Section>
       <p className="text-sm text-text-muted">
         Company information is provided by the company. Appointments give only their recorded actions; they do not
         activate a company or approve a register change.

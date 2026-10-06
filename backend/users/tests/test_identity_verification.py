@@ -12,6 +12,7 @@ from compliance.services.risk_assessment import RiskAssessmentService
 from integrations.kyc.base import NormalizedVerificationResult
 from integrations.kycaid.client import KYCAIDService
 from integrations.sumsub.client import SumSubService
+from operators.models import Operator
 from shared.models import Country
 from users.models import Notification, UserAccount, UserProfile
 from users.services import identity
@@ -24,6 +25,7 @@ PUSH_TASK = "users.tasks.notifications.send_push_notification"
 
 class IdentityVerificationApprovalTest(TestCase):
     def setUp(self):
+        Operator.get()
         self.push_task = patch(PUSH_TASK).start()
         self.addCleanup(patch.stopall)
 

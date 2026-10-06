@@ -2,6 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -71,9 +72,11 @@ function renderPage() {
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <PageTitle.Provider value="Holdings">
-          <HomePage />
-        </PageTitle.Provider>
+        <MemoryRouter>
+          <PageTitle.Provider value="Holdings">
+            <HomePage />
+          </PageTitle.Provider>
+        </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
   );

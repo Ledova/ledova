@@ -1,7 +1,7 @@
 import importlib
 import os
 import re
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -89,13 +89,16 @@ class InvestorClassificationApiTest(StubUploadDependencies, APITestCase):
 
         self.assertEqual(response.status_code, 400, response.content)
 
-    def test_a_second_open_submission_is_refused_with_400_not_a_database_error(self):
-        make_classification(self.account)
+    def test_a_second_private_source_retains_the_original_submitted_source(self):
+        first = make_classification(self.account)
+        before = InvestorClassification.objects.filter(pk=first.pk).values().get()
 
         response = self.client.post(BASE, self._payload(), format="multipart")
 
-        self.assertEqual(response.status_code, 400, response.content)
-        self.assertIn("awaiting review", str(response.json()))
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertNotEqual(response.json()["uuid"], str(first.pk))
+        self.assertEqual(InvestorClassification.objects.filter(pk=first.pk).values().get(), before)
+        self.assertEqual(InvestorClassification.objects.filter(user_account=self.account).count(), 2)
 
     def test_an_associated_person_claim_must_name_an_active_issuer(self):
         owner = User.objects.create_user(email="assoc-owner@example.test", password="pw-12345678")
@@ -214,17 +217,13 @@ class EligibilityEndpointTest(APITestCase):
     def test_it_reports_the_callers_own_state(self):
         self.client.force_authenticate(self.user)
 
-        refused = self.client.get(f"{BASE}eligibility/")
-        self.assertEqual(refused.status_code, 200, refused.content)
-        self.assertFalse(refused.json()["isEligible"])
-        self.assertEqual(refused.json()["reasons"], ["no_live_classification"])
-        self.assertEqual(refused.json()["account"], str(self.account.uuid))
-        self.assertIsNone(refused.json()["classification"])
+        ready = self.client.get(f"{BASE}eligibility/")
+        self.assertEqual(ready.status_code, 200, ready.content)
+        self.assertEqual(ready.json(), {"isReady": True, "reasons": [], "account": str(self.account.uuid)})
 
-        classification = verified_classification(self.account, self.reviewer)
+        verified_classification(self.account, self.reviewer)
         allowed = self.client.get(f"{BASE}eligibility/")
-        self.assertTrue(allowed.json()["isEligible"])
-        self.assertEqual(allowed.json()["classification"]["uuid"], str(classification.uuid))
+        self.assertEqual(allowed.json(), ready.json())
 
     def test_it_refuses_an_anonymous_caller(self):
         self.assertEqual(self.client.get(f"{BASE}eligibility/").status_code, 401)
@@ -259,61 +258,6 @@ class EvidenceAdminViewTest(APITestCase):
         )
 
         self.assertIn(response.status_code, (302, 403))
-
-
-@override_settings(STORAGES=ADMIN_STORAGES)
-class AdminTransitionViewTest(TestCase):
-
-    def setUp(self):
-        self.staff = User.objects.create_superuser(email="admin-transitions@example.test", password="pw-12345678")
-        self.client.force_login(self.staff)
-        _, self.account = make_investor("admin-transitions")
-        self.classification = make_classification(self.account, certificate_issued_at=date(2026, 1, 1))
-
-    def _url(self, action):
-        return reverse("admin:users_investorclassification_transition", args=[self.classification.uuid, action])
-
-    def test_the_verify_form_renders_with_the_default_expiry(self):
-        response = self.client.get(self._url("verify"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Verify Classification")
-
-    def test_verifying_through_the_admin_goes_through_the_service(self):
-        expires_at = timezone.now() + timedelta(days=400)
-
-        response = self.client.post(
-            self._url("verify"),
-            {"expires_at": expires_at.strftime("%Y-%m-%d %H:%M:%S"), "notes": "Checked"},
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.classification.refresh_from_db()
-        self.assertEqual(self.classification.status, InvestorClassificationStatus.VERIFIED)
-        self.assertEqual(self.classification.reviewed_by, self.staff)
-
-    def test_rejecting_through_the_admin_records_the_reason(self):
-        response = self.client.post(self._url("reject"), {"reason": "No evidence"})
-
-        self.assertEqual(response.status_code, 302)
-        self.classification.refresh_from_db()
-        self.assertEqual(self.classification.status, InvestorClassificationStatus.REJECTED)
-        self.assertEqual(self.classification.rejection_reason, "No evidence")
-
-    def test_an_illegal_transition_reports_the_guard_rather_than_changing_the_row(self):
-        response = self.client.post(self._url("revoke"), {"reason": "Too soon"}, follow=True)
-
-        self.classification.refresh_from_db()
-        self.assertEqual(self.classification.status, InvestorClassificationStatus.SUBMITTED)
-        self.assertContains(response, "Cannot transition from")
-
-    def test_an_anonymous_caller_is_sent_to_the_admin_login(self):
-        self.client.logout()
-
-        response = self.client.get(self._url("verify"))
-
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/admin/login/", response["Location"])
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)

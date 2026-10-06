@@ -1,5 +1,5 @@
-import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
-import { Disclosure, Section } from '@components/Ledger';
+import { DESTINATIONS, formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
+import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { HoldingWork } from './components/HoldingWork';
 
@@ -9,6 +9,9 @@ export function HomePage() {
 
   return (
     <Page>
+      <Section title="Your company actions">
+        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
+      </Section>
       <Section title="Shares in your wallets">
         {isPending ? (
           <p role="status" className="py-3 text-sm text-text-muted">

@@ -15,6 +15,7 @@ from rest_framework.test import APITransactionTestCase
 from blockchain.models import SignedAttempt
 from blockchain.tests.outgoing_fixtures import receipt
 from ledova_backend.procrastinate_app import app
+from operators.models import Operator
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -27,14 +28,15 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Wallet
 from whitelist.constants import WHITELIST_REMOVAL_RETRY_SECONDS
-from whitelist.exceptions import WhitelistRemovalPending
 from whitelist.models import (
     WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
+    WhitelistEligibilityInvalidation,
     WhitelistEntry,
+    WhitelistInvalidationCause,
 )
-from whitelist.services import changes, refresh, whitelist
+from whitelist.services import changes, eligibility_invalidation, refresh, whitelist
 from whitelist.tasks import refresh_whitelist_targets
 from whitelist.tasks.recovery import recover_whitelist_changes
 from whitelist.tests.change_fixtures import (
@@ -62,10 +64,14 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
     def setUp(self):
         super().setUp()
         with use_operator():
+            Operator.get()
             self.actor = change_actor()
             self.entry = change_entry()
             self.company = change_company()
             admitted_signer()
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SELECT current_user")
+                self.assertEqual(cursor.fetchone()[0], settings.RLS_ROLES[OPERATOR_ALIAS])
         self.node = WhitelistNode()
         patcher = patch.object(changes, "get_base_chain_client", return_value=self.node.client)
         patcher.start()
@@ -73,6 +79,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         reader = patch.object(whitelist, "get_base_chain_client", return_value=self.node.client)
         reader.start()
         self.addCleanup(reader.stop)
+        invalidation_reader = patch.object(
+            eligibility_invalidation, "get_base_chain_client", return_value=self.node.client
+        )
+        invalidation_reader.start()
+        self.addCleanup(invalidation_reader.stop)
         self.initial_jobs = set(self.removal_jobs())
         self.addCleanup(self.remove_jobs)
 
@@ -105,15 +116,31 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.assertFalse(Wallet.objects.filter(pk=wallet.pk).exists())
             self.assertFalse(WhitelistEntry.objects.filter(pk=self.entry.pk).exists())
             self.assertFalse(WhitelistApproval.objects.exists())
+            self.wallet_removal = WhitelistEligibilityInvalidation.objects.get(
+                wallet_id=wallet.pk, cause=WhitelistInvalidationCause.WALLET_REMOVAL
+            )
+            self.assertEqual(self.wallet_removal.initiated_by_id, self.customer.pk)
+            self.assertEqual(self.wallet_removal.user_account_id, wallet.user_account_id)
+            self.assertEqual(self.wallet_removal.address, ADDRESS)
         queued = {key: value for key, value in self.removal_jobs().items() if key not in self.initial_jobs}
         self.assertEqual(len(queued), 1)
         job_id, (payload, status, attempts) = next(iter(queued.items()))
         self.assertEqual(
             payload,
             {
-                "targets": [{"address": ADDRESS, "company": str(self.company.pk), "registry": REGISTRY}],
-                "actor_id": str(self.customer.pk),
-                "remove_only": True,
+                "targets": [
+                    {
+                        "address": ADDRESS,
+                        "company": str(self.company.pk),
+                        "registry": REGISTRY,
+                        "chain_id": CHAIN_ID,
+                        "wallet": str(wallet.pk),
+                        "account": str(wallet.user_account_id),
+                    }
+                ],
+                "cause": WhitelistInvalidationCause.WALLET_REMOVAL,
+                "decision_id": None,
+                "invalidation_id": str(self.wallet_removal.pk),
             },
         )
         self.assertEqual((status, attempts), ("todo", 0))
@@ -149,8 +176,13 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.assertEqual(removal.initiated_by_id, self.customer.pk)
             self.assertEqual(removal.authority, WhitelistAuthority.CLASSIFICATION_REFRESH)
             self.assertIsNone(removal.requested_wallet_id)
+            self.assertEqual(removal.eligibility_invalidation_id, self.wallet_removal.pk)
+            self.assertEqual(removal.invalidation_cause, WhitelistInvalidationCause.WALLET_REMOVAL)
+            self.assertIsNone(removal.eligibility_decision_id)
         sent = len(self.node.broadcasts)
-        self.assertEqual(refresh_whitelist_targets.func(**payload), {"checked": 1, "submitted": 0, "errors": 0})
+        self.assertEqual(
+            refresh_whitelist_targets.func(**payload), {"checked": 1, "submitted": 0, "unattributed": 0, "errors": 0}
+        )
         self.assertEqual(len(self.node.broadcasts), sent)
 
     def test_deleted_wallet_removal_job_survives_pending_add_then_removes_its_late_confirmation(self):
@@ -168,15 +200,15 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         self.node.confirmed = True
         self.assertEqual(recover_whitelist_changes.func()["completed"], 1)
         observed = []
-        original_refresh = refresh.refresh_targets
+        original_refresh = refresh._refresh_target
 
-        def record_authority(*args):
+        def record_authority(*args, **kwargs):
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("SELECT current_user")
                 observed.append((current_alias(), cursor.fetchone()[0]))
-            return original_refresh(*args)
+            return original_refresh(*args, **kwargs)
 
-        with patch.object(refresh, "refresh_targets", side_effect=record_authority):
+        with patch.object(refresh, "_refresh_target", side_effect=record_authority):
             self.run_removal_job(job_id)
 
         self.assertEqual(observed, [(OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS])])
@@ -209,8 +241,11 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
     def test_deleted_wallet_removal_job_survives_a_failure_before_admission(self):
         self.submit_approval()
         job_id, payload = self.delete_wallet_with_queued_removal()
-        with patch.object(changes, "registry_for", side_effect=ConnectionError("Synthetic registry outage")):
+        with patch.object(
+            eligibility_invalidation, "registry_for", side_effect=ConnectionError("Synthetic registry outage")
+        ) as registry_outage:
             self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 1))
+        registry_outage.assert_called_once_with(self.company, self.node.client)
         with use_operator():
             self.assertEqual(WhitelistChange.objects.count(), 1)
 
@@ -241,14 +276,25 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         job_id, payload = self.delete_wallet_with_queued_removal()
         self.node.confirmed = False
         self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 1))
+        with use_operator():
+            removal = WhitelistChange.objects.get(action="remove")
+            attempt = SignedAttempt.objects.get(operation=removal.operation)
+            signed = (attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction))
+            next_nonce = attempt.signer.next_nonce
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3]])
         self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 2))
         with use_operator():
             removal = WhitelistChange.objects.get(action="remove")
             self.assertEqual(removal.status, "executing")
             attempt = SignedAttempt.objects.get(operation=removal.operation)
-            self.node.receipts[attempt.tx_hash] = receipt(attempt)
+            self.assertEqual((attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction)), signed)
+            self.assertEqual(attempt.signer.next_nonce, next_nonce)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+            confirmed_receipt = receipt(attempt)
+            self.node.receipts[attempt.tx_hash] = confirmed_receipt
             self.node.expiries[ADDRESS] = 0
-        self.assertEqual(len(self.node.broadcasts), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3], signed[3]])
         self.assertEqual(recover_whitelist_changes.func()["completed"], 1)
 
         self.run_removal_job(job_id)
@@ -256,24 +302,35 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         self.assert_removal_complete(job_id, payload, 3)
         with use_operator():
             self.assertEqual(WhitelistChange.objects.filter(action="remove").count(), 1)
+            removal.refresh_from_db()
+            self.assertEqual(removal.operation.current_attempt_id, signed[0])
+            self.assertEqual(removal.operation.block_number, confirmed_receipt["blockNumber"])
+            self.assertEqual(removal.operation.block_hash, confirmed_receipt["blockHash"])
+            self.assertEqual(removal.operation.gas_used, confirmed_receipt["gasUsed"])
+            attempt.refresh_from_db()
+            self.assertEqual((attempt.pk, attempt.nonce, attempt.tx_hash, bytes(attempt.raw_transaction)), signed)
+            self.assertEqual(attempt.signer.next_nonce, next_nonce)
+            self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.node.broadcasts[1:], [signed[3], signed[3]])
 
-    def test_deleted_wallet_removal_job_keeps_unavailable_actor_without_replacing_attribution(self):
+    def test_deleted_wallet_removal_job_retains_its_actual_holder_after_login_deactivation(self):
         self.submit_approval()
         job_id, payload = self.delete_wallet_with_queued_removal()
         with use_operator():
             get_user_model().objects.filter(pk=self.customer.pk).update(is_active=False)
-        self.assertEqual(self.run_removal_job(job_id), (payload, "todo", 1))
-        with use_operator():
-            self.assertFalse(WhitelistChange.objects.filter(action="remove").exists())
-            get_user_model().objects.filter(pk=self.customer.pk).update(is_active=True)
 
         self.run_removal_job(job_id)
 
-        self.assert_removal_complete(job_id, payload, 2)
-        with self.assertRaises(WhitelistRemovalPending):
-            refresh_whitelist_targets.func(
-                targets=payload["targets"], actor_id=str(self.customer.pk + 10000), remove_only=True
-            )
+        self.assert_removal_complete(job_id, payload, 1)
+        sent = len(self.node.broadcasts)
+        result = refresh_whitelist_targets.func(**payload, actor_id=str(self.customer.pk + 10000), remove_only=False)
+        self.assertEqual(result, {"checked": 1, "submitted": 0, "unattributed": 0, "errors": 0})
+        self.assertEqual(len(self.node.broadcasts), sent)
+        with use_operator():
+            removal = WhitelistChange.objects.get(action="remove")
+            self.assertEqual(removal.initiated_by_id, self.customer.pk)
+            self.assertEqual(removal.eligibility_invalidation_id, self.wallet_removal.pk)
+            self.assertFalse(get_user_model().objects.get(pk=self.customer.pk).is_active)
 
     def test_app_alias_cannot_admit_recover_or_read_private_commands(self):
         with use_operator():

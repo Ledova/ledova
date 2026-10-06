@@ -310,6 +310,7 @@ export function SignInScreen() {
                     style={styles.inputIcon}
                   />
                   <TextInput
+                    accessibilityLabel="Email"
                     style={styles.input}
                     placeholder="your@email.com"
                     placeholderTextColor={theme.colors.form.placeholder}
@@ -334,6 +335,7 @@ export function SignInScreen() {
                 <View style={styles.inputWrapper}>
                   <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
                   <TextInput
+                    accessibilityLabel="Password"
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••"
                     placeholderTextColor={theme.colors.form.placeholder}
@@ -363,6 +365,7 @@ export function SignInScreen() {
               </View>
 
               <PrimaryButton
+                accessibilityLabel="Sign In"
                 onPress={handleSignIn}
                 loading={isLoading || biometricLoading}
                 fullWidth

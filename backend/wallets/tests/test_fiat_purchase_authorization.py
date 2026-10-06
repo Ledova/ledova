@@ -3,8 +3,9 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITransactionTestCase
 
+from operators.models import Operator
 from users.models import UserAccount, UserProfile
 from users.models.user_account import AccountRole
 from wallets.models import Wallet
@@ -12,7 +13,7 @@ from wallets.models import Wallet
 User = get_user_model()
 
 
-class FiatPurchaseAuthorizationTest(APITestCase):
+class FiatPurchaseAuthorizationTest(APITransactionTestCase):
     def make_tenant(self, label):
         user = User.objects.create_user(email=f"{label}@fiat.example.test", password="pw-12345678")
         profile = UserProfile.objects.create(user=user)
@@ -25,6 +26,7 @@ class FiatPurchaseAuthorizationTest(APITestCase):
         return user, profile, account, wallet
 
     def setUp(self):
+        Operator.get()
         self.alice, self.alice_profile, self.alice_account, self.alice_wallet = self.make_tenant("alice")
         self.bob, self.bob_profile, self.bob_account, self.bob_wallet = self.make_tenant("bob")
         self.client.force_authenticate(self.alice)

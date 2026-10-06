@@ -10,6 +10,7 @@ import { CompanyPublicationsScreen } from '../screens/company-publications/Compa
 import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
 import { CompanyAuthorityScreen } from '../screens/company-authority/CompanyAuthorityScreen';
 import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
+import { CompanyEligibilityScreen } from '../screens/eligibility-records/CompanyEligibilityScreen';
 import { useAppTheme } from '../contexts';
 import { getMainHeaderStyle } from './headers/MainHeader';
 import { MainHeader } from './headers';
@@ -21,6 +22,7 @@ export type CompanyStackParamList = {
   CompanyOfferings: undefined;
   CompanyAuthority: undefined;
   CompanyTeam: undefined;
+  CompanyEligibility: undefined;
   TokenDetail: { uuid: string; name?: string };
   PrepareRegisterOpening: { tokenUuid: string; companyUuid: string };
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
@@ -62,6 +64,11 @@ export function CompanyStackNavigator({
       <Stack.Screen
         name="CompanyTeam"
         component={CompanyTeamScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="CompanyEligibility"
+        component={CompanyEligibilityScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen

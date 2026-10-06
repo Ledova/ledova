@@ -7,30 +7,35 @@ from django.conf import settings
 from django.http import HttpResponse, StreamingHttpResponse
 
 from authentication.classes import HybridJWTAuthentication
-from shared.views.principal import set_principal_for_async_view, sets_the_principal
+from companies.services.authority_requests import _requester_principal
+from shared.views.principal import sets_the_principal
 from tokens import events
-from tokens.services.trading_events import resolve_streamable_token_uuid
+from tokens.services.trading_events import streamable_token_uuid
 
 HEARTBEAT_INTERVAL = 30
 
 
 def _authenticate_sync(request):
     result = HybridJWTAuthentication().authenticate(request)
-    if result is not None:
-        return result[0]
-
-    try:
-        user = request.user
-        if user.is_authenticated and user.is_active:
-            return user
-    except Exception:
-        pass
-
-    return None
+    return result[0] if result is not None else None
 
 
 async def _authenticate(request):
     return await sync_to_async(_authenticate_sync, thread_sensitive=True)(request)
+
+
+def _stream_access_sync(user, raw_token_uuid):
+    with _requester_principal(user.pk):
+        return streamable_token_uuid(user, raw_token_uuid)
+
+
+def _stream_is_current_sync(request, actor_id, token_uuid):
+    user = _authenticate_sync(request)
+    return user is not None and user.pk == actor_id and _stream_access_sync(user, token_uuid) == token_uuid
+
+
+async def _stream_is_current(request, actor_id, token_uuid):
+    return await sync_to_async(_stream_is_current_sync, thread_sensitive=True)(request, actor_id, token_uuid)
 
 
 def _format_sse(event_type: str, data: dict) -> str:
@@ -48,7 +53,7 @@ def _format_public_trading_event(event, token_uuid: str):
     return _format_sse(event_type, {})
 
 
-async def _event_stream(token_uuid: str):
+async def _event_stream(request, actor_id, token_uuid: str):
     client = aioredis.from_url(settings.REDIS_URL)
     pubsub = client.pubsub()
     subscribed = False
@@ -56,6 +61,8 @@ async def _event_stream(token_uuid: str):
     try:
         await pubsub.subscribe(events.TRADING_EVENTS_CHANNEL)
         subscribed = True
+        if not await _stream_is_current(request, actor_id, token_uuid):
+            return
         yield _format_sse(events.CONNECTED_EVENT, {"status": "ok"})
 
         last_heartbeat = asyncio.get_event_loop().time()
@@ -63,11 +70,15 @@ async def _event_stream(token_uuid: str):
         while True:
             message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
 
-            if message is None:
-                now = asyncio.get_event_loop().time()
-                if now - last_heartbeat >= HEARTBEAT_INTERVAL:
+            now = asyncio.get_event_loop().time()
+            if now - last_heartbeat >= HEARTBEAT_INTERVAL:
+                if not await _stream_is_current(request, actor_id, token_uuid):
+                    return
+                if message is None:
                     yield ": heartbeat\n\n"
-                    last_heartbeat = now
+                last_heartbeat = now
+
+            if message is None:
                 continue
 
             if not isinstance(message, dict) or message.get("type") != "message":
@@ -81,7 +92,8 @@ async def _event_stream(token_uuid: str):
             public_event = _format_public_trading_event(event, token_uuid)
             if public_event is None:
                 continue
-
+            if not await _stream_is_current(request, actor_id, token_uuid):
+                return
             yield public_event
 
     except asyncio.CancelledError:
@@ -103,14 +115,12 @@ async def trading_events_stream(request):
     if user is None:
         return HttpResponse("Unauthorized", status=401, content_type="text/plain")
 
-    await set_principal_for_async_view(user)
-
-    token_uuid = await resolve_streamable_token_uuid(user, request.GET.get("token"))
+    token_uuid = await sync_to_async(_stream_access_sync, thread_sensitive=True)(user, request.GET.get("token"))
     if token_uuid is None:
         return HttpResponse("Token not found", status=404, content_type="text/plain")
 
     response = StreamingHttpResponse(
-        _event_stream(token_uuid),
+        _event_stream(request, user.pk, token_uuid),
         content_type="text/event-stream",
     )
     response["Cache-Control"] = "no-cache"

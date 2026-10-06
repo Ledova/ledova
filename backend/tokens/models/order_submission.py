@@ -19,6 +19,9 @@ class OrderSubmission(BaseModel):
     owner_account = models.ForeignKey("users.UserAccount", on_delete=models.PROTECT, related_name="+")
     wallet = models.ForeignKey("wallets.Wallet", on_delete=models.PROTECT, related_name="+")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="+")
+    eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
+    )
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     intent_version = models.PositiveSmallIntegerField(default=1, editable=False)
     wallet_address = models.CharField(max_length=42, editable=False)
@@ -50,6 +53,10 @@ class OrderSubmission(BaseModel):
 
     class Meta:
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(status="created") | models.Q(eligibility_decision__isnull=True),
+                name="order_submission_eligibility_created_only",
+            ),
             models.UniqueConstraint(fields=["owner_account", "submission_id"], name="order_submission_account_key"),
             models.CheckConstraint(
                 condition=models.Q(intent_version=1, quantity__gt=0, chain_id__gt=0)
