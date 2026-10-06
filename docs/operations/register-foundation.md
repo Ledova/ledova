@@ -708,6 +708,12 @@ losing its proof later does not unlink it. Rejection with a reason stays
 available until a decision applies or rejects the link, including when the
 retained copy is unavailable.
 
+Application can deadlock with an issue or transfer completing at the same moment
+whose recorder, its approving reviewer or transferor, is the person applying the
+link: the application holds that person's user row while it waits for the
+share-class lock, and the completion needs the row to commit. PostgreSQL aborts
+one of them, which can be retried. Corrections share this pattern.
+
 Openings follow the same rules. An opening's own mapping links its addresses
 when it is applied, and its preparation refuses an address already linked to
 another member. An applied link makes a pending opening that maps the address to
