@@ -493,6 +493,35 @@ it("lists every page of the class's openings newest first, each once, with their
   ]);
 });
 
+it('numbers an existing member without a name apart from new members, in the holdings and the preview', async () => {
+  const summary = opening().boundarySummary!;
+  openingPages = [
+    page([
+      opening({
+        boundarySummary: {
+          ...summary,
+          holdings: summary.holdings.map((row) => (row.member === MEMBER_ADA ? { ...row, memberName: null } : row)),
+        },
+      }),
+    ]),
+  ];
+  await openClass();
+  const [record] = records(await openings());
+  expect(holdings(record)).toEqual([
+    [COPY.NEW_MEMBER_NUMBERED(1), '9,007,199,254,740,993 shares', BO],
+    [COPY.UNNAMED_MEMBER_NUMBERED(1), '20 shares', ADA],
+    [COPY.NEW_MEMBER_NUMBERED(1), '5 shares', CY],
+    [COPY.NEW_MEMBER_NUMBERED(2), '5 shares', DEE],
+  ]);
+  const dialog = await openDecision(record, 'approve');
+  await previewed(dialog);
+  expect(lines(dialog, 'Opening entry')).toEqual([
+    `${COPY.UNNAMED_MEMBER_NUMBERED(1)}: +20`,
+    `${COPY.NEW_MEMBER_NUMBERED(1)}: +9,007,199,254,740,998`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)}: +5`,
+  ]);
+});
+
 it('says an opening whose boundary held no shares records an empty register', async () => {
   openingPages = [page([opening({ mapping: [], boundarySummary: { ...opening().boundarySummary!, holdings: [] } })])];
   await openClass();

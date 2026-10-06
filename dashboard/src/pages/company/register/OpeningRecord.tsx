@@ -5,6 +5,8 @@ import {
   apiErrorSentence,
   downloadRegisterOpeningFile,
   formatDateTime,
+  largestHoldingsFirst,
+  openingMemberLabels,
   type RegisterOpening,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
@@ -15,7 +17,6 @@ import { RegisterChanges } from './RegisterChanges';
 import { RegisterDecisions } from './RegisterDecisions';
 import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, shareCount, type RegisterSteps } from './proposals';
 import { saveFile } from './useCompanyRegister';
-import { openingHoldings } from './useRegisterOpenings';
 
 const COPY = REGISTER_OPENING_COPY;
 
@@ -41,7 +42,8 @@ export function OpeningRecord({
     },
   });
   const summary = proposal.boundarySummary;
-  const mapped = summary ? openingHoldings(summary) : null;
+  const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
+  const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
   return (
     <li className="flex flex-col gap-3 py-4">
@@ -57,17 +59,19 @@ export function OpeningRecord({
           {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
         </Row>
       </Rows>
-      {mapped && (
+      {summary && (
         <div className="flex flex-col gap-1">
           <p className="text-sm text-text-muted">{COPY.HOLDINGS}</p>
-          {mapped.holdings.length === 0 ? (
+          {holdings.length === 0 ? (
             <p className="text-sm text-text-primary">{COPY.NO_HOLDINGS}</p>
           ) : (
             <ul className="divide-y divide-border-subtle">
-              {mapped.holdings.map((holding) => (
+              {holdings.map((holding) => (
                 <li key={holding.address} className="flex flex-col gap-1 py-2">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="min-w-0 break-words text-sm text-text-primary">{holding.name}</span>
+                    <span className="min-w-0 break-words text-sm text-text-primary">
+                      {(holding.member !== null && labels.get(holding.member)) || COPY.NEW_MEMBER}
+                    </span>
                     <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
                       {shareCount(holding.shares)}
                     </span>
@@ -125,7 +129,7 @@ export function OpeningRecord({
                   <RegisterChanges
                     changes={preview.changes.map((change) => ({
                       ...change,
-                      name: mapped?.names.get(change.member) ?? COPY.NEW_MEMBER,
+                      name: labels.get(change.member) ?? COPY.NEW_MEMBER,
                     }))}
                   />
                 )}
