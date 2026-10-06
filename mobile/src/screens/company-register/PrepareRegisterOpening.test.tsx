@@ -730,6 +730,17 @@ it.each([
   expect(view.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
 });
 
+it('refuses chain holdings whose share counts are not whole, and reads them again on request', async () => {
+  holdings = [...HOLDINGS, holding(EVE, '1.5')];
+  const view = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  expect(await view.findByText('The holdings at the boundary could not be read.')).toBeTruthy();
+  expect(view.queryByText('Holding 1')).toBeNull();
+  holdings = HOLDINGS;
+  await fireEvent.press(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
+  expect(await view.findByTestId('prepare-opening-screen')).toBeTruthy();
+  expect(view.queryByText(EVE)).toBeNull();
+});
+
 it('keeps the draft but holds the form while a reload of the holdings fails', async () => {
   const view = await open();
   await map(view);

@@ -14,6 +14,7 @@ import {
   getRegisterOpeningHolders,
   getRegisterOpenings,
   getRegisterReconciliations,
+  hasWholeShares,
   readEveryPage,
   useLaterPages,
   useUserPreferences,
@@ -187,6 +188,9 @@ export function useRegisterOpenings(epoch: number, company: string, token: strin
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The openings do not belong to this share class');
       }
+      if (rows.some((row) => !hasWholeShares(row.boundarySummary?.holdings ?? []))) {
+        throw new Error('The openings record a holding that is not whole');
+      }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
   });
@@ -195,12 +199,13 @@ export function useRegisterOpenings(epoch: number, company: string, token: strin
 export function useOpeningHolders(epoch: number, token: string) {
   return useQuery({
     queryKey: openingHoldersKey(epoch, token),
-    queryFn: async ({ signal }) =>
-      (
-        await sessionRead(epoch, () =>
-          getRegisterOpeningHolders(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
-        )
-      ).data,
+    queryFn: async ({ signal }) => {
+      const { data } = await sessionRead(epoch, () =>
+        getRegisterOpeningHolders(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
+      );
+      if (!hasWholeShares(data.holdings)) throw new Error('The chain holdings record a share count that is not whole');
+      return data;
+    },
   });
 }
 

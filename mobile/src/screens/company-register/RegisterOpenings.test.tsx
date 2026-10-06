@@ -472,6 +472,18 @@ it('refuses an opening whose mapping cannot be read', async () => {
   expect(view.queryByText(NEW_HEADING)).toBeNull();
 });
 
+it('refuses openings that record a holding that is not whole, and retries them', async () => {
+  const summary = { ...REJECTED.boundarySummary, holdings: [holding(ADA, '1.5', MEMBER_A, 'Alex Member')] };
+  openingPages = [[OPENING, { ...REJECTED, boundarySummary: summary }]];
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(await view.findByText(FAILED)).toBeTruthy();
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
+  openingPages = [[OPENING, REJECTED]];
+  await fireEvent.press(view.getByRole('button', { name: 'Retry openings for Ordinary shares' }));
+  expect(await view.findByText(REJECTED_HEADING)).toBeTruthy();
+});
+
 it('hides the openings after a failed read and offers a retry', async () => {
   failing = new Set([URLS.REGISTER_OPENINGS]);
   const view = await render(<CompanyRegisterScreen />, { wrapper });
