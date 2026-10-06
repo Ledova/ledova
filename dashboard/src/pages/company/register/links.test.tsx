@@ -316,6 +316,21 @@ function confirmButton(dialog: HTMLElement, kind: RegisterDecisionKind) {
   return within(dialog).getByRole('button', { name: `${COPY.DECISIONS[kind]} wallet link` }) as HTMLButtonElement;
 }
 
+function stubDownloads() {
+  const saved: string[] = [];
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = vi.fn(() => 'blob:synthetic');
+      static revokeObjectURL = vi.fn();
+    },
+  );
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    saved.push(this.download);
+  });
+  return saved;
+}
+
 function refreshCounts() {
   return [reads(LINKS), reads(WAITING), reads(HOLDERS), reads(ENTRIES), reads(APPOINTMENTS)];
 }
@@ -580,6 +595,23 @@ it('holds a previewed decision and withdraws every step and Link waiting wallets
   expect(within(list).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
+it('withholds every step and Link waiting wallets while the appointments cannot be read, and offers their retry', async () => {
+  show();
+  const list = await section();
+  expect(await within(list).findByRole('link', { name: COPY.PREPARE })).toBeTruthy();
+  serve((url) => (url === APPOINTMENTS ? Promise.reject(new Error('Unavailable')) : undefined));
+  await act(async () => {
+    await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
+  });
+  await waitFor(() => expect(decisionLabels(records(list)[0])).toEqual([]));
+  expect(prepareLinks()).toHaveLength(0);
+  expect(within(list).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  serve();
+  fireEvent.click(within(list).getByRole('button', { name: 'Retry appointments' }));
+  await waitFor(() => expect(decisionLabels(records(list)[0])).toEqual(['Approve', 'Apply', 'Reject']));
+  expect(prepareLinks()).toHaveLength(1);
+});
+
 it.each([false, true])(
   'records and refreshes nothing when a decision returns after the signed-in account changed (refused: %s)',
   async (refused) => {
@@ -601,28 +633,21 @@ it.each([false, true])(
   },
 );
 
-it('keeps no links whose read returns after the signed-in account changed', async () => {
-  const pending = deferred<Paged<RegisterLink>>();
-  serve((url) => (url === LINKS ? pending.promise : undefined));
+it.each([
+  ['links', LINKS, LINKS_KEY, () => page([link()])],
+  ['waiting wallets', WAITING, WAITING_KEY, () => ({ data: { wallets: waitingWallets } })],
+])('keeps no %s whose read returns after the signed-in account changed', async (_what, url, queryKey, answer) => {
+  const pending = deferred<unknown>();
+  serve((called) => (called === url ? pending.promise : undefined));
   show();
-  await waitFor(() => expect(reads(LINKS)).toBe(1));
+  await waitFor(() => expect(reads(url)).toBe(1));
   act(switchAccount);
-  await act(async () => pending.resolve(page([link()])));
-  expect(client.getQueryData(LINKS_KEY)).toBeUndefined();
+  await act(async () => pending.resolve(answer()));
+  expect(client.getQueryData(queryKey)).toBeUndefined();
 });
 
 it('downloads the authority document under its retained name, or a named fallback', async () => {
-  const saved: string[] = [];
-  vi.stubGlobal(
-    'URL',
-    class extends URL {
-      static createObjectURL = vi.fn(() => 'blob:synthetic');
-      static revokeObjectURL = vi.fn();
-    },
-  );
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-    saved.push(this.download);
-  });
+  const saved = stubDownloads();
   linkPages = [page([link(), STAFF_ERA])];
   serve((url) => (url.endsWith('/file/') ? { data: new Blob(['%PDF synthetic']) } : undefined));
   show();
@@ -632,4 +657,17 @@ it('downloads the authority document under its retained name, or a named fallbac
   fireEvent.click(within(bare).getByRole('button', { name: new RegExp(`^${COPY.DOWNLOAD}`) }));
   await waitFor(() => expect(saved).toEqual(['link-resolution.pdf', 'wallet-link-link-staff']));
   expect(api.get).toHaveBeenCalledWith(FILE, { ledovaSubmissionGuard: expect.any(Function), responseType: 'blob' });
+});
+
+it('saves no authority document whose download returns after the signed-in account changed', async () => {
+  const saved = stubDownloads();
+  const pending = deferred<{ data: Blob }>();
+  show();
+  const [record] = records(await section());
+  serve((url) => (url === FILE ? pending.promise : undefined));
+  fireEvent.click(within(record).getByRole('button', { name: new RegExp(`^${COPY.DOWNLOAD}`) }));
+  await waitFor(() => expect(reads(FILE)).toBe(1));
+  act(switchAccount);
+  await act(async () => pending.resolve({ data: new Blob(['%PDF synthetic']) }));
+  expect(saved).toEqual([]);
 });

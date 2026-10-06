@@ -43,6 +43,7 @@ const ACCOUNT = ['tokens', 'register', 'profile-one', 'account-one'];
 const LINKS_KEY = [...ACCOUNT, 'links', 'harbour'];
 const WAITING_KEY = [...ACCOUNT, 'waiting-wallets', 'harbour'];
 const HOLDERS_KEY = [...ACCOUNT, 'holders', 'ordinary'];
+const APPOINTMENTS_KEY = ['company-appointments', 'profile-one', 'account-one'];
 const COPY = REGISTER_LINK_COPY;
 const NEW_MEMBER = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED;
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
@@ -426,6 +427,30 @@ it('retries an unconfirmed upload under the same key, and takes a new key once t
   fireEvent.click(submitButton());
   expect(await screen.findByText('Register page')).toBeTruthy();
   expect(uploads().map((form) => form.get('idempotency_key'))).toEqual([KEY(4), KEY(4), KEY(5)]);
+});
+
+it('uploads again under a new key once another appointment holds the prepare step', async () => {
+  let fail = true;
+  uploadFor = async (form) => {
+    if (fail) throw new Error('Network Error');
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await screen.findByRole('alert');
+  fail = false;
+  appointments = [appointment(['prepare'], { uuid: 'appointment-0' })];
+  await reread(APPOINTMENTS_KEY);
+  await waitFor(() => expect(submitButton().disabled).toBe(false));
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads().map((form) => [form.get('appointment'), form.get('idempotency_key')])).toEqual([
+    ['appointment-a', KEY(4)],
+    ['appointment-0', KEY(5)],
+  ]);
+  expect(preparations()[0].appointment).toBe('appointment-0');
 });
 
 it('refuses an unconfirmed preparation receipt and stays on the page with the links as they were', async () => {
