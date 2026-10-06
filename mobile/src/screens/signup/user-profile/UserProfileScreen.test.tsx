@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiClientProvider, USER_PROFILE_FIELDS } from '@ledova/shared';
 import { apiClient } from '../../../services/apiClient';
 import { UserProfileScreen } from './UserProfileScreen';
@@ -11,6 +12,7 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('../../../hooks/useRole', () => ({ useRole: () => ({ isCompany: false }) }));
 jest.mock('../../../services/apiClient', () => ({ apiClient: { get: jest.fn(), patch: jest.fn() } }));
 const api = jest.mocked(apiClient);
+let client: QueryClient;
 
 const A_MESSAGE: Record<string, string> = {
   fullName: 'Enter your full legal name.',
@@ -21,6 +23,9 @@ const A_MESSAGE: Record<string, string> = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } },
+  });
   jest.spyOn(console, 'error').mockImplementation(() => {});
   api.get.mockResolvedValue({
     data: {
@@ -41,15 +46,18 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  client.clear();
 });
 
 describe('every field USER_PROFILE_FIELDS names is one this screen actually renders', () => {
   it.each(USER_PROFILE_FIELDS)('shows the refusal the server gave for %s under its field', async (field) => {
     api.patch.mockRejectedValue({ response: { status: 400, data: { [field]: [A_MESSAGE[field]] } } });
     const view = await render(
-      <ApiClientProvider client={apiClient}>
-        <UserProfileScreen />
-      </ApiClientProvider>,
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>
+          <UserProfileScreen />
+        </ApiClientProvider>
+      </QueryClientProvider>,
     );
     await waitFor(() => expect(view.getByDisplayValue('Synthetic Person')).toBeTruthy());
 
@@ -68,9 +76,11 @@ it('saves edits from named profile fields once through accessible Continue and l
       }),
   );
   const view = await render(
-    <ApiClientProvider client={apiClient}>
-      <UserProfileScreen />
-    </ApiClientProvider>,
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <UserProfileScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
   );
   await waitFor(() => expect(view.getByLabelText('Full Name')).toHaveDisplayValue('Synthetic Person'));
   await fireEvent.changeText(view.getByLabelText('Full Name'), 'Synthetic Representative');
