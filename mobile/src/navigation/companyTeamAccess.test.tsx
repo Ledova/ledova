@@ -3,6 +3,7 @@ import { cleanup, render } from '@testing-library/react-native';
 import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
+import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
@@ -46,6 +47,9 @@ jest.mock('../screens/company-register/PrepareRegisterOpeningScreen', () => ({
 jest.mock('../screens/company-register/PrepareRegisterParticularsScreen', () => ({
   PrepareRegisterParticularsScreen: () => null,
 }));
+jest.mock('../screens/company-register/PrepareRegisterLinkScreen', () => ({
+  PrepareRegisterLinkScreen: () => null,
+}));
 
 afterEach(async () => {
   await cleanup();
@@ -87,6 +91,8 @@ it.each([
   ['opening', 'PrepareRegisterOpening', PrepareRegisterOpeningScreen, CompanyStackNavigator],
   ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, HomeStackNavigator],
   ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, CompanyStackNavigator],
+  ['wallet link', 'PrepareRegisterLink', PrepareRegisterLinkScreen, HomeStackNavigator],
+  ['wallet link', 'PrepareRegisterLink', PrepareRegisterLinkScreen, CompanyStackNavigator],
 ])('registers %s preparation beside the register with a back action', async (_, name, component, Navigator) => {
   await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
   expect(mockScreens.find((screen) => screen.name === name)).toEqual(
@@ -141,6 +147,13 @@ it('types the particulars preparation params alike in both register stacks', () 
   const company: CompanyStackParamList['PrepareRegisterParticulars'] = home;
   const back: HomeStackParamList['PrepareRegisterParticulars'] = company;
   expect(back).toEqual({ tokenUuid: 'ordinary', companyUuid: 'paper', memberUuid: 'member-1' });
+});
+
+it('types the wallet link preparation params alike in both register stacks', () => {
+  const home: HomeStackParamList['PrepareRegisterLink'] = { company: 'paper' };
+  const company: CompanyStackParamList['PrepareRegisterLink'] = home;
+  const back: HomeStackParamList['PrepareRegisterLink'] = company;
+  expect(back).toEqual({ company: 'paper' });
 });
 
 it('registers the register in Home with a back action and keeps it as the Company tab landing', async () => {

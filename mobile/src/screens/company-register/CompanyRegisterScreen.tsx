@@ -11,6 +11,7 @@ import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
+import { CompanyLinks } from './CompanyLinks';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from './RegisterDownload';
 
@@ -121,12 +122,21 @@ function CompanyRegister({ epoch }: { epoch: number }) {
         )}
       </Section>
       {company && registers.isSuccess && (
-        <CompanyParticulars
-          epoch={epoch}
-          company={company.uuid}
-          registers={registers.data}
-          refreshHolders={registers.refetch}
-        />
+        <>
+          <CompanyParticulars
+            epoch={epoch}
+            company={company.uuid}
+            registers={registers.data}
+            refreshHolders={registers.refetch}
+          />
+          <CompanyLinks
+            epoch={epoch}
+            company={company.uuid}
+            registers={registers.data}
+            refreshHolders={registers.refetch}
+            onPrepare={() => navigation.navigate('PrepareRegisterLink', { company: company.uuid })}
+          />
+        </>
       )}
       <Section title="Register instructions">
         <Text style={styles.muted}>
