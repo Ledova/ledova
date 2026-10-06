@@ -4794,7 +4794,7 @@ export interface ApiComponents {
       blockHash: string;
       blockNumber: number;
       date: string;
-      holdings: ApiComponents['schemas']['RegisterOpeningHolding'][];
+      holdings: ApiComponents['schemas']['RegisterOpeningHolder'][];
     };
     RegisterOpeningChange: {
       member: string;
@@ -4853,11 +4853,6 @@ export interface ApiComponents {
     RegisterOpeningHolders: {
       block: ApiComponents['schemas']['RegisterOpeningBlock'];
       holdings: ApiComponents['schemas']['RegisterOpeningHolder'][];
-    };
-    RegisterOpeningHolding: {
-      address: string;
-      member: string | null;
-      shares: string;
     };
     RegisterReconciliation: {
       blockHash: string;

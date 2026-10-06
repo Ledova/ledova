@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from tokens.models import (
     RegisterCorrectionAuthority,
+    RegisterMember,
     RegisterOpening,
     RegisterOpeningDecision,
     RegisterWalletLink,
@@ -13,6 +14,7 @@ from tokens.serializers.register_decision import (
     RegisterDecisionRequestSerializer,
     RegisterDecisionSerializer,
 )
+from tokens.services.register import member_identities
 
 
 class RegisterOpeningCreateSerializer(serializers.Serializer):
@@ -56,21 +58,21 @@ class RegisterOpeningHoldingSerializer(serializers.Serializer):
     member = serializers.CharField(allow_null=True)
 
 
+class RegisterOpeningHolderSerializer(RegisterOpeningHoldingSerializer):
+    member_name = serializers.CharField(allow_null=True)
+
+
 class RegisterOpeningBoundarySerializer(serializers.Serializer):
     block_number = serializers.IntegerField()
     block_hash = serializers.CharField()
     date = serializers.DateField()
-    holdings = RegisterOpeningHoldingSerializer(many=True)
+    holdings = RegisterOpeningHolderSerializer(many=True)
 
 
 class RegisterOpeningBlockSerializer(serializers.Serializer):
     number = serializers.IntegerField()
     hash = serializers.CharField()
     date = serializers.DateField()
-
-
-class RegisterOpeningHolderSerializer(RegisterOpeningHoldingSerializer):
-    member_name = serializers.CharField(allow_null=True)
 
 
 class RegisterOpeningHoldersSerializer(serializers.Serializer):
@@ -124,12 +126,22 @@ class RegisterOpeningSerializer(RegisterDecidedSerializer):
         if obj.boundary is None:
             return None
         members = {link["address"].lower(): link["member"] for link in obj.mapping}
+        known = RegisterMember.objects.filter(company_id=obj.company_id, pk__in=set(members.values()))
+        names = {
+            str(member): identity.name or None
+            for member, identity in member_identities(obj.token, list(known.values_list("pk", flat=True))).items()
+        }
         return {
             "block_number": obj.boundary["block"]["number"],
             "block_hash": obj.boundary["block"]["hash"],
             "date": obj.boundary["block"]["date"],
             "holdings": [
-                {"address": row["address"], "shares": row["shares"], "member": members.get(row["address"].lower())}
+                {
+                    "address": row["address"],
+                    "shares": row["shares"],
+                    "member": members.get(row["address"].lower()),
+                    "member_name": names.get(members.get(row["address"].lower())),
+                }
                 for row in obj.boundary["holdings"]
             ],
         }

@@ -10661,7 +10661,7 @@
           },
           "holdings": {
             "items": {
-              "$ref": "#/components/schemas/RegisterOpeningHolding"
+              "$ref": "#/components/schemas/RegisterOpeningHolder"
             },
             "type": "array"
           }
@@ -10943,26 +10943,6 @@
         "required": [
           "block",
           "holdings"
-        ],
-        "type": "object"
-      },
-      "RegisterOpeningHolding": {
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "member": {
-            "nullable": true,
-            "type": "string"
-          },
-          "shares": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "address",
-          "member",
-          "shares"
         ],
         "type": "object"
       },

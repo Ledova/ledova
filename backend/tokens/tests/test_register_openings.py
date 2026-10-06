@@ -974,6 +974,19 @@ class RegisterOpeningApiTest(APITransactionTestCase):
         self.client.force_authenticate(self.owner)
         self.payload = opening_payload(self.target.token_id, self.evidence, self.administrator)
 
+    def test_the_boundary_summary_names_a_mapped_member_the_register_can_already_name(self):
+        from tokens.tests.test_register_imports import live_wallet
+
+        with use_operator(), use_migrate():
+            member = create_member(company_id=self.tenant.company.pk, member_id=self.payload["mapping"][0]["member"])
+            live_wallet(self.tenant.company, member, ALICE, "Live Alice")
+        created = self.client.post(OPENINGS, self.payload, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(
+            [(row["address"], row["memberName"]) for row in created.json()["boundarySummary"]["holdings"]],
+            [(ALICE, "Live Alice"), (BOB, None)],
+        )
+
     def test_preparation_reads_lists_and_refuses_rewrites_changed_retries_and_strangers(self):
         created = self.client.post(OPENINGS, self.payload, format="json")
         self.assertEqual(created.status_code, 201, created.content)
@@ -994,8 +1007,18 @@ class RegisterOpeningApiTest(APITransactionTestCase):
                 "blockHash": boundary["hash"],
                 "date": boundary["date"],
                 "holdings": [
-                    {"address": ALICE, "shares": "80", "member": self.payload["mapping"][0]["member"]},
-                    {"address": BOB, "shares": "20", "member": self.payload["mapping"][1]["member"]},
+                    {
+                        "address": ALICE,
+                        "shares": "80",
+                        "member": self.payload["mapping"][0]["member"],
+                        "memberName": None,
+                    },
+                    {
+                        "address": BOB,
+                        "shares": "20",
+                        "member": self.payload["mapping"][1]["member"],
+                        "memberName": None,
+                    },
                 ],
             },
         )

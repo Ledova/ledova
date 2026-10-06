@@ -37,8 +37,8 @@ function opening(overrides: Partial<RegisterOpening> = {}): RegisterOpening {
       blockHash: '0x' + 'c'.repeat(64),
       date: '2026-09-20',
       holdings: [
-        { address: ADA, shares: '80', member: MEMBER_A },
-        { address: CY, shares: '20', member: MEMBER_B },
+        { address: ADA, shares: '80', member: MEMBER_A, memberName: 'Ada Member' },
+        { address: CY, shares: '20', member: MEMBER_B, memberName: null },
       ],
     },
     authority: 'director_resolution',
