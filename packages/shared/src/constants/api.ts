@@ -92,6 +92,7 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/holders/` as const,
   REGISTER_EXPORT: (uuid: string) => `/api/v1/tokens/${uuid}/register/export/` as const,
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
+  REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
   REGISTER_IMPORTS: '/api/v1/tokens/register-imports/',
   REGISTER_IMPORT_FILE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/file/` as const,
@@ -103,6 +104,10 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
   REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
+  REGISTER_OPENINGS: '/api/v1/tokens/register-openings/',
+  REGISTER_OPENING_FILE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/file/` as const,
+  REGISTER_OPENING_PREVIEW: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decision-preview/` as const,
+  REGISTER_OPENING_DECIDE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decide/` as const,
   REGISTER_RECONCILIATIONS: '/api/v1/tokens/register-reconciliations/',
   REGISTER_RECONCILIATION_ACKNOWLEDGE: (uuid: string) =>
     `/api/v1/tokens/register-reconciliations/${uuid}/acknowledge/` as const,

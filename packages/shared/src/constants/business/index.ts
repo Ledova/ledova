@@ -10,6 +10,7 @@ export * from './publications';
 export * from './register';
 export * from './register-imports';
 export * from './register-corrections';
+export * from './register-openings';
 export * from './register-reconciliations';
 export * from './company-documents';
 export * from './company-authority';

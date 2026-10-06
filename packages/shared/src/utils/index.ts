@@ -106,6 +106,7 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
+export { isPreparedRegisterOpening } from './register-openings';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, priceCents } from './market-data';
