@@ -330,7 +330,7 @@ it('shows each waiting wallet, never pre-selects a member by name, and prepares 
   expect(chosen(ADA_WALLET, BO_WALLET, CY_WALLET)).toEqual([NEW_MEMBER(1), NEW_MEMBER(2), NEW_MEMBER(3)]);
   expect([...memberOf(ADA_WALLET).options].map((option) => option.textContent)).toEqual([
     'Ada Member',
-    REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1),
+    `${COPY.UNNAMED_MEMBER} · ${COPY.HOLDING('10', 'ORD')}`,
     NEW_MEMBER(1),
     NEW_MEMBER(2),
     NEW_MEMBER(3),

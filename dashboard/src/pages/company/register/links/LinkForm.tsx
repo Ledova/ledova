@@ -9,8 +9,8 @@ import {
   failureStatus,
   isPreparedRegisterLink,
   isRegisterEvidenceReceipt,
-  openingMemberLabels,
   prepareRegisterLink,
+  registerLinkMemberLabels,
   uploadRegisterEvidence,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -23,7 +23,6 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { WalletStatus } from '../WalletStatus';
-import { registerMembers } from '../proposals';
 import { linksKey } from '../useRegisterLinks';
 
 type Draft = {
@@ -107,7 +106,8 @@ export function LinkForm({
     guard();
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
-  const existing = registerMembers(registers);
+  const holders = registers.flatMap((register) => register.holders);
+  const existing = new Set(holders.map(({ member }) => member));
   const ordered = [...wallets].sort(inRecordedOrder);
   const addresses = ordered.map(({ address }) => address.toLowerCase());
   const offered = (value: string) =>
@@ -117,13 +117,13 @@ export function LinkForm({
   );
   const reset = Object.keys(kept).length < Object.keys(choices).length;
   const memberOf = (address: string) => kept[address] ?? `${NEW}${address}`;
-  const fresh = [...addresses.map(memberOf), ...addresses.map((address) => `${NEW}${address}`)].filter((member) =>
-    member.startsWith(NEW),
+  const labels = registerLinkMemberLabels(
+    [...addresses.map(memberOf), ...addresses.map((address) => `${NEW}${address}`)].map((member) => ({
+      member,
+      memberExists: existing.has(member),
+    })),
+    holders,
   );
-  const labels = openingMemberLabels([
-    ...[...existing].map(([member, memberName]) => ({ member, memberName, memberExists: true })),
-    ...fresh.map((member) => ({ member, memberName: null, memberExists: false })),
-  ]);
   const problems = problemsOf(draft);
   const update = (patch: Partial<Draft>) => {
     setError('');

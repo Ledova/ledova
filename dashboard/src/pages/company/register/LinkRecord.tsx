@@ -5,8 +5,9 @@ import {
   apiErrorSentence,
   downloadRegisterLinkFile,
   formatDateTime,
-  openingMemberLabels,
+  registerLinkMemberLabels,
   type RegisterLink,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -19,18 +20,16 @@ import { saveFile } from './useCompanyRegister';
 
 const COPY = REGISTER_LINK_COPY;
 
-type Mapped = { member: string; memberExists: boolean };
-
 export function LinkRecord({
   link,
-  names,
+  holders,
   steps,
   guard,
   onDecided,
   onRefused,
 }: {
   link: RegisterLink;
-  names: Map<string, string | null>;
+  holders: TokenHoldersResponse['holders'];
   steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
@@ -44,11 +43,7 @@ export function LinkRecord({
       saveFile(data, retainedName(link.evidenceSnapshot, `wallet-link-${link.uuid}`));
     },
   });
-  const labelsOf = (rows: Mapped[]) =>
-    openingMemberLabels(
-      rows.map(({ member, memberExists }) => ({ member, memberName: names.get(member) || null, memberExists })),
-    );
-  const labels = labelsOf(link.mappingSummary);
+  const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
   return (
     <li className="flex flex-col gap-3 py-4">
@@ -106,7 +101,7 @@ export function LinkRecord({
         note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>}
       >
         {(preview) => {
-          const previewed = labelsOf(preview.links);
+          const previewed = registerLinkMemberLabels(preview.links, holders);
           return (
             <div className="flex flex-col gap-1">
               <p className="text-sm text-text-muted">{COPY.STATUS_NOTE}</p>

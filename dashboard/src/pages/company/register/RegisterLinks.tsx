@@ -4,7 +4,7 @@ import { LinkRow, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { LinkRecord } from './LinkRecord';
-import { registerMembers, registerSteps } from './proposals';
+import { registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
 import { useOwnAppointments } from './useRegisterImports';
 import { linksKey, useRegisterLinks, useWaitingWallets, waitingWalletsKey } from './useRegisterLinks';
@@ -30,7 +30,7 @@ export function RegisterLinks({
     enabled: !!steps?.prepare,
     onMissing: () => void appointments.refetch(),
   });
-  const names = registerMembers(registers);
+  const holders = registers.flatMap((register) => register.holders);
   const refresh = async () => {
     try {
       guard();
@@ -98,7 +98,7 @@ export function RegisterLinks({
             <LinkRecord
               key={link.uuid}
               link={link}
-              names={names}
+              holders={holders}
               steps={steps ?? {}}
               guard={guard}
               onDecided={refresh}
