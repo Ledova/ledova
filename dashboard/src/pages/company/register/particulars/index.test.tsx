@@ -24,6 +24,7 @@ import {
 import { PageTitle } from '@components/PageTitle';
 import apiClient from '@services/apiClient';
 import CompanyRegisterParticularsPage from '.';
+import { ParticularsForm } from './ParticularsForm';
 import { companyPreferences, prepareCompanyClient } from '../../testSupport';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -37,6 +38,7 @@ const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ACCOUNT = ['tokens', 'register', 'profile-one', 'account-one'];
 const PARTICULARS_KEY = [...ACCOUNT, 'particulars', 'harbour'];
 const HOLDERS_KEY = [...ACCOUNT, 'holders', 'ordinary'];
+const APPOINTMENTS_KEY = ['company-appointments', 'profile-one', 'account-one'];
 const COPY = REGISTER_PARTICULARS_COPY;
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const MEMBER_ADA = '10000000-0000-4000-8000-0000000000aa';
@@ -349,6 +351,32 @@ it('retries an unconfirmed upload under the same key, and takes a new key once t
   expect(preparations().map((body) => body.supportingEvidence)).toEqual([`evidence-${KEY(2)}`]);
 });
 
+it('uploads again under a new key once another appointment holds the prepare step', async () => {
+  let fail = true;
+  uploadFor = async (form) => {
+    if (fail) throw new Error('Network Error');
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await screen.findByRole('alert');
+  fail = false;
+  appointments = [appointment(['prepare'], { uuid: 'appointment-0' })];
+  await act(async () => {
+    await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads().map((form) => [form.get('appointment'), form.get('idempotency_key')])).toEqual([
+    ['appointment-a', KEY(1)],
+    ['appointment-0', KEY(2)],
+  ]);
+  expect(preparations()[0].appointment).toBe('appointment-0');
+});
+
 it('refuses an unconfirmed preparation receipt and stays on the page with the changes as they were', async () => {
   prepareFor = async (body) => ({ data: { ...prepared(body), asAt: '2026-09-21' } });
   show();
@@ -433,6 +461,20 @@ it('reads the appointments again after preparation is refused as not found, with
   expect(await screen.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(reads(APPOINTMENTS)).toBe(before + 1);
   expect(screen.queryByLabelText(COPY.SUPPORTING_DOCUMENT)).toBeNull();
+});
+
+it('holds preparation after a failed appointments refresh', async () => {
+  show();
+  await ready();
+  complete();
+  expect(submitButton().disabled).toBe(false);
+  serve((url) => (url === APPOINTMENTS ? Promise.reject(new Error('Unavailable')) : undefined));
+  await act(async () => {
+    await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
+  });
+  await waitFor(() => expect(submitButton().disabled).toBe(true));
+  fireEvent.submit(submitButton().closest('form')!);
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it("prepares while another company's register cannot be read", async () => {
@@ -522,5 +564,37 @@ it('reads nothing again for the previous account when a conflict returns after t
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect([reads(HOLDERS), reads(APPOINTMENTS), client.getQueryState(HOLDERS_KEY)?.dataUpdatedAt]).toEqual(before);
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('prepares nothing once its account guard refuses after an upload, even while the form stays open', async () => {
+  const pending = deferred<{ data: RegisterEvidence }>();
+  uploadFor = () => pending.promise;
+  let current = true;
+  const guard = () => {
+    if (!current) throw new Error('Your signed-in account changed.');
+  };
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <ParticularsForm
+          owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+          guard={guard}
+          company="harbour"
+          member={MEMBER_ADA}
+          appointment={appointment(['prepare'])}
+          blocked={false}
+          onConflict={() => undefined}
+          onMissing={() => undefined}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  complete();
+  fireEvent.click(submitButton());
+  await waitFor(() => expect(uploads()).toHaveLength(1));
+  current = false;
+  await act(async () => pending.resolve({ data: receipt(uploads()[0]) }));
+  expect(preparations()).toHaveLength(0);
   expect(screen.queryByRole('alert')).toBeNull();
 });
