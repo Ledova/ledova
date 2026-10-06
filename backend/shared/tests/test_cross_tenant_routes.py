@@ -234,6 +234,7 @@ REGISTER_OPENING_ROUTES = {
     "file": ("get", "/api/v1/tokens/register-openings/{uuid}/file/"),
     "decision_preview": ("post", "/api/v1/tokens/register-openings/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-openings/{uuid}/decide/"),
+    "holders": ("get", "/api/v1/tokens/{uuid}/register/opening-holders/"),
 }
 REGISTER_LINK_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-links/"),
@@ -1395,6 +1396,17 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         with self.as_an_operator_would():
             tenant, owner, appointment, evidence, target, node = opening_fixture()
         reading(self, node)
+        holders = REGISTER_OPENING_ROUTES["holders"][1].format(uuid=tenant.token.uuid)
+        self.client.force_authenticate(owner)
+        self.assertEqual(self.client.get(holders).status_code, 200)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.get(holders)
+            missing = self.client.get(holders.replace(str(tenant.token.uuid), str(uuid4())))
+            self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+            self.assertEqual(denied.status_code, 404)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(holders).status_code, 401)
         self.client.force_authenticate(owner)
         payload = opening_payload(target.token_id, evidence, appointment)
         response = self.client.post(REGISTER_OPENING_ROUTES["create"][1], payload, format="json")

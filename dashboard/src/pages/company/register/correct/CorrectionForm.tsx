@@ -6,6 +6,7 @@ import {
   REGISTER_CORRECTION_COPY,
   apiErrorSentence,
   createUserFriendlyError,
+  failureStatus,
   isPreparedRegisterCorrection,
   isRegisterEvidenceReceipt,
   prepareRegisterCorrection,
@@ -39,10 +40,6 @@ const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
-
-function statusOf(failure: unknown) {
-  return (failure as { response?: { status?: number } } | null)?.response?.status;
-}
 
 function problemsOf(draft: Draft, today: string) {
   const problems: string[] = [];
@@ -130,7 +127,7 @@ export function CorrectionForm({
       uploaded.current = { file, appointment: appointment.uuid, key, receipt: data };
       return data;
     } catch (failure) {
-      if (statusOf(failure) === 409) uploaded.current = null;
+      if (failureStatus(failure) === 409) uploaded.current = null;
       throw failure;
     }
   };
@@ -163,7 +160,7 @@ export function CorrectionForm({
         if (!isPreparedRegisterCorrection(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       } catch (failure) {
-        if (statusOf(failure) === 409) {
+        if (failureStatus(failure) === 409) {
           operation.current = null;
           onConflict();
         }

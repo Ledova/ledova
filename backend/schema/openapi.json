@@ -10659,6 +10659,26 @@
         ],
         "type": "object"
       },
+      "RegisterOpeningBlock": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "hash",
+          "number"
+        ],
+        "type": "object"
+      },
       "RegisterOpeningBoundary": {
         "properties": {
           "blockHash": {
@@ -10673,7 +10693,7 @@
           },
           "holdings": {
             "items": {
-              "$ref": "#/components/schemas/RegisterOpeningHolding"
+              "$ref": "#/components/schemas/RegisterOpeningHolder"
             },
             "type": "array"
           }
@@ -10915,12 +10935,19 @@
         ],
         "type": "object"
       },
-      "RegisterOpeningHolding": {
+      "RegisterOpeningHolder": {
         "properties": {
           "address": {
             "type": "string"
           },
           "member": {
+            "nullable": true,
+            "type": "string"
+          },
+          "memberExists": {
+            "type": "boolean"
+          },
+          "memberName": {
             "nullable": true,
             "type": "string"
           },
@@ -10931,7 +10958,27 @@
         "required": [
           "address",
           "member",
+          "memberExists",
+          "memberName",
           "shares"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningHolders": {
+        "properties": {
+          "block": {
+            "$ref": "#/components/schemas/RegisterOpeningBlock"
+          },
+          "holdings": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterOpeningHolder"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "block",
+          "holdings"
         ],
         "type": "object"
       },
@@ -24330,6 +24377,46 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/opening-holders/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_opening_holders_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpeningHolders"
                 }
               }
             },

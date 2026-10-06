@@ -12,6 +12,7 @@ from uuid import uuid4
 from django.contrib import admin
 from django.db import DatabaseError, connection, connections
 from django.test import TransactionTestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
@@ -28,7 +29,11 @@ from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
+from tokens.exceptions import (
+    RegisterChangeConflict,
+    RegisterOpeningHoldingsMoved,
+    RegisterUnavailableException,
+)
 from tokens.models import (
     RegisterEntry,
     RegisterEvidenceKind,
@@ -38,6 +43,7 @@ from tokens.models import (
     RegisterOpeningDecision,
     ShareRegister,
 )
+from tokens.serializers.register_opening import RegisterOpeningSerializer
 from tokens.services import deployment, register_snapshot
 from tokens.services.register_events import (
     create_member,
@@ -64,6 +70,7 @@ from tokens.tests.test_register_snapshot import SnapshotNode, block_hash, transf
 
 ALICE = "0x" + "1" * 40
 BOB = "0x" + "2" * 40
+CY = "0x" + "3" * 40
 POLICIES = {f"evm:{CHAIN_ID}": {"mode": "finalized"}}
 SETTINGS = dict(
     BLOCKCHAIN_OPERATOR_KEY=KEY,
@@ -167,6 +174,14 @@ def opening_payload(token_id, evidence, appointment, *, members=None, mapping=No
 
 def prepared(actor, payload):
     return prepare_opening(actor=actor, **payload)[0]
+
+
+def linked_member(company, address, name):
+    from tokens.tests.test_register_imports import live_wallet
+
+    member = create_member(company_id=company.pk, member_id=uuid4())
+    live_wallet(company, member, address, name)
+    return member
 
 
 def preview(actor, appointment, proposal, kind, reason=""):
@@ -401,7 +416,7 @@ class RegisterOpeningTest(TransactionTestCase):
             ],
         ):
             with self.subTest(mapping=mapping):
-                with self.assertRaisesMessage(ValidationError, "cover exactly the wallet addresses holding shares"):
+                with self.assertRaises(RegisterOpeningHoldingsMoved):
                     self.submit(operation_id=uuid4(), mapping=mapping)
         self.assertFalse(RegisterOpening.objects.exists())
 
@@ -974,6 +989,107 @@ class RegisterOpeningApiTest(APITransactionTestCase):
         self.client.force_authenticate(self.owner)
         self.payload = opening_payload(self.target.token_id, self.evidence, self.administrator)
 
+    def test_the_boundary_summary_names_existing_members_and_says_which_members_exist(self):
+        height = self.target.deployment_block
+        self.node.events = [
+            transfer(height + 1, ZERO_ADDRESS, ALICE, 100),
+            transfer(height + 2, ALICE, BOB, 20),
+            transfer(height + 2, ALICE, CY, 5, index=1),
+        ]
+        self.node.balances = {ALICE: 75, BOB: 20, CY: 5}
+        newcomer = str(uuid4())
+        with use_operator(), use_migrate():
+            named = linked_member(self.tenant.company, ALICE, "Live Alice")
+            quiet = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
+        mapping = [
+            {"address": ALICE, "member": str(named.pk)},
+            {"address": BOB, "member": str(quiet.pk)},
+            {"address": CY, "member": newcomer},
+        ]
+        created = self.client.post(OPENINGS, {**self.payload, "mapping": mapping}, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(
+            created.json()["boundarySummary"]["holdings"],
+            [
+                {
+                    "address": ALICE,
+                    "shares": "75",
+                    "member": str(named.pk),
+                    "memberName": "Live Alice",
+                    "memberExists": True,
+                },
+                {"address": BOB, "shares": "20", "member": str(quiet.pk), "memberName": None, "memberExists": True},
+                {"address": CY, "shares": "5", "member": newcomer, "memberName": None, "memberExists": False},
+            ],
+        )
+
+    def test_the_boundary_summary_admits_no_member_of_another_company(self):
+        with use_operator():
+            _, _, _, foreign, _, _ = register_fixture()
+        opening = RegisterOpening(
+            company=self.tenant.company,
+            token=self.tenant.token,
+            mapping=[{"address": ALICE, "member": str(foreign.pk)}],
+            boundary={
+                "block": {"number": 2, "hash": "0x" + "ef" * 32, "date": "2026-09-20"},
+                "holdings": [{"address": ALICE, "shares": "80"}],
+            },
+        )
+        with use_operator():
+            summary = RegisterOpeningSerializer().get_boundary_summary(opening)
+        self.assertEqual(
+            summary["holdings"],
+            [
+                {
+                    "address": ALICE,
+                    "shares": "80",
+                    "member": str(foreign.pk),
+                    "member_name": None,
+                    "member_exists": False,
+                }
+            ],
+        )
+
+    def test_a_mapping_the_holdings_no_longer_match_is_refused_with_a_stable_code(self):
+        refused = self.client.post(OPENINGS, {**self.payload, "mapping": self.payload["mapping"][:1]}, format="json")
+        self.assertEqual(
+            (refused.status_code, refused.json()),
+            (
+                400,
+                {
+                    "detail": (
+                        "The opening mapping must cover exactly the wallet addresses holding shares at the captured "
+                        "boundary."
+                    ),
+                    "code": "opening_holdings_moved",
+                },
+            ),
+        )
+        self.assertFalse(RegisterOpening.objects.exists())
+
+    def test_the_list_reads_member_identities_only_for_openings_that_map_an_existing_member(self):
+        def prepare(members=None):
+            with use_operator():
+                evidence = upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.AUTHORITY)
+            payload = opening_payload(self.target.token_id, evidence, self.administrator, members=members)
+            self.assertEqual(self.client.post(OPENINGS, payload, format="json").status_code, 201)
+
+        def listed():
+            with CaptureQueriesContext(connection) as queries:
+                response = self.client.get(OPENINGS, {"token": str(self.tenant.token.pk)})
+            self.assertEqual(response.status_code, 200)
+            return len(response.json()["results"]), len(queries)
+
+        prepare()
+        prepare()
+        self.assertEqual(listed(), (2, 10))
+        with use_operator(), use_migrate():
+            members = [
+                linked_member(self.tenant.company, address, name) for address, name in ((ALICE, "A"), (BOB, "B"))
+            ]
+        prepare([member.pk for member in members])
+        self.assertEqual(listed(), (3, 18))
+
     def test_preparation_reads_lists_and_refuses_rewrites_changed_retries_and_strangers(self):
         created = self.client.post(OPENINGS, self.payload, format="json")
         self.assertEqual(created.status_code, 201, created.content)
@@ -994,8 +1110,20 @@ class RegisterOpeningApiTest(APITransactionTestCase):
                 "blockHash": boundary["hash"],
                 "date": boundary["date"],
                 "holdings": [
-                    {"address": ALICE, "shares": "80", "member": self.payload["mapping"][0]["member"]},
-                    {"address": BOB, "shares": "20", "member": self.payload["mapping"][1]["member"]},
+                    {
+                        "address": ALICE,
+                        "shares": "80",
+                        "member": self.payload["mapping"][0]["member"],
+                        "memberName": None,
+                        "memberExists": False,
+                    },
+                    {
+                        "address": BOB,
+                        "shares": "20",
+                        "member": self.payload["mapping"][1]["member"],
+                        "memberName": None,
+                        "memberExists": False,
+                    },
                 ],
             },
         )

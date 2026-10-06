@@ -200,7 +200,14 @@ beforeEach(() => {
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (
-      ([URLS.REGISTER_IMPORTS, URLS.REGISTER_ENTRIES('ordinary'), URLS.REGISTER_CORRECTIONS] as string[]).includes(url)
+      (
+        [
+          URLS.REGISTER_OPENINGS,
+          URLS.REGISTER_IMPORTS,
+          URLS.REGISTER_ENTRIES('ordinary'),
+          URLS.REGISTER_CORRECTIONS,
+        ] as string[]
+      ).includes(url)
     )
       return page([]);
     if (url === APPOINTMENTS) return page(appointments);

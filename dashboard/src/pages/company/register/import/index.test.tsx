@@ -501,6 +501,27 @@ it('refuses an unconfirmed upload receipt, writes nothing and uploads that file 
   ]);
 });
 
+it('uploads a document again under a new retry key after its upload conflicts', async () => {
+  let conflict = true;
+  uploadFor = async (form) => {
+    if (conflict) throw { response: { status: 409, data: { detail: 'The retry key was used for another upload.' } } };
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  expect((await screen.findByRole('alert')).textContent).toBe('The retry key was used for another upload.');
+  conflict = false;
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads().map((form) => [form.get('kind'), form.get('idempotency_key')])).toEqual([
+    ['share_register', KEY(1)],
+    ['share_register', KEY(2)],
+    ['asic_extract', KEY(3)],
+  ]);
+});
+
 it('reuses a confirmed upload and the same retry key for an unconfirmed one when the same import is retried', async () => {
   let failAsic = true;
   uploadFor = async (form) => {
