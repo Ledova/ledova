@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -82,6 +82,9 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
     );
   const kept = keep(chosen);
   const reset = Object.keys(kept).length < Object.keys(chosen).length;
+  useEffect(() => {
+    if (reset && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(COPY.CHOICES_RESET);
+  }, [reset]);
   const mapped = holdings.map(({ address, member }) => member ?? kept[address.toLowerCase()]?.member ?? null);
   const labels = openingMemberLabels(
     mapped.map((member) => ({
@@ -244,7 +247,11 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
         </Rows>
         <Text style={styles.muted}>{COPY.BOUNDARY_NOTE}</Text>
         <Text style={styles.muted}>{COPY.HOLDINGS_NOTE}</Text>
-        {reset && <Text style={styles.text}>{COPY.CHOICES_RESET}</Text>}
+        {reset && (
+          <Text accessibilityLiveRegion="polite" style={styles.text}>
+            {COPY.CHOICES_RESET}
+          </Text>
+        )}
         {holdings.length === 0 ? (
           <Text style={styles.muted}>{COPY.NO_HOLDINGS}</Text>
         ) : (

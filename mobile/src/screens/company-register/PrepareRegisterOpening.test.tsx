@@ -1,4 +1,5 @@
 import React from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -1062,4 +1063,25 @@ it('keeps both choices when two holdings are chosen before the screen updates', 
   });
   expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
   expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
+});
+
+it.each<[string, typeof Platform.OS, string[][]]>([
+  ['iOS', 'ios', [[COPY.CHOICES_RESET]]],
+  ['Android', 'android', []],
+])('announces the reset note once on %s, in a polite live region', async (_, os, announced) => {
+  jest.replaceProperty(Platform, 'OS', os);
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+  prepareAnswer.mockRejectedValueOnce(movedRefusal());
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await view.findByText(COPY.HOLDINGS_MOVED);
+  holdings = [HOLDINGS[0], HOLDINGS[1]];
+  await fireEvent.press(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
+  const note = await view.findByText(COPY.CHOICES_RESET);
+  expect(note.props.accessibilityLiveRegion).toBe('polite');
+  await fireEvent.changeText(view.getByLabelText(COPY.REASON), 'Open the register again');
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
+  expect(announce.mock.calls).toEqual(announced);
 });
