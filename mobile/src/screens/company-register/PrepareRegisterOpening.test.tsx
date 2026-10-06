@@ -1085,3 +1085,34 @@ it.each<[string, typeof Platform.OS, string[][]]>([
   expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
   expect(announce.mock.calls).toEqual(announced);
 });
+
+it('reads the holdings once for each opening page, so a second page for the class changes nothing on the first', async () => {
+  const first = await open();
+  await map(first);
+  holdings = [HOLDINGS[0], holding(CY, '50')];
+  const second = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  await second.findAllByTestId('prepare-opening-screen');
+  expect(holdingReads()).toHaveLength(2);
+  expect(second.queryByText(BEA)).toBeNull();
+  expect(first.getByText(BEA)).toBeTruthy();
+  expect(first.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  expect(memberOf(first, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(memberOf(first, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(memberOf(first, 4)).toBe('Alex Member');
+  await fireEvent.press(second.getByLabelText(`${COPY.NEW_MEMBER} for holding 2`));
+  expect(memberOf(second, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(first.getByText('9,007,199,254,740,993 shares')).toBeTruthy();
+  expect(memberOf(first, 4)).toBe('Alex Member');
+});
+
+it('drops the holdings of an opening page once the page is left', async () => {
+  const first = await open();
+  const second = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  await second.findAllByTestId('prepare-opening-screen');
+  const cached = () => client.getQueryCache().findAll({ queryKey: openingHoldersKey(getSessionEpoch(), 'ordinary') });
+  expect(cached()).toHaveLength(2);
+  await second.unmount();
+  await waitFor(() => expect(cached()).toHaveLength(1));
+  await first.unmount();
+  await waitFor(() => expect(cached()).toHaveLength(0));
+});

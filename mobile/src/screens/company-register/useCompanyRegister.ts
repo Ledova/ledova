@@ -196,9 +196,9 @@ export function useRegisterOpenings(epoch: number, company: string, token: strin
   });
 }
 
-export function useOpeningHolders(epoch: number, token: string) {
+export function useOpeningHolders(epoch: number, token: string, page: string) {
   return useQuery({
-    queryKey: openingHoldersKey(epoch, token),
+    queryKey: [...openingHoldersKey(epoch, token), page],
     queryFn: async ({ signal }) => {
       const { data } = await sessionRead(epoch, () =>
         getRegisterOpeningHolders(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
@@ -208,6 +208,7 @@ export function useOpeningHolders(epoch: number, token: string) {
     },
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    gcTime: 0,
   });
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -46,7 +46,8 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
   const navigation = useNavigation();
   const { tokenUuid, companyUuid } = useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterOpening'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
-  const holders = useOpeningHolders(epoch, tokenUuid);
+  const page = useId();
+  const holders = useOpeningHolders(epoch, tokenUuid, page);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const document = useRegisterEvidence(companyUuid, 'authority');
   const [chosen, setChosen] = useState<Record<string, Chosen>>({});
