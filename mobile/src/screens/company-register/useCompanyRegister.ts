@@ -11,6 +11,7 @@ import {
   getRegisterEntries,
   getRegisterImports,
   getNextPageParam,
+  getRegisterLinks,
   getRegisterOpeningHolders,
   getRegisterOpenings,
   getRegisterParticularsChanges,
@@ -60,6 +61,7 @@ export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
 export const particularsKey = recordsKey('particulars');
+export const linksKey = recordsKey('links');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 function distinct<Row>(rows: Row[], uuid: (row: Row) => string) {
@@ -148,6 +150,7 @@ export function useCompanyRegister(epoch: number) {
           correctionsKey,
           reconciliationKey,
           particularsKey,
+          linksKey,
           registerAppointmentsKey,
         ].map((key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' })),
       ]),
@@ -218,6 +221,22 @@ export function useRegisterParticulars(epoch: number, company: string) {
       );
       if (rows.some((row) => row.company !== company)) {
         throw new Error('The particulars changes do not belong to this company');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterLinks(epoch: number, company: string) {
+  return useQuery({
+    queryKey: linksKey(epoch, company),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await sessionRead(epoch, () => getRegisterLinks(apiClient, { company }, { ledovaSessionEpoch: epoch, signal })),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.company !== company)) {
+        throw new Error('The wallet links do not belong to this company');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
