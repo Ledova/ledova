@@ -6,6 +6,7 @@ import {
   REGISTER_OPENING_COPY,
   apiErrorSentence,
   appointmentForRegisterStep,
+  failureStatus,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
@@ -24,12 +25,8 @@ const LEDE =
   'document is provided by the company.';
 const REFUSED = 'This share class cannot be opened from the chain.';
 
-function statusOf(failure: unknown) {
-  return (failure as { response?: { status?: number } } | null)?.response?.status;
-}
-
 function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => void; busy: boolean }) {
-  if (statusOf(error) !== 503) return <Unavailable retry={retry} busy={busy} />;
+  if (failureStatus(error) !== 503) return <Unavailable retry={retry} busy={busy} />;
   return (
     <div role="alert" className="flex flex-col items-start gap-3 py-3">
       <p className="text-sm text-text-muted">{COPY.HOLDERS_UNAVAILABLE}</p>
@@ -87,7 +84,16 @@ function OwnOpening({
   const holders = useQuery({
     queryKey: openingHoldersKey(owner, uuid),
     enabled: !!appointment,
-    queryFn: () => readOpeningHolders(uuid, guard),
+    queryFn: async () => {
+      try {
+        return await readOpeningHolders(uuid, guard);
+      } catch (failure) {
+        if (failureStatus(failure) === 404) void appointments.refetch();
+        throw failure;
+      }
+    },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     ...READ_TIMING,
   });
   const retry = () => {
@@ -104,7 +110,7 @@ function OwnOpening({
   else if (!listed)
     content = <p className="py-3 text-sm text-text-muted">This share class is not in a register you can read.</p>;
   else if (!appointment) content = <p className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
-  else if (statusOf(holders.error) === 400)
+  else if (failureStatus(holders.error) === 400)
     content = <p className="py-3 text-sm text-text-muted">{apiErrorSentence(holders.error, REFUSED, REFUSED)}</p>;
   else if (!holders.data) content = holders.isError ? failure : <Loading />;
   else
@@ -131,12 +137,13 @@ function OwnOpening({
             token={uuid}
             holders={holders.data}
             appointment={appointment}
-            blocked={stale}
+            blocked={stale || fetching}
             onReload={() => void holders.refetch()}
             onConflict={() => {
               void holders.refetch();
               void appointments.refetch();
             }}
+            onMissing={() => void appointments.refetch()}
           />
         </Section>
       </>

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -12,6 +12,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS,
   DESTINATIONS,
   REGISTER_OPENING_COPY,
+  REGISTER_OPENING_HOLDINGS_MOVED_CODE,
   USER_PREFERENCES_QUERY_KEY,
   type CompanyCapability,
   type OwnCompanyAppointment,
@@ -41,6 +42,7 @@ const APPOINTMENTS_KEY = ['company-appointments', 'profile-one', 'account-one'];
 const COPY = REGISTER_OPENING_COPY;
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const MOVED = 'The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary.';
+const MOVED_REFUSAL = { detail: MOVED, code: REGISTER_OPENING_HOLDINGS_MOVED_CODE };
 const AUTHORITY_FILE = new File(['%PDF signed resolution'], 'signed-resolution.pdf', { type: 'application/pdf' });
 const LISTED = {
   uuid: 'ordinary',
@@ -55,6 +57,7 @@ const CY = `0x${'c'.repeat(40)}`;
 const DEE = `0x${'d'.repeat(40)}`;
 const EVE = `0x${'e'.repeat(40)}`;
 const MEMBER_ADA = '10000000-0000-4000-8000-0000000000aa';
+const MEMBER_CY = '10000000-0000-4000-8000-0000000000cc';
 let client: QueryClient;
 let appointments: OwnCompanyAppointment[];
 let chain: RegisterOpeningHolders;
@@ -318,8 +321,8 @@ it('shows the class, the block read and each holding with its member, then prepa
     COPY.NEW_MEMBER_NUMBERED(3),
   ]);
   expect([...memberOf(CY).options].map((option) => option.textContent)).toEqual([
-    'Ada Member',
     COPY.NEW_MEMBER_NUMBERED(1),
+    'Ada Member',
     COPY.NEW_MEMBER_NUMBERED(2),
     COPY.NEW_MEMBER_NUMBERED(3),
   ]);
@@ -345,8 +348,8 @@ it('shows the class, the block read and each holding with its member, then prepa
       tokenId: 'ordinary',
       authorityEvidence: `evidence-${KEY(4)}`,
       mapping: [
-        { address: BO, member: KEY(1) },
         { address: ADA, member: MEMBER_ADA },
+        { address: BO, member: KEY(1) },
         { address: CY, member: KEY(2) },
         { address: DEE, member: KEY(3) },
       ],
@@ -367,6 +370,17 @@ it('lets several addresses share one new member and an unlinked address join a l
   await ready();
   complete();
   choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  expect([chosen(BO), chosen(CY), chosen(DEE)]).toEqual([
+    COPY.NEW_MEMBER_NUMBERED(1),
+    COPY.NEW_MEMBER_NUMBERED(1),
+    COPY.NEW_MEMBER_NUMBERED(2),
+  ]);
+  expect([...memberOf(DEE).options].map((option) => option.textContent)).toEqual([
+    COPY.NEW_MEMBER_NUMBERED(1),
+    'Ada Member',
+    COPY.NEW_MEMBER_NUMBERED(2),
+    COPY.NEW_MEMBER_NUMBERED(3),
+  ]);
   choose(DEE, 'Ada Member');
   expect([chosen(BO), chosen(CY), chosen(DEE)]).toEqual([
     COPY.NEW_MEMBER_NUMBERED(1),
@@ -376,24 +390,27 @@ it('lets several addresses share one new member and an unlinked address join a l
   fireEvent.click(submitButton());
   expect(await screen.findByText('Register page')).toBeTruthy();
   expect(mappingOf(preparations()[0])).toEqual([
-    [BO, KEY(1)],
     [ADA, MEMBER_ADA],
+    [BO, KEY(1)],
     [CY, KEY(1)],
     [DEE, MEMBER_ADA],
   ]);
 });
 
-it('names an unnamed linked member as a member, and offers it to the unlinked addresses', async () => {
+it('numbers unnamed linked members apart from new members, and offers them to the unlinked addresses', async () => {
   chain = holders([
     { address: ADA, shares: '20', member: MEMBER_ADA, memberName: null, memberExists: true },
     { address: BO, shares: '5', member: null, memberName: null, memberExists: false },
+    { address: CY, shares: '3', member: MEMBER_CY, memberName: null, memberExists: true },
   ]);
   show();
   await ready();
-  expect(within(holding(ADA)).getByText(COPY.MEMBER)).toBeTruthy();
+  expect(within(holding(ADA)).getByText(COPY.UNNAMED_MEMBER_NUMBERED(1))).toBeTruthy();
+  expect(within(holding(CY)).getByText(COPY.UNNAMED_MEMBER_NUMBERED(2))).toBeTruthy();
   expect([...memberOf(BO).options].map((option) => option.textContent)).toEqual([
-    COPY.MEMBER,
+    COPY.UNNAMED_MEMBER_NUMBERED(1),
     COPY.NEW_MEMBER_NUMBERED(1),
+    COPY.UNNAMED_MEMBER_NUMBERED(2),
   ]);
 });
 
@@ -519,9 +536,9 @@ it.each([
   await ready();
 });
 
-it("after a holdings-moved refusal shows the server's message and reloads the holders, mapping them afresh", async () => {
+it("after a holdings-moved refusal shows the server's message and reloads the holders, keeping each choice", async () => {
   prepareFor = async () => {
-    throw refusal(400, [MOVED]);
+    throw refusal(400, MOVED_REFUSAL);
   };
   show();
   await ready();
@@ -543,11 +560,12 @@ it("after a holdings-moved refusal shows the server's message and reloads the ho
   await waitFor(() => expect(screen.getByRole('group', { name: EVE })).toBeTruthy());
   expect(reads(HOLDERS)).toBe(before + 1);
   expect(screen.queryByRole('group', { name: DEE })).toBeNull();
-  expect([chosen(EVE), chosen(BO), chosen(CY)]).toEqual([
+  expect([chosen(EVE), chosen(CY), chosen(BO)]).toEqual([
     COPY.NEW_MEMBER_NUMBERED(1),
     COPY.NEW_MEMBER_NUMBERED(2),
-    COPY.NEW_MEMBER_NUMBERED(3),
+    COPY.NEW_MEMBER_NUMBERED(2),
   ]);
+  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
   expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toBe(
     '  Open the register from the chain  ',
   );
@@ -559,8 +577,8 @@ it("after a holdings-moved refusal shows the server's message and reloads the ho
     [
       KEY(4),
       [
-        [BO, KEY(1)],
         [ADA, MEMBER_ADA],
+        [BO, KEY(1)],
         [CY, KEY(1)],
         [DEE, KEY(2)],
       ],
@@ -568,10 +586,10 @@ it("after a holdings-moved refusal shows the server's message and reloads the ho
     [
       KEY(6),
       [
-        [EVE, KEY(1)],
         [ADA, MEMBER_ADA],
-        [BO, KEY(5)],
-        [CY, KEY(2)],
+        [BO, KEY(1)],
+        [CY, KEY(1)],
+        [EVE, KEY(5)],
       ],
     ],
   ]);
@@ -579,7 +597,7 @@ it("after a holdings-moved refusal shows the server's message and reloads the ho
 
 it('keeps the chosen members when reloading returns the same holdings, and retries under the same operation', async () => {
   prepareFor = async () => {
-    throw refusal(400, [MOVED]);
+    throw refusal(400, MOVED_REFUSAL);
   };
   show();
   await ready();
@@ -611,9 +629,12 @@ it("shows another refused preparation's message without offering to reload the h
   expect(screen.queryByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeNull();
 });
 
-it('offers no reload for the holdings-moved sentence when the server did not refuse with 400', async () => {
+it.each([
+  ['the holdings-moved code with another status', 409, MOVED_REFUSAL],
+  ['the holdings-moved sentence without its code', 400, [MOVED]],
+])('offers no reload for %s', async (_what, status, body) => {
   prepareFor = async () => {
-    throw refusal(409, [MOVED]);
+    throw refusal(status, body);
   };
   show();
   await ready();
@@ -625,7 +646,7 @@ it('offers no reload for the holdings-moved sentence when the server did not ref
 
 it('clears a holdings-moved refusal once the draft changes', async () => {
   prepareFor = async () => {
-    throw refusal(400, [MOVED]);
+    throw refusal(400, MOVED_REFUSAL);
   };
   show();
   await ready();
@@ -972,5 +993,206 @@ it('holds preparation after a failed appointments refresh and says the register 
     await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
   });
   expect((await screen.findByRole('alert')).textContent).toContain("We couldn't load the complete register.");
+  expect(submitButton().disabled).toBe(true);
+});
+
+function holder(address: string, shares: string, member: string | null = null, memberName: string | null = null) {
+  return { address, shares, member, memberName, memberExists: member !== null };
+}
+
+async function reread(holdings: RegisterOpeningHolders['holdings']) {
+  chain = holders(holdings);
+  await act(async () => {
+    await client.refetchQueries({ queryKey: HOLDERS_KEY });
+  });
+}
+
+function mapped(body: RegisterOpeningPreparation) {
+  return Object.fromEntries(body.mapping.map(({ address, member }) => [address, member]));
+}
+
+it('reads the chain holdings again only when asked, not when the window regains focus or reconnects', async () => {
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  const before = reads(HOLDERS);
+  chain = holders([...HOLDINGS, holder(EVE, '1')]);
+  vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 3 * 60 * 1000);
+  await act(async () => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    onlineManager.setOnline(false);
+    onlineManager.setOnline(true);
+  });
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  focusManager.setFocused(undefined);
+  expect(reads(HOLDERS)).toBe(before);
+  expect(screen.queryByRole('group', { name: EVE })).toBeNull();
+  expect(chosen(CY)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+});
+
+it.each([
+  ['a new address appears', [...HOLDINGS, holder(EVE, '1')]],
+  [
+    'the same addresses are reordered',
+    [holder(BO, '9007199254740993'), holder(ADA, '20', MEMBER_ADA, 'Ada Member'), holder(DEE, '5'), holder(CY, '1')],
+  ],
+])('keeps each chosen member by its address when a re-read shows that %s', async (_change, holdings) => {
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  choose(DEE, 'Ada Member');
+  await reread(holdings);
+  await waitFor(() => expect(reads(HOLDERS)).toBe(2));
+  expect([chosen(BO), chosen(CY), chosen(DEE)]).toEqual([
+    COPY.NEW_MEMBER_NUMBERED(1),
+    COPY.NEW_MEMBER_NUMBERED(1),
+    'Ada Member',
+  ]);
+  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  const mapping = mapped(preparations()[0]);
+  expect([mapping[CY], mapping[DEE]]).toEqual([mapping[BO], MEMBER_ADA]);
+  expect(new Set(Object.values(mapping)).size).toBe(holdings.length - 2);
+});
+
+const ADA_MEMBER = holder(ADA, '20', MEMBER_ADA, 'Ada Member');
+
+it.each<[string, RegisterOpeningHolders['holdings'], [string, string][], string]>([
+  [
+    'its address no longer holds',
+    [holder(BO, '9007199254740993'), ADA_MEMBER, holder(DEE, '1')],
+    [
+      [BO, COPY.NEW_MEMBER_NUMBERED(1)],
+      [DEE, 'Ada Member'],
+    ],
+    DEE,
+  ],
+  [
+    'its address is now linked',
+    [holder(BO, '9007199254740993'), ADA_MEMBER, holder(CY, '5', MEMBER_CY, 'Cy Member'), holder(DEE, '1')],
+    [
+      [BO, COPY.NEW_MEMBER_NUMBERED(1)],
+      [DEE, 'Ada Member'],
+    ],
+    DEE,
+  ],
+  [
+    'its linked member no longer holds',
+    [holder(BO, '9007199254740993'), holder(CY, '5'), holder(DEE, '1')],
+    [
+      [BO, COPY.NEW_MEMBER_NUMBERED(1)],
+      [CY, COPY.NEW_MEMBER_NUMBERED(1)],
+      [DEE, COPY.NEW_MEMBER_NUMBERED(2)],
+    ],
+    CY,
+  ],
+  [
+    'the address whose new member it shares no longer holds',
+    [ADA_MEMBER, holder(CY, '5'), holder(DEE, '1')],
+    [
+      [CY, COPY.NEW_MEMBER_NUMBERED(1)],
+      [DEE, 'Ada Member'],
+    ],
+    DEE,
+  ],
+])('resets a choice when %s, and says so until a choice changes', async (_why, holdings, expected, again) => {
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  choose(DEE, 'Ada Member');
+  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  await reread(holdings);
+  expect(await screen.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  expect(expected.map(([address]) => [address, chosen(address)])).toEqual(expected);
+  choose(again, chosen(again)!);
+  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+});
+
+it('stops saying that choices were reset once the opening is prepared', async () => {
+  prepareFor = async () => {
+    throw refusal(400, MOVED_REFUSAL);
+  };
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  await reread([holder(BO, '9007199254740993'), ADA_MEMBER, holder(DEE, '1')]);
+  expect(await screen.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  fireEvent.click(submitButton());
+  await screen.findByText(COPY.HOLDINGS_MOVED);
+  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+});
+
+it.each([
+  ['the holders', HOLDERS, HOLDERS_KEY],
+  ['the appointments', APPOINTMENTS, APPOINTMENTS_KEY],
+  ['the share class', REGISTER, [...ACCOUNT, 'classes']],
+])('holds Prepare while %s are read again', async (_what, url, queryKey) => {
+  show();
+  await ready();
+  complete();
+  expect(submitButton().disabled).toBe(false);
+  const pending = deferred<unknown>();
+  const answer = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (called: string, config?: unknown) =>
+    called === url ? pending.promise.then(() => answer(called, config)) : answer(called, config),
+  );
+  act(() => {
+    void client.refetchQueries({ queryKey });
+  });
+  await waitFor(() => expect(submitButton().disabled).toBe(true));
+  fireEvent.submit(submitButton().closest('form')!);
+  expect(api.post).not.toHaveBeenCalled();
+  await act(async () => pending.resolve(undefined));
+  await waitFor(() => expect(submitButton().disabled).toBe(false));
+});
+
+it('reads the appointments again after preparation is refused as not found, withdrawing the form once they are gone', async () => {
+  prepareFor = async () => {
+    throw refusal(404, { detail: 'Company appointment not found.' });
+  };
+  show();
+  await ready();
+  complete();
+  const before = reads(APPOINTMENTS);
+  appointments = [];
+  fireEvent.click(submitButton());
+  expect(await screen.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(before + 1);
+  expect(screen.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
+});
+
+it('reads the appointments again after the holders read is refused as not found', async () => {
+  let refused = false;
+  serve((url) => {
+    if (url === HOLDERS) {
+      refused = true;
+      return Promise.reject(refusal(404, { detail: 'Not found.' }));
+    }
+    return url === APPOINTMENTS && refused ? page([]) : undefined;
+  });
+  show();
+  expect(await screen.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(2);
+});
+
+it("starts a blank draft for another signed-in account even when that account's reads are cached", async () => {
+  const other = ['tokens', 'register', 'profile-two', 'account-two'];
+  client.setQueryData([...other, 'classes'], [LISTED]);
+  client.setQueryData(['company-appointments', 'profile-two', 'account-two'], [appointment(['prepare'])]);
+  client.setQueryData([...other, 'holders', 'opening', 'ordinary'], holders());
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  act(switchAccount);
+  expect(screen.queryByRole('status')).toBeNull();
+  expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toBe('');
+  expect(chosen(CY)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
   expect(submitButton().disabled).toBe(true);
 });
