@@ -34,7 +34,9 @@ const HOLDERS = COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary');
 const EVIDENCE = COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
-const PARTICULARS_KEY = ['tokens', 'register', 'profile-one', 'account-one', 'particulars', 'harbour'];
+const ACCOUNT = ['tokens', 'register', 'profile-one', 'account-one'];
+const PARTICULARS_KEY = [...ACCOUNT, 'particulars', 'harbour'];
+const HOLDERS_KEY = [...ACCOUNT, 'holders', 'ordinary'];
 const COPY = REGISTER_PARTICULARS_COPY;
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const MEMBER_ADA = '10000000-0000-4000-8000-0000000000aa';
@@ -82,7 +84,10 @@ let appointments: OwnCompanyAppointment[];
 let uploadFor: (form: FormData) => Promise<{ data: RegisterEvidence }>;
 let prepareFor: (body: RegisterParticularsChangePreparation) => Promise<{ data: RegisterParticularsChange }>;
 
-function appointment(capabilities: CompanyCapability[]): OwnCompanyAppointment {
+function appointment(
+  capabilities: CompanyCapability[],
+  overrides: Partial<OwnCompanyAppointment> = {},
+): OwnCompanyAppointment {
   return {
     uuid: 'appointment-a',
     company: 'harbour',
@@ -97,6 +102,7 @@ function appointment(capabilities: CompanyCapability[]): OwnCompanyAppointment {
     revokedAt: null,
     declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
     declarationText: COMPANY_AUTHORITY_DECLARATION,
+    ...overrides,
   };
 }
 
@@ -180,6 +186,17 @@ function switchAccount() {
   });
 }
 
+function serve(read?: (url: string) => unknown) {
+  api.get.mockImplementation(async (url: string) => {
+    const answer = read?.(url);
+    if (answer !== undefined) return answer;
+    if (url === REGISTER) return page([LISTED]);
+    if (url === APPOINTMENTS) return page(appointments);
+    if (url === HOLDERS) return { data: REGISTERED };
+    throw new Error(`Unexpected read ${url}`);
+  });
+}
+
 function show(member = MEMBER_ADA) {
   prepareCompanyClient(client, 'company');
   client.setQueryData(['userAccount'], { data: { role: 'company' } });
@@ -229,12 +246,7 @@ beforeEach(() => {
   appointments = [appointment(['prepare'])];
   uploadFor = async (form) => ({ data: receipt(form) });
   prepareFor = async (body) => ({ data: prepared(body) });
-  api.get.mockImplementation(async (url: string) => {
-    if (url === REGISTER) return page([LISTED]);
-    if (url === APPOINTMENTS) return page(appointments);
-    if (url === HOLDERS) return { data: REGISTERED };
-    throw new Error(`Unexpected read ${url}`);
-  });
+  serve();
   api.post.mockImplementation(async (url: string, body: unknown) => {
     if (url === EVIDENCE) return uploadFor(body as FormData);
     if (url === PARTICULARS) return prepareFor(body as RegisterParticularsChangePreparation);
@@ -466,5 +478,28 @@ it('neither refreshes nor returns to Register when a preparation returns after t
   await act(async () => pending.resolve({ data: prepared(preparations()[0]) }));
   expect(client.getQueryState(PARTICULARS_KEY)?.isInvalidated).toBe(false);
   expect(screen.queryByText('Register page')).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('reads nothing again for the previous account when a conflict returns after the signed-in account changed', async () => {
+  let refuse!: (failure: unknown) => void;
+  prepareFor = () =>
+    new Promise((_resolve, reject) => {
+      refuse = reject;
+    });
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await waitFor(() => expect(preparations()).toHaveLength(1));
+  appointments = [];
+  act(switchAccount);
+  expect(await screen.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  const before = [reads(HOLDERS), reads(APPOINTMENTS), client.getQueryState(HOLDERS_KEY)?.dataUpdatedAt];
+  await act(async () => {
+    refuse(refusal(409, { detail: 'The register operation conflicts.' }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect([reads(HOLDERS), reads(APPOINTMENTS), client.getQueryState(HOLDERS_KEY)?.dataUpdatedAt]).toEqual(before);
   expect(screen.queryByRole('alert')).toBeNull();
 });

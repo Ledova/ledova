@@ -142,10 +142,7 @@ export function ParticularsForm({
         if (!isPreparedRegisterParticularsChange(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       } catch (failure) {
-        if (failureStatus(failure) === 409) {
-          operation.current = null;
-          onConflict();
-        }
+        if (failureStatus(failure) === 409) operation.current = null;
         throw failure;
       }
       check();
@@ -156,6 +153,7 @@ export function ParticularsForm({
       try {
         check();
         setError(apiErrorSentence(failure, FAILED, FAILED));
+        if (failureStatus(failure) === 409) onConflict();
         if (failureStatus(failure) === 404) onMissing();
       } catch {
         return;
