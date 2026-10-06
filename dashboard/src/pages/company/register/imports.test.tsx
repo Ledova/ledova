@@ -36,6 +36,8 @@ const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
+const LINKS = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINKS;
+const WAITING = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_WAITING_WALLETS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PREVIEW = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_PREVIEW('import-new');
 const DECIDE = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_DECIDE('import-new');
@@ -291,7 +293,9 @@ beforeEach(() => {
     if (url === IMPORTS) return page(imports);
     if (url === APPOINTMENTS) return page(appointments);
     if (url === ENTRIES) return page(entries);
-    if (url === OPENINGS || url === CORRECTIONS || url === RECONCILIATIONS || url === PARTICULARS) return page([]);
+    if (url === WAITING) return { data: { wallets: [] } };
+    if (url === OPENINGS || url === CORRECTIONS || url === RECONCILIATIONS || url === PARTICULARS || url === LINKS)
+      return page([]);
     if (url.endsWith('/file/') || url.endsWith('/asic-file/'))
       return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);

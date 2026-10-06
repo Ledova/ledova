@@ -212,6 +212,7 @@ function serve(read?: (url: string) => unknown) {
     if (url === HOLDERS) return { data: holders() };
     if (url === APPOINTMENTS) return page(appointments);
     if (url === RECONCILIATIONS) return page(latest);
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url.endsWith('/register/entries/') || url.startsWith('/api/v1/tokens/register-')) return page([]);
     throw new Error(`Unexpected read ${url}`);
   });

@@ -26,6 +26,7 @@ const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
+const LINKS = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINKS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const NO_REGISTER = REGISTER_COPY.NO_REGISTER;
 let client: QueryClient;
@@ -79,7 +80,7 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
 }
 
 function noCommands(url: string) {
-  return [OPENINGS, IMPORTS, CORRECTIONS, RECONCILIATIONS, PARTICULARS, APPOINTMENTS].includes(url) ||
+  return [OPENINGS, IMPORTS, CORRECTIONS, RECONCILIATIONS, PARTICULARS, LINKS, APPOINTMENTS].includes(url) ||
     url.endsWith('/register/entries/')
     ? { data: { results: [], count: 0, next: null, previous: null } }
     : null;
@@ -185,6 +186,7 @@ it('reads every register class page and renders exact stored shares with each me
     COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
     PARTICULARS,
     APPOINTMENTS,
+    LINKS,
     OPENINGS,
     IMPORTS,
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary'),
@@ -481,7 +483,13 @@ it("lets a person who can read several companies choose one and reads only that 
   const preference = await screen.findByRole('button', { name: /Preference shares/ });
   expect(within(preference).getByText('Inland Example Pty Ltd')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Ordinary shares/ })).toBeNull();
-  expect(readUrls()).toEqual([REGISTER, COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'), PARTICULARS, APPOINTMENTS]);
+  expect(readUrls()).toEqual([
+    REGISTER,
+    COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
+    PARTICULARS,
+    APPOINTMENTS,
+    LINKS,
+  ]);
 
   fireEvent.change(select, { target: { value: 'harbour' } });
   const ordinary = await screen.findByRole('button', { name: /Ordinary shares/ });
@@ -492,13 +500,16 @@ it("lets a person who can read several companies choose one and reads only that 
     COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
     PARTICULARS,
     APPOINTMENTS,
+    LINKS,
     COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'),
     PARTICULARS,
+    LINKS,
   ]);
-  expect(api.get.mock.calls.filter(([url]) => url === PARTICULARS).map(([, config]) => config.params.company)).toEqual([
-    'inland',
-    'harbour',
-  ]);
+  for (const read of [PARTICULARS, LINKS])
+    expect(api.get.mock.calls.filter(([url]) => url === read).map(([, config]) => config.params.company)).toEqual([
+      'inland',
+      'harbour',
+    ]);
 });
 
 it("starts again for another signed-in account without showing the previous account's register or choice", async () => {
