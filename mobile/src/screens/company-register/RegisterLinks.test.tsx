@@ -531,6 +531,23 @@ it('refreshes after a refused decision and withdraws the steps a revoked appoint
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
+it('reads the appointments again after a refused waiting-wallets read and withdraws Link waiting wallets once the appointment is gone', async () => {
+  let refuse!: (reason: unknown) => void;
+  waitingAnswer = () =>
+    new Promise((_, reject) => {
+      refuse = reject;
+    });
+  const view = await openRegister();
+  await waitFor(() => expect(reads(WAITING)).toBe(1));
+  const before = reads(APPOINTMENTS);
+  appointments = [];
+  await act(async () => refuse({ response: { status: 404, data: { detail: 'Not found.' } } }));
+  expect(await section(view).findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(before + 1);
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
+  expect(section(view).queryByText('The waiting wallets could not be read.')).toBeNull();
+});
+
 it('refuses wallet links that name another company, and reads them again on request', async () => {
   linkPages = [[LINK, { ...REJECTED, company: 'garden' }]];
   const view = await render(<CompanyRegisterScreen />, { wrapper });

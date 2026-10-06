@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { REGISTER_LINK_COPY as COPY, type TokenHoldersResponse } from '@ledova/shared';
+import { failureStatus, REGISTER_LINK_COPY as COPY, type TokenHoldersResponse } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { LinkRecord } from './LinkRecord';
 import { useCompanyStyles } from './styles';
@@ -30,6 +31,11 @@ export function CompanyLinks({
   const links = useRegisterLinks(epoch, company);
   const { appointments, steps } = useRegisterAppointments(epoch, company);
   const waiting = useRegisterWaitingWallets(epoch, company, !!steps?.prepare);
+  const waitingError = waiting.error;
+  const readAppointments = appointments.refetch;
+  useEffect(() => {
+    if (failureStatus(waitingError) === 404) void readAppointments();
+  }, [waitingError, readAppointments]);
   const names = new Map(
     registers.flatMap(({ holders }) => holders.flatMap(({ member, name }) => (name ? [[member, name] as const] : []))),
   );
