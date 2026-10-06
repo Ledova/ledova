@@ -39,11 +39,13 @@ const CONFLICT = 'The register operation conflicts with its recorded identity.';
 const ADA = '0xAdA0000000000000000000000000000000000a01';
 const BEA = '0xBea0000000000000000000000000000000000b02';
 const CY = '0xC000000000000000000000000000000000000c03';
-const DEE = '0xDee0000000000000000000000000000000000d04';
+const ABE = '0xAbE0000000000000000000000000000000000a00';
+const LOWERCASE = '0xa110000000000000000000000000000000000f06';
 const MEMBER_A = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_B = '10000000-0000-4000-8000-0000000000bb';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const NEW_ONE = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1);
+const NEW_TWO = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2);
 const UNNAMED_ONE = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1);
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -373,7 +375,7 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
   await map(view);
   await complete(view);
   const before = [reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)];
-  wallets = [wallet(DEE, 3, null, null), WALLETS[1], WALLETS[0]];
+  wallets = [wallet(ABE, 3, null, null), WALLETS[0], WALLETS[1]];
   await submit(view);
   expect(await view.findByText(CONFLICT)).toBeTruthy();
   await waitFor(() =>
@@ -381,9 +383,9 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
       expect(count).toBeGreaterThan(before[index]),
     ),
   );
-  expect(await view.findByText(DEE)).toBeTruthy();
+  expect(await view.findByText(ABE)).toBeTruthy();
   expect(view.queryByText(CY)).toBeNull();
-  expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', NEW_ONE, 'Alex Member']);
+  expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', 'Alex Member', NEW_ONE]);
   expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
   expect(view.getByText(UNMAPPED)).toBeTruthy();
   expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
@@ -394,9 +396,26 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
   expect(preparations()[1].mapping).toEqual([
-    { address: DEE, member: KEY(1) },
-    { address: BEA, member: KEY(1) },
+    { address: ABE, member: KEY(1) },
     { address: ADA, member: MEMBER_A },
+    { address: BEA, member: KEY(1) },
+  ]);
+});
+
+it('lists and numbers the waiting wallets in the order a link records them, not the order the waiting read gives', async () => {
+  wallets = [wallet(LOWERCASE, 1, null, null), WALLETS[1]];
+  const view = await open();
+  expect(entry(view, 1).getByText(BEA)).toBeTruthy();
+  expect(entry(view, 2).getByText(LOWERCASE)).toBeTruthy();
+  await choose(view, COPY.NEW_MEMBER, 2);
+  await choose(view, COPY.NEW_MEMBER, 1);
+  expect([1, 2].map((number) => memberOf(view, number))).toEqual([NEW_ONE, NEW_TWO]);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(preparations()[0].mapping).toEqual([
+    { address: BEA, member: KEY(2) },
+    { address: LOWERCASE, member: KEY(1) },
   ]);
 });
 

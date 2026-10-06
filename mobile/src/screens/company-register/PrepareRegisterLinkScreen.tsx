@@ -33,6 +33,9 @@ const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAutho
 const FAILED = 'The wallet link could not be prepared. Retry with the same details.';
 const UNREAD = 'The waiting wallets could not be read.';
 
+const inRecordedOrder = (left: { address: string }, right: { address: string }) =>
+  left.address < right.address ? -1 : left.address > right.address ? 1 : 0;
+
 export function PrepareRegisterLinkScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
   return <PrepareRegisterLink key={epoch} epoch={epoch} />;
@@ -68,7 +71,7 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
   useEffect(() => {
     if (failureStatus(waitingError) === 404) void readAppointments();
   }, [waitingError, readAppointments]);
-  const wallets = waiting.data ?? [];
+  const wallets = [...(waiting.data ?? [])].sort(inRecordedOrder);
   const holders = members.data?.holders ?? [];
   const listed = new Set(holders.map(({ member }) => member));
   const open = new Set(wallets.map(({ address }) => address.toLowerCase()));
