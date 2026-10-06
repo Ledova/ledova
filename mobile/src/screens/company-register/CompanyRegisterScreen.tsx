@@ -12,7 +12,6 @@ import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyParticulars } from './CompanyParticulars';
-import { ClassRegister } from './ClassRegister';
 import { RegisterDownload } from './RegisterDownload';
 
 export function CompanyRegisterScreen() {
@@ -87,7 +86,6 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         disabled={!register.initialized}
                         accessibilityLabel={`${REGISTER_COPY.DOWNLOAD} for ${register.token.name}`}
                       />
-                      <ClassRegister register={register} />
                       <ClassRecords
                         epoch={epoch}
                         company={company.uuid}
@@ -104,6 +102,13 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                             tokenUuid: uuid,
                             companyUuid: company.uuid,
                             entryUuid: entry.uuid,
+                          })
+                        }
+                        onChangeParticulars={(member) =>
+                          navigation.navigate('PrepareRegisterParticulars', {
+                            tokenUuid: uuid,
+                            companyUuid: company.uuid,
+                            memberUuid: member,
                           })
                         }
                       />

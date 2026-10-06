@@ -6,6 +6,7 @@ import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegist
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
+import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
@@ -16,6 +17,7 @@ export type HomeStackParamList = {
   PrepareRegisterOpening: { tokenUuid: string; companyUuid: string };
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
+  PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -68,6 +70,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
       <Stack.Screen
         name="PrepareRegisterCorrection"
         component={PrepareRegisterCorrectionScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="PrepareRegisterParticulars"
+        component={PrepareRegisterParticularsScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>

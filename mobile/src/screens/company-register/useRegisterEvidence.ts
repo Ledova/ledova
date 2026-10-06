@@ -5,6 +5,7 @@ import {
   isRegisterEvidenceReceipt,
   REGISTER_CORRECTION_COPY,
   REGISTER_IMPORT_COPY,
+  REGISTER_PARTICULARS_COPY,
   uploadRegisterEvidence,
   type RegisterEvidence,
   type RegisterEvidenceKind,
@@ -18,7 +19,7 @@ const EVIDENCE: Record<RegisterEvidenceKind, { noun: string; unconfirmed: string
   share_register: { noun: 'share register', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
   asic_extract: { noun: 'ASIC extract', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
   authority: { noun: 'authority document', unconfirmed: REGISTER_CORRECTION_COPY.UPLOAD_RECEIPT_FAILED },
-  supporting: { noun: 'supporting document', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
+  supporting: { noun: 'supporting document', unconfirmed: REGISTER_PARTICULARS_COPY.UPLOAD_RECEIPT_FAILED },
 };
 
 export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind) {

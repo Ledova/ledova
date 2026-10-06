@@ -43,6 +43,7 @@ const NEW_HEADING = `${COPY.STAGES.submitted} · Alex Member`;
 const REJECTED_HEADING = `${COPY.STAGES.rejected} · ${COPY.UNNAMED_MEMBER}`;
 const NEW = `${COPY.STAGES.submitted.toLowerCase()} particulars change for Alex Member, as at ${formatDate('2026-09-20')}, prepared on ${formatDateTime('2026-10-05T01:00:00Z')}`;
 const REJECTED_ONE = `${COPY.STAGES.rejected.toLowerCase()} particulars change for ${COPY.UNNAMED_MEMBER}, as at ${formatDate('2026-08-01')}, prepared on ${formatDateTime('2026-10-04T01:00:00Z')}`;
+const CHANGE_ALEX = `${COPY.PREPARE} for Alex Member in Ordinary shares`;
 const step = (kind: RegisterDecisionKind, description = NEW) => `${COPY.DECISIONS[kind]} the ${description}`;
 const text = (element: { props: { children?: unknown } }) => [element.props.children].flat().join('');
 const get = jest.mocked(apiClient.get);
@@ -299,22 +300,38 @@ it('reads every page of the company’s changes and lists each once, newest firs
 });
 
 it.each([
-  ['approval and rejection to an approver', [appointment('appointment-step', ['approve'])], ['approve', 'reject']],
-  ['application to an appointee who applies', [appointment('appointment-step', ['apply'])], ['apply']],
-  ['every decision to an administrator', [appointment('appointment-step', ['admin'])], KINDS],
-  ['no decision to a preparer', [appointment('appointment-step', ['prepare'])], []],
-  ['no decision to a register reader', [appointment('appointment-step', ['read_register'])], []],
   [
-    'no decision to another company’s administrator',
+    'approval and rejection to an approver',
+    [appointment('appointment-step', ['approve'])],
+    ['approve', 'reject'],
+    false,
+  ],
+  ['application to an appointee who applies', [appointment('appointment-step', ['apply'])], ['apply'], false],
+  ['every step to an administrator', [appointment('appointment-step', ['admin'])], KINDS, true],
+  ['only preparation to a preparer', [appointment('appointment-step', ['prepare'])], [], true],
+  ['nothing to a register reader', [appointment('appointment-step', ['read_register'])], [], false],
+  [
+    'nothing to another company’s administrator',
     [appointment('appointment-step', ['admin'], { company: 'garden' })],
     [],
+    false,
   ],
-])('offers %s', async (_, own, offered) => {
+])('offers %s', async (_, own, offered, prepares) => {
   appointments = own;
   const view = await openRegister();
+  await openClass(view);
   for (const kind of KINDS) {
     expect(!!view.queryByRole('button', { name: step(kind) })).toBe(offered.includes(kind));
     expect(view.queryByRole('button', { name: step(kind, REJECTED_ONE) })).toBeNull();
+  }
+  expect(!!view.queryByRole('button', { name: CHANGE_ALEX })).toBe(prepares);
+  if (prepares) {
+    await fireEvent.press(view.getByRole('button', { name: CHANGE_ALEX }));
+    expect(mockNavigate).toHaveBeenCalledWith('PrepareRegisterParticulars', {
+      tokenUuid: 'ordinary',
+      companyUuid: 'paper',
+      memberUuid: MEMBER_A,
+    });
   }
 });
 
@@ -383,6 +400,7 @@ it('refreshes after a refused decision and withdraws the steps an appointment no
   });
   const view = await openRegister();
   await openClass(view);
+  expect(view.getByRole('button', { name: CHANGE_ALEX })).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: step('apply') }));
   expect(await view.findByText(COPY.NO_CURRENT_PARTICULARS)).toBeTruthy();
   const before = refreshed();
@@ -391,6 +409,7 @@ it('refreshes after a refused decision and withdraws the steps an appointment no
   await waitFor(() => refreshed().forEach((count, index) => expect(count).toBeGreaterThan(before[index])));
   await waitFor(() => expect(view.queryByRole('button', { name: step('apply') })).toBeNull());
   expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  expect(view.queryByRole('button', { name: CHANGE_ALEX })).toBeNull();
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
