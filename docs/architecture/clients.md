@@ -718,6 +718,21 @@ numbered as an unnamed or a new member) and recognise a holdings-moved refusal b
 its `opening_holdings_moved` code. The dashboard and mobile opening screens
 described above are built on this layer.
 
+`packages/shared` also holds the client layer for company-run
+[wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening):
+services for links (every page of a list with the company and status filters,
+the company's waiting wallets, prepare, decision preview, decide and the
+authority document download), a link's mapping narrowed at runtime,
+`isPreparedRegisterLink`, which checks a prepared link against every field of
+its request and its mapping as address and member pairs in any order and letter
+case, `REGISTER_LINK_DECISIONS` for `useRegisterDecision` with the generic
+decision receipt check, the link copy with a sentence for every requirement a
+link decision can leave unmet and each wallet's proof worded as the holder's own
+proof on Ledova, never as a verification by Ledova, and the
+`companyRegisterLinks` destination at
+`/company/register/companies/:company/links`. The web and mobile wallet link
+screens are being built; neither client shows wallet links yet.
+
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
 lists every page of its share classes, filtered to that company. Profile edits
