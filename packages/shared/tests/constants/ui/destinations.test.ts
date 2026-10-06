@@ -55,6 +55,12 @@ describe('the signed-in destinations', () => {
     expect(DESTINATIONS.companyRegisterImport.path).toBe(`${DESTINATIONS.companyClass.path}/import`);
   });
 
+  it("opens a company's wallet links beneath Register, apart from any share class", () => {
+    expect(DESTINATIONS.companyRegisterLinks.path).toBe(
+      `${DESTINATIONS.companyRegister.path}/companies/:company/links`,
+    );
+  });
+
   it('opens the register opening of a share class beneath it, as the import page does', () => {
     expect(DESTINATIONS.companyRegisterOpening.path).toBe(`${DESTINATIONS.companyClass.path}/open`);
   });
@@ -84,6 +90,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     companyRegister: 'everyone',
     companyRegisterImport: 'everyone',
     companyRegisterCorrection: 'everyone',
+    companyRegisterLinks: 'everyone',
     companyRegisterOpening: 'everyone',
     company: 'everyone',
     companyAuthority: 'company',
@@ -116,6 +123,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       companyRegister: 'Register',
       companyRegisterImport: 'Register',
       companyRegisterCorrection: 'Register',
+      companyRegisterLinks: 'Register',
       companyRegisterOpening: 'Register',
       company: 'Company',
       companyAuthority: 'Representative authority',
