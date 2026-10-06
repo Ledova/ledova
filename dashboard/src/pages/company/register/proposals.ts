@@ -5,6 +5,7 @@ import {
   type OwnCompanyAppointment,
   type RegisterEntry,
   type RegisterStep,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import type { Tone } from '@components/Ledger';
 
@@ -29,6 +30,13 @@ export function registerSteps(appointments: OwnCompanyAppointment[], company: st
     apply: appointmentForRegisterStep(appointments, company, 'apply'),
     reject: appointmentForRegisterStep(appointments, company, 'reject'),
   };
+}
+
+export function registerMembers(registers: TokenHoldersResponse[]) {
+  const members = new Map<string, string | null>();
+  for (const { member, name } of registers.flatMap((register) => register.holders))
+    if (!members.get(member)) members.set(member, name);
+  return members;
 }
 
 export function retainedName(snapshot: unknown, fallback: string) {

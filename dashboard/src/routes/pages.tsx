@@ -18,6 +18,7 @@ import ShareClassPage from '@pages/company/classes';
 import CompanyRegisterPage from '@pages/company/register';
 import CompanyRegisterImportPage from '@pages/company/register/import';
 import CompanyRegisterCorrectionPage from '@pages/company/register/correct';
+import CompanyRegisterLinksPage from '@pages/company/register/links';
 import CompanyRegisterOpeningPage from '@pages/company/register/open';
 import CompanyRegisterParticularsPage from '@pages/company/register/particulars';
 import ListingPage from '@pages/company/listing';
@@ -44,6 +45,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyRegister: <CompanyRegisterPage />,
   companyRegisterImport: <CompanyRegisterImportPage />,
   companyRegisterCorrection: <CompanyRegisterCorrectionPage />,
+  companyRegisterLinks: <CompanyRegisterLinksPage />,
   companyRegisterOpening: <CompanyRegisterOpeningPage />,
   companyRegisterParticulars: <CompanyRegisterParticularsPage />,
   company: <CompanyPage />,
