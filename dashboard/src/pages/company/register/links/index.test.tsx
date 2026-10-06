@@ -512,7 +512,7 @@ it('reads the waiting wallets, registers and appointments again after a conflict
   expect(preparations().map((body) => body.operationId)).toEqual([KEY(5), KEY(6)]);
 });
 
-it("shows the server's words for a refused preparation and keeps the draft", async () => {
+it("shows the server's words for a refused preparation, keeps the draft and reads the waiting wallets again", async () => {
   const words = 'A mapped wallet address is already linked to a member of this company.';
   prepareFor = async () => {
     throw refusal(400, [words]);
@@ -521,8 +521,12 @@ it("shows the server's words for a refused preparation and keeps the draft", asy
   await ready();
   complete();
   choose(ADA_WALLET, 'Ada Member');
+  const before = [reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)];
   fireEvent.click(submitButton());
   expect((await screen.findByRole('alert')).textContent).toBe(words);
+  await waitFor(() =>
+    expect([reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)]).toEqual([before[0] + 1, before[1] + 1, before[2]]),
+  );
   expect((screen.getByLabelText(COPY.REASON) as HTMLTextAreaElement).value).toBe(`  ${REASON}  `);
   expect(chosen(ADA_WALLET)).toEqual(['Ada Member']);
 });
@@ -633,6 +637,7 @@ it('prepares nothing once its account guard refuses after an upload, even while 
           registers={[registered()]}
           appointment={appointment(['prepare'])}
           blocked={false}
+          onRefused={() => undefined}
           onConflict={() => undefined}
           onMissing={() => undefined}
         />

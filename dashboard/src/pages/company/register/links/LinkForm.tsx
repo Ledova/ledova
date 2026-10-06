@@ -65,6 +65,7 @@ export function LinkForm({
   registers,
   appointment,
   blocked,
+  onRefused,
   onConflict,
   onMissing,
 }: {
@@ -75,6 +76,7 @@ export function LinkForm({
   registers: TokenHoldersResponse[];
   appointment: OwnCompanyAppointment;
   blocked: boolean;
+  onRefused: () => void;
   onConflict: () => void;
   onMissing: () => void;
 }) {
@@ -208,6 +210,7 @@ export function LinkForm({
       try {
         check();
         setError(apiErrorSentence(failure, FAILED, FAILED));
+        if (failureStatus(failure) === 400) onRefused();
         if (failureStatus(failure) === 409) onConflict();
         if (failureStatus(failure) === 404) onMissing();
       } catch {
