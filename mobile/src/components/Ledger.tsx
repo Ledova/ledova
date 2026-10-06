@@ -229,6 +229,11 @@ export function Action({
   primary?: boolean;
   accessibilityLabel?: string;
 }) {
+  const handlePress = () => {
+    if (!disabled) {
+      onPress();
+    }
+  };
   const styles = useThemedStyles((theme) => ({
     button: {
       alignSelf: 'flex-start' as const,
@@ -252,7 +257,8 @@ export function Action({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
+      onAccessibilityTap={handlePress}
       style={styles.button}
     >
       <Text style={styles.label}>{label}</Text>
@@ -275,6 +281,11 @@ export function Choice({
   accessibilityRole?: 'button' | 'radio' | 'checkbox';
   accessibilityLabel?: string;
 }) {
+  const handlePress = () => {
+    if (!disabled) {
+      onPress();
+    }
+  };
   const styles = useThemedStyles((theme) => ({
     choice: {
       alignSelf: 'flex-start' as const,
@@ -301,7 +312,8 @@ export function Choice({
           : { selected, disabled }
       }
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
+      onAccessibilityTap={handlePress}
       style={styles.choice}
     >
       <Text style={styles.label}>{label}</Text>

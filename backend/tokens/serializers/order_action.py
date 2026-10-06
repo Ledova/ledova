@@ -140,10 +140,15 @@ class OrderActionModifyResultSerializer(serializers.Serializer):
 
 class OrderActionRefusalSerializer(serializers.Serializer):
     code = serializers.ChoiceField(
-        choices=["order_cancellation_failed", "order_modification_failed", "order_modification_conflict"]
+        choices=[
+            "order_cancellation_failed",
+            "order_modification_failed",
+            "order_modification_conflict",
+            "investor_not_eligible",
+        ]
     )
     detail = serializers.CharField()
-    http_status = serializers.ChoiceField(choices=[400, 409])
+    http_status = serializers.ChoiceField(choices=[400, 403, 409])
 
 
 class OrderActionChallengeSerializer(serializers.Serializer):
@@ -196,7 +201,15 @@ ORDER_ACTION_RESPONSES = {
         description="Recorded action refusal or ordinary pending request/challenge error.",
     ),
     401: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Authentication required."),
-    403: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Signature refused."),
+    403: OpenApiResponse(
+        response={
+            "anyOf": [
+                {"$ref": "#/components/schemas/OrderActionSubmission"},
+                {"type": "object", "additionalProperties": {}},
+            ]
+        },
+        description="Recorded eligibility refusal or ordinary signature refusal.",
+    ),
     404: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Unknown or currently inaccessible action/order."),
     409: OpenApiResponse(
         response={

@@ -32,6 +32,7 @@ from shared.seeds.demo import (
     DEMO_TOKEN_SYMBOL,
 )
 from shared.seeds.synthetic.chain import layer as chain_layer
+from shared.seeds.synthetic.eligibility import seed_company_eligibility
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
 from shared.seeds.synthetic.market import layer as market_layer
@@ -111,6 +112,8 @@ class Command(BaseCommand):
         logging.disable(max(disabled, logging.INFO))
         try:
             outcome = seed_population(timezone.now(), options["investors"])
+            if outcome.plan is not None:
+                seed_company_eligibility()
             elapsed = time.monotonic() - started
             chain = chain_layer.seed_issuance(timezone.now()) if outcome.state == PRESENT else None
             chain_elapsed = time.monotonic() - started - elapsed

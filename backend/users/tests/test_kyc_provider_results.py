@@ -23,6 +23,7 @@ from integrations.tests.sumsub_payloads import (
     step,
     verification_steps,
 )
+from operators.models import Operator
 from shared.models import Country
 from users.models import UserAccount, UserProfile
 from users.services import identity
@@ -33,6 +34,7 @@ STATUS_URL = "/api/users/identity-verification/status/"
 
 
 def a_person(email, **profile_fields):
+    Operator.get()
     user = User.objects.create_user(email=email, password="pw-12345678")
     profile = UserProfile.objects.create(
         user=user, citizenship_country=Country.get_or_create_for_code("AU"), **profile_fields
@@ -84,6 +86,22 @@ class KYCAIDStatusPollTest(APITestCase):
         self.assertTrue(body["isVerified"])
         self.assertEqual((body["status"], body["reviewResult"]), ("completed", "GREEN"))
         self.assertEqual(self.account.account_status, "active")
+
+    def test_an_approval_without_configuration_returns_the_persisted_pending_status(self):
+        Operator.objects.all().delete()
+        before = UserProfile.objects.filter(pk=self.profile.pk).values().get()
+
+        with self.assertLogs("users.services.identity", level="WARNING"):
+            body = self.poll(applicant(verification_status="valid"))
+
+        self.assertFalse(body["isVerified"], body)
+        self.assertEqual((body["status"], body["reviewResult"], body["reviewAnswer"]), ("pending", None, None))
+        self.assertIsNone(body["verifiedAt"])
+        self.assertIsNone(body["extractedData"])
+        self.assertEqual(UserProfile.objects.filter(pk=self.profile.pk).values().get(), before)
+        self.assertEqual(self.account.account_status, "pending")
+        self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=self.account).exists())
+        self.push_task.defer.assert_not_called()
 
     def test_a_valid_last_verification_of_a_pep_is_rejected_by_the_unchanged_policy(self):
         self.poll(applicant(verification_status="valid", pep=True))
@@ -175,6 +193,38 @@ class SumsubStatusPollTest(APITestCase):
 
         self.assertTrue(body["isVerified"])
         self.assertEqual(self.account.account_status, "active")
+
+    def test_an_approval_without_configuration_returns_the_persisted_pending_status(self):
+        Operator.objects.all().delete()
+        before = UserProfile.objects.filter(pk=self.profile.pk).values().get()
+
+        with self.assertLogs("users.services.identity", level="WARNING"):
+            body = self.poll(review())
+
+        self.assertFalse(body["isVerified"], body)
+        self.assertEqual((body["status"], body["reviewResult"], body["reviewAnswer"]), ("pending", None, None))
+        self.assertIsNone(body["verifiedAt"])
+        self.assertIsNone(body["extractedData"])
+        self.assertEqual(UserProfile.objects.filter(pk=self.profile.pk).values().get(), before)
+        self.assertEqual(self.account.account_status, "pending")
+        self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=self.account).exists())
+        self.push_task.defer.assert_not_called()
+
+    def test_a_rolled_back_notification_returns_the_persisted_pending_status(self):
+        before = UserProfile.objects.filter(pk=self.profile.pk).values().get()
+        self.push_task.defer.side_effect = RuntimeError("synthetic queue unavailable")
+
+        with self.assertLogs("users.services.identity", level="WARNING"):
+            body = self.poll(review())
+
+        self.assertFalse(body["isVerified"], body)
+        self.assertEqual((body["status"], body["reviewResult"], body["reviewAnswer"]), ("pending", None, None))
+        self.assertIsNone(body["verifiedAt"])
+        self.assertIsNone(body["extractedData"])
+        self.assertEqual(UserProfile.objects.filter(pk=self.profile.pk).values().get(), before)
+        self.assertEqual(self.account.account_status, "pending")
+        self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=self.account).exists())
+        self.push_task.defer.assert_called_once()
 
     def test_an_approval_whose_aml_case_cannot_be_read_is_not_applied(self):
         body = self.poll(review(), case_error=HTTPError("429 synthetic"))

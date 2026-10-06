@@ -74,10 +74,8 @@ def _authorize(user, authority, action):
     permission = PERMISSIONS[authority]
     if not actor.is_active:
         raise PermissionDenied("You cannot submit this whitelist change.")
-    if authority == WhitelistAuthority.CLASSIFICATION_REFRESH and not actor.is_staff:
-        if action != WhitelistAction.REMOVE:
-            raise PermissionDenied("A refresh by the wallet's own holder can only remove an approval.")
-        return actor
+    if authority == WhitelistAuthority.CLASSIFICATION_REFRESH:
+        raise PermissionDenied("Eligibility invalidation requires its retained cause and bounded REMOVE entry.")
     if not actor.is_staff or (permission and not actor.has_perm(permission)):
         raise PermissionDenied("You cannot submit this whitelist change.")
     return actor
@@ -428,3 +426,19 @@ def recover_changes():
             WhitelistChange.objects.filter(pk=change_id).update(updated_at=timezone.now())
             logger.warning("Whitelist recovery remains unresolved: submission=%s", change_id)
     return result
+
+
+def submit_invalidation(submission_id, command):
+    from whitelist.services.eligibility_invalidation import admit_invalidation
+
+    _boundary()
+    change = admit_invalidation(submission_id, command)
+    if change is None:
+        return None
+    try:
+        return with_current_approval(_process(change))
+    except (PermissionDenied, WhitelistChangeConflict):
+        raise
+    except Exception:
+        logger.warning("Whitelist invalidation remains unresolved: submission=%s", change.pk)
+        raise WhitelistChangeUnresolved() from None

@@ -63,12 +63,12 @@ export const OFFERING_WITHDRAWABLE_STATUSES: OfferingStatus[] = ['draft', 'submi
 export const OFFERING_PUBLISHED_STATUSES: OfferingStatus[] = ['approved', 'closed'];
 
 export const DIRECTORY_COPY = {
-  INELIGIBLE_TITLE: 'Verify your investor status to see the directory',
+  INELIGIBLE_TITLE: 'Check your investor account',
   MARKET_INELIGIBLE_BODY:
-    'The market list is limited to verified wholesale and sophisticated investors. Once your classification is ' +
-    'verified, every deployed share class appears here, whether or not its issuer is listed in the directory.',
-  MARKET_EMPTY_TITLE: 'No share classes are trading yet',
+    'Your account and configured identity checks must be ready. Each company separately decides whether ' +
+    'you may trade its share classes.',
+  MARKET_EMPTY_TITLE: 'No share classes available for your account',
   MARKET_EMPTY_BODY:
-    'No company has deployed a share class on this platform yet. The market lists every deployed share class, ' +
-    'so this is empty only because none exists.',
+    'The market shows deployed share classes covered by your current company decisions for secondary trading. ' +
+    'A company acceptance for an associated-person or product-value request does not grant secondary access.',
 } as const;

@@ -4,7 +4,7 @@ from rest_framework import serializers
 from assets.models import Asset
 from assets.serializers.asset import AssetChainDeploymentSerializer
 from operators.models import Operator
-from users.services.eligibility import eligible_for_any_company
+from users.services.eligibility import secondary_company_ids
 
 PAYMENT_FIELDS = (
     "bank_account_name",
@@ -69,4 +69,4 @@ class OperatorSerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
         if user is None or not user.is_authenticated:
             return False
-        return bool(user.is_staff) or eligible_for_any_company(user)
+        return bool(user.is_staff) or bool(secondary_company_ids(user))

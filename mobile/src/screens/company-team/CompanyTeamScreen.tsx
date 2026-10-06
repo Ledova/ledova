@@ -23,6 +23,7 @@ import { registerAppointmentsKey } from '../company-register/useCompanyRegister'
 import { AcceptInvitation } from './AcceptInvitation';
 import { AppointmentRecord, scopeLabels } from './AppointmentRecord';
 import { InvitationForm } from './InvitationForm';
+import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 function CompanyTeam({
   owner,
@@ -176,7 +177,12 @@ function CompanyTeam({
       testID="company-team-screen"
       title="Company team"
       lede="Manage your own company appointments and invitations. Company information is provided by the company; an appointment does not activate the company or approve a register action."
-      actions={<Action label="Refresh" disabled={refreshing} onPress={refresh} />}
+      actions={
+        <>
+          <Action label="Refresh" disabled={refreshing} onPress={refresh} />
+          <EligibilityLinks company />
+        </>
+      }
       refreshControl={<RefreshControl refreshing={refreshing && !appointments.isPending} onRefresh={refresh} />}
     >
       <Section title="Accept an invitation">

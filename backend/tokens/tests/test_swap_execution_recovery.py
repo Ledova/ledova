@@ -9,6 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
 from django.test import override_settings
@@ -24,13 +25,14 @@ from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, SENDER, admitted_signer
 from blockchain.tests.test_outgoing_processes import finish
 from feature_flags.models import FeatureFlag
-from shared.db import atomic, current_alias, use_operator
+from shared.db import acting_for, atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import ShareToken, SwapOrder, TransferOrder
 from tokens.services import swap_execution
 from tokens.tasks.swap_reconciler import recover_swap_execution, resolve_executing_swaps
+from tokens.tests.order_process_fixtures import worker_databases
 from tokens.tests.swap_execution_fixtures import (
     ExecutionNode,
     execution_receipt,
@@ -139,12 +141,21 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
                 swap_execution.publish_trading_event.call_count,
             )
 
-    def test_foreign_deployed_class_accepts_each_first_signature_and_a_relay_without_execution(self):
+    def test_foreign_deployed_class_accepts_actual_signers_and_refuses_a_fresh_relay_without_execution(self):
         for actor, signer in (("seller", "seller"), ("buyer", "buyer"), ("buyer", "seller")):
             with self.subTest(actor=actor, signer=signer):
                 self.external_issuer_swap(f"admitted-{actor}-{signer}")
+                before = self.admission_state()
                 with patch.object(swap_execution, "get_base_chain_client", side_effect=AssertionError("Provider")):
                     response = self.post_signature(actor, relayed=signer)
+                if actor != signer:
+                    self.assertEqual(response.status_code, 400, response.content)
+                    self.assertEqual(
+                        response.json(), {"detail": "The authenticated participant must be the signing party"}
+                    )
+                    self.assertEqual(self.admission_state(), before)
+                    with patch.object(swap_execution, "get_base_chain_client", side_effect=AssertionError("Provider")):
+                        response = self.post_signature(signer)
                 self.assertEqual(response.status_code, 200, response.content)
                 state, transactions, operations, attempts, jobs, events = self.admission_state()
                 self.assertEqual(state[f"{signer}_signature"], self.fixture.signatures[signer])
@@ -159,8 +170,14 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         for actor, signer in (("seller", "seller"), ("buyer", "buyer"), ("buyer", "seller")):
             with self.subTest(actor=actor, signer=signer):
                 response = self.post_signature(actor, relayed=signer)
-                self.assertEqual(response.status_code, 409, response.content)
-                self.assertEqual(response.json()["code"], "swap_settlement_context_changed")
+                if actor == signer:
+                    self.assertEqual(response.status_code, 409, response.content)
+                    self.assertEqual(response.json()["code"], "swap_settlement_context_changed")
+                else:
+                    self.assertEqual(response.status_code, 400, response.content)
+                    self.assertEqual(
+                        response.json(), {"detail": "The authenticated participant must be the signing party"}
+                    )
                 self.assertEqual(self.admission_state(), before)
 
     def test_non_deployed_classes_refuse_new_admission(self):
@@ -269,7 +286,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         self.assertEqual(len(recovered[4]), 2)
         self.assertEqual(recovered[4][0], recovered[4][1])
 
-    def test_two_private_participants_admit_relayed_signatures_and_original_actor(self):
+    def test_two_private_participants_admit_their_own_signatures_and_replay_the_original_actor(self):
         seen = []
         from tokens.services import atomic_swap_service
 
@@ -283,11 +300,23 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
             self.assertEqual(TransferOrder.objects.filter(pk=self.fixture.orders[1].pk).count(), 1)
             return verify(*args)
 
+        before = self.admission_state()
         with patch.object(atomic_swap_service, "verify_signature", private_read):
             response = self.post_signature("buyer", relayed="seller")
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(response.json(), {"detail": "The authenticated participant must be the signing party"})
+        self.assertEqual(self.admission_state(), before)
+        self.assertEqual(seen, [("ledova_app", False)])
+        seen.clear()
+        with patch.object(atomic_swap_service, "verify_signature", private_read):
+            response = self.post_signature("buyer")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(seen, [("ledova_app", False)])
+        before = self.admission_state()
         response = self.post_signature("seller", relayed="buyer")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(self.admission_state(), before)
+        response = self.post_signature("seller")
         self.assertEqual(response.status_code, 200, response.content)
         with use_operator():
             self.swap.refresh_from_db()
@@ -321,7 +350,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
 
     def test_job_failure_rolls_back_second_signature_and_transaction(self):
         self.assertEqual(self.post_signature("seller").status_code, 200)
-        with use_operator(), patch.object(
+        with acting_for(self.fixture.buyer.user.pk), patch.object(
             recover_swap_execution, "defer", side_effect=DatabaseError("Synthetic job failure")
         ):
             with self.assertRaises(DatabaseError):
@@ -332,6 +361,7 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
                     user=self.fixture.buyer.user,
                     participant="buyer",
                 )
+        with use_operator():
             self.swap.refresh_from_db()
             self.assertEqual(self.swap.status, "seller_signed")
             self.assertFalse(self.swap.buyer_signature)
@@ -368,7 +398,11 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
                 commit()
                 raise ConnectionError("Synthetic admission acknowledgement loss")
 
-            with patch.object(connection, "commit", commit_then_disconnect), self.assertRaises(ConnectionError):
+            with (
+                acting_for(self.fixture.buyer.user.pk),
+                patch.object(connection, "commit", commit_then_disconnect),
+                self.assertRaises(ConnectionError),
+            ):
                 swap_execution.submit_signature(
                     self.swap,
                     self.fixture.signatures["buyer"],
@@ -684,20 +718,24 @@ class SwapExecutionProcessTest(APITransactionTestCase):
         self.fixture = make_execution("process")
         self.signer = admitted_signer()
         self.swap = self.fixture.swap
-        swap_execution.submit_signature(
-            self.swap,
-            self.fixture.signatures["seller"],
-            SELLER.address,
-            user=self.fixture.seller.user,
-            participant="seller",
-        )
-        swap_execution.submit_signature(
-            self.swap,
-            self.fixture.signatures["buyer"],
-            BUYER.address,
-            user=self.fixture.buyer.user,
-            participant="buyer",
-        )
+        self.seller_actor = self.fixture.seller.user
+        self.buyer_actor = self.fixture.buyer.user
+        with acting_for(self.seller_actor.pk):
+            swap_execution.submit_signature(
+                self.swap,
+                self.fixture.signatures["seller"],
+                SELLER.address,
+                user=self.seller_actor,
+                participant="seller",
+            )
+        with acting_for(self.buyer_actor.pk):
+            swap_execution.submit_signature(
+                self.swap,
+                self.fixture.signatures["buyer"],
+                BUYER.address,
+                user=self.buyer_actor,
+                participant="buyer",
+            )
         self.swap.refresh_from_db()
         self.record = self.swap.transaction
         self.parents = list(
@@ -705,10 +743,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
         )
 
     def worker(self, directory, phase, admission=None):
-        database = connections[current_alias()].settings_dict
-        fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
-        env["SWAP_EXECUTION_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["SWAP_EXECUTION_TEST_DATABASES"] = json.dumps(worker_databases(), default=str)
+        env["SWAP_EXECUTION_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
         if admission is not None:
             env["SWAP_EXECUTION_TEST_ADMISSION"] = json.dumps(admission)
         return subprocess.Popen(
@@ -730,7 +767,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
             self.assertEqual(original is not None, signed)
             code, out, err = finish(self.worker(directory, "recover"))
             self.assertEqual(code, 0, out + err)
-            self.assertEqual(json.loads(out)["status"], "confirmed")
+            result = json.loads(out)
+            self.assertEqual(result["status"], "confirmed")
+            self.assertEqual(result["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
             self.record.refresh_from_db()
             self.swap.refresh_from_db()
             attempt = SignedAttempt.objects.get(operation_id=self.record.outgoing_operation_id)
@@ -770,17 +809,25 @@ class SwapExecutionProcessTest(APITransactionTestCase):
 
     def test_kill_after_admission_preserves_both_signature_and_durable_job(self):
         fixture = make_execution("admission-process")
-        swap_execution.submit_signature(
-            fixture.swap, fixture.signatures["seller"], SELLER.address, user=fixture.seller.user, participant="seller"
-        )
+        seller_actor = fixture.seller.user
+        buyer_actor = fixture.buyer.user
+        with acting_for(seller_actor.pk):
+            swap_execution.submit_signature(
+                fixture.swap, fixture.signatures["seller"], SELLER.address, user=seller_actor, participant="seller"
+            )
         admission = {
             "swap_uuid": str(fixture.swap.pk),
-            "actor_id": fixture.buyer.user.pk,
+            "actor_id": buyer_actor.pk,
             "signature": fixture.signatures["buyer"],
         }
         with tempfile.TemporaryDirectory(prefix="swap-execution-admission-") as temporary:
             code, out, err = finish(self.worker(Path(temporary), "admission", admission))
         self.assertEqual(code, -signal.SIGKILL, out + err)
+        observed = json.loads(out)
+        self.assertEqual(observed["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
+        self.assertEqual(observed["database"], connections["default"].settings_dict["NAME"])
+        self.assertEqual(observed["role"], settings.RLS_ROLES["app"])
+        self.assertEqual(observed["principal"], str(buyer_actor.pk))
         fixture.swap.refresh_from_db()
         self.assertEqual(fixture.swap.status, "executing")
         self.assertEqual(fixture.swap.buyer_signature, fixture.signatures["buyer"])
@@ -811,7 +858,9 @@ class SwapExecutionProcessTest(APITransactionTestCase):
                 for worker in workers:
                     code, out, err = finish(worker)
                     self.assertEqual(code, 0, out + err)
-                    self.assertEqual(json.loads(out)["status"], "confirmed")
+                    result = json.loads(out)
+                    self.assertEqual(result["status"], "confirmed")
+                    self.assertEqual(result["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
                 self.record.refresh_from_db()
                 attempt = SignedAttempt.objects.get(operation_id=self.record.outgoing_operation_id)
                 self.assertEqual(SigningAccount.objects.get(pk=self.signer.pk).next_nonce, 8)

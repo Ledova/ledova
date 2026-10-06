@@ -1,6 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.db import connections
 from django.test import TestCase
 from django.utils import timezone
 
@@ -39,10 +41,12 @@ from offerings.tests.factories import (
     extra_wallet,
     open_offering,
     paid_subscription,
+    subscription_technical_actor,
 )
+from shared.db import acting_for, current_alias, use_operator
 from shared.tests.tenants import make_tenant
 from users.exceptions import InvestorNotEligibleException
-from users.models import InvestorClassification, InvestorClassificationStatus
+from users.services.investor_classification import withdraw_classification
 
 
 class SubscriptionServiceTestCase(TestCase):
@@ -52,16 +56,25 @@ class SubscriptionServiceTestCase(TestCase):
         configure_operator(stablecoin=self.stablecoin)
         self.offering = open_offering(self.tenant, stablecoin=self.stablecoin)
         eligible_subscriber(self.tenant)
+        self.technical = subscription_technical_actor()
+
+    def _submit(self, subscription):
+        with acting_for(self.tenant.user.pk):
+            return submit(subscription, submitted_by=self.tenant.user)
+
+    def _accept(self, subscription):
+        with acting_for(self.technical.pk):
+            return accept(subscription)
 
     def _refusal(self, call, *args, **kwargs):
-        with self.assertRaises(SubscriptionRefusedException) as raised:
+        with acting_for(self.tenant.user.pk), self.assertRaises(SubscriptionRefusedException) as raised:
             call(*args, **kwargs)
         return str(raised.exception.detail)
 
     def _to_awaiting(self, subscription=None, rail=SettlementRail.BANK_TRANSFER, asset=None):
         subscription = subscription or draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         issue_instruction(subscription, rail=rail, settlement_asset=asset)
         return subscription
 
@@ -144,11 +157,11 @@ class SubscriptionServiceTest(SubscriptionServiceTestCase):
 
     def test_a_later_step_leaves_an_earlier_steps_time_alone(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
+        self._submit(subscription)
         subscription.refresh_from_db()
         submitted_at = subscription.submitted_at
 
-        accept(subscription)
+        self._accept(subscription)
         subscription.refresh_from_db()
 
         self.assertIsNotNone(submitted_at)
@@ -176,38 +189,53 @@ class SubscriptionServiceTest(SubscriptionServiceTestCase):
     def test_every_transition_refuses_from_the_wrong_status(self):
         subscription = draft_subscription(self.tenant)
         with self.assertRaises(InvalidSubscriptionTransitionException):
-            accept(subscription)
-        submit(subscription, submitted_by=self.tenant.user)
+            self._accept(subscription)
+        self._submit(subscription)
         with self.assertRaises(InvalidSubscriptionTransitionException):
-            submit(subscription, submitted_by=self.tenant.user)
+            self._submit(subscription)
         with self.assertRaises(InvalidSubscriptionTransitionException):
             issue_instruction(subscription, rail=SettlementRail.BANK_TRANSFER)
-        accept(subscription)
+        self._accept(subscription)
         with self.assertRaises(InvalidSubscriptionTransitionException):
-            accept(subscription)
+            self._accept(subscription)
 
-    def test_eligibility_is_rechecked_at_accept_because_a_certificate_can_lapse(self):
-        subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-
-        InvestorClassification.objects.filter(user_account=self.tenant.account).update(
-            expires_at=timezone.now() - timedelta(days=1)
+    def test_eligibility_is_rechecked_at_accept_when_the_genuine_company_decision_expires(self):
+        withdraw_classification(
+            actor=self.tenant.user, classification_id=self.tenant.eligibility_decision.request.source_id
         )
+        with patch("shared.seeds.synthetic.eligibility.DECISION_DAYS", 5 / 86400):
+            eligible_subscriber(self.tenant, issuer_decision=self.tenant.eligibility_decision)
+        decision = self.tenant.eligibility_decision
+        subscription = draft_subscription(self.tenant)
+        self._submit(subscription)
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT pg_sleep(GREATEST(0, EXTRACT(EPOCH FROM %s::timestamptz - clock_timestamp())) + 0.02)",
+                [decision.expires_at],
+            )
+            cursor.execute("SELECT clock_timestamp() >= %s", [decision.expires_at])
+            self.assertIs(cursor.fetchone()[0], True)
         with self.assertRaises(InvestorNotEligibleException) as raised:
-            accept(subscription)
-
-        self.assertIn("no_live_classification", raised.exception.reasons)
+            self._accept(subscription)
+        self.assertEqual(raised.exception.reasons, ("no_live_company_decision",))
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.SUBMITTED)
+        self.assertEqual(subscription.eligibility_decision_id, decision.pk)
+        self.assertIsNone(subscription.accepted_at)
+        decision.refresh_from_db()
+        self.assertEqual(decision.outcome, "accepted")
 
-    def test_a_revoked_classification_also_stops_acceptance(self):
+    def test_a_holder_withdrawn_source_also_stops_acceptance(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        InvestorClassification.objects.filter(user_account=self.tenant.account).update(
-            status=InvestorClassificationStatus.REVOKED
+        self._submit(subscription)
+        withdraw_classification(
+            actor=self.tenant.user, classification_id=self.tenant.eligibility_decision.request.source_id
         )
         with self.assertRaises(InvestorNotEligibleException):
-            accept(subscription)
+            self._accept(subscription)
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.SUBMITTED)
+        self.assertIsNone(subscription.accepted_at)
 
     def test_an_exact_payment_moves_the_row_to_paid(self):
         subscription = self._to_awaiting()

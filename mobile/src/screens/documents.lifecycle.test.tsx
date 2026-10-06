@@ -45,7 +45,7 @@ beforeEach(() => {
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   jest.mocked(useInvestorEligibility).mockReturnValue({
-    eligibility: { account: 'account-a', isEligible: false, reasons: [] },
+    eligibility: { account: 'account-a', isReady: false, reasons: [] },
     classifications: [],
     isLoading: false,
     submitClaim,
@@ -101,11 +101,11 @@ it('retains evidence after refusal and cleans it after the eligibility retry suc
   const view = await claimForm();
   expect(view.getByText('1.pdf')).toBeTruthy();
   submitClaim.mockRejectedValueOnce(new Error('Claim refused')).mockResolvedValueOnce({});
-  await fireEvent.press(view.getByText('Submit for review'));
+  await fireEvent.press(view.getByText('Save private evidence'));
   const first = submitClaim.mock.calls[0][0];
   expect(files.has(first.file.uri)).toBe(true);
   expect(view.getByText('1.pdf')).toBeTruthy();
-  await fireEvent.press(view.getByText('Submit for review'));
+  await fireEvent.press(view.getByText('Save private evidence'));
   expect(submitClaim.mock.calls[1][0].file).toEqual(first.file);
   expect(files.has(first.file.uri)).toBe(false);
   expect(files.has(returned.assets[0].uri)).toBe(false);
@@ -124,7 +124,7 @@ it('keeps an edited eligibility draft when its earlier submission succeeds', asy
   );
   let pressed!: Promise<void>;
   await act(async () => {
-    pressed = fireEvent.press(view.getByText('Submit for review'));
+    pressed = fireEvent.press(view.getByText('Save private evidence'));
   });
   const uri = submitClaim.mock.calls[0][0].file.uri;
   await fireEvent.changeText(view.getByPlaceholderText('Describe why this category applies to you'), 'Newer draft');

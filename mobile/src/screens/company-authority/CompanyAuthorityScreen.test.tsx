@@ -1,15 +1,22 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
-import { COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION, formatDateTime } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  formatDateTime,
+} from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
-import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
+import { companyDetail, companyQueryClient } from '../../testSupport/companyAdministration';
+import { CompanyScreen } from '../company';
+import { registerAppointmentsKey, useRegisterAppointments } from '../company-register/useCompanyRegister';
 import { CompanyAuthorityScreen } from './CompanyAuthorityScreen';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
@@ -19,6 +26,11 @@ jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest
 jest.mock('../../services/tokenStorage', () => ({ getAccessToken: jest.fn(async () => 'synthetic-access') }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: jest.fn() }) }));
+jest.mock('react-native-safe-area-context', () => ({
+  ...jest.requireActual('react-native-safe-area-context'),
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+}));
 
 const COMPANIES = '/api/v1/companies/';
 const REQUESTS = '/api/v1/company-authority/requests/';
@@ -84,7 +96,16 @@ let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData
 const pendingResponses: (() => void)[] = [];
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
+}
+
+function AppointmentAccess() {
+  const { steps } = useRegisterAppointments(getSessionEpoch(), a.uuid);
+  return <Text>{steps?.approve?.uuid ?? 'No current register appointment'}</Text>;
 }
 
 function parts(form: unknown) {
@@ -624,6 +645,79 @@ it('requires declaration acceptance, records the appointment and revokes while r
   await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
 });
 
+it('refreshes mounted company and register authority from normal reads after admission and revocation', async () => {
+  client = companyQueryClient();
+  history = [admissionRequest];
+  let current = companyDetail({ ...a, status: 'draft', administrativeAccess: { capabilities: [], draftSetup: false } });
+  let appointments: object[] = [];
+  get.mockImplementation(async (url) => {
+    if (url === COMPANIES) return { data: { results: [current], next: null } };
+    if (url === `${COMPANIES}${a.uuid}/`) return { data: current };
+    if (url === REQUESTS) return { data: { results: history, next: null } };
+    if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
+    if (url === '/api/v1/tokens/') return { data: { results: [], next: null } };
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  post.mockImplementation(async (url) => {
+    const admission = url.endsWith('/admit/');
+    current = {
+      ...current,
+      administrativeAccess: { capabilities: admission ? ['admin', 'approve'] : [], draftSetup: false },
+    };
+    appointments = admission
+      ? [{ ...admitted.appointment, company: a.uuid, uuid: 'current-read-appointment', expiresAt: null }]
+      : [];
+    history = [admission ? admitted : revoked];
+    return { data: admission ? admitted : revoked };
+  });
+  const view = await render(
+    <>
+      <CompanyScreen />
+      <CompanyAuthorityScreen />
+      <AppointmentAccess />
+    </>,
+    { wrapper },
+  );
+  await view.findByText('No current register appointment');
+  await view.findByText('Current company administration is required to access company documents.');
+  expect(view.queryByRole('button', { name: 'Activation' })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Request retained.pdf' }));
+  await fireEvent.press(view.getByRole('checkbox', { name: 'Accept authorisation declaration' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Establish appointment' }));
+  await view.findByRole('button', { name: 'Activation' });
+  await view.findByText('current-read-appointment');
+  expect(get.mock.calls.filter(([url]) => url === `${COMPANIES}${a.uuid}/`)).toHaveLength(2);
+  expect(get.mock.calls.filter(([url]) => url === '/api/v1/company-authority/appointments/')).toHaveLength(2);
+  await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+  await confirmRevocation();
+  await view.findByText('revoked');
+  await view.findByText('No current register appointment');
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Activation' })).toBeNull());
+  expect(get.mock.calls.filter(([url]) => url === `${COMPANIES}${a.uuid}/`)).toHaveLength(3);
+  expect(get.mock.calls.filter(([url]) => url === '/api/v1/company-authority/appointments/')).toHaveLength(3);
+});
+
+it.each(['admit', 'revoke'] as const)(
+  'refuses a foreign-company %s response before invalidating any authority',
+  async (action) => {
+    history = [action === 'admit' ? admissionRequest : admitted];
+    post.mockResolvedValue({ data: { ...(action === 'admit' ? admitted : revoked), company: b.uuid } });
+    const invalidation = jest.spyOn(client, 'invalidateQueries');
+    const view = await render(<CompanyAuthorityScreen />, { wrapper });
+    await fireEvent.press(await view.findByRole('button', { name: 'Request retained.pdf' }));
+    if (action === 'admit') {
+      await fireEvent.press(view.getByRole('checkbox', { name: 'Accept authorisation declaration' }));
+      await fireEvent.press(view.getByRole('button', { name: 'Establish appointment' }));
+    } else {
+      await fireEvent.press(view.getByRole('button', { name: 'Revoke appointment' }));
+      await confirmRevocation();
+    }
+    await view.findByText('The request outcome could not be confirmed. Retry the same request or refresh.');
+    expect(invalidation).not.toHaveBeenCalled();
+    expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual(history);
+  },
+);
+
 it('keeps non-admin proposals pending and explains the initial admission requirement', async () => {
   history = [record];
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
@@ -780,6 +874,7 @@ it.each([
 
 it.each(['success', 'refusal'])('suppresses a previous session admission %s', async (outcome) => {
   history = [admissionRequest];
+  const invalidation = jest.spyOn(client, 'invalidateQueries');
   const response = deferred({ data: admitted });
   post.mockReturnValue(response.promise);
   const view = await render(<CompanyAuthorityScreen />, { wrapper });
@@ -796,6 +891,7 @@ it.each(['success', 'refusal'])('suppresses a previous session admission %s', as
   });
   expect(view.queryByText('appointment-a')).toBeNull();
   expect(view.queryByText('Earlier session admission refused')).toBeNull();
+  expect(invalidation).not.toHaveBeenCalled();
   expect(client.getQueryData(['company-authority-requests', getSessionEpoch()])).toEqual([]);
 });
 

@@ -5,11 +5,12 @@ import { formatDate, formatMoney, useDirectoryTokens, type DirectoryToken } from
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
+import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 export function DirectoryScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<DirectoryStackParamList>>();
   const styles = useDirectoryStyles();
-  const { tokens, isEligible, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
+  const { tokens, isReady, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
   const issuers = new Map<string, DirectoryToken[]>();
   for (const token of tokens) issuers.set(token.companyUuid, [...(issuers.get(token.companyUuid) ?? []), token]);
   return (
@@ -21,11 +22,11 @@ export function DirectoryScreen() {
           </Text>
           <Action label="Try again" onPress={() => void retry()} disabled={isRefreshing} />
         </View>
-      ) : !isEligible ? (
-        <Section title="Verify your investor status">
+      ) : !isReady ? (
+        <Section title="Check your investor account">
           <Text style={styles.help}>
-            The directory shows share classes available to eligible investors. Submit your evidence for the operator to
-            review.
+            Account and identity checks are prerequisites. Each company separately decides eligibility for its
+            offerings.
           </Text>
           <LinkRow label="Verification" onPress={() => navigation.getParent()?.navigate('InvestorEligibility')} />
         </Section>
@@ -33,7 +34,9 @@ export function DirectoryScreen() {
         <>
           {tokens.length === 0 ? (
             <Section title="Share classes">
-              <Text style={styles.help}>No share classes available.</Text>
+              <Text style={styles.help}>No share classes available under your current company decisions.</Text>
+              <Text style={styles.help}>Use the company or offering UUID supplied to you to request eligibility.</Text>
+              <EligibilityLinks participant />
             </Section>
           ) : (
             [...issuers.entries()].map(([uuid, classes]) => {

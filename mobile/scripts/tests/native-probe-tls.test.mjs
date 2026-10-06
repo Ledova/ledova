@@ -11,6 +11,11 @@ function fixture(untrustedEndpoint, check, { withoutShell = false } = {}) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ledova-probe-tls-')));
   try {
     fs.mkdirSync(path.join(root, 'scripts'));
+    fs.mkdirSync(path.join(root, 'native-tests'));
+    fs.copyFileSync(
+      path.join(mobile, 'native-tests/documentFixture.json'),
+      path.join(root, 'native-tests/documentFixture.json'),
+    );
     fs.mkdirSync(path.join(root, 'bin'));
     fs.copyFileSync(path.join(mobile, 'app.json'), path.join(root, 'app.json'));
     for (const module of ['native-smoke.mjs', 'android-test-packages.mjs', 'screen-content.mjs', 'window-focus.mjs']) {

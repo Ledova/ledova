@@ -35,7 +35,8 @@ class Command(BaseCommand):
             return
 
         loader = MigrationExecutor(connections[current_alias()]).loader
-        applied_apps = loader.project_state(list(loader.applied_migrations)).apps
+        applied_nodes = [node for node in loader.applied_migrations if node in loader.graph.nodes]
+        applied_apps = loader.project_state(applied_nodes).apps
         strays = []
         conflicts = []
         for model, field_name in private_file_fields():

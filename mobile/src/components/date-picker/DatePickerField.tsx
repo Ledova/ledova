@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Modal, type StyleProp, type ViewStyle } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, Platform, Modal, type StyleProp, type ViewStyle } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { CalendarIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../contexts';
@@ -14,6 +14,7 @@ interface DatePickerFieldProps {
   minimumDate?: Date;
   maximumDate?: Date;
   fieldStyle?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 }
 
 export function DatePickerField({
@@ -24,6 +25,7 @@ export function DatePickerField({
   minimumDate,
   maximumDate,
   fieldStyle,
+  disabled = false,
 }: DatePickerFieldProps) {
   const theme = useAppTheme();
   const insets = useDialogInsets();
@@ -91,9 +93,6 @@ export function DatePickerField({
 
     if (event.type === 'set' && selectedDate) {
       onChange(selectedDate);
-      if (Platform.OS === 'ios') {
-        setShow(false);
-      }
     } else if (event.type === 'dismissed') {
       setShow(false);
     }
@@ -108,7 +107,9 @@ export function DatePickerField({
   };
 
   const handlePress = () => {
-    setShow(true);
+    if (!disabled) {
+      setShow(true);
+    }
   };
 
   const formatDate = (date: Date) => {
@@ -121,10 +122,19 @@ export function DatePickerField({
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity style={[styles.input, fieldStyle]} onPress={handlePress}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityValue={{ text: value ? formatDate(value) : placeholder }}
+        accessibilityState={{ disabled, expanded: show }}
+        disabled={disabled}
+        style={[styles.input, fieldStyle]}
+        onPress={handlePress}
+        onAccessibilityTap={handlePress}
+      >
         <CalendarIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} weight={theme.icon.weights.regular} />
         <Text style={[styles.inputText, !value && styles.placeholder]}>{value ? formatDate(value) : placeholder}</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {Platform.OS === 'ios' ? (
         <Modal visible={show} transparent animationType="slide" onRequestClose={handleCancel}>

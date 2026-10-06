@@ -3,7 +3,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.test import TestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from companies.models import Company, CompanyDocument, CompanyType
 from companies.models import DocumentType as CompanyDocumentType
@@ -162,27 +162,41 @@ class ClassificationTransitionAuthorizationTest(TestCase):
 
     def setUp(self):
         _, account = make_investor("admin-transition-investor")
-        self.classification = make_classification(account)
-        self.url = reverse(
-            "admin:users_investorclassification_transition",
-            args=[self.classification.uuid, "verify"],
-        )
+        self.classification = attach_evidence(make_classification(account), FILE_BYTES)
+        self.url = reverse("admin:users_investorclassification_change", args=[self.classification.uuid])
+        self.retained = InvestorClassification.objects.values().get(pk=self.classification.pk)
 
-    def test_staff_without_change_permission_cannot_open_a_transition(self):
+    def assert_global_review_is_retired(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse("admin:users_investorclassification_transition", args=[self.classification.uuid, "verify"])
+        refused = self.client.post(self.url, {"status": "verified", "review_notes": "Unpermitted staff decision"})
+        self.assertEqual(refused.status_code, 403)
+        self.assertEqual(InvestorClassification.objects.values().get(pk=self.classification.pk), self.retained)
+        with self.classification.evidence_file.open("rb") as evidence:
+            self.assertEqual(evidence.read(), FILE_BYTES)
+
+    def test_staff_without_view_permission_cannot_read_or_change_retained_source(self):
         self.client.force_login(staff_user("admin-transition-plain"))
 
         self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assert_global_review_is_retired()
 
-    def test_view_permission_alone_does_not_unlock_a_transition(self):
+    def test_view_permission_reads_history_without_unlocking_global_review(self):
         user = staff_user("admin-transition-viewer")
         grant_view(user, InvestorClassification)
         self.client.force_login(user)
 
-        self.assertEqual(self.client.get(self.url).status_code, 403)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Historical source status")
+        self.assert_global_review_is_retired()
 
-    def test_a_superuser_opens_the_transition_form(self):
+    def test_a_superuser_cannot_change_retained_source_status(self):
         self.client.force_login(
             User.objects.create_superuser(email="admin-transition-super@example.test", password=PASSWORD)
         )
 
-        self.assertEqual(self.client.get(self.url).status_code, 200)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Historical source status")
+        self.assert_global_review_is_retired()

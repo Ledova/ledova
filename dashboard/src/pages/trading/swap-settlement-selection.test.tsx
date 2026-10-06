@@ -56,7 +56,7 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
     data: state.tokens,
     isLoading: false,
   }),
-  useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+  useInvestorReadinessQuery: () => ({ data: { isReady: true } }),
   useOrderBook: () => ({ data: null, isLoading: false }),
   useSwapOrdersMulti: () => ({ data: state.swaps, isLoading: false }),
 }));

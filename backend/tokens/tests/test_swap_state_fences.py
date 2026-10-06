@@ -1,8 +1,11 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 
+from shared.db import use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from tokens.exceptions import (
     SwapNotReadyException,
     SwapSignatureException,
@@ -26,15 +29,24 @@ class SwapSignaturesUseTheFreshStateTest(TransactionTestCase):
     def setUp(self):
         self.enterContext(self.settings(BLOCKCHAIN_OPERATOR_KEY=""))
         self.swap = make_swap("signature-fence")
+        with use_operator():
+            account = self.swap.sell_order.owner_account
+            profile = account.user_profile
+            self.actor = profile.user
+            accept_company_eligibility(
+                SimpleNamespace(
+                    user=self.actor, profile=profile, account=account, company=self.swap.share_token.company
+                )
+            )
         self.service = swap_service(self)
         signable = encode_typed_data(full_message=self.service.get_typed_data(self.swap))
-        self.seller_signature = SELLER.sign_message(signable).signature.hex()
-        self.buyer_signature = BUYER.sign_message(signable).signature.hex()
+        self.seller_signature = "0x" + SELLER.sign_message(signable).signature.hex()
+        self.buyer_signature = "0x" + BUYER.sign_message(signable).signature.hex()
 
     def test_two_old_unsigned_instances_preserve_both_signatures_and_become_ready(self, _publish):
         stale = SwapOrder.objects.get(pk=self.swap.pk)
-        sign_swap(self.swap, self.seller_signature, SELLER.address)
-        ready = sign_swap(stale, self.buyer_signature, BUYER.address)
+        sign_swap(self.swap, self.seller_signature, SELLER.address, user=self.actor)
+        ready = sign_swap(stale, self.buyer_signature, BUYER.address, participant="buyer", user=self.actor)
         self.assertEqual(ready.status, SwapOrderStatus.READY)
         self.assertEqual((ready.seller_signature, ready.buyer_signature), (self.seller_signature, self.buyer_signature))
 
@@ -42,14 +54,14 @@ class SwapSignaturesUseTheFreshStateTest(TransactionTestCase):
         self.swap.mark_failed("declined before signing")
         before = persisted_outcome(self.swap)
         with self.assertRaises(SwapNotReadyException):
-            sign_swap(self.swap, self.seller_signature, SELLER.address)
+            sign_swap(self.swap, self.seller_signature, SELLER.address, user=self.actor)
         self.assertEqual(persisted_outcome(self.swap), before)
 
     def test_an_exact_repeat_preserves_the_failed_state_and_timestamps(self, _publish):
-        signed = sign_swap(self.swap, self.seller_signature, SELLER.address)
+        signed = sign_swap(self.swap, self.seller_signature, SELLER.address, user=self.actor)
         signed.mark_failed("declined before the other signature")
         before = persisted_outcome(self.swap)
-        sign_swap(self.swap, self.seller_signature, SELLER.address)
+        sign_swap(self.swap, self.seller_signature, SELLER.address, user=self.actor)
         self.assertEqual(persisted_outcome(self.swap), before)
 
     def test_a_stale_in_memory_snapshot_during_verification_is_not_signed(self, _publish):
@@ -62,6 +74,6 @@ class SwapSignaturesUseTheFreshStateTest(TransactionTestCase):
 
         self.enterContext(patch.object(self.service, "verify_signature", change))
         with self.assertRaises(SwapSignatureException):
-            sign_swap(self.swap, self.seller_signature, SELLER.address)
+            sign_swap(self.swap, self.seller_signature, SELLER.address, user=self.actor)
         self.swap.refresh_from_db()
         self.assertEqual(self.swap.seller_signature, "")

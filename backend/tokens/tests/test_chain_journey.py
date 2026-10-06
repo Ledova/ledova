@@ -1,7 +1,8 @@
 import json
 import socket
+import tempfile
 from contextlib import suppress
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -9,8 +10,10 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
 from procrastinate.contrib.django.models import ProcrastinateJob
@@ -20,11 +23,16 @@ from web3.exceptions import ContractLogicError, Web3RPCError
 
 from assets.models import Asset
 from companies.models import Company
+from companies.services.authority import DECLARATION_VERSION
+from companies.services.authority_requests import _requester_principal
+from companies.services.team import accept_team_invitation, issue_team_invitation
+from companies.tests.test_authority_requests import STORAGES
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
 from shared.db import use_operator
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
+from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.models import (
     MintRequestStatus,
     OrderSubmission,
@@ -68,15 +76,17 @@ from tokens.tests.test_company_pack import (
     sha256,
 )
 from tokens.tests.test_market_summary import TRADING
-from users.models import InvestorClassification
-from users.services import transition_classification
-from users.services.eligibility import investor_eligibility
+from users.models import CompanyEligibilityDecision, InvestorClassification
+from users.services.company_eligibility_consumption import company_eligibility
+from users.tests.factories import make_investor
+from users.tests.test_company_eligibility_requests import PDF, REQUESTS, SOURCES
 from wallets.models import Holding
 from wallets.tasks import sync_wallet
 from whitelist.models import (
     WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
+    WhitelistInvalidationCause,
     WhitelistStatus,
 )
 from whitelist.tasks import refresh_whitelist_targets
@@ -96,16 +106,14 @@ def selector(signature):
 
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
-class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase):
+class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin, APITransactionTestCase):
     def setUp(self):
-        super().setUp(
-            company_administration=self._testMethodName
-            in (
-                "test_the_demonstration_journey_runs_from_discovery_to_a_company_pack_read_without_the_platform",
-                "test_another_tenant_reaches_none_of_the_journeys_records",
-            )
-        )
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.enterContext(override_settings(PRIVATE_MEDIA_ROOT=directory.name, STORAGES=STORAGES))
+        super().setUp(company_administration=True)
         self.settlement_parties()
+        self.prepare_company_eligibility()
         self.staff.user_permissions.add(
             *Permission.objects.filter(codename__in=("change_whitelistentry", "change_asset"))
         )
@@ -114,7 +122,7 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         for party in (self.seller, self.buyer):
             self._whitelist(
                 party.address,
-                expires_at=self.classification(party).expires_at,
+                expires_at=self.party_decisions[party.address].expires_at,
                 authority=WhitelistAuthority.WHITELIST_ADMIN,
             )
         self.assertTrue(self._execute(self._issuance_request(20))["success"])
@@ -129,8 +137,92 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         self.outsider = make_tenant("journey-outsider")
         make_eligible(self.outsider)
 
-    def classification(self, party):
-        return InvestorClassification.objects.get(user_account=self.party_accounts[party.address])
+    def prepare_company_eligibility(self):
+        with use_operator():
+            initial = self.token.company.appointments.get(request__isnull=False)
+            self.eligibility_approver, _ = make_investor("journey-company-approver")
+        invitation, code, created = issue_team_invitation(
+            requester=self.tenant.user,
+            company_id=self.token.company_id,
+            inviter_appointment_id=initial.pk,
+            idempotency_key=uuid4(),
+            capabilities=["prepare", "approve"],
+            delegatable_capabilities=[],
+        )
+        self.assertTrue(created)
+        self.eligibility_appointment = accept_team_invitation(
+            requester=self.eligibility_approver,
+            code=code,
+            declaration_version=DECLARATION_VERSION,
+            accept_declaration=True,
+        )
+        self.assertEqual(self.eligibility_appointment.invitation_id, invitation.pk)
+        self.assertFalse(self.eligibility_approver.is_staff)
+        self.party_decisions = {}
+        requested_expiry = timezone.now() + timedelta(days=90)
+        for party in (self.seller, self.buyer):
+            self.client.force_authenticate(self.user_of(party))
+            source = self.client.post(
+                SOURCES,
+                {
+                    "category": "professional_investor",
+                    "declaration_accepted": "true",
+                    "declared_basis": "Synthetic private chain journey financial position",
+                    "evidence_file": SimpleUploadedFile("journey-private.pdf", PDF, content_type="application/pdf"),
+                },
+                format="multipart",
+            )
+            self.assertEqual(source.status_code, 201, source.content)
+            terms = {
+                "source": source.json()["uuid"],
+                "company": str(self.token.company_id),
+                "requested_expires_at": requested_expiry.isoformat(),
+            }
+            preview = self.client.post(f"{REQUESTS}preview/", terms, format="json")
+            self.assertEqual(preview.status_code, 200, preview.content)
+            request = self.client.post(
+                REQUESTS,
+                {
+                    **terms,
+                    "preview_digest": preview.json()["previewDigest"],
+                    "idempotency_key": str(uuid4()),
+                    "sharing_accepted": True,
+                    "declaration_accepted": True,
+                },
+                format="json",
+            )
+            self.assertEqual(request.status_code, 201, request.content)
+            self.client.force_authenticate(self.eligibility_approver)
+            route = f"/api/v1/companies/{self.token.company_id}/eligibility-requests/{request.json()['uuid']}/"
+            decision_terms = {
+                "appointment": str(self.eligibility_appointment.pk),
+                "outcome": "accepted",
+                "expires_at": requested_expiry.isoformat(),
+            }
+            preview = self.client.post(f"{route}decision-preview/", decision_terms, format="json")
+            self.assertEqual(preview.status_code, 200, preview.content)
+            decision = self.client.post(
+                f"{route}decide/",
+                {
+                    **decision_terms,
+                    "preview_digest": preview.json()["previewDigest"],
+                    "idempotency_key": str(uuid4()),
+                    "confirmation": True,
+                },
+                format="json",
+            )
+            self.assertEqual(decision.status_code, 200, decision.content)
+            with use_operator():
+                retained = CompanyEligibilityDecision.objects.select_related("request").get(
+                    request_id=request.json()["uuid"]
+                )
+                self.assertEqual(retained.decided_by_id, self.eligibility_approver.pk)
+                self.assertEqual(retained.appointment_id, self.eligibility_appointment.pk)
+                self.assertEqual(retained.request.user_account_id, self.party_accounts[party.address].pk)
+                self.assertEqual(retained.request.company_id, self.token.company_id)
+                private_source = InvestorClassification.objects.get(pk=source.json()["uuid"])
+                self.assertEqual((private_source.status, private_source.reviewed_by_id), ("submitted", None))
+            self.party_decisions[party.address] = retained
 
     def user_of(self, party):
         return self.party_accounts[party.address].user_profile.user
@@ -190,6 +282,7 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         self.assertEqual(created.status_code, 201, created.content)
         self.assertIsNone(created.json()["match"])
         listing = TransferOrder.objects.get(pk=created.json()["order"]["uuid"])
+        self.assertEqual(listing.eligibility_decision_id, self.party_decisions[self.seller.address].pk)
         self.assertEqual(
             (listing.order_type, listing.status, listing.quantity, listing.price_per_share, listing.wallet_address),
             ("sell", "open", 10, Decimal("1.50"), self.seller.address),
@@ -243,6 +336,8 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
         swap = SwapOrder.objects.get(pk=created["match"]["swapOrder"])
         bid = TransferOrder.objects.get(pk=created["order"]["uuid"])
         acceptance = OrderSubmission.objects.select_related("executed_challenge").get(order=bid)
+        self.assertEqual(bid.eligibility_decision_id, self.party_decisions[self.buyer.address].pk)
+        self.assertEqual(acceptance.eligibility_decision_id, bid.eligibility_decision_id)
         self.assertEqual(
             (acceptance.status, acceptance.initial_counter_order_id, acceptance.initial_swap_id),
             ("created", listing.pk, swap.pk),
@@ -289,7 +384,12 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             self.assertEqual(registry.functions.expiresAt(party.address).call(), expiry)
             self.assertGreater(expiry, self.w3.eth.get_block("latest")["timestamp"])
             self.assertTrue(registry.functions.isWhitelisted(party.address).call())
-            self.assertTrue(investor_eligibility(self.user_of(party), self.token.company).is_eligible)
+            with use_operator(), _requester_principal(self.user_of(party).pk):
+                eligible = company_eligibility(
+                    self.party_accounts[party.address], self.token.company, purpose="secondary"
+                )
+            self.assertTrue(eligible.is_eligible, eligible.reasons)
+            self.assertEqual(eligible.decision.pk, self.party_decisions[party.address].pk)
         signatures = []
         for party, order, status in zip((self.seller, self.buyer), orders, ("seller_signed", "executing")):
             approved = self.broadcast_approval(swap, order, self.signed_approval(swap, order, party))
@@ -300,6 +400,9 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             self.assertEqual(signed.status_code, 200, signed.content)
             swap.refresh_from_db()
             self.assertEqual(swap.status, status)
+            prefix = "seller" if party is self.seller else "buyer"
+            self.assertEqual(getattr(swap, f"{prefix}_eligibility_decision_id"), self.party_decisions[party.address].pk)
+            self.assertIsNotNone(getattr(swap, f"{prefix}_eligibility_admitted_at"))
         allowances = atomic_swap_service.check_swap_allowances(swap)
         self.assertTrue(allowances["seller"]["has_sufficient_allowance"])
         self.assertTrue(allowances["buyer"]["has_sufficient_allowance"])
@@ -532,15 +635,125 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
 
     def test_a_revoked_buyer_is_removed_from_the_registry_and_can_neither_list_nor_transfer(self):
         self.trade()
+        before_removal = self.signed_order(self.buyer, "sell")
+        after_removal = self.signed_order(self.buyer, "sell")
+        self.assertNotEqual(before_removal["submission_id"], after_removal["submission_id"])
+        self.assertNotEqual(before_removal["digest"], after_removal["digest"])
+        originals = {}
+        with use_operator():
+            for body in (before_removal, after_removal):
+                submission = OrderSubmission.objects.get(
+                    owner_account_id=body["owner_account_uuid"], submission_id=body["submission_id"]
+                )
+                challenge = submission.challenges.get(digest=body["digest"])
+                self.assertEqual(
+                    (submission.status, submission.order_id, challenge.consumed_at), ("pending", None, None)
+                )
+                originals[body["submission_id"]] = (
+                    submission.pk,
+                    challenge.pk,
+                    challenge.digest,
+                    challenge.nonce,
+                    challenge.payload,
+                    challenge.expires_at,
+                )
+        self.assertNotEqual(originals[before_removal["submission_id"]], originals[after_removal["submission_id"]])
+
+        def refuse_original(body, status_code, code):
+            balances = self.balances()
+            signer = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+            nonce = self.w3.eth.get_transaction_count(signer)
+            changes = WhitelistChange.objects.count()
+            refused = self.client.post(CREATE, body, format="json")
+            self.assertEqual(
+                (refused.status_code, refused.json()["refusal"]["code"]), (status_code, code), refused.content
+            )
+            with use_operator():
+                submission = OrderSubmission.objects.get(
+                    owner_account_id=body["owner_account_uuid"], submission_id=body["submission_id"]
+                )
+                challenge = submission.challenges.get(digest=body["digest"])
+                self.assertEqual(
+                    (
+                        submission.pk,
+                        challenge.pk,
+                        challenge.digest,
+                        challenge.nonce,
+                        challenge.payload,
+                        challenge.expires_at,
+                    ),
+                    originals[body["submission_id"]],
+                )
+                self.assertEqual(
+                    (
+                        submission.status,
+                        submission.refusal_code,
+                        submission.order_id,
+                        submission.eligibility_decision_id,
+                        submission.executed_challenge_id,
+                    ),
+                    ("refused", code, None, None, challenge.pk),
+                )
+                self.assertEqual(challenge.consumed_signature, body["signature"])
+                self.assertIsNotNone(challenge.consumed_at)
+                self.assertIsNotNone(submission.resolved_at)
+                self.assertLessEqual(challenge.consumed_at, submission.resolved_at)
+                spent = (challenge.consumed_at, challenge.consumed_signature, submission.resolved_at)
+                self.assertFalse(TransferOrder.objects.filter(creation_submission=submission).exists())
+            replayed = self.client.post(CREATE, body, format="json")
+            self.assertEqual((replayed.status_code, replayed.json()), (status_code, refused.json()), replayed.content)
+            with use_operator():
+                submission.refresh_from_db()
+                challenge.refresh_from_db()
+                self.assertEqual((challenge.consumed_at, challenge.consumed_signature, submission.resolved_at), spent)
+                self.assertEqual(submission.challenges.count(), 1)
+            self.assertFalse(
+                TransferOrder.objects.filter(wallet_address=self.buyer.address, order_type="sell").exists()
+            )
+            self.assertEqual(
+                (self.balances(), self.w3.eth.get_transaction_count(signer), WhitelistChange.objects.count()),
+                (balances, nonce, changes),
+            )
+
+        additions = WhitelistChange.objects.filter(action="add").count()
         share = self._contract()
         self.assertTrue(share.functions.transfer(self.seller.address, 1).call({"from": self.buyer.address}))
-        transition_classification(
-            self.classification(self.buyer), "revoke", reviewed_by=self.staff, reason="The buyer no longer qualifies"
-        )
-        (job,) = self.deferred(refresh_whitelist_targets, actor_id=str(self.staff.pk))
-        refreshed = refresh_whitelist_targets(**job)
+        decision = self.party_decisions[self.buyer.address]
         approval = WhitelistApproval.objects.get(entry__wallet=self.party_wallets[self.buyer.address])
         registry = self.chain.load_contract("WhitelistRegistry", Web3.to_checksum_address(approval.registry_address))
+        self.client.force_authenticate(self.eligibility_approver)
+        revoked = self.client.post(
+            f"/api/v1/companies/{self.token.company_id}/eligibility-requests/{decision.request_id}/revoke/",
+            {
+                "appointment": str(self.eligibility_appointment.pk),
+                "idempotency_key": str(uuid4()),
+                "reason": "The synthetic buyer no longer qualifies for this company",
+            },
+            format="json",
+        )
+        self.assertEqual(revoked.status_code, 200, revoked.content)
+        self.assertTrue(registry.functions.isWhitelisted(self.buyer.address).call())
+        with use_operator():
+            self.assertFalse(
+                company_eligibility(
+                    self.party_accounts[self.buyer.address],
+                    self.token.company,
+                    purpose="secondary",
+                    decision_id=decision.pk,
+                ).is_eligible
+            )
+        self.client.force_authenticate(self.user_of(self.buyer))
+        refuse_original(before_removal, 403, "investor_not_eligible")
+        with use_operator():
+            unspent = OrderSubmission.objects.get(submission_id=after_removal["submission_id"])
+            self.assertEqual(
+                (unspent.status, unspent.challenges.get(digest=after_removal["digest"]).consumed_at),
+                ("pending", None),
+            )
+        self.assertTrue(registry.functions.isWhitelisted(self.buyer.address).call())
+        (job,) = self.deferred(refresh_whitelist_targets, decision_id=str(decision.pk))
+        refreshed = refresh_whitelist_targets(**job)
+        approval.refresh_from_db()
         self.assertEqual(
             (
                 registry.functions.expiresAt(self.buyer.address).call(),
@@ -548,15 +761,33 @@ class DemonstrationJourneyChainTest(SettlementChainMixin, APITransactionTestCase
             ),
             (0, False),
         )
-        self.assertEqual(refreshed, {"checked": 1, "submitted": 1, "errors": 0})
+        self.assertEqual(refreshed, {"checked": 1, "submitted": 1, "unattributed": 0, "errors": 0})
         removal = WhitelistChange.objects.get(authority=WhitelistAuthority.CLASSIFICATION_REFRESH)
         self.assertEqual(
-            (removal.action, removal.status, removal.address), ("remove", "confirmed", self.buyer.address.lower())
+            (removal.action, removal.status, removal.address),
+            ("remove", "confirmed", self.buyer.address.lower()),
         )
+        self.assertEqual(
+            (removal.eligibility_decision_id, removal.initiated_by_id, removal.invalidation_cause),
+            (decision.pk, self.eligibility_approver.pk, WhitelistInvalidationCause.COMPANY_REVOCATION),
+        )
+        receipt = self.w3.eth.get_transaction_receipt(removal.transaction.tx_hash)
+        submitted = self.w3.eth.get_transaction(removal.transaction.tx_hash)
+        self.assertEqual((receipt["status"], receipt["to"]), (1, registry.address))
+        self.assertEqual(
+            Web3.to_hex(submitted["input"]),
+            selector("setExpiry(address,uint64)") + encode(["address", "uint64"], [self.buyer.address, 0]).hex(),
+        )
+        self.assertEqual(WhitelistChange.objects.filter(action="add").count(), additions)
+        self.assertTrue(registry.functions.isWhitelisted(self.seller.address).call())
+        with use_operator():
+            decision.refresh_from_db()
+            private_source = InvestorClassification.objects.get(pk=decision.request.source_id)
+            self.assertEqual(decision.outcome, "accepted")
+            self.assertEqual((private_source.status, private_source.reviewed_by_id), ("submitted", None))
         self.assertEqual(approval.status, WhitelistStatus.REMOVED)
-        refused = self.client.post(CREATE, self.signed_order(self.buyer, "sell"), format="json")
-        self.assertEqual((refused.status_code, refused.json()["refusal"]["code"]), (400, "not_whitelisted"))
-        self.assertFalse(TransferOrder.objects.filter(wallet_address=self.buyer.address, order_type="sell").exists())
+        self.client.force_authenticate(self.user_of(self.buyer))
+        refuse_original(after_removal, 400, "not_whitelisted")
         before = self.balances()
         transfer = share.functions.transfer(self.seller.address, 1)._encode_transaction_data()
         self.assertEqual(

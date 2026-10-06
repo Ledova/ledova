@@ -131,7 +131,16 @@ def an_account(label, **fields):
     return UserAccount.objects.create(user_profile=a_profile(label), **fields)
 
 
-def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classification_model=InvestorClassification):
+def make_tenant(
+    label,
+    *,
+    staff=False,
+    superuser=False,
+    with_swap=True,
+    classification_model=InvestorClassification,
+    order_model=TransferOrder,
+    subscription_model=Subscription,
+):
     number = next(_sequence)
     refs = reference_data()
     email = f"{label}@tenants.example.test"
@@ -233,26 +242,35 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classifi
         "quantity": 10,
         "price_per_share": Decimal("1.50"),
     }
-    order = TransferOrder.objects.create(order_type=TransferOrderType.SELL, **order_fields)
-    counter_order = TransferOrder.objects.create(order_type=TransferOrderType.BUY, **order_fields)
+    if order_model is not TransferOrder:
+        order_fields = {
+            name + "_id" if isinstance(value, models.Model) else name: (
+                value.pk if isinstance(value, models.Model) else value
+            )
+            for name, value in order_fields.items()
+        }
+    with use_migrate():
+        order = order_model.objects.create(order_type=TransferOrderType.SELL, **order_fields)
+        counter_order = order_model.objects.create(order_type=TransferOrderType.BUY, **order_fields)
     from shared.tests.settlement import save_swap_with_context
 
-    swap = (
-        save_swap_with_context(
-            sell_order=order,
-            buy_order=counter_order,
-            share_token=deployed_token,
-            payment_asset=refs.stablecoin,
-            seller_address=wallet.address,
-            buyer_address=wallet.address,
-            share_amount=10,
-            payment_amount=1500,
-            nonce=number,
-            order_hash="0x" + f"{number:064x}",
+    with use_migrate():
+        swap = (
+            save_swap_with_context(
+                sell_order=order,
+                buy_order=counter_order,
+                share_token=deployed_token,
+                payment_asset=refs.stablecoin,
+                seller_address=wallet.address,
+                buyer_address=wallet.address,
+                share_amount=10,
+                payment_amount=1500,
+                nonce=number,
+                order_hash="0x" + f"{number:064x}",
+            )
+            if with_swap
+            else None
         )
-        if with_swap
-        else None
-    )
     offering = Offering.objects.create(
         token=deployed_token,
         exemption=OfferingExemption.PROFESSIONAL,
@@ -264,7 +282,7 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classifi
         closes_at=timezone.now() + timedelta(days=30),
         summary=f"{label} offering",
     )
-    subscription = Subscription.objects.create(
+    subscription_fields = dict(
         offering=offering,
         company_name=offering.token.company.display_name,
         token_name=offering.token.name,
@@ -277,6 +295,15 @@ def make_tenant(label, *, staff=False, superuser=False, with_swap=True, classifi
         price_per_share=Decimal("2.50"),
         amount_due=Decimal("25.00"),
     )
+    if subscription_model is not Subscription:
+        subscription_fields = {
+            name + "_id" if isinstance(value, models.Model) else name: (
+                value.pk if isinstance(value, models.Model) else value
+            )
+            for name, value in subscription_fields.items()
+        }
+    with use_migrate():
+        subscription = subscription_model.objects.create(**subscription_fields)
     with use_migrate():
         document = Document.objects.create(
             uploaded_by=user,

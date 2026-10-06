@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { ShareToken } from '@ledova/shared';
-import { formatShareCount, DIRECTORY_COPY, marketAmount } from '@ledova/shared';
+import { formatShareCount, DIRECTORY_COPY, DESTINATIONS, marketAmount } from '@ledova/shared';
 import { Section, Rows, Row } from '@components/Ledger';
 
 interface MarketOverviewProps {
@@ -8,7 +8,7 @@ interface MarketOverviewProps {
   selectedTokenUuid: string | null;
   onSelectToken: (uuid: string) => void;
   isLoading: boolean;
-  isEligible: boolean;
+  isReady: boolean;
   error?: unknown;
   onRetry?: () => void;
 }
@@ -18,7 +18,7 @@ export function MarketOverview({
   selectedTokenUuid,
   onSelectToken,
   isLoading,
-  isEligible,
+  isReady,
   error,
   onRetry,
 }: MarketOverviewProps) {
@@ -39,13 +39,16 @@ export function MarketOverview({
         <p role="status">Loading share classes…</p>
       ) : tokens.length === 0 ? (
         <div className="space-y-2 text-sm">
-          <p>{isEligible ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}</p>
+          <p>{isReady ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}</p>
           <p className="text-text-muted">
-            {isEligible ? DIRECTORY_COPY.MARKET_EMPTY_BODY : DIRECTORY_COPY.MARKET_INELIGIBLE_BODY}
+            {isReady ? DIRECTORY_COPY.MARKET_EMPTY_BODY : DIRECTORY_COPY.MARKET_INELIGIBLE_BODY}
           </p>
-          {!isEligible && (
+          <Link className="underline" to={DESTINATIONS.eligibilityRequests.path}>
+            Eligibility requests
+          </Link>
+          {!isReady && (
             <Link className="underline" to="/investor-eligibility">
-              Verify my investor status
+              Check my account
             </Link>
           )}
         </div>

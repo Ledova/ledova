@@ -22,6 +22,7 @@ from offerings.services.subscription import (
     BATCH_ABOVE_HEADROOM,
     REFUND_NOT_POSITIVE,
     TX_HASH_ALREADY_USED,
+    submit,
 )
 from offerings.tests.factories import (
     allottable_subscription,
@@ -33,6 +34,7 @@ from offerings.tests.factories import (
     open_offering,
     paid_subscription,
 )
+from shared.db import acting_for
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceExecutionStatus,
@@ -109,7 +111,8 @@ class SubscriptionAdminTestCase(TransactionTestCase):
 
     def _submitted(self, quantity=10, wallet=None):
         subscription = draft_subscription(self.tenant, quantity=quantity, wallet=wallet)
-        Subscription.objects.filter(pk=subscription.pk).update(status=SubscriptionStatus.SUBMITTED)
+        with acting_for(self.tenant.user.pk):
+            submit(subscription, submitted_by=self.tenant.user)
         subscription.refresh_from_db()
         return subscription
 
@@ -167,6 +170,41 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.defer.assert_called_once_with(
             subscription_uuid=str(subscription.uuid), executed_by=staff.pk, execution_id=str(execution.pk)
         )
+
+    def test_acceptance_uses_the_authenticated_staff_change_permission_and_its_revocation(self):
+        subscription = self._submitted()
+        staff = User.objects.create_user(
+            email="accept-staff@example.test", password="pw", is_staff=True, is_active=True
+        )
+        permission = Permission.objects.get(content_type__app_label="offerings", codename="change_subscription")
+        staff.user_permissions.add(
+            Permission.objects.get(content_type__app_label="offerings", codename="view_subscription")
+        )
+        for user, status in ((self.tenant.user, 302), (staff, 403)):
+            self.client.force_login(user)
+            response = self.client.post(self._url(subscription, "accept"), {"settlement_rail": "bank_transfer"})
+            self.assertEqual(response.status_code, status, response.content)
+            subscription.refresh_from_db()
+            self.assertEqual(subscription.status, SubscriptionStatus.SUBMITTED)
+            self.assertIsNone(subscription.accepted_at)
+            self.assertEqual(subscription.eligibility_decision_id, self.tenant.eligibility_decision.pk)
+        staff.user_permissions.add(permission)
+        self.client.force_login(staff)
+        response = self.client.post(self._url(subscription, "accept"), {"settlement_rail": "bank_transfer"})
+        self.assertEqual(response.status_code, 302, response.content)
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.AWAITING_PAYMENT)
+        self.assertIsNotNone(subscription.accepted_at)
+        self.assertEqual(subscription.eligibility_decision_id, self.tenant.eligibility_decision.pk)
+        retained = self._submitted()
+        staff.user_permissions.remove(permission)
+        self.client.force_login(staff)
+        response = self.client.post(self._url(retained, "accept"), {"settlement_rail": "bank_transfer"})
+        self.assertEqual(response.status_code, 403, response.content)
+        retained.refresh_from_db()
+        self.assertEqual(retained.status, SubscriptionStatus.SUBMITTED)
+        self.assertIsNone(retained.accepted_at)
+        self.assertEqual(retained.eligibility_decision_id, self.tenant.eligibility_decision.pk)
 
     def test_the_add_form_is_closed_and_every_field_is_read_only(self):
         subscription = draft_subscription(self.tenant)

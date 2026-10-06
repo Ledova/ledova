@@ -8,6 +8,39 @@ from django.test.runner import DiscoverRunner
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 
 SCOPED_TEST_LABELS = (
+    "users.tests.test_company_eligibility_fresh_signup.ScopedCompanyEligibilityFreshSignupTest",
+    "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilityCutoverUpgradeTest",
+    "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilitySubscriptionCutoverReversalTest",
+    "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilityTradingCutoverReversalTest",
+    "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilitySourceCutoverReversalTest",
+    "whitelist.tests.test_eligibility_loss_producers_scoped.ScopedEligibilityLossProducerTest",
+    "whitelist.tests.test_company_eligibility_invalidation_scoped.ScopedCompanyEligibilityInvalidationTest",
+    "shared.tests.test_seed_company_eligibility.ScopedSyntheticCompanyEligibilityTest",
+    "shared.tests.test_company_eligibility_fixture.ScopedCompanyEligibilityFixtureTest",
+    "users.tests.test_private_sources_after_cutover.ScopedPrivateSourcesAfterCutoverTest",
+    "users.tests.test_investor_eligibility.ScopedAccountStandingMatrixTest",
+    "whitelist.tests.test_admin_eligibility_read.ScopedWhitelistAdminEligibilityReadTest",
+    "users.tests.test_company_eligibility_read_consumers_scoped.ScopedCompanyEligibilityReadConsumerTest",
+    "tokens.tests.test_company_eligibility_trading_stream_scoped.ScopedCompanyEligibilityTradingStreamTest",
+    "tokens.tests.test_company_eligibility_trading_admission.ScopedCompanyEligibilityTradingAdmissionTest",
+    "tokens.tests.test_company_eligibility_trading_admission.ScopedCompanyEligibilityTradingAdmissionSQLTest",
+    (
+        "offerings.tests.test_company_eligibility_subscription_admission_scoped."
+        "ScopedCompanyEligibilitySubscriptionAdmissionTest"
+    ),
+    (
+        "offerings.tests.test_company_eligibility_subscription_admission_scoped."
+        "ScopedCompanyEligibilitySubscriptionServiceTest"
+    ),
+    (
+        "offerings.tests.test_company_eligibility_subscription_admission_scoped."
+        "ScopedCompanyEligibilitySubscriptionRecoveryTest"
+    ),
+    (
+        "offerings.tests.test_company_eligibility_subscription_admission_scoped."
+        "ScopedCompanyEligibilitySubscriptionGuardTest"
+    ),
+    "users.tests.test_company_eligibility_consumption_scoped.ScopedCompanyEligibilityConsumptionTest",
     "users.tests.test_company_eligibility_scoped.ScopedCompanyEligibilityRequestTest",
     "users.tests.test_company_eligibility_scoped.ScopedCompanyEligibilityCategoryTest",
     "users.tests.test_company_eligibility_scoped.ScopedCompanyEligibilityGuardTest",
@@ -25,6 +58,7 @@ SCOPED_TEST_LABELS = (
     "companies.tests.test_authority_request_capability_guard_scoped.ScopedAuthorityRequestCapabilityGuardTest",
     "tokens.tests.test_trading_retention.ScopedTradingRetentionTest",
     "offerings.tests.test_application_retention.ScopedApplicationRetentionTest",
+    "offerings.tests.test_subscription_api.ScopedSubscriptionIssuerReadTest",
     "blockchain.tests.test_fresh_signer_scoped.ScopedFreshSignerTest",
     "companies.tests.test_document_review_scoped.ScopedCompanyDocumentReviewTest",
     "tokens.tests.test_register_corrections.ScopedRegisterCorrectionTest",
@@ -93,6 +127,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_swap_execution_storage.ScopedSwapExecutionAppStorageTest",
     "tokens.tests.test_swap_authority_lock_order.ScopedSwapAuthorityLockOrderTest",
     "tokens.tests.test_swap_finality.ScopedSwapFinalityTest",
+    "tokens.tests.test_swap_finality.ScopedHistoricalSwapFinalityProcessTest",
     "tokens.tests.test_swap_process_concurrency.ScopedSwapWorkersUseOneCurrentClaimTest",
     "tokens.tests.test_signature_admission_processes.ScopedSignatureAdmissionProcessesTest",
     "tokens.tests.test_legacy_swap_hold.ScopedLegacySwapHoldTest",

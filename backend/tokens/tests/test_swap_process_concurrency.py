@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 from unittest import skipUnless
 from unittest.mock import patch
 
@@ -14,6 +15,7 @@ from django.test import TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 
 from shared.db import use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.tests.order_process_fixtures import worker_databases
@@ -46,6 +48,7 @@ class SwapProcess:
                 "TRADING_TEST_DATABASES": json.dumps(worker_databases(), default=str),
                 "TRADING_TEST_CHAIN_ID": str(settings.BLOCKCHAIN_CHAIN_ID),
                 "TRADING_TEST_USER": str(user_id),
+                "TRADING_TEST_PRIVATE_MEDIA_ROOT": str(settings.PRIVATE_MEDIA_ROOT),
             },
         )
         test.addCleanup(self.close)
@@ -60,6 +63,7 @@ class SwapProcess:
             cursor.execute("SELECT pg_backend_pid()")
             test.assertNotEqual(loaded["pid"], cursor.fetchone()[0])
         self.database_pid = loaded["pid"]
+        test.assertEqual(loaded["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
 
     def error_output(self):
         self.errors.seek(0)
@@ -107,7 +111,17 @@ class SwapProcess:
 class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
 
     def setUp(self):
-        self.swap = make_swap("process-swap", ready=True)
+        self.swap = make_swap("process-swap")
+        with use_operator():
+            account = self.swap.sell_order.owner_account
+            accept_company_eligibility(
+                SimpleNamespace(
+                    user=account.user_profile.user,
+                    profile=account.user_profile,
+                    account=account,
+                    company=self.swap.share_token.company,
+                )
+            )
         for path in (
             "tokens.services.swap_execution.publish_trading_event",
             "tokens.events.publish_trading_event",
@@ -116,7 +130,7 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
             publisher.start()
             self.addCleanup(publisher.stop)
 
-    def wait_for_row_lock(self, child, table, blocker_pid=None):
+    def wait_for_row_lock(self, child, table, blocker_pid=None, *, admission_target=None):
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             with connection.cursor() as cursor:
@@ -131,7 +145,14 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
                 observed
                 and observed[1]
                 and observed[0].startswith("SELECT ")
-                and table in observed[0]
+                and (
+                    (
+                        observed[0].startswith("SELECT public.tokens_lock_trading_admission(")
+                        and f'"target_uuid": "{admission_target}"' in observed[0]
+                    )
+                    if admission_target is not None
+                    else table in observed[0]
+                )
                 and observed[2] == "Lock"
             ):
                 return
@@ -139,8 +160,6 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.fail(f"Worker never waited for the held {table} row: {observed}")
 
     def test_opposite_verified_signatures_recompute_ready_after_the_other_commits(self):
-        with use_operator():
-            SwapOrder.objects.filter(pk=self.swap.pk).update(status="created", seller_signature="", buyer_signature="")
         seller = SwapProcess(self, "signature", self.swap.pk, "seller")
         buyer = SwapProcess(self, "signature", self.swap.pk, "buyer")
         seller.send("run")
@@ -155,12 +174,10 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.assertEqual(buyer.done()["result"], SwapOrderStatus.READY)
         self.swap.refresh_from_db()
         signable = encode_typed_data(full_message=swap_service(self).get_typed_data(self.swap))
-        self.assertEqual(self.swap.seller_signature, SELLER.sign_message(signable).signature.hex())
-        self.assertEqual(self.swap.buyer_signature, BUYER.sign_message(signable).signature.hex())
+        self.assertEqual(self.swap.seller_signature, "0x" + SELLER.sign_message(signable).signature.hex())
+        self.assertEqual(self.swap.buyer_signature, "0x" + BUYER.sign_message(signable).signature.hex())
 
     def test_an_overlapping_signature_waits_and_reads_the_committed_other_signature(self):
-        with use_operator():
-            SwapOrder.objects.filter(pk=self.swap.pk).update(status="created", seller_signature="", buyer_signature="")
         seller = SwapProcess(self, "signature_overlap", self.swap.pk, "seller")
         buyer = SwapProcess(self, "signature", self.swap.pk, "buyer")
         seller.send("run")

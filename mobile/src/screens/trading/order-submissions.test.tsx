@@ -128,7 +128,7 @@ jest.mock('@ledova/shared', () => {
   return {
     ...jest.requireActual('@ledova/shared'),
     useShareTokens: () => ({ data: tokens, refetch: jest.fn() }),
-    useInvestorEligibilityQuery: () => ({ data: { isEligible: true } }),
+    useInvestorReadinessQuery: () => ({ data: { isReady: true } }),
     useOrderBook: () => ({ data: null }),
     useSwapOrdersMulti: () => ({ data: [], refetch: jest.fn() }),
   };

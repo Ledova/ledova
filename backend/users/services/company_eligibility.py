@@ -42,6 +42,7 @@ from users.models.investor_classification import (
 )
 from users.models.user_account import AccountRole
 from users.services.investor_classification import require_evidence_retention_policy
+from whitelist.models import WhitelistInvalidationCause
 
 
 def _stamp(value):
@@ -575,6 +576,8 @@ def decide_eligibility_request(
 
 
 def withdraw_eligibility_request(*, actor, request_id, idempotency_key):
+    from whitelist.services.refresh import enqueue_for_decision
+
     with use_operator(), atomic(durable=True), eligibility_command(
         actor, "withdraw", request=request_id, idempotency_key=idempotency_key
     ):
@@ -601,10 +604,14 @@ def withdraw_eligibility_request(*, actor, request_id, idempotency_key):
             withdrawn_at=timezone.now(),
         )
         proposal.refresh_from_db()
+        if decision and decision.outcome == CompanyEligibilityDecisionOutcome.ACCEPTED:
+            enqueue_for_decision(decision.pk, WhitelistInvalidationCause.REQUEST_WITHDRAWAL)
         return proposal
 
 
 def revoke_eligibility_decision(*, actor, request_id, company_id, appointment, idempotency_key, reason):
+    from whitelist.services.refresh import enqueue_for_decision
+
     if not reason.strip() or len(reason) > 500:
         raise ValidationError("A bounded revocation reason is required.")
     with use_operator(), atomic(durable=True), eligibility_command(
@@ -645,6 +652,7 @@ def revoke_eligibility_decision(*, actor, request_id, company_id, appointment, i
             revoked_at=timezone.now(),
         )
         proposal.refresh_from_db()
+        enqueue_for_decision(decision.pk, WhitelistInvalidationCause.COMPANY_REVOCATION)
         return proposal
 
 

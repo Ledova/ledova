@@ -54,9 +54,14 @@ class ProductModeMigrationTest(TransactionTestCase):
     def preserves_existing_data(self, mode):
         historical = migrate_to(BEFORE).get_model("operators", "Operator")
         loader = MigrationExecutor(connection).loader
-        applied = loader.project_state(list(loader.applied_migrations)).apps
+        applied_nodes = [node for node in loader.applied_migrations if node in loader.graph.nodes]
+        applied = loader.project_state(applied_nodes).apps
         tenant = make_tenant(
-            f"mode-{mode}", with_swap=False, classification_model=applied.get_model("users", "InvestorClassification")
+            f"mode-{mode}",
+            with_swap=False,
+            classification_model=applied.get_model("users", "InvestorClassification"),
+            order_model=applied.get_model("tokens", "TransferOrder"),
+            subscription_model=applied.get_model("offerings", "Subscription"),
         )
         operator = historical.objects.create(
             name="Synthetic platform",

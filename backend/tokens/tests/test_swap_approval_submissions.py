@@ -18,6 +18,7 @@ from shared.db import (
     reset_principal,
     set_principal,
     use_app,
+    use_migrate,
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
@@ -237,16 +238,18 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
                     chain="ethereum",
                     verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
                 )
-                order = TransferOrder.objects.create(
-                    token=self.swap.share_token,
-                    payment_asset=self.swap.payment_asset,
-                    wallet=wallet,
-                    owner_account=account,
-                    wallet_address=SELLER.address,
-                    order_type="sell",
-                    quantity=10,
-                    price_per_share="1.50",
-                )
+                with use_migrate():
+                    order = TransferOrder.objects.create(
+                        token=self.swap.share_token,
+                        payment_asset=self.swap.payment_asset,
+                        wallet=wallet,
+                        owner_account=account,
+                        wallet_address=SELLER.address,
+                        order_type="sell",
+                        quantity=10,
+                        price_per_share="1.50",
+                    )
+                self.assertIsNone(order.eligibility_decision_id)
                 swap = save_swap_with_context(
                     sell_order=order,
                     buy_order=self.swap.buy_order,

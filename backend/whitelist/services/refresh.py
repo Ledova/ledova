@@ -1,59 +1,31 @@
+import json
 import logging
-from datetime import datetime
-from datetime import timezone as dt_timezone
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid5
 
 from django.conf import settings
+from django.db import connections
 from django.utils import timezone
 from web3 import Web3
 
-from companies.models import Company
-from users.models import (
-    InvestorClassification,
-    InvestorClassificationStatus,
-    UserAccount,
-)
-from users.services.eligibility import NO_LIVE_CLASSIFICATION, account_eligibility
+from shared.db import current_alias, on_commit
+from users.models import CompanyEligibilityDecision, InvestorClassification
 from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_REFRESH_LIMIT
 from whitelist.exceptions import WhitelistRemovalPending
 from whitelist.models import (
-    WhitelistAction,
     WhitelistApproval,
-    WhitelistAuthority,
     WhitelistChange,
     WhitelistChangeStatus,
-    WhitelistStatus,
+    WhitelistInvalidationCause,
 )
 from whitelist.services import changes
+from whitelist.services.eligibility_invalidation import (
+    command_for,
+    invalidation_worker_context,
+    record_invalidation,
+)
 from whitelist.services.whitelist import registry_contract
 
 logger = logging.getLogger(__name__)
-STAFF_ENTERED = "staff_entered"
-REVIEWED = [InvestorClassificationStatus.VERIFIED, InvestorClassificationStatus.REVOKED]
-
-
-def _investor_account(entry):
-    if not entry.wallet_id:
-        return None
-    return UserAccount.objects.investing().filter(pk=entry.wallet.user_account_id).first()
-
-
-def _live_classifications(account, company):
-    return InvestorClassification.objects.filter(user_account=account).live().for_company(company)
-
-
-def wanted_expiry(approval):
-    account = _investor_account(approval.entry)
-    if account is None:
-        return STAFF_ENTERED
-    if not account_eligibility(account, approval.company).is_eligible:
-        return 0
-    expiries = [claim.expires_at for claim in _live_classifications(account, approval.company)]
-    if not expiries:
-        return 0
-    if any(expiry is None for expiry in expiries):
-        return WHITELIST_NO_EXPIRY
-    return int(max(expiries).replace(microsecond=0).timestamp())
 
 
 def observed_expiry(registry_address, address, client=None):
@@ -64,87 +36,6 @@ def observed_expiry(registry_address, address, client=None):
     return expiry
 
 
-def recorded_expiry(approval, client=None):
-    if approval.status == WhitelistStatus.REMOVED:
-        return 0
-    if approval.status == WhitelistStatus.ACTIVE:
-        return changes.on_chain_expiry(WhitelistAction.ADD, approval.expires_at)
-    return observed_expiry(approval.registry_address, approval.entry.wallet_address, client)
-
-
-def _effective(expiry, moment):
-    return 0 if expiry <= moment else expiry
-
-
-def _unresolved(registry_address, address):
-    return (
-        WhitelistChange.objects.for_target(settings.BLOCKCHAIN_CHAIN_ID, registry_address, address)
-        .unresolved()
-        .exists()
-    )
-
-
-def needed_expiry(approval, client=None):
-    wanted = wanted_expiry(approval)
-    if wanted is STAFF_ENTERED:
-        return None
-    if _unresolved(approval.registry_address, approval.entry.wallet_address):
-        return None
-    moment = int(timezone.now().timestamp())
-    wanted = _effective(wanted, moment)
-    if wanted == _effective(recorded_expiry(approval, client), moment):
-        return None
-    return wanted
-
-
-def _submit(address, company, wallet_id, wanted, actor):
-    action = WhitelistAction.REMOVE if wanted == 0 else WhitelistAction.ADD
-    expires_at = None if wanted == WHITELIST_NO_EXPIRY else datetime.fromtimestamp(wanted, tz=dt_timezone.utc)
-    change = changes.submit(
-        uuid4(),
-        action,
-        address,
-        actor,
-        company=company,
-        expires_at=None if action == WhitelistAction.REMOVE else expires_at,
-        authority=WhitelistAuthority.CLASSIFICATION_REFRESH,
-        wallet_uuid=wallet_id if action == WhitelistAction.ADD else None,
-    )
-    if change.status == WhitelistChangeStatus.FAILED:
-        logger.error(
-            "A whitelist refresh failed and leaves the approval unconfirmed: submission=%s action=%s",
-            change.pk,
-            change.action,
-        )
-    return change
-
-
-def refresh_approval(approval, actor, client=None):
-    wanted = needed_expiry(approval, client)
-    if wanted is None:
-        return None
-    return _submit(approval.entry.wallet_address, approval.company, approval.entry.wallet_id, wanted, actor)
-
-
-def _deciding_actor(approval, wanted):
-    account = _investor_account(approval.entry)
-    if account is None:
-        return None
-    if wanted == 0 and account_eligibility(account, approval.company).reasons != (NO_LIVE_CLASSIFICATION,):
-        return None
-    reviewed = (
-        InvestorClassification.objects.filter(user_account=account, status__in=REVIEWED, reviewed_by__isnull=False)
-        .for_company(approval.company)
-        .select_related("reviewed_by")
-        .order_by("-reviewed_at")
-        .first()
-    )
-    actor = reviewed.reviewed_by if reviewed else None
-    if actor is None or not actor.is_active or not actor.is_staff:
-        return None
-    return actor
-
-
 def _approvals(**filters):
     return WhitelistApproval.objects.filter(**filters).select_related("entry__wallet", "company")
 
@@ -152,9 +43,12 @@ def _approvals(**filters):
 def targets_for(approvals):
     return [
         {
-            "address": approval.entry.wallet_address,
+            "address": approval.entry.wallet_address.lower(),
             "company": str(approval.company_id),
             "registry": approval.registry_address,
+            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+            "wallet": str(approval.entry.wallet_id) if approval.entry.wallet_id else None,
+            "account": str(approval.entry.wallet.user_account_id) if approval.entry.wallet_id else None,
         }
         for approval in approvals
     ]
@@ -168,86 +62,177 @@ def targets_for_wallet(wallet_id):
     return targets_for(_approvals(entry__wallet_id=wallet_id))
 
 
-def _target_approval(target):
-    return (
+def _target_with_account(target):
+    if "account" in target and "wallet" in target:
+        return target
+    approval = (
         _approvals(company_id=target["company"], registry_address=target["registry"])
         .filter(entry__wallet__address__iexact=target["address"])
         .first()
     )
+    return targets_for([approval])[0] if approval is not None else target
 
 
-def _remove_target(target, actor):
-    if _unresolved(target["registry"], target["address"]):
-        raise WhitelistRemovalPending("An earlier whitelist change is unresolved.")
-    moment = int(timezone.now().timestamp())
-    if _effective(observed_expiry(target["registry"], target["address"]), moment) == 0:
-        return None
-    change = _submit(target["address"], Company.objects.get(pk=target["company"]), None, 0, actor)
-    if change.status not in (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED):
-        raise WhitelistRemovalPending("The whitelist removal is not confirmed.")
+def _recover_target(target):
+    unresolved = WhitelistChange.objects.for_target(
+        target.get("chain_id", settings.BLOCKCHAIN_CHAIN_ID), target["registry"], target["address"]
+    ).unresolved()
+    for change in unresolved.order_by("created_at", "uuid"):
+        recovered = changes.recover(change.pk)
+        if recovered.status not in changes.TERMINAL:
+            raise WhitelistRemovalPending("The original whitelist change still requires recovery.")
+
+
+def _submission_id(command):
+    previous_failed = (
+        WhitelistChange.objects.for_target(command["chain_id"], command["registry"], command["address"])
+        .filter(status=WhitelistChangeStatus.FAILED)
+        .order_by("-created_at", "uuid")
+        .values_list("uuid", flat=True)
+        .first()
+    )
+    identity = json.dumps(command, sort_keys=True, separators=(",", ":"))
+    return uuid5(NAMESPACE_URL, f"ledova:eligibility-invalidation:{identity}:{previous_failed or ''}")
+
+
+def _refresh_target(target, *, cause=None, decision_id=None, invalidation_id=None, client=None):
+    target = _target_with_account(target)
+    _recover_target(target)
+    expiry = observed_expiry(target["registry"], target["address"], client)
+    if expiry <= int(timezone.now().timestamp()):
+        return None, False
+    command = command_for(target, cause=cause, decision_id=decision_id, invalidation_id=invalidation_id)
+    if command is None:
+        with connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
+                "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
+                "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
+                "AND users_company_eligibility_decision_facts_current("
+                "decision.uuid, proposal.user_account_id, proposal.company_id, "
+                "'secondary', NULL, NULL, clock_timestamp()))",
+                [target.get("account"), target["company"]],
+            )
+            if cursor.fetchone()[0] is True:
+                return None, False
+        logger.error(
+            "Whitelist removal lacks retained cause: company=%s registry=%s", target["company"], target["registry"]
+        )
+        return None, True
+    change = changes.submit_invalidation(_submission_id(command), command)
+    if change is not None and change.status not in (WhitelistChangeStatus.CONFIRMED, WhitelistChangeStatus.UNCHANGED):
+        raise WhitelistRemovalPending("The admitted whitelist removal still requires recovery.")
+    return change, False
+
+
+def refresh_approval(approval, actor=None, client=None, *, cause=None, decision_id=None, invalidation_id=None):
+    change, _ = _refresh_target(
+        targets_for([approval])[0],
+        cause=cause,
+        decision_id=decision_id,
+        invalidation_id=invalidation_id,
+        client=client,
+    )
     return change
 
 
-def refresh_targets(targets, actor, remove_only=False):
-    result = {"checked": 0, "submitted": 0, "errors": 0}
-    removals_pending = False
-    for target in targets:
-        result["checked"] += 1
-        removing = remove_only
-        try:
-            approval = None if remove_only else _target_approval(target)
-            removing = approval is None
-            change = refresh_approval(approval, actor) if approval else _remove_target(target, actor)
-            result["submitted"] += 1 if change else 0
-        except Exception:
-            result["errors"] += 1
-            removals_pending = removals_pending or removing
-            logger.error("Whitelist refresh failed: company=%s registry=%s", target["company"], target["registry"])
-    if removals_pending:
-        raise WhitelistRemovalPending("One or more whitelist removals still require recovery.")
-    return result
+def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, decision_id=None, invalidation_id=None):
+    with invalidation_worker_context():
+        result = {"checked": 0, "submitted": 0, "unattributed": 0, "errors": 0}
+        for target in targets:
+            result["checked"] += 1
+            try:
+                change, unattributed = _refresh_target(
+                    target, cause=cause, decision_id=decision_id, invalidation_id=invalidation_id
+                )
+                result["submitted"] += int(change is not None)
+                result["unattributed"] += int(unattributed)
+            except Exception:
+                result["errors"] += 1
+                logger.exception(
+                    "Whitelist invalidation failed: company=%s registry=%s", target["company"], target["registry"]
+                )
+        if result["errors"]:
+            raise WhitelistRemovalPending("One or more retained removals still require recovery.")
+        return result
 
 
-def _enqueue(targets, actor, delay, remove_only=False):
+def _defer(targets, *, delay=0, cause=None, decision_id=None, invalidation_id=None):
     from whitelist.tasks import refresh_whitelist_targets
 
-    if not targets or actor is None:
-        return targets
+    if not targets:
+        return
     task = refresh_whitelist_targets.configure(schedule_in={"seconds": delay}) if delay else refresh_whitelist_targets
-    task.defer(targets=targets, actor_id=str(actor.pk), remove_only=remove_only)
-    return targets
+    task.defer(
+        targets=targets,
+        cause=cause,
+        decision_id=str(decision_id) if decision_id is not None else None,
+        invalidation_id=str(invalidation_id) if invalidation_id is not None else None,
+    )
 
 
-def enqueue_for_account(account_id, actor, delay=0):
-    return _enqueue(targets_for_account(account_id), actor, delay)
+def enqueue_for_decision(decision_id, cause, delay=0):
+    def enqueue():
+        decision = CompanyEligibilityDecision.objects.select_related("request").get(pk=decision_id)
+        targets = targets_for(
+            _approvals(
+                entry__wallet__user_account_id=decision.request.user_account_id, company_id=decision.request.company_id
+            )
+        )
+        _defer(targets, delay=delay, cause=cause, decision_id=decision.pk)
+
+    on_commit(enqueue)
+
+
+def enqueue_for_source(source_id, cause, delay=0):
+    def enqueue():
+        source = InvestorClassification.objects.get(pk=source_id)
+        decisions = CompanyEligibilityDecision.objects.filter(request__source=source, outcome="accepted")
+        for decision in decisions:
+            enqueue_for_decision(decision.pk, cause, delay)
+
+    on_commit(enqueue)
+
+
+def enqueue_for_account(
+    account_id, actor=None, delay=0, *, cause=WhitelistInvalidationCause.STANDING_LOSS, cause_fields
+):
+    record = record_invalidation(account_id, cause, actor=actor, cause_fields=cause_fields)
+    on_commit(lambda: _defer(targets_for_account(account_id), delay=delay, cause=cause, invalidation_id=record.pk))
+    return record
 
 
 def enqueue_for_wallet(wallet_id, actor, delay=0, remove_only=False):
-    return _enqueue(targets_for_wallet(wallet_id), actor, delay, remove_only)
+    from wallets.models import Wallet
+
+    wallet = Wallet.objects.get(pk=wallet_id)
+    targets = targets_for_wallet(wallet_id)
+    record = record_invalidation(
+        wallet.user_account_id,
+        WhitelistInvalidationCause.WALLET_REMOVAL,
+        actor=actor,
+        wallet_id=wallet.pk,
+        address=wallet.address,
+    )
+    on_commit(
+        lambda: _defer(targets, delay=delay, cause=WhitelistInvalidationCause.WALLET_REMOVAL, invalidation_id=record.pk)
+    )
+    return record
 
 
 def sweep():
-    result = {"checked": 0, "submitted": 0, "unattributed": 0, "errors": 0}
-    approvals = _approvals().select_related("entry__wallet__user_account").order_by("updated_at", "uuid")
-    for approval in approvals.iterator():
-        if result["submitted"] >= WHITELIST_REFRESH_LIMIT:
-            break
-        result["checked"] += 1
-        try:
-            wanted = needed_expiry(approval)
-            if wanted is None:
-                continue
-            actor = _deciding_actor(approval, wanted)
-            if actor is None:
-                result["unattributed"] += 1
-                logger.error(
-                    "A whitelist approval needs a change that no actor can be attributed to: approval=%s",
-                    approval.pk,
-                )
-                continue
-            _submit(approval.entry.wallet_address, approval.company, approval.entry.wallet_id, wanted, actor)
-            result["submitted"] += 1
-        except Exception:
-            result["errors"] += 1
-            logger.error("Whitelist refresh failed: approval=%s", approval.pk)
-    return result
+    with invalidation_worker_context():
+        result = {"checked": 0, "submitted": 0, "unattributed": 0, "errors": 0}
+        approvals = _approvals().order_by("updated_at", "uuid")
+        for approval in approvals.iterator():
+            if result["submitted"] >= WHITELIST_REFRESH_LIMIT:
+                break
+            result["checked"] += 1
+            try:
+                change, unattributed = _refresh_target(targets_for([approval])[0])
+                result["submitted"] += int(change is not None)
+                result["unattributed"] += int(unattributed)
+            except Exception:
+                result["errors"] += 1
+                logger.exception("Whitelist invalidation failed: approval=%s", approval.pk)
+        return result

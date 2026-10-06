@@ -254,6 +254,10 @@ class SettlementPaymentHistoryMigrationTest(APITransactionTestCase):
         self.assertIsNone(after.pop("settlement_context"))
         self.assertEqual(after.pop("settlement_digest"), "")
         self.assertIsNone(after.pop("finalized_receipt"))
+        self.assertIsNone(after.pop("seller_eligibility_decision_id"))
+        self.assertIsNone(after.pop("seller_eligibility_admitted_at"))
+        self.assertIsNone(after.pop("buyer_eligibility_decision_id"))
+        self.assertIsNone(after.pop("buyer_eligibility_admitted_at"))
         self.assertEqual(after, before)
 
 

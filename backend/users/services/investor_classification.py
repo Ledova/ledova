@@ -17,9 +17,9 @@ from users.models.investor_classification import (
     InvestorClassification,
     InvestorClassificationStatus,
 )
+from whitelist.models import WhitelistInvalidationCause
 
 logger = logging.getLogger(__name__)
-CHANGES_LIVENESS = ("verify", "revoke")
 EVIDENCE_SETTINGS = (
     "app.classification_evidence_operation",
     "app.classification_evidence_source",
@@ -85,10 +85,6 @@ def create_classification(*, actor, validated_data):
                 raise NotFound("Account not found.")
             current_actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=actor.pk)
             profile = get_object_or_404(UserProfile.objects.select_for_update(), pk=profile_id, user=current_actor)
-            if InvestorClassification.objects.filter(
-                user_account=account, status=InvestorClassificationStatus.SUBMITTED
-            ).exists():
-                raise ValidationError({"user_account": "This account already has a classification awaiting review."})
             with evidence_operation(
                 "create",
                 source_id=classification.pk,
@@ -109,6 +105,8 @@ def create_classification(*, actor, validated_data):
 
 
 def withdraw_classification(*, actor, classification_id):
+    from whitelist.services.refresh import enqueue_for_source
+
     if actor is None or not actor.is_authenticated:
         raise NotFound("Classification not found.")
     with use_operator(), _requester_principal(actor.pk), atomic():
@@ -139,25 +137,13 @@ def withdraw_classification(*, actor, classification_id):
             classification.withdrawn_by = current_actor
             classification.save(update_fields=["status", "reviewed_at", "withdrawn_by", "updated_at"])
             classification.refresh_from_db()
+        enqueue_for_source(classification.pk, WhitelistInvalidationCause.SOURCE_WITHDRAWAL)
         return classification
 
 
-def transition_classification(classification: InvestorClassification, method: str, **kwargs) -> InvestorClassification:
-    from whitelist.services.refresh import enqueue_for_account
-
-    with use_operator(), _requester_principal(kwargs["reviewed_by"].pk), atomic():
-        get_object_or_404(get_user_model().objects.select_for_update(), pk=kwargs["reviewed_by"].pk)
-        classification.refresh_from_db(from_queryset=InvestorClassification.objects.select_for_update())
-        with evidence_operation("review", source_id=classification.pk), atomic():
-            getattr(classification, method)(**kwargs)
-            classification.refresh_from_db()
-        logger.info(f"Investor classification {classification.uuid}: {method} by {kwargs.get('reviewed_by')}")
-        if method in CHANGES_LIVENESS:
-            enqueue_for_account(classification.user_account_id, kwargs.get("reviewed_by"))
-    return classification
-
-
 def purge_evidence(classification: InvestorClassification) -> bool:
+    from whitelist.services.refresh import enqueue_for_source
+
     with use_operator(), evidence_operation("purge_classification", source_id=classification.pk), atomic():
         require_evidence_retention_policy()
         classification = InvestorClassification.objects.select_for_update().get(pk=classification.pk)
@@ -167,6 +153,7 @@ def purge_evidence(classification: InvestorClassification) -> bool:
                 return False
         classification.evidence_file.delete(save=False)
         classification.save(update_fields=["evidence_file", "updated_at"])
+        enqueue_for_source(classification.pk, WhitelistInvalidationCause.EVIDENCE_PURGE)
         return True
 
 

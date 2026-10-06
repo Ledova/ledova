@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -61,6 +61,8 @@ interface ButtonProps {
 
   children: React.ReactNode;
 
+  accessibilityLabel?: string;
+
   fullWidth?: boolean;
 
   style?: ViewStyle;
@@ -77,6 +79,7 @@ export function Button({
   iconPosition = 'left',
   onPress,
   children,
+  accessibilityLabel,
   fullWidth = false,
   style: customStyle,
   textStyle: customTextStyle,
@@ -105,6 +108,11 @@ export function Button({
   const variantConfig = getButtonVariants(theme)[variant];
 
   const isDisabled = disabled || loading;
+  const handlePress = () => {
+    if (!isDisabled) {
+      onPress();
+    }
+  };
 
   const buttonStyle: ViewStyle = {
     ...styles.button,
@@ -131,7 +139,15 @@ export function Button({
   };
 
   return (
-    <TouchableOpacity style={buttonStyle} onPress={onPress} disabled={isDisabled} activeOpacity={0.7}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? (typeof children === 'string' ? children : undefined)}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      onPress={handlePress}
+      onAccessibilityTap={handlePress}
+      disabled={isDisabled}
+      style={({ pressed }) => [buttonStyle, { opacity: pressed ? 0.7 : (buttonStyle.opacity ?? 1) }]}
+    >
       {loading ? (
         <ActivityIndicator size="small" color={variantConfig.text} />
       ) : (
@@ -141,6 +157,6 @@ export function Button({
           {icon && iconPosition === 'right' && <View style={styles.icon}>{icon}</View>}
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }

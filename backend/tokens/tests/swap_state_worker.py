@@ -32,6 +32,7 @@ def run(mode, row_id, detail):
     from django.conf import settings
 
     settings.DATABASES = json.loads(os.environ["TRADING_TEST_DATABASES"])
+    settings.PRIVATE_MEDIA_ROOT = os.environ["TRADING_TEST_PRIVATE_MEDIA_ROOT"]
     settings.RLS_AMBIENT_ALIAS = "default" if mode in ("settle", "reverse_inclusion") else "app"
     settings.ATOMIC_SWAP_ADDRESS = "0x" + "9d" * 20
     settings.BLOCKCHAIN_OPERATOR_KEY = ""
@@ -39,6 +40,7 @@ def run(mode, row_id, detail):
     django.setup()
     logging.disable(logging.CRITICAL)
 
+    from django.contrib.auth import get_user_model
     from django.db import connections
     from eth_account.messages import encode_typed_data
 
@@ -65,12 +67,14 @@ def run(mode, row_id, detail):
 
         report("schema_preparation", target="0063_swap_finalized_receipt")
         migrate_to([("tokens", "0063_swap_finalized_receipt")])
-    report("loaded")
+    report("loaded", private_media_root=str(settings.PRIVATE_MEDIA_ROOT))
     command("run")
 
     if mode in ("signature", "signature_overlap"):
         signer = SELLER if detail == "seller" else BUYER
-        signature = signer.sign_message(encode_typed_data(full_message=service.get_typed_data(row))).signature.hex()
+        signature = (
+            "0x" + signer.sign_message(encode_typed_data(full_message=service.get_typed_data(row))).signature.hex()
+        )
         verify = service.verify_signature
 
         def verified(*args):
@@ -83,13 +87,19 @@ def run(mode, row_id, detail):
         if mode == "signature_overlap":
             add_signature = SwapOrder.add_seller_signature
 
-            def before_signature(swap, value):
+            def before_signature(swap, value, *, eligibility_decision):
                 report("signature_locked", in_atomic=connections[current_alias()].in_atomic_block)
                 command("signature")
-                return add_signature(swap, value)
+                return add_signature(swap, value, eligibility_decision=eligibility_decision)
 
             with patch.object(SwapOrder, "add_seller_signature", before_signature):
-                result = sign_swap(row, signature, signer.address, participant=detail).status
+                result = sign_swap(
+                    row,
+                    signature,
+                    signer.address,
+                    participant=detail,
+                    user=get_user_model().objects.get(pk=int(os.environ["TRADING_TEST_USER"])),
+                ).status
         else:
             from tokens.services import swap_execution as execution_service
 
@@ -97,12 +107,20 @@ def run(mode, row_id, detail):
 
             @contextmanager
             def announcing_lock(*args, **kwargs):
+                outer = not connections[current_alias()].in_atomic_block
                 with transaction(*args, **kwargs):
-                    report("locking")
+                    if outer:
+                        report("locking")
                     yield
 
             with patch.object(execution_service, "atomic", announcing_lock):
-                result = sign_swap(row, signature, signer.address, participant=detail).status
+                result = sign_swap(
+                    row,
+                    signature,
+                    signer.address,
+                    participant=detail,
+                    user=get_user_model().objects.get(pk=int(os.environ["TRADING_TEST_USER"])),
+                ).status
     elif mode == "expire":
         from tokens.services.swap_expiry import expire_unclaimed_swap
 

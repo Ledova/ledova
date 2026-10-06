@@ -11,7 +11,8 @@ from web3 import Web3
 
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
-from shared.db import current_alias, use_operator
+from shared.db import current_alias, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import (
@@ -74,8 +75,12 @@ class SubmissionFixtures:
             self.wallet = Wallet.objects.create(
                 user_account=self.tenant.account, address=OWNER.address, chain="base", verification_status="VERIFIED"
             )
-            TransferOrder.objects.filter(token=self.tenant.deployed_token).update(status=TransferOrderStatus.CANCELLED)
+            with use_migrate():
+                TransferOrder.objects.filter(token=self.tenant.deployed_token).update(
+                    status=TransferOrderStatus.CANCELLED
+                )
             self.initial_order_count = TransferOrder.objects.count()
+        self.eligibility_decision = accept_company_eligibility(self.tenant)
         self.client.force_authenticate(self.tenant.user)
         self.submission_id = uuid4()
         self.chain = chain_client()
@@ -179,15 +184,16 @@ class SubmissionFixtures:
                 chain="base",
                 verification_status="VERIFIED",
             )
-            order = TransferOrder.objects.create(
-                token=self.tenant.deployed_token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=wallet,
-                owner_account=self.tenant.account,
-                wallet_address=wallet.address,
-                order_type=order_type,
-                quantity=quantity,
-                price_per_share=Decimal(price),
-            )
+            with use_migrate():
+                order = TransferOrder.objects.create(
+                    token=self.tenant.deployed_token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=wallet.address,
+                    order_type=order_type,
+                    quantity=quantity,
+                    price_per_share=Decimal(price),
+                )
             self.initial_order_count += 1
             return order

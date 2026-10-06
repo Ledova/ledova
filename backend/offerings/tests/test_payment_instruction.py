@@ -27,10 +27,12 @@ from offerings.tests.factories import (
     draft_subscription,
     eligible_subscriber,
     open_offering,
+    subscription_technical_actor,
 )
 from operators.exceptions import SettlementAssetNotDeployedException
 from operators.models import MAX_PAYMENT_REFERENCE_PREFIX, Operator
 from operators.settlement import NOT_DEPLOYED
+from shared.db import acting_for
 from shared.tests.tenants import make_tenant
 
 
@@ -127,11 +129,20 @@ class IssueInstructionTest(TestCase):
         configure_operator(stablecoin=self.stablecoin)
         self.offering = open_offering(self.tenant, stablecoin=self.stablecoin)
         eligible_subscriber(self.tenant)
+        self.technical = subscription_technical_actor()
+
+    def _submit(self, subscription):
+        with acting_for(self.tenant.user.pk):
+            return submit(subscription, submitted_by=self.tenant.user)
+
+    def _accept(self, subscription):
+        with acting_for(self.technical.pk):
+            return accept(subscription)
 
     def _accepted(self):
         subscription = draft_subscription(self.tenant)
-        submit(subscription, submitted_by=self.tenant.user)
-        accept(subscription)
+        self._submit(subscription)
+        self._accept(subscription)
         return subscription
 
     def test_an_overlong_prefix_leaves_the_accepted_subscription_without_an_instruction(self):

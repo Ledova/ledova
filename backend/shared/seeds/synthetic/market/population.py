@@ -1,10 +1,14 @@
 from collections import defaultdict
 
+from companies.services.authority_requests import _requester_principal
 from shared.constants import BLOCKCHAIN_BASE
+from shared.db import use_operator
 from shared.seeds.synthetic.chain import population as chain_population
 from shared.seeds.synthetic.market.plan import Holder, Listing, Trader, TraderWallet
 from tokens.models import ShareRegister, ShareToken, ShareTokenStatus
+from users.models import UserAccount
 from users.models.user_account import AccountRole
+from users.services.company_eligibility_consumption import company_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Holding
 from whitelist.models import WhitelistApproval, WhitelistStatus
@@ -78,12 +82,24 @@ def traders(found):
     for candidate in chain_population.candidates(found):
         if candidate.role != "investor" or candidate.ready_at is None or candidate.large_only:
             continue
+        with use_operator():
+            account = UserAccount.objects.select_related("user_profile__user").get(
+                user_profile__user__email=candidate.key
+            )
+            with _requester_principal(account.user_profile.user_id):
+                secondary = frozenset(
+                    key
+                    for key, company in found.items()
+                    if company_eligibility(account, company, purpose="secondary").is_eligible
+                )
+        if not secondary:
+            continue
         result.append(
             Trader(
                 key=candidate.key,
                 name=candidate.name,
                 ready_at=candidate.ready_at,
-                companies=candidate.companies,
+                companies=secondary,
                 associated=candidate.associated,
                 wallets=tuple(
                     TraderWallet(

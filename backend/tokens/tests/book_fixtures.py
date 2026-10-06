@@ -13,10 +13,10 @@ from eth_account.messages import encode_typed_data
 from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, admitted_signer
-from companies.models import Company
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
-from shared.db import use_operator
+from shared.db import acting_for, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import (
@@ -86,11 +86,13 @@ class BookFixtures:
             FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
             self.traders = [self.trader(f"book-{index}") for index in range(4)]
             issuer = self.traders[0].tenant
-            Company.objects.filter(pk=issuer.company.pk).update(status="active", is_open_to_investors=True)
             Operator.get().supported_settlement_assets.set([issuer.refs.stablecoin])
             TransferOrder.objects.all().delete()
             admitted_signer(chain_id=CHAIN_ID)
         self.token = issuer.deployed_token
+        self.issuer_decision = accept_company_eligibility(issuer)
+        for trader in self.traders[1:]:
+            accept_company_eligibility(trader.tenant, issuer_decision=self.issuer_decision)
 
     def trader(self, label):
         tenant = make_tenant(label, with_swap=False)
@@ -122,7 +124,8 @@ class BookFixtures:
             "owner_account": trader.account,
         }
         key = self.keys[wallet.address.lower()][0]
-        challenge = issue_order_submission(trader.user, data).challenge
+        with acting_for(trader.user.pk):
+            challenge = issue_order_submission(trader.user, data).challenge
         return trader.user, {**data, "digest": challenge["digest"], "signature": _signature(key, challenge)}
 
     def created(self, result):
@@ -132,7 +135,9 @@ class BookFixtures:
 
     def place(self, trader, side, quantity, price, *, minimum=0, wallet=None):
         user, data = self.signed_submission(trader, side, quantity, price, minimum=minimum, wallet=wallet)
-        return self.created(execute_order_submission(user, data))
+        with acting_for(user.pk):
+            result = execute_order_submission(user, data)
+        return self.created(result)
 
     def act(self, order, purpose, **values):
         key, trader = self.keys[order.wallet_address.lower()]
@@ -143,14 +148,15 @@ class BookFixtures:
                 new_min_quantity=values.get("minimum", order.min_quantity),
                 new_price_per_share=Decimal(values.get("price", order.price_per_share)),
             )
-        challenge = issue_order_action(trader.user, order.pk, purpose, data).challenge
-        result = execute_order_action(
-            trader.user,
-            order.pk,
-            purpose,
-            data,
-            {"digest": challenge["digest"], "signature": _signature(key, challenge)},
-        )
+        with acting_for(trader.user.pk):
+            challenge = issue_order_action(trader.user, order.pk, purpose, data).challenge
+            result = execute_order_action(
+                trader.user,
+                order.pk,
+                purpose,
+                data,
+                {"digest": challenge["digest"], "signature": _signature(key, challenge)},
+            )
         self.assertEqual(result.action.status, OrderActionStatus.APPLIED, result.action.refusal_detail)
         return self.current(order)
 
@@ -175,13 +181,14 @@ class BookFixtures:
             signable = encode_typed_data(full_message=atomic_swap_service.get_typed_data(swap))
             for participant, address in (("seller", swap.seller_address), ("buyer", swap.buyer_address)):
                 key, trader = self.keys[address.lower()]
-                swap = swap_execution.submit_signature(
-                    swap,
-                    key.sign_message(signable).signature.to_0x_hex(),
-                    key.address,
-                    user=trader.user,
-                    participant=participant,
-                )
+                with acting_for(trader.user.pk):
+                    swap = swap_execution.submit_signature(
+                        swap,
+                        key.sign_message(signable).signature.to_0x_hex(),
+                        key.address,
+                        user=trader.user,
+                        participant=participant,
+                    )
             record = swap.transaction
             node = ExecutionNode(record.function_args)
             node.status = status

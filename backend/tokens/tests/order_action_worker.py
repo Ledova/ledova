@@ -20,8 +20,11 @@ def database_identity():
     return {"pid": pid, "database_user": user}
 
 
-def notify(stage):
-    print(json.dumps({"stage": stage, **database_identity()}), flush=True)
+def notify(stage, *, operator_pid=None):
+    payload = {"stage": stage, **database_identity()}
+    if operator_pid is not None:
+        payload["operator_pid"] = operator_pid
+    print(json.dumps(payload), flush=True)
 
 
 def run():
@@ -29,6 +32,7 @@ def run():
     from django.conf import settings
 
     settings.DATABASES = json.loads(os.environ["ORDER_TEST_DATABASES"])
+    settings.PRIVATE_MEDIA_ROOT = os.environ["ORDER_TEST_PRIVATE_MEDIA_ROOT"]
     settings.RLS_AMBIENT_ALIAS = "app"
     settings.RLS_ROLE_PER_REQUEST = False
     settings.ALLOWED_HOSTS = ["testserver"]
@@ -75,12 +79,17 @@ def run():
                 raise AssertionError("The owned action worker was not released")
         return challenge
 
-    def load_after_announcing(*args):
+    def load_after_announcing(*args, **kwargs):
         nonlocal selections
         selections += 1
         if selections == 1:
-            notify("selecting")
-        return original_load(*args)
+            from django.db import connections
+
+            with connections["operator"].cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                operator_pid = cursor.fetchone()[0]
+            notify("selecting", operator_pid=operator_pid)
+        return original_load(*args, **kwargs)
 
     def released():
         if sys.stdin.readline().strip() != "continue":

@@ -13,7 +13,7 @@ from rest_framework.test import APITransactionTestCase
 from assets.models import Asset, AssetChainDeployment
 from operators.settlement import require_deployment
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import use_operator
+from shared.db import use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SettlementChainDisagreement, SettlementContextChanged
@@ -32,6 +32,7 @@ from tokens.services.settlement_context import (
     capture_settlement_context,
     recorded_settlement_context,
 )
+from tokens.tests.market_fixtures import record_synthetic_admission
 from tokens.tests.order_submission_fixtures import (
     COUNTERPARTY,
     OTHER_KEY,
@@ -85,19 +86,27 @@ def deployed_token(tenant, chain_id, symbol, address, *, journalled=True):
 
 
 def unsigned_swap(tenant, token):
-    orders = [
-        TransferOrder.objects.create(
-            token=token,
-            payment_asset=tenant.refs.stablecoin,
-            wallet=tenant.wallet,
-            owner_account=tenant.account,
-            wallet_address=tenant.wallet.address,
-            order_type=order_type,
-            quantity=10,
-            price_per_share=Decimal("1.50"),
-        )
-        for order_type in (TransferOrderType.SELL, TransferOrderType.BUY)
-    ]
+    with use_migrate():
+        orders = [
+            TransferOrder.objects.create(
+                token=token,
+                payment_asset=tenant.refs.stablecoin,
+                wallet=tenant.wallet,
+                owner_account=tenant.account,
+                wallet_address=tenant.wallet.address,
+                order_type=order_type,
+                quantity=10,
+                price_per_share=Decimal("1.50"),
+            )
+            for order_type in (TransferOrderType.SELL, TransferOrderType.BUY)
+        ]
+        for order in orders:
+            order.refresh_from_db()
+            assert (
+                order.eligibility_decision_id,
+                order.creation_submission_id,
+                order.last_modification_eligibility_decision_id,
+            ) == (None, None, None)
     return SwapOrder(
         sell_order=orders[0],
         buy_order=orders[1],
@@ -151,16 +160,20 @@ class SettlementChainRefusalJournalTest(SubmissionFixtures, APITransactionTestCa
                 chain="base",
                 verification_status="VERIFIED",
             )
-            TransferOrder.objects.create(
-                token=token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=counterparty,
-                owner_account=self.tenant.account,
-                wallet_address=counterparty.address,
-                order_type=TransferOrderType.SELL,
-                quantity=10,
-                price_per_share=Decimal("2.50"),
-            )
+            with use_migrate():
+                order = TransferOrder.objects.create(
+                    token=token,
+                    payment_asset=self.tenant.refs.stablecoin,
+                    wallet=counterparty,
+                    owner_account=self.tenant.account,
+                    wallet_address=counterparty.address,
+                    order_type=TransferOrderType.SELL,
+                    quantity=10,
+                    price_per_share=Decimal("2.50"),
+                )
+                record_synthetic_admission(order)
+                order.refresh_from_db()
+                self.assertIsNone(order.eligibility_decision_id)
             before_orders = TransferOrder.objects.count()
             before_swaps = SwapOrder.objects.count()
 
@@ -195,16 +208,20 @@ class SettlementChainRefusalJournalTest(SubmissionFixtures, APITransactionTestCa
                 for address in (COUNTERPARTY.address, OTHER_KEY.address)
             ]
             for seller, price in zip(sellers, ("2.00", "2.50")):
-                TransferOrder.objects.create(
-                    token=token,
-                    payment_asset=self.tenant.refs.stablecoin,
-                    wallet=seller,
-                    owner_account=self.tenant.account,
-                    wallet_address=seller.address,
-                    order_type=TransferOrderType.SELL,
-                    quantity=10,
-                    price_per_share=Decimal(price),
-                )
+                with use_migrate():
+                    order = TransferOrder.objects.create(
+                        token=token,
+                        payment_asset=self.tenant.refs.stablecoin,
+                        wallet=seller,
+                        owner_account=self.tenant.account,
+                        wallet_address=seller.address,
+                        order_type=TransferOrderType.SELL,
+                        quantity=10,
+                        price_per_share=Decimal(price),
+                    )
+                    record_synthetic_admission(order)
+                    order.refresh_from_db()
+                    self.assertIsNone(order.eligibility_decision_id)
             before_orders = TransferOrder.objects.count()
             before_swaps = SwapOrder.objects.count()
 

@@ -3,19 +3,22 @@ import { INVESTOR_CLASSIFICATION_ENDPOINTS } from '../constants';
 import type {
   InvestorClassification,
   InvestorClassificationSubmission,
-  InvestorEligibility,
+  InvestorReadiness,
   PaginatedResponse,
 } from '../types';
 
-export const getInvestorClassifications = (apiClient: AxiosInstance, page?: number) =>
+export const getInvestorClassifications = (apiClient: AxiosInstance, page?: number, config?: AxiosRequestConfig) =>
   page === undefined
-    ? apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE)
+    ? config
+      ? apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, config)
+      : apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE)
     : apiClient.get<PaginatedResponse<InvestorClassification>>(INVESTOR_CLASSIFICATION_ENDPOINTS.BASE, {
+        ...config,
         params: { page },
       });
 
-export const getInvestorEligibility = (apiClient: AxiosInstance) =>
-  apiClient.get<InvestorEligibility>(INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
+export const getInvestorReadiness = (apiClient: AxiosInstance) =>
+  apiClient.get<InvestorReadiness>(INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
 
 export const submitInvestorClassification = (
   apiClient: AxiosInstance,

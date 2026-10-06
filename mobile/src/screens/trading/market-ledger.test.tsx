@@ -197,7 +197,7 @@ it('displays exact authorised shares and hides stale class choices on error', as
     selectedTokenUuid: null,
     onSelectToken: jest.fn(),
     isLoading: false,
-    isEligible: true,
+    isReady: true,
   };
   const view = await render(<MarketList {...props} />);
   expect(view.getByText('9,007,199,254,740,993')).toBeTruthy();

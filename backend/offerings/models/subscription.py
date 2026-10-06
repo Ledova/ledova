@@ -86,6 +86,14 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
         related_name="submitted_subscriptions",
     )
     wallet = models.ForeignKey("wallets.Wallet", on_delete=models.PROTECT, related_name="subscriptions")
+    eligibility_decision = models.ForeignKey(
+        "users.CompanyEligibilityDecision",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="+",
+    )
 
     company_name = models.CharField(max_length=255, editable=False)
     token_name = models.CharField(max_length=100, editable=False)
@@ -226,12 +234,13 @@ class Subscription(DerivesCompanyFromOffering, BaseModel):
                 from_status=self.get_status_display(), to_status=to_status.label
             )
 
-    def submit(self, submitted_by=None):
+    def submit(self, submitted_by=None, *, eligibility_decision=None):
         self._require_status([SubscriptionStatus.DRAFT], SubscriptionStatus.SUBMITTED)
         self.status = SubscriptionStatus.SUBMITTED
         self.submitted_by = submitted_by
         self.submitted_at = timezone.now()
-        self.save(update_fields=["status", "submitted_by", "submitted_at", "updated_at"])
+        self.eligibility_decision = eligibility_decision
+        self.save(update_fields=["status", "submitted_by", "submitted_at", "eligibility_decision", "updated_at"])
 
     def accept(self):
         self._require_status([SubscriptionStatus.SUBMITTED], SubscriptionStatus.ACCEPTED)

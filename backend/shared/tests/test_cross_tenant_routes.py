@@ -22,8 +22,9 @@ from companies.models import (
     CompanyStatus,
     CompanyTeamInvitation,
 )
-from companies.services.activation import company_activation
+from companies.services.activation import activate_company, company_activation
 from companies.services.documents import delete_document
+from companies.services.editing import update_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_document_file_access import (
     attach_file,
@@ -34,13 +35,13 @@ from feature_flags.models import FeatureFlag
 from integrations.abr.client import RegistryObservation
 from offerings.models import Offering, OfferingStatus, Subscription
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
+from shared.seeds.synthetic.eligibility import accept_source, company_approver
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import SYNTHETIC_SETTLEMENT_CONTRACT
 from shared.tests.tenants import (
     make_eligible,
     make_tenant,
-    open_to_investors,
     phantom_context,
     route_context,
     snapshot,
@@ -56,13 +57,14 @@ from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_openings import SETTINGS
-from users.models import UserProfile
+from users.models import CompanyEligibilityDecision, UserProfile
 from users.models.investor_classification import InvestorClassification
 from users.serializers.investor_classification import InvestorClassificationSerializer
 from users.services.investor_classification import (
     create_classification,
     withdraw_classification,
 )
+from users.tests.factories import make_investor
 from users.tests.test_company_eligibility_requests import CompanyEligibilityCases
 
 
@@ -131,10 +133,72 @@ def _clear_subscriptions(tenant):
 
 
 def _open_the_offering_to_the_actor(tenant):
-    make_eligible(tenant)
+    _prepare_current_company(tenant, open_directory=True)
+    _current_company_decision(tenant, tenant)
     Offering.objects.filter(pk=tenant.offering.pk).update(
         status=OfferingStatus.APPROVED, opens_at=timezone.now() - timedelta(days=1)
     )
+
+
+def _prepare_current_company(tenant, *, open_directory=False):
+    make_eligible(tenant)
+    with use_operator():
+        Operator.get()
+        tenant.company.refresh_from_db()
+        initial = CompanyAppointment.objects.get(company=tenant.company, legacy_owner__isnull=False)
+    if tenant.company.status == CompanyStatus.DRAFT:
+        tenant.company, activation = activate_company(
+            actor=tenant.user,
+            company_id=tenant.company.pk,
+            idempotency_key=uuid4(),
+            appointment=initial.pk,
+            lifecycle_revision=tenant.company.lifecycle_revision,
+            declaration_version="2026-10-04",
+            accept_declaration=True,
+        )
+        assert activation.applied_at is not None
+    assert tenant.company.status == CompanyStatus.ACTIVE
+    if open_directory:
+        tenant.company = update_company(tenant.company, {"is_open_to_investors": True}, actor=tenant.user)
+        assert tenant.company.is_open_to_investors
+
+
+def _current_company_decision(tenant, issuer):
+    make_eligible(tenant)
+    if not hasattr(issuer, "matrix_approver"):
+        with use_operator():
+            issuer.matrix_approver, _ = make_investor(f"matrix-{uuid4().hex}", role="company")
+            assert not issuer.matrix_approver.is_staff
+            assert CompanyAppointment.objects.filter(company=issuer.company, legacy_owner__isnull=False).exists()
+        issuer.matrix_appointment = company_approver(issuer.company, issuer.matrix_approver)
+        assert issuer.matrix_appointment.appointee_id == issuer.matrix_approver.pk
+        assert set(issuer.matrix_appointment.capabilities) == {"prepare", "approve"}
+    with use_operator():
+        serializer = InvestorClassificationSerializer(
+            data={
+                "category": "professional_investor",
+                "declaration_accepted": True,
+                "declared_basis": "Exact-company matrix participant evidence",
+                "evidence_file": SimpleUploadedFile("matrix-source.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            context={"request": SimpleNamespace(user=tenant.user)},
+        )
+        serializer.is_valid(raise_exception=True)
+    source = create_classification(actor=tenant.user, validated_data=serializer.validated_data)
+    with acting_for(tenant.user.pk):
+        decision = accept_source(source, issuer.company, issuer.matrix_approver, issuer.matrix_appointment)
+    assert decision is not None
+    assert decision.outcome == "accepted"
+    assert decision.request.company_id == issuer.company.pk
+    assert decision.request.user_account_id == tenant.account.pk
+    assert decision.request.sharing_accepted
+    assert decision.decided_by_id == issuer.matrix_approver.pk
+    assert decision.appointment_id == issuer.matrix_appointment.pk
+    with use_operator():
+        source.refresh_from_db()
+        assert source.status == "submitted"
+        assert source.reviewed_by_id is None
+    return decision
 
 
 def _approve_the_offering(tenant):
@@ -725,11 +789,16 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             for route in ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
                     context = dict(own)
-                    if route.prepare is _submitted_attachment_classification:
+                    if route.prepare in (_submitted_attachment_classification, _open_the_offering_to_the_actor):
                         with self.committed_where_a_request_on_another_connection_can_read_it():
-                            context.update(route.prepare(actor))
+                            prepared = route.prepare(actor)
+                            if isinstance(prepared, dict):
+                                context.update(prepared)
                     with self.undone_before_the_next_case(route, actor):
-                        if route.prepare and route.prepare is not _submitted_attachment_classification:
+                        if route.prepare and route.prepare not in (
+                            _submitted_attachment_classification,
+                            _open_the_offering_to_the_actor,
+                        ):
                             with self.as_whoever_may_write_the_fixture(route, own, actor, actor):
                                 prepared = route.prepare(actor)
                                 if isinstance(prepared, dict):
@@ -768,13 +837,13 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         phantom = phantom_context(self.other)
         for actor in self.actors:
             with self.committed_where_a_request_on_another_connection_can_read_it():
-                make_eligible(actor)
+                _prepare_current_company(self.other, open_directory=True)
+                _current_company_decision(actor, self.other)
             self.client.force_authenticate(actor.user)
             for route in DIRECTORY_ROUTES + MARKET_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
                     with self.undone_before_the_next_case(route, actor):
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
-                            open_to_investors(self.other)
                             if route.prepare:
                                 route.prepare(self.other)
                         foreign_response = self.send(route, actor, foreign)
@@ -786,7 +855,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         foreign = route_context(self.other)
         for actor in self.actors:
             with self.committed_where_a_request_on_another_connection_can_read_it():
-                make_eligible(actor)
+                _prepare_current_company(self.other)
+                _current_company_decision(actor, self.other)
             self.client.force_authenticate(actor.user)
             for route in MARKET_ROUTES + DIRECTORY_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
@@ -802,12 +872,17 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         foreign = route_context(self.other)
         phantom = phantom_context(self.other)
         for actor in self.actors:
+            with self.committed_where_a_request_on_another_connection_can_read_it():
+                _prepare_current_company(self.other, open_directory=True)
+                make_eligible(actor)
+                self.assertFalse(
+                    CompanyEligibilityDecision.objects.filter(request__user_account=actor.account).exists()
+                )
             self.client.force_authenticate(actor.user)
             for route in DIRECTORY_ROUTES + MARKET_ROUTES:
                 with self.subTest(actor=actor.label, route=f"{route.method} {route.path}"):
                     with self.undone_before_the_next_case(route, actor):
                         with self.as_whoever_may_write_the_fixture(route, foreign, self.other, actor):
-                            open_to_investors(self.other)
                             if route.prepare:
                                 route.prepare(self.other)
                         foreign_response = self.send(route, actor, foreign)
@@ -859,7 +934,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         self.assertIsNone(self.client.get(GLOBAL_ROUTES[0]).json()["paymentInstructions"])
 
         with self.committed_where_a_request_on_another_connection_can_read_it():
-            make_eligible(alice)
+            _prepare_current_company(alice)
+            _current_company_decision(alice, alice)
         self.assertEqual(self.client.get(GLOBAL_ROUTES[0]).json()["paymentInstructions"], RAILS)
 
     def test_authority_requests_are_requester_only_for_company_staff_and_missing_reference_cases(self):
@@ -1824,7 +1900,7 @@ class OrderActionRouteChecks(ActionFixtures):
         super().setUp()
         self.cancel_order = self.order
         self.cancel_signed = self.signed()
-        with use_operator():
+        with use_migrate():
             self.order = TransferOrder.objects.create(
                 token=self.order.token,
                 payment_asset=self.order.payment_asset,
@@ -1835,6 +1911,7 @@ class OrderActionRouteChecks(ActionFixtures):
                 quantity=10,
                 price_per_share=Decimal("2.50"),
             )
+        with use_operator():
             self.other = make_tenant("action-matrix-other")
         self.action_id = uuid4()
         self.modify_signed = self.signed("modify", self.modify_body())

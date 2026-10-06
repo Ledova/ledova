@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.conf import settings
@@ -16,7 +17,8 @@ from assets.models import AssetChainDeployment
 from blockchain.models import SignedAttempt, TransactionStatus
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from feature_flags.models import FeatureFlag
-from shared.db import atomic, current_alias, set_principal, use_operator
+from shared.db import atomic, current_alias, set_principal, use_migrate, use_operator
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
@@ -165,6 +167,16 @@ class SwapSettlementContextTest(TransactionTestCase):
 
     def test_wrong_domain_and_changed_message_signatures_refuse_but_original_replays(self):
         swap = make_swap("context-signatures")
+        with use_operator():
+            account = swap.sell_order.owner_account
+            accept_company_eligibility(
+                SimpleNamespace(
+                    user=account.user_profile.user,
+                    profile=account.user_profile,
+                    account=account,
+                    company=swap.share_token.company,
+                )
+            )
         service = swap_service(self)
         original = service.get_typed_data(swap)
         for section, field, value in (
@@ -258,6 +270,14 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
             )
             self.user = self.seller_order.owner_account.user_profile.user
+            accept_company_eligibility(
+                SimpleNamespace(
+                    user=self.user,
+                    profile=self.seller_order.owner_account.user_profile,
+                    account=self.seller_order.owner_account,
+                    company=self.swap.share_token.company,
+                )
+            )
         self.client = APIClient()
         self.client.force_authenticate(self.user)
         self.identity = {
@@ -585,16 +605,18 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                 chain="ethereum",
                 verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
             )
-            order = TransferOrder.objects.create(
-                token=self.swap.share_token,
-                payment_asset=self.swap.payment_asset,
-                wallet=wallet,
-                owner_account=buyer.account,
-                wallet_address=wallet.address,
-                order_type="buy",
-                quantity=10,
-                price_per_share="1.50",
-            )
+            with use_migrate():
+                order = TransferOrder.objects.create(
+                    token=self.swap.share_token,
+                    payment_asset=self.swap.payment_asset,
+                    wallet=wallet,
+                    owner_account=buyer.account,
+                    wallet_address=wallet.address,
+                    order_type="buy",
+                    quantity=10,
+                    price_per_share="1.50",
+                )
+            self.assertIsNone(order.eligibility_decision_id)
             swap = save_swap_with_context(
                 sell_order=self.seller_order,
                 buy_order=order,
@@ -646,7 +668,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
                     self.assertEqual(body["typedData"]["message"]["paymentAmount"], "1500")
             provider.assert_not_called()
 
-    def test_counterparty_signature_relay_preserves_caller_wallet_scope(self):
+    def test_counterparty_first_signature_refuses_but_exact_replay_preserves_caller_wallet_scope(self):
         signature = (
             "0x"
             + SELLER.sign_message(
@@ -655,11 +677,29 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         )
         buyer_identity = {**self.identity, "wallet_uuid": str(self.swap.buyer_wallet_id)}
         url = f"/api/v1/trading/orders/{self.buyer_order.pk}/swap/sign/"
+        with use_operator():
+            before = persisted_outcome(self.swap)
+        response = self.client.post(
+            url, {**buyer_identity, "signature": signature, "signer_address": SELLER.address}, format="json"
+        )
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertEqual(response.json(), {"detail": "The authenticated participant must be the signing party"})
+        with use_operator():
+            self.assertEqual(persisted_outcome(self.swap), before)
+        accepted = self.client.post(
+            self.url + "/sign/",
+            {**self.identity, "signature": signature, "signer_address": SELLER.address},
+            format="json",
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        with use_operator():
+            before = persisted_outcome(self.swap)
         response = self.client.post(
             url, {**buyer_identity, "signature": signature, "signer_address": SELLER.address}, format="json"
         )
         self.assertEqual(response.status_code, 200, response.content)
         with use_operator():
+            self.assertEqual(persisted_outcome(self.swap), before)
             self.swap.refresh_from_db()
         self.assertEqual(self.swap.seller_signature, signature)
         self.assertFalse(self.swap.buyer_signature)
@@ -995,9 +1035,11 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         self.assertEqual(refused.status_code, 400, refused.content)
 
     def test_nullable_original_payment_reference_is_revalidated_without_reinterpretation(self):
-        with use_operator():
+        self.assertIsNone(self.buyer_order.eligibility_decision_id)
+        with use_migrate():
             self.buyer_order.payment_asset = None
             self.buyer_order.save(update_fields=["payment_asset"])
+        with use_operator():
             swap = atomic_swap_service.create_swap_order(self.seller_order, self.buyer_order)
         identity = {
             **self.identity,
@@ -1009,7 +1051,7 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         allowed = self.client.get(url, identity)
         self.assertEqual(allowed.status_code, 200, allowed.content)
         self.assertIsNone(swap.settlement_context["buyer"]["payment_asset_uuid"])
-        with use_operator():
+        with use_migrate():
             self.buyer_order.payment_asset_id = swap.payment_asset_id
             self.buyer_order.save(update_fields=["payment_asset"])
         refused = self.client.get(url, identity)

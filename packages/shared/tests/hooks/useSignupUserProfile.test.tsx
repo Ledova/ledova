@@ -1,12 +1,16 @@
 /** @jest-environment jsdom */
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import type { QueryClient } from '@tanstack/react-query';
 
+import { CACHE_TIMING } from '../../src/constants/api';
 import { COUNTRIES } from '../../src/constants/countries';
+import { useSignupReview } from '../../src/hooks/useSignupReview';
 import { useSignupUserProfile } from '../../src/hooks/useSignupUserProfile';
-import { providers, signupApi } from '../fixtures/signup';
+import { providers, queryClient, signupApi } from '../fixtures/signup';
 
 const api = signupApi();
-const wrapper = providers(api);
+let client: QueryClient;
+let wrapper: ReturnType<typeof providers>;
 
 const profile = {
   uuid: 'profile-1',
@@ -21,11 +25,50 @@ const PROXY_PAGE =
 
 beforeEach(() => {
   jest.clearAllMocks();
+  client = queryClient();
+  wrapper = providers(api, client);
 });
 
 afterEach(async () => {
   await cleanup();
+  client.clear();
   jest.restoreAllMocks();
+});
+
+it('reviews the saved personal details after a fresh blank profile was cached before signup', async () => {
+  const blank = { ...profile, fullName: '', dateOfBirth: '', phoneNumber: '', residentialAddress: '' };
+  let stored = blank;
+  const rows = () => ({ data: { count: 1, results: [stored] } });
+  client.setQueryDefaults(['userProfiles'], { gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME });
+  client.setQueryData(['userProfiles'], rows());
+  api.get.mockImplementation((url: string) => {
+    if (url === '/api/user-profiles/') return Promise.resolve(rows());
+    if (url === '/api/financial-profiles/')
+      return Promise.resolve({ data: { results: [{ uuid: 'financial-1', occupation: 'Engineer' }] } });
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  api.patch.mockImplementation(async (_url: string, data: typeof profile) => {
+    stored = { ...stored, ...data };
+    return { data: stored };
+  });
+  const details = renderHook(() => useSignupUserProfile(), { wrapper });
+  await waitFor(() => expect(details.result.current.isLoading).toBe(false));
+  act(() => {
+    details.result.current.setFieldValue('fullName', profile.fullName);
+    details.result.current.setFieldValue('dateOfBirth', profile.dateOfBirth);
+    details.result.current.setFieldValue('phoneNumber', profile.phoneNumber);
+    details.result.current.setFieldValue('residentialAddress', profile.residentialAddress);
+  });
+  expect(client.getQueryData(['userProfiles'])).toEqual({ data: { count: 1, results: [blank] } });
+  const next = jest.fn();
+  await act(() => details.result.current.handleSubmit(next));
+  expect(next).toHaveBeenCalledTimes(1);
+  details.unmount();
+  const review = renderHook(() => useSignupReview('investor', jest.fn()), { wrapper });
+  await waitFor(() => expect(review.result.current.data.userProfile?.fullName).toBe(profile.fullName));
+  expect(review.result.current.data.userProfile).toMatchObject(profile);
+  expect(review.result.current.canCompleteSignup).toBe(true);
+  expect(api.get.mock.calls.filter(([url]) => url === '/api/user-profiles/')).toHaveLength(2);
 });
 
 async function settle() {

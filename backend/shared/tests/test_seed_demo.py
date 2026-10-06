@@ -8,8 +8,10 @@ from django.test import override_settings
 from rest_framework.test import APITestCase
 
 from companies.models import Company, CompanyStatus, CompanyType
+from companies.services.authority_requests import _requester_principal
 from companies.services.company import primary_wallet_for
 from operators.models import Operator
+from shared.db import use_operator
 from shared.seeds.demo import (
     DEMO_ACN,
     DEMO_ADMIN_EMAIL,
@@ -23,7 +25,8 @@ from shared.seeds.synthetic.plan import MINIMUM_INVESTORS
 from tokens.models import ShareToken
 from tokens.models.choices import ShareTokenStatus
 from tokens.services import deployment
-from users.services.eligibility import investor_eligibility
+from users.services.company_eligibility_consumption import company_eligibility
+from users.services.eligibility import investor_readiness
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from whitelist.models import WhitelistApproval, WhitelistEntry
@@ -100,7 +103,11 @@ class SeedDemoCommandTest(APITestCase):
         self.assertEqual(response.status_code, 200, response.content)
 
         investor = User.objects.get(email=DEMO_INVESTOR_EMAIL)
-        self.assertTrue(investor_eligibility(investor).is_eligible)
+        with use_operator(), _requester_principal(investor.pk):
+            readiness = investor_readiness(investor)
+            self.assertTrue(readiness.is_ready)
+            company = Company.objects.get(acn=DEMO_ACN)
+            self.assertTrue(company_eligibility(readiness.account, company, purpose="secondary").is_eligible)
 
     def test_the_investor_wallet_has_a_whitelist_entry_and_no_company_approval(self):
         entry = WhitelistEntry.objects.get(wallet__address=DEMO_INVESTOR_ADDRESS)

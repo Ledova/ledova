@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
 import { getDirectoryDocuments, getDirectoryToken, getDirectoryTokens } from '../services/directory';
-import { getInvestorEligibility } from '../services/investorClassifications';
+import { getInvestorReadiness } from '../services/investorClassifications';
 import { getOperator } from '../services/operator';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
@@ -11,25 +11,23 @@ export function useDirectoryTokens() {
   const apiClient = useApiClient();
   const eligibility = useQuery({
     queryKey: ['investor-eligibility'],
-    queryFn: () => getInvestorEligibility(apiClient),
+    queryFn: () => getInvestorReadiness(apiClient),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   const tokens = useQuery({
     queryKey: ['directory', 'tokens', 'complete'],
     queryFn: () => readEveryPage((page) => getDirectoryTokens(apiClient, page)),
-    enabled: eligibility.data?.data?.isEligible === true && !eligibility.isError,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   return {
-    tokens: tokens.data ?? [],
-    isEligible: eligibility.data?.data?.isEligible ?? false,
+    tokens: tokens.isError || tokens.isFetching ? [] : (tokens.data ?? []),
+    isReady: eligibility.data?.data?.isReady ?? false,
     isLoading: tokens.isLoading || eligibility.isLoading,
-    hasError: eligibility.isError || (eligibility.data?.data?.isEligible === true && tokens.isError),
+    hasError: eligibility.isError || tokens.isError,
     isRefreshing: tokens.isFetching || eligibility.isFetching,
-    retry: () =>
-      Promise.all([eligibility.refetch(), ...(eligibility.data?.data?.isEligible ? [tokens.refetch()] : [])]),
+    retry: () => Promise.all([eligibility.refetch(), tokens.refetch()]),
   };
 }
 

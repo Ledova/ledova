@@ -3,7 +3,7 @@ from unittest import skipUnless
 
 from django.conf import settings
 from django.db import connection, transaction
-from django.db.utils import ProgrammingError
+from django.db.utils import IntegrityError, ProgrammingError
 from django.test import TestCase
 
 from offerings.models import Subscription
@@ -73,9 +73,16 @@ class ATableReadAtTwoScopesHasARowWhereTheyDisagreeTest(TestCase):
     def test_an_issuer_may_read_it_and_lock_it_and_still_not_write_it(self):
         self.as_the_app_role_for(self.issuer.user)
 
-        self.assertEqual(Subscription.objects.select_for_update().filter(pk=self.crossing.pk).count(), 1)
+        before = Subscription.objects.filter(pk=self.crossing.pk).values().get()
+        self.assertEqual(Subscription.objects.select_for_update().get(pk=self.crossing.pk), self.crossing)
 
-        with self.assertRaises(ProgrammingError) as caught, transaction.atomic():
+        with self.assertRaises(IntegrityError) as frozen, transaction.atomic():
             Subscription.objects.filter(pk=self.crossing.pk).update(quantity=99)
 
+        self.assertEqual(frozen.exception.__cause__.sqlstate, "23514")
+        with self.assertRaises(ProgrammingError) as caught, transaction.atomic():
+            Subscription.objects.filter(pk=self.crossing.pk).update(payment_notes="Issuer overwrite")
+
+        self.assertEqual(caught.exception.__cause__.sqlstate, "42501")
         self.assertIn("row-level security policy", str(caught.exception))
+        self.assertEqual(Subscription.objects.filter(pk=self.crossing.pk).values().get(), before)

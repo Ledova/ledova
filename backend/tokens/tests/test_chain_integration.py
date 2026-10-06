@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import skipUnless
 from unittest.mock import patch
 from uuid import uuid4
@@ -19,7 +20,9 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection, connections
+from django.db.migrations.executor import MigrationExecutor
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from eth_account import Account
@@ -38,8 +41,12 @@ from blockchain.models import (
     TransactionType,
 )
 from blockchain.tests.test_outgoing_processes import finish
-from companies.models import Company, CompanyStatus
+from companies.models import Company, CompanyAppointment, CompanyStatus
+from companies.services.activation import activate_company
+from companies.services.authority import DECLARATION_VERSION
 from companies.services.document_review import prepare_document_review, verify_document
+from companies.services.editing import update_company
+from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_document_file_access import (
     admit_company_administrator,
     attach_file,
@@ -49,9 +56,12 @@ from feature_flags.models import FeatureFlag
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
 from integrations.blockchain import BlockchainClientFactory
+from offerings.tests.factories import eligible_subscriber
 from operators.models import Operator
-from shared.db import current_alias
+from shared.db import acting_for, current_alias, use_migrate, use_operator
+from shared.seeds.synthetic.eligibility import accept_source, company_approver
 from shared.tests.tenants import make_eligible, make_tenant
+from shared.tests.upload_fixtures import pdf_bytes
 from shared.utils.typed_data import signable_message
 from tokens.constants import MAX_UINT256
 from tokens.exceptions import (
@@ -141,6 +151,10 @@ from tokens.tests.test_register_openings import (
     opening_payload,
     prepared,
 )
+from users.models import CompanyEligibilityDecision
+from users.serializers.investor_classification import InvestorClassificationSerializer
+from users.services.investor_classification import create_classification
+from users.tests.factories import make_investor
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
@@ -198,13 +212,36 @@ class ChainTestMixin:
         super().setUpClass()
         reset_chain_client()
 
-    def setUp(self, *, company_administration=False):
+    def setUp(self, *, company_administration=False, company_activation=False):
         self.tenant = make_tenant("chain")
-        if company_administration:
-            admit_company_administrator(self.tenant.company)
-        Company.objects.filter(pk=self.tenant.company.pk).update(
-            status=CompanyStatus.ACTIVE, acn=f"{secrets.randbelow(10**9):09d}"
-        )
+        if company_activation:
+            make_eligible(self.tenant)
+            initial = admit_company_administrator(self.tenant.company)
+            with patch(
+                "companies.services.registry.lookup_company", return_value=matching_observation(self.tenant.company)
+            ):
+                self.tenant.company, activation = activate_company(
+                    actor=self.tenant.user,
+                    company_id=self.tenant.company.pk,
+                    idempotency_key=uuid4(),
+                    appointment=initial.pk,
+                    lifecycle_revision=self.tenant.company.lifecycle_revision,
+                    declaration_version=DECLARATION_VERSION,
+                    accept_declaration=True,
+                )
+            self.assertIsNotNone(activation.applied_at)
+            self.tenant.company = update_company(
+                self.tenant.company, {"is_open_to_investors": True}, actor=self.tenant.user
+            )
+            self.assertEqual(self.tenant.company.status, CompanyStatus.ACTIVE)
+            self.assertTrue(self.tenant.company.is_open_to_investors)
+            self.participant_decisions = {}
+        else:
+            if company_administration:
+                admit_company_administrator(self.tenant.company)
+            Company.objects.filter(pk=self.tenant.company.pk).update(
+                status=CompanyStatus.ACTIVE, acn=f"{secrets.randbelow(10**9):09d}"
+            )
         self.token = ShareToken.objects.select_related("company").get(pk=self.tenant.token.pk)
         self.token.total_supply = str(CAP)
         self.token.save(update_fields=["total_supply"])
@@ -225,6 +262,52 @@ class ChainTestMixin:
             chain="base",
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
+
+    def admit_current_participant(self, tenant):
+        if tenant.account.pk in self.participant_decisions:
+            return self.participant_decisions[tenant.account.pk]
+        make_eligible(tenant)
+        if self.participant_decisions:
+            issuer_decision = next(iter(self.participant_decisions.values()))
+            eligible_subscriber(tenant, issuer_decision=issuer_decision)
+            decision = tenant.eligibility_decision
+        else:
+            with use_operator():
+                initial = CompanyAppointment.objects.get(company=self.token.company, request__isnull=False)
+                self.assertEqual(initial.appointee_id, self.tenant.user.pk)
+                approver, _ = make_investor(f"chain-approver-{uuid4().hex}", role="company")
+            appointment = company_approver(self.token.company, approver)
+            self.assertFalse(approver.is_staff)
+            self.assertEqual(set(appointment.capabilities), {"prepare", "approve"})
+            with patch("shared.uploads.scan_upload"), use_operator():
+                serializer = InvestorClassificationSerializer(
+                    data={
+                        "category": "professional_investor",
+                        "declaration_accepted": True,
+                        "declared_basis": "Synthetic exact-company chain participant evidence",
+                        "evidence_file": SimpleUploadedFile(
+                            "chain-source.pdf", pdf_bytes(), content_type="application/pdf"
+                        ),
+                    },
+                    context={"request": SimpleNamespace(user=tenant.user)},
+                )
+                serializer.is_valid(raise_exception=True)
+                source = create_classification(actor=tenant.user, validated_data=serializer.validated_data)
+            with acting_for(tenant.user.pk):
+                decision = accept_source(source, self.token.company, approver, appointment)
+            self.assertIsNotNone(decision)
+            with use_operator():
+                source.refresh_from_db()
+            self.assertEqual((source.status, source.reviewed_by_id), ("submitted", None))
+            self.assertEqual(decision.request.source_id, source.pk)
+            self.assertEqual(decision.decided_by_id, approver.pk)
+            self.assertEqual(decision.appointment_id, appointment.pk)
+        self.assertEqual(decision.outcome, "accepted")
+        self.assertEqual(decision.request.company_id, self.token.company_id)
+        self.assertEqual(decision.request.user_account_id, tenant.account.pk)
+        self.assertTrue(decision.request.sharing_accepted)
+        self.participant_decisions[tenant.account.pk] = decision
+        return decision
 
     def _contract(self):
         return self.service.load_share_token(self.token.contract_address)
@@ -515,10 +598,7 @@ class SettlementChainMixin(ChainTestMixin):
 @override_settings(**CHAIN_SETTINGS)
 class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
     def setUp(self):
-        super().setUp(
-            company_administration=self._testMethodName
-            == "test_a_real_settlement_is_entered_only_once_its_transfer_instruction_applies"
-        )
+        super().setUp(company_activation=True)
         self.settlement_parties()
         self._deployed()
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
@@ -536,26 +616,50 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
         Asset.objects.filter(pk=self.tenant.refs.stablecoin.pk).update(decimals=6)
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         orders = []
-        for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
-            wallet = self.party_wallets[party.address]
-            orders.append(
-                TransferOrder.objects.create(
-                    token=self.token,
-                    payment_asset=self.tenant.refs.stablecoin,
-                    wallet=wallet,
-                    owner_account=self.party_accounts[party.address],
+        with use_migrate():
+            self.assertFalse(
+                CompanyEligibilityDecision.objects.filter(
+                    request__company=self.token.company,
+                    request__user_account__in=[self.tenant.account, self.buyer_tenant.account],
+                ).exists()
+            )
+            historical = (
+                MigrationExecutor(connections[current_alias()])
+                .loader.project_state([("tokens", "0081_held_orders_and_retired_statuses")])
+                .apps.get_model("tokens", "TransferOrder")
+            )
+            for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
+                wallet = self.party_wallets[party.address]
+                retained = historical.objects.using(current_alias()).create(
+                    token_id=self.token.pk,
+                    payment_asset_id=self.tenant.refs.stablecoin.pk,
+                    wallet_id=wallet.pk,
+                    owner_account_id=self.party_accounts[party.address].pk,
                     wallet_address=party.address,
                     order_type=kind,
                     quantity=10,
                     price_per_share=Decimal("1.50"),
                 )
-            )
+                order = TransferOrder.objects.get(pk=retained.pk)
+                self.assertEqual(
+                    (
+                        order.eligibility_decision_id,
+                        order.creation_submission_id,
+                        order.last_modification_action_id,
+                        order.last_modification_eligibility_decision_id,
+                    ),
+                    (None, None, None, None),
+                )
+                orders.append(order)
         swap = token_transfer_service.match_orders(orders[1], orders[0], 3)["swap_order"]
         self.assertEqual((swap.share_amount, swap.payment_amount), (3, 450))
         return swap, orders
 
     def admit_swap(self):
         swap, orders = self.matched_swap()
+        for tenant, order in ((self.tenant, orders[0]), (self.buyer_tenant, orders[1])):
+            decision = self.admit_current_participant(tenant)
+            self.assertLess(order.created_at, decision.created_at)
         typed_data = atomic_swap_service.get_typed_data(swap)
         self.assertEqual(typed_data["message"]["paymentAmount"], "450")
         self.assertEqual(swap.settlement_context["payment_asset"]["pricing_decimals"], 6)
@@ -572,21 +676,23 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
         self.assertTrue(allowances["buyer"]["has_sufficient_allowance"])
         nonce = self._signer_nonce()
         signable = encode_typed_data(full_message=typed_data)
-        first = swap_execution.submit_signature(
-            swap,
-            self.seller.sign_message(signable).signature.hex(),
-            self.seller.address,
-            user=self.tenant.user,
-            participant="seller",
-        )
+        with acting_for(self.tenant.user.pk):
+            first = swap_execution.submit_signature(
+                swap,
+                self.seller.sign_message(signable).signature.to_0x_hex(),
+                self.seller.address,
+                user=self.tenant.user,
+                participant="seller",
+            )
         self.assertEqual(first.status, "seller_signed")
-        completed = swap_execution.submit_signature(
-            first,
-            self.buyer.sign_message(signable).signature.hex(),
-            self.buyer.address,
-            user=self.buyer_tenant.user,
-            participant="buyer",
-        )
+        with acting_for(self.buyer_tenant.user.pk):
+            completed = swap_execution.submit_signature(
+                first,
+                self.buyer.sign_message(signable).signature.to_0x_hex(),
+                self.buyer.address,
+                user=self.buyer_tenant.user,
+                participant="buyer",
+            )
         self.assertEqual(completed.status, "executing")
         self.assertEqual(self._signer_nonce(), nonce)
         return completed
@@ -670,6 +776,8 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         Operator.get().supported_settlement_assets.set([self.tenant.refs.stablecoin])
         self.assertNotEqual(self.tenant.account.pk, self.buyer_tenant.account.pk)
+        self.admit_current_participant(self.tenant)
+        self.admit_current_participant(self.buyer_tenant)
         resting = self.signed_http_order(self.seller, "sell")
         self.assertIsNone(resting["match"])
         created = self.signed_http_order(self.buyer, "buy")

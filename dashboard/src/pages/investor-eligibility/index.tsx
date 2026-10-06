@@ -10,9 +10,12 @@ import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
 
 function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
-  if (classification.isLive) return { label: 'Verified', tone: 'done' };
-  if (classification.isExpired) return { label: 'Expired', tone: 'closed' };
-  if (classification.status === 'submitted') return { label: 'Awaiting review', tone: 'moving' };
+  if (classification.status === 'submitted') return { label: 'Available to share', tone: 'moving' };
+  if (classification.status === 'verified')
+    return {
+      label: classification.isExpired ? 'Historical verification expired' : 'Historical verification',
+      tone: 'closed',
+    };
   return { label: classification.statusDisplay, tone: 'closed' };
 }
 
@@ -25,16 +28,15 @@ export default function InvestorEligibilityPage() {
     onSuccess: refresh,
   });
 
-  const isEligible = eligibility?.isEligible ?? false;
-  const openClaim = classifications.find((claim) => claim.status === 'submitted');
-  const liveCategories = new Set(classifications.filter((claim) => claim.isLive).map((claim) => claim.category));
+  const isReady = eligibility?.isReady ?? false;
+  const submittedCategories = new Set(
+    classifications.filter((claim) => claim.status === 'submitted').map((claim) => claim.category),
+  );
   const submissionBlockedReason = hasError
     ? 'Your verification could not be loaded. Try again before continuing.'
     : isLoading || isRefreshing
       ? 'Refreshing your verification before continuing.'
-      : openClaim
-        ? 'Another claim is awaiting review. Withdraw it before submitting another.'
-        : null;
+      : null;
 
   return (
     <>
@@ -48,13 +50,14 @@ export default function InvestorEligibilityPage() {
           </div>
         ) : (
           <>
-            <Section title="Investor status">
+            <Section title="Account readiness">
+              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
               <p className="py-2 text-sm text-text-primary">
-                <Status tone={isEligible ? 'done' : 'waiting'}>
-                  {isEligible ? 'Verified to invest' : 'Verification needed'}
+                <Status tone={isReady ? 'done' : 'waiting'}>
+                  {isReady ? 'Account ready' : 'Account checks needed'}
                 </Status>
               </p>
-              {isEligible ? (
+              {isReady ? (
                 <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
               ) : (
                 <ul className="space-y-1 text-sm text-text-muted">
@@ -63,6 +66,10 @@ export default function InvestorEligibilityPage() {
                   ))}
                 </ul>
               )}
+              <p className="text-sm text-text-muted">
+                Account readiness does not grant investment access. Each company decides eligibility for its own
+                offerings and share classes.
+              </p>
               <p className="text-sm text-text-muted">{WHOLESALE_ONLY_NOTICE}</p>
             </Section>
 
@@ -119,11 +126,6 @@ export default function InvestorEligibilityPage() {
             </Section>
 
             <Section title="How you qualify">
-              {openClaim && (
-                <p className="text-sm text-text-muted">
-                  Your evidence is awaiting review. You can withdraw that claim before submitting another.
-                </p>
-              )}
               <div className="divide-y divide-border-subtle">
                 {CATEGORIES.map((item) => (
                   <div key={item.category} className="flex flex-wrap items-start justify-between gap-3 py-4">
@@ -133,9 +135,9 @@ export default function InvestorEligibilityPage() {
                       <p className="mt-1 text-xs text-text-muted">{item.section}</p>
                     </div>
                     <PageAction
-                      label={liveCategories.has(item.category) ? 'Update evidence' : 'Submit evidence'}
+                      label={submittedCategories.has(item.category) ? 'Add evidence' : 'Submit evidence'}
                       onClick={() => setClaimCategory(item.category)}
-                      disabled={!!openClaim || !eligibility?.account || withdraw.isPending}
+                      disabled={!eligibility?.account || withdraw.isPending || isRefreshing}
                     />
                   </div>
                 ))}
@@ -145,9 +147,12 @@ export default function InvestorEligibilityPage() {
             <Section title="What happens next">
               <ol className="list-decimal space-y-2 py-2 pl-5 text-sm text-text-muted">
                 <li>Choose the category that applies to you and attach the evidence.</li>
-                <li>The operator reviews your evidence and sets an expiry date.</li>
-                <li>Once verified, you can view eligible offerings and apply for shares.</li>
-                <li>Update your evidence before it expires to stay eligible.</li>
+                <li>
+                  Choose the exact company or known offering in Eligibility requests and consent to sharing your
+                  evidence.
+                </li>
+                <li>The company records its decision. New investment actions recheck that decision and its scope.</li>
+                <li>Your submitted sources and historical reviews remain separate from company decisions.</li>
               </ol>
             </Section>
           </>

@@ -22,7 +22,11 @@ from companies.services.authority import (
     _require_declaration,
 )
 from companies.services.authority_requests import _requester_principal
-from companies.services.registry import _begin_registry_check, perform_registry_check
+from companies.services.registry import (
+    _begin_registry_check,
+    perform_registry_check,
+    registry_check_timestamp,
+)
 from operators.models import Operator
 from shared.db import atomic, use_operator
 
@@ -157,7 +161,7 @@ def activate_company(
             or company.registry_check_id != check.pk
         ):
             raise CompanyActivationConflictException()
-        check.applied_at = timezone.now()
+        check.applied_at = registry_check_timestamp()
         check.save(update_fields=["applied_at", "updated_at"])
         company.status = CompanyStatus.ACTIVE
         company.activated_at = check.applied_at

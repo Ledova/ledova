@@ -306,9 +306,11 @@ and tasks the worker would run. It adds:
 - An order book in each deployed class (Demo Robotics' ordinary and seed
   preference shares, Wattlefield's and Coralgum's ordinary shares): For sale and
   Wanted orders at several prices around the class's offering price, each signed
-  by its wallet and dated over the eighteen days before the run. Some were
-  cancelled by a signed cancellation, and three were matched and left unsigned
-  until the match lapsed: the order that had been resting returned to the book
+  by its wallet with a current challenge on the day of the run. The synthetic
+  plan orders its story over the preceding eighteen days; admitted orders retain
+  their actual creation times. Some are cancelled with a current signed
+  cancellation. Three unsigned matches simulate expiry just after their captured
+  deadlines: the order that had been resting returned to the book
   and the one that took it was held back from the book. Two of those traders
   then cancelled; the third, a seed preference sale at the best bid, is still
   held back, because it crosses the bid it lapsed against and the sweep never
