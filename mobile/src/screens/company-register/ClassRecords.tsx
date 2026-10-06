@@ -4,15 +4,19 @@ import { Action } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
+import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { useCompanyStyles } from './styles';
 import { useRegisterAppointments } from './useCompanyRegister';
+
+const ON_CHAIN = ['deployed', 'paused'];
 
 export function ClassRecords({
   epoch,
   company,
   register,
   refreshHolders,
+  onOpen,
   onPrepareImport,
   onCorrect,
 }: {
@@ -20,6 +24,7 @@ export function ClassRecords({
   company: string;
   register: TokenHoldersResponse;
   refreshHolders: () => Promise<unknown>;
+  onOpen: () => void;
   onPrepareImport: () => void;
   onCorrect: (entry: RegisterEntry) => void;
 }) {
@@ -40,6 +45,17 @@ export function ClassRecords({
             onPress={() => void appointments.refetch()}
           />
         </View>
+      )}
+      {ON_CHAIN.includes(register.token.status) && (
+        <ClassOpenings
+          epoch={epoch}
+          company={company}
+          register={register}
+          steps={steps}
+          refreshHolders={refreshHolders}
+          refreshAppointments={appointments.refetch}
+          onOpen={onOpen}
+        />
       )}
       <ClassImports
         epoch={epoch}

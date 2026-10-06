@@ -11,6 +11,8 @@ import {
   getRegisterEntries,
   getRegisterImports,
   getNextPageParam,
+  getRegisterOpeningHolders,
+  getRegisterOpenings,
   getRegisterReconciliations,
   readEveryPage,
   useLaterPages,
@@ -50,6 +52,8 @@ const recordsKey = (records: string) => (epoch: number, scope?: string) => [
   ...(scope ? [scope] : []),
 ];
 export const importsKey = recordsKey('imports');
+export const openingsKey = recordsKey('openings');
+export const openingHoldersKey = recordsKey('opening-holders');
 export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
@@ -134,8 +138,8 @@ export function useCompanyRegister(epoch: number) {
       Promise.all([
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
-        ...[importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map((key) =>
-          queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
+        ...[openingsKey, importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map(
+          (key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
         ),
       ]),
   };
@@ -165,6 +169,38 @@ export function useRegisterImports(epoch: number, company: string, token: string
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
+  });
+}
+
+export function useRegisterOpenings(epoch: number, company: string, token: string) {
+  return useQuery({
+    queryKey: openingsKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterOpenings(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.token !== token || row.company !== company)) {
+        throw new Error('The openings do not belong to this share class');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useOpeningHolders(epoch: number, token: string) {
+  return useQuery({
+    queryKey: openingHoldersKey(epoch, token),
+    queryFn: async ({ signal }) =>
+      (
+        await sessionRead(epoch, () =>
+          getRegisterOpeningHolders(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
+        )
+      ).data,
   });
 }
 
