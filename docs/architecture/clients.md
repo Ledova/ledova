@@ -909,7 +909,8 @@ authority document download), a link's mapping narrowed at runtime,
 its request and its mapping as address and member pairs in any order and letter
 case, `registerLinkMemberLabels`, which labels each member a link page offers or
 a link maps from the mapping in recorded order and the company's current
-members, so the page, the record and the preview always agree,
+members, so the page, the record and the preview give each member the same
+label while the registers are unchanged,
 `REGISTER_LINK_DECISIONS` for `useRegisterDecision` with the generic
 decision receipt check, the link copy with a sentence for every requirement a
 link decision can leave unmet and each wallet's proof worded as the holder's own
