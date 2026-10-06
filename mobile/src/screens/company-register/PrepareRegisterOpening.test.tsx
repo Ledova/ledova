@@ -513,6 +513,7 @@ it('shows another refusal as the server words it, without saying the holdings mo
   expect(
     await view.findByText('A mapped wallet address already belongs to another member of this company.'),
   ).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(1);
   expect(view.queryByText(COPY.HOLDINGS_MOVED)).toBeNull();
   expect(view.queryByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeNull();
   expect(reads(HOLDINGS_URL)).toBe(before);
@@ -703,6 +704,7 @@ it('says the chain cannot be read now when the holdings read is unavailable, and
   const view = await render(<PrepareRegisterOpeningScreen />, { wrapper });
   expect(await view.findByText(COPY.HOLDERS_UNAVAILABLE)).toBeTruthy();
   expect(view.queryByText(/canonical register snapshot/)).toBeNull();
+  expect(reads(APPOINTMENTS)).toBe(1);
   expect(view.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
   holdingsAnswer = null;
   await fireEvent.press(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS }));
@@ -915,4 +917,42 @@ it('sends no preparation once the screen is left while its upload is pending', a
   expect(preparations()).toEqual([]);
   expect(mockGoBack).not.toHaveBeenCalled();
   expect(client.getQueryState(key)?.isInvalidated).toBe(false);
+});
+
+it('reads the appointments again after a refused preparation and withdraws the form once the appointment is gone', async () => {
+  prepareAnswer.mockRejectedValueOnce({ response: { status: 404, data: { detail: 'Not found.' } } });
+  const view = await open();
+  await map(view);
+  await complete(view);
+  const before = reads(APPOINTMENTS);
+  appointments = [];
+  await submit(view);
+  expect(await view.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(before + 1);
+  expect(view.queryByRole('button', { name: COPY.SUBMIT })).toBeNull();
+});
+
+it('reads the appointments again after a refused holdings read and withdraws the form once the appointment is gone', async () => {
+  let refuse!: (reason: unknown) => void;
+  holdingsAnswer = () =>
+    new Promise((_, reject) => {
+      refuse = reject;
+    });
+  const view = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  expect(await view.findByText('Reading the holdings on chain…')).toBeTruthy();
+  appointments = [];
+  await act(async () => refuse({ response: { status: 404, data: { detail: 'Not found.' } } }));
+  expect(await view.findByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(APPOINTMENTS)).toBe(2);
+});
+
+it('keeps a refused holdings read in the server’s words while the appointment still prepares', async () => {
+  holdingsAnswer = async () => {
+    throw { response: { status: 404, data: { detail: 'Not found.' } } };
+  };
+  const view = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  expect(await view.findByText('Not found.')).toBeTruthy();
+  await waitFor(() => expect(reads(APPOINTMENTS)).toBe(2));
+  expect(view.getByText('Not found.')).toBeTruthy();
+  expect(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeEnabled();
 });

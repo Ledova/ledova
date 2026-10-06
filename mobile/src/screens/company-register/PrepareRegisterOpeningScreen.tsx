@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,6 +66,11 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
       live.current = false;
     };
   }, []);
+  const holdingsError = holders.error;
+  const readAppointments = appointments.refetch;
+  useEffect(() => {
+    if (statusOf(holdingsError) === 404) void readAppointments();
+  }, [holdingsError, readAppointments]);
   const holdings = holders.data?.holdings ?? [];
   const linked = new Map(holdings.flatMap(({ member, memberName }) => (member ? [[member, memberName] as const] : [])));
   const mapped = holdings.map(({ address, member }) => {
@@ -167,6 +172,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
       setError(message);
       setMoved(status === 400 && message.includes(MOVED));
       if (status === 409) await Promise.all([holders.refetch(), appointments.refetch()]);
+      if (status === 404) await appointments.refetch();
     } finally {
       pending.current = false;
       if (live.current) setSubmitting(false);
