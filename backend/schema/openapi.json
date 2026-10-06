@@ -10475,11 +10475,27 @@
             ],
             "readOnly": true
           },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "authorityReference": {
             "readOnly": true,
             "type": "string"
           },
           "boundary": {
+            "nullable": true,
+            "readOnly": true
+          },
+          "boundarySummary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterOpeningBoundary"
+              }
+            ],
             "nullable": true,
             "readOnly": true
           },
@@ -10494,6 +10510,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterOpeningDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
           "evidenceFingerprint": {
             "readOnly": true,
             "type": "string"
@@ -10503,6 +10526,22 @@
           },
           "mapping": {
             "readOnly": true
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
           },
           "reason": {
             "readOnly": true,
@@ -10525,6 +10564,11 @@
           },
           "sourceDocument": {
             "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "stage": {
             "readOnly": true,
             "type": "string"
           },
@@ -10557,18 +10601,25 @@
           "appliedEntry",
           "approvingDirector",
           "authority",
+          "authorityEvidence",
           "authorityReference",
           "boundary",
+          "boundarySummary",
           "company",
           "createdAt",
+          "decisions",
           "evidenceFingerprint",
           "evidenceSnapshot",
           "mapping",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
           "reason",
           "rejectionReason",
           "reviewedAt",
           "reviewedBy",
           "sourceDocument",
+          "stage",
           "status",
           "submittedBy",
           "token",
@@ -10576,8 +10627,54 @@
         ],
         "type": "object"
       },
+      "RegisterOpeningBoundary": {
+        "properties": {
+          "blockHash": {
+            "type": "string"
+          },
+          "blockNumber": {
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "holdings": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterOpeningHolding"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "date",
+          "holdings"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningChange": {
+        "properties": {
+          "member": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "shares"
+        ],
+        "type": "object"
+      },
       "RegisterOpeningCreateRequest": {
         "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "approvingDirector": {
             "default": "",
             "maxLength": 255,
@@ -10586,13 +10683,13 @@
           "authority": {
             "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
           },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
           "authorityReference": {
             "maxLength": 255,
             "minLength": 1,
-            "type": "string"
-          },
-          "documentId": {
-            "format": "uuid",
             "type": "string"
           },
           "mapping": {
@@ -10621,13 +10718,188 @@
           }
         },
         "required": [
+          "appointment",
           "authority",
+          "authorityEvidence",
           "authorityReference",
-          "documentId",
           "mapping",
           "operationId",
           "reason",
           "tokenId"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningDecisionPreview": {
+        "properties": {
+          "canDecide": {
+            "type": "boolean"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterOpeningChange"
+            },
+            "type": "array"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "canDecide",
+          "changes",
+          "effectiveOn",
+          "previewDigest",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterOpeningHolding": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "member": {
+            "nullable": true,
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "member",
+          "shares"
         ],
         "type": "object"
       },
@@ -22257,6 +22529,14 @@
         "operationId": "api_v1_tokens_register_openings_list",
         "parameters": [
           {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "Which field to use when ordering the results.",
             "in": "query",
             "name": "ordering",
@@ -22272,6 +22552,26 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -22322,6 +22622,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpening"
+                }
+              }
+            },
+            "description": ""
+          },
           "201": {
             "content": {
               "application/json": {
@@ -22381,6 +22691,130 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-openings/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_openings_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpening"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-openings/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_openings_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOpeningDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterOpeningDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

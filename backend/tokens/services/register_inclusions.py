@@ -192,7 +192,7 @@ def assert_boundary_represents_completions(token_id, boundary):
     if _history(boundary) is None:
         raise ValidationError(
             "The captured boundary has no canonical transfer history, so it cannot show which completed effects it "
-            "represents. Reject this opening and submit a fresh one."
+            "represents. Reject this opening and prepare a fresh one."
         )
     unrepresented = unrepresented_inclusions(token_id, boundary)
     if unrepresented:
@@ -205,7 +205,7 @@ def assert_boundary_represents_completions(token_id, boundary):
         )
         raise ValidationError(
             f"The completed {first['kind']} {first['source']} {detail}, so this boundary does not represent it. "
-            "Submit a fresh opening."
+            "Prepare a fresh opening."
         )
 
 

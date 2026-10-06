@@ -39,11 +39,6 @@ from tokens.services import (
 )
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.company_pack import _json, produce_company_pack
-from tokens.services.register_openings import (
-    decide_opening,
-    prepare_opening_review,
-    submit_opening,
-)
 from tokens.tests import capital_fixtures
 from tokens.tests.deployment_fixtures import (
     CREATED,
@@ -70,8 +65,11 @@ from tokens.tests.test_company_pack import (
 )
 from tokens.tests.test_register_openings import (
     SETTINGS,
+    apply_opening,
     opening_fixture,
     opening_payload,
+    prepared,
+    reading,
 )
 from tokens.tests.test_register_workflow_events import (
     SETTLEMENT,
@@ -670,12 +668,10 @@ class CompanyPackScanTest(SimpleTestCase):
 @override_settings(**SETTINGS)
 class CompanyPackOpeningBoundaryTest(TransactionTestCase):
     def setUp(self):
-        self.tenant, owner, reviewer, document, target, node = opening_fixture()
-        proposal = submit_opening(actor=owner, **opening_payload(document, target))
-        _, confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer, client=node.client)
-        self.opening = decide_opening(
-            proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply", client=node.client
-        )
+        self.tenant, owner, administrator, evidence, target, node = opening_fixture()
+        reading(self, node)
+        proposal = prepared(owner, opening_payload(target.token_id, evidence, administrator))
+        self.opening = apply_opening(owner, administrator, proposal)
         self.files = files_of(produced(self.tenant.company, owner))
         self.folder = f"classes/{self.tenant.token.pk}"
 
@@ -688,6 +684,25 @@ class CompanyPackOpeningBoundaryTest(TransactionTestCase):
             (opening["uuid"], opening["boundary"], opening["entry"]),
             (str(self.opening.pk), self.opening.boundary, str(self.opening.applied_entry_id)),
         )
+        with use_operator():
+            decided = list(self.opening.decisions.order_by("decided_at", "uuid"))
+        self.assertEqual(
+            (opening["provided_by"], opening["evidence"]["document"], opening["decisions"]),
+            (
+                "company",
+                None,
+                [
+                    {
+                        "kind": decision.kind,
+                        "decided_by": "opening owner",
+                        "decided_at": decision.decided_at.isoformat(),
+                        "reason": "",
+                    }
+                    for decision in decided
+                ],
+            ),
+        )
+        self.assertEqual([decision["kind"] for decision in opening["decisions"]], ["approve", "apply"])
         self.assertEqual(
             sorted((row["address"].lower(), row["shares"]) for row in opening["boundary"]["holdings"]),
             [("0x" + "1" * 40, "80"), ("0x" + "2" * 40, "20")],

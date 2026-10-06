@@ -64,6 +64,7 @@ from tokens.models import (
     FormerHolder,
     IssuanceStatus,
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterMemberWallet,
     RegisterOpening,
     RegisterPosition,
@@ -118,11 +119,6 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
-from tokens.services.register_openings import (
-    decide_opening,
-    prepare_opening_review,
-    submit_opening,
-)
 from tokens.services.register_reconciliation import reconcile_register
 from tokens.services.share_token_service import (
     EXCEEDS_AUTHORIZED,
@@ -137,6 +133,14 @@ from tokens.tasks import (
     recover_swap_approval_submissions,
 )
 from tokens.tests.deployment_fixtures import delete_approval_jobs
+from tokens.tests.evidence_fixtures import upload_evidence
+from tokens.tests.test_register_imports import owner_appointment
+from tokens.tests.test_register_openings import (
+    apply_opening,
+    decide,
+    opening_payload,
+    prepared,
+)
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
@@ -460,34 +464,25 @@ class SettlementChainMixin(ChainTestMixin):
             email=f"transfer-chain-{uuid4()}@example.test", is_active=True, is_staff=True
         )
         self.reviewer.user_permissions.add(
-            *Permission.objects.filter(
-                codename__in=[
-                    "change_companydocument",
-                    "change_registeropening",
-                    "view_registeropening",
-                    "change_registerinstruction",
-                ]
-            )
+            *Permission.objects.filter(codename__in=["change_companydocument", "change_registerinstruction"])
         )
         self.document = attach_file(make_document(self.tenant.company))
         _, review = prepare_document_review(document_id=self.document.pk, reviewer=self.reviewer)
         verify_document(document_id=self.document.pk, reviewer=self.reviewer, confirmation=review)
-        opening = submit_opening(
-            actor=self.tenant.user,
-            operation_id=uuid4(),
-            token_id=self.token.pk,
-            document_id=self.document.pk,
-            mapping=[{"address": address, "member": member} for address, member in members.items()],
-            authority="director_resolution",
-            approving_director="Synthetic Director",
-            authority_reference="SYNTHETIC-RESOLUTION-OPENING-1",
-            reason="Establish the register from the real local chain boundary",
-        )
+        administrator = owner_appointment(self.tenant.company)
+        evidence = upload_evidence(self.tenant.user, administrator, RegisterEvidenceKind.AUTHORITY)
         self.w3.provider.make_request("evm_mine", [])
-        _, confirmation = prepare_opening_review(proposal_id=opening.pk, reviewer=self.reviewer)
-        return decide_opening(
-            proposal_id=opening.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+        opening = prepared(
+            self.tenant.user,
+            opening_payload(
+                self.token.pk,
+                evidence,
+                administrator,
+                mapping=[{"address": address, "member": member} for address, member in members.items()],
+                reason="Establish the register from the real local chain boundary",
+            ),
         )
+        return apply_opening(self.tenant.user, administrator, opening)
 
     def instruct_transfer(self, effect, operation_id=None):
         seller, buyer = effect["wallets"]
@@ -935,10 +930,8 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertGreater(completed["block"]["number"], initial["block"]["number"])
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
-    def test_reviewed_opening_initialises_the_stored_register_from_the_real_boundary(self):
+    def test_a_company_run_opening_initialises_the_stored_register_from_the_real_boundary(self):
         from datetime import date
-
-        from django.contrib.auth import get_user_model
 
         investor = Account.create()
         Wallet.objects.filter(address=self.investor).update(address=investor.address)
@@ -977,34 +970,23 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         owner = self.tenant.user
         owner.is_staff = False
         owner.save(update_fields=["is_staff"])
-        reviewer = get_user_model().objects.create_user(
-            email=f"opening-chain-{uuid4()}@example.test", is_active=True, is_staff=True
-        )
-        reviewer.user_permissions.add(
-            *Permission.objects.filter(
-                codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
-            )
-        )
-        document = attach_file(make_document(self.tenant.company))
-        _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+        administrator = owner_appointment(self.tenant.company)
+        evidence = upload_evidence(owner, administrator, RegisterEvidenceKind.AUTHORITY)
         member = uuid4()
-        proposal = submit_opening(
-            actor=owner,
-            operation_id=uuid4(),
-            token_id=self.token.pk,
-            document_id=document.pk,
-            mapping=[
-                {"address": self.investor, "member": str(member)},
-                {"address": recipient, "member": str(member)},
-            ],
-            authority="director_resolution",
-            approving_director="Synthetic Director",
-            authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
-            reason="Establish the register from the real local chain boundary",
+        proposal = prepared(
+            owner,
+            opening_payload(
+                self.token.pk,
+                evidence,
+                administrator,
+                mapping=[
+                    {"address": self.investor, "member": str(member)},
+                    {"address": recipient, "member": str(member)},
+                ],
+                authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
+                reason="Establish the register from the real local chain boundary",
+            ),
         )
-        self.assertIsNone(proposal.boundary)
-        _, review_confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer)
         boundary = RegisterOpening.objects.get(pk=proposal.pk).boundary
         self.assertEqual(
             sorted(boundary["holdings"], key=lambda row: row["address"]),
@@ -1013,9 +995,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
                 key=lambda row: row["address"],
             ),
         )
-        applied = decide_opening(
-            proposal_id=proposal.pk, reviewer=reviewer, confirmation=review_confirmation, decision="apply"
-        )
+        applied = apply_opening(owner, administrator, proposal)
         self.assertEqual(applied.status, "applied")
         entry = applied.applied_entry
         self.assertEqual((entry.kind, entry.sequence), ("opening", 1))
@@ -1033,17 +1013,16 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 6)
         self.assertEqual(self._contract().functions.balanceOf(recipient).call(), 4)
         self.assertEqual(int(position.shares), 10)
-        with self.assertRaises(ValidationError):
-            submit_opening(
-                actor=owner,
-                operation_id=uuid4(),
-                token_id=self.token.pk,
-                document_id=document.pk,
-                mapping=[{"address": self.investor, "member": str(member)}],
-                authority="director_resolution",
-                approving_director="Synthetic Director",
-                authority_reference="SYNTHETIC-RESOLUTION-CHAIN-1",
-                reason="A second opening after initialization",
+        with self.assertRaisesMessage(ValidationError, "already has a stored register"):
+            prepared(
+                owner,
+                opening_payload(
+                    self.token.pk,
+                    evidence,
+                    administrator,
+                    mapping=[{"address": self.investor, "member": str(member)}],
+                    reason="A second opening after initialization",
+                ),
             )
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
@@ -1065,35 +1044,29 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
             email=f"inclusion-chain-{uuid4()}@example.test", is_active=True, is_staff=True
         )
         reviewer.user_permissions.add(
-            *Permission.objects.filter(
-                codename__in=[
-                    "change_companydocument",
-                    "change_registeropening",
-                    "view_registeropening",
-                    "change_registerinstruction",
-                ]
-            )
+            *Permission.objects.filter(codename__in=["change_companydocument", "change_registerinstruction"])
         )
         document = attach_file(make_document(self.tenant.company))
         _, review = prepare_document_review(document_id=document.pk, reviewer=reviewer)
         verify_document(document_id=document.pk, reviewer=reviewer, confirmation=review)
+        administrator = owner_appointment(self.tenant.company)
+        evidence = upload_evidence(owner, administrator, RegisterEvidenceKind.AUTHORITY)
         member = uuid4()
 
         def propose():
-            return submit_opening(
-                actor=owner,
-                operation_id=uuid4(),
-                token_id=self.token.pk,
-                document_id=document.pk,
-                mapping=[{"address": self.investor, "member": str(member)}],
-                authority="director_resolution",
-                approving_director="Synthetic Director",
-                authority_reference="SYNTHETIC-RESOLUTION-INCLUSION-1",
-                reason="Establish the register from the real local chain boundary",
+            return prepared(
+                owner,
+                opening_payload(
+                    self.token.pk,
+                    evidence,
+                    administrator,
+                    mapping=[{"address": self.investor, "member": str(member)}],
+                    authority_reference="SYNTHETIC-RESOLUTION-INCLUSION-1",
+                    reason="Establish the register from the real local chain boundary",
+                ),
             )
 
         proposal = propose()
-        _, confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=reviewer)
         captured = RegisterOpening.objects.get(pk=proposal.pk).boundary
         included = completed_inclusions(self.token.pk)
         self.assertEqual(len(included), 1)
@@ -1106,16 +1079,12 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         unrepresented = unrepresented_inclusions(self.token.pk, captured)
         self.assertEqual(len(unrepresented), 1)
         self.assertGreater(unrepresented[0]["block_number"], captured["block"]["number"])
-        with self.assertRaises(ValidationError):
-            decide_opening(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+        with self.assertRaisesMessage(ValidationError, "completions_not_represented"):
+            decide(owner, administrator, proposal, "approve")
         self.assertEqual(RegisterOpening.objects.get(pk=proposal.pk).status, "submitted")
         self.assertFalse(RegisterEntry.objects.exists())
-        fresh = propose()
         self.w3.provider.make_request("evm_mine", [])
-        _, fresh_confirmation = prepare_opening_review(proposal_id=fresh.pk, reviewer=reviewer)
-        applied = decide_opening(
-            proposal_id=fresh.pk, reviewer=reviewer, confirmation=fresh_confirmation, decision="apply"
-        )
+        applied = apply_opening(owner, administrator, propose())
         self.assertEqual(applied.status, "applied")
         self.assertEqual(applied.applied_entry.changes, [{"member": str(member), "shares": "20"}])
         self.assertEqual(unrepresented_inclusions(self.token.pk, applied.boundary), [])

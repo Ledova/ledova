@@ -1951,6 +1951,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-openings/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_openings_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-openings/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_openings_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-openings/{uuid}/file/': {
     parameters: {
       query?: never;
@@ -4713,34 +4745,88 @@ export interface ApiComponents {
       appliedEntry: string | null;
       approvingDirector: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string | null;
       authorityReference: string;
       boundary: unknown;
+      boundarySummary: ApiComponents['schemas']['RegisterOpeningBoundary'] | null;
       company: string;
       createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterOpeningDecision'][];
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       mapping: unknown;
+      preparedByName: string | null;
+      preparingAppointment: string | null;
+      providedBy: string;
       reason: string;
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
-      sourceDocument: string;
+      sourceDocument: string | null;
+      stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       token: string;
       uuid: string;
     };
+    RegisterOpeningBoundary: {
+      blockHash: string;
+      blockNumber: number;
+      date: string;
+      holdings: ApiComponents['schemas']['RegisterOpeningHolding'][];
+    };
+    RegisterOpeningChange: {
+      member: string;
+      shares: string;
+    };
     RegisterOpeningCreateRequest: {
+      appointment: string;
       approvingDirector?: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string;
       authorityReference: string;
-      documentId: string;
       mapping: {
         [key: string]: string;
       }[];
       operationId: string;
       reason: string;
       tokenId: string;
+    };
+    RegisterOpeningDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterOpeningDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterOpeningDecisionPreview: {
+      canDecide: boolean;
+      changes: ApiComponents['schemas']['RegisterOpeningChange'][];
+      effectiveOn: string | null;
+      previewDigest: string;
+      unmetRequirements: string[];
+    };
+    RegisterOpeningDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterOpeningHolding: {
+      address: string;
+      member: string | null;
+      shares: string;
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -9151,8 +9237,11 @@ export interface ApiOperations {
   api_v1_tokens_register_openings_list: {
     parameters: {
       query?: {
+        company?: string;
         ordering?: string;
         page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
       };
       header?: never;
       path?: never;
@@ -9185,6 +9274,14 @@ export interface ApiOperations {
       };
     };
     responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpening'];
+        };
+      };
       201: {
         headers: {
           [name: string]: unknown;
@@ -9212,6 +9309,60 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterOpening'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterOpeningDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterOpeningDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterOpeningDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpening'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_openings_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterOpeningDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterOpeningDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterOpeningDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpeningDecisionPreview'];
         };
       };
     };

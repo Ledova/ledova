@@ -40,8 +40,13 @@ The fourth lets a current company approver or administrator acknowledge a
 reconciliation discrepancy through the API, with a written reason and no Ledova
 staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
 The Register in both clients also lists each class's entries and runs those
-corrections and acknowledgements. #864's other register commands and #865–#873
-remain planned.
+corrections and acknowledgements. The fifth lets the company open a deployed
+class's register from the chain through the API: preparation captures the chain
+boundary with the company's own authority document, and the company approves
+and applies the opening with no Ledova staff review
+([opening process](../operations/register-foundation.md#opening-the-register-from-the-chain)).
+The opening screens, #864's other register commands and #865–#873 remain
+planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
