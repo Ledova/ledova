@@ -74,11 +74,13 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
   const holdings = holders.data?.holdings ?? [];
   const linked = new Map(holdings.flatMap(({ member, memberName }) => (member ? [[member, memberName] as const] : [])));
   const unlinked = new Set(holdings.flatMap(({ address, member }) => (member ? [] : [address.toLowerCase()])));
-  const kept = Object.fromEntries(
-    Object.entries(chosen).filter(
-      ([address, choice]) => unlinked.has(address) && (choice.fresh || linked.has(choice.member)),
-    ),
-  );
+  const keep = (choices: Record<string, Chosen>) =>
+    Object.fromEntries(
+      Object.entries(choices).filter(
+        ([address, choice]) => unlinked.has(address) && (choice.fresh || linked.has(choice.member)),
+      ),
+    );
+  const kept = keep(chosen);
   const reset = Object.keys(kept).length < Object.keys(chosen).length;
   const mapped = holdings.map(({ address, member }) => member ?? kept[address.toLowerCase()]?.member ?? null);
   const labels = openingMemberLabels(
@@ -114,7 +116,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
     appointments.isSuccess &&
     !appointments.isFetching;
   const choose = (address: string, member: string, fresh: boolean) =>
-    setChosen({ ...kept, [address.toLowerCase()]: { member, fresh } });
+    setChosen((current) => ({ ...keep(current), [address.toLowerCase()]: { member, fresh } }));
   const reload = () => {
     setError(null);
     setMoved(false);
@@ -138,7 +140,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
     };
     pending.current = true;
     setSubmitting(true);
-    setChosen(kept);
+    setChosen(keep);
     setError(null);
     setMoved(false);
     try {

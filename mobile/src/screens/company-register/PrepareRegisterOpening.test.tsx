@@ -1051,3 +1051,15 @@ it('keeps a refused holdings read in the server’s words while the appointment 
   expect(view.getByText('Not found.')).toBeTruthy();
   expect(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeEnabled();
 });
+
+it('keeps both choices when two holdings are chosen before the screen updates', async () => {
+  const view = await open();
+  const two = view.getByLabelText(`${COPY.NEW_MEMBER} for holding 2`);
+  const three = view.getByLabelText(`${COPY.NEW_MEMBER} for holding 3`);
+  await act(() => {
+    two.props.onClick({ nativeEvent: {} });
+    three.props.onClick({ nativeEvent: {} });
+  });
+  expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
+});
