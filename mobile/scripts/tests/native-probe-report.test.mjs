@@ -276,6 +276,29 @@ test('the report server retains only allowlisted failure category and stage valu
     assert.equal(await server.post({ checks: [control] }), 200);
     assert.deepEqual(server.result().checks, [control]);
   }
+  for (const stage of [
+    'document-fixture-decode',
+    'document-fixture-create',
+    'document-fixture-write',
+    'document-picker-create',
+    'document-picker-write',
+    'document-picker-adopt',
+    'document-copy-lease',
+    'document-multipart-upload',
+    'document-multipart-response',
+    'document-copy-release',
+    'document-fixture-readback',
+    'document-binary-download',
+    'document-binary-response',
+  ]) {
+    const control = {
+      name: 'multipart upload and binary download',
+      passed: false,
+      failure: { category: 'unknown', stage },
+    };
+    assert.equal(await server.post({ checks: [control] }), 200);
+    assert.deepEqual(server.result().checks, [control]);
+  }
   for (const failure of [
     { category: 'synthetic-secret', stage: 'check' },
     { category: 'unknown', stage: 'synthetic-secret' },

@@ -186,17 +186,23 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     }
     requireTrue(refused);
   });
-  await check('multipart upload and binary download', async () => {
-    const bytes = Buffer.from(documentFixture.base64, 'base64');
+  await check('multipart upload and binary download', async (stage) => {
+    stage('document-fixture-decode');
+    const bytes = new Uint8Array(Buffer.from(documentFixture.base64, 'base64'));
     const file = new File(Paths.cache, documentFixture.name);
     const picked = new File(Paths.cache, 'DocumentPicker', '11111111-1111-1111-1111-111111111111.pdf');
     let copy: DocumentCopy | null = null;
     let release: (() => void) | undefined;
     try {
+      stage('document-fixture-create');
       file.create({ overwrite: true });
+      stage('document-fixture-write');
       file.write(bytes);
+      stage('document-picker-create');
       picked.create({ intermediates: true, overwrite: true });
+      stage('document-picker-write');
       picked.write(bytes);
+      stage('document-picker-adopt');
       copy = await pickDocumentCopy(
         () => true,
         async () => ({
@@ -214,20 +220,27 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
       );
       requireTrue(copy && !picked.info().exists);
       requireTrue(copy.file.name === documentFixture.name && copy.file.type === documentFixture.mimeType);
+      stage('document-copy-lease');
       release = copy.acquire();
       copy.retire();
       requireTrue(new File(copy.file.uri).info().exists);
       const form = new FormData();
       form.append('file', copy.file as unknown as Blob);
+      stage('document-multipart-upload');
       const uploaded = await apiClient.post<{ valid: boolean }>('/upload', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
         ledovaSessionEpoch: getSessionEpoch(),
       });
+      stage('document-multipart-response');
       requireTrue(uploaded.data.valid);
+      stage('document-copy-release');
       release();
       requireTrue(!new File(copy.file.uri).info().exists);
+      stage('document-fixture-readback');
       requireTrue((await file.base64()) === documentFixture.base64);
+      stage('document-binary-download');
       const downloaded = await apiClient.get<ArrayBuffer>('/download', { responseType: 'arraybuffer' });
+      stage('document-binary-response');
       const returned = new Uint8Array(downloaded.data);
       requireTrue(returned.length === bytes.length && returned.every((value, index) => value === bytes[index]));
     } finally {
