@@ -6,6 +6,7 @@ import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
+import { ClassRegister } from './ClassRegister';
 import { useCompanyStyles } from './styles';
 import { useRegisterAppointments } from './useCompanyRegister';
 
@@ -19,6 +20,7 @@ export function ClassRecords({
   onOpen,
   onPrepareImport,
   onCorrect,
+  onChangeParticulars,
 }: {
   epoch: number;
   company: string;
@@ -27,12 +29,14 @@ export function ClassRecords({
   onOpen: () => void;
   onPrepareImport: () => void;
   onCorrect: (entry: RegisterEntry) => void;
+  onChangeParticulars: (member: string) => void;
 }) {
   const styles = useCompanyStyles();
   const { appointments, steps } = useRegisterAppointments(epoch, company);
   const acknowledging = appointments.isSuccess ? appointmentForAcknowledgement(appointments.data, company) : undefined;
   return (
     <>
+      <ClassRegister register={register} onChangeParticulars={steps?.prepare ? onChangeParticulars : undefined} />
       {appointments.isError && (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>

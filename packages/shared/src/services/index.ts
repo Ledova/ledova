@@ -118,6 +118,13 @@ export {
   decideRegisterOpening,
   downloadRegisterOpeningFile,
 } from './register-openings';
+export {
+  getRegisterParticularsChanges,
+  prepareRegisterParticularsChange,
+  previewRegisterParticularsChangeDecision,
+  decideRegisterParticularsChange,
+  downloadRegisterParticularsChangeFile,
+} from './register-particulars';
 export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,

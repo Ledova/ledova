@@ -13,6 +13,7 @@ import {
   getNextPageParam,
   getRegisterOpeningHolders,
   getRegisterOpenings,
+  getRegisterParticularsChanges,
   getRegisterReconciliations,
   hasWholeShares,
   readEveryPage,
@@ -58,6 +59,7 @@ export const openingHoldersKey = (epoch: number, token: string) => ['opening-hol
 export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
+export const particularsKey = recordsKey('particulars');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 function distinct<Row>(rows: Row[], uuid: (row: Row) => string) {
@@ -139,9 +141,15 @@ export function useCompanyRegister(epoch: number) {
       Promise.all([
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
-        ...[openingsKey, importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map(
-          (key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
-        ),
+        ...[
+          openingsKey,
+          importsKey,
+          entriesKey,
+          correctionsKey,
+          reconciliationKey,
+          particularsKey,
+          registerAppointmentsKey,
+        ].map((key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' })),
       ]),
   };
 }
@@ -190,6 +198,26 @@ export function useRegisterOpenings(epoch: number, company: string, token: strin
       }
       if (rows.some((row) => !hasWholeShares(row.boundarySummary?.holdings ?? []))) {
         throw new Error('The openings record a holding that is not whole');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterParticulars(epoch: number, company: string) {
+  return useQuery({
+    queryKey: particularsKey(epoch, company),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterParticularsChanges(apiClient, { company, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.company !== company)) {
+        throw new Error('The particulars changes do not belong to this company');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
