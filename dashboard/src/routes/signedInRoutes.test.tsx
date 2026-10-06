@@ -105,6 +105,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegisterImport',
     'companyRegisterCorrection',
     'companyRegisterOpening',
+    'companyRegisterParticulars',
     'companyTeam',
     'companyListing',
   ] as const)('lets an investor open %s, a page for everyone', (key) => {
@@ -140,6 +141,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegisterImport',
     'companyRegisterCorrection',
     'companyRegisterOpening',
+    'companyRegisterParticulars',
   ] as const)('lets a company open %s, a page for everyone', (key) => {
     open(key, 'company');
     expect(opened(key)).toBe(true);
@@ -245,6 +247,13 @@ describe('which signed-in pages an account can open', () => {
     expect(DESTINATIONS.companyRegisterOpening.path).toBe('/company/register/:uuid/open');
     expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/open');
     expect(opened('companyRegisterOpening')).toBe(true);
+    expect(screen.queryByText('companyClass')).toBeNull();
+  });
+
+  it('opens the particulars page of a member at its own address beneath Register, not a class page', () => {
+    open('companyRegisterParticulars', 'investor');
+    expect(screen.getByTestId('address').textContent).toBe('/company/register/members/:member/particulars');
+    expect(opened('companyRegisterParticulars')).toBe(true);
     expect(screen.queryByText('companyClass')).toBeNull();
   });
 
