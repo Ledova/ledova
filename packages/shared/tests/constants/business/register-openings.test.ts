@@ -52,6 +52,17 @@ it('tells new members on one page apart by number', () => {
   expect(REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2)).toMatch(new RegExp(`^${REGISTER_OPENING_COPY.NEW_MEMBER} 2$`));
 });
 
+it('numbers existing members without a name as unnamed members, not as new ones', () => {
+  expect(REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(2)).toMatch(/^Unnamed member 2$/);
+  expect(REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(2)).not.toBe(REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2));
+});
+
+it('says when changed holdings reset member choices, and asks for each holding to be checked', () => {
+  expect(REGISTER_OPENING_COPY.CHOICES_RESET).toMatch(/holdings changed/);
+  expect(REGISTER_OPENING_COPY.CHOICES_RESET).toMatch(/choices were reset/);
+  expect(REGISTER_OPENING_COPY.CHOICES_RESET).toMatch(/Check each holding/);
+});
+
 it('names the boundary block by its number and date', () => {
   expect(REGISTER_OPENING_COPY.BOUNDARY_BLOCK(12, '2026-09-20')).toMatch(/\b12\b.*\b2026-09-20$/);
 });

@@ -1,6 +1,17 @@
+import {
+  REGISTER_OPENING_COPY,
+  REGISTER_OPENING_HOLDINGS_MOVED_CODE,
+} from '../../src/constants/business/register-openings';
 import type { RegisterDecisionKind, RegisterOpening, RegisterOpeningPreparation } from '../../src/types';
 import { isRegisterDecisionReceipt } from '../../src/utils/register-commands';
-import { isPreparedRegisterOpening, registerOpeningOf } from '../../src/utils/register-openings';
+import {
+  hasWholeShares,
+  isPreparedRegisterOpening,
+  isRegisterOpeningHoldingsMoved,
+  largestHoldingsFirst,
+  openingMemberLabels,
+  registerOpeningOf,
+} from '../../src/utils/register-openings';
 
 const ADA = '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa';
 const CY = '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC';
@@ -212,4 +223,71 @@ it('refuses an opening receipt whose decision has another retry key, kind, appoi
     const decisions = [{ ...proposal.decisions[0]!, ...change }];
     expect(isRegisterDecisionReceipt({ ...proposal, decisions }, 'opening-a', request)).toBe(false);
   }
+});
+
+it('orders holdings largest first by exact whole shares, then by address in any letter case, in a copy', () => {
+  const holdings = [
+    { address: '0xBB', shares: '5' },
+    { address: '0xcc', shares: '9007199254740992' },
+    { address: '0xaa', shares: '5' },
+    { address: '0xdd', shares: '9007199254740993' },
+    { address: '0xee', shares: '40' },
+  ];
+  const before = holdings.map(({ address }) => address);
+  expect(largestHoldingsFirst(holdings).map(({ address }) => address)).toEqual([
+    '0xdd',
+    '0xcc',
+    '0xee',
+    '0xaa',
+    '0xBB',
+  ]);
+  expect(holdings.map(({ address }) => address)).toEqual(before);
+});
+
+it('accepts only holdings whose every share count is a whole number', () => {
+  expect(hasWholeShares([])).toBe(true);
+  expect(hasWholeShares([{ shares: '0' }, { shares: '42' }, { shares: '9007199254740993' }])).toBe(true);
+  for (const shares of ['1.5', '-1', '1e3', '', '12a'])
+    expect(hasWholeShares([{ shares: '42' }, { shares }])).toBe(false);
+});
+
+it('labels each mapped member once by first appearance, numbering unnamed existing and new members apart', () => {
+  const row = (member: string | null, memberExists: boolean, memberName: string | null = null) => ({
+    member,
+    memberName,
+    memberExists,
+  });
+  const labels = openingMemberLabels([
+    row('new-one', false),
+    row('named', true, 'Ada Member'),
+    row('unnamed-one', true),
+    row('new-one', false),
+    row(null, false),
+    row('new-two', false),
+    row('unnamed-two', true),
+  ]);
+  expect([...labels]).toEqual([
+    ['new-one', REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1)],
+    ['named', 'Ada Member'],
+    ['unnamed-one', REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1)],
+    ['new-two', REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2)],
+    ['unnamed-two', REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(2)],
+  ]);
+});
+
+it('recognises the holdings-moved refusal by its 400 status and stable code alone', () => {
+  const failure = (status: number, data: unknown) => ({ response: { status, data } });
+  const moved = { detail: REGISTER_OPENING_COPY.HOLDINGS_MOVED, code: REGISTER_OPENING_HOLDINGS_MOVED_CODE };
+  expect(REGISTER_OPENING_HOLDINGS_MOVED_CODE).toBe('opening_holdings_moved');
+  expect(isRegisterOpeningHoldingsMoved(failure(400, moved))).toBe(true);
+  for (const other of [
+    failure(409, moved),
+    failure(400, { ...moved, code: 'register_change_conflict' }),
+    failure(400, { detail: moved.detail }),
+    failure(400, [moved.detail]),
+    new Error(REGISTER_OPENING_HOLDINGS_MOVED_CODE),
+    null,
+    undefined,
+  ])
+    expect(isRegisterOpeningHoldingsMoved(other)).toBe(false);
 });
