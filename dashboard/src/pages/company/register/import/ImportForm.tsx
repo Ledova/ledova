@@ -7,6 +7,7 @@ import {
   REGISTER_IMPORT_COPY,
   apiErrorSentence,
   createUserFriendlyError,
+  failureStatus,
   formatDateToString,
   formatShareCount,
   isPreparedRegisterImport,
@@ -45,10 +46,6 @@ const FAILED = 'The import could not be prepared. Retry with the same details.';
 const CLOSED = 'This import form is closed. Reopen it before continuing.';
 const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
-
-function statusOf(failure: unknown) {
-  return (failure as { response?: { status?: number } } | null)?.response?.status;
-}
 
 export function ImportForm({
   owner,
@@ -135,7 +132,7 @@ export function ImportForm({
       uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
       return data;
     } catch (failure) {
-      if (statusOf(failure) === 409) delete uploads.current[kind];
+      if (failureStatus(failure) === 409) delete uploads.current[kind];
       throw failure;
     }
   };
@@ -176,7 +173,7 @@ export function ImportForm({
         if (!isPreparedRegisterImport(data, preparation))
           throw createUserFriendlyError(REGISTER_IMPORT_COPY.PREPARATION_RECEIPT_FAILED);
       } catch (failure) {
-        if (statusOf(failure) === 409) {
+        if (failureStatus(failure) === 409) {
           operation.current = null;
           onConflict();
         }

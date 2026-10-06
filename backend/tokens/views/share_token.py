@@ -30,6 +30,7 @@ from tokens.serializers.pause_change import (
     PauseSubmissionRequestSerializer,
     PauseSubmissionResponseSerializer,
 )
+from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.services import deployment, pause_changes, share_token_service
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
@@ -40,6 +41,7 @@ from tokens.services.register import (
     stored_register,
     stored_waiting_list,
 )
+from tokens.services.register_openings import opening_holders
 
 
 class ShareTokenViewSet(
@@ -66,6 +68,7 @@ class ShareTokenViewSet(
             "register",
             "register_entries",
             "register_export",
+            "register_opening_holders",
             "register_waiting",
         }
     )
@@ -83,7 +86,9 @@ class ShareTokenViewSet(
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator. "
         "Register entries name each changed member as the register does, from the same identity sources. "
         "Register reads (the class list, holders, entries, export and waiting effects) also admit a current "
-        "company appointment holding administration or a register capability, alongside the owner."
+        "company appointment holding administration or a register capability, alongside the owner. "
+        "The opening holders read reads the chain for a class whose register is not opened, so it admits only a "
+        "current appointment holding administration or prepare, and names linked members from the same sources."
     )
 
     register_reads = frozenset({"register", "holders", "register_entries", "register_export", "register_waiting"})
@@ -96,7 +101,9 @@ class ShareTokenViewSet(
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
-        if self.action in self.register_reads:
+        if self.action == "register_opening_holders":
+            queryset = queryset.register_preparable_by(self.request.user)
+        elif self.action in self.register_reads:
             queryset = queryset.register_readable_by(self.request.user)
         else:
             queryset = queryset.issued_by(self.request.user)
@@ -310,6 +317,11 @@ class ShareTokenViewSet(
             raise ValidationError({"entry": "Name each entry by its UUID."}) from None
         rows = stored_entries(self.get_object(), self.paginate_queryset, wanted)
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
+
+    @extend_schema(responses=RegisterOpeningHoldersSerializer)
+    @action(detail=True, methods=["get"], url_path="register/opening-holders")
+    def register_opening_holders(self, request, uuid=None):
+        return Response(RegisterOpeningHoldersSerializer(opening_holders(self.get_object())).data)
 
     @extend_schema(responses={(200, "text/csv"): OpenApiTypes.STR})
     @action(detail=True, methods=["get"], url_path="register/export", http_method_names=["get", "options"])

@@ -342,7 +342,8 @@ beforeEach(() => {
     if (failing.has(url)) throw new Error('Unavailable');
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
-    if (url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS) return page([]);
+    if (url === URLS.REGISTER_OPENINGS || url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_RECONCILIATIONS)
+      return page([]);
     if (url === APPOINTMENTS) return page(appointments);
     if (url === ENTRIES_URL && params.entry?.length)
       return (

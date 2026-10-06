@@ -56,7 +56,7 @@ class RegisterOpeningViewSet(RegisterProposalViewSet):
             value = self.request.query_params.get(name)
             if value:
                 queryset = queryset.filter(**{field: value})
-        return with_decisions(queryset, OPENINGS.approved_function)
+        return with_decisions(queryset, OPENINGS.approved_function).select_related("token")
 
     def _respond(self, proposal, status=200):
         current = with_decisions(self.get_queryset(), OPENINGS.approved_function).get(pk=proposal.pk)

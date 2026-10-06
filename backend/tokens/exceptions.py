@@ -293,6 +293,15 @@ class RegisterChangeConflict(APIException):
     default_code = "register_change_conflict"
 
 
+class RegisterOpeningHoldingsMoved(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = (
+        "The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary."
+    )
+    default_code = "opening_holdings_moved"
+    expose_code = True
+
+
 class RegisterIntegrityError(Exception):
     pass
 

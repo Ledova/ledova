@@ -15,7 +15,12 @@ export { useOrderActions } from './useOrderActions';
 export { useOrderActionSigning } from './useOrderActionSigning';
 export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
-export { REGISTER_CORRECTION_DECISIONS, REGISTER_IMPORT_DECISIONS, useRegisterDecision } from './useRegisterDecision';
+export {
+  REGISTER_CORRECTION_DECISIONS,
+  REGISTER_IMPORT_DECISIONS,
+  REGISTER_OPENING_DECISIONS,
+  useRegisterDecision,
+} from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
 export { useDiscrepancyAcknowledgement } from './useDiscrepancyAcknowledgement';
 export type { DiscrepancyAcknowledgementOptions } from './useDiscrepancyAcknowledgement';

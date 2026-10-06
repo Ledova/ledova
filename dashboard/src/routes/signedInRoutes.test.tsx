@@ -104,6 +104,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegister',
     'companyRegisterImport',
     'companyRegisterCorrection',
+    'companyRegisterOpening',
     'companyTeam',
     'companyListing',
     'companyEligibility',
@@ -142,6 +143,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegister',
     'companyRegisterImport',
     'companyRegisterCorrection',
+    'companyRegisterOpening',
   ] as const)('lets a company open %s, a page for everyone', (key) => {
     open(key, 'company');
     expect(opened(key)).toBe(true);
@@ -239,6 +241,14 @@ describe('which signed-in pages an account can open', () => {
     expect(DESTINATIONS.companyRegisterCorrection.path).toBe('/company/register/:uuid/correct/:entry');
     expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/correct/:entry');
     expect(opened('companyRegisterCorrection')).toBe(true);
+    expect(screen.queryByText('companyClass')).toBeNull();
+  });
+
+  it('opens the opening page of a share class at its own address, not the class page beneath it', () => {
+    open('companyRegisterOpening', 'investor');
+    expect(DESTINATIONS.companyRegisterOpening.path).toBe('/company/register/:uuid/open');
+    expect(screen.getByTestId('address').textContent).toBe('/company/register/7f1c2a9e/open');
+    expect(opened('companyRegisterOpening')).toBe(true);
     expect(screen.queryByText('companyClass')).toBeNull();
   });
 

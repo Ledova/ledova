@@ -92,6 +92,9 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         company={company.uuid}
                         register={register}
                         refreshHolders={registers.refetch}
+                        onOpen={() =>
+                          navigation.navigate('PrepareRegisterOpening', { tokenUuid: uuid, companyUuid: company.uuid })
+                        }
                         onPrepareImport={() =>
                           navigation.navigate('PrepareRegisterImport', { tokenUuid: uuid, companyUuid: company.uuid })
                         }

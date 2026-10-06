@@ -55,6 +55,10 @@ describe('the signed-in destinations', () => {
     expect(DESTINATIONS.companyRegisterImport.path).toBe(`${DESTINATIONS.companyClass.path}/import`);
   });
 
+  it('opens the register opening of a share class beneath it, as the import page does', () => {
+    expect(DESTINATIONS.companyRegisterOpening.path).toBe(`${DESTINATIONS.companyClass.path}/open`);
+  });
+
   it('gives every page a title', () => {
     expect(Object.values(DESTINATIONS).filter((destination) => destination.title.trim() === '')).toEqual([]);
   });
@@ -80,6 +84,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     companyRegister: 'everyone',
     companyRegisterImport: 'everyone',
     companyRegisterCorrection: 'everyone',
+    companyRegisterOpening: 'everyone',
     company: 'everyone',
     companyAuthority: 'company',
     companyTeam: 'everyone',
@@ -111,6 +116,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       companyRegister: 'Register',
       companyRegisterImport: 'Register',
       companyRegisterCorrection: 'Register',
+      companyRegisterOpening: 'Register',
       company: 'Company',
       companyAuthority: 'Representative authority',
       companyTeam: 'Company team',

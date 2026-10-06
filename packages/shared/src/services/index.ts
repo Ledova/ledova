@@ -110,6 +110,14 @@ export {
   decideRegisterCorrection,
   downloadRegisterCorrectionFile,
 } from './register-corrections';
+export {
+  getRegisterOpeningHolders,
+  getRegisterOpenings,
+  prepareRegisterOpening,
+  previewRegisterOpeningDecision,
+  decideRegisterOpening,
+  downloadRegisterOpeningFile,
+} from './register-openings';
 export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,
