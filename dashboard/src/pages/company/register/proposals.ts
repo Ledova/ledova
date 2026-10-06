@@ -1,6 +1,7 @@
 import {
   REGISTER_CORRECTION_COPY,
   appointmentForRegisterStep,
+  formatShareCount,
   type OwnCompanyAppointment,
   type RegisterEntry,
   type RegisterStep,
@@ -38,4 +39,8 @@ export function retainedName(snapshot: unknown, fallback: string) {
 export function describeEntry(entry: Pick<RegisterEntry, 'kind' | 'sequence' | 'effectiveOn'>) {
   const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? entry.kind;
   return `${kind} · Entry ${entry.sequence} · Effective ${entry.effectiveOn}`;
+}
+
+export function shareCount(shares: string) {
+  return `${formatShareCount(shares)} ${shares === '1' ? 'share' : 'shares'}`;
 }

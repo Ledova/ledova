@@ -43,6 +43,9 @@ const LEDES: Partial<Record<DestinationKey, string>> = {
   companyRegisterCorrection:
     "Prepare a correction that reverses one entry of a share class's register exactly. The authority document is " +
     'provided by the company.',
+  companyRegisterOpening:
+    "Prepare an opening that records a share class's holdings on chain as its register's first entry. The authority " +
+    'document is provided by the company.',
   companyPublications: "Staff prepare and publish these records on your company's written instruction.",
 };
 const EMPTY = { results: [], count: 0, next: null, previous: null };
