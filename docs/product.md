@@ -122,7 +122,7 @@ using operator payment settings. Current secondary settlement uses a prefunded
 stablecoin atomic swap. These are existing mechanisms to preserve, not proof
 that the company-managed AUD payment requirement is complete. The
 [5 October decision](decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-records their limits and the pending investor-only on-ramp enforcement.
+records their limits and the investor-only on-ramp guards.
 
 ## 4. Self-custody and ownership records
 
@@ -302,7 +302,7 @@ company authority, permissions and replacement workflows are implemented.
 | Portfolios and crypto wallets | Holdings, valuations, history, verified-address flows and supported test-network transfers exist; unpriced shares do not imply a market valuation |
 | Secondary trading | Order, matching and settlement are enabled by default on the experimental deployment; releases still require the human checks in [#624](https://github.com/Ledova/ledova/issues/624) |
 | Mobile | Holdings, Notices, Activity, Register, Invest and Wallets flows exist in the paper interface; native security needs a Ledova build, with separate device acceptance checks |
-| Crypto on-ramp | Optional investor functionality; companies must not buy cryptocurrency through it. Current wallet-owner-only API access and company Buy crypto entry points still need the investor-only restriction tracked in #920. There is no off-ramp |
+| Crypto on-ramp | Optional personal investor functionality. The API checks a current investor/dual-role account and owned receiving wallet before contacting the provider; both clients refuse company/unknown entry and retire deferred/open provider views on account or role loss (#920). External-provider and physical-device acceptance remain separate. There is no off-ramp |
 
 The [roadmap](roadmap.md) orients the remaining work. A feature flag or configured
 provider does not establish safety or regulatory compliance.

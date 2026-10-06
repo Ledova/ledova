@@ -7,10 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WALLET_ENDPOINTS, formatWalletAddressShort, type AccountRole } from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
+const account = vi.hoisted(() => ({ role: 'investor' as AccountRole }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@ledova/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ledova/shared')>()),
-  useUserPreferences: () => ({ userAccount: { uuid: 'owner' } }),
+  useUserPreferences: () => ({ userAccount: { uuid: 'owner', role: account.role } }),
   useAuth: () => ({ isAuthenticated: true }),
   useCurrency: () => ({ formatDisplayCurrency: (value: number) => `$${value}` }),
 }));
@@ -92,6 +93,7 @@ function answer(wallets: ReturnType<typeof listOf>) {
 }
 
 beforeEach(() => {
+  account.role = 'investor';
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   answer(walletList);
 });
@@ -103,16 +105,23 @@ afterEach(() => {
 });
 
 async function openWallets(role?: AccountRole) {
+  if (role) account.role = role;
   if (role) queryClient.setQueryData(['userAccount'], { data: { role } });
   renderWalletsInTheFrame();
   await screen.findByText('Base wallet');
 }
 
 describe('crypto on the Wallets page', () => {
-  it.each(['investor', 'company', 'both'] as const)('offers Buy crypto to the %s role', async (role) => {
+  it.each(['investor', 'both'] as const)('offers Buy crypto to the %s role', async (role) => {
     await openWallets(role);
 
     expect(screen.getByRole('button', { name: 'Buy crypto' })).toBeTruthy();
+  });
+
+  it('withholds Buy crypto from companies while retaining Send', async () => {
+    await openWallets('company');
+    expect(screen.queryByRole('button', { name: 'Buy crypto' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
   });
 
   it.each(['investor', 'company', 'both'] as const)('offers Send to the %s role', async (role) => {

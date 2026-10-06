@@ -9,6 +9,7 @@ import { BuyCryptoModal } from './BuyCryptoModal';
 
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account', role: 'investor' } }),
   getUserVerificationStatus: () => ({ type: 'verified' }),
   useCurrency: () => ({ formatDisplayCurrency: String }),
 }));

@@ -552,11 +552,16 @@ and recorded in [#860](https://github.com/Ledova/ledova/issues/860#issuecomment-
   stablecoin does not establish direct AUD payment support.
 
 This supersedes the earlier unrestricted Buy crypto availability; its placement
-inside Wallets and the historical delivery record remain retained. Current API
-wallet ownership and both clients' company entry points do not yet enforce the
-new restriction. [#920](https://github.com/Ledova/ledova/issues/920) owns that
-gap. A company appointment or share-operation wallet grants no on-ramp purchase
-permission; authorised company wallet operations remain separate.
+inside Wallets and the historical delivery record remain retained.
+[#920](https://github.com/Ledova/ledova/issues/920) adds a current personal
+`investor` or `both` account check before the API contacts the provider, alongside
+wallet ownership. Both clients hide company purchase entry points and guard
+direct opening, deferred responses and open provider views against account or
+investor-role loss. Unknown accounts fail closed. This adds no server signup,
+identity or account-status requirement. A company appointment or share-operation
+wallet grants no on-ramp purchase permission; authorised company wallet operations
+remain separate. Synthetic tests establish the guards, with external-provider
+and physical-device acceptance remaining separate.
 
 The owner has not selected the payment rails/provider, collection, receipt
 verification, reconciliation, refund or secondary AUD settlement mechanics.

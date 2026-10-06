@@ -3,7 +3,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { NavigationProp, RouteProp } from '@react-navigation/native';
 import { GradientBackground } from '../../components/GradientBackground';
-import { useUserPreferences } from '@ledova/shared';
+import { canOpen, useUserPreferences } from '@ledova/shared';
 import { BuyCryptoModal } from './components/BuyCryptoModal';
 import type { BuyStackParamList } from '../../navigation/BuyStackNavigator';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -13,14 +13,15 @@ export function BuyScreen() {
   const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<BuyStackParamList, 'BuySelect'>>();
   const { userAccount } = useUserPreferences();
+  const canPurchase = !!userAccount?.uuid && canOpen(userAccount.role, 'investing');
   const [showModal, setShowModal] = useState(false);
 
   const initialAsset = route.params?.asset;
 
   useFocusEffect(
     useCallback(() => {
-      setShowModal(true);
-    }, []),
+      setShowModal(canPurchase);
+    }, [canPurchase]),
   );
 
   const handleClose = () => {
@@ -30,9 +31,10 @@ export function BuyScreen() {
     }
   };
 
-  const handleNavigateToWebView = (url: string, sessionEpoch: number) => {
+  const handleNavigateToWebView = (url: string, sessionEpoch: number, userAccountUuid: string) => {
+    if (!canPurchase || userAccountUuid !== userAccount?.uuid) return;
     setShowModal(false);
-    navigation.navigate('OnRampWebView', { url, sessionEpoch });
+    navigation.navigate('OnRampWebView', { url, sessionEpoch, userAccountUuid });
   };
 
   const handleNavigateToProfile = () => {
@@ -42,7 +44,7 @@ export function BuyScreen() {
   return (
     <GradientBackground>
       <BuyCryptoModal
-        visible={showModal}
+        visible={showModal && canPurchase}
         onClose={handleClose}
         onNavigateToWebView={handleNavigateToWebView}
         onNavigateToProfile={handleNavigateToProfile}

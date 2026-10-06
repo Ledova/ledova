@@ -11,6 +11,7 @@ const currency = vi.hoisted(() => ({ rate: 2 }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@ledova/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ledova/shared')>()),
+  useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account', role: 'investor' } }),
   useCurrency: () => ({
     exchangeRate: currency.rate,
     formatDisplayCurrency: (value: number) => `A$${value * currency.rate}`,
@@ -435,14 +436,15 @@ it('waits for the account before reading its wallets, rather than saying it has 
     </QueryClientProvider>
   );
   const view = render(opened(undefined));
-  fireEvent.click(screen.getByText('Ethereum'));
   await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
+  expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText(/No verified wallets for/)).toBeNull();
-  expect(screen.getByText('Ethereum').closest('button')).toHaveProperty('disabled', true);
+  expect(priceCalls()).toHaveLength(0);
   expect(walletCalls()).toHaveLength(0);
 
   view.rerender(opened('synthetic-account'));
+  fireEvent.click(screen.getByText('Ethereum'));
   expect(await screen.findByRole('button', { name: /Second wallet/ })).toBeTruthy();
 });
 
