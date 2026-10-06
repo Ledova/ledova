@@ -236,44 +236,45 @@ appointment is gone.
 After the particulars changes, Register lists the chosen company's
 [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening),
 read on every page with the company filter, newest first and each once: stage
-and number of wallets, preparer and dates, each wallet address with its member,
-the authority, approving director, reference and reason, whether the company
-provided the authority document or staff verified it before wallet links were
-company-run, the decision trail, any rejection reason and the document's
-download. Members are labelled in the mapping's address order as openings label
-them: by name on the class registers, or numbered as an unnamed member or a new
-member, so wallets mapped to one new member share its number. Links of another
-company fail the read, and a link's step and download labels name its stage,
-number of wallets and when it was prepared. Approval and rejection
-(administration or `approve`) and application (administration or `apply`) use
-the same preview-first dialog, listing each address with its member, labelled
-the same way, and, for information only, whether the holder proved control of
-the wallet on Ledova and the holder's name on Ledova, or that the wallet is not
-on the company's whitelist, with the application note before application; a
-retained staff-era link offers only rejection. A recorded or refused link
-decision reads the links, the waiting wallets, the class registers with their
-waiting counts, any open register entries and the appointments again.
+and number of wallets, preparer and dates, each wallet address in the order the
+link records it with its member, labelled as openings label theirs: an existing
+member by their name on the class registers, or numbered as an unnamed member
+when it has none, and a member the link creates numbered as a new member, so
+wallets that share a member read alike; then the authority, approving director,
+reference and reason, whether the company provided the authority document or
+staff verified it before wallet links were company-run, the decision trail, any
+rejection reason and the document's download. Links of another company fail the
+read, and a link's step and download labels name its stage, number of wallets
+and when it was prepared. Approval and rejection (administration or `approve`)
+and application (administration or `apply`) use the same preview-first dialog,
+listing each address with its member, labelled the same way, and, for
+information only, whether the holder proved control of the wallet on Ledova and
+the holder's name on Ledova, or that the wallet is not on the company's
+whitelist, with the application note before application; a retained staff-era
+link offers only rejection. A recorded or refused link decision reads the links,
+the waiting wallets, the class registers with their waiting counts, any open
+register entries and the appointments again.
 Administration or `prepare` gets **Link waiting wallets**, enabled once the
 company's waiting wallets are read and at least one waits; when none waits, a
 note says so. It opens a form in the same stack that reads the waiting wallets,
 the company's class registers and the appointments, and lists each waiting
-wallet with the number of issues and transfers waiting for it and its statuses.
-The form maps each wallet to an existing member, chosen by name from the class
-registers' holders or numbered as an unnamed member, or to a new member under a
-new ID that several wallets may share, numbered as the opening form numbers
-them. No wallet has a member until the person chooses one, never by matching
-names. Choices are kept by address: a re-read drops a choice only when its
-wallet no longer waits or its member is no longer on the class registers, and
-the page then says the choices were reset, announcing it on iOS and in a polite
-live region, until a choice changes or the link is prepared. It takes the
-authority document, the authority, the approving director of a resolution, the
-reference and the reason. The upload keeps its own retry key and confirmed
-receipt, preparation reuses its operation only for an identical request, and the
-links are refreshed once the receipt is confirmed; a conflict reads the waiting
-wallets, class registers and appointments again and takes a new operation, a
-refusal shows the server's words, and a 404 from the waiting-wallets read or
-from preparation reads the appointments again, so the form gives way to the
-read-only note once the appointment is gone.
+wallet, in the order a link records them, with the number of issues and
+transfers waiting for it and its statuses. The form maps each wallet to an
+existing member, chosen by name from the class registers' holders or numbered as
+an unnamed member, or to a new member under a new ID that several wallets may
+share, numbered as the link's record numbers it. No wallet has a member until
+the person chooses one, never by matching names. Choices are kept by address: a
+re-read drops a choice only when its wallet no longer waits or its member is no
+longer on the class registers, and the page then says the choices were reset,
+announcing it on iOS and in a polite live region, until a choice changes or the
+link is prepared. It takes the authority document, the authority, the approving
+director of a resolution, the reference and the reason. The upload keeps its own
+retry key and confirmed receipt, preparation reuses its operation only for an
+identical request, and the links are refreshed once the receipt is confirmed; a
+conflict reads the waiting wallets, class registers and appointments again and
+takes a new operation, a refusal shows the server's words, and a 404 from the
+waiting-wallets read or from preparation reads the appointments again, so the
+form gives way to the read-only note once the appointment is gone.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
