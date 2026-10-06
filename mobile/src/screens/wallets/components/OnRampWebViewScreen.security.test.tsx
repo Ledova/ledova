@@ -8,7 +8,7 @@ import { AppState } from 'react-native';
 let mockUrl = '';
 let mockSessionEpoch = 0;
 jest.mock('@react-navigation/native', () => ({
-  useRoute: () => ({ params: { url: mockUrl, sessionEpoch: mockSessionEpoch } }),
+  useRoute: () => ({ params: { url: mockUrl, sessionEpoch: mockSessionEpoch, userAccountUuid: 'synthetic-account' } }),
   useIsFocused: () => true,
   useNavigation: () => ({
     canGoBack: jest.fn(),
@@ -18,6 +18,10 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account', role: 'investor' } }),
+}));
 jest.mock('../../../contexts', () => ({ useAppTheme: () => ({}), useThemedStyles: () => ({}) }));
 jest.mock('../../../components/GradientBackground', () => ({
   GradientBackground: ({ children }: { children: React.ReactNode }) => children,

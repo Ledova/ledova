@@ -109,6 +109,8 @@ def authority(records) -> dict:
                 opening.authority,
                 mapping=opening.mapping,
                 boundary=opening.boundary,
+                provided_by=_provided_by(opening),
+                decisions=_decisions(opening),
                 entry=opening.applied_entry_id,
             )
             for opening in records["openings"]

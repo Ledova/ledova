@@ -33,7 +33,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
-| Register correction authority | `companies/`; the company's upload and the correction's copy are retained with their rows; interrupted-copy orphans are swept |
+| Register opening and correction authority | `companies/`; the company's upload and the opening's or correction's copy are retained with their rows; interrupted-copy orphans are swept |
 | Particulars change supporting document | `companies/`; the company's upload and the change's copy are retained with their rows; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
@@ -115,13 +115,15 @@ A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents
 and its payment records' remittance evidence, all stored under `companies/`. No file stored under `users/` or `documents/` leaves in a pack.
 
-Corrections retain a private copy of the company's authority upload, with its
-size, type and SHA-256; one made before corrections were company-run retains its
-copy of the staff-verified company document. During the synthetic experiment
-those corrections, uploads and files have no automatic expiry. The database
-refuses ordinary row deletion; the existing orphan sweep removes only
-unreferenced copies. See the
-[correction workflow](../operations/register-foundation.md#compensating-corrections).
+Openings and corrections retain a private copy of the company's authority
+upload, with its size, type and SHA-256; one submitted before they were
+company-run retains its copy of the staff-verified company document. During the
+synthetic experiment those openings, corrections, uploads and files have no
+automatic expiry. The database refuses ordinary row deletion; the existing orphan
+sweep removes only unreferenced copies. See the
+[opening](../operations/register-foundation.md#opening-the-register-from-the-chain)
+and [correction](../operations/register-foundation.md#compensating-corrections)
+workflows.
 
 A change to a member's particulars retains a private copy of the company's
 `supporting` upload, with its size, type and SHA-256, and its own copy of the

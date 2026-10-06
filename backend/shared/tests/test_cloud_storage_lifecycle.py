@@ -1,12 +1,10 @@
 from contextlib import ExitStack, contextmanager
 from datetime import timedelta
-from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.db import models, transaction
 from django.db.models.signals import post_delete
@@ -18,9 +16,7 @@ from storages.backends.s3 import S3Storage
 
 from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
 from companies.services.authority_requests import submit_authority_request
-from companies.services.document_review import prepare_document_review, verify_document
 from companies.tests.test_authority_requests import authority_fixture, evidence
-from companies.tests.test_document_file_access import attach_file, make_document
 from documents.models import Document, DocumentType
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
@@ -29,6 +25,7 @@ from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
     RegisterCorrection,
     RegisterEvidence,
+    RegisterEvidenceKind,
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
@@ -39,7 +36,8 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.register_instructions import submit_instruction
-from tokens.services.register_openings import submit_link, submit_opening
+from tokens.services.register_openings import submit_link
+from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import instruction_payload
 from tokens.tests.test_register_corrections import (
     correction_fixture,
@@ -47,8 +45,10 @@ from tokens.tests.test_register_corrections import (
     prepared,
 )
 from tokens.tests.test_register_events import register_fixture
+from tokens.tests.test_register_imports import owner_appointment
 from tokens.tests.test_register_links import link_fixture, link_payload
-from tokens.tests.test_register_openings import opening_payload
+from tokens.tests.test_register_openings import offline_boundary, opening_payload
+from tokens.tests.test_register_openings import prepared as prepared_opening
 from users.models import InvestorClassification
 
 PDF = b"%PDF-1.4 synthetic cloud lifecycle fixture"
@@ -58,17 +58,8 @@ def opening_proposal_fixture():
     owner, company, _, _, _, _ = register_fixture()
     owner.is_staff = False
     owner.save(update_fields=["is_staff"])
-    reviewer = get_user_model().objects.create_user(
-        email=f"opening-cloud-{uuid4()}@example.test", is_active=True, is_staff=True
-    )
-    reviewer.user_permissions.add(
-        *Permission.objects.filter(
-            codename__in=["change_companydocument", "change_registeropening", "view_registeropening"]
-        )
-    )
-    document = attach_file(make_document(company))
-    _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-    verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+    appointment = owner_appointment(company)
+    evidence = upload_evidence(owner, appointment, RegisterEvidenceKind.AUTHORITY, raw=PDF)
     deployed = ShareToken.objects.create(
         company=company,
         name="Cloud opening",
@@ -76,7 +67,8 @@ def opening_proposal_fixture():
         total_supply="100",
         status=ShareTokenStatus.DEPLOYED,
     )
-    return submit_opening(actor=owner, **opening_payload(document, SimpleNamespace(token_id=deployed.pk))), document
+    with patch("tokens.services.register_openings.capture_snapshot", return_value=offline_boundary(deployed)):
+        return prepared_opening(owner, opening_payload(deployed.pk, evidence, appointment, mapping=[])), evidence
 
 
 class ObjectStore:
@@ -227,19 +219,21 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 self.assertEqual(objects.files[proposal.file.name], original)
                 self.assertTrue(CompanyAuthorityRequest.objects.filter(pk=proposal.pk).exists())
 
-    def test_retained_opening_copy_survives_source_deletion_and_orphan_sweep(self):
+    def test_retained_opening_copy_and_its_upload_survive_the_orphan_sweep(self):
         for backend in ("s3", "gcs"):
             with self.subTest(backend=backend), self.cloud_storage(backend) as (storage, objects):
-                proposal, document = opening_proposal_fixture()
+                proposal, evidence = opening_proposal_fixture()
                 original = objects.files[proposal.file.name]
-                document.delete()
+                self.assertEqual(objects.files[evidence.file.name], original)
                 orphan = storage.save("companies/interrupted-opening.bin", ContentFile(PDF))
                 for key in objects.files:
                     objects.modified[key] = timezone.now() - GRACE - timedelta(seconds=1)
                 result = sweep_orphaned_files(storage=storage)
                 self.assertEqual(result["deleted"], 1)
                 self.assertNotIn(orphan, objects.files)
-                self.assertEqual(objects.files[proposal.file.name], original)
+                self.assertEqual(
+                    (objects.files[proposal.file.name], objects.files[evidence.file.name]), (original, original)
+                )
                 self.assertTrue(RegisterOpening.objects.filter(pk=proposal.pk).exists())
 
     def test_retained_instruction_copy_survives_source_deletion_and_orphan_sweep(self):

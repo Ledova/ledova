@@ -293,10 +293,7 @@ POLICIES = {
         _company("company_id", VISIBLE_COMPANIES),
         "false",
     ),
-    "tokens_registeropening": (
-        _company("company_id", VISIBLE_COMPANIES),
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
-    ),
+    "tokens_registeropening": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerwalletlink": (
         _company("company_id", VISIBLE_COMPANIES),
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
@@ -607,6 +604,9 @@ OPERATOR_ONLY = {
     "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
     "corrections, each bound to the deciding appointment and written by the bounded register command on the "
     "operator connection. Register readers see them through the correction on the operator connection.",
+    "tokens_registeropeningdecision": "Append-only company approvals, applications and rejections of register "
+    "openings, each bound to the deciding appointment and written by the bounded register command on the operator "
+    "connection. Register readers see them through the opening on the operator connection.",
     "tokens_registerparticularschangedecision": "Append-only company approvals, applications and rejections of "
     "member particulars changes, each bound to the deciding appointment and written by the bounded register command "
     "on the operator connection. Register readers see them through the change on the operator connection.",

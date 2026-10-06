@@ -40,6 +40,7 @@ OWNER_SUBMITTED = (
 PRE_COMPANY_DECISION_POLICIES = {
     "tokens_registerimport": ("tokens_registerimportdecision", OWNER_SUBMITTED),
     "tokens_registercorrection": ("tokens_registercorrectiondecision", OWNER_SUBMITTED),
+    "tokens_registeropening": ("tokens_registeropeningdecision", OWNER_SUBMITTED),
 }
 
 TABLE_CREATION_AFTER_INITIAL_GRANTS = (

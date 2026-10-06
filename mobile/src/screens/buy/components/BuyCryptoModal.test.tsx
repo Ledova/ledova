@@ -4,6 +4,7 @@ import { CameraAccessContext, createCameraAccess } from '../../../contexts/camer
 
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => ({ userAccount: { uuid: 'synthetic-account', role: 'investor' } }),
   getUserVerificationStatus: () => ({ type: 'unverified' }),
   useCurrency: () => ({ formatDisplayCurrency: String }),
 }));

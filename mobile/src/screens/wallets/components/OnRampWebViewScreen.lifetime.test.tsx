@@ -13,7 +13,8 @@ const mockLoadDecision = jest.fn();
 const mockBlur = new Set<() => void>();
 let mockFocused = true;
 let mockViewId = 0;
-let mockParams = { url: 'https://provider.example.test/form', sessionEpoch: 0 };
+let mockParams = { url: 'https://provider.example.test/form', sessionEpoch: 0, userAccountUuid: 'synthetic-account' };
+let mockAccount: { uuid: string; role: 'investor' | 'company' | 'both' } | null;
 const listeners = new Set<(state: AppStateStatus) => void>();
 const mockNavigation = {
   canGoBack: () => true,
@@ -31,6 +32,10 @@ jest.mock('@react-navigation/native', () => ({
   useIsFocused: () => mockFocused,
 }));
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: mockInvalidate }) }));
+jest.mock('@ledova/shared', () => ({
+  ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => ({ userAccount: mockAccount }),
+}));
 jest.mock('../../../contexts', () => ({
   useAppTheme: () => ({ colors: { interactive: { active: '#fff' } } }),
   useThemedStyles: () => ({}),
@@ -94,11 +99,16 @@ async function appState(state: AppStateStatus) {
 }
 
 beforeEach(() => {
+  mockAccount = { uuid: 'synthetic-account', role: 'investor' };
   access = createCameraAccess();
   access.setAllowed(true);
   AppState.currentState = 'active';
   mockFocused = true;
-  mockParams = { url: 'https://provider.example.test/form', sessionEpoch: getSessionEpoch() };
+  mockParams = {
+    url: 'https://provider.example.test/form',
+    sessionEpoch: getSessionEpoch(),
+    userAccountUuid: 'synthetic-account',
+  };
   listeners.clear();
   mockBlur.clear();
   mockViews.clear();
@@ -124,6 +134,61 @@ it('delivers one current completion and removes its native view', async () => {
   expect(mockInvalidate.mock.calls).toEqual([[{ queryKey: ['wallets'] }]]);
   expect(mockViews.size).toBe(0);
 });
+
+it.each(['company', 'missing', 'different'] as const)(
+  'refuses direct provider navigation for a %s account',
+  async (kind) => {
+    mockAccount =
+      kind === 'missing'
+        ? null
+        : {
+            uuid: kind === 'different' ? 'other-account' : 'synthetic-account',
+            role: kind === 'company' ? 'company' : 'investor',
+          };
+    await render(screen());
+    expect(mockViews.size).toBe(0);
+    expect(mockGoBack).not.toHaveBeenCalled();
+    expect(mockInvalidate).not.toHaveBeenCalled();
+  },
+);
+
+it('refuses a direct provider route without its requesting account', async () => {
+  mockParams = { ...mockParams, userAccountUuid: '' };
+  await render(screen());
+  expect(mockViews.size).toBe(0);
+});
+
+it('allows a known dual-role account to view its own provider', async () => {
+  mockAccount = { uuid: 'synthetic-account', role: 'both' };
+  await render(screen());
+  expect(nativeView().newSource).toEqual(expect.objectContaining({ uri: mockParams.url }));
+});
+
+it.each(['company', 'missing', 'different'] as const)(
+  'retires an open provider and its callbacks after account loss to %s',
+  async (kind) => {
+    const view = await render(screen());
+    const old = nativeView();
+    mockAccount =
+      kind === 'missing'
+        ? null
+        : {
+            uuid: kind === 'different' ? 'other-account' : 'synthetic-account',
+            role: kind === 'company' ? 'company' : 'investor',
+          };
+    await view.rerender(screen());
+    expect(mockViews.size).toBe(0);
+    await act(() => message(old));
+    expect(mockInvalidate).not.toHaveBeenCalled();
+    expect(mockGoBack).not.toHaveBeenCalled();
+    mockAccount = { uuid: 'synthetic-account', role: 'investor' };
+    await view.rerender(screen());
+    expect(mockViews.size).toBe(0);
+    await act(() => message(old));
+    expect(mockInvalidate).not.toHaveBeenCalled();
+    expect(mockGoBack).not.toHaveBeenCalled();
+  },
+);
 
 it('withholds the native view until app-lock admission succeeds', async () => {
   access.setAllowed(false);

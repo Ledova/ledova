@@ -40,12 +40,17 @@ The fourth lets a current company approver or administrator acknowledge a
 reconciliation discrepancy through the API, with a written reason and no Ledova
 staff step ([acknowledgement](../operations/register-foundation.md#acknowledging-a-discrepancy)).
 The Register in both clients also lists each class's entries and runs those
-corrections and acknowledgements. The fifth lets the company change a member's
-name and residential address through the API, with a reason and its own
-supporting document, the latest "as at" date winning between imports and changes
-([particulars changes](../operations/register-foundation.md#changing-a-members-particulars));
-their client screens are planned. #864's other register commands and #865–#873
-remain planned.
+corrections and acknowledgements. The fifth lets the company open a deployed
+class's register from the chain through the API: preparation captures the chain
+boundary with the company's own authority document, and the company approves
+and applies the opening with no Ledova staff review
+([opening process](../operations/register-foundation.md#opening-the-register-from-the-chain)).
+The sixth lets the company change a member's name and residential address
+through the API, with a reason and its own supporting document, the latest "as
+at" date winning between imports and changes
+([particulars changes](../operations/register-foundation.md#changing-a-members-particulars)).
+The opening and particulars screens, #864's other register commands and
+#865–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
@@ -73,8 +78,8 @@ investor-only; companies must not buy cryptocurrency through that integration.
 AUD is a required share-payment method, distinct from AUD pricing and an
 AUD-denominated stablecoin. Payment mechanics remain undecided in
 [#868](https://github.com/Ledova/ledova/issues/868) and
-[#869](https://github.com/Ledova/ledova/issues/869); the existing on-ramp access
-gap is tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
+[#869](https://github.com/Ledova/ledova/issues/869); the investor-only on-ramp
+guards are tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
 Company appointments and wallets needed for share operations do not grant
 crypto-purchase permission.
 

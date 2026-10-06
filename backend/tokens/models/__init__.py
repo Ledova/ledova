@@ -49,6 +49,7 @@ from .register_instruction import RegisterInstruction, RegisterInstructionKind
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
+    RegisterOpeningDecision,
     RegisterWalletLink,
 )
 from .register_particulars import (
@@ -108,6 +109,7 @@ __all__ = [
     "RegisterMember",
     "RegisterMemberWallet",
     "RegisterOpening",
+    "RegisterOpeningDecision",
     "RegisterOutput",
     "RegisterParticularsChange",
     "RegisterParticularsChangeDecision",

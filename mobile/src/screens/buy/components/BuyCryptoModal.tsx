@@ -25,6 +25,8 @@ import {
   getUserVerificationStatus,
   readApiError,
   readEveryPage,
+  canOpen,
+  useUserPreferences,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Action, Rows } from '../../../components/Ledger';
@@ -77,7 +79,7 @@ function getAssetIcon(symbol: string, theme: ReturnType<typeof useAppTheme>): Re
 interface BuyCryptoModalProps {
   visible: boolean;
   onClose: () => void;
-  onNavigateToWebView: (url: string, sessionEpoch: number) => void;
+  onNavigateToWebView: (url: string, sessionEpoch: number, userAccountUuid: string) => void;
   onNavigateToProfile: () => void;
   userAccountUuid?: string;
   initialAsset?: string;
@@ -92,6 +94,9 @@ export function BuyCryptoModal({
   initialAsset,
 }: BuyCryptoModalProps) {
   const theme = useAppTheme();
+  const { userAccount } = useUserPreferences();
+  const canPurchase =
+    !!userAccountUuid && userAccount?.uuid === userAccountUuid && canOpen(userAccount.role, 'investing');
   const text = useDialogStyles();
   const styles = useThemedStyles((theme) => ({
     warningLine: {
@@ -139,12 +144,21 @@ export function BuyCryptoModal({
   const admission = useSyncExternalStore(access.subscribe, access.getSnapshot, access.getSnapshot);
   const [appState, setAppState] = useState(() => ({ status: AppState.currentState }));
   const requestScope = useMemo(
-    () => ({ visible, userAccountUuid, selectedAsset, admission, appState, lifetime: createProviderLifetime() }),
-    [visible, userAccountUuid, selectedAsset, admission, appState],
+    () => ({
+      visible,
+      userAccountUuid,
+      canPurchase,
+      selectedAsset,
+      admission,
+      appState,
+      lifetime: createProviderLifetime(),
+    }),
+    [visible, userAccountUuid, canPurchase, selectedAsset, admission, appState],
   );
   const isRequestActive = useCallback(
     (scope: typeof requestScope) =>
       scope.visible &&
+      scope.canPurchase &&
       scope.lifetime.isActive() &&
       scope.admission.allowed &&
       access.getSnapshot() === scope.admission &&
@@ -177,6 +191,7 @@ export function BuyCryptoModal({
   const walletsQuery = useQuery({
     queryKey: [
       'wallets',
+      userAccountUuid,
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],
     queryFn: () =>
@@ -188,7 +203,7 @@ export function BuyCryptoModal({
           page,
         }),
       ),
-    enabled: visible && !!selectedAsset,
+    enabled: visible && canPurchase && !!selectedAsset,
   });
 
   const walletsFailed = walletsQuery.isError;
@@ -210,7 +225,7 @@ export function BuyCryptoModal({
     onSuccess: ({ response, sessionEpoch, scope }) => {
       if (!isRequestActive(scope) || scope !== requestScope || sessionEpoch !== getSessionEpoch()) return;
       resetAndClose();
-      onNavigateToWebView(response.data.url, sessionEpoch);
+      onNavigateToWebView(response.data.url, sessionEpoch, scope.userAccountUuid!);
     },
   });
 
@@ -274,7 +289,7 @@ export function BuyCryptoModal({
 
   return (
     <CustomModal
-      visible={visible}
+      visible={visible && canPurchase}
       title="Buy crypto"
       onClose={handleClose}
       showFooter={true}

@@ -11,7 +11,7 @@ configuration and staff workflows below describe current behaviour.
 The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 is the private-company share register and share workflows. Crypto on-ramp
 purchases are optional personal investor activity; company purchases must be
-refused, with the current restriction gap tracked in
+refused by the current investing-account API and client guards in
 [#920](https://github.com/Ledova/ledova/issues/920). This does not remove company
 share-wallet operations or their authority, execution and recovery safeguards.
 
@@ -255,7 +255,7 @@ balance the node would not set included, says to start over. It adds:
   share trust held at a custodian address with no key behind it, and investors
   from earlier rounds) is issued on chain through issuance requests that one
   applied register instruction approves, and each closed offering is allotted.
-  Each class's register is then opened from the chain by its opening review,
+  Each class's register is then opened from the chain by a company-run opening,
   its particulars are imported with names, dates entered back to the founding,
   amounts paid and a few pre-platform former members, and it is reconciled with
   the chain and folded. Every opened register has at least ten members and no

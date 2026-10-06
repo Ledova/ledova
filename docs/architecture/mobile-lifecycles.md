@@ -183,10 +183,13 @@ not server verification approval.
 
 The [product policy](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 limits the optional buy-crypto on-ramp to personal investor use and excludes
-company purchases. The current audience/API restriction is a tracked gap in
-[#920](https://github.com/Ledova/ledova/issues/920); the lifecycle controls below
-do not establish that restriction. Company share-wallet operations keep their
-own authority and signing safeguards.
+company purchases. [#920](https://github.com/Ledova/ledova/issues/920) requires a
+known `investor` or `both` personal account at the API and client entry points.
+Direct purchase routes and pending responses also require that account. A
+provider route carries its requesting account UUID with the session epoch;
+account replacement or loss of investing authority removes the WebView and
+retires that URL even if authority later returns. Company share-wallet operations
+keep their own authority and signing safeguards.
 
 The buy-crypto provider uses the same admission and session lifetime. A widget
 URL carries the session epoch captured before its request; a late response after

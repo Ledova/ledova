@@ -17,6 +17,7 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
+from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
@@ -32,7 +33,6 @@ from tokens.models import (
 from tokens.services.register_imports import decide_import, prepare_import
 from tokens.tests.test_register_access import person
 from tokens.tests.test_register_imports import (
-    DOCUMENT_BYTES,
     decide,
     decision_digest,
     forge_decision,

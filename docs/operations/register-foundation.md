@@ -26,7 +26,7 @@ The HTTP and CSV register routes serve it once a share class's opening is
 applied, and issuance and settlement then record each later completed effect in
 it, each only under an applied register instruction that a named director's
 approval supports, and the issuer can list the effects still waiting and why;
-opening review and the inclusion report classify completed
+opening preparation, opening decisions and the inclusion report classify completed
 effects against the captured boundary, and a scheduled job reconciles it with the
 chain. An
 import adds an existing register's particulars and former members to a class
@@ -45,7 +45,7 @@ and how to undo a mistaken opening import.
 A member has a UUID belonging to one company, independent of a wallet or platform
 account. The owner chose this so imports can include walletless members and one
 member can have multiple wallet links. Wallet links are durable insert-only
-identity records created by the approved opening or a reviewed link request
+identity records created by an applied opening or a reviewed link request
 below: one address resolves to
 one member per company, and an existing link for a mapped address must agree
 with the mapping. The register routes name members from their wallets'
@@ -68,8 +68,8 @@ the class holding, not a conclusion about membership across the company's other
 classes. Former-member recording remains on the existing path. A correction can
 itself be compensated, but each original entry can be compensated only once and
 no change can make a position negative. Partial corrections and general
-replacement transactions remain later work; the reviewed evidence workflow for
-corrections and openings is documented below. Recording a cessation or
+replacement transactions remain later work; the company-run workflows for
+corrections and openings are documented below. Recording a cessation or
 correction does not burn, seize or transfer tokens on chain.
 
 PostgreSQL locks the register head, validates the event and member company,
@@ -187,9 +187,9 @@ and [backend verification](../development/testing.md#backend-verification).
 The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
 not proof of director authority. The company-document admin provides its
-content-verification prerequisite; the opening, wallet link and register
-instruction workflows below are its current consumers. Imports and corrections
-use company-provided evidence instead.
+content-verification prerequisite; the wallet link and register instruction
+workflows below are its current consumers. Openings, imports and corrections use
+company-provided evidence instead.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -216,7 +216,7 @@ fingerprints.
 
 This is a record of what was verified at a time. Storage can become unavailable
 or be changed outside the application, and validity can expire without a database
-write. The opening consumers therefore recheck the current file
+write. Its consumers therefore recheck the current file
 against the recorded fingerprint, the company and the proposed change, and the
 validity dates; the historical `is_verified` flag alone is insufficient. No
 background storage monitoring or deletion/retention change is introduced here.
@@ -370,41 +370,59 @@ real data is admitted. Classification evidence, former-member retention and
 export records have independent policies; this choice does not change them.
 Export records follow the 2,557-day floor, purged by the daily retention job.
 
-## Approved opening capture and wallet links
+## Opening the register from the chain
 
-The stored register can be initialised from a verified canonical boundary using
-the same documentary-authority model as corrections. The company owner submits
-an opening proposal for one deployed share class: an exact mapping of boundary
-wallet addresses to company member IDs, the reviewed company document carrying
-the authority, and either a director resolution naming the approving director or
-a distinct court order with a reference and reason. There are no free-typed
-quantities or dates: the opening's effective date is the captured boundary date
-and its share changes are the boundary's holdings grouped by the mapped members.
-The proposal retains a private copy of the authority file.
+The stored register of a deployed share class is initialised from one verified
+canonical chain boundary. The company opens it itself, as it runs its
+[imports](#importing-an-existing-register) and
+[corrections](#compensating-corrections), under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+- the evidence is company-provided. The company uploads the director resolution
+  or court order that authorises the opening as an `authority` upload. Ledova
+  staff do not verify it, and the opening's copy is shown as provided by the
+  company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- an opening submitted for the retired staff review and still waiting, whether
+  or not a reviewer captured its boundary, can only be rejected. The company
+  then prepares a new one.
 
-Walletless members and several wallets per member are supported. One address
-resolves to one member per company; an existing wallet link for a mapped address
-must agree with the mapping, and a mapping may not repeat an address. An
-opening stores no personal particulars; a later [import](#importing-an-existing-register)
-records names and residential addresses.
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The web and mobile opening screens are planned; the API below is
+delivered.
 
-An external issuer integration can use these authenticated routes:
+An opening maps each wallet address holding shares at the boundary to a company
+member ID. There are no free-typed quantities or dates: the opening's effective
+date is the boundary block's date, and its share changes are the boundary's
+holdings grouped by the mapped members. Walletless members and several wallets
+per member are supported. One address resolves to one member per company; an
+existing wallet link for a mapped address must agree with the mapping, and a
+mapping may not repeat an address. An opening stores no personal particulars; a
+later [import](#importing-an-existing-register) records names and residential
+addresses.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-openings/` | Submit the owner's opening proposal; return the retained request |
-| `GET /api/v1/tokens/register-openings/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-openings/{uuid}/` | Request, captured boundary, mapping and decision |
-| `GET /api/v1/tokens/register-openings/{uuid}/file/` | Authenticated attachment of the retained authority file |
+| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-openings/` | Prepare the opening, capturing its boundary; return the retained request |
+| `GET /api/v1/tokens/register-openings/` | Paginated openings for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
+| `GET /api/v1/tokens/register-openings/{uuid}/` | Request, captured boundary and its summary, mapping, evidence, stage and decisions |
+| `GET /api/v1/tokens/register-openings/{uuid}/file/` | Authenticated attachment of the opening's copy of the authority document |
+| `POST /api/v1/tokens/register-openings/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the opening entry's share changes and effective date, and the preview digest |
+| `POST /api/v1/tokens/register-openings/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
-Submission accepts this JSON, replacing UUIDs with those from the exercise. The
-mapping must cover exactly the boundary's holding addresses before review.
+Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000011",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "token_id": "10000000-0000-4000-8000-000000000012",
-  "document_id": "10000000-0000-4000-8000-000000000013",
+  "authority_evidence": "10000000-0000-4000-8000-000000000013",
   "mapping": [
     {"address": "0x1111111111111111111111111111111111111111", "member": "10000000-0000-4000-8000-000000000014"}
   ],
@@ -415,52 +433,121 @@ mapping must cover exactly the boundary's holding addresses before review.
 }
 ```
 
-Opening the staff review captures a fresh canonical snapshot (the section
-above), including the canonical transfer history that later classification needs,
-and binds it to the proposal; the mapping must cover exactly the boundary's
-holding addresses, no missing and no unknown address. Database guards
-freeze the proposal after submission except for that one-time boundary capture,
-the staff decision and the review fields. A repeated review rechecks the
-boundary block's current canonicity and the approved finality policy instead of
-re-capturing, and issues a fresh reviewer-bound confirmation.
+Preparation first checks that the caller's named appointment is current and
+holds `admin` or `prepare`, then captures a fresh canonical snapshot (see
+[inspecting a snapshot](#inspecting-a-canonical-chain-snapshot)), including the
+canonical transfer history that later classification needs. It reads the chain
+before it takes the company lock, then checks everything else against that
+boundary under the lock, the appointment included. It refuses, with a message
+naming the problem:
+- a share class of a company in which the caller holds no current appointment,
+  or an appointment that holds neither `admin` nor `prepare`, before reading the
+  chain;
+- a class that is not deployed or paused, or whose register already has an entry;
+- a mapped member of another company, or a mapped address already linked to
+  another member of the company;
+- a mapping that does not cover exactly the boundary's holding addresses, with
+  none missing and none unknown;
+- a completed issue or transfer that the boundary does not
+  [represent](#classifying-completed-inclusions);
+- evidence that is not the preparer's own `authority` upload for this company,
+  or whose stored bytes no longer match its fingerprint;
+- incomplete authority fields. A director resolution names the approving
+  director; `court_order` instead uses a court reference and an empty
+  `approving_director`. An owner account is not proof of director authority.
 
-In **Admin → Tokens → Register openings**, open the request's review link. An
-active staff user with change permission must inspect the retained file, named
-authority, company identity, captured boundary, deployment provenance, supply
-reconciliation and the address-to-member mapping, then explicitly confirm and
-choose **Approve and apply**. Application rechecks the reviewer-bound expiring
-confirmation, the retained evidence, the boundary and that the register is still
-uninitialized under the share-class lock, then commits the members, wallet
-links, the OPENING entry (the register's first entry) and the decision
-atomically; a failure rolls them all back. Repeated identical submission and
-decision is idempotent, including after the confirmation expires, while
-conflicting UUID reuse is refused. The database prevents rewriting or deleting
-the request and the wallet links, refuses a mapping value that is not a JSON
-string, and prevents the customer role from deciding or capturing anything.
+A chain that cannot be read refuses preparation with 503, and nothing is
+recorded. The opening keeps its own private copy of the upload, with a snapshot
+naming the upload, its size, type and SHA-256, and marked as provided by the
+company. An identical preparation retry returns the opening without reading the
+chain again; the same operation ID with any change conflicts. The response's
+`boundarySummary` gives the boundary's block number, hash and date, and each
+holding address with its shares and mapped member.
 
-An explicitly empty boundary produces an explicit empty opening, distinct from
-an uninitialized register. An already-initialised register refuses a further
-opening at submission and at application. A boundary that is no longer
-canonical, a changed finality policy, changed company/document evidence or a
-register initialised in the meantime refuses application; rejection with a
-reason remains available. Issuance and settlement completion both take the same
-share-class lock, so neither can interleave with an opening application.
+Each decision starts with a preview, which shows the share changes the opening
+entry would record and its effective date, and lists what the decision still
+lacks:
 
-Retention follows the owner's correction decision: opening proposals, their
-retained authority copies and the captured boundary are retained without
-automatic expiry during the synthetic-only experiment; ordinary deletion is
-blocked, the retained copy survives source-document deletion and deleting the
-source prevents a pending application. Production retention needs its own
-decision before real data. Applying an opening initialises the register the
-holders and CSV routes serve; until then they report it as not initialised.
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `opening_decided` | The opening is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era opening, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
+| `boundary_changed` | Reading the chain again found the boundary block no longer canonical or no longer covered by the approved finality policy, or the policy or chain changed |
+| `register_initialized` | The class's register already has an entry |
+| `completions_not_represented` | A completed issue or transfer is not represented by the boundary |
+| `wallet_linked_elsewhere` | A mapped address was linked to another member after preparation |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+Approval and application read the chain again before they take the company lock,
+and check only stored facts under it. They read it only for a caller whose
+appointment is current and holds the step's capability or `admin`. A chain that
+cannot be read refuses them with 503 rather than an unmet requirement; rejection
+never reads the chain. The preview digest binds the opening, the decision, the
+person, the appointment, the reason, the boundary block's hash and, for
+application, the class's register state: either that no register exists or its
+sequence and head hash. The decision must carry the same digest, so any change in
+between conflicts. An identical decision retry with the same retry key returns
+the opening without reading the chain; the same key with any change conflicts.
+Every step rechecks the appointment after taking the company lock, so a
+revocation that commits first refuses the decision and records nothing.
+
+Application commits the members, the wallet links, the opening entry, the
+decision and the holdings projection atomically, and a failure rolls them all
+back. The opening entry is the register's first entry, dated on the boundary
+block's date and recorded by the person applying it. An explicitly empty boundary
+produces an explicit empty opening, distinct from an uninitialised register.
+Issuance and settlement completion take the same share-class lock, so neither can
+interleave with an application. Rejection stays available until a decision
+applies or rejects the opening, including when the chain or the retained copy is
+unavailable.
+
+**Admin → Tokens → Register openings** shows openings and their copies as
+read-only history. The database keeps openings, uploads, decisions and wallet
+links immutable and refuses:
+- a preparation not made through the company command by a person whose current
+  appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own `authority` upload for the company;
+- a preparation for a class that is not deployed or paused or whose register
+  already has an entry, or whose authority fields are incomplete;
+- a preparation without a boundary, or whose boundary is not complete, typed
+  snapshot provenance for this class with its canonical transfer history;
+- a mapping that does not pair exactly with the boundary's holders, repeats an
+  address, names another company's member, contradicts an existing wallet link
+  or holds a value that is not a JSON string;
+- any later change to an opening's boundary or terms;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era opening, or an
+  application without a current approval;
+- an applied or rejected opening without its matching decision, and a decision
+  whose opening does not carry its effect when the transaction commits;
+- an application whose entry is not the exact opening entry: the boundary's
+  holdings by mapped member, on the boundary's date, as the register's first
+  entry, recorded by the person applying it, with every mapped wallet linked.
+
+Retention follows the owner's correction decision: openings, their copies of the
+authority upload and the captured boundary are retained without automatic expiry
+during the synthetic-only experiment, and ordinary deletion is blocked. An
+opening submitted before openings were company-run keeps its copy of the
+staff-verified company document; deleting that document deletes neither the copy
+nor the decision. The company's uploads are kept like import evidence. Production
+retention needs its own decision before real data. Applying an opening
+initialises the register the holders and CSV routes serve; until then they report
+it as not initialised.
 
 ## Reviewed wallet links after the opening
 
 A wallet that no opening mapped, such as a new subscriber's, a first-time
 buyer's or another wallet of an existing member, is linked to a company member
 by a reviewed request (owner decision, 21 September 2026). The company owner
-submits an exact mapping of wallet addresses to member IDs with the same
-documentary authority an opening carries. A member ID may be new or may already
+submits an exact mapping of wallet addresses to member IDs with documentary
+authority: a staff-verified company document carrying a director resolution that
+names the approving director, or a court order. A member ID may be new or may already
 belong to the company. Links are company-wide, so one link serves every share
 class. The request retains a private copy of the authority file.
 
@@ -512,8 +599,8 @@ verified a named director's approval (owner decision 2, 22 September 2026). The
 company owner submits a register instruction listing the exact issues
 it approves, each with its recipient wallet and whole number of shares: a direct
 issue by its issuance request, and an offering allotment by its subscription. It
-names the approving director and carries the same verified company document an
-opening does, and it retains a private copy of the authority file. Its kind is
+names the approving director and carries a verified company document, as a
+wallet link does, and it retains a private copy of the authority file. Its kind is
 `issue`; a [transfer instruction](#register-instructions-for-transfers) has its
 own kind.
 
@@ -675,15 +762,16 @@ or malformed history is not an empty one: it cannot show that a transaction was
 absent, so every completion is held for `attribution` against it, whatever its
 height.
 
-Review and application refuse an opening whose captured boundary leaves any
-completed effect unrepresented, naming the effect, its block and the reason, and
-refuse a boundary without a valid history outright; PostgreSQL refuses to apply
-one too. The boundary is captured once and then frozen, so the remedy for a
-pending opening is a fresh opening whose new boundary covers the effect, with the
-mapping that boundary requires; reject the superseded proposal with a reason.
-That refusal is what keeps the gap between capture and application closed: a
-completion cannot land in it unobserved, because both completions take the
-share-class lock the application holds.
+Preparation refuses an opening whose captured boundary leaves any completed
+effect unrepresented, naming the effect, its block and the reason, and refuses a
+boundary without a valid history outright; PostgreSQL refuses to record one too.
+Approval and application recheck it and report `completions_not_represented`.
+The boundary is captured once, at preparation, and then frozen, so the remedy
+for a pending opening is a fresh opening whose new boundary covers the effect,
+with the mapping that boundary requires; reject the superseded opening with a
+reason. That recheck is what keeps the gap between capture and application
+closed: a completion cannot land in it unobserved, because both completions take
+the share-class lock the application holds.
 
 These are the effects the platform itself completes. A holder's own on-chain
 transfer, made outside settlement, is not one of them: the boundary's holdings
@@ -715,11 +803,11 @@ the opening was applied:
 
 | Opening | Behaviour | Remedy |
 | --- | --- | --- |
-| Pending | Review and application refuse it, and PostgreSQL refuses its application | Reject it with a reason, then submit a fresh opening, whose review captures a boundary with history |
+| Pending | It was submitted for the retired staff review, so it can only be rejected | Reject it with a reason, then prepare a fresh opening, whose preparation captures a boundary with history |
 | Applied | It remains the register's opening, and every completion classifies as `attribution` against it | None implemented |
 
 An applied opening cannot be recaptured. The register is initialised, so a fresh
-opening is refused at submission and at application, and the applied opening's
+opening is refused at preparation and at application, and the applied opening's
 boundary and OPENING entry are immutable. Holding every completion for
 attribution keeps a later workflow from recording an effect the opening may
 already contain. Resolving such a register needs a separately specified recovery
@@ -830,7 +918,7 @@ The holders route and the CSV export serve the stored holdings with the chain
 unreachable; the [register architecture](../architecture/register.md#api-and-export)
 describes both. Before a share class's opening is applied, holders report
 `initialized: false` and the export is refused with 409
-`register_not_initialized`: submit and review an opening to start it. A positive
+`register_not_initialized`: prepare, approve and apply an opening to start it. A positive
 `waitingEffects` count, or the CSV's "Completed effects waiting to be recorded"
 row, means completions are not yet in the holdings. The
 [waiting list](#the-issuers-waiting-list) names each of them and why it waits.
@@ -1160,7 +1248,7 @@ refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for a [correction](#compensating-corrections) or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain) or a [correction](#compensating-corrections), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
 | `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
 | `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
@@ -1463,8 +1551,9 @@ Every six hours, at :50 UTC, `reconcile_every_register` reconciles each share
 class that has an applied opening; a class an import opened has none and is not
 reconciled. It reads the chain; it writes only
 reconciliation records, never a register entry. It captures a fresh canonical
-snapshot at the finality boundary, as an opening's review does, and compares it
-with the stored register under the share-class lock that completions take:
+snapshot at the finality boundary, as an opening's preparation does, and
+compares it with the stored register under the share-class lock that completions
+take:
 
 - every chain transfer after the opening boundary must be a recorded effect, a
   completed effect still waiting to be recorded, or an issuance or settlement

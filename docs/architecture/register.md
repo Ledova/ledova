@@ -27,7 +27,7 @@ operator connections. Certificates, inspection copies, exports and due work
 need capability-scoped company routes with the existing provenance and privacy.
 
 The remaining sections describe current implementation, including staff-only
-review of openings, links and instructions, and admin-only outputs. Imports,
+review of links and instructions, and admin-only outputs. Openings, imports,
 corrections and changes to members' particulars are company-run: the company
 provides the evidence, states an import's ASIC figures, and its appointments
 approve and apply them. Its appointments holding `admin` or `approve` also
@@ -46,9 +46,10 @@ permission change.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection
-for #647. An [approved opening capture](../operations/register-foundation.md#approved-opening-capture-and-wallet-links)
-initialises it from one verified canonical chain boundary under documentary
-authority, and the integrity verifier replays the whole chain. For a class not
+for #647. A company-run [opening](../operations/register-foundation.md#opening-the-register-from-the-chain)
+initialises it from one verified canonical chain boundary, captured when the
+company prepares the opening, under the company's own authority document, and
+the integrity verifier replays the whole chain. For a class not
 yet on chain, an applied
 [import](../operations/register-foundation.md#importing-an-existing-register)
 is the opening instead: it records the company's existing register as the
@@ -57,9 +58,9 @@ boundary, so nothing is recorded, waiting or reconciled for that class until it
 is on chain. A wallet the
 opening did not map is linked to a member only by a
 [reviewed link request](../operations/register-foundation.md#reviewed-wallet-links-after-the-opening)
-carrying the same authority.
-Opening review and an operator report classify completed effects against that
-boundary from evidence both sides record: each completion's
+carrying staff-verified documentary authority.
+Opening preparation and decisions, and an operator report, classify completed
+effects against that boundary from evidence both sides record: each completion's
 finalized receipt, and the canonical transfer history the boundary retains. A
 completion is represented by the opening only when its transaction is in that
 history; one in a later block falls after it; anything the evidence cannot place,

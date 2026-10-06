@@ -54,7 +54,6 @@ PERMISSIONS = {
         "tokens.view_capitalincreaserequest",
         "tokens.change_capitalincreaserequest",
         "tokens.view_registeropening",
-        "tokens.change_registeropening",
         "tokens.view_registerimport",
         "tokens.view_registerinstruction",
         "tokens.change_registerinstruction",

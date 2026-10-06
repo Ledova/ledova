@@ -36,8 +36,8 @@ from tokens.services.register_instructions import (
 )
 from tokens.services.register_openings import (
     decide_opening,
-    prepare_opening_review,
-    submit_opening,
+    prepare_opening,
+    preview_opening_decision,
 )
 from tokens.services.register_reconciliation import reconcile_register
 from users.models import UserProfile
@@ -99,21 +99,44 @@ def open_register(share_class, records):
         ],
         records.documents,
     )
-    proposal = submit_opening(
-        actor=token.company.owner,
+    company = token.company
+    appointment = historical_owner_appointment(company)
+    evidence, _ = retain_register_evidence(
+        actor=company.owner,
+        company_id=company.pk,
+        appointment=appointment.pk,
+        kind=RegisterEvidenceKind.AUTHORITY,
+        idempotency_key=uuid4(),
+        name=document.name,
+        raw=private_document_bytes(document.file),
+        mime_type=document.mime_type,
+    )
+    proposal, _ = prepare_opening(
+        actor=company.owner,
         operation_id=uuid4(),
+        appointment=appointment.pk,
         token_id=token.pk,
-        document_id=document.pk,
+        authority_evidence=evidence.pk,
         mapping=mapping,
         authority="director_resolution",
         approving_director=records.plan.directors[company_key],
         authority_reference=f"{reference_prefix(token)}-REG-{share_class.symbol}",
         reason=f"Keep the register of {share_class.symbol} on the platform from its deployment.",
     )
-    _, confirmation = prepare_opening_review(proposal_id=proposal.pk, reviewer=records.operations)
-    return decide_opening(
-        proposal_id=proposal.pk, reviewer=records.operations, confirmation=confirmation, decision="apply"
-    )
+    for kind in (RegisterDecisionKind.APPROVE, RegisterDecisionKind.APPLY):
+        _, preview = preview_opening_decision(
+            actor=company.owner, opening_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        proposal = decide_opening(
+            actor=company.owner,
+            opening_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+    return proposal
 
 
 def reference_prefix(token):
