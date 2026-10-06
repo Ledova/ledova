@@ -53,6 +53,10 @@ function problemsOf(draft: Draft) {
   return problems;
 }
 
+function inRecordedOrder(left: { address: string }, right: { address: string }) {
+  return left.address < right.address ? -1 : left.address > right.address ? 1 : 0;
+}
+
 export function LinkForm({
   owner,
   guard,
@@ -102,7 +106,8 @@ export function LinkForm({
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
   const existing = registerMembers(registers);
-  const addresses = wallets.map(({ address }) => address.toLowerCase());
+  const ordered = [...wallets].sort(inRecordedOrder);
+  const addresses = ordered.map(({ address }) => address.toLowerCase());
   const offered = (value: string) =>
     existing.has(value) || (value.startsWith(NEW) && addresses.includes(value.slice(NEW.length)));
   const kept = Object.fromEntries(
@@ -128,7 +133,7 @@ export function LinkForm({
   };
 
   const mappingOf = () =>
-    wallets.map(({ address }) => {
+    ordered.map(({ address }) => {
       const member = memberOf(address.toLowerCase());
       if (!member.startsWith(NEW)) return { address, member };
       members.current[member] ??= crypto.randomUUID();
@@ -292,7 +297,7 @@ export function LinkForm({
               {COPY.CHOICES_RESET}
             </p>
           )}
-          {wallets.map((wallet) => (
+          {ordered.map((wallet) => (
             <fieldset key={wallet.address} className="space-y-2 border-t border-border-subtle pt-3">
               <legend className="break-all text-sm text-text-primary">{wallet.address}</legend>
               <p className="text-xs text-text-muted">{COPY.WAITING(wallet.waiting)}</p>

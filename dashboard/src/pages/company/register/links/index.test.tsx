@@ -58,7 +58,7 @@ const LISTED = {
 const ADA_WALLET = `0x${'a'.repeat(40)}`;
 const BO_WALLET = `0x${'b'.repeat(40)}`;
 const CY_WALLET = `0x${'c'.repeat(40)}`;
-const DEE_WALLET = `0x${'d'.repeat(40)}`;
+const DEE_WALLET = `0xD${'d'.repeat(39)}`;
 const MEMBER_ADA = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_UNNAMED = '10000000-0000-4000-8000-0000000000bb';
 const REASON = 'Link the wallets of the September subscribers';
@@ -554,7 +554,7 @@ it.each([
   },
 );
 
-it('keeps each chosen member by its wallet when a re-read adds a wallet and reorders the others', async () => {
+it('keeps each chosen member by its wallet across a re-read, in the order and numbering a link records', async () => {
   show();
   await ready();
   choose(ADA_WALLET, 'Ada Member');
@@ -562,11 +562,17 @@ it('keeps each chosen member by its wallet when a re-read adds a wallet and reor
   waitingWallets = [wallet(CY_WALLET), wallet(DEE_WALLET), ...WAITING_WALLETS.slice(0, 2)];
   await reread(WAITING_KEY);
   await waitFor(() => expect(screen.getByRole('group', { name: DEE_WALLET })).toBeTruthy());
+  expect(
+    screen
+      .getAllByRole('group')
+      .map((group) => group.querySelector(':scope > legend')?.textContent)
+      .filter((legend) => legend?.startsWith('0x')),
+  ).toEqual([DEE_WALLET, ADA_WALLET, BO_WALLET, CY_WALLET]);
   expect(chosen(ADA_WALLET, BO_WALLET, CY_WALLET, DEE_WALLET)).toEqual([
     'Ada Member',
-    NEW_MEMBER(1),
-    NEW_MEMBER(1),
     NEW_MEMBER(2),
+    NEW_MEMBER(2),
+    NEW_MEMBER(1),
   ]);
   expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
   complete();

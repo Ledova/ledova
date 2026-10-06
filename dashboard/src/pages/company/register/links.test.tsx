@@ -11,6 +11,7 @@ import {
   HOLDER_TYPE_LABELS,
   REGISTER_LINK_COPY,
   REGISTER_LINK_UNMET_COPY,
+  REGISTER_OPENING_COPY,
   USER_PREFERENCES_QUERY_KEY,
   formatDateTime,
   type CompanyCapability,
@@ -43,6 +44,8 @@ const LINKS_KEY = [...ACCOUNT, 'links', 'harbour'];
 const WAITING_KEY = [...ACCOUNT, 'waiting-wallets', 'harbour'];
 const APPOINTMENTS_KEY = ['company-appointments', 'profile-one', 'account-one'];
 const COPY = REGISTER_LINK_COPY;
+const NEW_MEMBER = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED;
+const UNNAMED_MEMBER = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED;
 const DIGEST = 'a'.repeat(64);
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const NEXT = 'https://example.test/tokens/register-links/?page=2';
@@ -60,6 +63,7 @@ let client: QueryClient;
 let appointments: OwnCompanyAppointment[];
 let linkPages: Paged<RegisterLink>[];
 let waitingWallets: RegisterWaitingWallets['wallets'];
+let previewed: RegisterLinkDecisionPreview;
 let decideFor: (body: RegisterLinkDecideRequest) => Promise<{ data: RegisterLink }>;
 
 type Paged<T> = { data: { results: T[]; count: number; next: string | null; previous: null } };
@@ -350,9 +354,10 @@ beforeEach(() => {
   linkPages = [page([link()])];
   waitingWallets = [{ address: BO_WALLET, waiting: 1, walletProof: null, holderType: null, holderName: null }];
   decideFor = async (body) => ({ data: decided(body) });
+  previewed = preview();
   serve();
   api.post.mockImplementation(async (url: string, body: RegisterLinkDecideRequest) => {
-    if (url.endsWith('/decision-preview/')) return { data: preview() };
+    if (url.endsWith('/decision-preview/')) return { data: previewed };
     if (url.endsWith('/decide/')) return decideFor(body);
     throw new Error(`Unexpected write ${url}`);
   });
@@ -406,8 +411,8 @@ it("lists every page of the company's links newest first and each once, with eac
   ]);
   expect(rows(pending, COPY.WALLETS)).toEqual([
     ['Ada Member', ADA_WALLET],
-    [COPY.NEW_MEMBER, BO_WALLET],
-    [COPY.EXISTING_MEMBER, CY_WALLET],
+    [NEW_MEMBER(1), BO_WALLET],
+    [UNNAMED_MEMBER(1), CY_WALLET],
   ]);
   expect(
     [COPY.AUTHORITY, COPY.APPROVING_DIRECTOR, COPY.AUTHORITY_REFERENCE, COPY.REASON, 'Prepared by'].map((label) =>
@@ -506,8 +511,8 @@ it("previews an application with each wallet's member and its holder's own proof
   expect(within(dialog).getByText(COPY.APPLY_NOTE)).toBeTruthy();
   expect(rows(dialog, COPY.STATUS_NOTE)).toEqual([
     ['Ada Member', ADA_WALLET, COPY.WALLET_PROOF.proven, `${COPY.HOLDER}: Ada Member`],
-    [COPY.NEW_MEMBER, BO_WALLET, COPY.WALLET_PROOF.not_proven, `${COPY.HOLDER}: ${HOLDER_TYPE_LABELS.unidentified}`],
-    [COPY.EXISTING_MEMBER, CY_WALLET, COPY.NO_STATUS],
+    [NEW_MEMBER(1), BO_WALLET, COPY.WALLET_PROOF.not_proven, `${COPY.HOLDER}: ${HOLDER_TYPE_LABELS.unidentified}`],
+    [UNNAMED_MEMBER(1), CY_WALLET, COPY.NO_STATUS],
   ]);
   expect(within(dialog).queryByText(/verified/i)).toBeNull();
   const before = refreshCounts();
@@ -527,6 +532,32 @@ it("previews an application with each wallet's member and its holder's own proof
   ]);
   await waitFor(() => expect(refreshCounts()).toEqual(before.map((count) => count + 1)));
   expect(await within(list).findByText(COPY.STAGES.applied)).toBeTruthy();
+});
+
+it('numbers new members alike in the record and the preview: two wallets on one new member, a third on another', async () => {
+  const later = '10000000-0000-4000-8000-0000000000dd';
+  const mapped = [
+    { address: ADA_WALLET, member: MEMBER_NEW, memberExists: false },
+    { address: BO_WALLET, member: MEMBER_NEW, memberExists: false },
+    { address: CY_WALLET, member: later, memberExists: false },
+  ];
+  linkPages = [
+    page([link({ mapping: mapped.map(({ address, member }) => ({ address, member })), mappingSummary: mapped })]),
+  ];
+  previewed = {
+    ...preview(),
+    links: mapped.map((row) => ({ ...row, walletProof: null, holderType: null, holderName: null })),
+  };
+  const numbered = [
+    [NEW_MEMBER(1), ADA_WALLET],
+    [NEW_MEMBER(1), BO_WALLET],
+    [NEW_MEMBER(2), CY_WALLET],
+  ];
+  show();
+  const [record] = records(await section());
+  expect(rows(record, COPY.WALLETS)).toEqual(numbered);
+  const dialog = await openDecision(record, 'approve');
+  expect(rows(dialog, COPY.STATUS_NOTE).map((row) => row.slice(0, 2))).toEqual(numbered);
 });
 
 it('offers a staff-era link only rejection, with a reason of at most 1,000 characters, and records that reason', async () => {

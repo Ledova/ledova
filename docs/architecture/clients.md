@@ -794,16 +794,20 @@ account.
 Beside the particulars changes, the dashboard's Register lists the selected
 company's [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)
 in a section of their own, read on every page with the company filter, newest
-first and each once: the stage, preparer and dates, each wallet address with its
-member, by their name on the company's current register or as a new or an
-existing member, the authority, approving director, reference and reason, the
-decision trail and any rejection reason, whether the company provided the
-authority document or staff verified it before wallet links were company-run,
+first and each once: the stage, preparer and dates, each wallet address in the
+order the link records it with its member, labelled as openings label theirs: an
+existing member by their name on the company's current register, or numbered as
+an unnamed member when it has none, and a member the link creates numbered as a
+new member, so wallets that share a member read alike; then the authority,
+approving director, reference and reason, the decision trail and any rejection
+reason, whether the company provided the authority document or staff verified
+it before wallet links were company-run,
 and the document's download. Links of another company fail the read. Approve,
 Apply and Reject use the decision dialog the other register commands share,
 through `useRegisterDecision` with the link family: its preview lists each
-wallet with its member and, for a wallet on the company's whitelist, whether its
-holder proved control of it on Ledova and the holder's name, for information
+wallet with its member, labelled the same way, and, for a wallet on the
+company's whitelist, whether its holder proved control of it on Ledova and the
+holder's name, for information
 only, and before application notes what applying records. A retained staff-era
 link offers only rejection. Confirming needs the step's current appointment to
 be the one previewed, a rejection takes a reason of up to 1,000 characters, and a
@@ -815,9 +819,10 @@ otherwise the note that nothing waits. It opens
 `/company/register/companies/:company/links`, a page for every signed-in account
 like Register, which reads the wallets that completed issues and transfers wait
 for, each with the number of effects waiting for it and its proof and holder for
-information, and maps every one of them to a member chosen on the page: an
-existing member, by name from the company's current registers, or a new member
-under a client-generated ID that several wallets may share. Each wallet starts
+information, in the order a link records them, and maps every one of them to a
+member chosen on the page: an existing member, by name from the company's
+current registers, or a new member under a client-generated ID that several
+wallets may share, numbered as the link's record numbers it. Each wallet starts
 as its own new member and is never matched to a member by name. Choices are kept
 by address: a re-read drops a choice only when its wallet no longer waits or its
 member is no longer offered, and then says the choices were reset until a choice

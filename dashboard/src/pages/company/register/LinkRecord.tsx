@@ -5,6 +5,7 @@ import {
   apiErrorSentence,
   downloadRegisterLinkFile,
   formatDateTime,
+  openingMemberLabels,
   type RegisterLink,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
@@ -17,6 +18,8 @@ import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from '
 import { saveFile } from './useCompanyRegister';
 
 const COPY = REGISTER_LINK_COPY;
+
+type Mapped = { member: string; memberExists: boolean };
 
 export function LinkRecord({
   link,
@@ -41,8 +44,11 @@ export function LinkRecord({
       saveFile(data, retainedName(link.evidenceSnapshot, `wallet-link-${link.uuid}`));
     },
   });
-  const memberOf = ({ member, memberExists }: { member: string; memberExists: boolean }) =>
-    names.get(member) || (memberExists ? COPY.EXISTING_MEMBER : COPY.NEW_MEMBER);
+  const labelsOf = (rows: Mapped[]) =>
+    openingMemberLabels(
+      rows.map(({ member, memberExists }) => ({ member, memberName: names.get(member) || null, memberExists })),
+    );
+  const labels = labelsOf(link.mappingSummary);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
   return (
     <li className="flex flex-col gap-3 py-4">
@@ -58,7 +64,7 @@ export function LinkRecord({
         <ul className="divide-y divide-border-subtle">
           {link.mappingSummary.map((row) => (
             <li key={row.address} className="flex flex-col gap-1 py-2">
-              <span className="min-w-0 break-words text-sm text-text-primary">{memberOf(row)}</span>
+              <span className="min-w-0 break-words text-sm text-text-primary">{labels.get(row.member)}</span>
               <span className="break-all text-xs text-text-muted">{row.address}</span>
             </li>
           ))}
@@ -99,20 +105,23 @@ export function LinkRecord({
         onRefused={onRefused}
         note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>}
       >
-        {(preview) => (
-          <div className="flex flex-col gap-1">
-            <p className="text-sm text-text-muted">{COPY.STATUS_NOTE}</p>
-            <ul className="divide-y divide-border-subtle">
-              {preview.links.map((row) => (
-                <li key={row.address} className="flex flex-col gap-1 py-2">
-                  <span className="min-w-0 break-words text-sm text-text-primary">{memberOf(row)}</span>
-                  <span className="break-all text-xs text-text-muted">{row.address}</span>
-                  <WalletStatus wallet={row} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {(preview) => {
+          const previewed = labelsOf(preview.links);
+          return (
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-text-muted">{COPY.STATUS_NOTE}</p>
+              <ul className="divide-y divide-border-subtle">
+                {preview.links.map((row) => (
+                  <li key={row.address} className="flex flex-col gap-1 py-2">
+                    <span className="min-w-0 break-words text-sm text-text-primary">{previewed.get(row.member)}</span>
+                    <span className="break-all text-xs text-text-muted">{row.address}</span>
+                    <WalletStatus wallet={row} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }}
       </RegisterDecisions>
     </li>
   );
