@@ -1113,6 +1113,20 @@ it.each<[string, RegisterOpeningHolders['holdings'], [string, string][], string]
   expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
 });
 
+it('does not send a choice dropped on a re-read when the opening is prepared', async () => {
+  show();
+  await ready();
+  complete();
+  choose(CY, COPY.NEW_MEMBER_NUMBERED(1));
+  choose(DEE, 'Ada Member');
+  await reread([holder(BO, '9007199254740993'), holder(CY, '5'), holder(DEE, '1')]);
+  expect(await screen.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+  expect(chosen(DEE)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(mapped(preparations()[0])).toEqual({ [BO]: KEY(1), [CY]: KEY(1), [DEE]: KEY(2) });
+});
+
 it('stops saying that choices were reset once the opening is prepared', async () => {
   prepareFor = async () => {
     throw refusal(400, MOVED_REFUSAL);
