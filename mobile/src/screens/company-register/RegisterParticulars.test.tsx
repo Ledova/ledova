@@ -413,6 +413,16 @@ it('refreshes after a refused decision and withdraws the steps an appointment no
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
+it('shows a new session no change or step before its own read answers', async () => {
+  const view = await openRegister();
+  expect(view.getByRole('button', { name: step('approve') })).toBeTruthy();
+  changeAnswers.set(1, () => new Promise(() => {}));
+  await act(() => invalidateSessionScope());
+  expect(await view.findByText(COPY.TITLE)).toBeTruthy();
+  expect(view.queryByText(NEW_HEADING)).toBeNull();
+  expect(view.queryByRole('button', { name: step('approve') })).toBeNull();
+});
+
 it('asks for no further page once the session changes between pages, and reads again under the new session', async () => {
   const late = deferred();
   changeAnswers.set(1, () => late.promise);

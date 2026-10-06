@@ -9,7 +9,7 @@ import {
   type RegisterParticularsChangePreparation,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
+import * as sessionScope from '../../services/sessionScope';
 import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { PrepareRegisterParticularsScreen } from './PrepareRegisterParticularsScreen';
 import { particularsKey } from './useCompanyRegister';
@@ -195,7 +195,7 @@ afterEach(async () => {
 
 it('names the member as the register does, uploads the supporting document and prepares exactly that change', async () => {
   const view = await open();
-  const epoch = getSessionEpoch();
+  const epoch = sessionScope.getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
   expect(get).toHaveBeenCalledWith(HOLDERS, session);
   expect(get).toHaveBeenCalledWith(APPOINTMENTS, { ...session, params: { page: 1 } });
@@ -329,7 +329,7 @@ it.each([
     data: { ...preparedFrom(body), ...changes },
   }));
   const view = await open();
-  const key = particularsKey(getSessionEpoch(), 'paper');
+  const key = particularsKey(sessionScope.getSessionEpoch(), 'paper');
   client.setQueryData(key, []);
   await complete(view);
   await submit(view);
@@ -363,13 +363,13 @@ it('writes nothing and stays put when the session changes while preparing, and s
       }),
   );
   const view = await open();
-  const epoch = getSessionEpoch();
+  const epoch = sessionScope.getSessionEpoch();
   const key = particularsKey(epoch, 'paper');
   client.setQueryData(key, []);
   await complete(view);
   await submit(view);
   await waitFor(() => expect(answer).toBeDefined());
-  await act(() => invalidateSessionScope());
+  await act(() => sessionScope.invalidateSessionScope());
   await act(async () => answer({ data: preparedFrom(preparations()[0]) }));
   expect(mockGoBack).not.toHaveBeenCalled();
   expect(client.getQueryState(key)?.isInvalidated).toBe(false);
@@ -377,4 +377,25 @@ it('writes nothing and stays put when the session changes while preparing, and s
   expect(get).toHaveBeenCalledWith(HOLDERS, expect.objectContaining({ ledovaSessionEpoch: epoch + 1 }));
   expect(view.getByLabelText(COPY.NAME).props.value).toBe('');
   expect(view.getByRole('button', { name: 'Choose the supporting document' })).toBeTruthy();
+});
+
+it('writes nothing for a preparation answered after the session changes, even before the page gives way', async () => {
+  jest.spyOn(sessionScope, 'subscribeSession').mockReturnValue(() => {});
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  const key = particularsKey(sessionScope.getSessionEpoch(), 'paper');
+  client.setQueryData(key, []);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(answer).toBeDefined());
+  sessionScope.invalidateSessionScope();
+  await act(async () => answer({ data: preparedFrom(preparations()[0]) }));
+  expect(mockGoBack).not.toHaveBeenCalled();
+  expect(client.getQueryState(key)?.isInvalidated).toBe(false);
 });
