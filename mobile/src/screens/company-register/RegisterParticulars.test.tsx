@@ -154,6 +154,7 @@ let client: QueryClient;
 let changePages: unknown[][];
 let changeAnswers: Map<number, () => Promise<unknown>>;
 let appointments: unknown[];
+let failing: Set<string>;
 
 function appointment(uuid: string, capabilities: string[], changes: object = {}) {
   return {
@@ -224,6 +225,7 @@ beforeEach(() => {
   changePages = [[REJECTED], [CHANGE, REJECTED]];
   changeAnswers = new Map();
   appointments = [appointment('appointment-admin', ['admin'])];
+  failing = new Set();
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
   mockNavigate.mockReset();
@@ -233,6 +235,7 @@ beforeEach(() => {
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
     const number = ((config?.params ?? {}) as Params).page ?? 1;
+    if (failing.has(url)) throw new Error('Unavailable');
     if (url === URLS.REGISTER) return page([shareClass]);
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === URLS.REGISTER_OPENINGS || url === URLS.REGISTER_IMPORTS || url === URLS.REGISTER_CORRECTIONS)
@@ -333,6 +336,22 @@ it.each([
       memberUuid: MEMBER_A,
     });
   }
+});
+
+it('withholds every particulars step while the appointments cannot be read, and offers them after its own retry', async () => {
+  failing = new Set([APPOINTMENTS]);
+  const view = await openRegister();
+  await openClass(view);
+  expect(await section(view).findByRole('alert')).toBeTruthy();
+  expect(section(view).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  for (const kind of KINDS) expect(view.queryByRole('button', { name: step(kind) })).toBeNull();
+  expect(view.queryByRole('button', { name: CHANGE_ALEX })).toBeNull();
+  failing = new Set();
+  await fireEvent.press(section(view).getByRole('button', { name: 'Retry appointments for particulars changes' }));
+  expect(await view.findByRole('button', { name: step('approve') })).toBeTruthy();
+  for (const kind of KINDS) expect(view.getByRole('button', { name: step(kind) })).toBeTruthy();
+  expect(view.getByRole('button', { name: CHANGE_ALEX })).toBeTruthy();
+  expect(section(view).queryByRole('alert')).toBeNull();
 });
 
 it('reads the changes and appointments again on a pull to refresh', async () => {
