@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapIcon } from '@phosphor-icons/react';
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 import {
@@ -10,6 +10,8 @@ import {
   readApiError,
   readEveryPage,
   useCurrency,
+  useUserPreferences,
+  canOpen,
 } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
@@ -34,13 +36,29 @@ interface BuyCryptoModalProps {
 
 export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccountUuid }: BuyCryptoModalProps) {
   const { exchangeRate, formatDisplayCurrency } = useCurrency();
+  const { userAccount } = useUserPreferences();
+  const canPurchase =
+    !!userAccountUuid && userAccount?.uuid === userAccountUuid && canOpen(userAccount.role, 'investing');
   const [selectedAsset, setSelectedAsset] = useState<BuyableAssetConfig | null>(null);
+  const scope = useMemo(
+    () => ({ isOpen, userAccountUuid, canPurchase, selectedAsset }),
+    [isOpen, userAccountUuid, canPurchase, selectedAsset],
+  );
+  const current = useRef<typeof scope | null>(null);
+  useLayoutEffect(() => {
+    current.current = scope;
+    return () => {
+      if (current.current === scope) current.current = null;
+    };
+  }, [scope]);
+  const isCurrent = (candidate: typeof scope) =>
+    current.current === candidate && candidate.isOpen && candidate.canPurchase;
 
   const priceQueries = useQueries({
     queries: BUYABLE_ASSETS.map((asset) => ({
       queryKey: ['buyable-asset-price', asset.symbol],
       queryFn: () => getAssets(apiClient, { symbol: asset.symbol, is_active: true }),
-      enabled: isOpen,
+      enabled: isOpen && canPurchase,
       staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     })),
   });
@@ -64,7 +82,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
           page,
         }),
       ),
-    enabled: !!userAccountUuid && !!selectedAsset,
+    enabled: isOpen && canPurchase && !!selectedAsset,
   });
 
   const walletsFailed = walletsQuery.isError;
@@ -74,29 +92,34 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
   const showWalletStep = !!selectedAsset && !isLoadingWallets && matchingWallets.length !== 1;
 
   const widgetMutation = useMutation({
-    mutationFn: (wallet: Wallet) =>
-      getOnRampWidgetUrl(apiClient, {
+    mutationFn: async (wallet: Wallet) => {
+      if (!isCurrent(scope)) throw new Error('The purchase request is no longer active.');
+      const response = await getOnRampWidgetUrl(apiClient, {
         walletUuid: wallet.uuid,
         cryptoCurrencyCode: selectedAsset!.symbol,
-      }),
-    onSuccess: (response) => {
+      });
+      return { response, scope };
+    },
+    onSuccess: ({ response, scope: requestedScope }) => {
+      if (!isCurrent(requestedScope)) return;
       resetAndClose();
       onNavigateToWidget(response.data.url);
     },
   });
 
   useEffect(() => {
-    if (!selectedAsset || !walletsSettled) return;
+    if (!isOpen || !canPurchase || !selectedAsset || !walletsSettled) return;
 
     if (matchingWallets.length === 1 && widgetMutation.isIdle) {
       widgetMutation.mutate(matchingWallets[0]);
     }
-  }, [selectedAsset, walletsSettled, matchingWallets, widgetMutation]);
+  }, [isOpen, canPurchase, selectedAsset, walletsSettled, matchingWallets, widgetMutation]);
 
   const resetAndClose = useCallback(() => {
+    current.current = null;
     setSelectedAsset(null);
     widgetMutation.reset();
-  }, [widgetMutation]);
+  }, [scope, widgetMutation]);
 
   const handleClose = useCallback(() => {
     resetAndClose();
@@ -117,7 +140,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && canPurchase}
       onClose={handleClose}
       title="Buy crypto"
       showFooter

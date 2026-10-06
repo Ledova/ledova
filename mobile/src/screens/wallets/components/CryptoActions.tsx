@@ -5,6 +5,8 @@ import {
   getChainConfig,
   getChainShortCode,
   isBitcoinChain,
+  canOpen,
+  useUserPreferences,
   type Wallet,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
@@ -12,6 +14,8 @@ import { Action } from '../../../components/Ledger';
 
 export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   const navigation = useNavigation<NativeStackNavigationProp<WalletsStackParamList>>();
+  const { userAccount } = useUserPreferences();
+  const canPurchase = !!userAccount?.uuid && canOpen(userAccount.role, 'investing');
   const verified = (wallets ?? []).filter(
     (wallet) =>
       getChainConfig(wallet.chain)?.isActive && wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED,
@@ -25,7 +29,7 @@ export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   };
   return (
     <>
-      <Action label="Buy crypto" onPress={() => navigation.navigate('Buy', { screen: 'BuySelect' })} />
+      {canPurchase && <Action label="Buy crypto" onPress={() => navigation.navigate('Buy', { screen: 'BuySelect' })} />}
       <Action label="Send" onPress={send} />
     </>
   );

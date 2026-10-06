@@ -11,7 +11,7 @@ configuration and staff workflows below describe current behaviour.
 The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 is the private-company share register and share workflows. Crypto on-ramp
 purchases are optional personal investor activity; company purchases must be
-refused, with the current restriction gap tracked in
+refused by the current investing-account API and client guards in
 [#920](https://github.com/Ledova/ledova/issues/920). This does not remove company
 share-wallet operations or their authority, execution and recovery safeguards.
 
