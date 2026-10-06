@@ -27,6 +27,7 @@ export const DESTINATIONS = {
     title: 'Register',
     audience: 'everyone',
   },
+  companyRegisterOpening: { path: '/company/register/:uuid/open', title: 'Register', audience: 'everyone' },
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },

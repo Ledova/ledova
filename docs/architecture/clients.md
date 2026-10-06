@@ -38,10 +38,10 @@ no chain action.
 Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
-absent field must not hide it. Apart from the register imports, register
-history, corrections and discrepancy acknowledgement in both clients, the
-detailed current screen descriptions below do not claim these company-managed
-controls are shipped.
+absent field must not hide it. Apart from the register imports, openings,
+register history, corrections and discrepancy acknowledgement in both clients,
+the detailed current screen descriptions below do not claim these
+company-managed controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -113,9 +113,22 @@ read (as the company owner or through a current register appointment), grouped b
 company with a company choice when there is more than one, and the stored
 register of each class of the chosen company, with exact share quantities and
 complete-read failure states.
-Showing a class's members also shows its
-[register imports](../operations/register-foundation.md#importing-an-existing-register)
-with the history, steps and checks of the dashboard's Register, described below,
+Showing a class's members also shows, for a deployed or paused class, its
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
+read on every page with the class's `token` filter, newest first and each once:
+stage, the boundary block and its date, preparer, dates, each holding at the
+boundary, largest first, with its shares and address and the member it maps
+to: an existing member by name, or numbered as an unnamed member when it has
+none, and a member the opening creates numbered as a new member; then the
+authority, approving director, reference and reason, whether the company
+provided the authority document or staff verified it before openings were
+company-run, the decision trail, any rejection reason and the document's
+download. An opening without a captured boundary says so. An opening's step and
+download labels name its block and when it was prepared, and openings of
+another company or class, with a mapping that cannot be read or with a holding
+that is not a whole number of shares, fail the read.
+Its [register imports](../operations/register-foundation.md#importing-an-existing-register)
+follow with the history, steps and checks of the dashboard's Register, described below,
 except where the person's appointments are read. On mobile, each decision opens
 in a dialog, which closes when a refresh withdraws its step; Prepare an import
 opens a form in the same stack; and the retained register document and ASIC
@@ -162,11 +175,43 @@ adds **Acknowledge** to an acknowledgeable discrepancy, which
 it with a reason of up to 1,000 characters and reads the reconciliation again; a
 refusal also reads the appointments. Its dialog keeps the appointment it opened
 with and holds confirmation if a refresh changes it.
+Administration or `prepare` gets **Open this register** while a deployed or
+paused class's register is not opened. It opens a form in the same stack that
+reads the class's holdings on chain at the current block, largest first,
+saying when the chain can't be read now and refusing holdings that are not
+whole numbers of shares. The holdings are read again only on request (Reload
+the holdings or Retry) or after a conflict, never on focus, on reconnect or with
+the other register reads, and preparation is held while the holdings, the
+appointments or the class are being read again. The form maps each holding
+address to its linked member, which stays fixed, or to a member chosen on the
+page: a linked member, a new member under a new ID that several addresses may
+share, or another new member. Members are labelled as the Register will list
+them, by first appearance with the largest holding first: by name, or numbered
+as an unnamed member or a new member. Choices are kept by address: a re-read
+drops a choice only when its address no longer holds or is now linked, or its
+linked member no longer holds, and the page then says the choices were reset
+until a choice changes or the opening is prepared. It takes the authority
+document, the authority, the approving director of a resolution, the reference
+and the reason. The upload keeps its own retry key and confirmed receipt,
+preparation reuses its operation only for an identical request, and the
+openings are refreshed once the receipt is confirmed; a conflict reads the
+holdings and appointments again and takes a new operation, a 404 from the
+holdings read or from preparation reads the appointments again, so the form
+gives way to the read-only note once the appointment is gone, and a refusal
+with the holdings-moved code shows the server's reason, says the holdings moved
+and offers to reload them, keeping the choices that still apply.
+Approval and rejection (administration or `approve`) and application
+(administration or `apply`) of an opening use the same preview-first dialog,
+showing the effective date and the register's first entry with member names,
+with the boundary note before approval or application and the holdings note
+before application; a retained staff-era opening offers only rejection. A
+recorded or refused opening decision reads the openings, entries, holders and
+appointments again.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, a correction decision, or a decision,
-preview or acknowledgement the server refuses. Every register read and every
+Representative authority, a pull to refresh, an opening or correction decision,
+or a decision, preview or acknowledgement the server refuses. Every register read and every
 upload, preview, decision, acknowledgement and preparation is bound to the
 session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
@@ -599,6 +644,54 @@ all of this read-only, a refresh that shows an appointment gone withdraws its
 controls, and every read, decision, acknowledgement, download and preparation is
 bound to the signed-in account.
 
+Each deployed or paused class on the dashboard's Register also lists its
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
+newest first across every page and each once: stage, preparer, dates, the
+boundary block and its date, each address holding shares at the boundary,
+largest first, with its shares and the member it maps to: an existing member by
+its name, or numbered as an unnamed member when it has none, and a member the
+opening creates numbered as a new member; then the authority, reference and
+reason, whether the company provided the authority
+document or staff verified it before openings were company-run, the decision
+trail and any rejection reason, with a download of the authority document. A
+staff-era opening whose boundary was never captured says so. Approve, Apply and
+Reject use the decision dialog imports and corrections share, through
+`useRegisterDecision` with the opening family: its preview adds the opening
+entry's effective date and shares by member, an application notes that the
+holdings become the register's first entry, a retained staff-era opening offers
+only rejection, and a decision or refusal refreshes the openings, the register,
+its entries and the person's appointments, so an applied opening shows the
+opened register at once. Holders of administration or `prepare` get **Open this
+register** while the class's register is not opened. It opens
+`/company/register/:uuid/open`, a page for every signed-in account like
+Register, which reads the class's holdings on chain and shows the block read,
+with notes that preparation captures its own boundary and records the holdings
+at that block. The holdings are read again only on request (Try again or Reload
+the holdings) or after a conflict, never on window focus or reconnect, and
+Prepare is held while the holdings, the appointments or the class are being read
+again. A chain that cannot be read says so and offers a retry, a class the
+server will not open shows the server's reason instead of the form, and a 404
+from the holdings read or from preparation reads the appointments again, so the
+form is withdrawn once the appointment is gone. The form takes the authority
+document, the authority, an approving director for a resolution, the reference
+and the reason, and maps every holding address: an address already linked to a
+member keeps that member, and any other is assigned to a member on the page,
+either a linked member or a new member, which several addresses may share and
+which takes a client-generated ID at preparation. Members are labelled as the
+Register will list them, by first appearance with the largest holding first, and
+choices are kept by address: a re-read drops a choice only when its address no
+longer holds or is now linked, or its member is no longer offered, and then says
+the choices were reset until a choice changes or the opening is prepared. The
+upload keeps its own retry key and confirmed receipt, preparation reuses its
+operation only for an identical request, and both receipts are checked before
+the openings are refreshed and the page returns to Register. A conflict
+refreshes the holdings and appointments and takes a new operation; a refusal
+with the holdings-moved code shows the server's reason and offers to reload the
+holdings, keeping the authority details and every choice that still applies. Each repeated
+download and decision control is named for screen readers after its visible
+label and when its opening was prepared, and every read, decision, download and
+preparation is bound to the signed-in account.
+
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 [discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
@@ -608,6 +701,22 @@ the `companyRegisterCorrection` destination at
 `/company/register/:uuid/correct/:entry` and `useDiscrepancyAcknowledgement`.
 `useRegisterDecision` decides corrections as it decides imports. The dashboard
 and mobile Register screens described above are built on this layer.
+
+`packages/shared` also holds the client layer for company-run
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain):
+services for a class's opening holders and for openings (list with the company,
+share class and status filters, prepare, decision preview, decide and the
+authority document download), an opening's mapping narrowed at runtime,
+`isPreparedRegisterOpening`, which checks a prepared opening against every field
+of its request and its mapping row by row, `REGISTER_OPENING_DECISIONS` for
+`useRegisterDecision` with the generic decision receipt check, the opening copy
+with a sentence for every requirement an opening decision can leave unmet, and the
+`companyRegisterOpening` destination at `/company/register/:uuid/open`. Its
+helpers order an opening's holdings largest first by exact share count, check
+that every share count is whole, label each mapped member once (by name, or
+numbered as an unnamed or a new member) and recognise a holdings-moved refusal by
+its `opening_holdings_moved` code. The dashboard and mobile opening screens
+described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

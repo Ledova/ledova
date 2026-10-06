@@ -30,7 +30,11 @@ from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, use_operator
 from tokens.constants import REGISTER_LINK_REVIEW_MAX_AGE
-from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
+from tokens.exceptions import (
+    RegisterChangeConflict,
+    RegisterOpeningHoldingsMoved,
+    RegisterUnavailableException,
+)
 from tokens.models import (
     RegisterDecisionKind,
     RegisterEntry,
@@ -46,6 +50,7 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
+from tokens.services.register import member_identities
 from tokens.services.register_authority import (
     APPOINTMENT_NOT_FOUND,
     register_appointment,
@@ -151,6 +156,25 @@ def _check_unopened(token):
 def _linked_elsewhere(company, links):
     lowered = {link["address"].lower(): link["member"] for link in links}
     return any(member != lowered[address] for address, member in _existing_links(company, links).items())
+
+
+def _holder(row, links, people):
+    member = links.get(row["address"].lower())
+    return {
+        **row,
+        "member": member,
+        "member_name": None if member is None else people[UUID(member)].name or None,
+        "member_exists": member is not None,
+    }
+
+
+def opening_holders(token):
+    _check_unopened(token)
+    boundary = capture_snapshot(token.pk)
+    holdings = sorted(boundary["holdings"], key=lambda row: (-int(row["shares"]), row["address"].lower()))
+    links = _existing_links(token.company_id, holdings)
+    people = member_identities(token, sorted({UUID(member) for member in links.values()}))
+    return {"block": boundary["block"], "holdings": [_holder(row, links, people) for row in holdings]}
 
 
 def prepare_opening(
@@ -319,9 +343,7 @@ def _check_mapping_against_boundary(mapping, boundary):
     mapped = {link["address"].lower() for link in mapping}
     holding = {row["address"].lower() for row in boundary["holdings"]}
     if mapped != holding:
-        raise ValidationError(
-            "The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary."
-        )
+        raise RegisterOpeningHoldingsMoved()
 
 
 def _recheck_boundary(boundary):

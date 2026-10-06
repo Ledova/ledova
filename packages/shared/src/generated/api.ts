@@ -1551,6 +1551,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/opening-holders/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_opening_holders_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/waiting/': {
     parameters: {
       query?: never;
@@ -4769,11 +4785,16 @@ export interface ApiComponents {
       token: string;
       uuid: string;
     };
+    RegisterOpeningBlock: {
+      date: string;
+      hash: string;
+      number: number;
+    };
     RegisterOpeningBoundary: {
       blockHash: string;
       blockNumber: number;
       date: string;
-      holdings: ApiComponents['schemas']['RegisterOpeningHolding'][];
+      holdings: ApiComponents['schemas']['RegisterOpeningHolder'][];
     };
     RegisterOpeningChange: {
       member: string;
@@ -4823,10 +4844,16 @@ export interface ApiComponents {
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };
-    RegisterOpeningHolding: {
+    RegisterOpeningHolder: {
       address: string;
       member: string | null;
+      memberExists: boolean;
+      memberName: string | null;
       shares: string;
+    };
+    RegisterOpeningHolders: {
+      block: ApiComponents['schemas']['RegisterOpeningBlock'];
+      holdings: ApiComponents['schemas']['RegisterOpeningHolder'][];
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -8538,6 +8565,27 @@ export interface ApiOperations {
         };
         content: {
           'text/csv': string;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_opening_holders_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterOpeningHolders'];
         };
       };
     };

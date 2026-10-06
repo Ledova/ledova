@@ -33,6 +33,7 @@ const HOLDERS = COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary');
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
 const ENTRIES = COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary');
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
+const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PREVIEW = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_PREVIEW('import-new');
@@ -289,7 +290,7 @@ beforeEach(() => {
     if (url === IMPORTS) return page(imports);
     if (url === APPOINTMENTS) return page(appointments);
     if (url === ENTRIES) return page(entries);
-    if (url === CORRECTIONS || url === RECONCILIATIONS) return page([]);
+    if (url === OPENINGS || url === CORRECTIONS || url === RECONCILIATIONS) return page([]);
     if (url.endsWith('/file/') || url.endsWith('/asic-file/'))
       return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);
