@@ -718,6 +718,20 @@ numbered as an unnamed or a new member) and recognise a holdings-moved refusal b
 its `opening_holdings_moved` code. The dashboard and mobile opening screens
 described above are built on this layer.
 
+`packages/shared` also holds the client layer for company-run
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars):
+services for particulars changes (list with the company, member and status
+filters, prepare, decision preview, decide and the supporting document
+download), `isPreparedRegisterParticularsChange`, which checks a prepared change
+against every field of its request, `REGISTER_PARTICULARS_DECISIONS` for
+`useRegisterDecision` with the generic decision receipt check, the particulars
+copy with a sentence for every requirement a particulars decision can leave
+unmet and a note that the latest as-at date wins between imports and changes
+while a member's live verified identity wins over both, and the
+`companyRegisterParticulars` destination at
+`/company/register/members/:member/particulars`. The web and mobile particulars
+screens are being built; neither client shows particulars changes yet.
+
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
 lists every page of its share classes, filtered to that company. Profile edits
