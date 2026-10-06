@@ -16,10 +16,14 @@ import { apiClient } from '../../services/apiClient';
 import * as sessionScope from '../../services/sessionScope';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
+import { PrepareRegisterLinkScreen } from './PrepareRegisterLinkScreen';
 
 const mockNavigate = jest.fn();
 const mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
-jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
+  useRoute: () => ({ params: { company: 'paper' } }),
+}));
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   useUserPreferences: () => mockPreferences,
@@ -211,6 +215,8 @@ const PREVIEW = {
 };
 const PDF = { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content-type': 'application/pdf' } };
 let client: QueryClient;
+let classes: unknown[];
+let holdersOf: Map<string, unknown>;
 let linkPages: unknown[][];
 let linkAnswers: Map<number, () => Promise<unknown>>;
 let waiting: unknown[];
@@ -258,6 +264,10 @@ const reads = (url: string) => get.mock.calls.filter(([called]) => called === ur
 const requests = (url: string) =>
   get.mock.calls.filter(([called]) => called === url).map(([, config]) => config as Request);
 const refreshed = () => [reads(LINKS), reads(WAITING), reads(HOLDERS), reads(ENTRIES_URL), reads(APPOINTMENTS)];
+const previewed = (view: Awaited<ReturnType<typeof render>>, address: string) =>
+  within(within(view.getAllByText(address).at(-1)!.parent!).getByText(COPY.MEMBER).parent!)
+    .getAllByText(/.+/)
+    .map(text)[1];
 const headings = (view: Awaited<ReturnType<typeof render>>) =>
   view.getAllByText(/^(Prepared|Approved|Applied|Rejected) · \d+ wallets?$/).map(text);
 const section = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.TITLE).parent!);
@@ -285,6 +295,8 @@ async function openClass(view: Awaited<ReturnType<typeof render>>) {
 
 beforeEach(() => {
   resetFiles();
+  classes = [shareClass];
+  holdersOf = new Map([[HOLDERS, register]]);
   linkPages = [
     [REJECTED, STAFF],
     [LINK, REJECTED],
@@ -304,8 +316,8 @@ beforeEach(() => {
   get.mockReset().mockImplementation(async (url, config) => {
     const number = ((config?.params ?? {}) as Params).page ?? 1;
     if (failing.has(url)) throw new Error('Unavailable');
-    if (url === URLS.REGISTER) return page([shareClass]);
-    if (url === HOLDERS) return { data: register };
+    if (url === URLS.REGISTER) return page(classes);
+    if (holdersOf.has(url)) return { data: holdersOf.get(url) };
     if (url === APPOINTMENTS) return page(appointments);
     if (url === LINKS) return linkAnswers.get(number)?.() ?? paged(linkPages, number);
     if (url === WAITING) return waitingAnswer?.() ?? { data: { wallets: waiting } };
@@ -507,11 +519,101 @@ it('numbers a link’s new members by their first wallet in its mapping, in its 
   expect(record.getAllByText(new RegExp(`^(${NEW_ONE}|${NEW_TWO})$`)).map(text)).toEqual([NEW_ONE, NEW_TWO, NEW_ONE]);
   await fireEvent.press(view.getByRole('button', { name: step('approve') }));
   await view.findByText(COPY.CONFIRMATIONS.approve);
-  const member = (address: string) =>
-    within(within(view.getAllByText(address).at(-1)!.parent!).getByText(COPY.MEMBER).parent!)
-      .getAllByText(/.+/)
-      .map(text)[1];
-  expect([ADA, BEA, CY].map(member)).toEqual([NEW_ONE, NEW_TWO, NEW_ONE]);
+  expect([ADA, BEA, CY].map((address) => previewed(view, address))).toEqual([NEW_ONE, NEW_TWO, NEW_ONE]);
+});
+
+it('labels the members of every class alike on the link form, in the record and in its preview', async () => {
+  const [unnamedFirst, unnamedSecond, samFirst, samSecond] = ['b1', 'b2', 'c1', 'c2'].map(
+    (end) => `10000000-0000-4000-8000-0000000000${end}`,
+  );
+  const addresses = [1, 2, 3, 4].map((digit) => `0x${String(digit).repeat(40)}`);
+  const holder = (member: string, name: string | null, balance: string, shareClass: string, wallet?: string) => ({
+    member,
+    name,
+    holderType: name ? 'member' : 'unidentified',
+    balance,
+    shareClass,
+    enteredOn: '2026-10-04',
+    wallets: wallet ? [{ address: wallet, whitelistStatus: 'active' }] : [],
+  });
+  classes = [shareClass, { ...shareClass, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' }];
+  holdersOf = new Map<string, unknown>([
+    [
+      HOLDERS,
+      {
+        ...register,
+        totalHolders: 4,
+        holders: [
+          register.holders[0],
+          holder(unnamedFirst, null, '10', 'ORD'),
+          holder(samFirst, 'Sam Lee', '10', 'ORD', '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4'),
+          holder(unnamedSecond, null, '10', 'ORD'),
+        ],
+      },
+    ],
+    [
+      URLS.HOLDERS('preference'),
+      {
+        ...register,
+        token: { ...register.token, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' },
+        totalHolders: 2,
+        holders: [
+          holder(samSecond, 'Sam Lee', '10', 'PRF', '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2'),
+          holder(unnamedFirst, null, '5', 'PRF'),
+        ],
+      },
+    ],
+  ]);
+  waiting = addresses.map((address) => ({
+    address,
+    waiting: 1,
+    walletProof: null,
+    holderType: null,
+    holderName: null,
+  }));
+  const mapping = [unnamedSecond, unnamedFirst, samSecond, samFirst].map((member, index) => ({
+    address: addresses[index],
+    member,
+  }));
+  const mappingSummary = mapping.map((row) => ({ ...row, memberExists: true }));
+  linkPages = [[{ ...LINK, mapping, mappingSummary }]];
+  const unnamed = (number: number) => `${COPY.UNNAMED_MEMBER} · ${COPY.HOLDING('10', 'ORD')} (${number})`;
+  const samOne = 'Sam Lee · 0x5B38…ddC4';
+  const samTwo = 'Sam Lee · 0xAb84…5cb2';
+  const crossed = [unnamed(2), unnamed(1), samTwo, samOne];
+  const form = await render(<PrepareRegisterLinkScreen />, { wrapper });
+  await form.findByTestId('prepare-link-screen');
+  expect(
+    form
+      .getAllByRole('radio')
+      .map((node) => String(node.props.accessibilityLabel))
+      .filter((name) => name.endsWith(' for wallet 1')),
+  ).toEqual(['Alex Member', unnamed(1), samOne, unnamed(2), samTwo].map((label) => `${label} for wallet 1`));
+  for (const [index, label] of crossed.entries())
+    await fireEvent.press(form.getByLabelText(`${label} for wallet ${index + 1}`));
+  expect(
+    [1, 2, 3, 4].map(
+      (number) =>
+        within(within(form.getByText(`Wallet ${number}`).parent!).getByText(COPY.MEMBER).parent!)
+          .getAllByText(/.+/)
+          .map(text)[1],
+    ),
+  ).toEqual(crossed);
+  post.mockResolvedValueOnce({
+    data: {
+      ...PREVIEW,
+      links: mappingSummary.map((row) => ({ ...row, walletProof: null, holderType: null, holderName: null })),
+    },
+  });
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await view.findByText(`${COPY.STAGES.submitted} · 4 wallets`);
+  expect(addresses.map((address) => within(view.getByText(address).parent!).getAllByText(/.+/).map(text)[0])).toEqual(
+    crossed,
+  );
+  const four = `${COPY.STAGES.submitted.toLowerCase()} wallet link for 4 wallets, ${prepared(LINK.createdAt)}`;
+  await fireEvent.press(view.getByRole('button', { name: step('approve', four) }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  expect(addresses.map((address) => previewed(view, address))).toEqual(crossed);
 });
 
 it('refreshes after a refused decision and withdraws the steps a revoked appointment held', async () => {
