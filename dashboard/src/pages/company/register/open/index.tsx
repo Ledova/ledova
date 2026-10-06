@@ -97,13 +97,7 @@ function OwnOpening({
   };
   const fetching = classes.isFetching || appointments.isFetching || holders.isFetching;
   const stale = classes.isError || appointments.isError || holders.isError;
-  const failure = (
-    <HoldersFailure
-      error={classes.isError || appointments.isError ? null : holders.error}
-      retry={retry}
-      busy={fetching}
-    />
-  );
+  const failure = <HoldersFailure error={holders.error} retry={retry} busy={fetching} />;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;

@@ -311,6 +311,7 @@ it('shows the class, the block read and each holding with its member, then prepa
   expect(within(holding(ADA)).getByText('Ada Member')).toBeTruthy();
   expect(within(holding(ADA)).getByText(COPY.LINKED_NOTE)).toBeTruthy();
   expect(within(holding(ADA)).queryByLabelText(COPY.MEMBER)).toBeNull();
+  expect(screen.getByText(/Choose the same member for addresses that belong to one person/)).toBeTruthy();
   expect([chosen(BO), chosen(CY), chosen(DEE)]).toEqual([
     COPY.NEW_MEMBER_NUMBERED(1),
     COPY.NEW_MEMBER_NUMBERED(2),
@@ -402,6 +403,7 @@ it('says a class with no holdings on chain records an empty register, and prepar
   await ready();
   expect(screen.getByText(COPY.NO_HOLDINGS)).toBeTruthy();
   expect(screen.queryByLabelText(COPY.MEMBER)).toBeNull();
+  expect(screen.queryByText(/Choose the same member for addresses that belong to one person/)).toBeNull();
   complete();
   fireEvent.click(submitButton());
   expect(await screen.findByText('Register page')).toBeTruthy();
@@ -758,6 +760,7 @@ it('takes a new upload key after the upload conflicts, or once another file is c
   await waitFor(() => expect(submitButton().disabled).toBe(false));
   uploadFor = async (form) => ({ data: receipt(form) });
   attach(new File(['%PDF court order'], 'court-order.pdf', { type: 'application/pdf' }));
+  expect(screen.queryByRole('alert')).toBeNull();
   fireEvent.click(submitButton());
   expect(await screen.findByText('Register page')).toBeTruthy();
   expect(uploads().map((form) => [form.get('idempotency_key'), (form.get('file') as File).name])).toEqual([

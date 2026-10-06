@@ -125,12 +125,8 @@ export function OpeningForm({
     ...[...linked].map(([value, label]) => ({ value, label })),
     ...unlinked.map((_, index) => ({ value: `${NEW}${index}`, label: COPY.NEW_MEMBER_NUMBERED(index + 1) })),
   ];
-  const choiceOf = (holding: RegisterOpeningHolder) => {
-    const value = chosen[holding.address.toLowerCase()];
-    return value !== undefined && options.some((option) => option.value === value)
-      ? value
-      : `${NEW}${unlinked.indexOf(holding)}`;
-  };
+  const choiceOf = (holding: RegisterOpeningHolder) =>
+    chosen[holding.address.toLowerCase()] ?? `${NEW}${unlinked.indexOf(holding)}`;
   const problems = problemsOf(draft);
   const clear = () => {
     setError('');

@@ -154,8 +154,8 @@ function opening(overrides: Partial<RegisterOpeningRecord> = {}): RegisterOpenin
       holdings: [
         { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member' },
         { address: BO, shares: '9007199254740993', member: NEW_ONE, memberName: null },
+        { address: DEE, shares: '5', member: NEW_TWO, memberName: null },
         { address: CY, shares: '5', member: NEW_ONE, memberName: null },
-        { address: DEE, shares: '1', member: NEW_TWO, memberName: null },
       ],
     },
     authority: 'director_resolution',
@@ -206,7 +206,7 @@ function preview(overrides: Partial<RegisterOpeningDecisionPreview> = {}): Regis
     changes: [
       { member: MEMBER_ADA, shares: '20' },
       { member: NEW_ONE, shares: '9007199254740998' },
-      { member: NEW_TWO, shares: '1' },
+      { member: NEW_TWO, shares: '5' },
     ],
     effectiveOn: '2026-09-20',
     ...overrides,
@@ -461,7 +461,7 @@ it("lists every page of the class's openings newest first, each once, with their
     [COPY.NEW_MEMBER_NUMBERED(1), '9,007,199,254,740,993 shares', BO],
     ['Ada Member', '20 shares', ADA],
     [COPY.NEW_MEMBER_NUMBERED(1), '5 shares', CY],
-    [COPY.NEW_MEMBER_NUMBERED(2), '1 share', DEE],
+    [COPY.NEW_MEMBER_NUMBERED(2), '5 shares', DEE],
   ]);
   expect(within(newest).getByText(COPY.PROVIDED_BY_COMPANY)).toBeTruthy();
   expect(within(newest).queryByText('Decided on')).toBeNull();
@@ -618,7 +618,7 @@ it('previews an approval with the opening entry by member, then records exactly 
   expect(lines(dialog, 'Opening entry')).toEqual([
     'Ada Member: +20',
     `${COPY.NEW_MEMBER_NUMBERED(1)}: +9,007,199,254,740,998`,
-    `${COPY.NEW_MEMBER_NUMBERED(2)}: +1`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)}: +5`,
   ]);
   expect(within(dialog).queryByText(COPY.HOLDINGS_NOTE)).toBeNull();
   const before = [reads(OPENINGS), reads(HOLDERS), reads(ENTRIES), reads(APPOINTMENTS)];
