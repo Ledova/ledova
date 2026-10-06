@@ -4,6 +4,7 @@ import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native'
 import type { RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import WebView from 'react-native-webview';
+import { canOpen, useUserPreferences } from '@ledova/shared';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -13,6 +14,7 @@ import { createProviderLifetime, useProviderViewLifecycle } from '../../../hooks
 export interface OnRampWebViewParams {
   url: string;
   sessionEpoch: number;
+  userAccountUuid: string;
 }
 
 const INJECTED_JS = `
@@ -58,13 +60,22 @@ export function OnRampWebViewScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<{ OnRampWebView: OnRampWebViewParams }, 'OnRampWebView'>>();
   const queryClient = useQueryClient();
-  const { url, sessionEpoch } = route.params;
+  const { url, sessionEpoch, userAccountUuid } = route.params;
+  const { userAccount } = useUserPreferences();
+  const canPurchase =
+    !!userAccountUuid && userAccount?.uuid === userAccountUuid && canOpen(userAccount.role, 'investing');
   const focused = useIsFocused();
   const blurRevision = useRef(0);
   const [navigationRevision, refreshNavigation] = useReducer((value: number) => value + 1, 0);
   const capturedRevision = blurRevision.current;
-  const outcome = useMemo(() => ({ url, sessionEpoch, lifetime: createProviderLifetime() }), [url, sessionEpoch]);
+  const outcome = useMemo(
+    () => ({ url, sessionEpoch, userAccountUuid, lifetime: createProviderLifetime() }),
+    [url, sessionEpoch, userAccountUuid],
+  );
   const safeUrl = allowWebNavigation(url) ? url : null;
+  useLayoutEffect(() => {
+    if (!canPurchase) outcome.lifetime.retire();
+  }, [canPurchase, outcome]);
 
   useLayoutEffect(
     () =>
@@ -88,8 +99,16 @@ export function OnRampWebViewScreen() {
     }
   };
 
-  const lifecycle = useProviderViewLifecycle(focused, null, safeUrl, sessionEpoch, handleComplete, handleClose);
+  const lifecycle = useProviderViewLifecycle(
+    focused && canPurchase,
+    null,
+    safeUrl,
+    sessionEpoch,
+    handleComplete,
+    handleClose,
+  );
   const isCurrent = () =>
+    canPurchase &&
     outcome.lifetime.isActive() &&
     capturedRevision === blurRevision.current &&
     navigation.isFocused() &&
@@ -114,7 +133,9 @@ export function OnRampWebViewScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {!safeUrl ? (
+        {!canPurchase ? (
+          <Text>Crypto purchases require a personal investor account.</Text>
+        ) : !safeUrl ? (
           <Text>Unable to open an insecure provider URL.</Text>
         ) : !lifecycle.admitted || !outcome.lifetime.isActive() ? (
           <Text>Provider view paused.</Text>

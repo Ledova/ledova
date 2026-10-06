@@ -5,7 +5,7 @@ import { useBuyCrypto } from '@hooks/useBuyCrypto';
 import { useSendTransfer } from '@hooks/useSendTransfer';
 
 export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
-  const { openBuyCrypto } = useBuyCrypto();
+  const { openBuyCrypto, canBuyCrypto } = useBuyCrypto();
   const { openSendTransfer, openSendTransferFrom } = useSendTransfer();
   const verified = (wallets ?? []).filter(
     (wallet) =>
@@ -15,7 +15,7 @@ export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
 
   return (
     <>
-      <PageAction label="Buy crypto" onClick={openBuyCrypto} />
+      {canBuyCrypto && <PageAction label="Buy crypto" onClick={openBuyCrypto} />}
       <PageAction
         label="Send"
         onClick={() => (onlyVerified ? openSendTransferFrom(onlyVerified) : openSendTransfer())}

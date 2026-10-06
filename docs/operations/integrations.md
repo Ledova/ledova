@@ -229,8 +229,12 @@ backend log.
 The on-ramp is an optional personal investor feature, outside the core
 private-company register and share workflows. Companies must not buy
 cryptocurrency through it. [#920](https://github.com/Ledova/ledova/issues/920)
-tracks the current client/API restriction gap; these configuration settings do
-not establish that it is enforced. Configuring Transak does not select an AUD
+checks the actual current `investor` or `both` personal account before contacting
+the provider, retaining wallet ownership and server-derived purchase fields.
+Missing and company-only accounts are refused. Both clients guard entry,
+deferred responses and open provider views against account/role loss. This adds
+no server signup, KYC or account-status condition; native identity and
+session/lock/foreground guards remain. Configuring Transak does not select an AUD
 share-payment provider or make conversion a prerequisite for buying shares. The
 [AUD payment design](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 remains undecided in [#868](https://github.com/Ledova/ledova/issues/868) and

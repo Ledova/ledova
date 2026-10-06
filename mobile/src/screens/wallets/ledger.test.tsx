@@ -26,7 +26,7 @@ jest.mock('../../services/apiClient', () => ({
   apiClient: { get: jest.fn(), post: jest.fn(), patch: jest.fn(), delete: jest.fn() },
 }));
 let mockPreferences: {
-  userAccount: { uuid: string } | null;
+  userAccount: { uuid: string; role: 'investor' | 'company' | 'both' } | null;
   isLoading: boolean;
   isError: boolean;
   refetch: () => Promise<void>;
@@ -109,7 +109,12 @@ const refresh = () =>
   });
 
 beforeEach(() => {
-  mockPreferences = { userAccount: { uuid: 'owner' }, isLoading: false, isError: false, refetch: async () => {} };
+  mockPreferences = {
+    userAccount: { uuid: 'owner', role: 'investor' },
+    isLoading: false,
+    isError: false,
+    refetch: async () => {},
+  };
   mockRouteWallet = wallet();
   pages = {
     1: { results: [wallet()], next: `https://example.test${url}?page=2` },
@@ -227,6 +232,19 @@ it('shows truthful empty networks and retains Buy and Send only as wallet destin
   expect(mockNavigate).toHaveBeenCalledWith('Buy', { screen: 'BuySelect' });
   await fireEvent.press(view.getByRole('button', { name: 'Send' }));
   expect(mockNavigate).toHaveBeenCalledWith('Send', { screen: 'SendMain' });
+});
+
+it.each(['investor', 'both'] as const)('offers crypto purchasing to a known %s account', async (role) => {
+  mockPreferences.userAccount = { uuid: 'owner', role };
+  const view = await mount(<WalletsScreen />);
+  await waitFor(() => expect(view.getByRole('button', { name: 'Buy crypto' })).toBeTruthy());
+});
+
+it('withholds crypto purchases from companies while keeping Send', async () => {
+  mockPreferences.userAccount = { uuid: 'owner', role: 'company' };
+  const view = await mount(<WalletsScreen />);
+  await waitFor(() => expect(view.getByRole('button', { name: 'Send' })).toBeTruthy());
+  expect(view.queryByRole('button', { name: 'Buy crypto' })).toBeNull();
 });
 
 describe('Send from Wallets', () => {
@@ -642,7 +660,7 @@ it('does not call unresolved account ownership an empty wallet list', async () =
   await view.rerender(<WalletsScreen />);
   expect(view.getByText('Your wallets could not be loaded. Try again before continuing.')).toBeTruthy();
   expect(view.queryByText('No Base wallets yet.')).toBeNull();
-  mockPreferences = { ...mockPreferences, userAccount: { uuid: 'owner' }, isError: false };
+  mockPreferences = { ...mockPreferences, userAccount: { uuid: 'owner', role: 'investor' }, isError: false };
   await view.rerender(<WalletsScreen />);
   await waitFor(() => expect(view.getByText('Fictional b')).toBeTruthy());
 });

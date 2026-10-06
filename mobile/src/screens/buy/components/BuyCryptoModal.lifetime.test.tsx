@@ -11,9 +11,11 @@ const mockWallets = [{ uuid: 'synthetic-wallet', chain: 'base' }];
 const pending: ((value: { data: { url: string } }) => void)[] = [];
 const appStateListeners = new Set<(state: AppStateStatus) => void>();
 let access: ReturnType<typeof createCameraAccess>;
+let mockAccount: { uuid: string; role: 'investor' | 'company' | 'both' } | null;
 
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
+  useUserPreferences: () => ({ userAccount: mockAccount }),
   getOnRampWidgetUrl: (...args: unknown[]) => mockWidget(...args),
   getUserVerificationStatus: () => ({ type: 'verified' }),
   useCurrency: () => ({ formatDisplayCurrency: String }),
@@ -66,9 +68,9 @@ function Harness({ account = 'synthetic-account', shown = true }: { account?: st
           userAccountUuid={account}
           onClose={() => setOpen(false)}
           onNavigateToProfile={jest.fn()}
-          onNavigateToWebView={(url, epoch) => {
+          onNavigateToWebView={(url, epoch, accountUuid) => {
             setOpen(false);
-            mockNavigate(url, epoch);
+            mockNavigate(url, epoch, accountUuid);
           }}
         />
       </QueryClientProvider>
@@ -77,6 +79,7 @@ function Harness({ account = 'synthetic-account', shown = true }: { account?: st
 }
 
 beforeEach(() => {
+  mockAccount = { uuid: 'synthetic-account', role: 'investor' };
   access = createCameraAccess();
   access.setAllowed(true);
   AppState.currentState = 'active';
@@ -116,8 +119,40 @@ it('carries the requesting session into a current provider opening', async () =>
   await render(<Harness />);
   await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(1));
   await respond();
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('https://provider.example.test/current', epoch));
+  await waitFor(() =>
+    expect(mockNavigate).toHaveBeenCalledWith('https://provider.example.test/current', epoch, 'synthetic-account'),
+  );
   expect(mockNavigate).toHaveBeenCalledTimes(1);
+});
+
+it.each(['company', 'missing'] as const)('does not request a provider for a %s account', async (kind) => {
+  mockAccount = kind === 'company' ? { uuid: 'synthetic-account', role: 'company' } : null;
+  const view = await render(<Harness />);
+  expect(mockWidget).not.toHaveBeenCalled();
+  expect(view.queryByText('Select an asset to purchase')).toBeNull();
+});
+
+it('allows a known dual-role personal account', async () => {
+  mockAccount = { uuid: 'synthetic-account', role: 'both' };
+  await render(<Harness />);
+  await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(1));
+  await respond();
+  expect(mockNavigate).toHaveBeenCalledWith(
+    'https://provider.example.test/current',
+    getSessionEpoch(),
+    'synthetic-account',
+  );
+});
+
+it.each(['company', 'missing'] as const)('rejects a deferred URL after losing the account to %s', async (kind) => {
+  const view = await render(<Harness />);
+  await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(1));
+  mockAccount = kind === 'company' ? { uuid: 'synthetic-account', role: 'company' } : null;
+  await view.rerender(<Harness />);
+  await respond('https://provider.example.test/retired-role');
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockWidget).toHaveBeenCalledTimes(1);
 });
 
 it('refuses a URL fetched for a previous session', async () => {
@@ -141,13 +176,18 @@ it('does not reopen the provider after cancelling its pending request', async ()
 it('rejects the previous account response while accepting the current account', async () => {
   const view = await render(<Harness />);
   await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(1));
+  mockAccount = { uuid: 'synthetic-account-b', role: 'investor' };
   await view.rerender(<Harness account="synthetic-account-b" />);
   await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(2));
   await respond('https://provider.example.test/old-account');
   expect(mockNavigate).not.toHaveBeenCalled();
   await respond();
   await waitFor(() =>
-    expect(mockNavigate).toHaveBeenCalledWith('https://provider.example.test/current', getSessionEpoch()),
+    expect(mockNavigate).toHaveBeenCalledWith(
+      'https://provider.example.test/current',
+      getSessionEpoch(),
+      mockAccount!.uuid,
+    ),
   );
   expect(mockNavigate).toHaveBeenCalledTimes(1);
 });
@@ -198,7 +238,11 @@ it.each(['lock', 'background'] as const)(
     await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(2));
     await respond();
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('https://provider.example.test/current', getSessionEpoch()),
+      expect(mockNavigate).toHaveBeenCalledWith(
+        'https://provider.example.test/current',
+        getSessionEpoch(),
+        mockAccount!.uuid,
+      ),
     );
     expect(mockNavigate).toHaveBeenCalledTimes(1);
   },
@@ -224,7 +268,11 @@ it.each(['lock', 'background'] as const)(
     await waitFor(() => expect(mockWidget).toHaveBeenCalledTimes(2));
     await respond();
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('https://provider.example.test/current', getSessionEpoch()),
+      expect(mockNavigate).toHaveBeenCalledWith(
+        'https://provider.example.test/current',
+        getSessionEpoch(),
+        mockAccount!.uuid,
+      ),
     );
     expect(mockNavigate).toHaveBeenCalledTimes(1);
   },

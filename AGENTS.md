@@ -18,7 +18,8 @@ when starting or resuming work, including after context compaction.
   AUD is a required share-payment method, distinct from pricing or a stablecoin.
   Follow the [5 October product decision](docs/decisions.md#registry-priority-crypto-on-ramp-and-aud-payments);
   record undecided payment mechanics for the owner through #868/#869 before
-  implementing them, and keep #920's existing on-ramp enforcement gap explicit.
+  implementing them, and preserve #920's investor account and provider-lifetime
+  guards.
 - Tidy as each issue progresses. Remove code, imports, configuration, routes,
   tests and documentation that become obsolete when their replacement lands.
   Check references before deleting; do not leave parallel unused implementations.
