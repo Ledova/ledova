@@ -55,10 +55,10 @@ const LISTED = {
   name: 'Ordinary shares',
   symbol: 'ORD',
 };
-const ADA_WALLET = `0x${'a'.repeat(40)}`;
-const BO_WALLET = `0x${'b'.repeat(40)}`;
-const CY_WALLET = `0x${'c'.repeat(40)}`;
-const DEE_WALLET = `0xD${'d'.repeat(39)}`;
+const ADA_WALLET = '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa';
+const BO_WALLET = '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB';
+const CY_WALLET = '0xcF22222222222222222222222222222222222222';
+const DEE_WALLET = '0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd';
 const MEMBER_ADA = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_UNNAMED = '10000000-0000-4000-8000-0000000000bb';
 const REASON = 'Link the wallets of the September subscribers';
@@ -588,20 +588,42 @@ it('keeps each chosen member by its wallet across a re-read, in the order and nu
 });
 
 it.each([
-  ['its member no longer holds shares', HOLDERS_KEY, ADA_WALLET],
-  ['the wallet whose new member it shares no longer waits', WAITING_KEY, CY_WALLET],
-])('resets a choice when %s, and says so until a choice changes', async (_why, queryKey, address) => {
+  ['its member no longer holds shares', HOLDERS_KEY, WAITING_WALLETS, ADA_WALLET, BO_WALLET],
+  [
+    'the wallet whose new member it shares no longer waits',
+    WAITING_KEY,
+    [WAITING_WALLETS[0], WAITING_WALLETS[2]],
+    CY_WALLET,
+    ADA_WALLET,
+  ],
+  ['its own wallet no longer waits', WAITING_KEY, WAITING_WALLETS.slice(1), null, BO_WALLET],
+])(
+  'resets a choice when %s, falling back to its own new member, and says so until any wallet is chosen again',
+  async (_why, queryKey, after, address, other) => {
+    show();
+    await ready();
+    choose(ADA_WALLET, 'Ada Member');
+    choose(CY_WALLET, NEW_MEMBER(1));
+    holders = [holder(MEMBER_UNNAMED, null)];
+    waitingWallets = after;
+    await reread(queryKey);
+    expect(await screen.findByText(COPY.CHOICES_RESET)).toBeTruthy();
+    if (address) expect(memberOf(address).value).toBe(`new:${address.toLowerCase()}`);
+    choose(other, chosen(other)[0]!);
+    expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  },
+);
+
+it('holds preparation after a failed appointments refresh', async () => {
   show();
   await ready();
-  choose(ADA_WALLET, 'Ada Member');
-  choose(CY_WALLET, NEW_MEMBER(1));
-  holders = [holder(MEMBER_UNNAMED, null)];
-  waitingWallets = [WAITING_WALLETS[0], wallet(CY_WALLET)];
-  await reread(queryKey);
-  expect(await screen.findByText(COPY.CHOICES_RESET)).toBeTruthy();
-  expect(memberOf(address).value).toBe(`new:${address}`);
-  choose(address, chosen(address)[0]!);
-  expect(screen.queryByText(COPY.CHOICES_RESET)).toBeNull();
+  complete();
+  expect(submitButton().disabled).toBe(false);
+  serve((url) => (url === APPOINTMENTS ? Promise.reject(new Error('Unavailable')) : undefined));
+  await reread(APPOINTMENTS_KEY);
+  await waitFor(() => expect(submitButton().disabled).toBe(true));
+  fireEvent.submit(submitButton().closest('form')!);
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it('neither refreshes nor returns to Register when a preparation returns after the signed-in account changed', async () => {
