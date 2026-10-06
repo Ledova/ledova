@@ -12,6 +12,7 @@ export * from './register-imports';
 export * from './register-corrections';
 export * from './register-links';
 export * from './register-openings';
+export * from './register-particulars';
 export * from './register-reconciliations';
 export * from './company-documents';
 export * from './company-authority';

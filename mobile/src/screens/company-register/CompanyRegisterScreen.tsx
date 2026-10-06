@@ -11,7 +11,7 @@ import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
-import { ClassRegister } from './ClassRegister';
+import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from './RegisterDownload';
 
 export function CompanyRegisterScreen() {
@@ -86,7 +86,6 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         disabled={!register.initialized}
                         accessibilityLabel={`${REGISTER_COPY.DOWNLOAD} for ${register.token.name}`}
                       />
-                      <ClassRegister register={register} />
                       <ClassRecords
                         epoch={epoch}
                         company={company.uuid}
@@ -105,6 +104,13 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                             entryUuid: entry.uuid,
                           })
                         }
+                        onChangeParticulars={(member) =>
+                          navigation.navigate('PrepareRegisterParticulars', {
+                            tokenUuid: uuid,
+                            companyUuid: company.uuid,
+                            memberUuid: member,
+                          })
+                        }
                       />
                     </View>
                   )}
@@ -114,6 +120,14 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           })
         )}
       </Section>
+      {company && registers.isSuccess && (
+        <CompanyParticulars
+          epoch={epoch}
+          company={company.uuid}
+          registers={registers.data}
+          refreshHolders={registers.refetch}
+        />
+      )}
       <Section title="Register instructions">
         <Text style={styles.muted}>
           The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection

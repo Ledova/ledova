@@ -35,6 +35,7 @@ const ENTRIES = COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary');
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
+const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PREVIEW = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENING_PREVIEW('opening-new');
 const DECIDE = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENING_DECIDE('opening-new');
@@ -268,7 +269,7 @@ function serve(read?: (url: string, config?: ReadConfig) => unknown) {
     if (url === APPOINTMENTS) return page(appointments);
     if (url === OPENINGS) return openingPages[(config?.params?.page ?? 1) - 1];
     if (url === ENTRIES) return page(entries);
-    if (url === IMPORTS || url === CORRECTIONS || url === RECONCILIATIONS) return page([]);
+    if (url === IMPORTS || url === CORRECTIONS || url === RECONCILIATIONS || url === PARTICULARS) return page([]);
     if (url.endsWith('/file/')) return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);
   });

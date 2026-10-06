@@ -65,6 +65,12 @@ describe('the signed-in destinations', () => {
     expect(DESTINATIONS.companyRegisterOpening.path).toBe(`${DESTINATIONS.companyClass.path}/open`);
   });
 
+  it("opens a change of one member's particulars beneath Register, apart from any share class", () => {
+    expect(DESTINATIONS.companyRegisterParticulars.path).toBe(
+      `${DESTINATIONS.companyRegister.path}/members/:member/particulars`,
+    );
+  });
+
   it('gives every page a title', () => {
     expect(Object.values(DESTINATIONS).filter((destination) => destination.title.trim() === '')).toEqual([]);
   });
@@ -92,6 +98,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
     companyRegisterCorrection: 'everyone',
     companyRegisterLinks: 'everyone',
     companyRegisterOpening: 'everyone',
+    companyRegisterParticulars: 'everyone',
     company: 'everyone',
     companyAuthority: 'company',
     companyTeam: 'everyone',
@@ -125,6 +132,7 @@ describe("the owner's menus of 26 September, applied to today's pages", () => {
       companyRegisterCorrection: 'Register',
       companyRegisterLinks: 'Register',
       companyRegisterOpening: 'Register',
+      companyRegisterParticulars: 'Register',
       company: 'Company',
       companyAuthority: 'Representative authority',
       companyTeam: 'Company team',

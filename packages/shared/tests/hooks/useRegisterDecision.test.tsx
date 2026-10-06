@@ -9,15 +9,24 @@ import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../../src/cons
 import { REGISTER_LINK_COPY, REGISTER_LINK_UNMET_COPY } from '../../src/constants/business/register-links';
 import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../../src/constants/business/register-openings';
 import {
+  REGISTER_PARTICULARS_COPY,
+  REGISTER_PARTICULARS_UNMET_COPY,
+} from '../../src/constants/business/register-particulars';
+import {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_LINK_DECISIONS,
   REGISTER_OPENING_DECISIONS,
+  REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
   type RegisterDecisionFamily,
 } from '../../src/hooks/useRegisterDecision';
 import { decideRegisterLink, previewRegisterLinkDecision } from '../../src/services/register-links';
 import { decideRegisterOpening, previewRegisterOpeningDecision } from '../../src/services/register-openings';
+import {
+  decideRegisterParticularsChange,
+  previewRegisterParticularsChangeDecision,
+} from '../../src/services/register-particulars';
 import { isRegisterDecisionReceipt } from '../../src/utils/register-commands';
 
 const DIGEST = 'a'.repeat(64);
@@ -398,6 +407,14 @@ it('decides openings through their own routes and copy, with the generic receipt
   expect(REGISTER_OPENING_DECISIONS.isReceipt).toBe(isRegisterDecisionReceipt);
   expect(REGISTER_OPENING_DECISIONS.unmet).toBe(REGISTER_OPENING_UNMET_COPY);
   expect(REGISTER_OPENING_DECISIONS.copy).toBe(REGISTER_OPENING_COPY);
+});
+
+it('decides particulars changes through their own routes and copy, with the generic receipt check', () => {
+  expect(REGISTER_PARTICULARS_DECISIONS.preview).toBe(previewRegisterParticularsChangeDecision);
+  expect(REGISTER_PARTICULARS_DECISIONS.decide).toBe(decideRegisterParticularsChange);
+  expect(REGISTER_PARTICULARS_DECISIONS.isReceipt).toBe(isRegisterDecisionReceipt);
+  expect(REGISTER_PARTICULARS_DECISIONS.unmet).toBe(REGISTER_PARTICULARS_UNMET_COPY);
+  expect(REGISTER_PARTICULARS_DECISIONS.copy).toBe(REGISTER_PARTICULARS_COPY);
 });
 
 it('confirms an applied correction only once it names the entry it applied', async () => {

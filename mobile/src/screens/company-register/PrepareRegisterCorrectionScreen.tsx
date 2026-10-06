@@ -21,15 +21,13 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay } from './RegisterFields';
+import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
 import { useCompanyStyles } from './styles';
 import { correctionsKey, useClassRegister, useRegisterAppointments, useRegisterEntry } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 const FAILED = 'The correction could not be prepared. Retry with the same details.';
-
-const utcToday = () => new Date().toISOString().slice(0, 10);
 
 export function PrepareRegisterCorrectionScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
