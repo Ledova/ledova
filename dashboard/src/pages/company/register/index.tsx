@@ -15,11 +15,14 @@ import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
+import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
 import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
 import { ownerGuard } from './useRegisterImports';
+
+const ON_CHAIN = ['deployed', 'paused'];
 
 function RegisterPage({ selection, children }: { selection?: ReactNode; children: ReactNode }) {
   return (
@@ -140,6 +143,9 @@ function OwnRegister({
                 )}
                 <RegisterDownload register={register} />
                 <ClassRegister register={register} />
+                {ON_CHAIN.includes(register.token.status) && (
+                  <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />
+                )}
                 <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
                 <ClassCorrections owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
                 <ClassReconciliation
