@@ -1,4 +1,5 @@
 import React from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -383,9 +384,11 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
   expect(await view.findByText(DEE)).toBeTruthy();
   expect(view.queryByText(CY)).toBeNull();
   expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', NEW_ONE, 'Alex Member']);
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
   expect(view.getByText(UNMAPPED)).toBeTruthy();
   expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
   await choose(view, NEW_ONE, 1);
+  expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
   await settled(view);
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
@@ -396,6 +399,47 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
     { address: ADA, member: MEMBER_A },
   ]);
 });
+
+it.each<[string, typeof Platform.OS, string[][]]>([
+  ['iOS', 'ios', [[COPY.CHOICES_RESET]]],
+  ['Android', 'android', []],
+])(
+  'says on %s that a re-read reset some choices, in a polite live region, until the link is prepared',
+  async (_, os, announced) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    let answer!: (value: unknown) => void;
+    prepareAnswer
+      .mockRejectedValueOnce({ response: { status: 409, data: { detail: CONFLICT } } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            answer = resolve;
+          }),
+      );
+    const view = await open();
+    await map(view);
+    await complete(view);
+    expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
+    wallets = [WALLETS[0], WALLETS[1]];
+    await submit(view);
+    const note = await view.findByText(COPY.CHOICES_RESET);
+    expect(note.props.accessibilityLiveRegion).toBe('polite');
+    await fireEvent.changeText(view.getByLabelText(COPY.REASON), 'Link the September subscribers');
+    expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
+    await settled(view);
+    await submit(view);
+    await waitFor(() => expect(answer).toBeDefined());
+    expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
+    await act(async () => answer({ data: preparedFrom(preparations()[1]) }));
+    await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+    expect(preparations()[1].mapping).toEqual([
+      { address: ADA, member: MEMBER_A },
+      { address: BEA, member: KEY(1) },
+    ]);
+    expect(announce.mock.calls).toEqual(announced);
+  },
+);
 
 it('shows a refusal in the server’s words, reads nothing again and prepares the next attempt under a new operation id', async () => {
   const refusal = 'A mapped wallet address is already linked to a member of this company.';
