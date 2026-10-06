@@ -13,7 +13,13 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from web3 import Web3
 
-from companies.models import Company, CompanyDocument
+from companies.models import (
+    Company,
+    CompanyAppointment,
+    CompanyCapability,
+    CompanyDocument,
+)
+from companies.services.authority_requests import _requester_principal
 from companies.services.document_review import (
     document_fingerprint,
     private_document_bytes,
@@ -22,30 +28,51 @@ from companies.services.document_review import (
 from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import APP_ALIAS, atomic, current_alias
-from tokens.constants import (
-    REGISTER_LINK_REVIEW_MAX_AGE,
-    REGISTER_OPENING_REVIEW_MAX_AGE,
-)
+from shared.db import APP_ALIAS, atomic, current_alias, use_operator
+from tokens.constants import REGISTER_LINK_REVIEW_MAX_AGE
 from tokens.exceptions import RegisterChangeConflict, RegisterUnavailableException
 from tokens.models import (
+    RegisterDecisionKind,
     RegisterEntry,
     RegisterEntryKind,
+    RegisterEvidence,
+    RegisterEvidenceKind,
     RegisterMember,
     RegisterMemberWallet,
     RegisterOpening,
+    RegisterOpeningDecision,
     RegisterWalletLink,
     ShareRegister,
     ShareToken,
     ShareTokenStatus,
 )
+from tokens.services.register_authority import (
+    APPOINTMENT_NOT_FOUND,
+    register_appointment,
+    register_command,
+)
+from tokens.services.register_decisions import (
+    CAPABILITY,
+    DecisionFamily,
+    decide,
+    preview,
+)
 from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_evidence import (
+    discard,
+    evidence_snapshot,
+    matching_bytes,
+    own_evidence_bytes,
+)
 from tokens.services.register_inclusions import (
     assert_boundary_represents_completions,
     record_completed_effects,
 )
 from tokens.services.register_snapshot import _boundary, capture_snapshot
 from wallets.services.chain_observations import finality_policy
+
+SHARE_CLASS_NOT_FOUND = "Share class not found."
+EVIDENCE_REFUSAL = "Name the authority document you uploaded for this company."
 
 
 def _mapping(mapping):
@@ -91,63 +118,130 @@ def _authority_values(authority, approving_director, authority_reference, reason
     return values
 
 
-def submit_opening(
+def _company_of(actor, token_id):
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    with use_operator(), _requester_principal(actor.pk):
+        company_id = (
+            ShareToken.objects.filter(pk=token_id, company_id__in=appointments.values("company_id"))
+            .values_list("company_id", flat=True)
+            .first()
+        )
+    if company_id is None:
+        raise NotFound(SHARE_CLASS_NOT_FOUND)
+    return company_id
+
+
+def _holding(actor, company_id, appointment, capability):
+    with use_operator(), _requester_principal(actor.pk):
+        return (
+            CompanyAppointment.objects.current_for(actor, company_id, at=timezone.now(), identity_required=False)
+            .filter(pk=appointment)
+            .holding_any([CompanyCapability.ADMIN, capability])
+            .exists()
+        )
+
+
+def _check_unopened(token):
+    if token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
+        raise ValidationError("A register opening requires a deployed share class.")
+    if RegisterEntry.objects.filter(register__token=token).exists():
+        raise ValidationError("This share class already has a stored register.")
+
+
+def _linked_elsewhere(company, links):
+    lowered = {link["address"].lower(): link["member"] for link in links}
+    return any(member != lowered[address] for address, member in _existing_links(company, links).items())
+
+
+def prepare_opening(
     *,
     actor,
     operation_id,
+    appointment,
     token_id,
-    document_id,
+    authority_evidence,
     mapping,
     authority,
     approving_director,
     authority_reference,
     reason,
+    client=None,
 ):
-    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
-        raise PermissionDenied("An active company owner must submit the opening.")
     try:
-        operation_id, token_id, document_id = (UUID(str(value)) for value in (operation_id, token_id, document_id))
+        operation_id, appointment, token_id, authority_evidence = (
+            UUID(str(value)) for value in (operation_id, appointment, token_id, authority_evidence)
+        )
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Opening references must be UUIDs.") from None
     values = _authority_values(authority, approving_director, authority_reference, reason)
     normalized = _mapping(mapping)
-    with atomic():
-        token = ShareToken.objects.filter(pk=token_id, company__owner=actor).first()
-        if token is None:
-            raise NotFound("Share class not found.")
-        company = Company.objects.select_for_update(no_key=True).get(pk=token.company_id)
-        if company.owner_id != actor.pk:
-            raise NotFound("Share class not found.")
-        token = ShareToken.objects.select_for_update().get(pk=token_id)
-        if token.company_id != company.pk:
-            raise NotFound("Share class not found.")
-        existing = _replayed(
-            RegisterOpening,
-            operation_id,
-            {
+    company_id = _company_of(actor, token_id)
+    if not _holding(actor, company_id, appointment, CompanyCapability.PREPARE):
+        raise NotFound(APPOINTMENT_NOT_FOUND)
+    with use_operator(), _requester_principal(actor.pk):
+        retried = RegisterOpening.objects.filter(pk=operation_id).exists()
+        if not retried:
+            _check_unopened(ShareToken.objects.get(pk=token_id))
+        boundary = None if retried else capture_snapshot(token_id, client=client)
+    proposal = None
+    try:
+        with register_command(actor, company_id, "register_opening_prepare") as (
+            company,
+            current_actor,
+            profile,
+            operator,
+        ):
+            source = register_appointment(
+                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
+            )
+            token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
+            if token is None:
+                raise NotFound(SHARE_CLASS_NOT_FOUND)
+            existing = RegisterOpening.objects.filter(pk=operation_id).first()
+            if existing is not None:
+                expected = {
+                    **values,
+                    "company_id": company.pk,
+                    "token_id": token.pk,
+                    "mapping": normalized,
+                    "authority_evidence_id": authority_evidence,
+                    "preparing_appointment_id": source.pk,
+                    "submitted_by_id": current_actor.pk,
+                }
+                if any(getattr(existing, key) != value for key, value in expected.items()):
+                    raise RegisterChangeConflict()
+                return existing, False
+            _check_unopened(token)
+            _members_of(company, normalized)
+            if _linked_elsewhere(company, normalized):
+                raise ValidationError("A mapped wallet address already belongs to another member of this company.")
+            _check_mapping_against_boundary(normalized, boundary)
+            assert_boundary_represents_completions(token.pk, boundary)
+            copy = RegisterEvidence.objects.select_for_update().filter(pk=authority_evidence).first()
+            raw = own_evidence_bytes(copy, RegisterEvidenceKind.AUTHORITY, company, current_actor, EVIDENCE_REFUSAL)
+            proposal = RegisterOpening(
+                uuid=operation_id,
+                company=company,
+                token=token,
+                mapping=normalized,
+                boundary=boundary,
+                preparing_appointment=source,
+                authority_evidence=copy,
+                evidence_fingerprint=copy.sha256,
+                evidence_snapshot=evidence_snapshot(copy),
+                submitted_by=current_actor,
                 **values,
-                "token_id": token_id,
-                "mapping": normalized,
-                "source_document": document_id,
-                "submitted_by_id": actor.pk,
-            },
-        )
-        if existing:
-            return existing
-        if token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
-            raise ValidationError("A register opening requires a deployed share class.")
-        register = ShareRegister.objects.filter(token=token).first()
-        if register is not None and RegisterEntry.objects.filter(register=register).exists():
-            raise ValidationError("This share class already has a stored register.")
-        _members_of(company, normalized)
-        lowered = {link["address"].lower(): link["member"] for link in normalized}
-        if any(member != lowered[address] for address, member in _existing_links(company, normalized).items()):
-            raise ValidationError("A mapped wallet address already belongs to another member of this company.")
-        return _retain(
-            RegisterOpening(uuid=operation_id, company=company, token=token, mapping=normalized, **values),
-            document_id,
-            actor,
-        )
+            )
+            proposal.file.save("authority.bin", ContentFile(raw), save=False)
+            try:
+                proposal.save(force_insert=True)
+            except IntegrityError:
+                raise RegisterChangeConflict() from None
+            return proposal, True
+    except BaseException:
+        if proposal is not None:
+            discard(proposal.file)
+        raise
 
 
 def _members_of(company, links):
@@ -230,9 +324,9 @@ def _check_mapping_against_boundary(mapping, boundary):
         )
 
 
-def _recheck_boundary(boundary, *, client=None):
+def _recheck_boundary(boundary):
     try:
-        client = client or get_base_chain_client()
+        client = get_base_chain_client()
         chain_id = client.assert_expected_chain()
         block = client.w3.eth.get_block(boundary["block"]["number"])
         covered = _boundary(client, boundary["policy"])
@@ -264,40 +358,6 @@ def _opening_changes(proposal):
     for row in proposal.boundary["holdings"]:
         shares_by_member[member_of[row["address"].lower()]] += int(row["shares"])
     return [{"member": member, "shares": str(shares)} for member, shares in sorted(shares_by_member.items())]
-
-
-def prepare_opening_review(*, proposal_id, reviewer, client=None):
-    reviewer = _reviewer(reviewer)
-    proposal = RegisterOpening.objects.select_related("company", "token").get(pk=proposal_id)
-    if proposal.status != "submitted":
-        raise ValidationError("This opening already has a decision.")
-    document = CompanyDocument.objects.filter(pk=proposal.source_document).first()
-    _check_evidence(proposal, proposal.company, document)
-    _check_uninitialized(proposal.token)
-    if proposal.boundary is None:
-        boundary = capture_snapshot(proposal.token_id, client=client)
-        _check_mapping_against_boundary(proposal.mapping, boundary)
-        with atomic():
-            current = RegisterOpening.objects.select_for_update().get(pk=proposal_id)
-            if current.status != "submitted" or current.boundary is not None:
-                raise RegisterChangeConflict()
-            current.boundary = boundary
-            current.save(update_fields=["boundary", "updated_at"])
-            proposal = current
-    else:
-        _recheck_boundary(proposal.boundary, client=client)
-        _check_mapping_against_boundary(proposal.mapping, proposal.boundary)
-    assert_boundary_represents_completions(proposal.token_id, proposal.boundary)
-    confirmation = signing.dumps(
-        {
-            "proposal": str(proposal.pk),
-            "reviewer": reviewer.pk,
-            "evidence": proposal.evidence_fingerprint,
-            "boundary": proposal.boundary["block"]["hash"],
-        },
-        salt="tokens.register-opening",
-    )
-    return proposal, confirmation
 
 
 def _completed_decision(proposal, reviewer, decision, rejection_reason):
@@ -340,57 +400,102 @@ def _link(company, links):
             raise RegisterChangeConflict()
 
 
-def decide_opening(*, proposal_id, reviewer, confirmation, decision, rejection_reason="", client=None):
-    reviewer = _reviewer(reviewer)
-    _check_decision(decision, rejection_reason)
-    initial = RegisterOpening.objects.get(pk=proposal_id)
-    if initial.status != "submitted":
-        return _completed_decision(initial, reviewer, decision, rejection_reason)
-    if decision == "apply":
-        if initial.boundary is None:
-            raise ValidationError("Open a review before applying this opening.")
-        _recheck_boundary(initial.boundary, client=client)
-    with atomic():
-        company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
-        token = ShareToken.objects.select_for_update().get(pk=initial.token_id)
-        document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
-        proposal = RegisterOpening.objects.select_for_update().get(pk=proposal_id)
-        if proposal.status != "submitted":
-            return _completed_decision(proposal, reviewer, decision, rejection_reason)
-        if decision == "apply":
-            _confirm(
-                confirmation,
-                "tokens.register-opening",
-                REGISTER_OPENING_REVIEW_MAX_AGE,
-                {
-                    "proposal": str(proposal_id),
-                    "reviewer": reviewer.pk,
-                    "evidence": proposal.evidence_fingerprint,
-                    "boundary": proposal.boundary["block"]["hash"],
-                },
-            )
-            _check_evidence(proposal, company, document)
-            register = _check_uninitialized(token)
-            assert_boundary_represents_completions(token.pk, proposal.boundary)
-            _link(company, proposal.mapping)
-            proposal.applied_entry = record_entry(
-                register_id=register.pk,
-                operation_id=proposal.pk,
-                kind=RegisterEntryKind.OPENING,
-                changes=_opening_changes(proposal),
-                effective_on=date.fromisoformat(proposal.boundary["block"]["date"]),
-                recorded_by=reviewer,
-            )
-            proposal.status = "applied"
-        else:
-            proposal.status = "rejected"
-            proposal.rejection_reason = rejection_reason
-        proposal.reviewed_by = reviewer
-        proposal.reviewed_at = timezone.now()
-        proposal.save(
-            update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "applied_entry", "updated_at"]
-        )
-        return proposal
+def _boundary_requirements(actor, proposal, kind, appointment):
+    if (
+        kind == RegisterDecisionKind.REJECT
+        or proposal.status != "submitted"
+        or proposal.preparing_appointment_id is None
+    ):
+        return []
+    if not _holding(actor, proposal.company_id, appointment, CAPABILITY[kind]):
+        return ["appointment_capability_required"]
+    try:
+        _recheck_boundary(proposal.boundary)
+    except ValidationError:
+        return ["boundary_changed"]
+    return []
+
+
+def _effect_requirements(proposal):
+    unmet = []
+    try:
+        matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
+    except ValidationError:
+        unmet.append("evidence_unavailable")
+    if RegisterEntry.objects.filter(register__token_id=proposal.token_id).exists():
+        unmet.append("register_initialized")
+    try:
+        assert_boundary_represents_completions(proposal.token_id, proposal.boundary)
+    except ValidationError:
+        unmet.append("completions_not_represented")
+    if _linked_elsewhere(proposal.company_id, proposal.mapping):
+        unmet.append("wallet_linked_elsewhere")
+    return unmet
+
+
+def _details(proposal):
+    boundary = proposal.boundary
+    return {
+        "changes": _opening_changes(proposal) if boundary else [],
+        "effective_on": date.fromisoformat(boundary["block"]["date"]) if boundary else None,
+    }
+
+
+def _lock(proposal):
+    ShareToken.objects.select_for_update().get(pk=proposal.token_id)
+    list(ShareRegister.objects.select_for_update().filter(token_id=proposal.token_id).values_list("uuid", flat=True))
+    return RegisterOpening.objects.select_for_update().get(pk=proposal.pk)
+
+
+def _apply(proposal, actor, decision):
+    register = _check_uninitialized(proposal.token)
+    _link(proposal.company, proposal.mapping)
+    proposal.applied_entry = record_entry(
+        register_id=register.pk,
+        operation_id=proposal.pk,
+        kind=RegisterEntryKind.OPENING,
+        changes=_opening_changes(proposal),
+        effective_on=date.fromisoformat(proposal.boundary["block"]["date"]),
+        recorded_by=actor,
+    )
+    proposal.status = "applied"
+    proposal.reviewed_by = actor
+    proposal.reviewed_at = decision.decided_at
+    proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "applied_entry", "updated_at"])
+
+
+OPENINGS = DecisionFamily(
+    model=RegisterOpening,
+    decision_model=RegisterOpeningDecision,
+    field="register_opening",
+    operation="register_opening",
+    approved_function="tokens_register_opening_approved",
+    digest_function="tokens_register_opening_decision_digest",
+    effect_requirements=_effect_requirements,
+    lock=_lock,
+    apply=_apply,
+    before_command=_boundary_requirements,
+)
+
+
+def preview_opening_decision(*, actor, opening_id, appointment, kind, reason=""):
+    return preview(
+        OPENINGS, _details, actor=actor, proposal_id=opening_id, appointment=appointment, kind=kind, reason=reason
+    )
+
+
+def decide_opening(*, actor, opening_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
+    return decide(
+        OPENINGS,
+        actor=actor,
+        proposal_id=opening_id,
+        appointment=appointment,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        preview_digest=preview_digest,
+        confirmation=confirmation,
+        reason=reason,
+    )
 
 
 def _check_unlinked(company, links):

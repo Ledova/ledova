@@ -715,7 +715,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("assets", "0014_native_chain_deployments"),
         ("blockchain", "0008_fresh_signer_bootstrap"),
-        ("tokens", "0087_company_discrepancy_acknowledgements"),
+        ("tokens", "0089_company_register_opening_guards"),
         ("users", "0034_company_eligibility_consumption"),
         ("wallets", "0023_transaction_market_value_aud"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

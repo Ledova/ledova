@@ -168,6 +168,32 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- `tokens/0088_company_register_openings` and
+  `tokens/0089_company_register_opening_guards` make register openings
+  company-run (#864), as `0085` and `0086` did for corrections. `0088` adds
+  append-only opening decisions, operator-only, adds the preparing appointment
+  and the `authority` upload to openings, makes the staff-era document UUID
+  nullable with a check constraint pinning the two shapes, and closes owners'
+  direct opening inserts. `0089` replaces, by exact single replacements, the
+  opening guard `0065` installed and the boundary-history guard from `0066`. An
+  opening is inserted only by a company-run preparation, with its boundary present,
+  well formed, carrying its canonical transfer history and pairing exactly with the
+  mapping; a boundary can no longer be added afterwards; and an outcome must match
+  a decision by the same person at the same time. The new decision guards bind the
+  person, the company command and a current appointment, and the decision carries
+  a digest the database recomputes, binding the boundary block and, for
+  application, the class's register state. Nothing is backfilled. Openings still
+  waiting for the retired staff review, whether or not a reviewer captured their
+  boundary, stay readable and can only be rejected by the company; the admin keeps
+  openings as read-only history and the review page is gone. This release adds no
+  client. An integration that submitted openings now prepares them, naming its
+  `appointment` and an `authority_evidence` upload where it named a company
+  `document_id`; preparation captures the boundary, so the opening reads the chain
+  then rather than at a staff review. Reversing `0089` refuses once any company-run
+  opening or opening decision exists, which covers the `authority` uploads those
+  openings use; `0086`'s reversal still refuses while any other `authority` upload
+  exists. Otherwise it restores both guards exactly as `0065` and `0066` installed
+  them, and reversing `0088` then restores owners' direct submissions.
 - #864's register history, correction and acknowledgement screens need no
   migration. They read `GET /api/v1/tokens/{uuid}/register/entries/`, filter
   corrections by share class with `token` and look entries up by `entry`, all
@@ -542,7 +568,7 @@ migration is needed.
   stored register and read no chain, so a share class with no applied opening
   reports `initialized: false` and its export returns 409
   `register_not_initialized` until an
-  [opening is applied](register-foundation.md#approved-opening-capture-and-wallet-links).
+  [opening is applied](register-foundation.md#opening-the-register-from-the-chain).
   Rows become one per member with its `wallets` in place of `address`, each
   row's `enteredOn` becomes a date (`YYYY-MM-DD`) that is always present where
   it was a date-time or `null`, the response drops `listedTotal` and

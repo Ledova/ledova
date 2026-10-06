@@ -73,6 +73,14 @@ holds a current appointment; the company's authority document is company-provide
 evidence with no Ledova staff verification; a correction still waiting for the
 retired staff review can only be rejected; and evidence downloads are not logged.
 
+The same rules apply to company-run openings, decided the same day (recorded on
+#864 and #860). An opening captures its chain boundary when the company prepares
+it, and approval and application check that boundary against the chain again. An
+opening still waiting for the retired staff review can only be rejected, whether
+or not a reviewer captured its boundary. Proposals that link a member's wallet
+after the opening wait for #863; an opening's own mapping of boundary addresses
+to members is part of the opening.
+
 For reconciliation discrepancies the owner decided the same day
 ([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
 that acknowledgement is one company step: a current appointment holding `admin`
@@ -182,7 +190,9 @@ supersedes that responsibility and the API-only client scope. Exact authority,
 evidence, identity, event history and retention controls remain requirements.
 
 Wallets become linked to register members only through documentary authority
-verified by staff: an opening's mapping, or a later reviewed link request. A
+verified by staff: an opening's mapping, or a later reviewed link request.
+Openings have since become company-run, with company-provided evidence
+([company-run register authority](#company-run-register-authority-and-evidence)). A
 completion to an unlinked wallet waits for that link instead of creating a member,
 because one person holding two wallets would otherwise become two members that
 the register could never merge. Member particulars are kept while the person is

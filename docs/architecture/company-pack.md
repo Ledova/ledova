@@ -117,7 +117,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `classes/<class id>/class.json` | The share class, its authorised shares, status and contract address, its register's id, sequence, head hash and issued supply, and each capital increase request with its execution and each pause change with its [chain side](#chain-evidence) |
 | `classes/<class id>/register.csv` | The [register CSV's](register.md#api-and-export) three sections, from the export's own code, without its record. Absent while the class's register has no opening |
 | `classes/<class id>/entries.json` | Every register entry in sequence, with its fields, previous and entry hashes, and the hash preimage |
-| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions, as authority records; an opening also carries the chain boundary it was reviewed against |
+| `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions, as authority records; an opening also carries the chain boundary it was prepared against |
 | `classes/<class id>/chain.json` | The class's deployment record and every outgoing operation linked to one of its business records, with each signed attempt's hash, nonce, signer and chain id: see [chain evidence](#chain-evidence) |
 | `classes/<class id>/settlements.json` | Every settlement of the class that was admitted for execution: the signed order with its EIP-712 domain, both signatures, the transaction, its operation, the finalized receipt and the register entry |
 | `classes/<class id>/issues.json` | `issues`: every issuance request of the class, with the issuance it executed and its transaction hash, the execution that sent it, and the subscription it allotted. `awaiting_allotment`: every subscription with a payment recorded and no issuance request. Each subscription's payment is labelled as recorded |
@@ -248,7 +248,8 @@ address.
   them.
 - **The opening's boundary** travels with the opening in `authority.json`,
   rather than in `chain.json`. It is a field of the opening record, it is what
-  the opening's mapping was checked against when it was reviewed, and the
+  the opening's mapping was checked against when it was prepared, or reviewed for
+  one submitted before openings were company-run, and the
   opening's entry is derived from it: the boundary's holdings summed by the
   member each wallet is mapped to, effective on the boundary block's date. Kept
   together, a reader can check that derivation offline, and the consumer does.
@@ -301,8 +302,9 @@ have a file of their own, `wallet_links.json`, rather than a copy in each class'
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
   retained, all from the snapshot taken when it was submitted, and `path`, where
   the copy's bytes are under `documents/evidence/` (see [documents](#documents)).
-  A company-run import or correction names no company document: its copy is of
-  the company's own upload, and its `document_type` is the upload's kind. The
+  A company-run opening, import or correction names no company document: its
+  copy is of the company's own upload, and its `document_type` is the upload's
+  kind. The
   snapshot's company identity, storage path and owner id stay behind.
 - **Reviewers are named, not numbered.** A reviewer is the full name on the
   staff member's profile, blank when there is none. No user id, submitter or
@@ -379,10 +381,10 @@ of those files is stored under `companies/<company id>/`
   changed or gone since the record was submitted, and the copy is what was
   reviewed. A company-run import also keeps a copy of its ASIC extract, carried at
   `documents/evidence/registerimport-asic/<record id>` and named by the record's
-  `asic.path` with its `asic.sha256` and `asic.size`. An import's or
+  `asic.path` with its `asic.sha256` and `asic.size`. An opening's, import's or
   correction's record carries `provided_by` (`company`, or `staff_verified` for
-  one made before imports or corrections were company-run) and its `decisions`,
-  each with its kind, the decider's name, time and any reason.
+  one made before openings, imports or corrections were company-run) and its
+  `decisions`, each with its kind, the decider's name, time and any reason.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
@@ -594,10 +596,10 @@ receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
 secp256k1: it checks that the pack is internally consistent and well-formed.
 
 [test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
-adds an opening, submitted on a third, unopened class with a verified document,
-and an import prepared from the company's own uploads, so that every kind of
-authority record retains a copy. Its tests find every document and evidence
-copy carried with the bytes storage holds and listed in the manifest, each
+adds an opening, prepared on a third, unopened class from the company's own
+authority upload, and an import prepared from the company's own uploads, so that
+every kind of authority record retains a copy. Its tests find every document and
+evidence copy carried with the bytes storage holds and listed in the manifest, each
 record naming its copy, and the documents and the members' evidence statement
 in the README. The builder refuses an evidence copy whose stored bytes changed
 by one byte, and a company document or evidence copy missing from storage, and

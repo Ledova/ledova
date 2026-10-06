@@ -280,7 +280,7 @@ class RegisterUnavailableException(APIException):
 class RegisterNotInitialized(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = (
-        "The stored register for this share class has not been opened yet. An operator must apply its opening "
+        "The stored register for this share class has not been opened yet. The company must apply its opening "
         "before holders can be listed or exported."
     )
     default_code = "register_not_initialized"
