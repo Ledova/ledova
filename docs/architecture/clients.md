@@ -113,9 +113,19 @@ read (as the company owner or through a current register appointment), grouped b
 company with a company choice when there is more than one, and the stored
 register of each class of the chosen company, with exact share quantities and
 complete-read failure states.
-Showing a class's members also shows its
-[register imports](../operations/register-foundation.md#importing-an-existing-register)
-with the history, steps and checks of the dashboard's Register, described below,
+Showing a class's members also shows, for a deployed or paused class, its
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
+read on every page with the class's `token` filter, newest first and each once:
+stage, the boundary block and its date, preparer, dates, each holding at the
+boundary as its member's name or a numbered new member, with its shares and
+address, the authority, approving director, reference and reason, whether the
+company provided the authority document or staff verified it before openings
+were company-run, the decision trail, any rejection reason and the document's
+download. An opening without a captured boundary says so. An opening's step and
+download labels name its block and when it was prepared, and openings of
+another company or class, or with a mapping that cannot be read, fail the read.
+Its [register imports](../operations/register-foundation.md#importing-an-existing-register)
+follow with the history, steps and checks of the dashboard's Register, described below,
 except where the person's appointments are read. On mobile, each decision opens
 in a dialog, which closes when a refresh withdraws its step; Prepare an import
 opens a form in the same stack; and the retained register document and ASIC
@@ -162,11 +172,31 @@ adds **Acknowledge** to an acknowledgeable discrepancy, which
 it with a reason of up to 1,000 characters and reads the reconciliation again; a
 refusal also reads the appointments. Its dialog keeps the appointment it opened
 with and holds confirmation if a refresh changes it.
+Administration or `prepare` gets **Open this register** while a deployed or
+paused class's register is not opened. It opens a form in the same stack that
+reads the class's holdings on chain at the current block, saying when the chain
+can't be read now, and maps each holding address to its linked member, which
+stays fixed, or to a member chosen on the page: a linked member, a numbered new
+member under a new ID that several addresses may share, or another new member.
+It takes the authority document, the authority, the approving director of a
+resolution, the reference and the reason. The upload keeps its own retry key and
+confirmed receipt, preparation reuses its operation only for an identical
+request, and the openings are refreshed once the receipt is confirmed; a
+conflict reads the holdings and appointments again and takes a new operation,
+and a refusal because the holdings moved shows the server's reason, says the
+holdings moved and offers to reload them, keeping the choices that still apply.
+Approval and rejection (administration or `approve`) and application
+(administration or `apply`) of an opening use the same preview-first dialog,
+showing the effective date and the register's first entry with member names,
+with the boundary note before approval or application and the holdings note
+before application; a retained staff-era opening offers only rejection. A
+recorded or refused opening decision reads the openings, entries, holders and
+appointments again.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, a correction decision, or a decision,
-preview or acknowledgement the server refuses. Every register read and every
+Representative authority, a pull to refresh, an opening or correction decision,
+or a decision, preview or acknowledgement the server refuses. Every register read and every
 upload, preview, decision, acknowledgement and preparation is bound to the
 session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
