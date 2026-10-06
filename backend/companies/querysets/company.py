@@ -34,13 +34,25 @@ class CompanyQuerySet(QuerySet):
     def register_readable_by(self, user):
         if user is None or not user.is_authenticated:
             return self.none()
-        from companies.models import REGISTER_READERS, CompanyAppointment
+        from companies.models import REGISTER_READERS
+
+        return self.filter(Q(owner=user) | Q(pk__in=self._appointed(user, REGISTER_READERS)))
+
+    def register_preparable_by(self, user):
+        if user is None or not user.is_authenticated:
+            return self.none()
+        from companies.models import CompanyCapability
+
+        return self.filter(pk__in=self._appointed(user, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]))
+
+    def _appointed(self, user, capabilities):
+        from companies.models import CompanyAppointment
         from operators.models import Operator
 
         appointments = CompanyAppointment.objects.current_of(
             user, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
-        ).holding_any(REGISTER_READERS)
-        return self.filter(Q(owner=user) | Q(pk__in=appointments.values("company_id")))
+        )
+        return appointments.holding_any(capabilities).values("company_id")
 
     def administrable_by(self, user):
         if user is None or not user.is_authenticated:

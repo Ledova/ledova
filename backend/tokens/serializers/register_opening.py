@@ -63,6 +63,21 @@ class RegisterOpeningBoundarySerializer(serializers.Serializer):
     holdings = RegisterOpeningHoldingSerializer(many=True)
 
 
+class RegisterOpeningBlockSerializer(serializers.Serializer):
+    number = serializers.IntegerField()
+    hash = serializers.CharField()
+    date = serializers.DateField()
+
+
+class RegisterOpeningHolderSerializer(RegisterOpeningHoldingSerializer):
+    member_name = serializers.CharField(allow_null=True)
+
+
+class RegisterOpeningHoldersSerializer(serializers.Serializer):
+    block = RegisterOpeningBlockSerializer()
+    holdings = RegisterOpeningHolderSerializer(many=True)
+
+
 class RegisterOpeningDecisionSerializer(RegisterDecisionSerializer):
     class Meta(RegisterDecisionSerializer.Meta):
         model = RegisterOpeningDecision
