@@ -185,8 +185,11 @@ the new direction.
   the change, decision and deferred effect guards, which bind the person, the
   company command, a current appointment and a digest the database recomputes.
   It also guards writes to particulars, which had none beyond row-level
-  security: particulars from a change come only from that change's application,
-  imported particulars carry their import's date, and the app role writes none.
+  security: particulars come only from the application of the import or change
+  they name, by the person applying it through the company command, with exactly
+  the values it carries; they never move to another member or an earlier date;
+  no company command removes them, leaving the retention purge as the only
+  remover; and the app role writes none.
   The import guard's application check now also counts particulars a change
   recorded with a later date. Nothing else is backfilled. This release adds the
   `/api/v1/tokens/register-particulars-changes/` routes and no client screen;

@@ -1296,13 +1296,18 @@ and refuses:
 - an application whose figures differ from the rows;
 - an application that leaves a member without particulars from it, from a
   later-dated applied import or from a later-dated change;
+- particulars naming an import as their source unless they are written during
+  that import's application, through the company command, by the person applying
+  it, for a member the import lists, with exactly that member's name and address
+  and the register date;
 - a second applied import for the class.
 
 The [register reads](../architecture/register.md#membership-and-identity) then
 show a member's live verified identity when it is present and unambiguous.
 Recorded particulars, from the import or [change](#changing-a-members-particulars)
-dated latest, fill in only for a member with no live identity and no resolved
-allotment stamp, and an ambiguous identity stays ambiguous. A treasury
+dated latest, or applied last of those sharing a date, fill in only for a member
+with no live identity and no resolved allotment stamp, and an ambiguous identity
+stays ambiguous. A treasury
 label is not a live identity: a member held at a labelled treasury address, such
 as an employee share trust, takes its recorded name and residential address and
 stays a treasury holder. The
@@ -1341,8 +1346,9 @@ under the owner's [decisions of 5 October 2026](../decisions.md#company-run-regi
 - application needs an approval whose approver still holds a current
   appointment. If that appointment was revoked or has expired, a current
   approver approves again;
-- the latest "as at" date wins across imports and changes, and a member's live
-  verified identity still wins over both.
+- the latest "as at" date wins across imports and changes, with the one applied
+  later winning a shared date, and a member's live verified identity still wins
+  over both.
 
 Staff permissions, company ownership alone and shareholding grant none of these
 steps. The API below is delivered; Register screens for it in both clients are
@@ -1434,10 +1440,14 @@ uploads and decisions immutable and refuses:
 - an application that does not record the change's particulars for its member;
 - particulars naming a change as their source unless that change's application
   writes them, through the company command, by the person applying it, with
-  exactly its member, name, address and date, and without replacing particulars
-  dated later;
-- imported particulars dated other than their import's register date, and any
-  write to particulars from the app role.
+  exactly its member, name, address and date;
+- particulars naming an import as their source unless that import's application
+  writes them, as the [import guard](#importing-an-existing-register) describes;
+- moving particulars to another member or to an earlier date, whichever
+  recorded them;
+- removing particulars during any company command: only the retention purge,
+  which runs outside one, removes them;
+- any write to particulars from the app role.
 
 The daily retention job purges a member's particulars, whichever recorded them,
 once the member has held nothing in the company for the 2,557-day floor. It

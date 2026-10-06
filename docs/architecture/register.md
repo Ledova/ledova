@@ -132,12 +132,14 @@ address make the member `ambiguous`, as live identities that differ do. The row
 names the source and stamp date. Where neither resolves, particulars recorded by
 an [import](../operations/register-foundation.md#importing-an-existing-register)
 or a company's [particulars change](../operations/register-foundation.md#changing-a-members-particulars)
-fill in, from whichever is dated latest: the member is a `member` named by its
-recorded name and residential address, with the identity source "Recorded
-register particulars". Particulars never replace a live identity or hide an
-ambiguous one (owner decisions, 22 September and 5 October 2026). Otherwise a
-name without a resolved stamp remains unidentified. Old unstamped issuances are
-not backfilled by guessing identity.
+fill in, from whichever is dated latest, or applied last of those sharing a
+date: the member is a `member` named by its recorded name and residential
+address, with the identity source "Recorded register particulars". The database
+writes them only during the application of the import or change they name.
+Particulars never replace a live identity or hide an ambiguous one (owner
+decisions, 22 September and 5 October 2026). Otherwise a name without a resolved
+stamp remains unidentified. Old unstamped issuances are not backfilled by
+guessing identity.
 
 A treasury label is not a live identity: it names a bare address and carries no
 residential address. So a member held at a labelled treasury address, such as an
