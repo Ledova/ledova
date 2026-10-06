@@ -12,6 +12,7 @@ import {
   getRegisterImports,
   getNextPageParam,
   getRegisterOpeningHolders,
+  getRegisterOpenings,
   getRegisterReconciliations,
   readEveryPage,
   useLaterPages,
@@ -137,8 +138,8 @@ export function useCompanyRegister(epoch: number) {
       Promise.all([
         classes.refetch(),
         ...(company ? [registers.refetch()] : []),
-        ...[importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map((key) =>
-          queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
+        ...[openingsKey, importsKey, entriesKey, correctionsKey, reconciliationKey, registerAppointmentsKey].map(
+          (key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' }),
         ),
       ]),
   };
@@ -165,6 +166,26 @@ export function useRegisterImports(epoch: number, company: string, token: string
       );
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The imports do not belong to this share class');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterOpenings(epoch: number, company: string, token: string) {
+  return useQuery({
+    queryKey: openingsKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterOpenings(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.token !== token || row.company !== company)) {
+        throw new Error('The openings do not belong to this share class');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
