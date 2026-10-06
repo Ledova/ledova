@@ -47,7 +47,6 @@ export const REGISTER_LINK_COPY = {
   WALLETS: 'Wallets',
   MEMBER: 'Member',
   NEW_MEMBER: 'New member',
-  EXISTING_MEMBER: 'Existing member',
   MAPPING_NOTE:
     'Choose the member who owns each wallet: an existing member, or a new member that applying the link creates. ' +
     'Choose the same member for wallets that belong to one person.',

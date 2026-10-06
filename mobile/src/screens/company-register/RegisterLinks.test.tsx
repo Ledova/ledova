@@ -9,6 +9,7 @@ import {
   HOLDER_TYPE_LABELS,
   REGISTER_CORRECTION_COPY,
   REGISTER_LINK_COPY as COPY,
+  REGISTER_OPENING_COPY,
   type RegisterDecisionKind,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -53,6 +54,10 @@ const EVE = '0xEee0000000000000000000000000000000000e05';
 const MEMBER_A = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_GONE = '10000000-0000-4000-8000-0000000000bb';
 const FRESH_X = '20000000-0000-4000-8000-0000000000aa';
+const FRESH_Y = '20000000-0000-4000-8000-0000000000bb';
+const NEW_ONE = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1);
+const NEW_TWO = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2);
+const UNNAMED_ONE = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1);
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const prepared = (createdAt: string) => `prepared on ${formatDateTime(createdAt)}`;
 const NEW = `${COPY.STAGES.submitted.toLowerCase()} wallet link for 3 wallets, ${prepared('2026-10-06T01:00:00Z')}`;
@@ -337,10 +342,10 @@ it('reads every page of the company’s wallet links and lists each once, newest
     CY,
   ])
     expect(record.getByText(shown)).toBeTruthy();
-  expect(record.getAllByText(/^(Alex Member|New member|Existing member)$/).map(text)).toEqual([
+  expect(record.getAllByText(new RegExp(`^(Alex Member|${NEW_ONE}|${UNNAMED_ONE})$`)).map(text)).toEqual([
     'Alex Member',
-    COPY.NEW_MEMBER,
-    COPY.EXISTING_MEMBER,
+    NEW_ONE,
+    UNNAMED_ONE,
   ]);
   const rejected = within(view.getByText(REJECTED_HEADING).parent!);
   const trail = (label: string) => within(rejected.getByText(label).parent!);
@@ -454,10 +459,10 @@ it('previews an application with each wallet’s member and the holder’s own p
   expect(within(wallet(ADA).getByText(COPY.MEMBER).parent!).getByText('Alex Member')).toBeTruthy();
   expect(wallet(BEA).getByText(COPY.WALLET_PROOF.not_proven)).toBeTruthy();
   expect(within(wallet(BEA).getByText(COPY.HOLDER).parent!).getByText(HOLDER_TYPE_LABELS.unidentified)).toBeTruthy();
-  expect(within(wallet(BEA).getByText(COPY.MEMBER).parent!).getByText(COPY.NEW_MEMBER)).toBeTruthy();
+  expect(within(wallet(BEA).getByText(COPY.MEMBER).parent!).getByText(NEW_ONE)).toBeTruthy();
   expect(wallet(CY).getByText(COPY.NO_STATUS)).toBeTruthy();
   expect(wallet(CY).queryByText(COPY.HOLDER)).toBeNull();
-  expect(within(wallet(CY).getByText(COPY.MEMBER).parent!).getByText(COPY.EXISTING_MEMBER)).toBeTruthy();
+  expect(within(wallet(CY).getByText(COPY.MEMBER).parent!).getByText(UNNAMED_ONE)).toBeTruthy();
   expect(within(view.getByText(COPY.STATUS_NOTE).parent!).queryByText(/verified/i)).toBeNull();
   const before = refreshed();
   linkPages = [[decided('apply', KEY(1)), STAFF]];
@@ -478,6 +483,32 @@ it('previews an application with each wallet’s member and the holder’s own p
   await waitFor(() => refreshed().forEach((count, index) => expect(count).toBeGreaterThan(before[index])));
   expect(await view.findByText(`${COPY.STAGES.applied} · 3 wallets`)).toBeTruthy();
   expect(view.queryByRole('button', { name: step('approve') })).toBeNull();
+});
+
+it('numbers a link’s new members by their first wallet in its mapping, in its record and its preview', async () => {
+  const mapping = [
+    { address: ADA, member: FRESH_Y },
+    { address: BEA, member: FRESH_X },
+    { address: CY, member: FRESH_Y },
+  ];
+  const fresh = mapping.map((row) => ({ ...row, memberExists: false }));
+  linkPages = [[{ ...LINK, mapping, mappingSummary: fresh }]];
+  post.mockResolvedValueOnce({
+    data: {
+      ...PREVIEW,
+      links: fresh.map((row) => ({ ...row, walletProof: null, holderType: null, holderName: null })),
+    },
+  });
+  const view = await openRegister();
+  const record = within(view.getByText(NEW_HEADING).parent!);
+  expect(record.getAllByText(new RegExp(`^(${NEW_ONE}|${NEW_TWO})$`)).map(text)).toEqual([NEW_ONE, NEW_TWO, NEW_ONE]);
+  await fireEvent.press(view.getByRole('button', { name: step('approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  const member = (address: string) =>
+    within(within(view.getAllByText(address).at(-1)!.parent!).getByText(COPY.MEMBER).parent!)
+      .getAllByText(/.+/)
+      .map(text)[1];
+  expect([ADA, BEA, CY].map(member)).toEqual([NEW_ONE, NEW_TWO, NEW_ONE]);
 });
 
 it('refreshes after a refused decision and withdraws the steps a revoked appointment held', async () => {

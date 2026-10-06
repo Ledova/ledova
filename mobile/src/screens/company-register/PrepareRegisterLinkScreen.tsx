@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -32,6 +32,9 @@ type Chosen = { member: string; fresh: boolean };
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 const FAILED = 'The wallet link could not be prepared. Retry with the same details.';
 const UNREAD = 'The waiting wallets could not be read.';
+
+const inRecordedOrder = (left: { address: string }, right: { address: string }) =>
+  left.address < right.address ? -1 : left.address > right.address ? 1 : 0;
 
 export function PrepareRegisterLinkScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
@@ -68,7 +71,7 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
   useEffect(() => {
     if (failureStatus(waitingError) === 404) void readAppointments();
   }, [waitingError, readAppointments]);
-  const wallets = waiting.data ?? [];
+  const wallets = [...(waiting.data ?? [])].sort(inRecordedOrder);
   const holders = members.data?.holders ?? [];
   const listed = new Set(holders.map(({ member }) => member));
   const open = new Set(wallets.map(({ address }) => address.toLowerCase()));
@@ -79,6 +82,10 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
       ),
     );
   const kept = keep(chosen);
+  const reset = Object.keys(kept).length < Object.keys(chosen).length;
+  useEffect(() => {
+    if (reset && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(COPY.CHOICES_RESET);
+  }, [reset]);
   const mapped = wallets.map(({ address }) => kept[address.toLowerCase()]?.member ?? null);
   const labels = openingMemberLabels([
     ...holders.map(({ member, name }) => ({ member, memberName: name || null, memberExists: true })),
@@ -232,6 +239,11 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
       <Section title={COPY.WALLETS}>
         <Text style={styles.muted}>{COPY.MAPPING_NOTE}</Text>
         <Text style={styles.muted}>{COPY.STATUS_NOTE}</Text>
+        {reset && (
+          <Text accessibilityLiveRegion="polite" style={styles.text}>
+            {COPY.CHOICES_RESET}
+          </Text>
+        )}
         {wallets.map((wallet, index) => {
           const number = index + 1;
           const member = mapped[index];

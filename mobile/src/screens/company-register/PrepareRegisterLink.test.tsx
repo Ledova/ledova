@@ -1,4 +1,5 @@
 import React from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -38,11 +39,13 @@ const CONFLICT = 'The register operation conflicts with its recorded identity.';
 const ADA = '0xAdA0000000000000000000000000000000000a01';
 const BEA = '0xBea0000000000000000000000000000000000b02';
 const CY = '0xC000000000000000000000000000000000000c03';
-const DEE = '0xDee0000000000000000000000000000000000d04';
+const ABE = '0xAbE0000000000000000000000000000000000a00';
+const LOWERCASE = '0xa110000000000000000000000000000000000f06';
 const MEMBER_A = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_B = '10000000-0000-4000-8000-0000000000bb';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const NEW_ONE = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1);
+const NEW_TWO = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2);
 const UNNAMED_ONE = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1);
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
@@ -372,7 +375,7 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
   await map(view);
   await complete(view);
   const before = [reads(WAITING), reads(HOLDERS), reads(APPOINTMENTS)];
-  wallets = [wallet(DEE, 3, null, null), WALLETS[1], WALLETS[0]];
+  wallets = [wallet(ABE, 3, null, null), WALLETS[0], WALLETS[1]];
   await submit(view);
   expect(await view.findByText(CONFLICT)).toBeTruthy();
   await waitFor(() =>
@@ -380,22 +383,82 @@ it('reads the wallets, members and appointments again after a conflict, keeps ea
       expect(count).toBeGreaterThan(before[index]),
     ),
   );
-  expect(await view.findByText(DEE)).toBeTruthy();
+  expect(await view.findByText(ABE)).toBeTruthy();
   expect(view.queryByText(CY)).toBeNull();
-  expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', NEW_ONE, 'Alex Member']);
+  expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', 'Alex Member', NEW_ONE]);
+  expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
   expect(view.getByText(UNMAPPED)).toBeTruthy();
   expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
   await choose(view, NEW_ONE, 1);
+  expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
   await settled(view);
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
   expect(preparations()[1].mapping).toEqual([
-    { address: DEE, member: KEY(1) },
-    { address: BEA, member: KEY(1) },
+    { address: ABE, member: KEY(1) },
     { address: ADA, member: MEMBER_A },
+    { address: BEA, member: KEY(1) },
   ]);
 });
+
+it('lists and numbers the waiting wallets in the order a link records them, not the order the waiting read gives', async () => {
+  wallets = [wallet(LOWERCASE, 1, null, null), WALLETS[1]];
+  const view = await open();
+  expect(entry(view, 1).getByText(BEA)).toBeTruthy();
+  expect(entry(view, 2).getByText(LOWERCASE)).toBeTruthy();
+  await choose(view, COPY.NEW_MEMBER, 2);
+  await choose(view, COPY.NEW_MEMBER, 1);
+  expect([1, 2].map((number) => memberOf(view, number))).toEqual([NEW_ONE, NEW_TWO]);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(preparations()[0].mapping).toEqual([
+    { address: BEA, member: KEY(2) },
+    { address: LOWERCASE, member: KEY(1) },
+  ]);
+});
+
+it.each<[string, typeof Platform.OS, string[][]]>([
+  ['iOS', 'ios', [[COPY.CHOICES_RESET]]],
+  ['Android', 'android', []],
+])(
+  'says on %s that a re-read reset some choices, in a polite live region, until the link is prepared',
+  async (_, os, announced) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
+    let answer!: (value: unknown) => void;
+    prepareAnswer
+      .mockRejectedValueOnce({ response: { status: 409, data: { detail: CONFLICT } } })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            answer = resolve;
+          }),
+      );
+    const view = await open();
+    await map(view);
+    await complete(view);
+    expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
+    wallets = [WALLETS[0], WALLETS[1]];
+    await submit(view);
+    const note = await view.findByText(COPY.CHOICES_RESET);
+    expect(note.props.accessibilityLiveRegion).toBe('polite');
+    await fireEvent.changeText(view.getByLabelText(COPY.REASON), 'Link the September subscribers');
+    expect(view.getByText(COPY.CHOICES_RESET)).toBeTruthy();
+    await settled(view);
+    await submit(view);
+    await waitFor(() => expect(answer).toBeDefined());
+    expect(view.queryByText(COPY.CHOICES_RESET)).toBeNull();
+    await act(async () => answer({ data: preparedFrom(preparations()[1]) }));
+    await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+    expect(preparations()[1].mapping).toEqual([
+      { address: ADA, member: MEMBER_A },
+      { address: BEA, member: KEY(1) },
+    ]);
+    expect(announce.mock.calls).toEqual(announced);
+  },
+);
 
 it('shows a refusal in the server’s words, reads nothing again and prepares the next attempt under a new operation id', async () => {
   const refusal = 'A mapped wallet address is already linked to a member of this company.';
