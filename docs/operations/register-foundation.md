@@ -408,7 +408,7 @@ addresses.
 
 | Method and route | Result |
 | --- | --- |
-| `GET /api/v1/tokens/{uuid}/register/opening-holders/` | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null. Only for a current appointment holding `admin` or `prepare` |
+| `GET /api/v1/tokens/{uuid}/register/opening-holders/` | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
 | `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-openings/` | Prepare the opening, capturing its boundary; return the retained request |
 | `GET /api/v1/tokens/register-openings/` | Paginated openings for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
@@ -418,11 +418,12 @@ addresses.
 | `POST /api/v1/tokens/register-openings/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
 
 The opening holders read shows a preparer which addresses to map before
-preparing. It captures a canonical snapshot as preparation does, but outside any
-lock, and stores nothing. Each holding address carries the
-member the company already links to it, matched regardless of letter case, and
-that member's name as the register names members; an address with no link has
-neither. Holdings are listed largest first, then by address. Because it reads the
+preparing. It captures a canonical snapshot as preparation does, takes no lock
+and stores nothing. Each holding address carries the
+member the company already links to it, matched regardless of letter case,
+that member's name as the register names members, and `memberExists`, true
+exactly when the address is linked; an address with no link has neither member
+nor name. Holdings are listed largest first, then by address. Because it reads the
 chain, only a current appointment holding `admin` or `prepare` in the class's
 company may read it, under the same issuer identity requirement as register
 reads; the owner alone, other capabilities, platform staff and other companies get
@@ -431,7 +432,11 @@ register already has an entry, is refused with 400 before the chain is read, and
 chain that cannot be read answers 503 without the provider's detail. Preparation
 captures its own boundary rather than trusting the read: its mapping must cover
 exactly the addresses holding shares then, and the opening records the shares held
-at that boundary, as its `boundarySummary` shows.
+at that boundary, as its `boundarySummary` shows. Each summary holding carries
+its mapped `member`, that member's `memberName` and `memberExists`, true when the
+member is already a member of the opening's company, so a member the opening
+will create can be told apart from an existing member the register cannot name.
+Names are resolved only when the opening maps an existing member.
 
 Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
@@ -465,7 +470,8 @@ naming the problem:
 - a mapped member of another company, or a mapped address already linked to
   another member of the company;
 - a mapping that does not cover exactly the boundary's holding addresses, with
-  none missing and none unknown;
+  none missing and none unknown, answered with the code `opening_holdings_moved`
+  so that clients can offer to read the holders again;
 - a completed issue or transfer that the boundary does not
   [represent](#classifying-completed-inclusions);
 - evidence that is not the preparer's own `authority` upload for this company,

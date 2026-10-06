@@ -52,14 +52,12 @@ class RegisterOpeningDecisionPreviewSerializer(serializers.Serializer):
     effective_on = serializers.DateField(allow_null=True)
 
 
-class RegisterOpeningHoldingSerializer(serializers.Serializer):
+class RegisterOpeningHolderSerializer(serializers.Serializer):
     address = serializers.CharField()
     shares = serializers.CharField()
     member = serializers.CharField(allow_null=True)
-
-
-class RegisterOpeningHolderSerializer(RegisterOpeningHoldingSerializer):
     member_name = serializers.CharField(allow_null=True)
+    member_exists = serializers.BooleanField()
 
 
 class RegisterOpeningBoundarySerializer(serializers.Serializer):
@@ -126,11 +124,17 @@ class RegisterOpeningSerializer(RegisterDecidedSerializer):
         if obj.boundary is None:
             return None
         members = {link["address"].lower(): link["member"] for link in obj.mapping}
-        known = RegisterMember.objects.filter(company_id=obj.company_id, pk__in=set(members.values()))
-        names = {
-            str(member): identity.name or None
-            for member, identity in member_identities(obj.token, list(known.values_list("pk", flat=True))).items()
-        }
+        known = list(
+            RegisterMember.objects.filter(company_id=obj.company_id, pk__in=set(members.values())).values_list(
+                "pk", flat=True
+            )
+        )
+        names = (
+            {str(member): identity.name or None for member, identity in member_identities(obj.token, known).items()}
+            if known
+            else {}
+        )
+        existing = {str(member) for member in known}
         return {
             "block_number": obj.boundary["block"]["number"],
             "block_hash": obj.boundary["block"]["hash"],
@@ -141,6 +145,7 @@ class RegisterOpeningSerializer(RegisterDecidedSerializer):
                     "shares": row["shares"],
                     "member": members.get(row["address"].lower()),
                     "member_name": names.get(members.get(row["address"].lower())),
+                    "member_exists": members.get(row["address"].lower()) in existing,
                 }
                 for row in obj.boundary["holdings"]
             ],

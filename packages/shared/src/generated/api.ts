@@ -4847,6 +4847,7 @@ export interface ApiComponents {
     RegisterOpeningHolder: {
       address: string;
       member: string | null;
+      memberExists: boolean;
       memberName: string | null;
       shares: string;
     };

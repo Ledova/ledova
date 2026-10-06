@@ -9,7 +9,7 @@ import { STEP_CHANGED, type RegisterSteps } from './proposals';
 type Proposal = { uuid: string; providedBy: string; status: string };
 type Preview = { previewDigest: string; canDecide: boolean; unmetRequirements: string[] };
 
-export type DecisionCopy = {
+type DecisionCopy = {
   DECISIONS: Record<RegisterDecisionKind, string>;
   CONFIRMATIONS: Record<RegisterDecisionKind, string>;
   REJECTION_REASON: string;

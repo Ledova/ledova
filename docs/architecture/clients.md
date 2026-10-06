@@ -632,9 +632,11 @@ bound to the signed-in account.
 Each deployed or paused class on the dashboard's Register also lists its
 [openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
 newest first across every page and each once: stage, preparer, dates, the
-boundary block and its date, each address holding shares at the boundary with
-its shares and the member it maps to, named or numbered as a new member, the
-authority, reference and reason, whether the company provided the authority
+boundary block and its date, each address holding shares at the boundary,
+largest first, with its shares and the member it maps to: an existing member by
+its name, or numbered as an unnamed member when it has none, and a member the
+opening creates numbered as a new member; then the authority, reference and
+reason, whether the company provided the authority
 document or staff verified it before openings were company-run, the decision
 trail and any rejection reason, with a download of the authority document. A
 staff-era opening whose boundary was never captured says so. Approve, Apply and
@@ -649,19 +651,28 @@ register** while the class's register is not opened. It opens
 `/company/register/:uuid/open`, a page for every signed-in account like
 Register, which reads the class's holdings on chain and shows the block read,
 with notes that preparation captures its own boundary and records the holdings
-at that block. A chain that cannot be read says so and offers a retry, and a
-class the server will not open shows the server's reason instead of the form.
-The form takes the authority document, the authority, an approving director for
-a resolution, the reference and the reason, and maps every holding address: an
-address already linked to a member keeps that member, and any other is assigned
-to a member on the page, either a linked member or one of the numbered new
-members, which take client-generated IDs and which several addresses may share.
-The upload keeps its own retry key and confirmed receipt, preparation reuses its
+at that block. The holdings are read again only on request (Try again or Reload
+the holdings) or after a conflict, never on window focus or reconnect, and
+Prepare is held while the holdings, the appointments or the class are being read
+again. A chain that cannot be read says so and offers a retry, a class the
+server will not open shows the server's reason instead of the form, and a 404
+from the holdings read or from preparation reads the appointments again, so the
+form is withdrawn once the appointment is gone. The form takes the authority
+document, the authority, an approving director for a resolution, the reference
+and the reason, and maps every holding address: an address already linked to a
+member keeps that member, and any other is assigned to a member on the page,
+either a linked member or a new member, which several addresses may share and
+which takes a client-generated ID at preparation. Members are labelled as the
+Register will list them, by first appearance with the largest holding first, and
+choices are kept by address: a re-read drops a choice only when its address no
+longer holds or is now linked, or its member is no longer offered, and then says
+the choices were reset until a choice changes or the opening is prepared. The
+upload keeps its own retry key and confirmed receipt, preparation reuses its
 operation only for an identical request, and both receipts are checked before
 the openings are refreshed and the page returns to Register. A conflict
 refreshes the holdings and appointments and takes a new operation; a refusal
-because the holdings moved shows the server's reason and offers to reload them,
-mapping new holdings afresh while keeping the authority details. Each repeated
+with the holdings-moved code shows the server's reason and offers to reload the
+holdings, keeping the authority details and every choice that still applies. Each repeated
 download and decision control is named for screen readers after its visible
 label and when its opening was prepared, and every read, decision, download and
 preparation is bound to the signed-in account.
@@ -685,8 +696,12 @@ authority document download), an opening's mapping narrowed at runtime,
 of its request and its mapping row by row, `REGISTER_OPENING_DECISIONS` for
 `useRegisterDecision` with the generic decision receipt check, the opening copy
 with a sentence for every requirement an opening decision can leave unmet, and the
-`companyRegisterOpening` destination at `/company/register/:uuid/open`. The
-dashboard and mobile opening screens described above are built on this layer.
+`companyRegisterOpening` destination at `/company/register/:uuid/open`. Its
+helpers order an opening's holdings largest first by exact share count, check
+that every share count is whole, label each mapped member once (by name, or
+numbered as an unnamed or a new member) and recognise a holdings-moved refusal by
+its `opening_holdings_moved` code. The dashboard and mobile opening screens
+described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

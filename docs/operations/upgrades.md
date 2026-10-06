@@ -171,7 +171,10 @@ the new direction.
 - #864's opening screens need no migration. They read
   `GET /api/v1/tokens/{uuid}/register/opening-holders/`, added with them, which
   reads the chain and stores nothing, and each opening's boundary summary now
-  names its mapped members. Deploy the backend before or with the clients and
+  names its mapped members. Both also say with `memberExists` whether each
+  mapped member already exists, and a preparation whose mapping no longer
+  matches the boundary's holders is refused with the code
+  `opening_holdings_moved`. Deploy the backend before or with the clients and
   roll them back together. Older clients keep working against the new backend.
 - `tokens/0088_company_register_openings` and
   `tokens/0089_company_register_opening_guards` make register openings

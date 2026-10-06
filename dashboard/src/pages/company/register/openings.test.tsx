@@ -152,10 +152,10 @@ function opening(overrides: Partial<RegisterOpeningRecord> = {}): RegisterOpenin
       blockHash: `0x${'e'.repeat(64)}`,
       date: '2026-09-20',
       holdings: [
-        { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member' },
-        { address: BO, shares: '9007199254740993', member: NEW_ONE, memberName: null },
-        { address: DEE, shares: '5', member: NEW_TWO, memberName: null },
-        { address: CY, shares: '5', member: NEW_ONE, memberName: null },
+        { address: DEE, shares: '5', member: NEW_TWO, memberName: null, memberExists: false },
+        { address: ADA, shares: '20', member: MEMBER_ADA, memberName: 'Ada Member', memberExists: true },
+        { address: BO, shares: '9007199254740993', member: NEW_ONE, memberName: null, memberExists: false },
+        { address: CY, shares: '5', member: NEW_ONE, memberName: null, memberExists: false },
       ],
     },
     authority: 'director_resolution',
@@ -490,6 +490,35 @@ it("lists every page of the class's openings newest first, each once, with their
     'opening-new',
     'opening-applied',
     'opening-staff',
+  ]);
+});
+
+it('numbers an existing member without a name apart from new members, in the holdings and the preview', async () => {
+  const summary = opening().boundarySummary!;
+  openingPages = [
+    page([
+      opening({
+        boundarySummary: {
+          ...summary,
+          holdings: summary.holdings.map((row) => (row.member === MEMBER_ADA ? { ...row, memberName: null } : row)),
+        },
+      }),
+    ]),
+  ];
+  await openClass();
+  const [record] = records(await openings());
+  expect(holdings(record)).toEqual([
+    [COPY.NEW_MEMBER_NUMBERED(1), '9,007,199,254,740,993 shares', BO],
+    [COPY.UNNAMED_MEMBER_NUMBERED(1), '20 shares', ADA],
+    [COPY.NEW_MEMBER_NUMBERED(1), '5 shares', CY],
+    [COPY.NEW_MEMBER_NUMBERED(2), '5 shares', DEE],
+  ]);
+  const dialog = await openDecision(record, 'approve');
+  await previewed(dialog);
+  expect(lines(dialog, 'Opening entry')).toEqual([
+    `${COPY.UNNAMED_MEMBER_NUMBERED(1)}: +20`,
+    `${COPY.NEW_MEMBER_NUMBERED(1)}: +9,007,199,254,740,998`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)}: +5`,
   ]);
 });
 
@@ -1030,7 +1059,7 @@ it.each([
         opening({
           boundarySummary: {
             ...opening().boundarySummary!,
-            holdings: [{ address: ADA, shares: '1.5', member: MEMBER_ADA, memberName: null }],
+            holdings: [{ address: ADA, shares: '1.5', member: MEMBER_ADA, memberName: null, memberExists: true }],
           },
         }),
       ]),

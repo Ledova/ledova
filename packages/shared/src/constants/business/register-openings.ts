@@ -1,5 +1,7 @@
 import type { RegisterCorrectionAuthority, RegisterDecisionKind } from '../../types';
 
+export const REGISTER_OPENING_HOLDINGS_MOVED_CODE = 'opening_holdings_moved';
+
 export const REGISTER_OPENING_UNMET_COPY: Record<string, string> = {
   appointment_capability_required: 'Your appointment does not include this step.',
   opening_decided: 'This opening has already been applied or rejected.',
@@ -62,12 +64,14 @@ export const REGISTER_OPENING_COPY = {
   MEMBER: 'Member',
   NEW_MEMBER: 'New member',
   NEW_MEMBER_NUMBERED: (number: number) => `New member ${number}`,
+  UNNAMED_MEMBER_NUMBERED: (number: number) => `Unnamed member ${number}`,
   LINKED_NOTE: 'This address is already linked to this member, so the opening keeps that link.',
   HOLDERS_UNAVAILABLE: "The chain can't be read now, so the holdings at the boundary can't be shown. Try again later.",
   HOLDINGS_MOVED:
     'The holdings on chain changed after they were read, so the addresses no longer match. Reload the holdings and ' +
     'map them again.',
   RELOAD_HOLDINGS: 'Reload the holdings',
+  CHOICES_RESET: 'The holdings changed, so some member choices were reset. Check each holding before preparing.',
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
     'The director resolution or court order that authorises this opening, provided by the company. PDF or image, ' +

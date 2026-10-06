@@ -10912,6 +10912,9 @@
             "nullable": true,
             "type": "string"
           },
+          "memberExists": {
+            "type": "boolean"
+          },
           "memberName": {
             "nullable": true,
             "type": "string"
@@ -10923,6 +10926,7 @@
         "required": [
           "address",
           "member",
+          "memberExists",
           "memberName",
           "shares"
         ],

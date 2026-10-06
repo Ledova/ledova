@@ -6,8 +6,11 @@ import {
   REGISTER_OPENING_COPY,
   apiErrorSentence,
   createUserFriendlyError,
+  failureStatus,
   isPreparedRegisterOpening,
   isRegisterEvidenceReceipt,
+  isRegisterOpeningHoldingsMoved,
+  openingMemberLabels,
   prepareRegisterOpening,
   uploadRegisterEvidence,
   type OrderSubmissionOwner,
@@ -33,20 +36,13 @@ type Draft = {
 
 type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
 
-type Choices = { signature: string; values: Record<string, string> };
-
 const COPY = REGISTER_OPENING_COPY;
 const FAILED = 'The opening could not be prepared. Retry with the same details.';
 const CLOSED = 'This opening form is closed. Reopen it before continuing.';
-const MOVED = 'The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary.';
 const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
-const NEW = 'new-';
+const NEW = 'new:';
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
-
-function statusOf(failure: unknown) {
-  return (failure as { response?: { status?: number } } | null)?.response?.status;
-}
 
 function problemsOf(draft: Draft) {
   const problems: string[] = [];
@@ -57,8 +53,9 @@ function problemsOf(draft: Draft) {
   return problems;
 }
 
-function signatureOf(holdings: RegisterOpeningHolder[]) {
-  return JSON.stringify(holdings.map(({ address, member }) => [address.toLowerCase(), member]));
+function byAddress(left: { address: string }, right: { address: string }) {
+  const [first, second] = [left.address.toLowerCase(), right.address.toLowerCase()];
+  return first < second ? -1 : first > second ? 1 : 0;
 }
 
 export function OpeningForm({
@@ -71,6 +68,7 @@ export function OpeningForm({
   blocked,
   onReload,
   onConflict,
+  onMissing,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -81,6 +79,7 @@ export function OpeningForm({
   blocked: boolean;
   onReload: () => void;
   onConflict: () => void;
+  onMissing: () => void;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -91,13 +90,13 @@ export function OpeningForm({
     reference: '',
     reason: '',
   });
-  const [choices, setChoices] = useState<Choices>({ signature: '', values: {} });
+  const [choices, setChoices] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [moved, setMoved] = useState(false);
   const uploaded = useRef<Upload | null>(null);
   const operation = useRef<{ signature: string; key: string } | null>(null);
-  const members = useRef<string[]>([]);
+  const members = useRef<Record<string, string>>({});
   const pending = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -111,20 +110,25 @@ export function OpeningForm({
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
   const holdings = holders.holdings;
-  const signature = signatureOf(holdings);
-  const chosen = choices.signature === signature ? choices.values : {};
-  const unlinked = holdings.filter(({ member }) => member === null);
   const linked = new Map(
-    holdings.flatMap(({ member, memberName }) =>
-      member === null ? [] : [[member, memberName ?? COPY.MEMBER] as const],
-    ),
+    holdings.flatMap(({ member, memberName }) => (member === null ? [] : [[member, memberName] as const])),
   );
-  const options = [
-    ...[...linked].map(([value, label]) => ({ value, label })),
-    ...unlinked.map((_, index) => ({ value: `${NEW}${index}`, label: COPY.NEW_MEMBER_NUMBERED(index + 1) })),
-  ];
-  const choiceOf = (holding: RegisterOpeningHolder) =>
-    chosen[holding.address.toLowerCase()] ?? `${NEW}${unlinked.indexOf(holding)}`;
+  const unlinked = holdings.flatMap(({ address, member }) => (member === null ? [address.toLowerCase()] : []));
+  const offered = (value: string) =>
+    linked.has(value) || (value.startsWith(NEW) && unlinked.includes(value.slice(NEW.length)));
+  const kept = Object.fromEntries(
+    Object.entries(choices).filter(([address, value]) => unlinked.includes(address) && offered(value)),
+  );
+  const reset = Object.keys(kept).length < Object.keys(choices).length;
+  const memberOf = (holding: RegisterOpeningHolder) =>
+    holding.member ?? kept[holding.address.toLowerCase()] ?? `${NEW}${holding.address.toLowerCase()}`;
+  const mapped = holdings.map(memberOf);
+  const labels = openingMemberLabels(
+    mapped.map((member) => ({ member, memberName: linked.get(member) ?? null, memberExists: linked.has(member) })),
+  );
+  let fresh = new Set(mapped.filter((member) => member.startsWith(NEW))).size;
+  for (const address of unlinked)
+    if (!labels.has(`${NEW}${address}`)) labels.set(`${NEW}${address}`, COPY.NEW_MEMBER_NUMBERED(++fresh));
   const problems = problemsOf(draft);
   const clear = () => {
     setError('');
@@ -136,20 +140,18 @@ export function OpeningForm({
   };
   const choose = (holding: RegisterOpeningHolder, value: string) => {
     clear();
-    setChoices((current) => ({
-      signature,
-      values: { ...(current.signature === signature ? current.values : {}), [holding.address.toLowerCase()]: value },
-    }));
+    setChoices({ ...kept, [holding.address.toLowerCase()]: value });
   };
 
   const mappingOf = () =>
-    holdings.map((holding) => {
-      const value = holding.member ?? choiceOf(holding);
-      if (!value.startsWith(NEW)) return { address: holding.address, member: value };
-      const index = Number(value.slice(NEW.length));
-      members.current[index] ??= crypto.randomUUID();
-      return { address: holding.address, member: members.current[index] };
-    });
+    holdings
+      .map((holding) => {
+        const member = memberOf(holding);
+        if (!member.startsWith(NEW)) return { address: holding.address, member };
+        members.current[member] ??= crypto.randomUUID();
+        return { address: holding.address, member: members.current[member] };
+      })
+      .sort(byAddress);
 
   const upload = async (file: File) => {
     const previous = uploaded.current;
@@ -174,7 +176,7 @@ export function OpeningForm({
       uploaded.current = { file, appointment: appointment.uuid, key, receipt: data };
       return data;
     } catch (failure) {
-      if (statusOf(failure) === 409) uploaded.current = null;
+      if (failureStatus(failure) === 409) uploaded.current = null;
       throw failure;
     }
   };
@@ -184,6 +186,7 @@ export function OpeningForm({
     pending.current = true;
     setBusy(true);
     clear();
+    setChoices(kept);
     const mapping = mappingOf();
     try {
       check();
@@ -208,7 +211,7 @@ export function OpeningForm({
         if (!isPreparedRegisterOpening(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       } catch (failure) {
-        if (statusOf(failure) === 409) {
+        if (failureStatus(failure) === 409) {
           operation.current = null;
           onConflict();
         }
@@ -221,9 +224,9 @@ export function OpeningForm({
     } catch (failure) {
       try {
         check();
-        const sentence = apiErrorSentence(failure, FAILED, FAILED);
-        setError(sentence);
-        setMoved(statusOf(failure) === 400 && sentence === MOVED);
+        setError(apiErrorSentence(failure, FAILED, FAILED));
+        setMoved(isRegisterOpeningHoldingsMoved(failure));
+        if (failureStatus(failure) === 404) onMissing();
       } catch {
         return;
       }
@@ -311,26 +314,31 @@ export function OpeningForm({
               for addresses that belong to one person.
             </p>
           )}
+          {reset && (
+            <p role="status" className="text-sm text-text-primary">
+              {COPY.CHOICES_RESET}
+            </p>
+          )}
           {holdings.map((holding) => (
             <fieldset key={holding.address} className="space-y-2 border-t border-border-subtle pt-3">
               <legend className="break-all text-sm text-text-primary">{holding.address}</legend>
               <p className="text-xs text-text-muted">{shareCount(holding.shares)}</p>
               {holding.member !== null ? (
                 <>
-                  <p className="text-sm text-text-primary">{holding.memberName ?? COPY.MEMBER}</p>
+                  <p className="text-sm text-text-primary">{labels.get(holding.member)}</p>
                   <p className="text-sm text-text-muted">{COPY.LINKED_NOTE}</p>
                 </>
               ) : (
                 <label className={LABEL}>
                   {COPY.MEMBER}
                   <select
-                    value={choiceOf(holding)}
+                    value={memberOf(holding)}
                     className={FIELD_CLASS}
                     onChange={(event) => choose(holding, event.target.value)}
                   >
-                    {options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                    {[...labels].map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
                       </option>
                     ))}
                   </select>

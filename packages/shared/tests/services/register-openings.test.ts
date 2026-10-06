@@ -79,7 +79,9 @@ it('answers the holders read as the API gives it', async () => {
   const api = axios.create();
   const holders = {
     block: { number: 12, hash: '0x' + 'c'.repeat(64), date: '2026-09-20' },
-    holdings: [{ address: LINK.address, shares: '9007199254740993', member: null, memberName: null }],
+    holdings: [
+      { address: LINK.address, shares: '9007199254740993', member: null, memberName: null, memberExists: false },
+    ],
   };
   jest.spyOn(api, 'get').mockResolvedValueOnce({ data: holders });
   expect((await getRegisterOpeningHolders(api, 'class-a')).data).toEqual(holders);
