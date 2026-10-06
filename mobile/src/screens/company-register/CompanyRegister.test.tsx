@@ -299,11 +299,7 @@ it('withdraws company choices while the class list cannot be refreshed and keeps
   await fireEvent.press(view.getByRole('button', { name: 'Retry register' }));
   await view.findByRole('button', { name: 'Growth shares register' });
   expect(view.getByRole('button', { name: 'Select company Garden Company' })).toBeSelected();
-  expect(requested().filter((url) => url !== URLS.REGISTER)).toEqual([
-    URLS.HOLDERS('growth'),
-    URLS.HOLDERS('growth'),
-    URLS.HOLDERS('growth'),
-  ]);
+  expect(holderReads()).toEqual([URLS.HOLDERS('growth'), URLS.HOLDERS('growth'), URLS.HOLDERS('growth')]);
 });
 
 it.each([
