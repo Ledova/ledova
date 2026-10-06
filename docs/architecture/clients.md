@@ -240,20 +240,23 @@ and number of wallets, whether the company provided the authority document or
 staff verified it before wallet links were company-run, preparer and dates, the
 decision trail, any rejection reason, the authority, approving director,
 reference and reason, then each wallet address in the order the link records it
-with its member, labelled as openings label theirs: an existing member by their
-name on the class registers, or numbered as an unnamed member when it has none,
-and a member the link creates numbered as a new member, so wallets that share a
-member read alike; and last the document's download. Links of another company
-fail the read, and a link's step and download labels name its stage, number of
-wallets and when it was prepared. Approval and rejection (administration or
-`approve`) and application (administration or `apply`) use the same
-preview-first dialog, listing each address with its member, labelled the same
-way, and, for information only, whether the holder proved control of the wallet
-on Ledova and the holder's name on Ledova, or that the wallet is not on the
-company's whitelist, with the application note before application; a retained
-staff-era link offers only rejection. A recorded or refused link decision reads
-the links, the waiting wallets, the class registers with their waiting counts,
-any open register entries and the appointments again.
+with its member, labelled as the link form labels it: a current member of the
+class registers by its name when no other current member shares it, and
+otherwise as an unnamed member or by the shared name with its first wallet
+shortened, or its first holding when it has no wallet, numbered in register
+order if two would still read alike; an existing member no longer on the
+registers neutrally; and a member the link creates numbered as a new member, so
+wallets that share a member read alike; and last the document's download. Links
+of another company fail the read, and a link's step and download labels name its
+stage, number of wallets and when it was prepared. Approval and rejection
+(administration or `approve`) and application (administration or `apply`) use
+the same preview-first dialog, listing each address with its member, labelled
+the same way, and, for information only, whether the holder proved control of
+the wallet on Ledova and the holder's name on Ledova, or that the wallet is not
+on the company's whitelist, with the application note before application; a
+retained staff-era link offers only rejection. A recorded or refused link
+decision reads the links, the waiting wallets, the class registers with their
+waiting counts, any open register entries and the appointments again.
 Administration or `prepare` gets **Link waiting wallets**, enabled once the
 company's waiting wallets are read and at least one waits; when none waits, a
 note says so. A 404 from that read reads the appointments again, so the action
@@ -261,10 +264,11 @@ gives way to the read-only note once the appointment is gone. It opens a form in
 the same stack that reads the waiting wallets, the company's class registers and
 the appointments, and lists each waiting wallet, in the order a link records
 them, with the number of issues and transfers waiting for it and its statuses.
-The form maps each wallet to an existing member, chosen by name from the class
-registers' holders or numbered as an unnamed member, or to a new member under a
-new ID that several wallets may share, numbered as the link's record numbers it.
-No wallet has a member until the person chooses one, never by matching names.
+The form maps each wallet to a current member of the class registers or to a new
+member under a new ID that several wallets may share, each labelled as the
+link's record and preview will label it, with the current members first in
+register order; a current member's label never changes with the choices. No
+wallet has a member until the person chooses one, never by matching names.
 Choices are kept by address: a re-read drops a choice only when its wallet no
 longer waits or its member is no longer on the class registers, and the page
 then says the choices were reset, announcing it on iOS and in a polite live
