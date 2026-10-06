@@ -57,12 +57,14 @@ from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.models import (
     CapitalIncreaseRequest,
+    RegisterEvidenceKind,
     RegisterMember,
     ShareIssuanceRequest,
     ShareToken,
 )
 from tokens.services.creation import create_share_token
-from tokens.services.register_openings import submit_link
+from tokens.services.register_openings import prepare_link
+from tokens.tests.evidence_fixtures import upload_evidence
 from users.models import UserAccount, UserProfile
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
@@ -628,25 +630,20 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
     def test_revoked_owner_reads_retained_register_proposal_and_file_without_private_document_access(self):
         initial = self.admit()
         document = self.upload()
-        reviewer, _profile = self.account("retained-link-reviewer")
         with use_migrate():
-            get_user_model().objects.filter(pk=reviewer.pk).update(is_staff=True, is_superuser=True)
             member = RegisterMember.objects.create(company=self.company)
-        with self.operator_as(reviewer):
-            _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-            verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
-        with self.role(self.owner, "app"):
-            proposal = submit_link(
-                actor=self.owner,
-                operation_id=uuid4(),
-                company_id=self.company.pk,
-                document_id=document.pk,
-                mapping=[{"member": str(member.pk), "address": "0x" + "4" * 40}],
-                authority="director_resolution",
-                approving_director="Synthetic retained director",
-                authority_reference="RETAINED-LINK",
-                reason="Retained owner proposal read",
-            )
+        proposal, _ = prepare_link(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=initial.pk,
+            company_id=self.company.pk,
+            authority_evidence=upload_evidence(self.owner, initial, RegisterEvidenceKind.AUTHORITY, raw=PDF).pk,
+            mapping=[{"member": str(member.pk), "address": "0x" + "4" * 40}],
+            authority="director_resolution",
+            approving_director="Synthetic retained director",
+            authority_reference="RETAINED-LINK",
+            reason="Retained owner proposal read",
+        )
         revoke_company_appointment(requester=self.owner, appointment_id=initial.pk)
         endpoint = "/api/v1/tokens/register-links/"
         self.assertEqual([row["uuid"] for row in self.client.get(endpoint).json()["results"]], [str(proposal.pk)])

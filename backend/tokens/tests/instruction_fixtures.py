@@ -12,6 +12,7 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
+from tokens.tests.test_register_events import register_fixture
 
 DIRECTOR = "Synthetic Director"
 
@@ -32,6 +33,13 @@ def verified_authority(company, reviewer):
     document = attach_file(make_document(company))
     _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
     return verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
+
+
+def instruction_company():
+    owner, company, _, _, _, _ = register_fixture()
+    owner.is_staff = False
+    owner.save(update_fields=["is_staff"])
+    return owner, company, verified_authority(company, instruction_reviewer())
 
 
 def instruction_item(row):

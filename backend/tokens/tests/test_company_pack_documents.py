@@ -278,7 +278,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                         (asic_path, sha256(files[asic_path]), "company"),
                     )
                     self.assertEqual(files[asic_path], read(record.asic_evidence.file.name))
-                elif kind in ("opening", "correction"):
+                elif kind in ("opening", "correction", "link"):
                     self.assertEqual(files[path], read(record.authority_evidence.file.name))
                     self.assertEqual((listed["provided_by"], listed["evidence"]["document"]), ("company", None))
                 elif kind == "particulars":

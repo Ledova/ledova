@@ -305,6 +305,8 @@ REGISTER_LINK_ROUTES = {
     "list": ("get", "/api/v1/tokens/register-links/"),
     "detail": ("get", "/api/v1/tokens/register-links/{uuid}/"),
     "file": ("get", "/api/v1/tokens/register-links/{uuid}/file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-links/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-links/{uuid}/decide/"),
 }
 REGISTER_IMPORT_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-imports/"),
@@ -1554,14 +1556,14 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
         }
     )
-    def test_register_link_routes_keep_evidence_private_and_review_operator_only(self):
+    def test_register_link_routes_keep_evidence_private_and_decisions_company_bound(self):
         from tokens.models import RegisterWalletLink
         from tokens.tests.test_register_links import link_fixture, link_payload
 
         with self.as_an_operator_would():
-            owner, company, _, _, document = link_fixture()
+            owner, company, _, appointment, evidence = link_fixture()
         self.client.force_authenticate(owner)
-        payload = link_payload(company, document)
+        payload = link_payload(company, evidence, appointment)
         response = self.client.post(REGISTER_LINK_ROUTES["create"][1], payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         proposal_id = response.json()["uuid"]
@@ -1581,25 +1583,49 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.assertEqual(self.client.get(path).status_code, 401)
             self.assertEqual(self.client.get(listing).status_code, 401)
             self.client.force_authenticate(owner)
-        self.client.force_authenticate(self.actors[0].user)
-        self.assertEqual(self.client.post(REGISTER_LINK_ROUTES["create"][1], payload, format="json").status_code, 404)
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_LINK_ROUTES[name][1].format(uuid=proposal_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(proposal_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.post(REGISTER_LINK_ROUTES["create"][1], payload, format="json")
+            self.assertEqual(denied.status_code, 404, denied.content)
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_LINK_ROUTES["decision_preview"][1].format(uuid=proposal_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_LINK_ROUTES["decide"][1].format(uuid=proposal_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
         self.client.force_authenticate(None)
-        review = reverse("admin:tokens_registerwalletlink_review", args=[proposal_id])
-        evidence = reverse("admin:tokens_registerwalletlink_evidence", args=[proposal_id])
+        evidence_path = reverse("admin:tokens_registerwalletlink_evidence", args=[proposal_id])
         for actor, expected in zip(self.actors, (302, 403, 200)):
             self.client.force_login(actor.user)
-            response = self.client.get(review)
-            self.assertEqual(response.status_code, expected)
-            self.assertEqual(self.client.get(evidence).status_code, expected)
-            confirmation = response.context["form"].initial["confirmation"] if expected == 200 else "forged"
-            response = self.client.post(review, {"confirmation": confirmation, "reviewed": "on", "decision": "apply"})
-            self.assertEqual(response.status_code, 302 if expected == 200 else expected)
-            with self.as_an_operator_would():
-                self.assertEqual(
-                    RegisterWalletLink.objects.get(pk=proposal_id).status,
-                    "applied" if expected == 200 else "submitted",
-                )
+            self.assertEqual(self.client.get(evidence_path).status_code, expected)
             self.client.logout()
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterWalletLink.objects.get(pk=proposal_id).status, "submitted")
 
     @override_settings(
         STORAGES={
@@ -1750,11 +1776,13 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
     )
     def test_register_instruction_routes_keep_evidence_private_and_review_operator_only(self):
         from tokens.models import RegisterInstruction, RequestStatus, ShareToken
-        from tokens.tests.instruction_fixtures import instruction_payload
-        from tokens.tests.test_register_links import link_fixture
+        from tokens.tests.instruction_fixtures import (
+            instruction_company,
+            instruction_payload,
+        )
 
         with self.as_an_operator_would():
-            owner, company, _, _, document = link_fixture()
+            owner, company, document = instruction_company()
             token = ShareToken.objects.get(company=company)
             request = ShareIssuanceRequest.objects.create(
                 token=token, recipient_address="0x" + "3c" * 20, amount=5, reason="Allotment"

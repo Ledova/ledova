@@ -39,6 +39,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterExport,
     RegisterReconciliation,
+    RegisterWalletLink,
     ShareToken,
     SwapApprovalSubmission,
     SwapOrder,
@@ -52,13 +53,13 @@ from tokens.services import (
 )
 from tokens.services.register_events import verify_register
 from tokens.services.register_inclusions import waiting_effects
-from tokens.services.register_openings import decide_link, prepare_link_review
 from tokens.services.settlement_context import settlement_execution_calldata
 from tokens.tasks import (
     reconcile_every_register,
     recover_swap_execution,
     resolve_executing_swaps,
 )
+from tokens.tests.evidence_fixtures import owner_appointment
 from tokens.tests.test_chain_integration import (
     CHAIN_SETTINGS,
     SettlementChainMixin,
@@ -472,13 +473,27 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
         return response.json()["effects"]
 
     def link_buyer(self):
+        appointment = str(owner_appointment(self.tenant.company).pk)
         self.client.force_authenticate(self.tenant.user)
+        uploaded = self.client.post(
+            "/api/v1/tokens/register-evidence/",
+            {
+                "company_id": str(self.token.company_id),
+                "appointment": appointment,
+                "kind": "authority",
+                "idempotency_key": str(uuid4()),
+                "file": SimpleUploadedFile("link-resolution.pdf", PDF, content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(uploaded.status_code, 201, uploaded.content)
         linked = self.client.post(
             "/api/v1/tokens/register-links/",
             {
                 "operation_id": str(uuid4()),
+                "appointment": appointment,
                 "company_id": str(self.token.company_id),
-                "document_id": str(self.document.pk),
+                "authority_evidence": uploaded.json()["uuid"],
                 "mapping": [{"address": self.buyer.address, "member": self.buyer_member}],
                 "authority": "director_resolution",
                 "approving_director": "Synthetic Director",
@@ -488,11 +503,23 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
             format="json",
         )
         self.assertEqual(linked.status_code, 201, linked.content)
-        self.reviewer.user_permissions.add(Permission.objects.get(codename="change_registerwalletlink"))
-        _, confirmation = prepare_link_review(proposal_id=linked.json()["uuid"], reviewer=self.reviewer)
-        return decide_link(
-            proposal_id=linked.json()["uuid"], reviewer=self.reviewer, confirmation=confirmation, decision="apply"
-        )
+        detail = f"/api/v1/tokens/register-links/{linked.json()['uuid']}/"
+        for kind in ("approve", "apply"):
+            decision = {"appointment": appointment, "kind": kind}
+            previewed = self.client.post(f"{detail}decision-preview/", decision, format="json")
+            self.assertEqual(previewed.json()["unmetRequirements"], [], previewed.content)
+            decided = self.client.post(
+                f"{detail}decide/",
+                {
+                    **decision,
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": previewed.json()["previewDigest"],
+                    "confirmation": True,
+                },
+                format="json",
+            )
+            self.assertEqual(decided.status_code, 200, decided.content)
+        return RegisterWalletLink.objects.get(pk=linked.json()["uuid"])
 
     def reconcile(self, swap):
         self.assertEqual(reconcile_every_register(), {"matched": 1, "discrepant": 0, "failed": 0})

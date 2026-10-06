@@ -74,11 +74,7 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
-from tokens.services.register_openings import (
-    decide_link,
-    prepare_link_review,
-    submit_link,
-)
+from tokens.services.register_openings import prepare_link
 from tokens.services.register_particulars import prepare_particulars_change
 from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.services.settlement_context import configured_domain
@@ -94,6 +90,7 @@ from tokens.tests.test_register_certificates import (
 from tokens.tests.test_register_corrections import decide
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_imports import owner_appointment, upload_evidence
+from tokens.tests.test_register_links import decide as decide_link
 from tokens.tests.test_register_particulars import decide as decide_particulars
 from tokens.tests.test_register_workflow_events import (
     SETTLEMENT,
@@ -141,8 +138,6 @@ REVIEW_PERMISSIONS = (
     "change_companydocument",
     "change_registerinstruction",
     "view_registerinstruction",
-    "change_registerwalletlink",
-    "view_registerwalletlink",
 )
 ALLOWED_IMPORTS = {"zipfile", "json", "csv", "hashlib", "io", "sys"}
 LICENCE = (
@@ -371,19 +366,26 @@ def changed_particulars(company, member, label):
     return decide_particulars(company.owner, appointment, change, "apply")
 
 
-def linked(company, member, reviewer, document, label):
-    address = unused_address()
-    proposal = submit_link(
-        actor=company.owner,
+def linked(company, member, label):
+    owner = company.owner
+    appointment = owner_appointment(company)
+    evidence = upload_evidence(owner, appointment, RegisterEvidenceKind.AUTHORITY, raw=evidence_of(label))
+    link, _ = prepare_link(
+        actor=owner,
         operation_id=uuid4(),
+        appointment=appointment.pk,
         company_id=company.pk,
-        document_id=document.pk,
-        mapping=[{"address": address, "member": str(member.pk)}],
+        authority_evidence=evidence.pk,
+        mapping=[{"address": unused_address(), "member": str(member.pk)}],
         authority="director_resolution",
         **authority_terms(label, "link"),
     )
-    _, confirmation = prepare_link_review(proposal_id=proposal.pk, reviewer=reviewer)
-    return decide_link(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SET CONSTRAINTS tokens_register_link_decision_effect IMMEDIATE")
+    decide_link(owner, appointment, link, "approve")
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SET CONSTRAINTS tokens_register_link_decision_effect DEFERRED")
+    return decide_link(owner, appointment, link, "apply")
 
 
 def paused(company, token):
@@ -529,7 +531,7 @@ def pack_company(label):
         recorded_by=company.owner,
     )
     correction = corrected(register, issue, label)
-    link = linked(company, members["holder"], reviewer, document, label)
+    link = linked(company, members["holder"], label)
     former = unused_address()
     FormerHolder.objects.create(
         token=ordinary,
@@ -1418,13 +1420,42 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
             {"openings": [], "imports": [], "corrections": [], "instructions": []},
         )
 
-    def test_the_wallet_links_file_carries_each_link_with_its_decision_and_evidence(self):
+    def test_the_wallet_links_file_carries_each_link_with_its_decisions_and_evidence(self):
         holder = self.a.members["holder"]
         linked_address = self.a.link.mapping[0]["address"]
+        content = evidence_of("pack-a")
 
         self.assertEqual(
             self.read("wallet_links.json"),
-            [self.decided(self.a.link, "link", mapping=[{"address": linked_address, "member": str(holder.pk)}])],
+            [
+                {
+                    **self.decided(
+                        self.a.link,
+                        "link",
+                        mapping=[{"address": linked_address, "member": str(holder.pk)}],
+                        provided_by="company",
+                        decisions=[
+                            {
+                                "kind": decision.kind,
+                                "decided_by": "pack-a owner",
+                                "decided_at": decision.decided_at.isoformat(),
+                                "reason": "",
+                            }
+                            for decision in self.a.link.decisions.order_by("decided_at", "uuid")
+                        ],
+                    ),
+                    "evidence": {
+                        "document": None,
+                        "document_type": "authority",
+                        "name": "authority.pdf",
+                        "mime_type": "application/pdf",
+                        "size": len(content),
+                        "sha256": sha256(content),
+                        "path": f"documents/evidence/registerwalletlink/{self.a.link.pk}.pdf",
+                    },
+                    "reviewer": "pack-a owner",
+                }
+            ],
         )
         self.assertIn(linked_address, self.files[f"classes/{self.a.ordinary.pk}/register.csv"].decode())
 

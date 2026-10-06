@@ -168,7 +168,10 @@ def link_records(company) -> list:
 
 
 def wallet_links(records) -> list:
-    return [_decided(link, link.authority, mapping=link.mapping) for link in records]
+    return [
+        _decided(link, link.authority, mapping=link.mapping, provided_by=_provided_by(link), decisions=_decisions(link))
+        for link in records
+    ]
 
 
 def particulars_change_records(company) -> list:
