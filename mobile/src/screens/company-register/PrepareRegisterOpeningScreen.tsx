@@ -7,10 +7,12 @@ import {
   apiErrorSentence,
   createUserFriendlyError,
   DESTINATIONS,
+  failureStatus,
   formatDate,
   formatShareCount,
   getErrorMessage,
   isPreparedRegisterOpening,
+  isRegisterOpeningHoldingsMoved,
   largestHoldingsFirst,
   openingMemberLabels,
   prepareRegisterOpening,
@@ -33,9 +35,6 @@ type Chosen = { member: string; fresh: boolean };
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 const FAILED = 'The opening could not be prepared. Retry with the same details.';
 const UNREAD = 'The holdings at the boundary could not be read.';
-const MOVED = 'The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary.';
-
-const statusOf = (failure: unknown) => (failure as { response?: { status?: number } })?.response?.status;
 
 export function PrepareRegisterOpeningScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
@@ -71,7 +70,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
   const holdingsError = holders.error;
   const readAppointments = appointments.refetch;
   useEffect(() => {
-    if (statusOf(holdingsError) === 404) void readAppointments();
+    if (failureStatus(holdingsError) === 404) void readAppointments();
   }, [holdingsError, readAppointments]);
   const holdings = largestHoldingsFirst(holders.data?.holdings ?? []);
   const linked = new Map(holdings.flatMap(({ member, memberName }) => (member ? [[member, memberName] as const] : [])));
@@ -169,16 +168,15 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
       guard();
       navigation.goBack();
     } catch (cause) {
-      const status = statusOf(cause);
+      const status = failureStatus(cause);
       if (status && status < 500) retry.current = null;
       try {
         guard();
       } catch {
         return;
       }
-      const message = apiErrorSentence(cause, FAILED, FAILED);
-      setError(message);
-      setMoved(status === 400 && message.includes(MOVED));
+      setError(apiErrorSentence(cause, FAILED, FAILED));
+      setMoved(isRegisterOpeningHoldingsMoved(cause));
       if (status === 409) await Promise.all([holders.refetch(), appointments.refetch()]);
       if (status === 404) await appointments.refetch();
     } finally {
@@ -227,7 +225,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
     return (
       <Page title={title} lede={lede}>
         <Text accessibilityRole="alert" style={styles.error}>
-          {statusOf(holders.error) === 503 ? COPY.HOLDERS_UNAVAILABLE : apiErrorSentence(holders.error, UNREAD)}
+          {failureStatus(holders.error) === 503 ? COPY.HOLDERS_UNAVAILABLE : apiErrorSentence(holders.error, UNREAD)}
         </Text>
         <Action label={COPY.RELOAD_HOLDINGS} disabled={holders.isFetching} onPress={reload} />
       </Page>

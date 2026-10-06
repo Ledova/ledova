@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_OPENING_COPY as COPY,
+  REGISTER_OPENING_HOLDINGS_MOVED_CODE,
   type RegisterOpeningPreparation,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -31,8 +32,11 @@ type Holding = { address: string; shares: string; member: string | null; memberN
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const HOLDINGS_URL = URLS.REGISTER_OPENING_HOLDERS('ordinary');
 const FAILED = 'The opening could not be prepared. Retry with the same details.';
-const MOVED = 'The opening mapping must cover exactly the wallet addresses holding shares at the captured boundary.';
+const MOVED = 'The mapping no longer covers the addresses holding shares.';
 const UNMAPPED = 'Choose a member for each holding.';
+const movedRefusal = () => ({
+  response: { status: 400, data: { detail: MOVED, code: REGISTER_OPENING_HOLDINGS_MOVED_CODE } },
+});
 const ADA = '0xAdA0000000000000000000000000000000000a01';
 const BEA = '0xBea0000000000000000000000000000000000b02';
 const CY = '0xC000000000000000000000000000000000000c03';
@@ -487,7 +491,7 @@ it('reads the holdings and appointments again after a conflict and prepares unde
 });
 
 it('says the holdings moved when the server refuses the mapping, and maps the reloaded holdings again', async () => {
-  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } });
+  prepareAnswer.mockRejectedValueOnce(movedRefusal());
   const view = await open();
   await map(view);
   await complete(view);
@@ -537,8 +541,19 @@ it('shows another refusal as the server words it, without saying the holdings mo
   expect(preparations().map(({ operationId }) => operationId)).toEqual([KEY(3), KEY(4)]);
 });
 
+it('says nothing of moved holdings when a refusal lacks the holdings-moved code, whatever its words', async () => {
+  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: { detail: MOVED } } });
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  expect(await view.findByText(MOVED)).toBeTruthy();
+  expect(view.queryByText(COPY.HOLDINGS_MOVED)).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeNull();
+});
+
 it('forgets a choice of a linked member that no longer holds once the holdings are reloaded', async () => {
-  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } });
+  prepareAnswer.mockRejectedValueOnce(movedRefusal());
   const view = await open();
   await map(view);
   await complete(view);
@@ -858,7 +873,7 @@ it('holds every choice and field while the opening is being prepared', async () 
 });
 
 it('holds preparation, every choice and the reload offer while the authority document is being chosen', async () => {
-  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } });
+  prepareAnswer.mockRejectedValueOnce(movedRefusal());
   const view = await open();
   await map(view);
   await complete(view);
@@ -885,7 +900,7 @@ it('holds preparation, every choice and the reload offer while the authority doc
 
 it('clears the holdings-moved note once the opening is prepared again', async () => {
   let answer!: (value: unknown) => void;
-  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } }).mockImplementationOnce(
+  prepareAnswer.mockRejectedValueOnce(movedRefusal()).mockImplementationOnce(
     () =>
       new Promise((resolve) => {
         answer = resolve;
