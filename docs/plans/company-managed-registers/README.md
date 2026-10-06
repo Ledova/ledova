@@ -22,11 +22,10 @@ The owner's [5 October amendment](https://github.com/Ledova/ledova/issues/860#is
 lets #864 start before #863 closes, except member-wallet links, which wait for #863.
 #864's first increment delivers register reads by appointment, its second
 company-run imports, its third company-run corrections, its fourth company
-acknowledgement of reconciliation discrepancies and its fifth company-run
-openings from the chain, each through the API and both clients, and its sixth
-company-run changes to a member's particulars through the API, with their client
-screens planned; its other register commands remain planned. #865–#873 remain
-dependency-ordered.
+acknowledgement of reconciliation discrepancies, its fifth company-run openings
+from the chain and its sixth company-run changes to a member's particulars, each
+through the API and both clients; its other register commands remain planned.
+#865–#873 remain dependency-ordered.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured

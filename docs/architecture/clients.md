@@ -39,9 +39,9 @@ Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
 absent field must not hide it. Apart from the register imports, openings,
-register history, corrections and discrepancy acknowledgement in both clients,
-the detailed current screen descriptions below do not claim these
-company-managed controls are shipped.
+particulars changes, register history, corrections and discrepancy
+acknowledgement in both clients, the detailed current screen descriptions below
+do not claim these company-managed controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -692,6 +692,42 @@ download and decision control is named for screen readers after its visible
 label and when its opening was prepared, and every read, decision, download and
 preparation is bound to the signed-in account.
 
+Once the selected company's registers are read, the dashboard's Register also
+lists that company's
+[particulars changes](../operations/register-foundation.md#changing-a-members-particulars)
+in a section of their own, read on every page with the company filter, newest
+first and each once: the member, by their name on the company's current register
+or as a member not named on it, the stage, preparer and dates, the proposed name,
+residential address and as-at date, the reason, the decision trail and any
+rejection reason, with the note that the company provided the supporting
+document and its download. Approve, Apply and Reject use the decision dialog the
+other register commands share, through `useRegisterDecision` with the
+particulars family: its preview shows the member's current particulars, or that
+none are recorded, beside the proposed ones, and before approval or application
+notes that the latest as-at date wins between imports and changes while a
+member's live verified identity wins over both. Confirming needs the step's
+current appointment to be the one previewed, a rejection takes a reason of up to
+1,000 characters, and a decision or refusal refreshes the changes, the registers
+that name the members, their entries and the person's appointments. Readers with
+none of these steps see the changes read-only. Holders of administration or
+`prepare` get **Change particulars** on each current member a class lists. It
+opens `/company/register/members/:member/particulars`, a page for every
+signed-in account like Register, which finds the member among the current
+members of the companies where the person may prepare, shows their current
+register name and company with the same precedence note, and takes the
+company's supporting document, the new name and residential address, an as-at
+date no later than today in UTC, defaulting to today, and the reason. The upload
+keeps its own retry key and confirmed receipt, preparation reuses its operation
+only for an identical request, and both receipts are checked before the changes
+are refreshed and the page returns to Register. A conflict reads the member's
+register and the appointments again and takes a new operation, a refusal shows
+the server's words, and a refusal as not found reads the appointments again, so
+the form gives way to the read-only note once the appointment is gone. Each
+repeated download and decision control is named for screen readers after its
+visible label, the member and when the change was prepared, and each **Change
+particulars** after the member; every read, decision, download and preparation is
+bound to the signed-in account.
+
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 [discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
@@ -729,8 +765,8 @@ copy with a sentence for every requirement a particulars decision can leave
 unmet and a note that the latest as-at date wins between imports and changes
 while a member's live verified identity wins over both, and the
 `companyRegisterParticulars` destination at
-`/company/register/members/:member/particulars`. The web and mobile particulars
-screens are being built; neither client shows particulars changes yet.
+`/company/register/members/:member/particulars`. The dashboard and mobile
+particulars screens described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

@@ -1463,9 +1463,10 @@ under the owner's [decisions of 5 October 2026](../decisions.md#company-run-regi
   over both.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The API below is delivered; Register screens for it in both clients are
-planned, and shareholders changing their own particulars is planned work in
-[#866](https://github.com/Ledova/ledova/issues/866).
+steps. The Register screen in both clients lists the company's particulars
+changes, prepares a change from a current member's row and runs these steps,
+through the API below. Shareholders changing their own particulars is planned
+work in [#866](https://github.com/Ledova/ledova/issues/866).
 
 | Method and route | Result |
 | --- | --- |
