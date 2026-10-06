@@ -31,6 +31,7 @@ from tokens.models import (
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
 )
+from tokens.services.register_events import create_member
 from tokens.services.register_evidence import evidence_snapshot
 from tokens.services.register_particulars import (
     decide_particulars_change,
@@ -41,13 +42,21 @@ from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_import_authority import AppointsTeam
 from tokens.tests.test_register_imports import (
     DOCUMENT_BYTES,
-    import_payload,
+    RESIDENCE,
 )
+from tokens.tests.test_register_imports import decide as decide_import
+from tokens.tests.test_register_imports import forge_decision as forge_import_decision
+from tokens.tests.test_register_imports import import_payload
 from tokens.tests.test_register_imports import prepared as prepared_import
-from tokens.tests.test_register_imports import staff_user, upload_evidence
+from tokens.tests.test_register_imports import (
+    record_particulars,
+    staff_user,
+    upload_evidence,
+)
 from tokens.tests.test_register_particulars import (
     NEW_ADDRESS,
     RENAMED,
+    apply_change,
     change_payload,
     decide,
     decision_digest,
@@ -55,6 +64,7 @@ from tokens.tests.test_register_particulars import (
     forge_outcome,
     forged_fields,
     insert_forged,
+    moved,
     particulars_fixture,
     prepared,
     preview,
@@ -64,6 +74,16 @@ from users.models import UserProfile
 
 EVIDENCE = "/api/v1/tokens/register-evidence/"
 PARTICULARS_CHANGES = "/api/v1/tokens/register-particulars-changes/"
+IMPORTED = "come only from the company's application of that import"
+MOVED = "stay with their member and never move to an earlier date"
+
+
+def without_a_command(cursor):
+    cursor.execute(f"SET LOCAL ROLE {connection.ops.quote_name(settings.RLS_ROLES['operator'])}")
+    cursor.execute(
+        "SELECT set_config('app.user_id', '', true), set_config('app.company_operation', '', true), "
+        "set_config('app.company_id', '', true)"
+    )
 
 
 class ParticularsAuthorityFixture(AppointsTeam):
@@ -77,6 +97,20 @@ class ParticularsAuthorityFixture(AppointsTeam):
 
     def prepared_by_the_owner(self, **changes):
         return prepared(self.owner, change_payload(self.member, self.evidence, self.administrator, **changes))
+
+    def an_import(self, as_at=DAY, **changes):
+        return prepared_import(
+            self.owner,
+            import_payload(
+                self.token,
+                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.SHARE_REGISTER),
+                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.ASIC_EXTRACT),
+                self.member,
+                self.administrator,
+                as_at=as_at.isoformat(),
+                **changes,
+            ),
+        )
 
     def reappoint(self, appointee, capabilities):
         _, code, _ = issue_team_invitation(
@@ -681,6 +715,17 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
         self.assertEqual((self.change.status, self.change.rejection_reason), ("rejected", "Exact"))
 
     def test_an_application_must_record_the_changes_particulars_for_its_member(self):
+        identical = {
+            "member": str(self.member.pk),
+            "name": RENAMED,
+            "residential_address": NEW_ADDRESS,
+            "shares": "100",
+            "entered_on": "2019-05-01",
+            "amount_paid": None,
+        }
+        imported = self.an_import(members=[identical])
+        for kind in ("approve", "apply"):
+            decide_import(self.owner, self.administrator, imported, kind)
         forge_decision(self.change, "approve", self.owner, self.administrator)
         refused = "Application must record the change's particulars"
         with self.assertRaisesMessage(DatabaseError, refused), use_operator(), atomic():
@@ -775,7 +820,7 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
         forge_decision(self.change, "approve", self.owner, self.administrator)
         with self.assertRaises(RuntimeError), use_operator(), atomic():
             forge_decision(self.change, "apply", self.owner, self.administrator)
-            with self.assertRaisesMessage(DatabaseError, refused), atomic():
+            with self.assertRaisesMessage(DatabaseError, MOVED), atomic():
                 write_particulars(self.change, self.owner)
             raise RuntimeError("rollback")
         with use_operator():
@@ -783,32 +828,148 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
         self.assert_refused(refused, lambda: write_particulars(later, self.owner, name="Mia Rewritten"))
         self.assert_refused(refused, lambda: write_particulars(later, self.owner))
 
-    def test_imported_particulars_carry_their_imports_register_date(self):
-        proposal = prepared_import(
-            self.owner,
-            import_payload(
-                self.token,
-                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.SHARE_REGISTER),
-                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.ASIC_EXTRACT),
-                self.member,
-                self.administrator,
-            ),
-        )
-
-        def imported(as_at):
-            with use_operator(), atomic():
-                RegisterMemberParticulars.objects.create(
-                    member=self.member,
-                    name="Mia Member",
-                    residential_address="1 Street",
-                    as_at=as_at,
-                    source_import=proposal,
-                )
-
-        self.assert_refused("carry their import's register date", lambda: imported(proposal.as_at - timedelta(days=1)))
+    def test_imported_particulars_come_only_from_their_imports_application(self):
+        applier, _ = self.appoint([CompanyCapability.APPROVE, CompanyCapability.APPLY])
+        with use_operator():
+            neighbour = create_member(company_id=self.company.pk, member_id=uuid4())
+        proposal = self.an_import()
+        self.assert_refused(IMPORTED, lambda: record_particulars(proposal, self.owner))
+        decide_import(self.owner, self.administrator, proposal, "approve")
+        self.assert_refused(IMPORTED, lambda: record_particulars(proposal, self.owner))
         with self.assertRaises(RuntimeError), use_operator(), atomic():
-            imported(proposal.as_at)
+            forge_import_decision(proposal, "apply", self.owner, self.administrator)
+            for actor, operation, scope, fields in (
+                (self.owner, "register_import_approve", None, {}),
+                (self.owner, "register_particulars_apply", None, {}),
+                (applier, "register_import_apply", None, {}),
+                (self.owner, "register_import_apply", uuid4(), {}),
+                (self.owner, "register_import_apply", None, {"name": "Mia Forged"}),
+                (self.owner, "register_import_apply", None, {"residential_address": "1 Forged Street"}),
+                (self.owner, "register_import_apply", None, {"as_at": DAY - timedelta(days=1)}),
+                (self.owner, "register_import_apply", None, {"as_at": DAY + timedelta(days=1)}),
+            ):
+                with self.subTest(actor=actor.email, operation=operation, scope=scope, fields=fields):
+                    with self.assertRaisesMessage(DatabaseError, IMPORTED), atomic():
+                        record_particulars(proposal, actor, operation, scope, **fields)
+            with self.assertRaisesMessage(DatabaseError, IMPORTED), atomic():
+                with company_operation(self.owner, self.company.pk, "register_import_apply"), atomic():
+                    RegisterMemberParticulars.objects.create(
+                        member=neighbour,
+                        name="Mia Member",
+                        residential_address=RESIDENCE,
+                        as_at=DAY,
+                        source_import=proposal,
+                    )
+            record_particulars(proposal, self.owner)
+            held = RegisterMemberParticulars.objects.get(member=self.member)
+            self.assertEqual((held.name, held.as_at, held.source_import_id), ("Mia Member", DAY, proposal.pk))
             raise RuntimeError("rollback")
+        self.assertEqual(decide_import(self.owner, self.administrator, proposal, "apply").status, "applied")
+        self.assert_refused(IMPORTED, lambda: record_particulars(proposal, self.owner))
+        with use_operator():
+            held = RegisterMemberParticulars.objects.get(member=self.member)
+        self.assertEqual((held.name, held.source_import_id), ("Mia Member", proposal.pk))
+
+    def test_the_operator_without_a_command_neither_resources_nor_inserts_imported_particulars(self):
+        decide(self.owner, self.administrator, self.change, "approve")
+        decide(self.owner, self.administrator, self.change, "apply")
+        older, same_day = self.an_import(DAY - timedelta(days=10)), self.an_import()
+        with use_operator():
+            stranger = particulars_fixture()[3]
+        for refusal, forgery, values in (
+            (
+                MOVED,
+                "UPDATE tokens_registermemberparticulars SET source_change_id = NULL, source_import_id = %s, "
+                "as_at = %s, name = 'Forged Name', residential_address = 'Forged Address' WHERE member_id = %s",
+                [older.pk, older.as_at, self.member.pk],
+            ),
+            (
+                IMPORTED,
+                "UPDATE tokens_registermemberparticulars SET source_change_id = NULL, source_import_id = %s, "
+                "name = 'Mia Member', residential_address = %s WHERE member_id = %s",
+                [same_day.pk, RESIDENCE, self.member.pk],
+            ),
+            (
+                IMPORTED,
+                "INSERT INTO tokens_registermemberparticulars (uuid, created_at, updated_at, member_id, name, "
+                "residential_address, as_at, source_import_id) VALUES (%s, now(), now(), %s, 'Forged', "
+                "'Forged Street', %s, %s)",
+                [uuid4(), stranger.pk, same_day.as_at, same_day.pk],
+            ),
+        ):
+            with self.subTest(forgery=forgery), use_migrate(), self.assertRaisesMessage(DatabaseError, refusal):
+                with atomic(), connections[current_alias()].cursor() as cursor:
+                    without_a_command(cursor)
+                    cursor.execute(forgery, values)
+        with use_operator():
+            held = RegisterMemberParticulars.objects.get(member=self.member)
+            self.assertFalse(RegisterMemberParticulars.objects.filter(member=stranger).exists())
+        self.assertEqual((held.name, held.source_change_id, held.source_import_id), (RENAMED, self.change.pk, None))
+
+    def test_imported_particulars_never_replace_later_particulars(self):
+        decide(self.owner, self.administrator, self.change, "approve")
+        decide(self.owner, self.administrator, self.change, "apply")
+        older = self.an_import(DAY - timedelta(days=3))
+        decide_import(self.owner, self.administrator, older, "approve")
+        with self.assertRaises(RuntimeError), use_operator(), atomic():
+            forge_import_decision(older, "apply", self.owner, self.administrator)
+            with self.assertRaisesMessage(DatabaseError, MOVED), atomic():
+                record_particulars(older, self.owner)
+            raise RuntimeError("rollback")
+        self.assertEqual(decide_import(self.owner, self.administrator, older, "apply").status, "applied")
+        with use_operator():
+            held = RegisterMemberParticulars.objects.get(member=self.member)
+        self.assertEqual((held.name, held.as_at, held.source_change_id), (RENAMED, DAY, self.change.pk))
+
+    def test_particulars_never_move_to_another_member(self):
+        with use_operator():
+            other = create_member(company_id=self.company.pk, member_id=uuid4())
+            moved(self.token.stored_register.pk, self.member, other, 50, self.owner)
+        theirs = apply_change(
+            self.owner,
+            self.administrator,
+            prepared(self.owner, change_payload(other, self.evidence, self.administrator, name="Olive Other")),
+        )
+        forge_decision(self.change, "approve", self.owner, self.administrator)
+        with self.assertRaises(RuntimeError), use_operator(), atomic():
+            forge_decision(self.change, "apply", self.owner, self.administrator)
+            with self.assertRaisesMessage(DatabaseError, MOVED), atomic():
+                with company_operation(self.owner, self.company.pk, "register_particulars_apply"), atomic():
+                    RegisterMemberParticulars.objects.filter(member=other).update(
+                        member=self.member,
+                        name=self.change.name,
+                        residential_address=self.change.residential_address,
+                        as_at=self.change.as_at,
+                        source_change=self.change,
+                    )
+            raise RuntimeError("rollback")
+        with use_operator():
+            self.assertEqual(RegisterMemberParticulars.objects.get(member=other).source_change_id, theirs.pk)
+            self.assertFalse(RegisterMemberParticulars.objects.filter(member=self.member).exists())
+
+    def test_a_company_command_never_removes_particulars_and_only_the_purge_may(self):
+        refused = "Only the retention purge removes member particulars"
+        decide(self.owner, self.administrator, self.change, "approve")
+        later = self.prepared_by_the_owner(name="Mia Later", as_at=DAY + timedelta(days=1))
+        apply_change(self.owner, self.administrator, later)
+        with self.assertRaises(RuntimeError), use_operator(), atomic():
+            forge_decision(self.change, "apply", self.owner, self.administrator)
+            for operation in ("register_particulars_apply", "register_import_apply"):
+                with self.subTest(operation=operation), self.assertRaisesMessage(DatabaseError, refused), atomic():
+                    with company_operation(self.owner, self.company.pk, operation), atomic():
+                        RegisterMemberParticulars.objects.filter(member=self.member).delete()
+            raise RuntimeError("rollback")
+        with use_operator():
+            held = RegisterMemberParticulars.objects.get(member=self.member)
+        self.assertEqual((held.name, held.source_change_id), ("Mia Later", later.pk))
+        with use_migrate(), self.assertRaises(RuntimeError), atomic():
+            with connections[current_alias()].cursor() as cursor:
+                without_a_command(cursor)
+                cursor.execute("DELETE FROM tokens_registermemberparticulars WHERE member_id = %s", [self.member.pk])
+                self.assertEqual(cursor.rowcount, 1)
+            raise RuntimeError("rollback")
+        with use_operator():
+            self.assertTrue(RegisterMemberParticulars.objects.filter(member=self.member).exists())
 
     def test_a_temporary_table_cannot_stand_in_for_the_decision_table(self):
         operator = connection.ops.quote_name(settings.RLS_ROLES["operator"])
@@ -875,6 +1036,39 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
                 raise RuntimeError("rollback")
         with use_operator():
             self.assertEqual(RegisterParticularsChange.objects.get(pk=self.change.pk).status, "submitted")
+            self.assertFalse(RegisterMemberParticulars.objects.exists())
+
+    def test_a_temporary_table_cannot_stand_in_for_an_imports_decision(self):
+        proposal = self.an_import()
+        decide_import(self.owner, self.administrator, proposal, "approve")
+        with use_migrate(), self.assertRaises(RuntimeError), atomic():
+            with connections[current_alias()].cursor() as cursor:
+                without_a_command(cursor)
+                cursor.execute(
+                    "CREATE TEMP TABLE tokens_registerimportdecision "
+                    "(LIKE public.tokens_registerimportdecision) ON COMMIT DROP"
+                )
+                cursor.execute(
+                    "INSERT INTO pg_temp.tokens_registerimportdecision (uuid, created_at, updated_at, "
+                    "register_import_id, kind, decided_by_id, appointment_id, idempotency_key, digest, reason, "
+                    "decided_at) VALUES (%s, now(), now(), %s, 'apply', %s, %s, %s, %s, '', now())",
+                    [uuid4(), proposal.pk, self.owner.pk, self.administrator.pk, uuid4(), "0" * 64],
+                )
+                cursor.execute(
+                    "SELECT set_config('app.user_id', %s, true), "
+                    "set_config('app.company_operation', 'register_import_apply', true), "
+                    "set_config('app.company_id', %s, true)",
+                    [str(self.owner.pk), str(self.company.pk)],
+                )
+                with self.assertRaisesMessage(DatabaseError, IMPORTED), atomic():
+                    cursor.execute(
+                        "INSERT INTO public.tokens_registermemberparticulars (uuid, created_at, updated_at, "
+                        "member_id, name, residential_address, as_at, source_import_id) "
+                        "VALUES (%s, now(), now(), %s, 'Mia Member', %s, %s, %s)",
+                        [uuid4(), self.member.pk, RESIDENCE, proposal.as_at, proposal.pk],
+                    )
+            raise RuntimeError("rollback")
+        with use_operator():
             self.assertFalse(RegisterMemberParticulars.objects.exists())
 
     def test_the_owner_without_an_appointment_decides_nothing(self):

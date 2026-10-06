@@ -342,14 +342,13 @@ def corrected(register, issue, label):
     return decide(owner, appointment, proposal, "apply")
 
 
-def changed_particulars(company, member, label):
-    owner = company.owner
+def prepared_particulars(company, member, label):
     appointment = owner_appointment(company)
     evidence = upload_evidence(
-        owner, appointment, RegisterEvidenceKind.SUPPORTING, raw=f"Synthetic {label} deed poll".encode()
+        company.owner, appointment, RegisterEvidenceKind.SUPPORTING, raw=f"Synthetic {label} deed poll".encode()
     )
     change, _ = prepare_particulars_change(
-        actor=owner,
+        actor=company.owner,
         operation_id=uuid4(),
         appointment=appointment.pk,
         member=member.pk,
@@ -359,12 +358,17 @@ def changed_particulars(company, member, label):
         as_at=DAY,
         reason=f"Synthetic {label} deed poll",
     )
+    return change, appointment
+
+
+def changed_particulars(company, member, label):
+    change, appointment = prepared_particulars(company, member, label)
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SET CONSTRAINTS tokens_register_particulars_decision_effect IMMEDIATE")
-    decide_particulars(owner, appointment, change, "approve")
+    decide_particulars(company.owner, appointment, change, "approve")
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SET CONSTRAINTS tokens_register_particulars_decision_effect DEFERRED")
-    return decide_particulars(owner, appointment, change, "apply")
+    return decide_particulars(company.owner, appointment, change, "apply")
 
 
 def linked(company, member, reviewer, document, label):
@@ -1428,13 +1432,38 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         self.assertEqual(self.read("particulars_changes.json"), [])
         holder = self.a.members["holder"]
         change = changed_particulars(self.a.company, holder, "pack-a")
+        pending, _ = prepared_particulars(self.a.company, self.a.members["founder"], "pack-pending")
+        rejected, appointment = prepared_particulars(self.a.company, self.a.members["buyer"], "pack-rejected")
+        rejected = decide_particulars(self.a.company.owner, appointment, rejected, "reject", "Synthetic refusal")
         content = self.pack()
         files = files_of(content)
         path = f"documents/evidence/registerparticularschange/{change.pk}.pdf"
         deed = "Synthetic pack-a deed poll".encode()
+        records = json.loads(files["particulars_changes.json"])
 
         self.assertEqual(
-            json.loads(files["particulars_changes.json"]),
+            {
+                record["uuid"]: (
+                    record["status"],
+                    [decision["kind"] for decision in record["decisions"]],
+                    record["rejection_reason"],
+                    files[record["evidence"]["path"]],
+                )
+                for record in records
+            },
+            {
+                str(change.pk): ("applied", ["approve", "apply"], "", deed),
+                str(pending.pk): ("submitted", [], "", "Synthetic pack-pending deed poll".encode()),
+                str(rejected.pk): (
+                    "rejected",
+                    ["reject"],
+                    "Synthetic refusal",
+                    "Synthetic pack-rejected deed poll".encode(),
+                ),
+            },
+        )
+        self.assertEqual(
+            [record for record in records if record["uuid"] == str(change.pk)],
             [
                 {
                     "uuid": str(change.pk),
@@ -1474,7 +1503,7 @@ class CompanyPackHistoryTest(ProducesPacks, TestCase):
         self.assertIn("`particulars_changes.json`", files["README.md"].decode())
         result = consume(content, *ISOLATED)
         self.assertEqual((result.returncode, result.stderr), (0, ""))
-        self.assertIn("documents: 2 carried, 1 listed only, 4 evidence copies match their records", result.stdout)
+        self.assertIn("documents: 2 carried, 1 listed only, 6 evidence copies match their records", result.stdout)
 
     def test_the_issues_file_carries_each_issue_with_its_subscription_and_the_payment_as_recorded(self):
         allotment = self.a.allotment

@@ -15,8 +15,10 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
 
-from companies.models import Company
+from companies.models import Company, CompanyCapability
 from companies.services.administration import company_operation
+from companies.services.authority import DECLARATION_VERSION
+from companies.services.team import accept_team_invitation, issue_team_invitation
 from shared.db import atomic, current_alias, use_operator
 from shared.storage import private_storage
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -32,7 +34,7 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.models.choices import IDENTITY_LABELS, IDENTITY_LIVE, IDENTITY_PARTICULARS
-from tokens.services.former_holders import purge_member_particulars
+from tokens.services.former_holders import purge_member_particulars, retention_cutoff
 from tokens.services.register import REGISTER_HEADERS, member_identities
 from tokens.services.register_events import create_member, open_register, record_entry
 from tokens.services.register_evidence import evidence_snapshot
@@ -48,6 +50,8 @@ from tokens.tests.test_register_imports import (
     apply_import,
 )
 from tokens.tests.test_register_imports import decide as decide_import
+from tokens.tests.test_register_imports import forge_decision as forge_import_decision
+from tokens.tests.test_register_imports import forge_outcome as forge_import_outcome
 from tokens.tests.test_register_imports import (
     import_fixture,
     import_payload,
@@ -55,7 +59,11 @@ from tokens.tests.test_register_imports import (
     owner_appointment,
 )
 from tokens.tests.test_register_imports import prepared as prepared_import
-from tokens.tests.test_register_imports import staff_user, upload_evidence
+from tokens.tests.test_register_imports import (
+    record_particulars,
+    staff_user,
+    upload_evidence,
+)
 
 PARTICULARS_CHANGES = "/api/v1/tokens/register-particulars-changes/"
 RENAMED = "Mia Renamed"
@@ -424,6 +432,8 @@ class RegisterParticularsTest(TransactionTestCase):
         self.assertFalse(RegisterParticularsChange.objects.exists())
         longest = self.submit(name="N" * 255, residential_address="A" * 1000, reason="R" * 1000)
         self.assertEqual((len(longest.name), len(longest.residential_address)), (255, 1000))
+        today = timezone.localdate()
+        self.assertEqual(self.submit(operation_id=uuid4(), as_at=today).as_at, today)
 
     def test_preparation_refuses_a_date_before_the_particulars_the_register_already_holds(self):
         self.apply(self.submit())
@@ -438,7 +448,9 @@ class RegisterParticularsTest(TransactionTestCase):
         self.assertEqual((self.held().name, self.held().source_change_id), ("Mia Same Day", same_day.pk))
 
     def test_a_member_who_left_before_the_retention_period_takes_no_change(self):
-        left, buyer, never = (create_member(company_id=self.company.pk, member_id=uuid4()) for _ in range(3))
+        left, buyer, never, on_cutoff, before_cutoff = (
+            create_member(company_id=self.company.pk, member_id=uuid4()) for _ in range(5)
+        )
         token = self.opened("OLD", left, LONG_AGO)
         change = self.submit(member=left.pk)
         self.decide(change, "approve")
@@ -446,7 +458,15 @@ class RegisterParticularsTest(TransactionTestCase):
         self.assertEqual(self.unmet(change), ["member_left_retention"])
         with self.assertRaisesMessage(ValidationError, "member_left_retention"):
             self.decide(change, "apply")
-        for member in (left, never):
+        cutoff = retention_cutoff()
+        for symbol, member, left_on in (
+            ("EDGE", on_cutoff, cutoff),
+            ("PAST", before_cutoff, cutoff - timedelta(days=1)),
+        ):
+            edge = self.opened(symbol, member, LONG_AGO)
+            moved(edge.stored_register.pk, member, buyer, 100, self.owner, effective_on=left_on)
+        self.assertEqual(self.submit(operation_id=uuid4(), member=on_cutoff.pk).member_id, on_cutoff.pk)
+        for member in (left, never, before_cutoff):
             with self.subTest(member=member.pk), self.assertRaisesMessage(ValidationError, "has held no shares since"):
                 self.submit(operation_id=uuid4(), member=member.pk)
         self.assertEqual(self.decide(change, "reject", "The member left the register long ago").status, "rejected")
@@ -599,9 +619,10 @@ class RegisterParticularsTest(TransactionTestCase):
                 self.assert_refused(
                     "exact current intent", lambda: insert_forged(forged, self.owner, operation=operation)
                 )
-        with self.assertRaises(RuntimeError), atomic():
-            insert_forged(forged, self.owner)
-            raise RuntimeError("rollback")
+        for changes in ({}, {"as_at": timezone.localdate()}):
+            with self.subTest(admitted=changes), self.assertRaises(RuntimeError), atomic():
+                insert_forged(forged, self.owner, **changes)
+                raise RuntimeError("rollback")
         self.assertEqual(RegisterParticularsChange.objects.count(), 1)
         with self.assertRaises(RuntimeError), atomic():
             decision = forge_decision(change, "reject", self.owner, self.appointment, reason="Exact")
@@ -625,18 +646,62 @@ class RegisterParticularsTest(TransactionTestCase):
 
     def test_an_import_counts_newer_particulars_only_from_an_applied_import_or_a_change(self):
         proposal = self.import_of(self.token, DAY - timedelta(days=3))
-        waiting = self.import_of(self.opened("WAIT"), DAY)
-        decide_import(self.owner, self.appointment, proposal, "approve")
-        RegisterMemberParticulars.objects.create(
-            member=self.member, name="Mia Waiting", residential_address=RESIDENCE, as_at=DAY, source_import=waiting
-        )
-        with self.assertRaisesMessage(DatabaseError, "record every member's particulars"):
-            decide_import(self.owner, self.appointment, proposal, "apply")
+        waiting = self.import_of(self.opened("WAIT"), DAY, "Mia Waiting")
+        for pending in (proposal, waiting):
+            decide_import(self.owner, self.appointment, pending, "approve")
+        with self.assertRaises(RuntimeError), atomic():
+            forge_import_decision(waiting, "apply", self.owner, self.appointment)
+            record_particulars(waiting, self.owner)
+            self.assertEqual((self.held().name, self.held().source_import_id), ("Mia Waiting", waiting.pk))
+            decision = forge_import_decision(proposal, "apply", self.owner, self.appointment)
+            with self.assertRaisesMessage(DatabaseError, "record every member's particulars"), atomic():
+                forge_import_outcome(proposal, self.owner, decision, status="applied", register_sequence=1)
+            raise RuntimeError("rollback")
         self.assertEqual(RegisterImport.objects.get(pk=proposal.pk).status, "submitted")
-        RegisterMemberParticulars.objects.filter(member=self.member).delete()
+        self.assertFalse(RegisterMemberParticulars.objects.exists())
         self.apply(self.submit())
         self.assertEqual(decide_import(self.owner, self.appointment, proposal, "apply").status, "applied")
         self.assertEqual(self.held().name, RENAMED)
+
+    def test_an_import_dated_the_day_of_a_change_records_its_own_particulars_and_replaces_the_change(self):
+        change = self.apply(self.submit())
+        proposal = self.import_of(self.opened("SAME"), DAY, "Mia Same Day")
+        decide_import(self.owner, self.appointment, proposal, "approve")
+        with self.assertRaises(RuntimeError), atomic():
+            decision = forge_import_decision(proposal, "apply", self.owner, self.appointment)
+            with self.assertRaisesMessage(DatabaseError, "record every member's particulars"), atomic():
+                forge_import_outcome(proposal, self.owner, decision, status="applied", register_sequence=1)
+            raise RuntimeError("rollback")
+        self.assertEqual(self.held().source_change_id, change.pk)
+        self.assertEqual(decide_import(self.owner, self.appointment, proposal, "apply").status, "applied")
+        self.assertEqual(
+            (self.held().name, self.held().as_at, self.held().source_import_id, self.held().source_change_id),
+            ("Mia Same Day", DAY, proposal.pk, None),
+        )
+
+    def test_an_apply_digest_binds_each_of_the_members_current_particulars(self):
+        self.apply(self.submit())
+        change = self.submit(operation_id=uuid4(), name="Mia Next")
+        bound = decision_digest(change, "apply", self.owner, self.appointment)
+        for column, value in (
+            ("name", "Mia Altered"),
+            ("residential_address", "9 Altered Street"),
+            ("as_at", DAY + timedelta(days=1)),
+            ("source_change_id", change.pk),
+        ):
+            with self.subTest(column=column), self.assertRaises(RuntimeError), atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "ALTER TABLE tokens_registermemberparticulars "
+                        "DISABLE TRIGGER tokens_register_member_particulars_source"
+                    )
+                    cursor.execute(
+                        f"UPDATE tokens_registermemberparticulars SET {column} = %s WHERE member_id = %s",
+                        [value, self.member.pk],
+                    )
+                self.assertNotEqual(decision_digest(change, "apply", self.owner, self.appointment), bound)
+                raise RuntimeError("rollback")
+        self.assertEqual(decision_digest(change, "apply", self.owner, self.appointment), bound)
 
     def test_particulars_from_a_change_follow_the_seven_year_clock_and_the_change_is_kept(self):
         change = self.apply(self.submit())
@@ -698,16 +763,33 @@ class RegisterParticularsApiTest(APITransactionTestCase):
         self.assertEqual(self.client.patch(detail, {"reason": "rewrite"}).status_code, 405)
         self.assertEqual(self.client.delete(detail).status_code, 405)
         other = create_member(company_id=self.company.pk, member_id=uuid4())
+        with use_operator():
+            stranger, elsewhere, _, their_member, their_appointment, their_evidence = particulars_fixture()
+        theirs = str(prepared(stranger, change_payload(their_member, their_evidence, their_appointment)).pk)
+        _, code, _ = issue_team_invitation(
+            requester=stranger,
+            company_id=elsewhere.pk,
+            inviter_appointment_id=their_appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.READ_REGISTER],
+            delegatable_capabilities=[],
+            appointment_expires_at=None,
+        )
+        accept_team_invitation(
+            requester=self.owner, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
         for query, expected in (
+            ({}, [row["uuid"], theirs]),
             ({"company": str(self.company.pk)}, [row["uuid"]]),
+            ({"company": str(elsewhere.pk)}, [theirs]),
             ({"member": str(self.member.pk)}, [row["uuid"]]),
             ({"member": str(other.pk)}, []),
-            ({"status": "submitted"}, [row["uuid"]]),
+            ({"status": "submitted"}, [row["uuid"], theirs]),
             ({"status": "applied"}, []),
         ):
             with self.subTest(query=query):
                 listed = self.client.get(PARTICULARS_CHANGES, query).json()["results"]
-                self.assertEqual([item["uuid"] for item in listed], expected)
+                self.assertEqual(sorted(item["uuid"] for item in listed), sorted(expected))
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(detail).status_code, 401)
         self.assertEqual(self.client.post(PARTICULARS_CHANGES, self.payload, format="json").status_code, 401)

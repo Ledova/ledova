@@ -166,22 +166,40 @@ LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp 
 DECLARE
     principal bigint;
     proposal tokens_registerparticularschange;
+    source tokens_registerimport;
 BEGIN
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) THEN
         RAISE EXCEPTION 'Only the register''s own commands write member particulars' USING ERRCODE = '23514';
     END IF;
     IF TG_OP = 'DELETE' THEN
+        IF COALESCE(current_setting('app.company_operation', true), '') <> '' THEN
+            RAISE EXCEPTION 'Only the retention purge removes member particulars' USING ERRCODE = '23514';
+        END IF;
         RETURN OLD;
     END IF;
+    IF TG_OP = 'UPDATE' AND (OLD.member_id IS DISTINCT FROM NEW.member_id OR OLD.as_at > NEW.as_at) THEN
+        RAISE EXCEPTION 'Member particulars stay with their member and never move to an earlier date'
+            USING ERRCODE = '23514';
+    END IF;
+    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     IF NEW.source_change_id IS NULL THEN
-        IF NEW.as_at IS DISTINCT FROM (SELECT source.as_at FROM tokens_registerimport source
-            WHERE source.uuid = NEW.source_import_id)
+        SELECT * INTO source FROM tokens_registerimport WHERE uuid = NEW.source_import_id;
+        IF principal IS NULL OR source.uuid IS NULL
+            OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_import_apply'
+            OR current_setting('app.company_id', true) IS DISTINCT FROM source.company_id::text
+            OR source.status <> 'submitted' OR NEW.as_at IS DISTINCT FROM source.as_at
+            OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(source.members) item
+                WHERE item->>'member' = NEW.member_id::text AND item->>'name' = NEW.name
+                    AND item->>'residential_address' = NEW.residential_address)
+            OR NOT EXISTS (SELECT 1 FROM tokens_registerimportdecision decision
+                WHERE decision.register_import_id = source.uuid AND decision.kind = 'apply'
+                    AND decision.decided_by_id = principal)
         THEN
-            RAISE EXCEPTION 'Imported particulars carry their import''s register date' USING ERRCODE = '23514';
+            RAISE EXCEPTION 'Imported particulars come only from the company''s application of that import'
+                USING ERRCODE = '23514';
         END IF;
         RETURN NEW;
     END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.source_change_id;
     IF principal IS NULL OR proposal.uuid IS NULL
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_apply'
@@ -190,7 +208,6 @@ BEGIN
         OR NEW.member_id IS DISTINCT FROM proposal.member_id OR NEW.name IS DISTINCT FROM proposal.name
         OR NEW.residential_address IS DISTINCT FROM proposal.residential_address
         OR NEW.as_at IS DISTINCT FROM proposal.as_at
-        OR (TG_OP = 'UPDATE' AND OLD.as_at > NEW.as_at)
         OR NOT EXISTS (SELECT 1 FROM tokens_registerparticularschangedecision decision
             WHERE decision.register_particulars_change_id = proposal.uuid AND decision.kind = 'apply'
                 AND decision.decided_by_id = principal)

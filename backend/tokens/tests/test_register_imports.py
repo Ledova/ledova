@@ -261,6 +261,22 @@ def forge_outcome(proposal, actor, decision, **fields):
         )
 
 
+def record_particulars(proposal, actor, operation="register_import_apply", scope=None, **fields):
+    with company_operation(actor, scope or proposal.company_id, operation), atomic():
+        for row in proposal.members:
+            RegisterMemberParticulars.objects.update_or_create(
+                member_id=row["member"],
+                defaults={
+                    "name": row["name"],
+                    "residential_address": row["residential_address"],
+                    "as_at": proposal.as_at,
+                    "source_import": proposal,
+                    "source_change": None,
+                    **fields,
+                },
+            )
+
+
 def forged_fields(proposal):
     return {
         field.name: getattr(proposal, field.name)
@@ -652,7 +668,7 @@ class RegisterImportTest(TransactionTestCase):
             self.decide(second, "apply")
         with self.assertRaisesMessage(IntegrityError, "one_applied_register_import_per_class"), atomic():
             decision = forge_decision(second, "apply", self.owner, self.appointment)
-            RegisterMemberParticulars.objects.filter(member=self.member).update(source_import=second)
+            record_particulars(second, self.owner)
             forge_outcome(second, self.owner, decision, status="applied", register_sequence=1)
         self.assertEqual(ImportedFormerMember.objects.count(), 1)
 
@@ -1075,21 +1091,13 @@ class RegisterImportTest(TransactionTestCase):
             request.approve(self.staff)
 
         def forge(entry, after=unchanged):
+            decision = forge_decision(proposal, "apply", self.owner, self.appointment)
             for row in proposal.members:
                 create_member(company_id=self.company.pk, member_id=row["member"])
-                RegisterMemberParticulars.objects.update_or_create(
-                    member_id=row["member"],
-                    defaults={
-                        "name": row["name"],
-                        "residential_address": row["residential_address"],
-                        "as_at": proposal.as_at,
-                        "source_import": proposal,
-                    },
-                )
+            record_particulars(proposal, self.owner)
             if entry is not None:
                 open_register(**entry)
             after()
-            decision = forge_decision(proposal, "apply", self.owner, self.appointment)
             forge_outcome(proposal, self.owner, decision, status="applied", register_sequence=1)
 
         for entry, after in (
@@ -1287,6 +1295,7 @@ class ImportOpenedInstructionTest(TransactionTestCase):
         with self.assertRaisesMessage(ValidationError, "class_not_openable"):
             self.apply(proposal)
         with self.assertRaisesMessage(DatabaseError, "exactly the register's only entry"), atomic():
+            decision = forge_decision(proposal, "apply", self.tenant.user, self.appointment)
             open_register(
                 token_id=self.token.pk,
                 operation_id=proposal.pk,
@@ -1294,14 +1303,7 @@ class ImportOpenedInstructionTest(TransactionTestCase):
                 effective_on=DAY,
                 recorded_by=self.tenant.user,
             )
-            RegisterMemberParticulars.objects.create(
-                member=self.member,
-                name="Mia Member",
-                residential_address=RESIDENCE,
-                as_at=proposal.as_at,
-                source_import=proposal,
-            )
-            decision = forge_decision(proposal, "apply", self.tenant.user, self.appointment)
+            record_particulars(proposal, self.tenant.user)
             forge_outcome(proposal, self.tenant.user, decision, status="applied", register_sequence=1)
         self.assertFalse(RegisterEntry.objects.filter(register__token=self.token).exists())
 
