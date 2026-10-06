@@ -432,7 +432,7 @@ it('says a class without openings has none, and offers to open its register', as
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
   expect(await view.findByText(COPY.EMPTY)).toBeTruthy();
-  expect(view.getByRole('button', { name: OPEN })).toBeTruthy();
+  expect(await view.findByRole('button', { name: OPEN })).toBeTruthy();
 });
 
 it('lists an opening once when the next page repeats it after a newer opening was prepared', async () => {
@@ -494,7 +494,7 @@ it.each(['draft', 'deploying'])('shows a %s class no openings and reads none', a
 it('lists the openings of a paused class', async () => {
   register = { ...unopened, token: { ...unopened.token, status: 'paused' } };
   const view = await openClass();
-  expect(view.getByRole('button', { name: OPEN })).toBeTruthy();
+  expect(await view.findByRole('button', { name: OPEN })).toBeTruthy();
 });
 
 it.each([
@@ -557,7 +557,7 @@ it('names two openings at one block apart by when each was prepared, never by an
 it('opens the opening page for an unopened class with its class and company', async () => {
   appointments = [appointment('appointment-prepare', ['prepare'])];
   const view = await openClass();
-  await fireEvent.press(view.getByRole('button', { name: OPEN }));
+  await fireEvent.press(await view.findByRole('button', { name: OPEN }));
   expect(mockNavigate).toHaveBeenCalledWith('PrepareRegisterOpening', { tokenUuid: 'ordinary', companyUuid: 'paper' });
 });
 
