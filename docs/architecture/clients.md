@@ -749,11 +749,11 @@ only for an identical request, and both receipts are checked before the changes
 are refreshed and the page returns to Register. A conflict reads the member's
 register and the appointments again and takes a new operation, a refusal shows
 the server's words, and a refusal as not found reads the appointments again, so
-the form gives way to the read-only note once the appointment is gone. Each
-repeated download and decision control is named for screen readers after its
-visible label, the member and when the change was prepared, and each **Change
-particulars** after the member; every read, decision, download and preparation is
-bound to the signed-in account.
+the form is withdrawn once the appointment is gone. Each repeated download and
+decision control is named for screen readers after its visible label, the member
+and when the change was prepared, and each **Change particulars** after the
+member; every read, decision, download and preparation is bound to the signed-in
+account.
 
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
