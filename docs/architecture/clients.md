@@ -599,6 +599,43 @@ all of this read-only, a refresh that shows an appointment gone withdraws its
 controls, and every read, decision, acknowledgement, download and preparation is
 bound to the signed-in account.
 
+Each deployed or paused class on the dashboard's Register also lists its
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain),
+newest first across every page and each once: stage, preparer, dates, the
+boundary block and its date, each address holding shares at the boundary with
+its shares and the member it maps to, named or numbered as a new member, the
+authority, reference and reason, whether the company provided the authority
+document or staff verified it before openings were company-run, the decision
+trail and any rejection reason, with a download of the authority document. A
+staff-era opening whose boundary was never captured says so. Approve, Apply and
+Reject use the decision dialog imports and corrections share, through
+`useRegisterDecision` with the opening family: its preview adds the opening
+entry's effective date and shares by member, an application notes that the
+holdings become the register's first entry, a retained staff-era opening offers
+only rejection, and a decision or refusal refreshes the openings, the register,
+its entries and the person's appointments, so an applied opening shows the
+opened register at once. Holders of administration or `prepare` get **Open this
+register** while the class's register is not opened. It opens
+`/company/register/:uuid/open`, a page for every signed-in account like
+Register, which reads the class's holdings on chain and shows the block read,
+with notes that preparation captures its own boundary and records the holdings
+at that block. A chain that cannot be read says so and offers a retry, and a
+class the server will not open shows the server's reason instead of the form.
+The form takes the authority document, the authority, an approving director for
+a resolution, the reference and the reason, and maps every holding address: an
+address already linked to a member keeps that member, and any other is assigned
+to a member on the page, either a linked member or one of the numbered new
+members, which take client-generated IDs and which several addresses may share.
+The upload keeps its own retry key and confirmed receipt, preparation reuses its
+operation only for an identical request, and both receipts are checked before
+the openings are refreshed and the page returns to Register. A conflict
+refreshes the holdings and appointments and takes a new operation; a refusal
+because the holdings moved shows the server's reason and offers to reload them,
+mapping new holdings afresh while keeping the authority details. Each repeated
+download and decision control is named for screen readers after its visible
+label and when its opening was prepared, and every read, decision, download and
+preparation is bound to the signed-in account.
+
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 [discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
