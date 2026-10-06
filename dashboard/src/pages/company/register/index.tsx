@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import {
   DESTINATIONS,
   REGISTER_COPY,
+  appointmentForRegisterStep,
   canOpen,
   useOpenRows,
   useSubmissionOwner,
@@ -18,17 +19,27 @@ import { ClassImports } from './ClassImports';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
+import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
-import { ownerGuard } from './useRegisterImports';
+import { ownerGuard, useOwnAppointments } from './useRegisterImports';
 
 const ON_CHAIN = ['deployed', 'paused'];
 
-function RegisterPage({ selection, children }: { selection?: ReactNode; children: ReactNode }) {
+function RegisterPage({
+  selection,
+  particulars,
+  children,
+}: {
+  selection?: ReactNode;
+  particulars?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
       {selection}
       <Section title="Share classes">{children}</Section>
+      {particulars}
       <Section title="Register instructions">
         <p className="text-sm text-text-muted">
           The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection
@@ -56,6 +67,22 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
       )}
     </div>
   );
+}
+
+function RegisterMembers({
+  owner,
+  guard,
+  register,
+  company,
+}: {
+  owner: OrderSubmissionOwner;
+  guard: () => void;
+  register: TokenHoldersResponse;
+  company: string;
+}) {
+  const appointments = useOwnAppointments(owner, guard);
+  const prepare = appointments.isSuccess && !!appointmentForRegisterStep(appointments.data, company, 'prepare');
+  return <ClassRegister register={register} prepare={prepare} />;
 }
 
 export default function CompanyRegisterPage() {
@@ -97,6 +124,13 @@ function OwnRegister({
           <CompanySelection
             read={{ companies, companyUuid: company?.uuid, selectionBlocked: classes.isFetching, selectCompany }}
           />
+        )
+      }
+      particulars={
+        company &&
+        classes.isSuccess &&
+        registers.isSuccess && (
+          <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
         )
       }
     >
@@ -142,7 +176,7 @@ function OwnRegister({
                   </div>
                 )}
                 <RegisterDownload register={register} />
-                <ClassRegister register={register} />
+                <RegisterMembers owner={owner} guard={guard} register={register} company={company.uuid} />
                 {ON_CHAIN.includes(register.token.status) && (
                   <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />
                 )}

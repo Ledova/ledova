@@ -1,7 +1,14 @@
-import { formatShareCount, HOLDER_TYPE_LABELS, REGISTER_COPY, type TokenHoldersResponse } from '@ledova/shared';
-import { Rows, Row, Status } from '@components/Ledger';
+import {
+  DESTINATIONS,
+  HOLDER_TYPE_LABELS,
+  REGISTER_COPY,
+  REGISTER_PARTICULARS_COPY,
+  formatShareCount,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
+import { LinkRow, Rows, Row, Status } from '@components/Ledger';
 
-export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
+export function ClassRegister({ register, prepare = false }: { register: TokenHoldersResponse; prepare?: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <Rows>
@@ -66,6 +73,13 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {prepare && (
+                    <LinkRow
+                      to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', holder.member)}
+                      label={REGISTER_PARTICULARS_COPY.PREPARE}
+                      context={holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
+                    />
                   )}
                 </li>
               ))}
