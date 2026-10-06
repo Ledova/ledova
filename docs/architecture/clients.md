@@ -609,6 +609,18 @@ the `companyRegisterCorrection` destination at
 `useRegisterDecision` decides corrections as it decides imports. The dashboard
 and mobile Register screens described above are built on this layer.
 
+`packages/shared` also holds the client layer for company-run
+[openings](../operations/register-foundation.md#opening-the-register-from-the-chain):
+services for a class's opening holders and for openings (list with the company,
+share class and status filters, prepare, decision preview, decide and the
+authority document download), an opening's mapping narrowed at runtime,
+`isPreparedRegisterOpening`, which checks a prepared opening against every field
+of its request and its mapping row by row, `REGISTER_OPENING_DECISIONS` for
+`useRegisterDecision` with the generic decision receipt check, the opening copy
+with a sentence for every requirement an opening decision can leave unmet, and the
+`companyRegisterOpening` destination at `/company/register/:uuid/open`. The web
+and mobile opening screens are being built; neither client shows openings yet.
+
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and
 lists every page of its share classes, filtered to that company. Profile edits

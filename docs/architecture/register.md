@@ -207,7 +207,11 @@ holding a current company appointment with `admin`, `read_register`, `prepare`,
 `approve` or `apply`; preparing, approving or applying register changes means
 working from the register's member particulars, so those capabilities read it
 too. Other capabilities, delegation-only scope and staff or superuser status
-grant none of them. The export of a register with no opening is
+grant none of them. `GET /api/v1/tokens/{uuid}/register/opening-holders/` is
+narrower: it reads the chain holdings an
+[opening](../operations/register-foundation.md#opening-the-register-from-the-chain)
+must map for a class whose register is not opened, so only a current appointment
+holding `admin` or `prepare` reads it. The export of a register with no opening is
 refused with 409 `register_not_initialized`. The
 current-member API omits residential addresses, but former-member rows include
 them. Each read of an opened register takes its head, issued supply, holdings,
