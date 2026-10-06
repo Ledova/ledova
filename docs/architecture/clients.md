@@ -38,10 +38,10 @@ no chain action.
 Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
-absent field must not hide it. Apart from the register imports, register
-history, corrections and discrepancy acknowledgement in both clients, the
-detailed current screen descriptions below do not claim these company-managed
-controls are shipped.
+absent field must not hide it. Apart from the register imports, openings,
+register history, corrections and discrepancy acknowledgement in both clients,
+the detailed current screen descriptions below do not claim these
+company-managed controls are shipped.
 
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
@@ -685,8 +685,8 @@ authority document download), an opening's mapping narrowed at runtime,
 of its request and its mapping row by row, `REGISTER_OPENING_DECISIONS` for
 `useRegisterDecision` with the generic decision receipt check, the opening copy
 with a sentence for every requirement an opening decision can leave unmet, and the
-`companyRegisterOpening` destination at `/company/register/:uuid/open`. The web
-and mobile opening screens are being built; neither client shows openings yet.
+`companyRegisterOpening` destination at `/company/register/:uuid/open`. The
+dashboard and mobile opening screens described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

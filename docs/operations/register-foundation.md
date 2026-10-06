@@ -392,8 +392,9 @@ canonical chain boundary. The company opens it itself, as it runs its
   then prepares a new one.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The web and mobile opening screens are planned; the API below is
-delivered.
+steps. The Register screen in both clients lists each class's openings, opens
+an unopened class's register from its on-chain holders and runs these steps,
+through the API below.
 
 An opening maps each wallet address holding shares at the boundary to a company
 member ID. There are no free-typed quantities or dates: the opening's effective

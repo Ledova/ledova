@@ -45,8 +45,8 @@ class's register from the chain through the API: preparation captures the chain
 boundary with the company's own authority document, and the company approves
 and applies the opening with no Ledova staff review
 ([opening process](../operations/register-foundation.md#opening-the-register-from-the-chain)).
-The opening screens, #864's other register commands and #865–#873 remain
-planned.
+The Register in both clients runs those openings too. #864's other register
+commands and #865–#873 remain planned.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
