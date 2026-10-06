@@ -379,6 +379,7 @@ class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTe
         preparer, preparing = self.appoint([CompanyCapability.PREPARE])
         _, reading = self.appoint([CompanyCapability.READ_REGISTER])
         theirs = upload_evidence(preparer, preparing, RegisterEvidenceKind.AUTHORITY)
+        register_copy = upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.SHARE_REGISTER)
 
         def without_a_command():
             forged_id = uuid4()
@@ -391,19 +392,23 @@ class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTe
                     }
                 )
 
+        def naming(copy):
+            return lambda: insert_forged(
+                forged,
+                self.owner,
+                authority_evidence=copy,
+                evidence_fingerprint=copy.sha256,
+                evidence_snapshot=evidence_snapshot(copy),
+            )
+
         for write in (
             without_a_command,
             lambda: insert_forged(forged, self.owner, operation="register_link_approve"),
             lambda: insert_forged(forged, self.owner, scope=uuid4()),
             lambda: insert_forged(forged, self.owner, preparing_appointment=reading),
             lambda: insert_forged(forged, preparer, submitted_by=preparer, preparing_appointment=preparing),
-            lambda: insert_forged(
-                forged,
-                self.owner,
-                authority_evidence=theirs,
-                evidence_fingerprint=theirs.sha256,
-                evidence_snapshot=evidence_snapshot(theirs),
-            ),
+            naming(theirs),
+            naming(register_copy),
             lambda: insert_forged(forged, self.owner, evidence_fingerprint="0" * 64),
             lambda: insert_forged(forged, self.owner, evidence_snapshot={**forged["evidence_snapshot"], "name": "x"}),
             lambda: insert_forged(forged, self.owner, mapping=[]),
@@ -452,6 +457,18 @@ class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTe
             ):
                 with self.assertRaisesMessage(DatabaseError, "append-only"), atomic():
                     write()
+
+    def test_the_database_admits_a_decision_only_by_its_principal_of_a_known_kind_on_an_undecided_link(self):
+        approver, approving = self.appoint([CompanyCapability.APPROVE])
+        self.assert_refused(
+            COMMAND_REFUSED,
+            lambda: forge_decision(self.link, "approve", self.owner, self.administrator, decided_by=approver),
+        )
+        self.assert_refused(COMMAND_REFUSED, lambda: forge_decision(self.link, "other", self.owner, self.administrator))
+        decide(approver, approving, self.link, "reject", "Prepare it again")
+        self.assert_refused(
+            COMMAND_REFUSED, lambda: forge_decision(self.link, "approve", self.owner, self.administrator)
+        )
 
     def test_the_database_admits_each_step_only_from_an_appointment_holding_it(self):
         reader, reading = self.appoint([CompanyCapability.READ_REGISTER])
@@ -507,6 +524,45 @@ class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTe
         with use_operator():
             self.link.refresh_from_db()
         self.assertEqual((self.link.status, self.link.rejection_reason), ("rejected", "Exact"))
+
+    def test_an_approval_cannot_commit_with_its_link_decided_in_the_same_transaction(self):
+        with self.assertRaisesMessage(DatabaseError, "carry exactly its own effect"), use_operator(), atomic():
+            forge_decision(self.link, "approve", self.owner, self.administrator)
+            rejection = forge_decision(self.link, "reject", self.owner, self.administrator, reason="Exact")
+            forge_outcome(self.link, self.owner, rejection, status="rejected", rejection_reason="Exact")
+        with use_operator():
+            self.assertEqual(RegisterWalletLink.objects.get(pk=self.link.pk).status, "submitted")
+            self.assertFalse(RegisterWalletLinkDecision.objects.exists())
+
+    def test_an_outcome_is_written_only_by_its_decider_at_its_decision_time_for_its_kind(self):
+        approver, approving = self.appoint([CompanyCapability.APPROVE])
+
+        def outcome(actor, **fields):
+            with company_operation(actor, self.company.pk, "register_link_reject"), atomic():
+                RegisterWalletLink.objects.filter(pk=self.link.pk).update(**fields)
+
+        with self.assertRaises(RuntimeError), use_operator(), atomic():
+            decision = forge_decision(self.link, "reject", approver, approving, reason="Exact")
+            rejected = {"status": "rejected", "rejection_reason": "Exact"}
+            for actor, fields in (
+                (self.owner, {**rejected, "reviewed_by": approver, "reviewed_at": decision.decided_at}),
+                (self.owner, {**rejected, "reviewed_by": self.owner, "reviewed_at": decision.decided_at}),
+                (approver, {**rejected, "reviewed_by": approver, "reviewed_at": timezone.now()}),
+            ):
+                with self.subTest(actor=actor.email), self.assertRaisesMessage(DatabaseError, OUTCOME_REFUSED):
+                    with atomic():
+                        outcome(actor, **fields)
+            raise RuntimeError("rollback")
+        approval = forge_decision(self.link, "approve", self.owner, self.administrator)
+        with self.assertRaises(RuntimeError), use_operator(), atomic():
+            for item in self.link.mapping:
+                member = create_member(company_id=self.company.pk, member_id=item["member"])
+                RegisterMemberWallet.objects.create(company=self.company, member=member, address=item["address"])
+            with self.assertRaisesMessage(DatabaseError, OUTCOME_REFUSED), atomic():
+                forge_outcome(self.link, self.owner, approval, status="applied")
+            raise RuntimeError("rollback")
+        with use_operator():
+            self.assertEqual(RegisterWalletLink.objects.get(pk=self.link.pk).status, "submitted")
 
     def test_the_app_role_writes_no_link_outcome_and_no_decision(self):
         app = connection.ops.quote_name(settings.RLS_ROLES["app"])
