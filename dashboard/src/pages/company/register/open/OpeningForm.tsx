@@ -10,7 +10,6 @@ import {
   isPreparedRegisterOpening,
   isRegisterEvidenceReceipt,
   isRegisterOpeningHoldingsMoved,
-  largestHoldingsFirst,
   openingMemberLabels,
   prepareRegisterOpening,
   uploadRegisterEvidence,
@@ -110,7 +109,7 @@ export function OpeningForm({
     guard();
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
-  const holdings = largestHoldingsFirst(holders.holdings);
+  const holdings = holders.holdings;
   const linked = new Map(
     holdings.flatMap(({ member, memberName }) => (member === null ? [] : [[member, memberName] as const])),
   );
