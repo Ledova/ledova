@@ -57,6 +57,7 @@ const holding = (address: string, shares: string, member: string | null = null, 
   shares,
   member,
   memberName,
+  memberExists: member !== null,
 });
 const BLOCK = { number: 1234, hash: `0x${'c'.repeat(64)}`, date: '2026-10-04' };
 const HOLDINGS: Holding[] = [
@@ -348,7 +349,7 @@ it('names every choice by its visible text and holding, never by an address or I
 it('numbers new members by first holding, shares one across holdings and names an unnamed linked member neutrally', async () => {
   holdings = [holding(ADA, '50'), holding(BEA, '30', MEMBER_B, null), holding(CY, '20')];
   const view = await open();
-  expect(within(view.getByText('Holding 2').parent!).getByText('Unnamed member 1')).toBeTruthy();
+  expect(within(view.getByText('Holding 2').parent!).getByText(COPY.UNNAMED_MEMBER_NUMBERED(1))).toBeTruthy();
   expect(within(view.getByText('Holding 2').parent!).getByText(COPY.LINKED_NOTE)).toBeTruthy();
   await choose(view, COPY.NEW_MEMBER, 3);
   expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
@@ -359,7 +360,7 @@ it('numbers new members by first holding, shares one across holdings and names a
   expect(memberOf(view, 1)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
   expect(memberOf(view, 3)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
   expect(view.queryByLabelText(`${COPY.NEW_MEMBER_NUMBERED(2)} for holding 1`)).toBeNull();
-  await choose(view, 'Unnamed member 1', 3);
+  await choose(view, COPY.UNNAMED_MEMBER_NUMBERED(1), 3);
   await complete(view);
   await submit(view);
   await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
@@ -368,6 +369,20 @@ it('numbers new members by first holding, shares one across holdings and names a
     { address: BEA, member: MEMBER_B },
     { address: CY, member: MEMBER_B },
   ]);
+});
+
+it('lists the holdings largest first and numbers new members as the Register will, whatever order the read gives', async () => {
+  holdings = [holding(DEE, '1'), holding(BEA, '40'), HOLDINGS[0], holding(CY, '7')];
+  const view = await open();
+  const addressOf = (number: number) =>
+    within(view.getByText(`Holding ${number}`).parent!)
+      .getAllByText(/^0x/)
+      .map(text)[0];
+  expect([1, 2, 3, 4].map(addressOf)).toEqual([ADA, BEA, CY, DEE]);
+  await choose(view, COPY.NEW_MEMBER, 4);
+  await choose(view, COPY.NEW_MEMBER, 2);
+  expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  expect(memberOf(view, 4)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
 });
 
 it('prepares under a court order without an approving director', async () => {

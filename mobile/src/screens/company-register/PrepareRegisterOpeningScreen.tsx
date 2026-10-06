@@ -8,8 +8,11 @@ import {
   createUserFriendlyError,
   DESTINATIONS,
   formatDate,
+  formatShareCount,
   getErrorMessage,
   isPreparedRegisterOpening,
+  largestHoldingsFirst,
+  openingMemberLabels,
   prepareRegisterOpening,
   REGISTER_OPENING_COPY as COPY,
   type RegisterCorrectionAuthority,
@@ -20,7 +23,6 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { memberLabels, shareCount } from './openingMembers';
 import { EvidencePicker, Field } from './RegisterFields';
 import { useCompanyStyles } from './styles';
 import { openingsKey, useClassRegister, useOpeningHolders, useRegisterAppointments } from './useCompanyRegister';
@@ -71,14 +73,20 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
   useEffect(() => {
     if (statusOf(holdingsError) === 404) void readAppointments();
   }, [holdingsError, readAppointments]);
-  const holdings = holders.data?.holdings ?? [];
+  const holdings = largestHoldingsFirst(holders.data?.holdings ?? []);
   const linked = new Map(holdings.flatMap(({ member, memberName }) => (member ? [[member, memberName] as const] : [])));
   const mapped = holdings.map(({ address, member }) => {
     if (member) return member;
     const choice = chosen[address.toLowerCase()];
-    return choice && (choice.fresh || linked.has(choice.member)) ? choice.member : undefined;
+    return choice && (choice.fresh || linked.has(choice.member)) ? choice.member : null;
   });
-  const labels = memberLabels(mapped, linked);
+  const labels = openingMemberLabels(
+    mapped.map((member) => ({
+      member,
+      memberName: (member !== null && linked.get(member)) || null,
+      memberExists: member !== null && linked.has(member),
+    })),
+  );
   const mapping = holdings.flatMap(({ address }, index) => {
     const member = mapped[index];
     return member ? [{ address, member }] : [];
@@ -245,7 +253,9 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
                 <Text selectable style={styles.muted}>
                   {row.address}
                 </Text>
-                <Text style={styles.text}>{shareCount(row.shares)}</Text>
+                <Text style={styles.text}>
+                  {formatShareCount(row.shares)} {row.shares === '1' ? 'share' : 'shares'}
+                </Text>
                 <Rows>
                   <Row label={COPY.MEMBER}>{member ? labels.get(member) : 'Not chosen yet'}</Row>
                 </Rows>

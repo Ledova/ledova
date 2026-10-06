@@ -99,12 +99,13 @@ const OPENING_ENTRY = {
   correctedBy: null,
   correctable: true,
 };
-const holding = (address: string, shares: string, member: string | null, memberName: string | null = null) => ({
-  address,
-  shares,
-  member,
-  memberName,
-});
+const holding = (
+  address: string,
+  shares: string,
+  member: string | null,
+  memberName: string | null = null,
+  memberExists = memberName !== null,
+) => ({ address, shares, member, memberName, memberExists });
 const OPENING = {
   uuid: 'opening-new',
   company: 'paper',
@@ -368,9 +369,10 @@ it('reads every page of the class openings by its share class and shows each new
   expect(record.getAllByText(/ · \d[\d,]* shares?$/).map(text)).toEqual([
     'Alex Member · 9,007,199,254,740,993 shares',
     `${COPY.NEW_MEMBER_NUMBERED(1)} · 40 shares`,
-    `${COPY.NEW_MEMBER_NUMBERED(2)} · 1 share`,
     `${COPY.NEW_MEMBER_NUMBERED(1)} · 7 shares`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)} · 1 share`,
   ]);
+  expect(record.getAllByText(/^0x/).map(text)).toEqual([ADA, BEA, DEE, CY]);
   for (const address of [ADA, BEA, CY, DEE]) expect(record.getByText(address)).toBeTruthy();
   const rejected = within(view.getByText(REJECTED_HEADING).parent!);
   expect(rejected.getByText(COPY.AUTHORITIES.court_order)).toBeTruthy();
@@ -411,6 +413,58 @@ it('dates a decided staff-era opening that has no decision trail', async () => {
   const staff = within(view.getByText('Rejected · No boundary captured').parent!);
   expect(staff.getByText('Decided on')).toBeTruthy();
   expect(staff.getByText(formatDateTime('2026-10-03T05:00:00Z'))).toBeTruthy();
+});
+
+it('lists the holdings largest first and numbers new members in that order, whatever order the summary gives', async () => {
+  const low = '0xAAA0000000000000000000000000000000000a01';
+  const high = '0xBBB0000000000000000000000000000000000b02';
+  const summary = { ...OPENING.boundarySummary!, holdings: [holding(low, '5', FRESH_X), holding(high, '50', FRESH_Y)] };
+  openingPages = [[{ ...OPENING, boundarySummary: summary }]];
+  post.mockResolvedValueOnce({
+    data: {
+      ...PREVIEW,
+      changes: [
+        { member: FRESH_X, shares: '5' },
+        { member: FRESH_Y, shares: '50' },
+      ],
+    },
+  });
+  const view = await openClass();
+  const record = within(view.getByText(NEW_HEADING).parent!);
+  expect(record.getAllByText(/ · \d[\d,]* shares?$/).map(text)).toEqual([
+    `${COPY.NEW_MEMBER_NUMBERED(1)} · 50 shares`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)} · 5 shares`,
+  ]);
+  expect(record.getAllByText(/^0x/).map(text)).toEqual([high, low]);
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  expect(view.getByText(`${COPY.NEW_MEMBER_NUMBERED(1)}: +50`)).toBeTruthy();
+  expect(view.getByText(`${COPY.NEW_MEMBER_NUMBERED(2)}: +5`)).toBeTruthy();
+});
+
+it('names an existing member without a name as an unnamed member, numbered apart from the members the opening creates', async () => {
+  const unnamed = ['10000000-0000-4000-8000-0000000000cc', '10000000-0000-4000-8000-0000000000dd'];
+  const summary = {
+    ...OPENING.boundarySummary!,
+    holdings: [
+      holding(ADA, '30', unnamed[0], null, true),
+      holding(BEA, '20', FRESH_X),
+      holding(CY, '10', unnamed[1], null, true),
+      holding(DEE, '5', FRESH_Y),
+    ],
+  };
+  openingPages = [[{ ...OPENING, boundarySummary: summary }]];
+  const view = await openClass();
+  expect(
+    within(view.getByText(NEW_HEADING).parent!)
+      .getAllByText(/ · \d[\d,]* shares?$/)
+      .map(text),
+  ).toEqual([
+    `${COPY.UNNAMED_MEMBER_NUMBERED(1)} · 30 shares`,
+    `${COPY.NEW_MEMBER_NUMBERED(1)} · 20 shares`,
+    `${COPY.UNNAMED_MEMBER_NUMBERED(2)} · 10 shares`,
+    `${COPY.NEW_MEMBER_NUMBERED(2)} · 5 shares`,
+  ]);
 });
 
 it('names a preparer without a recorded name neutrally and a holding without a member neutrally', async () => {

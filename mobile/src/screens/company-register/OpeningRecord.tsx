@@ -4,6 +4,9 @@ import {
   formatDate,
   formatDateTime,
   formatRegisterChanges,
+  formatShareCount,
+  largestHoldingsFirst,
+  openingMemberLabels,
   REGISTER_OPENING_COPY as COPY,
   REGISTER_OPENING_DECISIONS,
   type OwnCompanyAppointment,
@@ -14,7 +17,6 @@ import {
 } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { memberLabels, shareCount } from './openingMembers';
 import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
@@ -82,11 +84,8 @@ export function OpeningRecord({
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? DECISION_KINDS : ['reject'];
   const stage = COPY.STAGES[proposal.stage] ?? proposal.stage;
   const boundary = proposal.boundarySummary;
-  const holdings = boundary?.holdings ?? [];
-  const labels = memberLabels(
-    holdings.map(({ member }) => member),
-    new Map(holdings.flatMap(({ member, memberName }) => (member && memberName ? [[member, memberName]] : []))),
-  );
+  const holdings = largestHoldingsFirst(boundary?.holdings ?? []);
+  const labels = openingMemberLabels(holdings);
   const prepared = formatDateTime(proposal.createdAt);
   const at = boundary ? `at block ${boundary.blockNumber}` : `with ${NO_BOUNDARY.toLowerCase()}`;
   const description = `${stage.toLowerCase()} opening ${at}, prepared on ${prepared}`;
@@ -126,7 +125,8 @@ export function OpeningRecord({
         holdings.map((row) => (
           <View key={row.address}>
             <Text style={styles.text}>
-              {(row.member && labels.get(row.member)) || COPY.MEMBER} · {shareCount(row.shares)}
+              {(row.member && labels.get(row.member)) || COPY.MEMBER} · {formatShareCount(row.shares)}{' '}
+              {row.shares === '1' ? 'share' : 'shares'}
             </Text>
             <Text selectable style={styles.muted}>
               {row.address}
