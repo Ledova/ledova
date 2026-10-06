@@ -108,6 +108,13 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_OPENING_FILE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/file/` as const,
   REGISTER_OPENING_PREVIEW: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decision-preview/` as const,
   REGISTER_OPENING_DECIDE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decide/` as const,
+  REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
+  REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
+    `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,
+  REGISTER_PARTICULARS_CHANGE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-particulars-changes/${uuid}/decision-preview/` as const,
+  REGISTER_PARTICULARS_CHANGE_DECIDE: (uuid: string) =>
+    `/api/v1/tokens/register-particulars-changes/${uuid}/decide/` as const,
   REGISTER_RECONCILIATIONS: '/api/v1/tokens/register-reconciliations/',
   REGISTER_RECONCILIATION_ACKNOWLEDGE: (uuid: string) =>
     `/api/v1/tokens/register-reconciliations/${uuid}/acknowledge/` as const,

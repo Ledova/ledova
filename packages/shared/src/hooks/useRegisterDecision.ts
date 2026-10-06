@@ -3,9 +3,14 @@ import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
 import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../constants/business/register-openings';
+import { REGISTER_PARTICULARS_COPY, REGISTER_PARTICULARS_UNMET_COPY } from '../constants/business/register-particulars';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
 import { decideRegisterOpening, previewRegisterOpeningDecision } from '../services/register-openings';
+import {
+  decideRegisterParticularsChange,
+  previewRegisterParticularsChangeDecision,
+} from '../services/register-particulars';
 import type {
   RegisterCorrection,
   RegisterCorrectionDecisionPreview,
@@ -16,6 +21,8 @@ import type {
   RegisterImportDecisionPreview,
   RegisterOpening,
   RegisterOpeningDecisionPreview,
+  RegisterParticularsChange,
+  RegisterParticularsChangeDecisionPreview,
 } from '../types';
 import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import { failureStatus, isRegisterDecisionReceipt } from '../utils/register-commands';
@@ -66,6 +73,17 @@ export const REGISTER_OPENING_DECISIONS: RegisterDecisionFamily<RegisterOpening,
   isReceipt: isRegisterDecisionReceipt,
   unmet: REGISTER_OPENING_UNMET_COPY,
   copy: REGISTER_OPENING_COPY,
+};
+
+export const REGISTER_PARTICULARS_DECISIONS: RegisterDecisionFamily<
+  RegisterParticularsChange,
+  RegisterParticularsChangeDecisionPreview
+> = {
+  preview: previewRegisterParticularsChangeDecision,
+  decide: decideRegisterParticularsChange,
+  isReceipt: isRegisterDecisionReceipt,
+  unmet: REGISTER_PARTICULARS_UNMET_COPY,
+  copy: REGISTER_PARTICULARS_COPY,
 };
 
 export type RegisterDecisionTarget<Preview> = {

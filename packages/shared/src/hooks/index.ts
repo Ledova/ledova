@@ -19,6 +19,7 @@ export {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_OPENING_DECISIONS,
+  REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';

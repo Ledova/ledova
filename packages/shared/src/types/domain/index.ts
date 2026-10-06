@@ -22,6 +22,7 @@ export * from './register-command';
 export * from './register-import';
 export * from './register-correction';
 export * from './register-opening';
+export * from './register-particulars';
 export * from './register-reconciliation';
 export * from './feature-flag';
 export * from './operator';
