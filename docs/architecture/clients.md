@@ -278,9 +278,10 @@ and the reason. The upload keeps its own retry key and confirmed receipt,
 preparation reuses its operation only for an identical request, and the links
 are refreshed once the receipt is confirmed; a conflict reads the waiting
 wallets, class registers and appointments again and takes a new operation, a
-refusal shows the server's words, and a 404 from the waiting-wallets read or
-from preparation reads the appointments again, so the form gives way to the
-read-only note once the appointment is gone.
+refusal shows the server's words and reads the waiting wallets and class
+registers again, keeping each choice that still applies, and a 404 from the
+waiting-wallets read or from preparation reads the appointments again, so the
+form gives way to the read-only note once the appointment is gone.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
