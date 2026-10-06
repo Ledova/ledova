@@ -134,6 +134,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
             company={company.uuid}
             registers={registers.data}
             refreshHolders={registers.refetch}
+            onPrepare={() => navigation.navigate('PrepareRegisterLink', { company: company.uuid })}
           />
         </>
       )}

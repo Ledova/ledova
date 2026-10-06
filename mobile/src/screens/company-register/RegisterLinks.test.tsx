@@ -33,6 +33,7 @@ type Request = { params: Params; ledovaSessionEpoch: number; signal: AbortSignal
 const KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const LINKS = URLS.REGISTER_LINKS;
+const WAITING = URLS.REGISTER_LINK_WAITING_WALLETS;
 const HOLDERS = URLS.HOLDERS('ordinary');
 const ENTRIES_URL = URLS.REGISTER_ENTRIES('ordinary');
 const EMPTY: string[] = [
@@ -88,6 +89,7 @@ const register = {
     },
   ],
 };
+const WALLET = { address: BEA, waiting: 2, walletProof: 'not_proven', holderType: 'unidentified', holderName: null };
 
 function decision(
   kind: RegisterDecisionKind,
@@ -206,6 +208,8 @@ const PDF = { data: new Uint8Array([37, 80, 68, 70]).buffer, headers: { 'content
 let client: QueryClient;
 let linkPages: unknown[][];
 let linkAnswers: Map<number, () => Promise<unknown>>;
+let waiting: unknown[];
+let waitingAnswer: (() => Promise<unknown>) | null;
 let appointments: unknown[];
 
 function appointment(uuid: string, capabilities: string[], changes: object = {}) {
@@ -247,7 +251,7 @@ const paged = (pages: unknown[][], number: number) =>
 const reads = (url: string) => get.mock.calls.filter(([called]) => called === url).length;
 const requests = (url: string) =>
   get.mock.calls.filter(([called]) => called === url).map(([, config]) => config as Request);
-const refreshed = () => [reads(LINKS), reads(HOLDERS), reads(ENTRIES_URL), reads(APPOINTMENTS)];
+const refreshed = () => [reads(LINKS), reads(WAITING), reads(HOLDERS), reads(ENTRIES_URL), reads(APPOINTMENTS)];
 const headings = (view: Awaited<ReturnType<typeof render>>) =>
   view.getAllByText(/^(Prepared|Approved|Applied|Rejected) · \d+ wallets?$/).map(text);
 const section = (view: Awaited<ReturnType<typeof render>>) => within(view.getByText(COPY.TITLE).parent!);
@@ -280,6 +284,8 @@ beforeEach(() => {
     [LINK, REJECTED],
   ];
   linkAnswers = new Map();
+  waiting = [WALLET];
+  waitingAnswer = null;
   appointments = [appointment('appointment-admin', ['admin'])];
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
@@ -294,6 +300,7 @@ beforeEach(() => {
     if (url === HOLDERS) return { data: register };
     if (url === APPOINTMENTS) return page(appointments);
     if (url === LINKS) return linkAnswers.get(number)?.() ?? paged(linkPages, number);
+    if (url === WAITING) return waitingAnswer?.() ?? { data: { wallets: waiting } };
     if (url === URLS.REGISTER_LINK_FILE('link-new')) return PDF;
     if (EMPTY.includes(url)) return page([]);
     throw new Error(`Unexpected ${url}`);
@@ -349,6 +356,8 @@ it('reads every page of the company’s wallet links and lists each once, newest
   expect(staff.queryByText('Prepared by')).toBeNull();
   expect(view.queryByText(/verified by Ledova(?! staff before)/i)).toBeNull();
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
+  expect(reads(WAITING)).toBe(0);
   await fireEvent.press(view.getByRole('button', { name: `${COPY.DOWNLOAD} of the ${NEW}` }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(`${cache}ledova-document-views-v1/authority-link-new.pdf`, {
@@ -387,21 +396,40 @@ it.each([
   expect(view.queryByRole('button', { name: step('approve', STAFF_ERA) })).toBeNull();
   expect(view.queryByRole('button', { name: step('apply', STAFF_ERA) })).toBeNull();
   expect(!!section(view).queryByText(COPY.READ_ONLY_NOTE)).toBe(offered.length === 0 && !prepares);
+  if (prepares) {
+    await waitFor(() => expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled());
+    expect(requests(WAITING)).toEqual([
+      { ledovaSessionEpoch: sessionScope.getSessionEpoch(), signal: expect.anything(), params: { company: 'paper' } },
+    ]);
+    await fireEvent.press(view.getByRole('button', { name: COPY.PREPARE }));
+    expect(mockNavigate).toHaveBeenCalledWith('PrepareRegisterLink', { company: 'paper' });
+  } else {
+    expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
+    expect(reads(WAITING)).toBe(0);
+  }
 });
 
-it('offers another company’s administrator nothing', async () => {
+it('offers another company’s administrator nothing and reads no waiting wallets', async () => {
   appointments = [appointment('appointment-other', ['admin'], { company: 'garden' })];
   const view = await openRegister();
   for (const kind of KINDS) expect(view.queryByRole('button', { name: step(kind) })).toBeNull();
   expect(view.queryByRole('button', { name: step('reject', STAFF_ERA) })).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(reads(WAITING)).toBe(0);
 });
 
-it('shows a newly prepared wallet link after a pull to refresh', async () => {
+it('holds Link waiting wallets while nothing waits, and offers it once a pull to refresh finds a waiting wallet', async () => {
+  waiting = [];
   const view = await openRegister();
+  expect(await section(view).findByText(COPY.NOTHING_WAITING)).toBeTruthy();
+  expect(view.getByRole('button', { name: COPY.PREPARE })).toBeDisabled();
+  waiting = [WALLET];
   linkPages = [[{ ...LINK, uuid: 'link-later', createdAt: '2026-10-06T09:00:00Z' }, LINK]];
   await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
-  await waitFor(() => expect(view.getAllByText(NEW_HEADING)).toHaveLength(2));
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.PREPARE })).toBeEnabled());
+  expect(section(view).queryByText(COPY.NOTHING_WAITING)).toBeNull();
+  expect(view.getAllByText(NEW_HEADING)).toHaveLength(2);
   expect(view.queryByText(REJECTED_HEADING)).toBeNull();
 });
 
@@ -468,6 +496,7 @@ it('refreshes after a refused decision and withdraws the steps a revoked appoint
   await waitFor(() => expect(view.queryByRole('button', { name: step('approve') })).toBeNull());
   expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull();
   expect(view.queryByRole('button', { name: step('reject', STAFF_ERA) })).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
   expect(section(view).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
@@ -506,14 +535,21 @@ it('keeps every page under the session it was read for and shows a later session
   ]);
 });
 
-it('keeps a link answer that arrives after the session changes off the screen, even before it gives way', async () => {
+it('keeps link and waiting-wallet answers that arrive after the session changes off the screen, even before it gives way', async () => {
   jest.spyOn(sessionScope, 'subscribeSession').mockReturnValue(() => {});
   const links = deferred();
+  const wallets = deferred();
   linkAnswers.set(1, () => links.promise);
+  waitingAnswer = () => wallets.promise;
   const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await waitFor(() => expect(reads(LINKS)).toBe(1));
+  await waitFor(() => expect([reads(LINKS), reads(WAITING)]).toEqual([1, 1]));
   sessionScope.invalidateSessionScope();
-  await act(async () => links.resolve(paged(linkPages, 1)));
+  await act(async () => {
+    links.resolve(paged(linkPages, 1));
+    wallets.resolve({ data: { wallets: [WALLET] } });
+  });
   expect(await section(view).findByText('The wallet links could not be loaded.')).toBeTruthy();
+  expect(section(view).getByText('The waiting wallets could not be read.')).toBeTruthy();
   expect(view.queryByText(NEW_HEADING)).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
 });
