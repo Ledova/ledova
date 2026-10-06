@@ -73,6 +73,10 @@ function OwnLinks({
     enabled: !!appointment,
     onMissing: () => void appointments.refetch(),
   });
+  const reload = () => {
+    void waiting.refetch();
+    void registers.refetch();
+  };
   const retry = () => {
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
@@ -106,9 +110,9 @@ function OwnLinks({
             registers={registers.data}
             appointment={appointment}
             blocked={stale || fetching}
+            onRefused={reload}
             onConflict={() => {
-              void waiting.refetch();
-              void registers.refetch();
+              reload();
               void appointments.refetch();
             }}
             onMissing={() => void appointments.refetch()}

@@ -42,9 +42,11 @@ it('labels who provided a wallet link as every other register family does', () =
 it("states a wallet's proof as the holder's own, and says verified only of a staff-era link", () => {
   expect(REGISTER_LINK_COPY.WALLET_PROOF.proven).toBe('The holder proved control of this wallet on Ledova');
   expect(REGISTER_LINK_COPY.WALLET_PROOF.not_proven).toMatch(/^The holder has not proved control of this wallet/);
-  const sentences = Object.values(REGISTER_LINK_COPY).flatMap((value) =>
-    typeof value === 'string' ? [value] : typeof value === 'object' ? Object.values(value) : [value(2)],
-  );
+  const sentences = Object.values({
+    ...REGISTER_LINK_COPY,
+    WAITING: REGISTER_LINK_COPY.WAITING(2),
+    HOLDING: REGISTER_LINK_COPY.HOLDING('2', 'ORD'),
+  }).flatMap((value) => (typeof value === 'string' ? [value] : Object.values(value)));
   expect(sentences.filter((sentence) => /verified/i.test(sentence))).toEqual([REGISTER_LINK_COPY.STAFF_VERIFIED]);
 });
 

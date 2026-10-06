@@ -1,5 +1,7 @@
-import type { RegisterLink, RegisterLinkPreparation } from '../../src/types';
-import { isPreparedRegisterLink, registerLinkOf } from '../../src/utils/register-links';
+import { REGISTER_LINK_COPY } from '../../src/constants/business/register-links';
+import { REGISTER_OPENING_COPY } from '../../src/constants/business/register-openings';
+import type { RegisterLink, RegisterLinkPreparation, TokenHoldersResponse } from '../../src/types';
+import { isPreparedRegisterLink, registerLinkMemberLabels, registerLinkOf } from '../../src/utils/register-links';
 
 const ADA = '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa';
 const CY = '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC';
@@ -129,4 +131,108 @@ it.each<[string, Partial<RegisterLink>]>([
 it('narrows a record whose mapping is rows of an address and a member', () => {
   const { mapping, ...record } = link();
   expect(registerLinkOf({ ...record, mapping })).toEqual(link());
+});
+
+describe('registerLinkMemberLabels', () => {
+  const NEW_MEMBER = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED;
+  const FIRST = '20000000-0000-4000-8000-000000000001';
+  const SECOND = '20000000-0000-4000-8000-000000000002';
+  const THIRD = '20000000-0000-4000-8000-000000000003';
+  const WALLET_ONE = '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4';
+  const WALLET_TWO = '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2';
+  const WALLET_THREE = '0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db';
+
+  function holder(
+    member: string,
+    name: string | null,
+    wallets: string[] = [],
+    balance = '10',
+    shareClass = 'ORD',
+  ): TokenHoldersResponse['holders'][number] {
+    return {
+      member,
+      name,
+      holderType: name ? 'member' : 'unidentified',
+      balance,
+      shareClass,
+      source: 'register',
+      identitySource: name ? 'particulars' : 'none',
+      enteredOn: '2026-09-20',
+      percentage: 10,
+      wallets: wallets.map((address) => ({ address, whitelistStatus: 'Active' })),
+    };
+  }
+
+  const existing = (member: string) => ({ member, memberExists: true });
+  const created = (member: string) => ({ member, memberExists: false });
+
+  it('numbers each new member by its first wallet in recorded order, so wallets on one new member read alike', () => {
+    expect([...registerLinkMemberLabels([created(SECOND), created(FIRST), created(SECOND)], [])]).toEqual([
+      [SECOND, NEW_MEMBER(1)],
+      [FIRST, NEW_MEMBER(2)],
+    ]);
+  });
+
+  it('labels a current member by a name no other current member shares, whether or not it is mapped', () => {
+    expect([...registerLinkMemberLabels([], [holder(MEMBER_A, '  Ada Member ', [WALLET_ONE])])]).toEqual([
+      [MEMBER_A, 'Ada Member'],
+    ]);
+  });
+
+  it('gives an unnamed current member its first wallet shortened, or its first holding when it has no wallet', () => {
+    const labels = registerLinkMemberLabels(
+      [],
+      [
+        holder(FIRST, null, [WALLET_ONE, WALLET_TWO]),
+        holder(SECOND, '  ', [], '1200', 'PREF'),
+        holder(SECOND, null, [], '7', 'ORD'),
+      ],
+    );
+    expect([...labels]).toEqual([
+      [FIRST, `${REGISTER_LINK_COPY.UNNAMED_MEMBER} · 0x5B38…ddC4`],
+      [SECOND, `${REGISTER_LINK_COPY.UNNAMED_MEMBER} · ${REGISTER_LINK_COPY.HOLDING('1,200', 'PREF')}`],
+    ]);
+  });
+
+  it('tells apart current members who share a name, in any letter case, by the same detail', () => {
+    const labels = registerLinkMemberLabels(
+      [],
+      [holder(FIRST, 'Sam Example', [WALLET_ONE]), holder(SECOND, 'sam example ', [WALLET_TWO]), holder(THIRD, 'Ada')],
+    );
+    expect([...labels.values()]).toEqual(['Sam Example · 0x5B38…ddC4', 'sam example · 0xAb84…5cb2', 'Ada']);
+  });
+
+  it('keeps every label whatever the mapping, so two unnamed members crossed between two wallets never swap', () => {
+    const holders = [
+      holder(MEMBER_A, 'Alex Member'),
+      holder(FIRST, null, [WALLET_ONE]),
+      holder(SECOND, null, [WALLET_TWO]),
+    ];
+    const crossed = registerLinkMemberLabels([existing(SECOND), existing(FIRST)], holders);
+    expect(crossed).toEqual(registerLinkMemberLabels([existing(FIRST), existing(SECOND)], holders));
+    expect(crossed).toEqual(registerLinkMemberLabels([], holders));
+    expect(crossed.get(FIRST)).not.toBe(crossed.get(SECOND));
+    expect([...crossed.values()].filter((label) => /[0-9a-f]{8}-[0-9a-f]{4}-/.test(label))).toEqual([]);
+  });
+
+  it('gives an existing member who is no longer a current member a neutral label, told apart from another', () => {
+    expect([...registerLinkMemberLabels([existing(FIRST)], [])]).toEqual([[FIRST, REGISTER_LINK_COPY.NOT_ON_REGISTER]]);
+    expect([...registerLinkMemberLabels([existing(SECOND), existing(FIRST), existing(SECOND)], [])]).toEqual([
+      [SECOND, `${REGISTER_LINK_COPY.NOT_ON_REGISTER} (1)`],
+      [FIRST, `${REGISTER_LINK_COPY.NOT_ON_REGISTER} (2)`],
+    ]);
+  });
+
+  it('tells apart current members whose labels would still read alike, in the order the registers list them', () => {
+    const labels = registerLinkMemberLabels(
+      [],
+      [holder(SECOND, null), holder(FIRST, null), holder(THIRD, null, [WALLET_THREE])],
+    );
+    const shared = `${REGISTER_LINK_COPY.UNNAMED_MEMBER} · ${REGISTER_LINK_COPY.HOLDING('10', 'ORD')}`;
+    expect([...labels]).toEqual([
+      [SECOND, `${shared} (1)`],
+      [FIRST, `${shared} (2)`],
+      [THIRD, `${REGISTER_LINK_COPY.UNNAMED_MEMBER} · 0x4B20…02db`],
+    ]);
+  });
 });

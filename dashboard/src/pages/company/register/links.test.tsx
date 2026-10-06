@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { QueryClient } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   COMPANY_AUTHORITY_DECLARATION,
@@ -24,6 +25,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import CompanyRegisterPage from '.';
+import { LinkForm } from './links/LinkForm';
 import { STEP_CHANGED } from './proposals';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
 
@@ -45,7 +47,6 @@ const WAITING_KEY = [...ACCOUNT, 'waiting-wallets', 'harbour'];
 const APPOINTMENTS_KEY = ['company-appointments', 'profile-one', 'account-one'];
 const COPY = REGISTER_LINK_COPY;
 const NEW_MEMBER = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED;
-const UNNAMED_MEMBER = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED;
 const DIGEST = 'a'.repeat(64);
 const KEY = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const NEXT = 'https://example.test/tokens/register-links/?page=2';
@@ -412,7 +413,7 @@ it("lists every page of the company's links newest first and each once, with eac
   expect(rows(pending, COPY.WALLETS)).toEqual([
     ['Ada Member', ADA_WALLET],
     [NEW_MEMBER(1), BO_WALLET],
-    [UNNAMED_MEMBER(1), CY_WALLET],
+    [COPY.NOT_ON_REGISTER, CY_WALLET],
   ]);
   expect(
     [COPY.AUTHORITY, COPY.APPROVING_DIRECTOR, COPY.AUTHORITY_REFERENCE, COPY.REASON, 'Prepared by'].map((label) =>
@@ -512,7 +513,7 @@ it("previews an application with each wallet's member and its holder's own proof
   expect(rows(dialog, COPY.STATUS_NOTE)).toEqual([
     ['Ada Member', ADA_WALLET, COPY.WALLET_PROOF.proven, `${COPY.HOLDER}: Ada Member`],
     [NEW_MEMBER(1), BO_WALLET, COPY.WALLET_PROOF.not_proven, `${COPY.HOLDER}: ${HOLDER_TYPE_LABELS.unidentified}`],
-    [UNNAMED_MEMBER(1), CY_WALLET, COPY.NO_STATUS],
+    [COPY.NOT_ON_REGISTER, CY_WALLET, COPY.NO_STATUS],
   ]);
   expect(within(dialog).queryByText(/verified/i)).toBeNull();
   const before = refreshCounts();
@@ -558,6 +559,83 @@ it('numbers new members alike in the record and the preview: two wallets on one 
   expect(rows(record, COPY.WALLETS)).toEqual(numbered);
   const dialog = await openDecision(record, 'approve');
   expect(rows(dialog, COPY.STATUS_NOTE).map((row) => row.slice(0, 2))).toEqual(numbered);
+});
+
+it('labels two unnamed members crossed between two wallets alike on the link page, the record and the preview', async () => {
+  const first = '20000000-0000-4000-8000-000000000001';
+  const second = '20000000-0000-4000-8000-000000000002';
+  const unnamed = (member: string, address: string) => ({
+    ...REGISTERED.holders[0],
+    member,
+    name: null,
+    holderType: 'unidentified' as const,
+    wallets: [{ address, whitelistStatus: 'Active' }],
+  });
+  const register = {
+    ...REGISTERED,
+    holders: [
+      REGISTERED.holders[0],
+      unnamed(first, '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4'),
+      unnamed(second, '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2'),
+    ],
+  };
+  const [firstLabel, secondLabel] = [`${COPY.UNNAMED_MEMBER} · 0x5B38…ddC4`, `${COPY.UNNAMED_MEMBER} · 0xAb84…5cb2`];
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <LinkForm
+          owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+          guard={() => undefined}
+          company="harbour"
+          wallets={[ADA_WALLET, BO_WALLET].map((address) => ({
+            address,
+            waiting: 1,
+            walletProof: null,
+            holderType: null,
+            holderName: null,
+          }))}
+          registers={[register]}
+          appointment={appointment(['admin'])}
+          blocked={false}
+          onRefused={() => undefined}
+          onConflict={() => undefined}
+          onMissing={() => undefined}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  const select = (address: string) =>
+    within(screen.getByRole('group', { name: address })).getByLabelText(COPY.MEMBER) as HTMLSelectElement;
+  for (const [address, label] of [
+    [ADA_WALLET, secondLabel],
+    [BO_WALLET, firstLabel],
+  ]) {
+    const option = [...select(address).options].find((item) => item.textContent === label)!;
+    fireEvent.change(select(address), { target: { value: option.value } });
+  }
+  const onPage = [ADA_WALLET, BO_WALLET].map((address) => select(address).options[select(address).selectedIndex].text);
+  cleanup();
+  const crossed = [
+    { address: ADA_WALLET, member: second, memberExists: true },
+    { address: BO_WALLET, member: first, memberExists: true },
+  ];
+  linkPages = [
+    page([link({ mapping: crossed.map(({ address, member }) => ({ address, member })), mappingSummary: crossed })]),
+  ];
+  previewed = {
+    ...preview(),
+    links: crossed.map((row) => ({ ...row, walletProof: null, holderType: null, holderName: null })),
+  };
+  serve((url) => (url === HOLDERS ? { data: register } : undefined));
+  show();
+  const [record] = records(await section());
+  const onRecord = rows(record, COPY.WALLETS).map(([label]) => label);
+  const onPreview = rows(await openDecision(record, 'approve'), COPY.STATUS_NOTE).map(([label]) => label);
+  expect({ onPage, onRecord, onPreview }).toEqual({
+    onPage: [secondLabel, firstLabel],
+    onRecord: [secondLabel, firstLabel],
+    onPreview: [secondLabel, firstLabel],
+  });
 });
 
 it('offers a staff-era link only rejection, with a reason of at most 1,000 characters, and records that reason', async () => {

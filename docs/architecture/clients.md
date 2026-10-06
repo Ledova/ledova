@@ -804,10 +804,13 @@ Beside the particulars changes, the dashboard's Register lists the selected
 company's [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)
 in a section of their own, read on every page with the company filter, newest
 first and each once: the stage, preparer and dates, each wallet address in the
-order the link records it with its member, labelled as openings label theirs: an
-existing member by their name on the company's current register, or numbered as
-an unnamed member when it has none, and a member the link creates numbered as a
-new member, so wallets that share a member read alike; then the authority,
+order the link records it with its member, labelled as the link page labels it:
+a current member of the class registers by its name when no other current
+member shares it, and otherwise as an unnamed member or by the shared name with
+its first wallet shortened, or its first holding when it has no wallet, numbered
+in register order if two would still read alike; an existing member no longer on
+the registers neutrally; and a member the link creates numbered as a new member,
+so wallets that share a member read alike; then the authority,
 approving director, reference and reason, the decision trail and any rejection
 reason, whether the company provided the authority document or staff verified
 it before wallet links were company-run,
@@ -829,20 +832,23 @@ otherwise the note that nothing waits. It opens
 like Register, which reads the wallets that completed issues and transfers wait
 for, each with the number of effects waiting for it and its proof and holder for
 information, in the order a link records them, and maps every one of them to a
-member chosen on the page: an existing member, by name from the company's
-current registers, or a new member under a client-generated ID that several
-wallets may share, numbered as the link's record numbers it. Each wallet starts
-as its own new member and is never matched to a member by name. Choices are kept
-by address: a re-read drops a choice only when its wallet no longer waits or its
-member is no longer offered, and then says the choices were reset until a choice
-changes or the link is prepared. The page offers only waiting wallets, although
+member chosen on the page: a current member of the company's class registers, or
+a new member under a client-generated ID that several wallets may share, each
+labelled as the link's record and preview will label it, and a current member's
+label never changes with the choices. Each wallet starts as its own new member
+and is never matched to a member by name. Choices are kept by address: a re-read
+drops a choice only when its wallet no longer waits or its member is no longer
+offered, returning that wallet to its own new member, and then says the choices
+were reset until a choice changes or the link is prepared. The page offers only
+waiting wallets, although
 the API accepts any address. It takes the authority document, the authority, an
 approving director for a resolution, the reference and the reason. The upload
 keeps its own retry key and confirmed receipt, preparation reuses its operation
 only for an identical request, and both receipts are checked before the links
 are refreshed and the page returns to Register. A conflict reads the waiting
 wallets, the registers and the appointments again and takes a new operation, a
-refusal shows the server's words, and a refusal as not found, of preparation or
+refusal shows the server's words and reads the waiting wallets and the registers
+again, and a refusal as not found, of preparation or
 of the waiting-wallets read, reads the appointments again, so the form is
 withdrawn once the appointment is gone. Each repeated download and decision
 control is named for screen readers after its visible label and when its link
@@ -896,7 +902,10 @@ the company's waiting wallets, prepare, decision preview, decide and the
 authority document download), a link's mapping narrowed at runtime,
 `isPreparedRegisterLink`, which checks a prepared link against every field of
 its request and its mapping as address and member pairs in any order and letter
-case, `REGISTER_LINK_DECISIONS` for `useRegisterDecision` with the generic
+case, `registerLinkMemberLabels`, which labels each member a link page offers or
+a link maps from the mapping in recorded order and the company's current
+members, so the page, the record and the preview always agree,
+`REGISTER_LINK_DECISIONS` for `useRegisterDecision` with the generic
 decision receipt check, the link copy with a sentence for every requirement a
 link decision can leave unmet and each wallet's proof worded as the holder's own
 proof on Ledova, never as a verification by Ledova, and the
