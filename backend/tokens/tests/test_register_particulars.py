@@ -43,6 +43,7 @@ from tokens.services.register_particulars import (
     prepare_particulars_change,
     preview_particulars_decision,
 )
+from tokens.tests.evidence_fixtures import staff_user, upload_evidence
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_imports import (
     LIVE,
@@ -59,11 +60,7 @@ from tokens.tests.test_register_imports import (
     owner_appointment,
 )
 from tokens.tests.test_register_imports import prepared as prepared_import
-from tokens.tests.test_register_imports import (
-    record_particulars,
-    staff_user,
-    upload_evidence,
-)
+from tokens.tests.test_register_imports import record_particulars
 
 PARTICULARS_CHANGES = "/api/v1/tokens/register-particulars-changes/"
 RENAMED = "Mia Renamed"

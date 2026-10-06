@@ -18,6 +18,7 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
+from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
@@ -37,22 +38,16 @@ from tokens.services.register_particulars import (
     decide_particulars_change,
     prepare_particulars_change,
 )
+from tokens.tests.evidence_fixtures import staff_user, upload_evidence
 from tokens.tests.test_register_access import person
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_import_authority import AppointsTeam
-from tokens.tests.test_register_imports import (
-    DOCUMENT_BYTES,
-    RESIDENCE,
-)
+from tokens.tests.test_register_imports import RESIDENCE
 from tokens.tests.test_register_imports import decide as decide_import
 from tokens.tests.test_register_imports import forge_decision as forge_import_decision
 from tokens.tests.test_register_imports import import_payload
 from tokens.tests.test_register_imports import prepared as prepared_import
-from tokens.tests.test_register_imports import (
-    record_particulars,
-    staff_user,
-    upload_evidence,
-)
+from tokens.tests.test_register_imports import record_particulars
 from tokens.tests.test_register_particulars import (
     NEW_ADDRESS,
     RENAMED,
