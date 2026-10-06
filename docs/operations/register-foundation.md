@@ -1558,8 +1558,9 @@ uploads and decisions immutable and refuses:
   writes them, as the [import guard](#importing-an-existing-register) describes;
 - moving particulars to another member or to an earlier date, whichever
   recorded them;
-- removing particulars during any company command: only the retention purge,
-  which runs outside one, removes them;
+- removing particulars during any company command. Outside one, the retention
+  purge removes them, and the database does not tell it apart from other
+  operator code;
 - any write to particulars from the app role.
 
 The daily retention job purges a member's particulars, whichever recorded them,
