@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
+import { REGISTER_LINK_COPY, REGISTER_LINK_UNMET_COPY } from '../constants/business/register-links';
 import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../constants/business/register-openings';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
+import { decideRegisterLink, previewRegisterLinkDecision } from '../services/register-links';
 import { decideRegisterOpening, previewRegisterOpeningDecision } from '../services/register-openings';
 import type {
   RegisterCorrection,
@@ -14,6 +16,8 @@ import type {
   RegisterDecisionRequest,
   RegisterImport,
   RegisterImportDecisionPreview,
+  RegisterLink,
+  RegisterLinkDecisionPreview,
   RegisterOpening,
   RegisterOpeningDecisionPreview,
 } from '../types';
@@ -58,6 +62,14 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
   isReceipt: isRegisterCorrectionDecisionReceipt,
   unmet: REGISTER_CORRECTION_UNMET_COPY,
   copy: REGISTER_CORRECTION_COPY,
+};
+
+export const REGISTER_LINK_DECISIONS: RegisterDecisionFamily<RegisterLink, RegisterLinkDecisionPreview> = {
+  preview: previewRegisterLinkDecision,
+  decide: decideRegisterLink,
+  isReceipt: isRegisterDecisionReceipt,
+  unmet: REGISTER_LINK_UNMET_COPY,
+  copy: REGISTER_LINK_COPY,
 };
 
 export const REGISTER_OPENING_DECISIONS: RegisterDecisionFamily<RegisterOpening, RegisterOpeningDecisionPreview> = {

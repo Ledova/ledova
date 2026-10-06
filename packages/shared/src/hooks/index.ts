@@ -18,6 +18,7 @@ export { useSubmissionOwner } from './useSubmissionOwner';
 export {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
+  REGISTER_LINK_DECISIONS,
   REGISTER_OPENING_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';

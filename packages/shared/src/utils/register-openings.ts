@@ -26,6 +26,10 @@ function links(mapping: RegisterOpeningLink[]) {
   );
 }
 
+export function sameMapping(left: RegisterOpeningLink[], right: RegisterOpeningLink[]) {
+  return links(left) === links(right);
+}
+
 export function isPreparedRegisterOpening(proposal: RegisterOpening, request: RegisterOpeningPreparation) {
   return (
     proposal.uuid === request.operationId &&
@@ -37,7 +41,7 @@ export function isPreparedRegisterOpening(proposal: RegisterOpening, request: Re
     proposal.authorityReference === request.authorityReference &&
     proposal.reason === request.reason &&
     proposal.providedBy === 'company' &&
-    links(proposal.mapping) === links(request.mapping)
+    sameMapping(proposal.mapping, request.mapping)
   );
 }
 
