@@ -10,9 +10,9 @@ import {
   failureStatus,
   getErrorMessage,
   isPreparedRegisterLink,
-  openingMemberLabels,
   prepareRegisterLink,
   REGISTER_LINK_COPY as COPY,
+  registerLinkMemberLabels,
   type RegisterCorrectionAuthority,
   type RegisterLinkPreparation,
 } from '@ledova/shared';
@@ -87,10 +87,10 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
     if (reset && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(COPY.CHOICES_RESET);
   }, [reset]);
   const mapped = wallets.map(({ address }) => kept[address.toLowerCase()]?.member ?? null);
-  const labels = openingMemberLabels([
-    ...holders.map(({ member, name }) => ({ member, memberName: name || null, memberExists: true })),
-    ...mapped.map((member) => ({ member, memberName: null, memberExists: false })),
-  ]);
+  const labels = registerLinkMemberLabels(
+    mapped.flatMap((member) => (member ? [{ member, memberExists: listed.has(member) }] : [])),
+    holders,
+  );
   const mapping = wallets.flatMap(({ address }, index) => {
     const member = mapped[index];
     return member ? [{ address, member }] : [];

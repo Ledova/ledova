@@ -57,7 +57,6 @@ const FRESH_X = '20000000-0000-4000-8000-0000000000aa';
 const FRESH_Y = '20000000-0000-4000-8000-0000000000bb';
 const NEW_ONE = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1);
 const NEW_TWO = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2);
-const UNNAMED_ONE = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1);
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const prepared = (createdAt: string) => `prepared on ${formatDateTime(createdAt)}`;
 const NEW = `${COPY.STAGES.submitted.toLowerCase()} wallet link for 3 wallets, ${prepared('2026-10-06T01:00:00Z')}`;
@@ -89,6 +88,7 @@ const register = {
       name: 'Alex Member',
       holderType: 'member',
       balance: '100',
+      shareClass: 'ORD',
       enteredOn: '2026-10-04',
       wallets: [],
     },
@@ -345,10 +345,10 @@ it('reads every page of the company’s wallet links and lists each once, newest
     CY,
   ])
     expect(record.getByText(shown)).toBeTruthy();
-  expect(record.getAllByText(new RegExp(`^(Alex Member|${NEW_ONE}|${UNNAMED_ONE})$`)).map(text)).toEqual([
+  expect(record.getAllByText(new RegExp(`^(Alex Member|${NEW_ONE}|${COPY.NOT_ON_REGISTER})$`)).map(text)).toEqual([
     'Alex Member',
     NEW_ONE,
-    UNNAMED_ONE,
+    COPY.NOT_ON_REGISTER,
   ]);
   const rejected = within(view.getByText(REJECTED_HEADING).parent!);
   const trail = (label: string) => within(rejected.getByText(label).parent!);
@@ -465,7 +465,7 @@ it('previews an application with each wallet’s member and the holder’s own p
   expect(within(wallet(BEA).getByText(COPY.MEMBER).parent!).getByText(NEW_ONE)).toBeTruthy();
   expect(wallet(CY).getByText(COPY.NO_STATUS)).toBeTruthy();
   expect(wallet(CY).queryByText(COPY.HOLDER)).toBeNull();
-  expect(within(wallet(CY).getByText(COPY.MEMBER).parent!).getByText(UNNAMED_ONE)).toBeTruthy();
+  expect(within(wallet(CY).getByText(COPY.MEMBER).parent!).getByText(COPY.NOT_ON_REGISTER)).toBeTruthy();
   expect(within(view.getByText(COPY.STATUS_NOTE).parent!).queryByText(/verified/i)).toBeNull();
   const before = refreshed();
   linkPages = [[decided('apply', KEY(1)), STAFF]];

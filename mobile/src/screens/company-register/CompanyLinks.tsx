@@ -36,9 +36,7 @@ export function CompanyLinks({
   useEffect(() => {
     if (failureStatus(waitingError) === 404) void readAppointments();
   }, [waitingError, readAppointments]);
-  const names = new Map(
-    registers.flatMap(({ holders }) => holders.flatMap(({ member, name }) => (name ? [[member, name] as const] : []))),
-  );
+  const holders = registers.flatMap((register) => register.holders);
   const settle = () =>
     Promise.all([
       links.refetch(),
@@ -97,7 +95,7 @@ export function CompanyLinks({
           <LinkRecord
             key={link.uuid}
             link={link}
-            names={names}
+            holders={holders}
             epoch={epoch}
             steps={steps}
             last={index === links.data.length - 1}

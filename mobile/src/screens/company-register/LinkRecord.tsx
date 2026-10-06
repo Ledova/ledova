@@ -3,14 +3,15 @@ import {
   COMPANY_TOKEN_ENDPOINTS,
   formatDateTime,
   HOLDER_TYPE_LABELS,
-  openingMemberLabels,
   REGISTER_LINK_COPY as COPY,
   REGISTER_LINK_DECISIONS,
+  registerLinkMemberLabels,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
   type RegisterLink,
   type RegisterLinkDecisionPreview,
   type RegisterStep,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
@@ -18,7 +19,7 @@ import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
 
-type Mapped = { member: string; memberExists: boolean };
+type Holders = TokenHoldersResponse['holders'];
 type Status = Pick<RegisterLinkDecisionPreview['links'][number], 'walletProof' | 'holderType' | 'holderName'>;
 
 const DECISION_KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
@@ -29,11 +30,6 @@ const DECIDED: Record<RegisterDecisionKind, string> = {
 };
 
 const walletCount = (count: number) => `${count} ${count === 1 ? 'wallet' : 'wallets'}`;
-
-const labelsOf = (rows: Mapped[], names: Map<string, string>) =>
-  openingMemberLabels(
-    rows.map(({ member, memberExists }) => ({ member, memberName: names.get(member) ?? null, memberExists })),
-  );
 
 export function WalletStatus({ wallet, member }: { wallet: Status; member: string | undefined }) {
   const styles = useCompanyStyles();
@@ -53,14 +49,14 @@ export function WalletStatus({ wallet, member }: { wallet: Status; member: strin
 function LinkPreview({
   kind,
   preview,
-  names,
+  holders,
 }: {
   kind: RegisterDecisionKind;
   preview: RegisterLinkDecisionPreview;
-  names: Map<string, string>;
+  holders: Holders;
 }) {
   const styles = useCompanyStyles();
-  const labels = labelsOf(preview.links, names);
+  const labels = registerLinkMemberLabels(preview.links, holders);
   return (
     <>
       {kind === 'apply' && <Text style={styles.text}>{COPY.APPLY_NOTE}</Text>}
@@ -80,14 +76,14 @@ function LinkPreview({
 
 export function LinkRecord({
   link,
-  names,
+  holders,
   epoch,
   steps,
   last,
   onSettled,
 }: {
   link: RegisterLink;
-  names: Map<string, string>;
+  holders: Holders;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -99,7 +95,7 @@ export function LinkRecord({
   const wallets = walletCount(link.mappingSummary.length);
   const prepared = formatDateTime(link.createdAt);
   const description = `${stage.toLowerCase()} wallet link for ${wallets}, prepared on ${prepared}`;
-  const labels = labelsOf(link.mappingSummary, names);
+  const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   return (
     <View style={[styles.entry, last && styles.lastEntry]}>
       <Text style={styles.heading}>
@@ -163,7 +159,7 @@ export function LinkRecord({
                   onSettled={onSettled}
                   onRefused={onSettled}
                 >
-                  {(preview) => <LinkPreview kind={kind} preview={preview} names={names} />}
+                  {(preview) => <LinkPreview kind={kind} preview={preview} holders={holders} />}
                 </RegisterDecision>
               )
             );

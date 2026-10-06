@@ -9,11 +9,15 @@ import {
   HOLDER_TYPE_LABELS,
   REGISTER_LINK_COPY as COPY,
   REGISTER_OPENING_COPY,
+  type OwnCompanyAppointment,
+  type RegisterLink,
   type RegisterLinkPreparation,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import * as sessionScope from '../../services/sessionScope';
 import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
+import { LinkRecord } from './LinkRecord';
 import { PrepareRegisterLinkScreen } from './PrepareRegisterLinkScreen';
 import { linksKey } from './useCompanyRegister';
 
@@ -43,10 +47,13 @@ const ABE = '0xAbE0000000000000000000000000000000000a00';
 const LOWERCASE = '0xa110000000000000000000000000000000000f06';
 const MEMBER_A = '10000000-0000-4000-8000-0000000000aa';
 const MEMBER_B = '10000000-0000-4000-8000-0000000000bb';
+const MEMBER_C = '10000000-0000-4000-8000-0000000000cc';
+const WALLET_ONE = '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4';
+const WALLET_TWO = '0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2';
 const KEY = (number: number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const NEW_ONE = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(1);
 const NEW_TWO = REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(2);
-const UNNAMED_ONE = REGISTER_OPENING_COPY.UNNAMED_MEMBER_NUMBERED(1);
+const UNNAMED_B = `${COPY.UNNAMED_MEMBER} · ${COPY.HOLDING('10', 'ORD')}`;
 const get = jest.mocked(apiClient.get);
 const post = jest.mocked(apiClient.post);
 const pick = jest.mocked(DocumentPicker.getDocumentAsync);
@@ -57,13 +64,14 @@ const shareClass = (uuid: string, companyUuid: string, companyName: string) => (
   companyUuid,
   companyName,
 });
-const holder = (member: string, name: string | null, holderType: string) => ({
+const holder = (member: string, name: string | null, holderType: string, wallets: string[] = []) => ({
   member,
   name,
   holderType,
   balance: '10',
+  shareClass: 'ORD',
   enteredOn: '2026-10-04',
-  wallets: [],
+  wallets: wallets.map((address) => ({ address, whitelistStatus: 'active' })),
 });
 const REGISTER = {
   token: { uuid: 'ordinary', name: 'ordinary shares', symbol: 'ORD', status: 'deployed', totalSupply: '1000' },
@@ -282,7 +290,7 @@ it('maps each waiting wallet to a member it never guesses, uploads the authority
   expect(view.getByLabelText('Alex Member for wallet 1').props.accessibilityState).toEqual(
     expect.objectContaining({ checked: false }),
   );
-  expect(view.getByLabelText(`${UNNAMED_ONE} for wallet 1`)).toBeTruthy();
+  expect(view.getByLabelText(`${UNNAMED_B} for wallet 1`)).toBeTruthy();
   expect(view.getByText(UNMAPPED)).toBeTruthy();
   await map(view);
   expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Alex Member', NEW_ONE, NEW_ONE]);
@@ -434,8 +442,67 @@ it('drops a choice once its member leaves the class registers, and says the choi
   expect(await view.findByText(COPY.CHOICES_RESET)).toBeTruthy();
   expect([1, 2, 3].map((number) => memberOf(view, number))).toEqual(['Not chosen yet', NEW_ONE, NEW_ONE]);
   expect(view.queryByLabelText('Alex Member for wallet 1')).toBeNull();
-  expect(view.getByLabelText(`${UNNAMED_ONE} for wallet 1`)).toBeTruthy();
+  expect(view.getByLabelText(`${UNNAMED_B} for wallet 1`)).toBeTruthy();
   expect(view.getByText(UNMAPPED)).toBeTruthy();
+});
+
+it('labels two unnamed members crossed between two wallets alike on the form, in the record and in its preview', async () => {
+  const holders = [
+    holder(MEMBER_A, 'Alex Member', 'member'),
+    holder(MEMBER_B, null, 'unidentified', [WALLET_ONE]),
+    holder(MEMBER_C, null, 'unidentified', [WALLET_TWO]),
+  ];
+  const first = `${COPY.UNNAMED_MEMBER} · 0x5B38…ddC4`;
+  const second = `${COPY.UNNAMED_MEMBER} · 0xAb84…5cb2`;
+  register = { ...REGISTER, totalHolders: 3, holders };
+  wallets = [WALLETS[0], WALLETS[1]];
+  const view = await open();
+  await choose(view, second, 1);
+  await choose(view, first, 2);
+  expect([1, 2].map((number) => memberOf(view, number))).toEqual([second, first]);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  const [prepared] = preparations();
+  expect(prepared.mapping).toEqual([
+    { address: ADA, member: MEMBER_C },
+    { address: BEA, member: MEMBER_B },
+  ]);
+  const mappingSummary = prepared.mapping.map((row) => ({ ...row, memberExists: true }));
+  post.mockResolvedValueOnce({
+    data: {
+      previewDigest: 'a'.repeat(64),
+      unmetRequirements: [],
+      canDecide: true,
+      links: mappingSummary.map((row) => ({ ...row, walletProof: null, holderType: null, holderName: null })),
+    },
+  });
+  const record = await render(
+    <LinkRecord
+      link={{ ...preparedFrom(prepared), mappingSummary } as RegisterLink}
+      holders={holders as TokenHoldersResponse['holders']}
+      epoch={sessionScope.getSessionEpoch()}
+      steps={{
+        prepare: undefined,
+        approve: appointment('appointment-admin', ['admin']) as OwnCompanyAppointment,
+        apply: undefined,
+        reject: undefined,
+      }}
+      last
+      onSettled={async () => {}}
+    />,
+    { wrapper },
+  );
+  expect(
+    [ADA, BEA].map((address) => within(record.getByText(address).parent!).getAllByText(/.+/).map(text)[0]),
+  ).toEqual([second, first]);
+  await fireEvent.press(record.getByRole('button', { name: /^Approve the / }));
+  await record.findByText(COPY.CONFIRMATIONS.approve);
+  const previewed = (address: string) =>
+    within(within(record.getAllByText(address).at(-1)!.parent!).getByText(COPY.MEMBER).parent!)
+      .getAllByText(/.+/)
+      .map(text)[1];
+  expect([ADA, BEA].map(previewed)).toEqual([second, first]);
 });
 
 it.each<[string, typeof Platform.OS, string[][]]>([
