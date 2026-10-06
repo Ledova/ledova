@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("companies", "0022_company_wallet_lock_order"),
-        ("tokens", "0087_company_discrepancy_acknowledgements"),
+        ("tokens", "0089_company_register_opening_guards"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
