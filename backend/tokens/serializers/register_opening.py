@@ -200,6 +200,19 @@ class RegisterWalletLinkDecisionPreviewSerializer(serializers.Serializer):
     links = RegisterWalletLinkPreviewSerializer(many=True)
 
 
+class RegisterWaitingWalletSerializer(RegisterWalletStatusSerializer):
+    address = serializers.CharField()
+    waiting = serializers.IntegerField()
+
+
+class RegisterWaitingWalletsSerializer(serializers.Serializer):
+    wallets = RegisterWaitingWalletSerializer(many=True)
+
+
+class RegisterWaitingWalletsRequestSerializer(serializers.Serializer):
+    company = serializers.UUIDField()
+
+
 class RegisterWalletLinkDecisionSerializer(RegisterDecisionSerializer):
     class Meta(RegisterDecisionSerializer.Meta):
         model = RegisterWalletLinkDecision

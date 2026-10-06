@@ -14,6 +14,8 @@ from tokens.serializers.register_opening import (
     RegisterOpeningDecisionPreviewSerializer,
     RegisterOpeningDecisionRequestSerializer,
     RegisterOpeningSerializer,
+    RegisterWaitingWalletsRequestSerializer,
+    RegisterWaitingWalletsSerializer,
     RegisterWalletLinkCreateSerializer,
     RegisterWalletLinkDecideSerializer,
     RegisterWalletLinkDecisionPreviewSerializer,
@@ -29,6 +31,7 @@ from tokens.services.register_openings import (
     prepare_opening,
     preview_link_decision,
     preview_opening_decision,
+    waiting_wallets,
 )
 from tokens.views.register_proposal import RegisterProposalViewSet, with_decisions
 
@@ -107,12 +110,19 @@ class RegisterWalletLinkViewSet(RegisterProposalViewSet):
     queryset = RegisterWalletLink.objects.none()
     serializer_class = RegisterWalletLinkSerializer
     scoped_model = RegisterWalletLink
-    operator_actions = RegisterProposalViewSet.operator_actions | {"create", "decision_preview", "decide"}
+    operator_actions = RegisterProposalViewSet.operator_actions | {
+        "create",
+        "decision_preview",
+        "decide",
+        "waiting_wallets",
+    }
     operator_actions_because = (
         "Retained wallet-link reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every link and file to those companies. "
         "Preparation, previews and decisions run the bounded company register command, which checks the caller's "
-        "current appointment under the company lock, and their responses read the operator-only decisions."
+        "current appointment under the company lock, and their responses read the operator-only decisions. "
+        "The waiting-wallets read admits only a current appointment holding administration or prepare, and lists "
+        "the wallets of completed effects as the waiting list classifies them, which no policy admits to the caller."
     )
 
     def filter_queryset(self, queryset):
@@ -153,3 +163,15 @@ class RegisterWalletLinkViewSet(RegisterProposalViewSet):
         serializer = RegisterWalletLinkDecideSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return self._respond(decide_link(actor=request.user, link_id=uuid, **serializer.validated_data))
+
+    @extend_schema(
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID, required=True)],
+        responses=RegisterWaitingWalletsSerializer,
+        filters=False,
+    )
+    @action(detail=False, methods=["get"], url_path="waiting-wallets")
+    def waiting_wallets(self, request):
+        serializer = RegisterWaitingWalletsRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        wallets = waiting_wallets(request.user, serializer.validated_data["company"])
+        return Response(RegisterWaitingWalletsSerializer({"wallets": wallets}).data)

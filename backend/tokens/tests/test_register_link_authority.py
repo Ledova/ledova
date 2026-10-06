@@ -36,12 +36,14 @@ from tokens.tests.test_register_links import (
     CAROL,
     DAVE,
     LINKS,
+    WAITING,
     apply_link,
     decide,
     decision_digest,
     forge_decision,
     forge_outcome,
     forged_fields,
+    holder,
     insert_forged,
     link_fixture,
     link_payload,
@@ -302,6 +304,63 @@ class RegisterWalletLinkAuthorityTest(LinkAuthorityFixture, StubUploadDependenci
             self.assertEqual(RegisterMemberWallet.objects.get(address=CAROL).member_id, self.member.pk)
         listed = client.get(LINKS, {"company": str(self.company.pk), "status": "applied"}).json()
         self.assertEqual([row["uuid"] for row in listed["results"]], [link["uuid"]])
+
+    def test_the_waiting_wallets_read_counts_each_unlinked_wallet_across_classes_for_preparers_only(self):
+        with use_migrate():
+            ordinary = ShareToken.objects.get(company=self.company)
+            preference = ShareToken.objects.create(
+                company=self.company, name="Synthetic preference shares", symbol="PRF", total_supply="1000"
+            )
+            ShareToken.objects.create(company=self.company, name="Unopened shares", symbol="UNO", total_supply="10")
+        holder(DAVE, "Dave Holder", verified=True, company=self.company)
+        waiting = {
+            ordinary.pk: [
+                {"reason": "unlinked", "unlinked_wallets": [CAROL.lower()]},
+                {"reason": "unlinked", "unlinked_wallets": [CAROL, DAVE.lower()]},
+            ],
+            preference.pk: [
+                {"reason": "unlinked", "unlinked_wallets": [CAROL]},
+                {"reason": "uninstructed", "unlinked_wallets": []},
+            ],
+        }
+        self.enterContext(patch("tokens.services.register_openings.waiting_list", side_effect=waiting.get))
+        preparer, _ = self.appoint([CompanyCapability.PREPARE])
+        approver, _ = self.appoint([CompanyCapability.APPROVE])
+        reader, _ = self.appoint([CompanyCapability.READ_REGISTER])
+        with use_operator():
+            foreign_administrator = link_fixture()[0]
+        expected = {
+            "wallets": [
+                {"address": CAROL, "waiting": 3, "walletProof": None, "holderType": None, "holderName": None},
+                {
+                    "address": DAVE,
+                    "waiting": 1,
+                    "walletProof": "proven",
+                    "holderType": "member",
+                    "holderName": "Dave Holder",
+                },
+            ]
+        }
+        query = {"company": str(self.company.pk)}
+        for actor in (self.owner, preparer):
+            with self.subTest(actor=actor.email):
+                self.client.force_authenticate(actor)
+                read = self.client.get(WAITING, query)
+                self.assertEqual((read.status_code, read.json()), (200, expected))
+        unknown = self.client.get(WAITING, {"company": str(uuid4())})
+        for actor in (approver, reader, staff_user(), foreign_administrator):
+            with self.subTest(actor=actor.email):
+                self.client.force_authenticate(actor)
+                denied = self.client.get(WAITING, query)
+                self.assertEqual((denied.status_code, denied.content), (unknown.status_code, unknown.content))
+                self.assertEqual(denied.status_code, 404)
+        self.client.force_authenticate(self.owner)
+        self.assertEqual(self.client.get(WAITING, {"company": "not-a-uuid"}).status_code, 400)
+        self.assertEqual(self.client.get(WAITING).status_code, 400)
+        revoke_company_appointment(requester=self.owner, appointment_id=self.administrator.pk)
+        self.assertEqual(self.client.get(WAITING, query).status_code, 404)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(WAITING, query).status_code, 401)
 
 
 class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTestCase):

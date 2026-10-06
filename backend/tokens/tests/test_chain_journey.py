@@ -475,6 +475,13 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
     def link_buyer(self):
         appointment = str(owner_appointment(self.tenant.company).pk)
         self.client.force_authenticate(self.tenant.user)
+        waiting = self.client.get(
+            "/api/v1/tokens/register-links/waiting-wallets/", {"company": str(self.token.company_id)}
+        )
+        self.assertEqual(
+            [(row["address"], row["waiting"], row["walletProof"]) for row in waiting.json()["wallets"]],
+            [(Web3.to_checksum_address(self.buyer.address), 1, "proven")],
+        )
         uploaded = self.client.post(
             "/api/v1/tokens/register-evidence/",
             {

@@ -11438,6 +11438,64 @@
         ],
         "type": "string"
       },
+      "RegisterWaitingWallet": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "holderName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "holderType": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HolderTypeEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "waiting": {
+            "type": "integer"
+          },
+          "walletProof": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WalletProofEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "holderName",
+          "holderType",
+          "waiting",
+          "walletProof"
+        ],
+        "type": "object"
+      },
+      "RegisterWaitingWallets": {
+        "properties": {
+          "wallets": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterWaitingWallet"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "wallets"
+        ],
+        "type": "object"
+      },
       "RegisterWalletLink": {
         "properties": {
           "approvingDirector": {
@@ -23198,6 +23256,45 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-links/waiting-wallets/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_links_waiting_wallets_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWaitingWallets"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

@@ -48,7 +48,7 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
-from tokens.services.register_openings import decide_link
+from tokens.services.register_openings import decide_link, waiting_wallets
 from tokens.tests import test_swap_finality
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import (
@@ -130,6 +130,18 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
             },
             {str(waiting.pk): (AFTER_OPENING, False), str(behind.pk): (AFTER_OPENING, False)},
         )
+        self.assertEqual(
+            waiting_wallets(self.owner, self.tenant.company.pk),
+            [
+                {
+                    "address": NEWCOMER,
+                    "waiting": 1,
+                    "wallet_proof": None,
+                    "holder_type": None,
+                    "holder_name": None,
+                }
+            ],
+        )
         newcomer = str(uuid4())
         self.assertEqual(self.link(NEWCOMER, newcomer).status, "applied")
         self.assertEqual(
@@ -144,6 +156,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
             RegisterEntry.objects.get(operation_id=waiting.pk).recorded_by_id,
             ShareIssuanceRequest.objects.get(executed_issuance=waiting).reviewed_by_id,
         )
+        self.assertEqual(waiting_wallets(self.owner, self.tenant.company.pk), [])
         self.assertEqual(verify_register(RegisterEntry.objects.first().register_id)["members"], 2)
         self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 

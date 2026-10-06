@@ -43,6 +43,7 @@ from wallets.models import Wallet
 from whitelist.models import WhitelistApproval, WhitelistEntry
 
 LINKS = "/api/v1/tokens/register-links/"
+WAITING = f"{LINKS}waiting-wallets/"
 CAROL = Web3.to_checksum_address("0x" + "3c" * 20)
 DAVE = Web3.to_checksum_address("0x" + "4d" * 20)
 ERIN = Web3.to_checksum_address("0x" + "6e" * 20)

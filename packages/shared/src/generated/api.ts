@@ -1967,6 +1967,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-links/waiting-wallets/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_links_waiting_wallets_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-openings/': {
     parameters: {
       query?: never;
@@ -5062,6 +5078,16 @@ export interface ApiComponents {
       uuid: string;
     };
     RegisterReconciliationStatusEnum: 'matched' | 'discrepant' | 'failed';
+    RegisterWaitingWallet: {
+      address: string;
+      holderName: string | null;
+      holderType: (ApiComponents['schemas']['HolderTypeEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+      waiting: number;
+      walletProof: (ApiComponents['schemas']['WalletProofEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+    };
+    RegisterWaitingWallets: {
+      wallets: ApiComponents['schemas']['RegisterWaitingWallet'][];
+    };
     RegisterWalletLink: {
       approvingDirector: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
@@ -9588,6 +9614,27 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_waiting_wallets_retrieve: {
+    parameters: {
+      query: {
+        company: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWaitingWallets'];
         };
       };
     };

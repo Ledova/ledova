@@ -1,5 +1,5 @@
 import hashlib
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping
 from datetime import date
 from uuid import UUID
@@ -14,6 +14,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from web3 import Web3
 
 from companies.models import (
+    Company,
     CompanyAppointment,
     CompanyCapability,
     CompanyDocument,
@@ -49,7 +50,7 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register import member_identities
+from tokens.services.register import _snapshot, member_identities
 from tokens.services.register_authority import (
     APPOINTMENT_NOT_FOUND,
     register_appointment,
@@ -71,6 +72,7 @@ from tokens.services.register_evidence import (
 from tokens.services.register_inclusions import (
     assert_boundary_represents_completions,
     record_completed_effects,
+    waiting_list,
 )
 from tokens.services.register_snapshot import _boundary, capture_snapshot
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -644,6 +646,22 @@ def mapping_summary(link):
         ).values_list("pk", flat=True)
     }
     return [{**item, "member_exists": item["member"] in existing} for item in link.mapping]
+
+
+def waiting_wallets(actor, company_id):
+    company = Company.objects.register_preparable_by(actor).filter(pk=company_id).first()
+    if company is None:
+        raise NotFound(COMPANY_NOT_FOUND)
+    waiting = Counter()
+    with _snapshot():
+        for token_id in ShareToken.objects.filter(company=company).order_by("pk").values_list("pk", flat=True):
+            for effect in waiting_list(token_id) or []:
+                waiting.update({Web3.to_checksum_address(address) for address in effect["unlinked_wallets"]})
+        statuses = wallet_statuses(company.pk, list(waiting))
+    return [
+        {"address": address, "waiting": waiting[address], **statuses[address.lower()]}
+        for address in sorted(waiting, key=str.lower)
+    ]
 
 
 def _link_requirements(link):
