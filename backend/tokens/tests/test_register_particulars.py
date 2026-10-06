@@ -560,10 +560,11 @@ class RegisterParticularsTest(TransactionTestCase):
                 lambda: RegisterParticularsChange.objects.filter(pk=change.pk).update(
                     status="applied", reviewed_by=self.owner, reviewed_at=timezone.now()
                 ),
-                change.delete,
             ):
                 with self.assertRaises(DatabaseError), atomic():
                     write()
+            with self.assertRaisesMessage(DatabaseError, "Retain particulars changes"), atomic():
+                change.delete()
         self.assertTrue(change.file.storage.exists(change.file.name))
         forged = forged_fields(change)
         authority = upload_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
@@ -777,8 +778,9 @@ class RegisterParticularsMigrationTest(TransactionTestCase):
         self.assertEqual((self.installed(every), self.configured(every)), (company_run, pinned))
         migrate_to([previous])
         self.assertEqual((self.installed(self.GUARDS), self.installed(self.FUNCTIONS)), (earlier, []))
+        self.assertEqual(self.configured(self.GUARDS), [(name, self.PINNED) for name in self.GUARDS])
         restore_every_migration()
-        self.assertEqual(self.installed(every), company_run)
+        self.assertEqual((self.installed(every), self.configured(every)), (company_run, pinned))
 
     def test_reversal_refuses_while_changes_or_supporting_uploads_exist(self):
         owner, _, _, member, appointment, evidence = particulars_fixture()
@@ -816,21 +818,19 @@ class ScopedRegisterParticularsTest(RunsOnTheScopedConnection, APITransactionTes
             lambda: RegisterParticularsChange.objects.filter(pk=self.change.pk).update(status="rejected"),
             lambda: RegisterParticularsChange.objects.filter(pk=self.change.pk).update(name="Forged"),
             lambda: list(RegisterParticularsChangeDecision.objects.all()),
-            lambda: RegisterMemberParticulars.objects.create(
-                member=self.member,
-                name="Forged",
-                residential_address="Nowhere",
-                as_at=DAY,
-                source_change=self.change,
-            ),
             self.change.delete,
         ):
             with self.assertRaises(DatabaseError), atomic():
                 write()
+        refused = "Only the register's own commands write member particulars"
+        with self.assertRaisesMessage(DatabaseError, refused), atomic():
+            RegisterMemberParticulars.objects.create(
+                member=self.member, name="Forged", residential_address="Nowhere", as_at=DAY, source_change=self.change
+            )
         apply_change(self.owner, self.appointment, self.change)
         self.assertEqual(RegisterParticularsChange.objects.get(pk=self.change.pk).status, "applied")
         self.assertEqual(RegisterMemberParticulars.objects.get(member=self.member).source_change_id, self.change.pk)
-        with self.assertRaises(DatabaseError), atomic():
+        with self.assertRaisesMessage(DatabaseError, refused), atomic():
             RegisterMemberParticulars.objects.filter(member=self.member).update(name="Forged")
         RegisterMemberParticulars.objects.filter(member=self.member).delete()
         self.assertEqual(RegisterMemberParticulars.objects.get(member=self.member).name, RENAMED)
