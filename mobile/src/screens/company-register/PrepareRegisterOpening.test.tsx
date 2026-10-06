@@ -69,9 +69,11 @@ let client: QueryClient;
 let holdings: Holding[];
 let appointments: unknown[];
 let readsFail: boolean;
+let failing: Set<string>;
 let held: Set<string>;
 let holdingsAnswer: (() => Promise<unknown>) | null;
 let evidenceChanges: object[];
+let uploadAnswer: ((form: unknown) => Promise<unknown>) | null;
 let prepareAnswer: jest.Mock;
 let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData['append']>>;
 
@@ -203,9 +205,11 @@ beforeEach(() => {
   holdings = HOLDINGS;
   appointments = [appointment('appointment-prepare', ['prepare'])];
   readsFail = false;
+  failing = new Set();
   held = new Set();
   holdingsAnswer = null;
   evidenceChanges = [];
+  uploadAnswer = null;
   let keys = 0;
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
   let picks = 0;
@@ -213,7 +217,7 @@ beforeEach(() => {
   mockGoBack.mockReset();
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   get.mockReset().mockImplementation(async (url) => {
-    if (readsFail) throw new Error('Unavailable');
+    if (readsFail || failing.has(url)) throw new Error('Unavailable');
     if (held.has(url)) return new Promise(() => {}) as ReturnType<typeof get>;
     if (url === URLS.HOLDERS('ordinary')) return { data: register };
     if (url === APPOINTMENTS) return { data: { results: appointments, next: null, count: appointments.length } };
@@ -222,7 +226,7 @@ beforeEach(() => {
   });
   prepareAnswer = jest.fn(async (body: RegisterOpeningPreparation) => ({ data: preparedFrom(body) }));
   post.mockReset().mockImplementation(async (url, body) => {
-    if (url === URLS.REGISTER_EVIDENCE) return { data: evidenceFor(body) };
+    if (url === URLS.REGISTER_EVIDENCE) return uploadAnswer?.(body) ?? { data: evidenceFor(body) };
     if (url === URLS.REGISTER_OPENINGS) return prepareAnswer(body);
     throw new Error(`Unexpected ${url}`);
   });
@@ -634,15 +638,20 @@ it('does not go back when the session changes while the openings are marked to b
 });
 
 it.each([
-  ['holdings', () => openingHoldersKey(getSessionEpoch(), 'ordinary'), HOLDINGS_URL],
-  ['appointments', () => registerAppointmentsKey(getSessionEpoch()), APPOINTMENTS],
-])('holds preparation while it reads the %s again', async (_, key, url) => {
+  [
+    'class',
+    () => ({ predicate: ({ queryKey }: { queryKey: readonly unknown[] }) => queryKey.includes('class') }),
+    URLS.HOLDERS('ordinary'),
+  ],
+  ['holdings', () => ({ queryKey: openingHoldersKey(getSessionEpoch(), 'ordinary') }), HOLDINGS_URL],
+  ['appointments', () => ({ queryKey: registerAppointmentsKey(getSessionEpoch()) }), APPOINTMENTS],
+])('holds preparation while it reads the %s again', async (_, filters, url) => {
   const view = await open();
   await map(view);
   await complete(view);
   expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeEnabled();
   held = new Set([url]);
-  await act(async () => void client.invalidateQueries({ queryKey: key() }));
+  await act(async () => void client.invalidateQueries(filters()));
   await waitFor(() => expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled());
   expect(view.getByTestId('prepare-opening-screen')).toBeTruthy();
   await submit(view);
@@ -765,4 +774,145 @@ it('drops a holdings read answered after the session changes and reads the holdi
   expect(view.getByText('Holding 4')).toBeTruthy();
   expect(view.queryByText(EVE)).toBeNull();
   expect(holdingReads().map(({ ledovaSessionEpoch }) => ledovaSessionEpoch)).toEqual([epoch, epoch + 1]);
+});
+
+it('prepares once when Prepare is activated twice before the screen updates', async () => {
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  await map(view);
+  await complete(view);
+  const prepare = view.getByRole('button', { name: COPY.SUBMIT });
+  await act(() => {
+    prepare.props.onClick({ nativeEvent: {} });
+    prepare.props.onClick({ nativeEvent: {} });
+  });
+  await waitFor(() => expect(answer).toBeDefined());
+  expect(view.getByRole('button', { name: 'Preparing…' })).toBeDisabled();
+  expect(view.queryByRole('alert')).toBeNull();
+  await act(async () => answer({ data: preparedFrom(preparations()[0]) }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(uploads()).toHaveLength(1);
+  expect(preparations()).toHaveLength(1);
+});
+
+it('holds every choice and field while the opening is being prepared', async () => {
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(answer).toBeDefined());
+  for (const name of [
+    'Alex Member for holding 2',
+    `${COPY.NEW_MEMBER_NUMBERED(1)} for holding 4`,
+    `${COPY.NEW_MEMBER} for holding 3`,
+  ])
+    expect(view.getByLabelText(name)).toBeDisabled();
+  expect(view.getByRole('radio', { name: COPY.AUTHORITIES.court_order })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Replace the authority document' })).toBeDisabled();
+  expect(view.getByLabelText(COPY.REASON).props.editable).toBe(false);
+  await choose(view, 'Alex Member', 2);
+  expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
+  await act(async () => answer({ data: preparedFrom(preparations()[0]) }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+});
+
+it('holds preparation, every choice and the reload offer while the authority document is being chosen', async () => {
+  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } });
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await view.findByText(COPY.HOLDINGS_MOVED);
+  expect(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeEnabled();
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeEnabled();
+  let chosen!: (value: DocumentPicker.DocumentPickerResult) => void;
+  pick.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        chosen = resolve;
+      }),
+  );
+  await fireEvent.press(view.getByRole('button', { name: 'Replace the authority document' }));
+  await waitFor(() => expect(chosen).toBeDefined());
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
+  expect(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeDisabled();
+  expect(view.getByLabelText('Alex Member for holding 2')).toBeDisabled();
+  await act(async () => chosen({ canceled: true, assets: null }));
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeEnabled());
+  expect(view.getByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeEnabled();
+});
+
+it('clears the holdings-moved note once the opening is prepared again', async () => {
+  let answer!: (value: unknown) => void;
+  prepareAnswer.mockRejectedValueOnce({ response: { status: 400, data: [MOVED] } }).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      }),
+  );
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await view.findByText(COPY.HOLDINGS_MOVED);
+  await submit(view);
+  await waitFor(() => expect(answer).toBeDefined());
+  expect(view.queryByText(COPY.HOLDINGS_MOVED)).toBeNull();
+  expect(view.queryByRole('button', { name: COPY.RELOAD_HOLDINGS })).toBeNull();
+  await act(async () => answer({ data: preparedFrom(preparations()[1]) }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+});
+
+it('prepares under the prepare appointment when another appointment approves', async () => {
+  appointments = [appointment('appointment-approve', ['approve']), appointment('appointment-prepare', ['prepare'])];
+  const view = await open();
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  expect(field(uploads()[0][1], 'appointment')).toBe('appointment-prepare');
+  expect(preparations()).toEqual([expect.objectContaining({ appointment: 'appointment-prepare' })]);
+});
+
+it('offers a retry instead of the read-only note when only the appointments cannot be read', async () => {
+  failing = new Set([APPOINTMENTS]);
+  const view = await render(<PrepareRegisterOpeningScreen />, { wrapper });
+  expect(await view.findByText('We couldn’t load this share class and your appointments.')).toBeTruthy();
+  expect(view.queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  failing = new Set();
+  await fireEvent.press(view.getByRole('button', { name: 'Retry' }));
+  expect(await view.findByTestId('prepare-opening-screen')).toBeTruthy();
+});
+
+it('sends no preparation once the screen is left while its upload is pending', async () => {
+  let release!: () => void;
+  uploadAnswer = (form) =>
+    new Promise((resolve) => {
+      release = () => resolve({ data: evidenceFor(form) });
+    });
+  const view = await open();
+  const key = openingsKey(getSessionEpoch(), 'ordinary');
+  client.setQueryData(key, []);
+  await map(view);
+  await complete(view);
+  await submit(view);
+  await waitFor(() => expect(uploads()).toHaveLength(1));
+  await view.unmount();
+  await act(async () => release());
+  expect(preparations()).toEqual([]);
+  expect(mockGoBack).not.toHaveBeenCalled();
+  expect(client.getQueryState(key)?.isInvalidated).toBe(false);
 });

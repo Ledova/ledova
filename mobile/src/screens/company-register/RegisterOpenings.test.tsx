@@ -375,8 +375,11 @@ it('reads every page of the class openings by its share class and shows each new
   const rejected = within(view.getByText(REJECTED_HEADING).parent!);
   expect(rejected.getByText(COPY.AUTHORITIES.court_order)).toBeTruthy();
   expect(rejected.queryByText(COPY.APPROVING_DIRECTOR)).toBeNull();
-  expect(rejected.getByText(`Robin Approver · ${formatDateTime('2026-10-04T02:00:00Z')}`)).toBeTruthy();
-  expect(rejected.getByText(`Ari Admin · ${formatDateTime('2026-10-04T03:00:00Z')}`)).toBeTruthy();
+  const trail = (label: string) => within(rejected.getByText(label).parent!);
+  expect(
+    trail(COPY.STAGES.approved).getByText(`Robin Approver · ${formatDateTime('2026-10-04T02:00:00Z')}`),
+  ).toBeTruthy();
+  expect(trail(COPY.STAGES.rejected).getByText(`Ari Admin · ${formatDateTime('2026-10-04T03:00:00Z')}`)).toBeTruthy();
   expect(rejected.getByText('The holdings moved')).toBeTruthy();
   expect(rejected.queryByText('Decided on')).toBeNull();
   const staff = within(view.getByText(STAFF_HEADING).parent!);
