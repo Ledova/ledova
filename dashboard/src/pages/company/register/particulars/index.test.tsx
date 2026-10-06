@@ -315,6 +315,28 @@ it('refuses an unconfirmed upload receipt, prepares nothing and uploads that fil
   expect(preparations().map((body) => body.supportingEvidence)).toEqual([`evidence-${KEY(2)}`]);
 });
 
+it('retries an unconfirmed upload under the same key, and takes a new key once the upload conflicts', async () => {
+  let failure: unknown = new Error('Network Error');
+  uploadFor = async (form) => {
+    if (failure) throw failure;
+    return { data: receipt(form) };
+  };
+  show();
+  await ready();
+  complete();
+  fireEvent.click(submitButton());
+  await screen.findByRole('alert');
+  failure = refusal(409, { detail: 'The retry key was used for another upload.' });
+  fireEvent.click(submitButton());
+  await waitFor(() => expect(uploads()).toHaveLength(2));
+  await waitFor(() => expect(submitButton().disabled).toBe(false));
+  failure = null;
+  fireEvent.click(submitButton());
+  expect(await screen.findByText('Register page')).toBeTruthy();
+  expect(uploads().map((form) => form.get('idempotency_key'))).toEqual([KEY(1), KEY(1), KEY(2)]);
+  expect(preparations().map((body) => body.supportingEvidence)).toEqual([`evidence-${KEY(2)}`]);
+});
+
 it('refuses an unconfirmed preparation receipt and stays on the page with the changes as they were', async () => {
   prepareFor = async (body) => ({ data: { ...prepared(body), asAt: '2026-09-21' } });
   show();

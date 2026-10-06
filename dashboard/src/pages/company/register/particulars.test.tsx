@@ -554,20 +554,44 @@ it('holds a previewed decision and withdraws every step and Change particulars o
   expect(within(list).getByText(COPY.READ_ONLY_NOTE)).toBeTruthy();
 });
 
-it('records and refreshes nothing when a decision returns after the signed-in account changed', async () => {
-  const pending = deferred<{ data: RegisterParticularsChange }>();
-  decideFor = () => pending.promise;
+it('withholds every step and Change particulars while the appointments cannot be read, and offers their retry', async () => {
   show();
-  const dialog = await openDecision(records(await changes())[0], 'apply');
-  fireEvent.click(confirmButton(dialog, 'apply'));
-  await waitFor(() => expect(writes(DECIDE)).toHaveLength(1));
-  act(switchAccount);
-  const body = writes(DECIDE)[0][1] as RegisterParticularsChangeDecideRequest;
-  await act(async () => pending.resolve({ data: decided(body) }));
-  for (const queryKey of [PARTICULARS_KEY, [...ACCOUNT, 'holders', 'ordinary'], APPOINTMENTS_KEY])
-    expect(client.getQueryState(queryKey)?.isInvalidated).toBe(false);
-  expect(screen.queryByRole('alert')).toBeNull();
+  const list = await changes();
+  await members();
+  await waitFor(() => expect(changeLinks()).toHaveLength(2));
+  serve((url) => (url === APPOINTMENTS ? Promise.reject(new Error('Unavailable')) : undefined));
+  await act(async () => {
+    await client.refetchQueries({ queryKey: APPOINTMENTS_KEY });
+  });
+  await waitFor(() => expect(decisionLabels(records(list)[0])).toEqual([]));
+  expect(changeLinks()).toHaveLength(0);
+  expect(within(list).queryByText(COPY.READ_ONLY_NOTE)).toBeNull();
+  serve();
+  fireEvent.click(within(within(list).getByRole('alert')).getByRole('button'));
+  await waitFor(() => expect(decisionLabels(records(list)[0])).toEqual(['Approve', 'Apply', 'Reject']));
+  expect(changeLinks()).toHaveLength(2);
 });
+
+it.each([false, true])(
+  'records and refreshes nothing when a decision returns after the signed-in account changed (refused: %s)',
+  async (refused) => {
+    const pending = deferred<void>();
+    decideFor = async (body) => {
+      await pending.promise;
+      if (refused) throw { response: { status: 409, data: { detail: 'The register operation conflicts.' } } };
+      return { data: decided(body) };
+    };
+    show();
+    const dialog = await openDecision(records(await changes())[0], 'apply');
+    fireEvent.click(confirmButton(dialog, 'apply'));
+    await waitFor(() => expect(writes(DECIDE)).toHaveLength(1));
+    act(switchAccount);
+    await act(async () => pending.resolve());
+    for (const queryKey of [PARTICULARS_KEY, [...ACCOUNT, 'holders', 'ordinary'], APPOINTMENTS_KEY])
+      expect(client.getQueryState(queryKey)?.isInvalidated).toBe(false);
+    expect(screen.queryByRole('alert')).toBeNull();
+  },
+);
 
 it('keeps no changes whose read returns after the signed-in account changed', async () => {
   const pending = deferred<Paged<RegisterParticularsChange>>();
