@@ -29,6 +29,7 @@ from tokens.models import (
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
+    RegisterParticularsChange,
     RegisterWalletLink,
     ShareIssuanceRequest,
     ShareToken,
@@ -170,6 +171,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "asic_file"),
                         (RegisterEvidence, "file"),
                         (RegisterInstruction, "file"),
+                        (RegisterParticularsChange, "file"),
                         (Publication, "file"),
                         (PublicationEvent, "evidence"),
                     },
@@ -185,6 +187,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterImport,
                     RegisterEvidence,
                     RegisterInstruction,
+                    RegisterParticularsChange,
                     Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)

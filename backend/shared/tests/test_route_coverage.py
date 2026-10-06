@@ -114,6 +114,8 @@ def matrix_routes():
         add(method, path)
     for method, path in matrix.REGISTER_CORRECTION_ROUTES.values():
         add(method, path)
+    for method, path in matrix.REGISTER_PARTICULARS_ROUTES.values():
+        add(method, path)
     for method, path in matrix.REGISTER_OPENING_ROUTES.values():
         add(method, path)
     for method, path in matrix.REGISTER_LINK_ROUTES.values():

@@ -49,9 +49,14 @@ class's register from the chain through the API: preparation captures the chain
 boundary with the company's own authority document, and the company approves
 and applies the opening with no Ledova staff review
 ([opening process](../operations/register-foundation.md#opening-the-register-from-the-chain)).
-The Register in both clients runs those openings too. #864's other register
-commands and #865–#873 remain planned. Their company offering, issuance and
-register authority is separate.
+The Register in both clients runs those openings too. The sixth lets the
+company change a member's name and residential address through the API, with a
+reason and its own supporting document, the latest "as at" date winning between
+imports and changes
+([particulars changes](../operations/register-foundation.md#changing-a-members-particulars));
+its client screens are planned. #864's other register commands and #865–#873
+remain planned. Their company offering, issuance and register authority is
+separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

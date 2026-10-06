@@ -52,6 +52,10 @@ from .register_opening import (
     RegisterOpeningDecision,
     RegisterWalletLink,
 )
+from .register_particulars import (
+    RegisterParticularsChange,
+    RegisterParticularsChangeDecision,
+)
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
@@ -107,6 +111,8 @@ __all__ = [
     "RegisterOpening",
     "RegisterOpeningDecision",
     "RegisterOutput",
+    "RegisterParticularsChange",
+    "RegisterParticularsChangeDecision",
     "RegisterPosition",
     "RegisterReconciliation",
     "RegisterReconciliationStatus",

@@ -168,6 +168,32 @@ the new direction.
   for recovery. Deployment-mode retirement does not require fresh contracts,
   signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
 
+- `tokens/0090_company_particulars_changes` and
+  `tokens/0091_company_particulars_change_guards` let a company change a
+  member's particulars (#864). `0090` adds company-run particulars changes,
+  readable by the company's register readers and written only by the bounded
+  register command, and their append-only decisions, operator-only, and adds the
+  `supporting` upload kind. It gives each member's particulars the date they hold
+  (`as_at`), backfilled from the import that recorded them, and a nullable
+  source change, with a check that a row names exactly one source, an import or
+  a change. `0091` admits `supporting` uploads to the evidence guard and installs
+  the change, decision and deferred effect guards, which bind the person, the
+  company command, a current appointment and a digest the database recomputes.
+  It also guards writes to particulars, which had none beyond row-level
+  security: particulars come only from the application of the import or change
+  they name, by the person applying it through the company command, with exactly
+  the values it carries; they never move to another member or an earlier date;
+  no company command removes them; outside one, the retention purge removes
+  them, and the database does not tell it apart from other operator code; and
+  the app role writes none.
+  The import guard's application check now also counts particulars a change
+  recorded with a later date. Nothing else is backfilled. This release adds the
+  `/api/v1/tokens/register-particulars-changes/` routes and no client screen;
+  the shared API types and the mobile upload labels know the new upload kind,
+  so deploy the backend before or with the clients. Reversing `0091` refuses
+  once any change, decision or `supporting` upload exists; otherwise it restores
+  the import and evidence guards exactly as `0084` and `0086` left them.
+  Reversing `0090` then drops the new tables and columns.
 - #864's opening screens need no migration. They read
   `GET /api/v1/tokens/{uuid}/register/opening-holders/`, added with them, which
   reads the chain and stores nothing, and each opening's boundary summary now

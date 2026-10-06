@@ -1272,7 +1272,7 @@ refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, or `authority` for an [opening](#opening-the-register-from-the-chain) or a [correction](#compensating-corrections), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain) or a [correction](#compensating-corrections), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
 | `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
 | `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
@@ -1378,9 +1378,10 @@ member's shares, and the person applying it records it, so the register's
 sequence is 1. It links no wallets: a
 [reviewed link request](#reviewed-wallet-links-after-the-opening) links them. A
 class opened another way after preparation takes the import by the opened
-class's rules. Application then stores each member's particulars, except where
-the member already has particulars from an import with a later register date,
-and the imported former members. It keeps the register sequence on the request.
+class's rules. Application then stores each member's particulars, dated the
+register date, except where the member already has particulars dated later, from
+an import or a [particulars change](#changing-a-members-particulars), and the
+imported former members. It keeps the register sequence on the request.
 Rejection with a reason stays available until a decision applies or rejects the
 import. **Admin → Tokens → Register imports** shows imports and both copies as
 read-only history. The database keeps imports, uploads and decisions immutable
@@ -1405,16 +1406,22 @@ and refuses:
   exactly that opening, with sequence 1, the import's UUID, members and shares,
   register date and the person applying it, and still nothing approved;
 - an application whose figures differ from the rows;
-- an application that leaves a member without particulars from it or from a
-  later-dated import;
+- an application that leaves a member without particulars from it, from a
+  later-dated applied import or from a later-dated change;
+- particulars naming an import as their source unless they are written during
+  that import's application, through the company command, by the person applying
+  it, for a member the import lists, with exactly that member's name and address
+  and the register date;
 - a second applied import for the class.
 
 The [register reads](../architecture/register.md#membership-and-identity) then
 show a member's live verified identity when it is present and unambiguous.
-Recorded particulars fill in only for a member with no live identity and no
-resolved allotment stamp, and an ambiguous identity stays ambiguous. A treasury
+Recorded particulars, from the import or [change](#changing-a-members-particulars)
+dated latest, or applied last of those sharing a date, fill in only for a member
+with no live identity and no resolved allotment stamp, and an ambiguous identity
+stays ambiguous. A treasury
 label is not a live identity: a member held at a labelled treasury address, such
-as an employee share trust, takes its imported name and residential address and
+as an employee share trust, takes its recorded name and residential address and
 stays a treasury holder. The
 imported date entered applies to a member the opening carried in for as long as
 the holding stays continuous, and the imported amount paid only while that
@@ -1436,6 +1443,132 @@ extract, its decisions and the company's uploads are evidence, kept like opening
 and correction evidence: nothing expires them automatically during the
 synthetic experiment, and production retention is decided before any real data
 (owner decisions, 22 September and 5 October 2026).
+
+## Changing a member's particulars
+
+A company keeps its members' names and residential addresses up to date itself,
+under the owner's [decisions of 5 October 2026](../decisions.md#company-run-register-authority-and-evidence):
+- a change needs a reason and one supporting document the company provides,
+  such as a deed poll or a member's notice of a new address, uploaded as a
+  `supporting` upload. Ledova staff do not verify it, and the change's copy is
+  shown as provided by the company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- the latest "as at" date wins across imports and changes, with the one applied
+  later winning a shared date, and a member's live verified identity still wins
+  over both.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The API below is delivered; Register screens for it in both clients are
+planned, and shareholders changing their own particulars is planned work in
+[#866](https://github.com/Ledova/ledova/issues/866).
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-evidence/` | Upload the supporting document (multipart: `company_id`, `appointment`, `kind` of `supporting`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-particulars-changes/` | Prepare the change; return the retained request |
+| `GET /api/v1/tokens/register-particulars-changes/` | Paginated changes for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `member` and `status` |
+| `GET /api/v1/tokens/register-particulars-changes/{uuid}/` | Request, evidence, stage and decisions |
+| `GET /api/v1/tokens/register-particulars-changes/{uuid}/file/` | Authenticated attachment of the change's copy of the supporting document |
+| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the change beside the member's current particulars, and the preview digest |
+| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+
+```json
+{
+  "operation_id": "10000000-0000-4000-8000-000000000041",
+  "appointment": "10000000-0000-4000-8000-000000000030",
+  "member": "10000000-0000-4000-8000-000000000024",
+  "supporting_evidence": "10000000-0000-4000-8000-000000000042",
+  "name": "Synthetic Member Renamed",
+  "residential_address": "8 Synthetic Street, Melbourne VIC 3000",
+  "as_at": "2026-09-20",
+  "reason": "The member changed their name by deed poll and moved"
+}
+```
+
+`as_at` is the date the company's register records the change: today (UTC) or
+earlier. A change dated on or after the date of the member's current particulars
+replaces them when it is applied. Preparation trims the name, address and
+reason, and refuses, with a message naming the problem:
+- a member of a company in which the caller holds no current appointment;
+- evidence that is not the preparer's own `supporting` upload for this company,
+  or whose stored bytes no longer match its fingerprint;
+- an empty name, residential address or reason, a name of more than 255
+  characters, or an address or reason of more than 1,000;
+- a date after today, or before the date of the member's current particulars;
+- a member who has held no shares in the company since the retention cutoff
+  (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), whose particulars the
+  register no longer keeps.
+
+The change keeps its own private copy of the upload, with a snapshot naming the
+upload, its size, type and SHA-256, and marked as provided by the company. An
+identical preparation retry returns the change; the same operation ID with any
+change conflicts.
+
+Each decision starts with a preview, which shows the change beside the member's
+current particulars, their date and the import or change that recorded them, and
+lists what the decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `change_decided` | The change is already applied or rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
+| `member_left_retention` | The member has held no shares since the retention cutoff, so the register no longer keeps their particulars |
+| `newer_particulars_exist` | The member's particulars are now dated after the change, from a later import or change |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the change, the decision, the person, the appointment,
+the reason and, for application, the member's current particulars: their name,
+address, date and source. The decision must carry the same digest, so particulars
+recorded in between conflict. An identical decision retry with the same retry
+key returns the change; the same key with any change conflicts. Every step
+rechecks the appointment after taking the company lock, so a revocation that
+commits first refuses the decision and records nothing.
+
+Application records the change's name, residential address and date as the
+member's particulars, naming the change as their source, with the decision; a
+failure rolls them both back. Rejection with a reason stays available until a
+decision applies or rejects the change, including when the retained copy is
+unavailable. There is no admin page for changes. The database keeps changes,
+uploads and decisions immutable and refuses:
+- an upload or preparation not made through the company command by a person
+  whose current appointment holds `admin` or `prepare`;
+- a preparation for a member of another company, with a blank name, address or
+  reason, or dated after today;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own `supporting` upload for the company;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, or an application without a current approval;
+- an applied or rejected change without its matching decision, and a decision
+  whose change does not carry its effect when the transaction commits;
+- an application that does not record the change's particulars for its member;
+- particulars naming a change as their source unless that change's application
+  writes them, through the company command, by the person applying it, with
+  exactly its member, name, address and date;
+- particulars naming an import as their source unless that import's application
+  writes them, as the [import guard](#importing-an-existing-register) describes;
+- moving particulars to another member or to an earlier date, whichever
+  recorded them;
+- removing particulars during any company command. Outside one, the retention
+  purge removes them, and the database does not tell it apart from other
+  operator code;
+- any write to particulars from the app role.
+
+The daily retention job purges a member's particulars, whichever recorded them,
+once the member has held nothing in the company for the 2,557-day floor. It
+purges nothing else of a change: the change, with the name and address it
+carried, its copy of the supporting document, its decisions and the company's
+upload are evidence, kept like import evidence with no automatic expiry during
+the synthetic experiment, and production retention is decided before any real
+data (owner decisions, 22 September and 5 October 2026).
 
 ## Reconciling with the chain
 

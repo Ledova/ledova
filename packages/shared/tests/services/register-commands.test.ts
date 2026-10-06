@@ -4,7 +4,7 @@ import type { RegisterEvidenceKind } from '../../src/types';
 
 afterEach(() => jest.restoreAllMocks());
 
-it.each<RegisterEvidenceKind>(['share_register', 'asic_extract', 'authority'])(
+it.each<RegisterEvidenceKind>(['share_register', 'asic_extract', 'authority', 'supporting'])(
   'uploads one %s file as multipart with the company, appointment, kind and retry key',
   async (kind) => {
     const api = axios.create();

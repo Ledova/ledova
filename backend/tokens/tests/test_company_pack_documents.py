@@ -18,6 +18,7 @@ from tokens.models import (
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
+    RegisterParticularsChange,
     RegisterWalletLink,
     ShareToken,
     ShareTokenStatus,
@@ -27,6 +28,7 @@ from tokens.tests.test_company_pack import (
     ISOLATED,
     ProducesPacks,
     authority_terms,
+    changed_particulars,
     consume,
     evidence_of,
     files_of,
@@ -47,7 +49,14 @@ from tokens.tests.test_register_openings import offline_boundary, opening_payloa
 from tokens.tests.test_register_openings import prepared as prepared_opening
 from users.models import InvestorClassification
 
-EVIDENCE_MODELS = (RegisterOpening, RegisterImport, RegisterCorrection, RegisterInstruction, RegisterWalletLink)
+EVIDENCE_MODELS = (
+    RegisterOpening,
+    RegisterImport,
+    RegisterCorrection,
+    RegisterInstruction,
+    RegisterWalletLink,
+    RegisterParticularsChange,
+)
 CEILING = "tokens.services.company_pack_documents.COMPANY_PACK_MAX_STORED_BYTES"
 MEMBERS_EVIDENCE = (
     "Verification evidence Ledova holds for members is not in this pack: identity checks, investor classification "
@@ -200,6 +209,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.unopened, self.opening, self.imported = with_opening_and_import(self.a)
+        self.changed = changed_particulars(self.a.company, self.a.members["buyer"], self.a.label)
         self.client.force_login(pack_staff("pack-documents-staff"))
 
     def refused(self, message):
@@ -214,7 +224,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
 
         files = files_of(content)
         stored = stored_files(self.a.company)
-        self.assertEqual(len(stored), 8)
+        self.assertEqual(len(stored), 9)
         self.assertEqual(sorted(path for path in files if path.startswith("documents/")), sorted(stored))
         self.assertEqual({path: files[path] for path in stored}, stored)
         listed = {row["path"]: row for row in json.loads(files["manifest.json"])["files"]}
@@ -224,7 +234,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
         result = consume(content, *ISOLATED)
         self.assertEqual((result.returncode, result.stderr), (0, ""))
         self.assertIn(
-            "documents: 2 carried, 1 listed only, 6 evidence copies match their records", result.stdout.splitlines()
+            "documents: 2 carried, 1 listed only, 7 evidence copies match their records", result.stdout.splitlines()
         )
 
     def test_each_authority_record_names_the_copy_it_relied_on_by_path_and_digest(self):
@@ -241,6 +251,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             "correction": authority[self.a.ordinary.pk]["corrections"],
             "instruction": authority[self.a.ordinary.pk]["instructions"],
             "link": json.loads(files["wallet_links.json"]),
+            "particulars": json.loads(files["particulars_changes.json"]),
         }
         expected = {
             "opening": self.opening,
@@ -248,6 +259,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             "correction": self.a.correction,
             "instruction": self.a.allotment.instruction,
             "link": self.a.link,
+            "particulars": self.changed,
         }
         for kind, record in expected.items():
             with self.subTest(kind=kind):
@@ -269,6 +281,12 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
                 elif kind in ("opening", "correction"):
                     self.assertEqual(files[path], read(record.authority_evidence.file.name))
                     self.assertEqual((listed["provided_by"], listed["evidence"]["document"]), ("company", None))
+                elif kind == "particulars":
+                    self.assertEqual(files[path], read(record.supporting_evidence.file.name))
+                    self.assertEqual(
+                        (listed["provided_by"], listed["evidence"]["document"], listed["status"]),
+                        ("company", None, "applied"),
+                    )
                 else:
                     source = CompanyDocument.objects.get(pk=record.source_document)
                     self.assertEqual(files[path], read(source.file.name))
@@ -339,7 +357,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             f"| `documents/{resolution.pk}.pdf` | other | Synthetic pack-a board resolution | yes |",
             "| not carried: https://docs.example.test/pack-a/constitution | constitution | Synthetic pack-a "
             "constitution | no |",
-            "This pack carries 6 evidence copies.",
+            "This pack carries 7 evidence copies.",
             MEMBERS_EVIDENCE,
         ):
             with self.subTest(line=line):
@@ -438,7 +456,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             private_storage().size(record.asic_file.name) for record in copies if getattr(record, "asic_file", None)
         )
         self.assertNotEqual(sum(document.file.size for document in documents), sum(d.file_size for d in documents))
-        self.assertEqual((len(documents), len(copies)), (2, 5))
+        self.assertEqual((len(documents), len(copies)), (2, 6))
 
         with patch(CEILING, total - 1):
             self.refused(
@@ -516,7 +534,7 @@ class CompanyPackDocumentsTest(ProducesPacks, TestCase):
             content = self.pack()
 
         self.assertEqual(sorted(set(read_names)), stored_names(self.a.company))
-        self.assertEqual(len(set(read_names)), 8)
+        self.assertEqual(len(set(read_names)), 9)
         self.assertEqual([name for name in read_names if not name.startswith(f"companies/{self.a.company.pk}/")], [])
         self.assertEqual(carried(content, outside), [])
         claim = InvestorClassification.objects.get(declared_basis="Synthetic pack-a allottee basis")

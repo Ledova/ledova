@@ -41,11 +41,12 @@ class DecisionFamily:
     effect_requirements: Callable
     lock: Callable
     apply: Callable
+    noun: str = ""
     before_command: Callable = _nothing_to_check
 
     @property
     def subject(self):
-        return self.operation.removeprefix("register_")
+        return self.noun or self.operation.removeprefix("register_")
 
 
 def _scalar(sql, params):

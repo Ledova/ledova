@@ -283,6 +283,14 @@ REGISTER_CORRECTION_ROUTES = {
     "decision_preview": ("post", "/api/v1/tokens/register-corrections/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-corrections/{uuid}/decide/"),
 }
+REGISTER_PARTICULARS_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-particulars-changes/"),
+    "list": ("get", "/api/v1/tokens/register-particulars-changes/"),
+    "detail": ("get", "/api/v1/tokens/register-particulars-changes/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-particulars-changes/{uuid}/file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-particulars-changes/{uuid}/decide/"),
+}
 REGISTER_OPENING_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-openings/"),
     "list": ("get", "/api/v1/tokens/register-openings/"),
@@ -1354,6 +1362,97 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.logout()
         with self.as_an_operator_would():
             self.assertEqual(RegisterCorrection.objects.get(pk=proposal_id).status, "submitted")
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_register_particulars_routes_keep_evidence_private_and_decisions_company_bound(self):
+        from tokens.models import RegisterMemberParticulars, RegisterParticularsChange
+        from tokens.tests.test_register_particulars import (
+            change_payload,
+            particulars_fixture,
+        )
+
+        with self.as_an_operator_would():
+            owner, company, _, member, appointment, evidence = particulars_fixture()
+        self.client.force_authenticate(owner)
+        payload = {**change_payload(member, evidence, appointment), "as_at": DAY.isoformat()}
+        response = self.client.post(REGISTER_PARTICULARS_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        change_id = response.json()["uuid"]
+        listing = REGISTER_PARTICULARS_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [change_id])
+        for name in ("detail", "file"):
+            path = REGISTER_PARTICULARS_ROUTES[name][1].format(uuid=change_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(change_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+                self.assertEqual(self.rows(self.client.get(listing, {"member": str(member.pk)})), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.assertEqual(self.client.get(listing).status_code, 401)
+            self.client.force_authenticate(owner)
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_PARTICULARS_ROUTES[name][1].format(uuid=change_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(change_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        upload = {
+            "company_id": str(company.pk),
+            "appointment": str(appointment.pk),
+            "kind": "supporting",
+            "idempotency_key": str(uuid4()),
+        }
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.post(
+                REGISTER_IMPORT_ROUTES["evidence"][1],
+                {**upload, "file": SimpleUploadedFile("deed-poll.pdf", pdf_bytes(), content_type="application/pdf")},
+                format="multipart",
+            )
+            self.assertEqual(denied.status_code, 404, denied.content)
+            denied = self.client.post(
+                REGISTER_PARTICULARS_ROUTES["create"][1], {**payload, "operation_id": str(uuid4())}, format="json"
+            )
+            self.assertEqual(denied.status_code, 404, denied.content)
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_PARTICULARS_ROUTES["decision_preview"][1].format(uuid=change_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_PARTICULARS_ROUTES["decide"][1].format(uuid=change_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterParticularsChange.objects.get(pk=change_id).status, "submitted")
+            self.assertEqual(RegisterParticularsChange.objects.count(), 1)
+            self.assertFalse(RegisterMemberParticulars.objects.exists())
 
     @override_settings(
         STORAGES={

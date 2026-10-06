@@ -15,6 +15,7 @@ from tokens.models import (
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
+    RegisterParticularsChange,
     RegisterReconciliation,
     RegisterWalletLink,
     ShareIssuanceExecution,
@@ -48,7 +49,7 @@ def _ordered(records):
 def _evidence(record):
     snapshot = record.evidence_snapshot
     return {
-        "document": record.source_document,
+        "document": getattr(record, "source_document", None),
         "document_type": snapshot.get("document_type"),
         "name": snapshot.get("name"),
         "mime_type": snapshot.get("mime_type"),
@@ -168,6 +169,32 @@ def link_records(company) -> list:
 
 def wallet_links(records) -> list:
     return [_decided(link, link.authority, mapping=link.mapping) for link in records]
+
+
+def particulars_change_records(company) -> list:
+    return list(_ordered(RegisterParticularsChange.objects.filter(company=company)))
+
+
+def particulars_changes(records) -> list:
+    return [
+        {
+            "uuid": change.pk,
+            "submitted_at": change.created_at,
+            "member": change.member_id,
+            "name": change.name,
+            "residential_address": change.residential_address,
+            "as_at": change.as_at,
+            "reason": change.reason,
+            "evidence": _evidence(change),
+            "provided_by": _provided_by(change),
+            "decisions": _decisions(change),
+            "status": change.status,
+            "reviewer": _name(change.reviewed_by),
+            "reviewed_at": change.reviewed_at,
+            "rejection_reason": change.rejection_reason,
+        }
+        for change in records
+    ]
 
 
 def _payment(subscription):

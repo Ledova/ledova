@@ -111,6 +111,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `company.json` | The company row, the full name on the owner account's profile, and its business-register checks |
 | `approvals.json` | The registry addresses the company's approvals and approval changes recorded; each approval's wallet, registry, status, expiry and whether it was listed at the as-at time; each approval change's action, wallet, expiry, authority kind, status, times and transaction hash |
 | `wallet_links.json` | Every reviewed wallet link request of the company, as an [authority record](#approvals-and-history) |
+| `particulars_changes.json` | Every change the company prepared to a member's particulars, with its evidence and decisions: see [approvals and history](#approvals-and-history) |
 | `documents.json` | Every company document, oldest first: see [documents](#documents) |
 | `documents/<document id>.<extension>` | Each company document Ledova holds a file for, as uploaded |
 | `documents/evidence/<record kind>/<record id>.<extension>` | The evidence copy each authority record retained when it was submitted |
@@ -298,6 +299,19 @@ entry. Wallet link requests belong to the company rather than a class, so they
 have a file of their own, `wallet_links.json`, rather than a copy in each class's
 `authority.json`.
 
+A **particulars change** is the company's change to one member's name and
+residential address. It too belongs to the company rather than a class, so the
+company's changes are in `particulars_changes.json`, applied, pending and
+rejected alike. Each carries its id, when it was submitted, the register
+`member`, the new `name` and `residential_address`, `as_at`, the date the
+company's register records them, the `reason`, its `evidence`, `provided_by`
+(`company`), its `decisions`, its status, the decider's name, when it was decided
+and any rejection reason. It names no authority kind, director or reference: a
+reason and the supporting document are what the company provides for it. The
+register's reads, `register.csv` among them, show a member's recorded
+particulars only where neither a live identity nor a resolved allotment stamp
+names the member.
+
 - **Evidence is named and carried.** Each record names the company document it
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
   retained, all from the snapshot taken when it was submitted, and `path`, where
@@ -359,10 +373,10 @@ awaiting allotment or refund.
 builds `documents.json` and chooses the stored files the pack carries. It reads
 two sources, each through the company: the company's `CompanyDocument` rows,
 and the evidence copies of the openings, imports, corrections, register
-instructions and wallet links that `authority.json` and `wallet_links.json`
-list, taken from the same record objects rather than a second query. Every one
-of those files is stored under `companies/<company id>/`
-([files and retention](files-and-retention.md)).
+instructions, wallet links and particulars changes that `authority.json`,
+`wallet_links.json` and `particulars_changes.json` list, taken from the same
+record objects rather than a second query. Every one of those files is stored
+under `companies/<company id>/` ([files and retention](files-and-retention.md)).
 
 - **Company documents.** `documents.json` lists every document of the company,
   oldest first: its id, type, name, media type, validity dates, whether it was
@@ -384,7 +398,9 @@ of those files is stored under `companies/<company id>/`
   `asic.path` with its `asic.sha256` and `asic.size`. An opening's, import's or
   correction's record carries `provided_by` (`company`, or `staff_verified` for
   one made before openings, imports or corrections were company-run) and its
-  `decisions`, each with its kind, the decider's name, time and any reason.
+  `decisions`, each with its kind, the decider's name, time and any reason; a
+  particulars change's record does the same, always `company`, and its copy is of
+  the company's `supporting` upload.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
@@ -597,9 +613,10 @@ secp256k1: it checks that the pack is internally consistent and well-formed.
 
 [test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
 adds an opening, prepared on a third, unopened class from the company's own
-authority upload, and an import prepared from the company's own uploads, so that
-every kind of authority record retains a copy. Its tests find every document and
-evidence copy carried with the bytes storage holds and listed in the manifest, each
+authority upload, an import prepared from the company's own uploads and an
+applied particulars change, so that every kind of record with evidence retains a
+copy. Its tests find every document and evidence copy carried with the bytes
+storage holds and listed in the manifest, each
 record naming its copy, and the documents and the members' evidence statement
 in the README. The builder refuses an evidence copy whose stored bytes changed
 by one byte, and a company document or evidence copy missing from storage, and

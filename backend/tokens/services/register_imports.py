@@ -427,7 +427,7 @@ def _apply(proposal, actor, decision):
     newer = {
         str(member)
         for member in RegisterMemberParticulars.objects.filter(
-            member_id__in=[row["member"] for row in proposal.members], source_import__as_at__gt=proposal.as_at
+            member_id__in=[row["member"] for row in proposal.members], as_at__gt=proposal.as_at
         ).values_list("member_id", flat=True)
     }
     for row in proposal.members:
@@ -438,7 +438,9 @@ def _apply(proposal, actor, decision):
             defaults={
                 "name": row["name"],
                 "residential_address": row["residential_address"],
+                "as_at": proposal.as_at,
                 "source_import": proposal,
+                "source_change": None,
             },
         )
     ImportedFormerMember.objects.bulk_create(

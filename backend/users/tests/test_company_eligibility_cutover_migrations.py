@@ -47,6 +47,8 @@ RESTORED_EMPTY_TABLES = {
     "tokens_registerevidence",
     "tokens_registerimportdecision",
     "tokens_registeropeningdecision",
+    "tokens_registerparticularschange",
+    "tokens_registerparticularschangedecision",
     "whitelist_whitelisteligibilityinvalidation",
 }
 ADDED_COLUMNS = {
@@ -367,6 +369,7 @@ class CompanyEligibilityTradingCutoverReversalTest(
             self.assertEqual(response.status_code, 201, response.content)
             submission = self.submission(signed)
             self.assertEqual(submission.eligibility_decision_id, self.decision.pk)
+            self.migrate([("tokens", "0082_company_eligibility_admission")])
             self.assert_refusal_preserves_schema_and_records(
                 [("tokens", "0081_held_orders_and_retired_statuses")],
                 RuntimeError,

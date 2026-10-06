@@ -7548,6 +7548,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterParticularsChangeList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterParticularsChange"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterReconciliationList": {
         "properties": {
           "count": {
@@ -9713,11 +9744,12 @@
         "type": "object"
       },
       "RegisterEvidenceKindEnum": {
-        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document",
+        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document\n* `supporting` - Supporting document",
         "enum": [
           "share_register",
           "asic_extract",
-          "authority"
+          "authority",
+          "supporting"
         ],
         "type": "string"
       },
@@ -10939,6 +10971,390 @@
         "required": [
           "block",
           "holdings"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChange": {
+        "properties": {
+          "asAt": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterParticularsChangeDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "member": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "supportingEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "asAt",
+          "company",
+          "createdAt",
+          "decisions",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "member",
+          "name",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "rejectionReason",
+          "residentialAddress",
+          "reviewedAt",
+          "reviewedBy",
+          "stage",
+          "status",
+          "submittedBy",
+          "supportingEvidence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChangeCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "asAt": {
+            "format": "date",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "supportingEvidence": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "asAt",
+          "member",
+          "name",
+          "operationId",
+          "reason",
+          "residentialAddress",
+          "supportingEvidence"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChangeDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChangeDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChangeDecisionPreview": {
+        "properties": {
+          "asAt": {
+            "format": "date",
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "current": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterParticularsHeld"
+              }
+            ],
+            "nullable": true
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "residentialAddress": {
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "asAt",
+          "canDecide",
+          "current",
+          "member",
+          "name",
+          "previewDigest",
+          "residentialAddress",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsChangeDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterParticularsHeld": {
+        "properties": {
+          "asAt": {
+            "format": "date",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "residentialAddress": {
+            "type": "string"
+          },
+          "sourceChange": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceImport": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "asAt",
+          "name",
+          "residentialAddress",
+          "sourceChange",
+          "sourceImport"
         ],
         "type": "object"
       },
@@ -22864,6 +23280,345 @@
     "/api/v1/tokens/register-openings/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_openings_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-particulars-changes/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_particulars_changes_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterParticularsChangeList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_particulars_changes_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-particulars-changes/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_particulars_changes_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-particulars-changes/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_particulars_changes_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_particulars_changes_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChangeDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-particulars-changes/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_particulars_changes_file_retrieve",
         "parameters": [
           {
             "in": "path",
