@@ -377,20 +377,6 @@ it('numbers new members by first holding, shares one across holdings and names a
   ]);
 });
 
-it('lists the holdings largest first and numbers new members as the Register will, whatever order the read gives', async () => {
-  holdings = [holding(DEE, '1'), holding(BEA, '40'), HOLDINGS[0], holding(CY, '7')];
-  const view = await open();
-  const addressOf = (number: number) =>
-    within(view.getByText(`Holding ${number}`).parent!)
-      .getAllByText(/^0x/)
-      .map(text)[0];
-  expect([1, 2, 3, 4].map(addressOf)).toEqual([ADA, BEA, CY, DEE]);
-  await choose(view, COPY.NEW_MEMBER, 4);
-  await choose(view, COPY.NEW_MEMBER, 2);
-  expect(memberOf(view, 2)).toBe(COPY.NEW_MEMBER_NUMBERED(1));
-  expect(memberOf(view, 4)).toBe(COPY.NEW_MEMBER_NUMBERED(2));
-});
-
 it('prepares under a court order without an approving director', async () => {
   const view = await open();
   await map(view);

@@ -13,7 +13,6 @@ import {
   getErrorMessage,
   isPreparedRegisterOpening,
   isRegisterOpeningHoldingsMoved,
-  largestHoldingsFirst,
   openingMemberLabels,
   prepareRegisterOpening,
   REGISTER_OPENING_COPY as COPY,
@@ -72,7 +71,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
   useEffect(() => {
     if (failureStatus(holdingsError) === 404) void readAppointments();
   }, [holdingsError, readAppointments]);
-  const holdings = largestHoldingsFirst(holders.data?.holdings ?? []);
+  const holdings = holders.data?.holdings ?? [];
   const linked = new Map(holdings.flatMap(({ member, memberName }) => (member ? [[member, memberName] as const] : [])));
   const unlinked = new Set(holdings.flatMap(({ address, member }) => (member ? [] : [address.toLowerCase()])));
   const kept = Object.fromEntries(
