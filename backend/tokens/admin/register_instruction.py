@@ -80,6 +80,8 @@ class RegisterInstructionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Review")
     def review_link(self, obj):
+        if obj.preparing_appointment_id is not None:
+            return "Company decision through the register API"
         if obj.status != "submitted":
             return "Decision recorded"
         return format_html(

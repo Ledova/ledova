@@ -1,7 +1,12 @@
 import { REGISTER_LINK_COPY } from '../../src/constants/business/register-links';
 import { REGISTER_OPENING_COPY } from '../../src/constants/business/register-openings';
 import type { RegisterLink, RegisterLinkPreparation, TokenHoldersResponse } from '../../src/types';
-import { isPreparedRegisterLink, registerLinkMemberLabels, registerLinkOf } from '../../src/utils/register-links';
+import {
+  isPreparedRegisterLink,
+  isRegisterLinkDecisionReceipt,
+  registerLinkMemberLabels,
+  registerLinkOf,
+} from '../../src/utils/register-links';
 
 const ADA = '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa';
 const CY = '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC';
@@ -235,4 +240,73 @@ describe('registerLinkMemberLabels', () => {
       [THIRD, `${REGISTER_LINK_COPY.UNNAMED_MEMBER} · 0x4B20…02db`],
     ]);
   });
+});
+
+it('recovers an exact retained approval after application while refusing changed mapping or decision keys', () => {
+  const request = {
+    appointment: 'appointment-a',
+    kind: 'approve' as const,
+    idempotencyKey: 'approval-key',
+    previewDigest: 'd'.repeat(64),
+    reason: '',
+    confirmation: true,
+  };
+  const approval = {
+    uuid: 'approval',
+    appointment: request.appointment,
+    kind: request.kind,
+    idempotencyKey: request.idempotencyKey,
+    digest: request.previewDigest,
+    reason: '',
+    decidedBy: 1,
+    decidedByName: 'Synthetic Approver',
+    decidedAt: '2026-10-07T01:00:00Z',
+  };
+  const applied = link({
+    status: 'applied',
+    stage: 'applied',
+    reviewedAt: '2026-10-07T02:00:00Z',
+    decisions: [
+      approval,
+      {
+        ...approval,
+        uuid: 'application',
+        kind: 'apply',
+        idempotencyKey: 'apply-key',
+        decidedAt: '2026-10-07T02:00:00Z',
+      },
+    ],
+  });
+  const preview = {
+    previewDigest: request.previewDigest,
+    canDecide: true,
+    unmetRequirements: [],
+    links: applied.mapping.map((row) => ({
+      ...row,
+      memberExists: true,
+      walletProof: 'proven' as const,
+      holderType: 'member' as const,
+      holderName: 'Synthetic Member',
+    })),
+  };
+  expect(isRegisterLinkDecisionReceipt(applied, applied.uuid, request, preview)).toBe(true);
+  expect(isRegisterLinkDecisionReceipt(applied, applied.uuid, { ...request, idempotencyKey: 'other' }, preview)).toBe(
+    false,
+  );
+  expect(
+    isRegisterLinkDecisionReceipt(
+      { ...applied, mapping: [{ address: ADA, member: MEMBER_B }] },
+      applied.uuid,
+      request,
+      preview,
+    ),
+  ).toBe(false);
+  expect(
+    isRegisterLinkDecisionReceipt(
+      { ...applied, decisions: [{ ...approval, appointment: 'foreign' }] },
+      applied.uuid,
+      request,
+      preview,
+    ),
+  ).toBe(false);
 });

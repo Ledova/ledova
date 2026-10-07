@@ -102,6 +102,7 @@ beforeEach(() => {
     if (url === HOLDERS) return { data: register };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS) return { data: { ...EMPTY, results: deployments } };
     if (url === '/api/v1/company-authority/appointments/') return { data: { ...EMPTY, results: appointments } };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS('class-one')) return { data: { members: [] } };
     if (url === EXPORT) return { data: new Blob(['Synthetic register'], { type: 'text/csv' }) };
     return { data: EMPTY };
   });
@@ -138,7 +139,7 @@ it.each(['draft', 'deploying', 'deployed', 'paused'] as const)(
     show();
     await screen.findByText('Ordinary shares');
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(!!screen.queryByRole('button', { name: 'Request issuance' })).toBe(status === 'deployed');
+    expect(screen.queryByRole('button', { name: 'Request issuance' })).toBeNull();
     expect(!!screen.queryByRole('button', { name: 'Raise authorised shares' })).toBe(status === 'deployed');
     expect(!!screen.queryByText('Existing pause controls')).toBe(status === 'deployed' || status === 'paused');
     expect(screen.queryByRole('button', { name: 'Deploy class' })).toBeNull();
@@ -183,74 +184,34 @@ it('hides a stale class and its actions after its read starts failing', async ()
   expect(screen.queryByRole('button', { name: 'Raise authorised shares' })).toBeNull();
 });
 
-it.each(['issue', 'raise'] as const)(
-  'preserves the open %s form during a failed class refresh and retries safely',
-  async (form) => {
-    show();
-    let dialog: HTMLElement;
-    if (form === 'raise') {
-      dialog = await openRaise();
-      fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-    } else {
-      fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
-      dialog = await screen.findByRole('dialog');
-      fireEvent.change(within(dialog).getByLabelText('Recipient address'), {
-        target: { value: '0x' + '3'.repeat(40) },
-      });
-      fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
-      fireEvent.change(within(dialog).getByLabelText('Reason (optional)'), { target: { value: 'Keep this draft' } });
-    }
-    const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
-    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false);
-    failed = CLASS;
-    await act(async () =>
-      client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true }),
-    );
-    await waitFor(() => expect(screen.queryByText('Ordinary shares')).toBeNull());
-    dialog = screen.getByRole('dialog');
-    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-    expect(api.post).not.toHaveBeenCalled();
-    const label = form === 'raise' ? 'Purpose' : 'Reason (optional)';
-    const value = form === 'raise' ? 'Fictional expansion' : 'Keep this draft';
-    expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
-    failed = null;
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Retry class state' }));
-    await waitFor(() =>
-      expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
-    );
-    expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
-    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-  },
-);
-
-it.each(['2147483646', '2147483647', '2147483648'])(
-  'validates issuance quantity %s at the supported boundary',
-  async (amount) => {
-    show();
-    fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
-    const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('Recipient address'), { target: { value: '0x' + '3'.repeat(40) } });
-    fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: amount } });
-    const submit = within(dialog).getByRole('button', { name: 'Submit issuance request' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(amount === '2147483648');
-    fireEvent.click(submit);
-    if (amount === '2147483648') expect(api.post).not.toHaveBeenCalled();
-    else
-      await waitFor(() =>
-        expect(api.post).toHaveBeenCalledWith(
-          COMPANY_TOKEN_ENDPOINTS.ISSUE('class-one'),
-          {
-            recipient: '0x' + '3'.repeat(40),
-            amount: Number(amount),
-            reason: undefined,
-          },
-          expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-        ),
-      );
-  },
-);
+it.each(['raise'] as const)('preserves the open %s form during a failed class refresh and retries safely', async () => {
+  show();
+  let dialog: HTMLElement;
+  dialog = await openRaise();
+  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+  const confirm = 'Create request';
+  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false);
+  failed = CLASS;
+  await act(async () =>
+    client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true }),
+  );
+  await waitFor(() => expect(screen.queryByText('Ordinary shares')).toBeNull());
+  dialog = screen.getByRole('dialog');
+  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+  expect(api.post).not.toHaveBeenCalled();
+  const label = 'Purpose';
+  const value = 'Fictional expansion';
+  expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
+  failed = null;
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Retry class state' }));
+  await waitFor(() =>
+    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
+  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+});
 
 it.each([
   ['1', true],
@@ -324,9 +285,9 @@ it('stops a prepared raise when a refresh says the class is paused', async () =>
   expect(api.post).not.toHaveBeenCalled();
 });
 
-it.each(['issue', 'raise'] as const)(
+it.each(['raise'] as const)(
   'keeps a pending %s request open through Escape and outside clicks, then retains a refusal for retry',
-  async (form) => {
+  async () => {
     let rejectRequest: (error: Error) => void = () => {};
     api.post.mockImplementationOnce(
       () =>
@@ -335,27 +296,13 @@ it.each(['issue', 'raise'] as const)(
         }),
     );
     show();
-    let dialog: HTMLElement;
-    if (form === 'raise') {
-      dialog = await openRaise();
-      fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-    } else {
-      fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
-      dialog = await screen.findByRole('dialog');
-      fireEvent.change(within(dialog).getByLabelText('Recipient address'), {
-        target: { value: '0x' + '3'.repeat(40) },
-      });
-      fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
-    }
-    const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
+    const dialog = await openRaise();
+    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+    const confirm = 'Create request';
     fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     await within(dialog).findByRole('button', { name: 'Loading...' });
-    expect(
-      within(dialog)
-        .getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue')
-        .matches(':disabled'),
-    ).toBe(true);
+    expect(within(dialog).getByLabelText('Additional shares').matches(':disabled')).toBe(true);
     await act(async () => {
       fireEvent.keyDown(window, { key: 'Escape' });
     });
@@ -370,28 +317,17 @@ it.each(['issue', 'raise'] as const)(
     expect(api.post).toHaveBeenCalledTimes(1);
     await act(async () => rejectRequest(new Error('Refused')));
     expect(await within(dialog).findByRole('alert')).toBeTruthy();
-    expect(
-      (within(dialog).getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue') as HTMLInputElement)
-        .value,
-    ).toBe('2');
+    expect((within(dialog).getByLabelText('Additional shares') as HTMLInputElement).value).toBe('2');
     fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   },
 );
 
-it.each(['issue', 'raise'] as const)('blocks the prepared %s request while class state is refreshing', async (form) => {
+it.each(['raise'] as const)('blocks the prepared %s request while class state is refreshing', async () => {
   show();
-  let dialog: HTMLElement;
-  if (form === 'raise') {
-    dialog = await openRaise();
-    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-  } else {
-    fireEvent.click(await screen.findByRole('button', { name: 'Request issuance' }));
-    dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText('Recipient address'), { target: { value: '0x' + '3'.repeat(40) } });
-    fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
-  }
+  const dialog = await openRaise();
+  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
   let resolveRead: (value: unknown) => void = () => {};
   const original = api.get.getMockImplementation()!;
   api.get.mockImplementation((url: string) =>
@@ -405,7 +341,7 @@ it.each(['issue', 'raise'] as const)('blocks the prepared %s request while class
     void client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true });
   });
   expect(await within(dialog).findByText('Refreshing class state before continuing.')).toBeTruthy();
-  const confirm = form === 'raise' ? 'Create request' : 'Submit issuance request';
+  const confirm = 'Create request';
   expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
   expect(api.post).not.toHaveBeenCalled();
@@ -413,10 +349,7 @@ it.each(['issue', 'raise'] as const)('blocks the prepared %s request while class
   await waitFor(() =>
     expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
   );
-  expect(
-    (within(dialog).getByLabelText(form === 'raise' ? 'Additional shares' : 'Shares to issue') as HTMLInputElement)
-      .value,
-  ).toBe('2');
+  expect((within(dialog).getByLabelText('Additional shares') as HTMLInputElement).value).toBe('2');
 });
 
 it('downloads only the successful register CSV and reports failed attempts', async () => {
@@ -806,34 +739,19 @@ it.each(['session', 'account'])(
   },
 );
 
-async function ownerDraft(kind: 'issue' | 'raise', shown = false) {
+async function ownerDraft(shown = false) {
   if (!shown) show();
-  fireEvent.click(
-    await screen.findByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' }),
-  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Raise authorised shares' }));
   const dialog = await screen.findByRole('dialog');
-  if (kind === 'issue') {
-    fireEvent.change(within(dialog).getByLabelText('Recipient address'), { target: { value: '0x' + '3'.repeat(40) } });
-    fireEvent.change(within(dialog).getByLabelText('Shares to issue'), { target: { value: '2' } });
-    fireEvent.change(within(dialog).getByLabelText('Reason (optional)'), { target: { value: 'Private owner draft' } });
-  } else {
-    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-    fireEvent.change(within(dialog).getByLabelText('Purpose'), { target: { value: 'Private owner draft' } });
-    fireEvent.change(within(dialog).getByLabelText('Board resolution reference'), { target: { value: 'OWNER-1' } });
-  }
+  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
+  fireEvent.change(within(dialog).getByLabelText('Purpose'), { target: { value: 'Private owner draft' } });
+  fireEvent.change(within(dialog).getByLabelText('Board resolution reference'), { target: { value: 'OWNER-1' } });
   return dialog;
 }
 
-it.each([
-  ['issue', 'owner'],
-  ['raise', 'owner'],
-  ['issue', 'account'],
-  ['raise', 'account'],
-  ['issue', 'session'],
-  ['raise', 'session'],
-] as const)(
-  'isolates the pending %s owner draft after its %s boundary changes and refuses its transport retry/callback',
-  async (kind, boundary) => {
+it.each(['owner', 'account', 'session'] as const)(
+  'isolates the pending raise owner draft after its %s boundary changes and refuses its transport retry/callback',
+  async (boundary) => {
     let reply!: (value: unknown) => void;
     api.post.mockImplementationOnce(
       () =>
@@ -841,10 +759,8 @@ it.each([
           reply = resolve;
         }),
     );
-    const dialog = await ownerDraft(kind);
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: kind === 'issue' ? 'Submit issuance request' : 'Create request' }),
-    );
+    const dialog = await ownerDraft();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     const config = api.post.mock.calls[0][2];
     if (boundary === 'owner') {
@@ -867,11 +783,9 @@ it.each([
     expect(() => config.ledovaSubmissionGuard()).toThrow();
     token.isOwner = true;
     await act(async () => client.invalidateQueries({ queryKey: ['token', 'class-one'] }));
-    fireEvent.click(
-      await screen.findByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Raise authorised shares' }));
     const fresh = await screen.findByRole('dialog');
-    const label = kind === 'issue' ? 'Reason (optional)' : 'Purpose';
+    const label = 'Purpose';
     expect((within(fresh).getByLabelText(label) as HTMLInputElement).value).toBe('');
     fireEvent.change(within(fresh).getByLabelText(label), { target: { value: 'New current draft' } });
     await act(async () => reply({ data: {} }));
@@ -882,9 +796,9 @@ it.each([
   },
 );
 
-it.each(['issue', 'raise'] as const)(
+it.each(['raise'] as const)(
   'blocks %s transport/auth retry during a same-owner class refresh and accepts the original healthy response',
-  async (kind) => {
+  async () => {
     let reply!: (value: unknown) => void;
     api.post.mockImplementationOnce(
       () =>
@@ -892,10 +806,8 @@ it.each(['issue', 'raise'] as const)(
           reply = resolve;
         }),
     );
-    const dialog = await ownerDraft(kind);
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: kind === 'issue' ? 'Submit issuance request' : 'Create request' }),
-    );
+    const dialog = await ownerDraft();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     const config = api.post.mock.calls[0][2];
     const originalRead = api.get.getMockImplementation()!;
@@ -916,9 +828,7 @@ it.each(['issue', 'raise'] as const)(
     });
     await within(dialog).findByText('Refreshing class state before continuing.');
     expect(() => config.ledovaSubmissionGuard()).toThrow('Refresh the owner share class');
-    expect(
-      (within(dialog).getByLabelText(kind === 'issue' ? 'Reason (optional)' : 'Purpose') as HTMLInputElement).value,
-    ).toBe('Private owner draft');
+    expect((within(dialog).getByLabelText('Purpose') as HTMLInputElement).value).toBe('Private owner draft');
     api.get.mockImplementation(originalRead);
     await act(async () => {
       finish({ data: { ...token } });

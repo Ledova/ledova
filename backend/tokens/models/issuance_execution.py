@@ -20,6 +20,9 @@ class ShareIssuanceExecution(BaseModel):
     issuance_id = models.UUIDField(null=True, unique=True, editable=False)
     executed_by_id = models.PositiveBigIntegerField(editable=False)
     authority = models.CharField(max_length=64, editable=False)
+    source_instruction = models.ForeignKey(
+        "tokens.RegisterInstruction", on_delete=models.PROTECT, related_name="executions", null=True, editable=False
+    )
     intent = models.JSONField(editable=False)
     status = models.CharField(
         max_length=12, choices=IssuanceExecutionStatus.choices, default=IssuanceExecutionStatus.QUEUED

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -79,3 +80,57 @@ def apply_instruction(token, *rows, reviewer=None, document=None):
     proposal = submit_instruction(actor=token.company.owner, **instruction_payload(token, document, rows))
     _, _, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=reviewer)
     return decide_instruction(proposal_id=proposal.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+
+
+def retained_approved_request(token, recipient_address, *, reviewer=None, notes="", **fields):
+    from shared.tests.schema import migrate_to, restore_every_migration
+    from tokens.models import ShareIssuanceRequest
+
+    reviewer = reviewer or instruction_reviewer()
+    try:
+        migrate_to([("tokens", "0099_company_register_deployment_guards")])
+        request = ShareIssuanceRequest.objects.create(
+            token=token,
+            recipient_address=recipient_address,
+            amount=fields.pop("amount", 10),
+            recipient_name=fields.pop("recipient_name", "Retained recipient"),
+            reason="Retained predecessor approval",
+            submitted_by=token.company.owner,
+            **fields,
+        )
+        request.approve(reviewer, notes=notes)
+    finally:
+        restore_every_migration()
+    request.refresh_from_db()
+    return request
+
+
+def retained_instruction(*, actor, **payload):
+    from shared.db import atomic
+    from shared.tests.schema import migrate_to, restore_every_migration
+    from tokens.models import RegisterInstruction, ShareToken
+    from tokens.services.register_instructions import _items
+    from tokens.services.register_openings import _authority_values, _retain
+
+    try:
+        historical = migrate_to([("tokens", "0099_company_register_deployment_guards")])
+        values = _authority_values(
+            "director_resolution", payload["approving_director"], payload["authority_reference"], payload["reason"]
+        )
+        del values["authority"]
+        proposal = historical.get_model("tokens", "RegisterInstruction")(
+            uuid=payload["operation_id"],
+            company_id=ShareToken.objects.get(pk=payload["token_id"]).company_id,
+            token_id=payload["token_id"],
+            kind=payload["kind"],
+            items=_items(payload["kind"], payload["items"]),
+            **values,
+        )
+        original_actor = historical.get_model("authentication", "CustomUser").objects.get(pk=actor.pk)
+        with atomic(), patch(
+            "tokens.services.register_openings.CompanyDocument", historical.get_model("companies", "CompanyDocument")
+        ):
+            _retain(proposal, payload["document_id"], original_actor)
+    finally:
+        restore_every_migration()
+    return RegisterInstruction.objects.get(pk=proposal.pk)

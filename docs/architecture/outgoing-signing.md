@@ -113,7 +113,6 @@ database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
 
-
 ## Fresh Base Sepolia admission
 
 `bootstrap_fresh_signer --manifest PATH` is an operator command for the owner's
@@ -397,7 +396,6 @@ also require a live investor classification for the share class's company, from
 the same predicate the offering paths use; order creation records the refusal as
 `investor_not_eligible` and signing answers 403.
 
-
 ## Refreshing an approval
 
 `whitelist.services.refresh` retains technical eligibility invalidation. It can
@@ -438,12 +436,12 @@ a removal during a provider outage or unresolved chain outcome.
 
 What a reader may conclude from an approval's status:
 
-| Status | What it says |
-| --- | --- |
-| `pending` | A change for this wallet and company is admitted and unresolved. What the registry holds is unknown, and every platform read treats the wallet as not approved |
-| `active` | The last observation found the registry listing the wallet with this expiry. `is_listed` and the `live` queryset still apply the clock to it |
-| `removed` | The last observation found the registry holding zero for it. A removed row is not re-observed by `sync_all_entries` |
-| `failed` | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
+| Status    | What it says                                                                                                                                                                                                                                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pending` | A change for this wallet and company is admitted and unresolved. What the registry holds is unknown, and every platform read treats the wallet as not approved                                                                                                                                                                                    |
+| `active`  | The last observation found the registry listing the wallet with this expiry. `is_listed` and the `live` queryset still apply the clock to it                                                                                                                                                                                                      |
+| `removed` | The last observation found the registry holding zero for it. A removed row is not re-observed by `sync_all_entries`                                                                                                                                                                                                                               |
+| `failed`  | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
 
 That is what failing closed means here, and its limits are worth stating. The
 platform refuses at once, both on the registry read and on the classification
@@ -495,11 +493,20 @@ This conservative fence cannot establish absent historical authority or drain an
 external same-key writer; complete cutover and receipt finality remain separate
 programme acceptance. See [operator recovery](../operations/recovery.md#capital-increases).
 
-
 ## Share issuances
 
-`tokens.services.issuance_execution` admits approved share requests with current
-active staff authority and the originating admin model permission. A standalone
+`tokens.services.issuance_execution` admits a company-authorised
+[non-paid chain grant](../plans/company-managed-registers/company-register-issues.md)
+from its exact applied RegisterInstruction ISSUE and original consumed approval.
+The personal company mandates, member/nomination/finite wallet approval, evidence
+and intent are rechecked before a fresh signature. The source prefix precedes
+outgoing/signer locks; RPC runs outside those locks. Original signed recovery
+retains its bytes and attribution after company source loss. Finalised completion
+and original-member register recording are distinct bounded transactions;
+executed but unentered allocations remain reserved until the once-only ISSUE.
+
+Genuine paid allotments retain current active staff authority and the originating
+admin model permission until their company conversion lands. A standalone
 execution confirmation binds the request, dispatch UUID, actor and failed claim.
 Subscription allotment commits its approved request, subscription association,
 private `ShareIssuanceExecution` and exact job together. App connections cannot

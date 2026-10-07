@@ -188,6 +188,10 @@ def _check_items(kind, items, token, director, *, lock=False):
                     f"Issuance request {reference} is not a direct issue of this share class. List an allotment by "
                     "its subscription."
                 )
+            if request.status in AWAITING:
+                raise ValidationError(
+                    "New non-paid grants require the company's retained appointment and grant decision."
+                )
             names = [request.recipient_name]
         else:
             subscription = Subscription.objects.filter(pk=reference, offering__token=token).first()
@@ -281,6 +285,8 @@ def _preview(proposal, reviewer):
 def prepare_instruction_review(*, proposal_id, reviewer):
     reviewer = _reviewer(reviewer, RegisterInstruction)
     proposal = RegisterInstruction.objects.select_related("company", "token").get(pk=proposal_id)
+    if proposal.preparing_appointment_id is not None:
+        raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if proposal.status != "submitted":
         raise ValidationError("This register instruction already has a decision.")
     _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
@@ -293,6 +299,8 @@ def decide_instruction(*, proposal_id, reviewer, confirmation, decision, rejecti
     reviewer = _reviewer(reviewer, RegisterInstruction)
     _check_decision(decision, rejection_reason)
     initial = RegisterInstruction.objects.get(pk=proposal_id)
+    if initial.preparing_appointment_id is not None:
+        raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if initial.status != "submitted":
         return _completed_decision(initial, reviewer, decision, rejection_reason)
     with atomic():

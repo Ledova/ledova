@@ -65,3 +65,5 @@ export type {
   EligibilityRequestDraft,
   EligibilityDecisionDraft,
 } from './useCompanyEligibilityRecords';
+export { useCompanyIssueInstructions } from './useCompanyIssueInstructions';
+export { REGISTER_ISSUE_DECISIONS } from './useRegisterDecision';

@@ -1,10 +1,5 @@
 import axios from 'axios';
-import {
-  getRegisterClasses,
-  issueCompanyShares,
-  createCapitalIncrease,
-  submitCapitalIncrease,
-} from '../../src/services/company-tokens';
+import { getRegisterClasses, createCapitalIncrease, submitCapitalIncrease } from '../../src/services/company-tokens';
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -27,11 +22,10 @@ it('reads every readable register class when no company is named', async () => {
   expect(get).toHaveBeenCalledWith('/api/v1/tokens/register/', { params: {} });
 });
 
-it('binds existing owner issue and capital requests to their captured transport guard and native epoch', async () => {
+it('binds existing owner capital requests to their captured transport guard and native epoch', async () => {
   const api = axios.create();
   const post = jest.spyOn(api, 'post').mockResolvedValue({ data: {} });
   const config = { ledovaSessionEpoch: 3, ledovaSubmissionGuard: () => undefined };
-  const issue = { recipient: '0xmember', amount: 2, reason: 'Synthetic company issue' };
   const capital = {
     token: 'class',
     additionalShares: 2,
@@ -39,11 +33,9 @@ it('binds existing owner issue and capital requests to their captured transport 
     purpose: 'Synthetic capital',
     boardResolutionReference: 'BOARD-1',
   };
-  await issueCompanyShares(api, 'class', issue, config);
   await createCapitalIncrease(api, capital, config);
   await submitCapitalIncrease(api, 'capital', config);
   expect(post.mock.calls).toEqual([
-    ['/api/v1/tokens/class/issue/', issue, config],
     ['/api/v1/tokens/capital-increases/', capital, config],
     ['/api/v1/tokens/capital-increases/capital/submit/', undefined, config],
   ]);

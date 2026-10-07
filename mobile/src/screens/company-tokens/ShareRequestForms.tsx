@@ -6,7 +6,6 @@ import {
   createCapitalIncrease,
   formatShareCount,
   getErrorMessage,
-  issueCompanyShares,
   raisedSupply,
   requestShares,
   type CompanyShareToken,
@@ -80,88 +79,6 @@ function Field({
         style={styles.input}
       />
     </View>
-  );
-}
-
-export function IssueSharesForm({ token, classRead, guard, epoch, onClose, onSuccess }: RequestProps) {
-  const styles = useCompanyStyles();
-  const guardRequest = useRequestGuard(guard);
-  const config = { ledovaSubmissionGuard: guardRequest, ledovaSessionEpoch: epoch };
-  const [recipient, setRecipient] = useState('');
-  const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('');
-  const quantity = requestShares(amount);
-  const valid =
-    token.isOwner &&
-    !classRead.isError &&
-    !classRead.isFetching &&
-    token.status === 'deployed' &&
-    recipient.trim() !== '' &&
-    quantity !== null;
-  const request = useMutation({
-    mutationFn: async () => {
-      guardRequest();
-      const response = await issueCompanyShares(
-        apiClient,
-        token.uuid,
-        {
-          recipient: recipient.trim(),
-          amount: quantity!,
-          reason: reason.trim() || undefined,
-        },
-        config,
-      );
-      guardRequest();
-      return response;
-    },
-    onSuccess: async () => {
-      guardRequest();
-      await onSuccess();
-      guardRequest();
-      onClose();
-    },
-  });
-  return (
-    <CustomModal
-      visible
-      title={`Request ${token.symbol} issuance`}
-      onClose={() => {
-        if (!request.isPending) onClose();
-      }}
-      busy={request.isPending}
-      dismissLabel="Dismiss request"
-      showFooter
-      confirmLabel="Submit issuance request"
-      confirmDisabled={!valid || request.isPending}
-      onConfirm={() => {
-        if (valid && !request.isPending) request.mutate();
-      }}
-    >
-      <ClassReadState query={classRead} />
-      <Text style={styles.muted}>Staff review this request before any shares are issued.</Text>
-      {request.isError && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {getErrorMessage(request.error, 'The issuance request was refused. Try again.')}
-        </Text>
-      )}
-      <Field label="Recipient address" value={recipient} onChange={setRecipient} disabled={request.isPending} />
-      <Field label="Shares to issue" value={amount} onChange={setAmount} disabled={request.isPending} numeric />
-      <Text style={styles.muted}>
-        Each request supports up to {formatShareCount(MAX_REQUEST_SHARES.toString())} shares. Enter a positive whole
-        number.
-      </Text>
-      {amount !== '' && quantity === null && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          The quantity must be a whole number from 1 to {formatShareCount(MAX_REQUEST_SHARES.toString())}.
-        </Text>
-      )}
-      <Field label="Reason (optional)" value={reason} onChange={setReason} disabled={request.isPending} />
-      {token.status !== 'deployed' && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          The class must be deployed and unpaused before you request issuance.
-        </Text>
-      )}
-    </CustomModal>
   );
 }
 

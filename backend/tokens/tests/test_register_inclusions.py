@@ -27,9 +27,14 @@ from tokens.models import (
     RegisterOpening,
     ShareIssuance,
     ShareIssuanceExecution,
-    ShareIssuanceRequest,
 )
-from tokens.services import issuance_execution, register_inclusions, register_openings
+from tokens.services import (
+    deployment,
+    issuance_execution,
+    register_inclusions,
+    register_openings,
+    register_snapshot,
+)
 from tokens.services.register_events import record_entry
 from tokens.services.register_inclusions import (
     AFTER_OPENING,
@@ -47,20 +52,21 @@ from tokens.services.register_inclusions import (
 )
 from tokens.services.register_openings import decide_opening
 from tokens.services.register_snapshot import ZERO_ADDRESS, capture_snapshot
-from tokens.tests.evidence_fixtures import upload_evidence
+from tokens.tests.deployment_fixtures import DeploymentNode, legacy_deployment_token
+from tokens.tests.evidence_fixtures import owner_appointment, upload_evidence
 from tokens.tests.instruction_fixtures import (
     apply_instruction,
     instruction_reviewer,
     verified_authority,
 )
-from tokens.tests.issuance_fixtures import CHAIN_ID, IssuanceNode, admit
+from tokens.tests.issuance_fixtures import CHAIN_ID, IssuanceNode
+from tokens.tests.retained_issuance_fixtures import retain_signed_issuance
 from tokens.tests.test_register_openings import (
     ALICE,
     BOB,
     SETTINGS,
     apply_opening,
     decide,
-    deployed_class,
     opening_payload,
     prepared,
     preview,
@@ -68,14 +74,38 @@ from tokens.tests.test_register_openings import (
     rewritten,
     staff_era,
 )
-from tokens.tests.test_register_snapshot import block_hash, transfer
+from tokens.tests.test_register_snapshot import SnapshotNode, block_hash, transfer
 
 MINT_BLOCK = 12
 
 
+def retained_deployed_class():
+    tenant = legacy_deployment_token("retained-inclusions", signed=True)
+    node = DeploymentNode()
+    with patch("tokens.services.deployment.get_base_chain_client", return_value=node.client), patch(
+        "tokens.services.share_token_service.get_base_chain_client", return_value=node.client
+    ):
+        deployment.deploy_token(tenant.token)
+    administrator = owner_appointment(tenant.company)
+    target = register_snapshot._target(tenant.token.pk)
+    snapshot = SnapshotNode()
+    snapshot.target = target
+    height = target.deployment_block
+    snapshot.finalized = height + 2
+    snapshot.blocks = {
+        h: {"number": h, "hash": target.deployment_hash if h == height else block_hash(h), "timestamp": 1789862400 + h}
+        for h in (height, height + 1, height + 2)
+    }
+    snapshot.events = [transfer(height + 1, ZERO_ADDRESS, ALICE, 100), transfer(height + 2, ALICE, BOB, 20)]
+    snapshot.balances = {ALICE: 80, BOB: 20}
+    snapshot.contract.functions.totalSupply.return_value.call.return_value = 100
+    snapshot.contract.functions.authorizedShares.return_value.call.return_value = 1000
+    return tenant, tenant.user, administrator, target, snapshot
+
+
 class InclusionFixtures:
     def setUp(self):
-        self.tenant, self.owner, self.administrator, self.target, self.node = deployed_class()
+        self.tenant, self.owner, self.administrator, self.target, self.node = retained_deployed_class()
         self.evidence = None
         reading(self, self.node)
         self.actor = self.reviewer = instruction_reviewer()
@@ -103,15 +133,25 @@ class InclusionFixtures:
         return ShareIssuance.objects.get(pk=command.issuance_id)
 
     def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None, reviewer=None, instructed=True):
-        request = ShareIssuanceRequest.objects.create(
-            token=self.tenant.token, recipient_address=recipient or self.recipient, amount=amount, reason="Allotment"
+        instruction = (
+            (
+                lambda request: apply_instruction(
+                    self.tenant.token, request, reviewer=reviewer or self.actor, document=self.document
+                )
+            )
+            if instructed
+            else None
         )
-        if instructed:
-            apply_instruction(self.tenant.token, request, reviewer=reviewer or self.actor, document=self.document)
-            request.refresh_from_db()
-        else:
-            request.approve(reviewer or self.actor)
-        command = admit(request, self.actor)
+        request, command_id = retain_signed_issuance(
+            token=self.tenant.token,
+            actor=self.actor,
+            recipient=recipient or self.recipient,
+            amount=amount,
+            client=self.mint_node.client,
+            instructed=instruction,
+            reviewed_by=reviewer or self.actor,
+        )
+        command = ShareIssuanceExecution.objects.get(pk=command_id)
         self.mint_node.head = self.mint_node.finalized = block
         if block != MINT_BLOCK or index is not None:
             original = self.mint_node.send
@@ -376,11 +416,7 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
         self.assertIsNone(waiting_effects(self.tenant.token.pk))
 
     def test_a_first_receipt_completion_recorded_before_finality_is_refused(self):
-        request = ShareIssuanceRequest.objects.create(
-            token=self.tenant.token, recipient_address=self.recipient, amount=10, reason="Historical allotment"
-        )
-        request.approve(self.actor)
-        command = admit(request, self.actor)
+        command = self.admitted(instructed=False)
         self.mint_node.finalized = MINT_BLOCK - 1
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
         command.refresh_from_db()
@@ -464,11 +500,7 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
         self.enterContext(
             override_settings(WALLET_CHAIN_FINALITY_POLICIES={f"evm:{CHAIN_ID}": {"mode": "depth", "depth": 3}})
         )
-        request = ShareIssuanceRequest.objects.create(
-            token=self.tenant.token, recipient_address=self.recipient, amount=10, reason="Allotment"
-        )
-        request.approve(self.actor)
-        command = admit(request, self.actor)
+        command = self.admitted(instructed=False)
         original = self.mint_node.send
 
         def send(raw):

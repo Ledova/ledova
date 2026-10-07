@@ -125,3 +125,4 @@ export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './
 export { marketAmount, marketQuantity, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
+export * from './register-issues';

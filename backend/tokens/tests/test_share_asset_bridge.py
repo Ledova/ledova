@@ -4,20 +4,26 @@ from unittest.mock import Mock, patch
 
 from django.core.management import call_command
 from django.test import TestCase, TransactionTestCase, override_settings
+from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment, AssetType
 from assets.services.identity import quarantine_unknown_token
+from shared.db import use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
-    ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution, share_token_service
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
+from tokens.tests.company_issue_fixtures import CompanyIssueCases
+from tokens.tests.issuance_fixtures import CHAIN_ID, FINALITY_POLICIES, KEY
+from tokens.tests.retained_issuance_fixtures import (
+    install_retained_issuance,
+    retain_signed_issuance,
+)
 from wallets.models import Holding
 from whitelist.models import WhitelistEntry
 
@@ -110,10 +116,12 @@ class ShareAssetBridgeTest(TestCase):
         )
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class IssuanceSeedsTheHoldingTest(TransactionTestCase):
     def setUp(self):
-        install_issuance(self)
+        install_retained_issuance(self)
         self.wallet = self.tenant.wallet
         self.asset = Asset.objects.create(
             symbol="DEP",
@@ -127,11 +135,14 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         )
 
     def _request(self, recipient):
-        request = ShareIssuanceRequest.objects.create(
-            token=self.token, recipient_address=recipient, amount=25, reason="Allotment"
+        request, self.execution_id = retain_signed_issuance(
+            token=self.token,
+            actor=self.actor,
+            recipient=recipient,
+            amount=25,
+            reason="Allotment",
+            client=self.node.client,
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED, reviewed_by=self.actor)
-        request.refresh_from_db()
         return request
 
     def _balance(self, value):
@@ -142,7 +153,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         request = self._request(self.wallet.address)
 
         with self._balance(25):
-            issuance_execution.recover(admit(request, self.actor).pk)
+            issuance_execution.recover(self.execution_id)
 
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
@@ -156,7 +167,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         request = self._request(treasury)
 
         with self._balance(25):
-            issuance_execution.recover(admit(request, self.actor).pk)
+            issuance_execution.recover(self.execution_id)
 
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
@@ -169,7 +180,7 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
 
         with patch("wallets.services.holdings.sync_holding", side_effect=RuntimeError("database gone")) as sync:
             with self.assertLogs("tokens.services.share_token_service", level="ERROR") as logs:
-                result = issuance_execution.recover(admit(request, self.actor).pk)
+                result = issuance_execution.recover(self.execution_id)
 
         sync.assert_called_once()
         self.assertIn("Could not record the holding", "\n".join(logs.output))
@@ -185,12 +196,37 @@ class IssuanceSeedsTheHoldingTest(TransactionTestCase):
         request = self._request(self.wallet.address)
 
         with self.assertLogs("tokens.services.share_token_service", level="WARNING") as logs:
-            issuance_execution.recover(admit(request, self.actor).pk)
+            issuance_execution.recover(self.execution_id)
 
         self.assertIn("has no asset on base", "\n".join(logs.output))
         request.refresh_from_db()
         self.assertEqual(request.status, RequestStatus.EXECUTED)
         self.assertFalse(Holding.objects.filter(asset=self.asset).exists())
+
+
+class CompanyIssuanceSeedsItsHoldingTest(CompanyIssueCases, APITransactionTestCase):
+    def setUp(self):
+        self.seed_holding = share_token_service.seed_recipient_holding
+        super().setUp()
+
+    def test_a_genuine_company_grant_seeds_the_existing_bridged_share_asset_once(self):
+        proposal = self.applied_issue(shares=25)
+        with (
+            patch.object(share_token_service, "get_token_balance", return_value=25),
+            patch.object(share_token_service, "seed_recipient_holding", side_effect=self.seed_holding),
+        ):
+            result = self.execute_issue(proposal)
+            replay = self.execute_issue(proposal)
+        self.assertEqual((result["status"], replay["status"]), ("executed", "executed"))
+        with use_operator():
+            self.token.refresh_from_db()
+            asset = Asset.get_by_chain_and_contract(SHARE_ASSET_CHAIN, self.token.contract_address)
+            self.assertIsNotNone(asset)
+            self.assertTrue(asset.is_verified)
+            holding = Holding.objects.get(wallet=self.wallet, asset=asset)
+            self.assertEqual(holding.quantity, Decimal("25"))
+            self.assertIsNone(holding.market_value)
+            self.assertEqual(Holding.objects.filter(wallet=self.wallet, asset=asset).count(), 1)
 
 
 @override_settings(SHARE_TOKEN_FACTORY_ADDRESS="0x" + "f" * 40, BLOCKCHAIN_OPERATOR_KEY="0xkey")

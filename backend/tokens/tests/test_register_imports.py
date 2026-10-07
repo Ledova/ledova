@@ -96,6 +96,7 @@ from tokens.tests.register_command_fixtures import (
     transfer_existing_member,
 )
 from tokens.tests.register_grant_fixtures import grant_existing_member
+from tokens.tests.retained_issuance_fixtures import approve_retained_request
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_instructions import instruction_fixture
@@ -968,8 +969,9 @@ class RegisterImportTest(TransactionTestCase):
         token = self.unopened()
         proposal = self.submit(**self.opening_import(token))
         self.decide(proposal, "approve")
-        ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot").approve(
-            self.staff
+        approve_retained_request(
+            ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot"),
+            self.staff,
         )
         refusal = "has an approved issue or an applied register instruction"
         with self.assertRaisesMessage(ValidationError, refusal):
@@ -1097,7 +1099,12 @@ class RegisterImportTest(TransactionTestCase):
             (exact, an_approved_issue),
         ):
             with self.subTest(entry=entry, after=after.__name__):
-                self.assert_refused("exactly the register's only entry", lambda: forge(entry, after))
+                refusal = (
+                    "New non-paid issue approval requires its genuine company source"
+                    if after is an_approved_issue
+                    else "exactly the register's only entry"
+                )
+                self.assert_refused(refusal, lambda: forge(entry, after))
         self.assert_refused("ceased before the register's opening", lambda: forge({**exact, "operation_id": uuid4()}))
         with self.assertRaises(RuntimeError), atomic():
             forge(exact)
@@ -1120,8 +1127,9 @@ class RegisterImportTest(TransactionTestCase):
         with self.assertRaises(RuntimeError), atomic():
             insert_forged(forged, self.owner, members=[{**row, "member": str(uuid4())}], **alone)
             raise RuntimeError("rollback")
-        ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot").approve(
-            self.staff
+        approve_retained_request(
+            ShareIssuanceRequest.objects.create(token=token, recipient_address=CAROL, amount=5, reason="Allot"),
+            self.staff,
         )
         self.assert_refused("exact current intent", lambda: insert_forged(forged, self.owner))
         self.assertEqual(RegisterImport.objects.count(), 1)
@@ -1255,7 +1263,7 @@ class RegisterImportTest(TransactionTestCase):
 
 class ImportOpenedInstructionTest(TransactionTestCase):
     def setUp(self):
-        self.tenant, self.reviewer, self.document, self.request = instruction_fixture("import-opened")
+        self.tenant, self.reviewer, self.document, self.subscription = instruction_fixture("import-opened")
         self.token = self.tenant.deployed_token
         self.member = create_member(company_id=self.tenant.company.pk, member_id=uuid4())
         self.appointment = owner_appointment(self.tenant.company)
@@ -1299,15 +1307,13 @@ class ImportOpenedInstructionTest(TransactionTestCase):
         self.assertFalse(RegisterEntry.objects.filter(register__token=self.token).exists())
 
     def test_an_import_opened_class_takes_no_issue_instruction(self):
-        payload = instruction_payload(self.token, self.document, [self.request])
+        payload = instruction_payload(self.token, self.document, [self.subscription])
         waiting = submit_instruction(actor=self.tenant.user, **payload)
         _, _, confirmation = prepare_instruction_review(proposal_id=waiting.pk, reviewer=self.reviewer)
         applied = {"status": "applied", "reviewed_by": self.reviewer, "reviewed_at": timezone.now()}
         with self.assertRaises(RuntimeError), atomic():
-            self.request.approve(self.reviewer)
             RegisterInstruction.objects.filter(pk=waiting.pk).update(**applied)
             raise RuntimeError("rollback")
-        self.request.refresh_from_db()
         self.apply(self.submit())
         refusal = "opened from an imported register"
         with self.assertRaisesMessage(ValidationError, refusal):
@@ -1318,7 +1324,6 @@ class ImportOpenedInstructionTest(TransactionTestCase):
             decide_instruction(
                 proposal_id=waiting.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
             )
-        self.request.approve(self.reviewer)
         with self.assertRaisesMessage(DatabaseError, "takes no register instruction until it is on chain"), atomic():
             RegisterInstruction.objects.filter(pk=waiting.pk).update(**applied)
         self.assertEqual(RegisterInstruction.objects.get(pk=waiting.pk).status, "submitted")

@@ -30,6 +30,8 @@ STALE_EXECUTION_AGE = timedelta(minutes=10)
 def execute_review_request_task(
     model_label: str, request_uuid: str, executed_by: int | None = None, execution_id: str | None = None
 ):
+    if executed_by is not None and type(executed_by) is not int:
+        return {"success": False, "error": "Execution requires its plain original actor identity"}
     with use_operator():
         model = apps.get_model(model_label)
         if model is CapitalIncreaseRequest:

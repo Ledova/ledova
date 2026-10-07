@@ -64,6 +64,7 @@ from tokens.tests.deployment_fixtures import (
     admitted_signer,
 )
 from tokens.tests.evidence_fixtures import owner_appointment, upload_evidence
+from tokens.tests.retained_issuance_fixtures import approve_retained_request
 from tokens.tests.test_register_corrections import correction_payload
 from tokens.tests.test_register_import_authority import AppointsTeam
 from tokens.tests.test_register_imports import decide as decide_import
@@ -559,18 +560,27 @@ class RegisterDeploymentsTest(RealRowContention, AppointsTeam, StubUploadDepende
                 email=f"issuer-{uuid4()}@example.test", password="synthetic"
             )
         with use_operator():
+            self.token.refresh_from_db()
             request = ShareIssuanceRequest.objects.create(
                 token=self.token,
                 recipient_address=self.tenant.wallet.address,
                 amount=10,
                 reason="Synthetic retained legacy review",
             )
-            request.approve(staff)
+            approve_retained_request(request, staff)
             confirmed = issuance_execution.confirmation(request, staff)
             with self.assertRaises(IssuanceExecutionConflict):
                 issuance_execution.admit(request, staff, confirmed=confirmed)
-            with patch("tokens.services.issuance_execution._require_register"), self.assertRaises(DatabaseError):
-                issuance_execution.admit(request, staff, confirmed=confirmed)
+            with self.assertRaises(DatabaseError), atomic():
+                ShareIssuanceExecution.objects.create(
+                    pk=request.dispatch_id,
+                    request_id=request.pk,
+                    token_id=request.token_id,
+                    company_id=request.company_id,
+                    executed_by_id=staff.pk,
+                    authority=issuance_execution.REQUEST_AUTHORITY,
+                    intent=issuance_execution._intent(request, self.token),
+                )
             self.assertFalse(ShareIssuanceExecution.objects.exists())
             self.assertEqual(SignedAttempt.objects.count(), 1)
         correct(returning, "apply")
