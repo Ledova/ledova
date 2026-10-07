@@ -295,6 +295,7 @@ REGISTER_GRANT_ROUTES = {
 }
 
 REGISTER_TRANSFER_ROUTES = {
+    "members": ("get", "/api/v1/tokens/{uuid}/register/members/"),
     "create": ("post", "/api/v1/tokens/register-transfers/"),
     "list": ("get", "/api/v1/tokens/register-transfers/"),
     "detail": ("get", "/api/v1/tokens/register-transfers/{uuid}/"),
@@ -1490,7 +1491,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
         with self.as_an_operator_would():
             owner, _, token, _, appointment, payload = transfer_fixture()
-        selector = f"/api/v1/tokens/{token.pk}/register/members/"
+        selector = REGISTER_TRANSFER_ROUTES["members"][1].format(uuid=token.pk)
         self.client.force_authenticate(owner)
         self.assertEqual(self.client.get(selector).status_code, 200)
         for actor in self.actors:

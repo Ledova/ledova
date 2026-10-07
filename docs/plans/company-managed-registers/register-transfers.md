@@ -82,7 +82,10 @@ or tokenisation. Existing court-backed corrections remain available under their
 own command. #868/#869 retain the owner's AUD collection and settlement choices;
 non-paid terms do not invent statutory amount-paid figures or payment evidence.
 Core register work requires no crypto on-ramp purchase. Unsupported corporate
-actions retain their existing explicit boundaries.
+actions retain their existing explicit boundaries. This imported non-tokenised
+boundary refuses unsupported CESSATION entries and unapproved compensating
+corrections. Cessation history derives from an approved ledger effect; corrections
+use the existing company preparation, approval and application command.
 
 The normal bounded command keeps its authority constraints deferred and rechecks
 current decision and approval authority at commit. The operator connection is

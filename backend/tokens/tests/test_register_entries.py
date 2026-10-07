@@ -10,7 +10,10 @@ from tokens.models import RegisterEvidenceKind, ShareToken
 from tokens.services.register_events import (
     create_member,
     open_register,
-    record_entry,
+)
+from tokens.tests.register_command_fixtures import (
+    legacy_entry_before_company_transfers,
+    transfer_existing_member,
 )
 from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.test_register_corrections import (
@@ -46,6 +49,7 @@ class RegisterEntriesTest(APITransactionTestCase):
         self.submit(import_payload(self.token, register_copy, asic, self.member, self.appointment))
         with use_operator():
             self.newcomer = create_member(company_id=self.company.pk, member_id=uuid4())
+            self.newcomer_name = f"Synthetic member {self.newcomer.pk}"
             self.issue = self.record("issue", (self.member, "5"))
             self.transfer = self.record("transfer", (self.member, "-10"), (self.newcomer, "10"))
         evidence = upload_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
@@ -59,17 +63,8 @@ class RegisterEntriesTest(APITransactionTestCase):
         if kind == "issue":
             ((member, shares),) = changes
             return grant_existing_member(self.owner, self.appointment, self.token, member, shares, DAY)
-        return record_entry(
-            register_id=self.opening.register_id,
-            operation_id=uuid4(),
-            kind=kind,
-            changes=sorted(
-                ({"member": str(member.pk), "shares": shares} for member, shares in changes),
-                key=lambda change: change["member"],
-            ),
-            effective_on=timezone.now().date(),
-            recorded_by=self.owner,
-        )
+        (source, _), (target, shares) = changes
+        return transfer_existing_member(self.owner, self.appointment, self.token, source, target, shares)
 
     def entries(self, token=None, **params):
         client = APIClient()
@@ -101,7 +96,7 @@ class RegisterEntriesTest(APITransactionTestCase):
             [entry.created_at for entry in (self.correction, self.transfer, self.issue, self.opening)],
         )
         member, newcomer = str(self.member.pk), str(self.newcomer.pk)
-        transferred = sorted([(member, "Mia Member", "-10"), (newcomer, None, "10")])
+        transferred = sorted([(member, "Mia Member", "-10"), (newcomer, self.newcomer_name, "10")])
         self.assertEqual(
             self.names(),
             [
@@ -113,7 +108,7 @@ class RegisterEntriesTest(APITransactionTestCase):
         )
         with use_migrate():
             live_wallet(self.company, self.member, LIVE, "Live Mia")
-        live = sorted([(member, "Live Mia", "-10"), (newcomer, None, "10")])
+        live = sorted([(member, "Live Mia", "-10"), (newcomer, self.newcomer_name, "10")])
         self.assertEqual(
             self.names(),
             [[(member, "Live Mia", "-5")], live, [(member, "Live Mia", "5")], [(member, "Live Mia", "100")]],
@@ -174,3 +169,38 @@ class ScopedRegisterEntriesTest(RunsOnTheScopedConnection, RegisterEntriesTest):
     def submit(self, payload):
         self.the_principal_the_middleware_would_set(self.owner)
         super().submit(payload)
+
+
+class RegisterEntryLegacyMigrationTest(APITransactionTestCase):
+    def test_an_unidentified_preexisting_transfer_stays_readable_after_the_upgrade(self):
+        with use_operator():
+            owner, company, token, member, appointment, register_copy, asic, _ = import_fixture()
+        apply_import(
+            owner, appointment, prepared(owner, import_payload(token, register_copy, asic, member, appointment))
+        )
+        with use_operator():
+            recipient = create_member(company_id=company.pk, member_id=uuid4())
+        transfer = legacy_entry_before_company_transfers(
+            token,
+            owner,
+            "transfer",
+            sorted(
+                [
+                    {"member": str(member.pk), "shares": "-10"},
+                    {"member": str(recipient.pk), "shares": "10"},
+                ],
+                key=lambda change: change["member"],
+            ),
+            DAY,
+        )
+        self.client.force_authenticate(owner)
+        response = self.client.get(f"/api/v1/tokens/{token.pk}/register/entries/", {"entry": str(transfer.pk)})
+        self.assertEqual(response.status_code, 200, response.content)
+        (row,) = response.json()["results"]
+        self.assertEqual(
+            (row["uuid"], row["kind"], row["effectiveOn"]), (str(transfer.pk), "transfer", DAY.isoformat())
+        )
+        self.assertEqual(
+            sorted((effect["member"], effect["name"], effect["shares"]) for effect in row["changes"]),
+            sorted([(str(member.pk), "Mia Member", "-10"), (str(recipient.pk), None, "10")]),
+        )

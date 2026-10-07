@@ -483,6 +483,7 @@ class RegisterParticularsAuthorityTest(ParticularsAuthorityFixture, StubUploadDe
                 "sourceImport": None,
                 "sourceChange": change["uuid"],
                 "sourceGrant": None,
+                "sourceTransfer": None,
             },
         )
         refused = client.post(
