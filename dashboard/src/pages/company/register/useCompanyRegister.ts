@@ -28,7 +28,11 @@ export function useRegisterClasses(owner: OrderSubmissionOwner) {
 
 export async function readRegister(uuid: string) {
   const { data: register } = await getCompanyTokenHolders(apiClient, uuid);
-  const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
+  const quantities = [
+    register.token.totalSupply,
+    ...register.holders.map(({ balance }) => balance),
+    ...(register.formerMembers ?? []).map(({ sharesAtCessation }) => sharesAtCessation),
+  ];
   if (register.issuedSupply !== null) quantities.push(register.issuedSupply);
   if (register.token.uuid !== uuid || quantities.some((value) => !/^\d+$/.test(value))) {
     throw new Error('Register did not identify exact share quantities for this class');

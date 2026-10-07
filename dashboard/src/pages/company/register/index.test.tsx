@@ -12,6 +12,7 @@ import {
   USER_PREFERENCES_ENDPOINTS,
   USER_PREFERENCES_QUERY_KEY,
   type AccountRole,
+  type FormerMember,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
@@ -23,6 +24,7 @@ vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
 const GRANTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANTS;
+const TRANSFERS = COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFERS;
 const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
@@ -81,8 +83,17 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
 }
 
 function noCommands(url: string) {
-  return [OPENINGS, IMPORTS, GRANTS, CORRECTIONS, RECONCILIATIONS, PARTICULARS, LINKS, APPOINTMENTS].includes(url) ||
-    url.endsWith('/register/entries/')
+  return [
+    OPENINGS,
+    IMPORTS,
+    GRANTS,
+    TRANSFERS,
+    CORRECTIONS,
+    RECONCILIATIONS,
+    PARTICULARS,
+    LINKS,
+    APPOINTMENTS,
+  ].includes(url) || url.endsWith('/register/entries/')
     ? { data: { results: [], count: 0, next: null, previous: null } }
     : null;
 }
@@ -191,12 +202,14 @@ it('reads every register class page and renders exact stored shares with each me
     OPENINGS,
     IMPORTS,
     GRANTS,
+    TRANSFERS,
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary'),
     CORRECTIONS,
     RECONCILIATIONS,
     OPENINGS,
     IMPORTS,
     GRANTS,
+    TRANSFERS,
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('preference'),
     CORRECTIONS,
     RECONCILIATIONS,
@@ -275,6 +288,79 @@ it('does not present an unopened register as an empty opened register, zero issu
   expect(screen.queryByText(/Current members/)).toBeNull();
   expect(screen.getByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+it('shows a walletless cessation and return beside current holdings with exact dates and entry provenance', async () => {
+  const former: FormerMember = {
+    uuid: 'cessation-a',
+    member: 'member-one',
+    walletAddress: null,
+    name: 'Prior retained identity',
+    residentialAddress: '1 Private Synthetic Street',
+    sharesAtCessation: '15',
+    ceasedOn: '2026-10-05',
+    ceasedAtBlock: null,
+    identitySource: 'recorded',
+    identitySourceDisplay: 'Company register record',
+    identityRecordedAt: '2026-10-05T00:00:00Z',
+    sourceEntry: 'cessation-entry-a',
+    sourceEntrySequence: 3,
+    sourceEntryKind: 'CORRECT',
+    sourceEffectiveOn: '2020-01-01',
+    corrects: 'corrected-entry-a',
+    correctedBy: 'later-correction-a',
+    returnedEntry: 'return-entry-a',
+    returnedOn: '2026-10-07',
+  };
+  serve(register('ordinary', { formerMembers: [former] }));
+  show();
+  await openOrdinary();
+  expect(screen.getByRole('heading', { name: 'Former-member history · 1' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Current members · 1' })).toBeTruthy();
+  expect(screen.getByText('Example Member')).toBeTruthy();
+  for (const value of [
+    'Prior retained identity',
+    'member-one',
+    '2026-10-05',
+    '2026-10-07',
+    '2020-01-01',
+    'cessation-entry-a',
+    'corrected-entry-a',
+    'later-correction-a',
+    'return-entry-a',
+  ])
+    expect(screen.getByText(value)).toBeTruthy();
+  expect(screen.queryByText(former.residentialAddress)).toBeNull();
+  expect(screen.queryByText('Recorded wallet')).toBeNull();
+  expect(screen.queryByText('Recorded cessation block')).toBeNull();
+});
+
+it('refuses an inexact retained cessation quantity before presenting the register', async () => {
+  const former: FormerMember = {
+    uuid: 'cessation-a',
+    member: 'member-one',
+    walletAddress: null,
+    name: 'Prior retained identity',
+    residentialAddress: '1 Private Synthetic Street',
+    sharesAtCessation: '15',
+    ceasedOn: '2026-10-05',
+    ceasedAtBlock: null,
+    identitySource: 'recorded',
+    identitySourceDisplay: 'Company register record',
+    identityRecordedAt: '2026-10-05T00:00:00Z',
+    sourceEntry: 'cessation-entry-a',
+    sourceEntrySequence: 3,
+    sourceEntryKind: 'CORRECT',
+    sourceEffectiveOn: '2020-01-01',
+    corrects: 'corrected-entry-a',
+    correctedBy: 'later-correction-a',
+    returnedEntry: 'return-entry-a',
+    returnedOn: '2026-10-07',
+  };
+  serve(register('ordinary', { formerMembers: [{ ...former, sharesAtCessation: '1e3' }] }));
+  show();
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByText('Ordinary shares')).toBeNull();
 });
 
 it('retains unresolved identity and wallet-less members without inventing a name', async () => {

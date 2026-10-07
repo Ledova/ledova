@@ -94,6 +94,13 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
+  REGISTER_MEMBERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/members/` as const,
+  REGISTER_TRANSFERS: '/api/v1/tokens/register-transfers/',
+  REGISTER_TRANSFER_FILE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/file/` as const,
+  REGISTER_TRANSFER_INSTRUMENT_FILE: (uuid: string) =>
+    `/api/v1/tokens/register-transfers/${uuid}/instrument-file/` as const,
+  REGISTER_TRANSFER_PREVIEW: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/decision-preview/` as const,
+  REGISTER_TRANSFER_DECIDE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/decide/` as const,
   REGISTER_GRANTS: '/api/v1/tokens/register-grants/',
   REGISTER_GRANT_FILE: (uuid: string) => `/api/v1/tokens/register-grants/${uuid}/file/` as const,
   REGISTER_GRANT_TERMS_FILE: (uuid: string) => `/api/v1/tokens/register-grants/${uuid}/terms-file/` as const,

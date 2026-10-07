@@ -306,6 +306,8 @@ POLICIES = {
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
     "tokens_registergrant": (_company("company_id", VISIBLE_COMPANIES), "false"),
+    "tokens_registertransfer": (_company("company_id", VISIBLE_COMPANIES), "false"),
+    "tokens_registermembercessation": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "shareholders_publication": (
@@ -593,6 +595,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registertransferdecision": "Append-only company decisions of exact non-paid direct register transfers, "
+    "bound to current company appointments and read through their company-scoped transfer.",
     "tokens_registergrantdecision": "Append-only company decisions of non-paid register grants, bound to current "
     "company appointments and exact immutable commands, read through their company-scoped grant.",
     "tokens_registerevidence": "Immutable company-provided register evidence uploads, written by the bounded "

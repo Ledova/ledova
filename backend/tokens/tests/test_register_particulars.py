@@ -44,6 +44,7 @@ from tokens.services.register_particulars import (
     preview_particulars_decision,
 )
 from tokens.tests.evidence_fixtures import staff_user, upload_evidence
+from tokens.tests.register_command_fixtures import legacy_entry_before_company_transfers
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_imports import (
     LIVE,
@@ -363,6 +364,7 @@ class RegisterParticularsTest(TransactionTestCase):
                 "source_import": None,
                 "source_change": change.pk,
                 "source_grant": None,
+                "source_transfer": None,
             },
         )
         self.apply(later)
@@ -705,16 +707,12 @@ class RegisterParticularsTest(TransactionTestCase):
         change = self.apply(self.submit())
         later = timezone.now() + timedelta(days=4000)
         self.assertEqual(purge_member_particulars(now=later), 0)
-        moved(
-            self.token.stored_register.pk,
-            self.member,
-            create_member(company_id=self.company.pk, member_id=uuid4()),
-            100,
-            self.owner,
+        left_on = retention_cutoff() - timedelta(days=1)
+        legacy_entry_before_company_transfers(
+            self.token, self.owner, "cessation", [{"member": str(self.member.pk), "shares": "-100"}], left_on
         )
-        left = timezone.make_aware(timezone.datetime.combine(DAY, timezone.datetime.min.time()))
-        self.assertEqual(purge_member_particulars(now=left + timedelta(days=2557)), 0)
-        self.assertEqual(purge_member_particulars(now=left + timedelta(days=2559)), 1)
+        self.assertEqual(purge_member_particulars(now=timezone.now() - timedelta(days=1)), 0)
+        self.assertEqual(purge_member_particulars(), 1)
         self.assertFalse(RegisterMemberParticulars.objects.exists())
         change.refresh_from_db()
         self.assertEqual((change.status, change.name, change.residential_address), ("applied", RENAMED, NEW_ADDRESS))

@@ -217,14 +217,17 @@ def preview_correction_decision(*, actor, correction_id, appointment, kind, reas
 def decide_correction(
     *, actor, correction_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
 ):
-    return decide(
-        CORRECTIONS,
-        actor=actor,
-        proposal_id=correction_id,
-        appointment=appointment,
-        kind=kind,
-        idempotency_key=idempotency_key,
-        preview_digest=preview_digest,
-        confirmation=confirmation,
-        reason=reason,
-    )
+    try:
+        return decide(
+            CORRECTIONS,
+            actor=actor,
+            proposal_id=correction_id,
+            appointment=appointment,
+            kind=kind,
+            idempotency_key=idempotency_key,
+            preview_digest=preview_digest,
+            confirmation=confirmation,
+            reason=reason,
+        )
+    except IntegrityError:
+        raise RegisterChangeConflict() from None

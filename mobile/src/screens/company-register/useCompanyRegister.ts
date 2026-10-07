@@ -11,6 +11,8 @@ import {
   getRegisterEntries,
   getRegisterImports,
   getRegisterGrants,
+  getRegisterTransfers,
+  getRegisterTransferMembers,
   getNextPageParam,
   getRegisterLinks,
   getRegisterOpeningHolders,
@@ -36,7 +38,11 @@ import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../ser
 const REGISTER_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
 
 export function checkedRegister(uuid: string, register: TokenHoldersResponse) {
-  const quantities = [register.token.totalSupply, ...register.holders.map(({ balance }) => balance)];
+  const quantities = [
+    register.token.totalSupply,
+    ...register.holders.map(({ balance }) => balance),
+    ...(register.formerMembers ?? []).map(({ sharesAtCessation }) => sharesAtCessation),
+  ];
   if (register.issuedSupply !== null) quantities.push(register.issuedSupply);
   if (register.token.uuid !== uuid || quantities.some((value) => !/^\d+$/.test(value))) {
     throw new Error('Register quantities do not identify this share class');
@@ -58,6 +64,8 @@ const recordsKey = (records: string) => (epoch: number, scope?: string) => [
 ];
 export const importsKey = recordsKey('imports');
 export const grantsKey = recordsKey('grants');
+export const transfersKey = recordsKey('transfers');
+export const transferMembersKey = recordsKey('members');
 export const openingsKey = recordsKey('openings');
 export const openingHoldersKey = (epoch: number, token: string) => ['opening-holders', epoch, token];
 export const entriesKey = recordsKey('entries');
@@ -151,6 +159,8 @@ export function useCompanyRegister(epoch: number) {
           openingsKey,
           importsKey,
           grantsKey,
+          transfersKey,
+          transferMembersKey,
           entriesKey,
           correctionsKey,
           reconciliationKey,
@@ -205,6 +215,42 @@ export function useRegisterGrants(epoch: number, company: string, token: string)
       if (rows.some((row) => row.token !== token || row.company !== company))
         throw new Error('The grants do not belong to this share class');
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterTransfers(epoch: number, company: string, token: string) {
+  return useQuery({
+    queryKey: transfersKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterTransfers(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.token !== token || row.company !== company))
+        throw new Error('The transfers do not belong to this share class');
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useTransferMembers(epoch: number, token: string) {
+  return useQuery({
+    queryKey: transferMembersKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const { data } = await sessionRead(epoch, () =>
+        getRegisterTransferMembers(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
+      );
+      if (
+        data.members.some((member) => !/^\d+$/.test(member.currentShares)) ||
+        new Set(data.members.map((member) => member.member)).size !== data.members.length
+      )
+        throw new Error('The member selector did not return exact distinct holdings.');
+      return data.members;
     },
   });
 }

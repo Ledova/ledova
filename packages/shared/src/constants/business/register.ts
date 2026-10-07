@@ -28,6 +28,9 @@ export const REGISTER_COPY = {
   NO_REGISTER:
     'There is no company register to show. Share classes appear here for companies you own or where your company ' +
     'appointment includes register access.',
+  FORMER_TITLE: 'Former-member history',
+  FORMER_NOTE:
+    'Each row retains the particulars and holding when membership ceased. A return keeps the same member ID and its recorded return date.',
   NO_WALLET: 'No linked wallet',
   AMBIGUOUS_NOTE:
     "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +

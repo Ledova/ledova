@@ -54,6 +54,8 @@ const LEDES: Partial<Record<DestinationKey, string>> = {
     'provided by the company.',
   companyRegisterGrant:
     'Prepare a non-paid share grant on an opened register with the company’s terms, authority and any required acceptance.',
+  companyRegisterTransfer:
+    'Prepare a non-paid transfer with the company’s director authority and a genuine signed transfer instrument.',
   companyPublications: "Staff prepare and publish these records on your company's written instruction.",
   eligibilityRequests:
     'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.',

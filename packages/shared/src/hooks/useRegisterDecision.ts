@@ -6,6 +6,8 @@ import { REGISTER_LINK_COPY, REGISTER_LINK_UNMET_COPY } from '../constants/busin
 import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../constants/business/register-openings';
 import { REGISTER_PARTICULARS_COPY, REGISTER_PARTICULARS_UNMET_COPY } from '../constants/business/register-particulars';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
+import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
+import { decideRegisterTransfer, previewRegisterTransferDecision } from '../services/register-transfers';
 import { decideRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
@@ -25,6 +27,8 @@ import type {
   RegisterImportDecisionPreview,
   RegisterGrant,
   RegisterGrantDecisionPreview,
+  RegisterTransfer,
+  RegisterTransferDecisionPreview,
   RegisterLink,
   RegisterLinkDecisionPreview,
   RegisterOpening,
@@ -36,6 +40,7 @@ import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import { failureStatus, isRegisterDecisionReceipt } from '../utils/register-commands';
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
+import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
@@ -71,6 +76,14 @@ export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, Reg
   isReceipt: isRegisterGrantDecisionReceipt,
   unmet: REGISTER_GRANT_UNMET_COPY,
   copy: REGISTER_GRANT_COPY,
+};
+
+export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfer, RegisterTransferDecisionPreview> = {
+  preview: previewRegisterTransferDecision,
+  decide: decideRegisterTransfer,
+  isReceipt: isRegisterTransferDecisionReceipt,
+  unmet: REGISTER_TRANSFER_UNMET_COPY,
+  copy: REGISTER_TRANSFER_COPY,
 };
 
 export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<

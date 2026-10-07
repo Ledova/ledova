@@ -37,8 +37,9 @@ staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
 instruction, and a [due list](#working-the-due-list) shows the certificates and
 figures still due. A class an import opened supports company-run
 [non-paid register grants](../plans/company-managed-registers/register-grants.md)
-without deployment or a wallet. Direct ledger transfers and tokenisation remain
-later work. No real company's register may rely on it before
+and [direct non-paid transfers](../plans/company-managed-registers/register-transfers.md)
+without deployment or a wallet, including new/returning members and retained
+cessation history. Tokenisation remains design-only later work. No real company's register may rely on it before
 the decisions reserved for real data are made, among them production retention
 and how to undo a mistaken opening import.
 
@@ -1165,8 +1166,9 @@ use. The share class needs an applied opening.
    )
    ```
 
-   An issue's operation is its share issuance and a transfer's is its swap
-   order. A correction's last value is the number of the entry it reverses.
+   A chain issue's operation is its share issuance and a chain transfer's is its
+   swap order. A direct ledger issue or transfer instead names its retained grant
+   or transfer command. A correction's last value is the number of the entry it reverses.
 3. In **Admin → Tokens → Register outputs**, open the share class and choose
    **Prepare a certificate**.
 4. Enter the entry's number and the instruction's reference, then choose
@@ -1382,7 +1384,9 @@ The owner decided on 22 September 2026 that:
 - a member's live verified identity wins over imported particulars;
 - a class an import opened records no issue, transfer or cessation until it is
   anchored on chain, because entries come only from chain completions;
-  tokenising it is later work;
+  this historical boundary is superseded by #865's company-approved non-paid
+  grants and direct transfers, with genuine walletless exit/return history.
+  Tokenising the existing holdings remains later work;
 - a mistaken opening import strands its class until partial corrections exist:
   a correction can reverse only its whole opening entry, and the class takes no
   second import. This is accepted during the synthetic experiment and settled

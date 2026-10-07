@@ -7,8 +7,9 @@ It records a company-authorised non-paid issue in an opened register whose share
 class has no deployed contract. It uses the same register and company
 appointments as imports, particulars and corrections. A grant creates a genuine
 ISSUE entry; it does not create a subscription, payment receipt, wallet or chain
-transaction. Direct ledger transfers and cessation history remain later #865
-increments. Participant account association and own-record screens remain #866;
+transaction. A separate #865 increment provides [direct non-paid
+transfers](register-transfers.md) and retained cessation/return history.
+Participant account association and own-record screens remain #866;
 publication workflows remain #870.
 
 ## Preparation and decision
@@ -84,8 +85,8 @@ certificate-output route is not converted into company self-service by this
 increment. Certificate requests and capability-scoped output work stay with
 their owning issues.
 
-Paid allotments, AUD collection or refunds, chain issuance, direct ledger
-transfers, tokenisation and unsupported corporate actions are not completed by a
+Paid allotments, AUD collection or refunds, chain issuance, tokenisation and
+unsupported corporate actions are not completed by a
 grant. #868/#869 retain the owner decisions on payment mechanics. Core register
 work requires no crypto on-ramp purchase.
 

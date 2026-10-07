@@ -5,6 +5,7 @@ import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
 import { ClassGrants } from './ClassGrants';
+import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
@@ -21,6 +22,7 @@ export function ClassRecords({
   onOpen,
   onPrepareImport,
   onPrepareGrant,
+  onPrepareTransfer,
   onCorrect,
   onChangeParticulars,
 }: {
@@ -31,6 +33,7 @@ export function ClassRecords({
   onOpen: () => void;
   onPrepareImport: () => void;
   onPrepareGrant: () => void;
+  onPrepareTransfer: () => void;
   onCorrect: (entry: RegisterEntry) => void;
   onChangeParticulars: (member: string) => void;
 }) {
@@ -90,6 +93,15 @@ export function ClassRecords({
         steps={steps}
         refreshHolders={refreshHolders}
         refreshAppointments={appointments.refetch}
+      />
+      <ClassTransfers
+        epoch={epoch}
+        company={company}
+        register={register}
+        steps={steps}
+        refreshHolders={refreshHolders}
+        refreshAppointments={appointments.refetch}
+        onPrepare={onPrepareTransfer}
       />
       <ClassReconciliation
         epoch={epoch}

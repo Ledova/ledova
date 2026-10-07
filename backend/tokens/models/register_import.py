@@ -119,13 +119,37 @@ class RegisterMemberParticulars(BaseModel):
     source_grant = models.ForeignKey(
         "tokens.RegisterGrant", on_delete=models.PROTECT, related_name="particulars", null=True
     )
+    source_transfer = models.ForeignKey(
+        "tokens.RegisterTransfer", on_delete=models.PROTECT, related_name="particulars", null=True
+    )
 
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(source_import__isnull=False, source_change__isnull=True, source_grant__isnull=True)
-                | models.Q(source_import__isnull=True, source_change__isnull=False, source_grant__isnull=True)
-                | models.Q(source_import__isnull=True, source_change__isnull=True, source_grant__isnull=False),
+                condition=models.Q(
+                    source_import__isnull=False,
+                    source_change__isnull=True,
+                    source_grant__isnull=True,
+                    source_transfer__isnull=True,
+                )
+                | models.Q(
+                    source_import__isnull=True,
+                    source_change__isnull=False,
+                    source_grant__isnull=True,
+                    source_transfer__isnull=True,
+                )
+                | models.Q(
+                    source_import__isnull=True,
+                    source_change__isnull=True,
+                    source_grant__isnull=False,
+                    source_transfer__isnull=True,
+                )
+                | models.Q(
+                    source_import__isnull=True,
+                    source_change__isnull=True,
+                    source_grant__isnull=True,
+                    source_transfer__isnull=False,
+                ),
                 name="register_member_particulars_one_source",
             ),
         ]

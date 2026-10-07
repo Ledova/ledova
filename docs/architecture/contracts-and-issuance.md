@@ -22,7 +22,9 @@ invent a paid subscription. An imported register without a deployed class
 cannot issue or transfer through chain register instructions. The
 [non-paid grant workflow](../plans/company-managed-registers/register-grants.md)
 records genuine company-approved ledger issues without deployment or a wallet.
-Direct ledger transfers and later tokenisation need additional ledger/execution work.
+[Direct non-paid transfers](../plans/company-managed-registers/register-transfers.md)
+also record genuine ledger effects with instruments, named approval and retained
+exit/return history. Later tokenisation needs additional execution work.
 Non-chain changes must retain real ledger authority without fake chain receipts;
 later tokenisation mirrors those holdings without issuing them twice.
 Changing company authority does not by itself change deployed contract ownership

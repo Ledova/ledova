@@ -4,8 +4,8 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import OuterRef, Q, Subquery
-from django.db.models.functions import Lower
+from django.db.models import F, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce, Lower
 from django.utils import timezone
 from web3 import Web3
 
@@ -15,6 +15,7 @@ from tokens.models import (
     FormerHolder,
     ImportedFormerMember,
     RegisterExport,
+    RegisterMemberCessation,
     RegisterMemberParticulars,
     RegisterMemberWallet,
     RegisterPosition,
@@ -213,9 +214,7 @@ def purge_imported_former_members(now=None) -> int:
 def purge_member_particulars(now=None) -> int:
     cutoff = retention_cutoff(now)
     last_held = (
-        RegisterPosition.objects.filter(member_id=OuterRef("member_id"))
-        .order_by("-last_entry__effective_on")
-        .values("last_entry__effective_on")[:1]
+        _positions_with_exit().filter(member_id=OuterRef("member_id")).order_by("-left_on").values("left_on")[:1]
     )
     expired = list(
         RegisterMemberParticulars.objects.exclude(
@@ -228,6 +227,35 @@ def purge_member_particulars(now=None) -> int:
     removed, _ = RegisterMemberParticulars.objects.filter(pk__in=expired).delete()
     if removed:
         logger.info(f"Removed {removed} member particulars that passed the seven-year clock after the last holding")
+    return removed
+
+
+def _positions_with_exit():
+    ceased = RegisterMemberCessation.objects.filter(
+        member_id=OuterRef("member_id"), entry_id=OuterRef("last_entry_id")
+    ).values("ceased_on")[:1]
+    return RegisterPosition.objects.filter(shares=0).annotate(
+        left_on=Coalesce(Subquery(ceased), F("last_entry__effective_on"))
+    )
+
+
+def member_left_on(member_id):
+    return (
+        _positions_with_exit()
+        .filter(member_id=member_id)
+        .order_by("-left_on")
+        .values_list("left_on", flat=True)
+        .first()
+    )
+
+
+def purge_member_cessations(now=None) -> int:
+    expired = RegisterMemberCessation.objects.filter(ceased_on__lt=retention_cutoff(now)).exclude(
+        member_id__in=RegisterPosition.objects.filter(shares__gt=0).values("member_id")
+    )
+    removed, _ = expired.delete()
+    if removed:
+        logger.info(f"Removed {removed} ledger cessation records that passed the seven-year clock")
     return removed
 
 

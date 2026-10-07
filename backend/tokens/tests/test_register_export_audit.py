@@ -223,7 +223,7 @@ class RegisterExportAuditTest(TestCase):
     def test_the_daily_retention_job_purges_exports_with_former_members(self):
         self.assertEqual(
             purge_former_members_past_the_clock(),
-            {"removed": 0, "imported_removed": 0, "particulars_removed": 0, "exports_removed": 0},
+            {"removed": 0, "imported_removed": 0, "particulars_removed": 0, "ledger_removed": 0, "exports_removed": 0},
         )
 
     @override_settings(STORAGES=ADMIN_STORAGES)

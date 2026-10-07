@@ -31,6 +31,7 @@ from tokens.serializers.pause_change import (
     PauseSubmissionResponseSerializer,
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
+from tokens.serializers.register_transfer import RegisterMembersSerializer
 from tokens.services import deployment, pause_changes, share_token_service
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
@@ -42,6 +43,7 @@ from tokens.services.register import (
     stored_waiting_list,
 )
 from tokens.services.register_openings import opening_holders
+from tokens.services.register_transfers import register_members
 
 
 class ShareTokenViewSet(
@@ -70,6 +72,7 @@ class ShareTokenViewSet(
             "register_export",
             "register_opening_holders",
             "register_waiting",
+            "register_members",
         }
     )
     operator_actions_because = (
@@ -91,7 +94,9 @@ class ShareTokenViewSet(
         "current appointment holding administration or prepare, and names linked members from the same sources."
     )
 
-    register_reads = frozenset({"register", "holders", "register_entries", "register_export", "register_waiting"})
+    register_reads = frozenset(
+        {"register", "holders", "register_entries", "register_export", "register_waiting", "register_members"}
+    )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -288,9 +293,11 @@ class ShareTokenViewSet(
                 "former_members": FormerMemberSerializer(
                     register["former_members"] if register else former_members_of(token), many=True
                 ).data,
-                "former_members_as_at": token.former_holders_folded_at,
-                "former_members_block": token.former_holders_block,
-                "former_members_stale": fold_is_stale(token),
+                "former_members_as_at": (
+                    register["recorded_at"] if register and not register["on_chain"] else token.former_holders_folded_at
+                ),
+                "former_members_block": None if register and not register["on_chain"] else token.former_holders_block,
+                "former_members_stale": False if register and not register["on_chain"] else fold_is_stale(token),
             }
         )
 
@@ -303,6 +310,11 @@ class ShareTokenViewSet(
     @action(detail=True, methods=["get"], url_path="register/waiting")
     def register_waiting(self, request, uuid=None):
         return Response({"effects": stored_waiting_list(self.get_object())})
+
+    @extend_schema(responses=RegisterMembersSerializer)
+    @action(detail=True, methods=["get"], url_path="register/members")
+    def register_members(self, request, uuid=None):
+        return Response(RegisterMembersSerializer(register_members(self.get_object())).data)
 
     @extend_schema(
         responses=ShareRegisterEntrySerializer(many=True),

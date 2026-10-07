@@ -71,7 +71,9 @@ export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind)
     uploaded: !document.file && !!receipt,
     busy: document.isPicking || document.isSubmitting,
     pick: async () => {
-      if (await document.pick()) setReceipt(null);
+      const selected = await document.pick();
+      if (selected) setReceipt(null);
+      return selected;
     },
     clear: () => {
       document.clear();

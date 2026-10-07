@@ -91,6 +91,10 @@ from tokens.tests.evidence_fixtures import (
     upload_evidence,
 )
 from tokens.tests.instruction_fixtures import instruction_payload
+from tokens.tests.register_command_fixtures import (
+    legacy_entry_before_company_transfers,
+    transfer_existing_member,
+)
 from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
@@ -347,6 +351,11 @@ class RegisterImportTest(TransactionTestCase):
         return self.preview(proposal, kind)["unmet_requirements"]
 
     def move(self, source, target, shares, effective_on=DAY):
+        if (
+            RegisterImport.objects.filter(token=self.token, status="applied").exists()
+            and not self.token.contract_address
+        ):
+            return transfer_existing_member(self.owner, self.appointment, self.token, source, target, shares)
         record_entry(
             register_id=self.opening.register_id,
             operation_id=uuid4(),
@@ -835,6 +844,15 @@ class RegisterImportTest(TransactionTestCase):
                 "ceasedAtBlock": None,
                 "identitySource": IDENTITY_PARTICULARS,
                 "identitySourceDisplay": PARTICULARS,
+                "member": None,
+                "sourceEntry": None,
+                "sourceEntrySequence": None,
+                "sourceEntryKind": None,
+                "sourceEffectiveOn": None,
+                "corrects": None,
+                "correctedBy": None,
+                "returnedEntry": None,
+                "returnedOn": None,
             },
         )
         rows = self.export()
@@ -891,11 +909,12 @@ class RegisterImportTest(TransactionTestCase):
         self.assertEqual(purge_imported_former_members(now=ceased + timedelta(days=2559)), 1)
         later = timezone.now() + timedelta(days=4000)
         self.assertEqual(purge_member_particulars(now=later), 0)
-        other = create_member(company_id=self.company.pk, member_id=uuid4())
-        self.move(self.member, other, 100)
-        left = timezone.make_aware(timezone.datetime.combine(DAY, timezone.datetime.min.time()))
-        self.assertEqual(purge_member_particulars(now=left + timedelta(days=2557)), 0)
-        self.assertEqual(purge_member_particulars(now=left + timedelta(days=2559)), 1)
+        left_on = retention_cutoff() - timedelta(days=1)
+        legacy_entry_before_company_transfers(
+            self.token, self.owner, "cessation", [{"member": str(self.member.pk), "shares": "-100"}], left_on
+        )
+        self.assertEqual(purge_member_particulars(now=timezone.now() - timedelta(days=1)), 0)
+        self.assertEqual(purge_member_particulars(), 1)
         self.assertFalse(RegisterMemberParticulars.objects.exists())
         proposal.refresh_from_db()
         self.assertEqual(
@@ -1143,7 +1162,9 @@ class RegisterImportTest(TransactionTestCase):
             self.token, self.staff, period_from=DAY, instruction="SYNTHETIC-NOTICE-IMPORTED"
         )
         rows = list(csv.reader(io.StringIO(content.decode())))
-        self.assertIn(["2", "Transfer", DAY.isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
+        self.assertIn(
+            ["2", "Transfer", timezone.now().date().isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows
+        )
         self.assertIn([str(self.member.pk), "Mia Member", RESIDENCE, "70", "not recorded"], rows)
 
     def trust_import(self):
