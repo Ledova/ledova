@@ -182,6 +182,7 @@ def _details(change):
                 "as_at": held.as_at,
                 "source_import": held.source_import_id,
                 "source_change": held.source_change_id,
+                "source_grant": held.source_grant_id,
             }
         ),
     }
@@ -204,6 +205,7 @@ def _apply(change, actor, decision):
             "residential_address": change.residential_address,
             "as_at": change.as_at,
             "source_import": None,
+            "source_grant": None,
             "source_change": change,
         },
     )

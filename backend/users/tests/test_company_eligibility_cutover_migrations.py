@@ -45,6 +45,8 @@ HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
     "tokens_registercorrectiondecision",
     "tokens_registerevidence",
+    "tokens_registergrant",
+    "tokens_registergrantdecision",
     "tokens_registerimportdecision",
     "tokens_registeropeningdecision",
     "tokens_registerparticularschange",
@@ -54,6 +56,7 @@ RESTORED_EMPTY_TABLES = {
 }
 ADDED_COLUMNS = {
     "offerings_subscription": ["eligibility_decision_id"],
+    "tokens_registermemberparticulars": ["source_grant_id"],
     "tokens_transferorder": [
         "eligibility_decision_id",
         "creation_submission_id",

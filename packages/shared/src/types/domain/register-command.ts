@@ -5,6 +5,7 @@ import type {
   RegisterCorrectionDecisionRequest,
 } from './register-correction';
 import type { RegisterImport, RegisterImportDecideRequest, RegisterImportDecisionRequest } from './register-import';
+import type { RegisterGrant, RegisterGrantDecideRequest, RegisterGrantDecisionRequest } from './register-grant';
 import type { RegisterLink, RegisterLinkDecideRequest, RegisterLinkDecisionRequest } from './register-link';
 import type { RegisterOpening, RegisterOpeningDecideRequest, RegisterOpeningDecisionRequest } from './register-opening';
 import type {
@@ -18,15 +19,17 @@ export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
-  RegisterImport | RegisterCorrection | RegisterOpening | RegisterParticularsChange | RegisterLink;
+  RegisterImport | RegisterCorrection | RegisterOpening | RegisterParticularsChange | RegisterLink | RegisterGrant;
 export type RegisterDecisionRequest =
   | RegisterImportDecisionRequest
+  | RegisterGrantDecisionRequest
   | RegisterCorrectionDecisionRequest
   | RegisterOpeningDecisionRequest
   | RegisterParticularsChangeDecisionRequest
   | RegisterLinkDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterImportDecideRequest
+  | RegisterGrantDecideRequest
   | RegisterCorrectionDecideRequest
   | RegisterOpeningDecideRequest
   | RegisterParticularsChangeDecideRequest

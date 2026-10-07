@@ -26,6 +26,7 @@ from tokens.models import (
     RegisterCorrection,
     RegisterEvidence,
     RegisterEvidenceKind,
+    RegisterGrant,
     RegisterImport,
     RegisterInstruction,
     RegisterOpening,
@@ -170,6 +171,9 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "file"),
                         (RegisterImport, "asic_file"),
                         (RegisterEvidence, "file"),
+                        (RegisterGrant, "file"),
+                        (RegisterGrant, "terms_file"),
+                        (RegisterGrant, "acceptance_file"),
                         (RegisterInstruction, "file"),
                         (RegisterParticularsChange, "file"),
                         (Publication, "file"),
@@ -186,12 +190,15 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterWalletLink,
                     RegisterImport,
                     RegisterEvidence,
+                    RegisterGrant,
                     RegisterInstruction,
                     RegisterParticularsChange,
                     Publication,
                 ):
                     self.assertIn(f"shared.storage.sweep:{model._meta.label}.file", connected)
                 self.assertIn("shared.storage.sweep:tokens.RegisterImport.asic_file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterGrant.terms_file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterGrant.acceptance_file", connected)
                 self.assertIn("shared.storage.sweep:shareholders.PublicationEvent.evidence", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
                 with self.assertRaises(NotImplementedError):

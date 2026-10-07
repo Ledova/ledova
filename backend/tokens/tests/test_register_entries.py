@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from shared.db import use_migrate, use_operator
@@ -11,6 +12,7 @@ from tokens.services.register_events import (
     open_register,
     record_entry,
 )
+from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.test_register_corrections import (
     apply_correction,
     correction_payload,
@@ -54,6 +56,9 @@ class RegisterEntriesTest(APITransactionTestCase):
         apply_import(self.owner, self.appointment, prepared(self.owner, payload))
 
     def record(self, kind, *changes):
+        if kind == "issue":
+            ((member, shares),) = changes
+            return grant_existing_member(self.owner, self.appointment, self.token, member, shares, DAY)
         return record_entry(
             register_id=self.opening.register_id,
             operation_id=uuid4(),
@@ -62,7 +67,7 @@ class RegisterEntriesTest(APITransactionTestCase):
                 ({"member": str(member.pk), "shares": shares} for member, shares in changes),
                 key=lambda change: change["member"],
             ),
-            effective_on=DAY,
+            effective_on=timezone.now().date(),
             recorded_by=self.owner,
         )
 
@@ -86,8 +91,8 @@ class RegisterEntriesTest(APITransactionTestCase):
             [(row["uuid"], row["sequence"], row["kind"], row["effectiveOn"]) for row in page["results"]],
             [
                 (str(self.correction.pk), 4, "correction", DAY.isoformat()),
-                (str(self.transfer.pk), 3, "transfer", DAY.isoformat()),
-                (str(self.issue.pk), 2, "issue", DAY.isoformat()),
+                (str(self.transfer.pk), 3, "transfer", timezone.now().date().isoformat()),
+                (str(self.issue.pk), 2, "issue", timezone.now().date().isoformat()),
                 (str(self.opening.pk), 1, "opening", DAY.isoformat()),
             ],
         )

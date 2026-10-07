@@ -1743,6 +1743,118 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-grants/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_grants_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_grants_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_grants_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/acceptance-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_grants_acceptance_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_grants_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_grants_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_grants_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-grants/{uuid}/terms-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_grants_terms_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-imports/': {
     parameters: {
       query?: never;
@@ -4278,6 +4390,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterCorrection'][];
     };
+    PaginatedRegisterGrantList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterGrant'][];
+    };
     PaginatedRegisterImportList: {
       count: number;
       next?: string | null;
@@ -4760,6 +4878,108 @@ export interface ApiComponents {
       idempotencyKey: string;
       kind: ApiComponents['schemas']['RegisterEvidenceKindEnum'];
     };
+    RegisterGrant: {
+      acceptanceEvidence: string | null;
+      acceptanceFingerprint: string;
+      acceptanceRequired: boolean;
+      acceptanceSnapshot: unknown;
+      approvingDirector: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterGrantDecision'][];
+      effectiveOn: string | null;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      member: string;
+      name: string;
+      newMember: boolean;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      reason: string;
+      registerEntry: string | null;
+      rejectionReason: string;
+      residentialAddress: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      shares: string;
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      terms: string;
+      termsEvidence: string;
+      termsFingerprint: string;
+      termsOn: string;
+      termsSnapshot: unknown;
+      token: string;
+      uuid: string;
+    };
+    RegisterGrantCreateRequest: {
+      acceptanceEvidence?: string | null;
+      acceptanceRequired: boolean;
+      appointment: string;
+      approvingDirector: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      member: string;
+      name?: string;
+      newMember: boolean;
+      operationId: string;
+      reason: string;
+      residentialAddress?: string;
+      shares: string;
+      terms: string;
+      termsEvidence: string;
+      termsOn: string;
+      tokenId: string;
+    };
+    RegisterGrantDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterGrantDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterGrantDecisionPreview: {
+      acceptanceRequired: boolean;
+      afterIssuedSupply: string;
+      afterShares: string;
+      approvingDirector: string;
+      authorisedSupply: string;
+      canDecide: boolean;
+      currentShares: string;
+      effectiveOn: string;
+      issuedSupply: string;
+      member: string;
+      name: string;
+      newMember: boolean;
+      previewDigest: string;
+      registerSequence: number;
+      residentialAddress: string;
+      shares: string;
+      terms: string;
+      termsOn: string;
+      unmetRequirements: string[];
+    };
+    RegisterGrantDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
     RegisterImport: {
       approvingDirector: string;
       asAt: string;
@@ -5063,6 +5283,7 @@ export interface ApiComponents {
       name: string;
       residentialAddress: string;
       sourceChange: string | null;
+      sourceGrant: string | null;
       sourceImport: string | null;
     };
     RegisterReconciliation: {
@@ -9197,6 +9418,203 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterEvidence'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterGrantList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterGrantCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterGrantCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterGrantCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterGrant'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterGrant'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterGrant'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_acceptance_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterGrantDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterGrantDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterGrantDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterGrant'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterGrantDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterGrantDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterGrantDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterGrantDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_grants_terms_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

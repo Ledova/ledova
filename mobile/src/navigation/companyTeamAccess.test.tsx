@@ -6,6 +6,7 @@ import { PrepareRegisterImportScreen } from '../screens/company-register/Prepare
 import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
+import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
 import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
 import { CompanyStackNavigator, type CompanyStackParamList } from './CompanyStackNavigator';
 
@@ -47,6 +48,7 @@ jest.mock('../screens/company-register/PrepareRegisterOpeningScreen', () => ({
 jest.mock('../screens/company-register/PrepareRegisterParticularsScreen', () => ({
   PrepareRegisterParticularsScreen: () => null,
 }));
+jest.mock('../screens/company-register/PrepareRegisterGrantScreen', () => ({ PrepareRegisterGrantScreen: () => null }));
 jest.mock('../screens/company-register/PrepareRegisterLinkScreen', () => ({
   PrepareRegisterLinkScreen: () => null,
 }));
@@ -91,6 +93,8 @@ it.each([
   ['opening', 'PrepareRegisterOpening', PrepareRegisterOpeningScreen, CompanyStackNavigator],
   ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, HomeStackNavigator],
   ['particulars', 'PrepareRegisterParticulars', PrepareRegisterParticularsScreen, CompanyStackNavigator],
+  ['grant', 'PrepareRegisterGrant', PrepareRegisterGrantScreen, HomeStackNavigator],
+  ['grant', 'PrepareRegisterGrant', PrepareRegisterGrantScreen, CompanyStackNavigator],
   ['wallet link', 'PrepareRegisterLink', PrepareRegisterLinkScreen, HomeStackNavigator],
   ['wallet link', 'PrepareRegisterLink', PrepareRegisterLinkScreen, CompanyStackNavigator],
 ])('registers %s preparation beside the register with a back action', async (_, name, component, Navigator) => {

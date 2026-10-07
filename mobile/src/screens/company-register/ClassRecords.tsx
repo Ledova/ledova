@@ -4,6 +4,7 @@ import { Action } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
+import { ClassGrants } from './ClassGrants';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
@@ -19,6 +20,7 @@ export function ClassRecords({
   refreshHolders,
   onOpen,
   onPrepareImport,
+  onPrepareGrant,
   onCorrect,
   onChangeParticulars,
 }: {
@@ -28,6 +30,7 @@ export function ClassRecords({
   refreshHolders: () => Promise<unknown>;
   onOpen: () => void;
   onPrepareImport: () => void;
+  onPrepareGrant: () => void;
   onCorrect: (entry: RegisterEntry) => void;
   onChangeParticulars: (member: string) => void;
 }) {
@@ -71,6 +74,15 @@ export function ClassRecords({
         onPrepare={onPrepareImport}
       />
       <ClassEntries epoch={epoch} register={register} steps={steps} onCorrect={onCorrect} />
+      <ClassGrants
+        epoch={epoch}
+        company={company}
+        register={register}
+        steps={steps}
+        refreshHolders={refreshHolders}
+        refreshAppointments={appointments.refetch}
+        onPrepare={onPrepareGrant}
+      />
       <ClassCorrections
         epoch={epoch}
         company={company}

@@ -35,8 +35,10 @@ staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
 [certificates](#preparing-a-certificate) for its issues and transfers and the
 [figures for its notices](#preparing-notice-figures) on a company's written
 instruction, and a [due list](#working-the-due-list) shows the certificates and
-figures still due. A class an import opened records no later change until it is
-tokenised, which is later work. No real company's register may rely on it before
+figures still due. A class an import opened supports company-run
+[non-paid register grants](../plans/company-managed-registers/register-grants.md)
+without deployment or a wallet. Direct ledger transfers and tokenisation remain
+later work. No real company's register may rely on it before
 the decisions reserved for real data are made, among them production retention
 and how to undo a mistaken opening import.
 

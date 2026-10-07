@@ -35,6 +35,7 @@ class RegisterParticularsHeldSerializer(serializers.Serializer):
     as_at = serializers.DateField()
     source_import = serializers.UUIDField(allow_null=True)
     source_change = serializers.UUIDField(allow_null=True)
+    source_grant = serializers.UUIDField(allow_null=True)
 
 
 class RegisterParticularsChangeDecisionPreviewSerializer(serializers.Serializer):

@@ -33,11 +33,12 @@ provides the evidence, states an import's ASIC figures, and its appointments
 approve and apply them. Its appointments holding `admin` or `approve` also
 acknowledge reconciliation discrepancies. An import can open a register and
 retain members with no wallet, but an imported non-chain class currently accepts
-neither issue nor transfer
-instructions; publications also require a deployed or paused class. Supporting
-non-paid employee grants and
-other changes to a non-tokenised register therefore needs real ledger/workflow
-work. A wallet is required only when the chosen action uses the chain. A
+neither chain issue nor transfer instructions. Company-run
+[non-paid register grants](../plans/company-managed-registers/register-grants.md)
+now add genuine issues for new or existing walletless members with retained
+terms, acceptance where required, and current company approval. Direct ledger
+transfers remain later #865 work; publications also require a deployed or paused
+class until #870 converts that workflow. A wallet is required only when the chosen action uses the chain. A
 non-chain issue or transfer must record its real approved ledger effect, never a
 fabricated chain completion. Later tokenisation must mirror existing authorised
 holdings without issuing those shares again. Unsupported tokenisation and
@@ -54,8 +55,9 @@ yet on chain, an applied
 [import](../operations/register-foundation.md#importing-an-existing-register)
 is the opening instead: it records the company's existing register as the
 opening entry, checked against the ASIC extract's figures, and captures no chain
-boundary, so nothing is recorded, waiting or reconciled for that class until it
-is on chain. A wallet the
+boundary. Non-paid register grants can append genuine ISSUE entries while the
+class remains off chain; chain completions and chain reconciliation remain
+separate. A wallet the
 opening did not map is linked to a member only by a company-run
 [wallet link](../operations/register-foundation.md#linking-wallets-after-the-opening)
 under the company's own authority document.

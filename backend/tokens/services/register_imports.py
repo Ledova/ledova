@@ -441,6 +441,7 @@ def _apply(proposal, actor, decision):
                 "as_at": proposal.as_at,
                 "source_import": proposal,
                 "source_change": None,
+                "source_grant": None,
             },
         )
     ImportedFormerMember.objects.bulk_create(

@@ -482,6 +482,7 @@ class RegisterParticularsAuthorityTest(ParticularsAuthorityFixture, StubUploadDe
                 "asAt": DAY.isoformat(),
                 "sourceImport": None,
                 "sourceChange": change["uuid"],
+                "sourceGrant": None,
             },
         )
         refused = client.post(
