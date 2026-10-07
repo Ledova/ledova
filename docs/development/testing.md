@@ -114,6 +114,9 @@ refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
+The six shards are `tokens-1`, `tokens-2`, `tokens-3`, `shared-wallets`,
+`companies-users` and `others`. The `companies-users` shard selects `companies.*`
+and `users.*`; `others` covers the remaining apps.
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
 `-k` and each of that shard's test name patterns appended. Before the suite, each
 runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a

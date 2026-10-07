@@ -3,11 +3,11 @@
   "tokens-2": ["tokens.tests.test_[o-r]*", "tokens.tests.test_s[a-s]*", "tokens.tests.test_[t-z]*"],
   "tokens-3": ["tokens.tests.test_s[t-z]*"],
   "shared-wallets": ["shared.*", "wallets.*"],
+  "companies-users": ["companies.*", "users.*"],
   "others": [
     "assets.*",
     "authentication.*",
     "blockchain.*",
-    "companies.*",
     "compliance.*",
     "documents.*",
     "feature_flags.*",
@@ -17,7 +17,6 @@
     "operators.*",
     "portfolios.*",
     "shareholders.*",
-    "users.*",
     "whitelist.*"
   ]
 }
