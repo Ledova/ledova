@@ -47,7 +47,6 @@ from tokens.serializers.register_opening import RegisterOpeningSerializer
 from tokens.services import deployment, register_snapshot
 from tokens.services.register_events import (
     create_member,
-    open_register,
     verify_register,
 )
 from tokens.services.register_evidence import evidence_snapshot
@@ -64,9 +63,14 @@ from tokens.tests.deployment_fixtures import (
     DeploymentNode,
     admit_deployment,
     admitted_signer,
+    legacy_deployment_token,
 )
-from tokens.tests.evidence_fixtures import staff_user, upload_evidence
-from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.evidence_fixtures import (
+    owner_appointment,
+    staff_user,
+    upload_evidence,
+)
+from tokens.tests.test_register_events import register_fixture
 from tokens.tests.test_register_snapshot import SnapshotNode, block_hash, transfer
 
 ALICE = "0x" + "1" * 40
@@ -82,16 +86,21 @@ SETTINGS = dict(
 OPENINGS = "/api/v1/tokens/register-openings/"
 
 
-def deployed_class():
-    tenant = make_tenant("opening")
-    administrator = admit_company_administrator(tenant.company)
-    with use_migrate():
-        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
-        tenant.company.refresh_from_db()
-    with patch("tokens.services.register_deployments.queue_deployment"):
-        admit_deployment(tenant.token, tenant.user)
+def deployed_class(*, legacy_deployment=False):
+    if legacy_deployment:
+        tenant = legacy_deployment_token("opening", signed=True)
+        administrator = owner_appointment(tenant.company)
+    else:
+        tenant = make_tenant("opening")
+        administrator = admit_company_administrator(tenant.company)
+        with use_migrate():
+            Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+            tenant.company.refresh_from_db()
+        with patch("tokens.services.register_deployments.queue_deployment"):
+            admit_deployment(tenant.token, tenant.user)
     deployment_node = DeploymentNode()
-    admitted_signer()
+    if not legacy_deployment:
+        admitted_signer()
     with (
         patch("tokens.services.deployment.get_base_chain_client", return_value=deployment_node.client),
         patch("tokens.services.share_token_service.get_base_chain_client", return_value=deployment_node.client),
@@ -360,23 +369,24 @@ class RegisterOpeningTest(TransactionTestCase):
         self.node.client.w3.eth.get_block.assert_not_called()
         token.status = "deployed"
         token.save(update_fields=["status"])
-        open_register(token_id=token.pk, operation_id=uuid4(), changes=[], effective_on=DAY, recorded_by=self.owner)
+        self.apply(self.submit(operation_id=uuid4()))
         with self.assertRaisesMessage(ValidationError, "already has a stored register"):
             self.submit()
-        self.assertFalse(RegisterOpening.objects.exists())
+        self.assertFalse(RegisterOpening.objects.filter(pk=self.payload["operation_id"]).exists())
 
     def test_a_register_opened_while_the_boundary_is_read_refuses_the_preparation(self):
         capture = register_snapshot.capture_snapshot
 
         def capture_then_open(token_id, client=None):
             boundary = capture(token_id, client=client)
-            open_register(token_id=token_id, operation_id=uuid4(), changes=[], effective_on=DAY, recorded_by=self.owner)
+            with patch("tokens.services.register_openings.capture_snapshot", side_effect=capture):
+                self.apply(self.submit(operation_id=uuid4()))
             return boundary
 
         with patch("tokens.services.register_openings.capture_snapshot", side_effect=capture_then_open):
             with self.assertRaisesMessage(ValidationError, "already has a stored register"):
                 self.submit()
-        self.assertFalse(RegisterOpening.objects.exists())
+        self.assertFalse(RegisterOpening.objects.filter(pk=self.payload["operation_id"]).exists())
 
     def test_preparation_refuses_ambiguous_mappings_foreign_members_and_addresses_linked_elsewhere(self):
         _, _, _, foreign_member, _, _ = register_fixture()
@@ -596,9 +606,7 @@ class RegisterOpeningTest(TransactionTestCase):
         approved = self.submit()
         waiting = self.submit(operation_id=uuid4())
         self.decide(approved, "approve")
-        open_register(
-            token_id=self.tenant.token.pk, operation_id=uuid4(), changes=[], effective_on=DAY, recorded_by=self.owner
-        )
+        self.apply(self.submit(operation_id=uuid4()))
         self.assertEqual(self.unmet(approved), ["register_initialized"])
         self.assertEqual(self.unmet(waiting, "approve"), ["register_initialized"])
         with self.assertRaisesMessage(ValidationError, "register_initialized"):
