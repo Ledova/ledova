@@ -146,9 +146,9 @@ function refuse(config: InternalAxiosRequestConfig, status: number, data: unknow
     status,
   });
 }
-function Subject() {
-  const data = useShareClass(TOKEN);
-  return <CompanyCapitalFlow uuid={TOKEN} data={data} />;
+function Subject({ uuid = TOKEN }: { uuid?: string }) {
+  const data = useShareClass(uuid);
+  return <CompanyCapitalFlow uuid={uuid} data={data} />;
 }
 function show() {
   return render(
@@ -622,4 +622,67 @@ it('refuses a foreign class/company record instead of caching it as a usable cap
   await screen.findByText('Refresh the exact company capital source before continuing.');
   expect(requests.filter((row) => row.method === 'post')).toHaveLength(0);
   expect(screen.queryByText('Prepared capital increase')).toBeNull();
+});
+
+it('binds retained capital receipts and original preparation recovery when the same hook is reused for another class', async () => {
+  losePrepare = true;
+  const view = show();
+  await fill();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare capital increase' }));
+  await screen.findByRole('button', { name: 'Recover original capital preparation receipt' });
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh company capital records' }));
+  await screen.findByText('Prepared capital increase');
+  const original = records[0],
+    other = ID(999),
+    otherClass = { ...classRecord, uuid: ID(999), contractAddress: `0x${'9'.repeat(40)}` };
+  const adapter = apiClient.defaults.adapter as (config: InternalAxiosRequestConfig) => Promise<unknown>;
+  apiClient.defaults.adapter = async (config) => {
+    if (config.method === 'get' && config.url === URLS.DETAIL(other)) return response(config, otherClass);
+    if (config.method === 'get' && config.url === URLS.HOLDERS(other))
+      return response(config, {
+        token: otherClass,
+        initialized: true,
+        holders: [],
+        issuedSupply: '0',
+        waitingEffects: 0,
+        totalHolders: 0,
+        formerMembers: [],
+      });
+    if (config.method === 'get' && config.url === URLS.REGISTER_CAPITAL_INCREASES && config.params?.token === other)
+      return response(config, page(records.filter((row) => row.token === other)));
+    if (config.method === 'post' && config.url === URLS.REGISTER_CAPITAL_INCREASES) {
+      const body = JSON.parse(config.data as string) as RegisterCapitalIncreasePreparation;
+      if (body.token === other) {
+        requests.push(config);
+        const record = capitalFrom(body);
+        record.snapshot.token = { ...record.snapshot.token, uuid: other, contractAddress: otherClass.contractAddress };
+        record.snapshot.transaction.to = otherClass.contractAddress;
+        records.push(record);
+        return response(config, structuredClone(record));
+      }
+    }
+    return (await adapter(config)) as ReturnType<typeof response>;
+  };
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <Subject uuid={other} />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole('button', { name: 'Recover original capital preparation receipt' })).toBeNull();
+  expect(screen.queryByText(original.uuid)).toBeNull();
+  expect(screen.queryByText('Prepared capital increase')).toBeNull();
+  await fill();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare capital increase' }));
+  await screen.findByText('Prepared capital increase');
+  const posted = requests
+    .filter((row) => row.method === 'post' && row.url === URLS.REGISTER_CAPITAL_INCREASES)
+    .map((row) => JSON.parse(row.data as string));
+  expect(posted).toHaveLength(2);
+  expect(posted[0].token).toBe(TOKEN);
+  expect(posted[1].token).toBe(other);
+  expect(posted[1].operationId).not.toBe(posted[0].operationId);
+  expect(records).toHaveLength(2);
 });

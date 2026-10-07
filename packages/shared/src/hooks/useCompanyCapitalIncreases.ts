@@ -132,7 +132,7 @@ export function useCompanyCapitalIncreases(
       records: [
         ...rows,
         ...(prior.owner === owner && prior.company === company
-          ? prior.records.filter((row) => !rows.some((fresh) => fresh.uuid === row.uuid))
+          ? prior.records.filter((row) => row.token === tokenUuid && !rows.some((fresh) => fresh.uuid === row.uuid))
           : []),
       ],
     }));
@@ -165,7 +165,7 @@ export function useCompanyCapitalIncreases(
   const records = [
     ...fresh,
     ...(kept.owner === owner && kept.company === company
-      ? kept.records.filter((row) => !fresh.some((item) => item.uuid === row.uuid))
+      ? kept.records.filter((row) => row.token === tokenUuid && !fresh.some((item) => item.uuid === row.uuid))
       : []),
   ];
   const steps = Object.fromEntries(
@@ -272,7 +272,14 @@ export function useCompanyCapitalIncreases(
     guard();
   };
   const send = async (operation: Original, recovering: boolean) => {
-    if (pending.current || (!recovering && original !== null && original.owner === owner)) return;
+    if (
+      pending.current ||
+      (!recovering &&
+        original?.owner === owner &&
+        original?.company === company &&
+        original?.operation.body.token === tokenUuid)
+    )
+      return;
     pending.current = true;
     setBusy(true);
     setError(null);
@@ -324,7 +331,10 @@ export function useCompanyCapitalIncreases(
       },
       false,
     );
-  const recovery = original?.owner === owner && original.company === company ? original.operation : null;
+  const recovery =
+    original?.owner === owner && original.company === company && original.operation.body.token === tokenUuid
+      ? original.operation
+      : null;
   const recover = async () => {
     if (recovery) await send(recovery, true);
   };
