@@ -455,7 +455,9 @@ The [company capital family](../plans/company-managed-registers/company-capital-
 prepares exact before-cap, delta and target with retained company authority.
 Human approval admits no journal or job. Application consumes the exact personal
 approval and commits the original `CapitalIncreaseExecution`, public `executing`
-state and durable job together before RPC. Fresh owner/staff creation, submission,
+state and durable job together before signing or broadcast. Read-only chain and
+captured-cap preflight precedes the decision transaction outside its locks.
+Fresh owner/staff creation, submission,
 review and admission are retired. Original private histories remain readable.
 Technical retry retains `change_capitalincreaserequest` permission and a signed
 confirmation binding request, dispatch, actor and exact failed claim; it supplies

@@ -147,8 +147,9 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    mints nothing. A current company appointee prepares the exact current cap,
    positive delta and target with retained authority evidence. Approval alone
    admits no execution; application commits the original request, immutable private
-   intent and background job before any chain call. Network work runs outside
-   database transactions; an unresolved request retains the existing per-token
+   intent and background job before signing or broadcast. Read-only chain and
+   captured-cap preflight precedes the decision transaction. Network work runs
+   outside database transactions; an unresolved request retains the existing per-token
    in-flight slot. The shared signing journal preserves the original bytes, hash
    and nonce. Completion requires the original transaction's successful receipt
    and its `AuthorizedSharesUpdated` event matching both approved cap values.
