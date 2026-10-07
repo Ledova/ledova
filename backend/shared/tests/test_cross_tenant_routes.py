@@ -1433,7 +1433,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
         with self.as_an_operator_would():
             tenant = make_tenant("deployment-matrix")
-            Company.objects.filter(pk=tenant.company.pk).update(status="active")
+            with use_migrate():
+                Company.objects.filter(pk=tenant.company.pk).update(status="active")
             tenant.company.refresh_from_db()
             appointment = owner_appointment(tenant.company)
         payload = {"operation_id": str(uuid4()), "appointment": str(appointment.pk), "token": str(tenant.token.pk)}
