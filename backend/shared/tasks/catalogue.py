@@ -1,4 +1,7 @@
 SYSTEM_WIDE = {
+    "whitelist.tasks.company_wallet.execute_company_wallet_change": "Recovers one durably admitted company wallet "
+    "change using its original instruction and outgoing operation on the operator connection. It retains the "
+    "recorded company actors and cannot admit new intent or replace an original signed outcome.",
     "tokens.tasks.nav.recover_nav_update": "Recovers one durably admitted staff NAV update using its original journal.",
     "tokens.tasks.nav.check_pending_nav_updates": "Recovers admitted staff NAV work without inferring new intent.",
     "tokens.tasks.pause.recover_pause_change": "Recovers one durably authorized issuer or staff pause command "
