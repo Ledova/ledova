@@ -2,9 +2,17 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
 import { createMemoryRouter, Route, RouterProvider, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WALLET_ENDPOINTS, formatWalletAddressShort, type AccountRole } from '@ledova/shared';
+import {
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  ApiClientProvider,
+  WALLET_ENDPOINTS,
+  formatWalletAddressShort,
+  type AccountRole,
+} from '@ledova/shared';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 const account = vi.hoisted(() => ({ role: 'investor' as AccountRole }));
@@ -72,9 +80,11 @@ function renderWalletsInTheFrame() {
     { initialEntries: ['/wallets'] },
   );
   render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ApiClientProvider>,
   );
 }
 
@@ -95,6 +105,10 @@ function answer(wallets: ReturnType<typeof listOf>) {
 beforeEach(() => {
   account.role = 'investor';
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  queryClient.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   answer(walletList);
 });
 
@@ -107,6 +121,9 @@ afterEach(() => {
 async function openWallets(role?: AccountRole) {
   if (role) account.role = role;
   if (role) queryClient.setQueryData(['userAccount'], { data: { role } });
+  queryClient.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: account.role } },
+  });
   renderWalletsInTheFrame();
   await screen.findByText('Base wallet');
 }
