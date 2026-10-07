@@ -1,67 +1,143 @@
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCompanyToken,
-  getCompany,
   getCompanyTokenHolders,
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
-  deployCompanyToken,
   readEveryPage,
   submitCapitalIncrease,
+  useSubmissionOwner,
   wholeShares,
+  type CompanyShareToken,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { checkedRegister, useCompanyAccess } from '../company-register/useCompanyRegister';
+import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
+import { checkedRegister } from '../company-register/useCompanyRegister';
 
 export function useTokenDetail(uuid: string) {
   const queryClient = useQueryClient();
-  const access = useCompanyAccess();
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const guard = useCallback(() => {
+    assertSessionEpoch(epoch);
+    if (!mounted.current || !owner || boundary.get() !== owner)
+      throw new Error('The account changed. Reopen the share class to continue.');
+  }, [boundary, epoch, owner]);
+  const tokenKey = ['company-token', uuid, epoch, owner?.userUuid, owner?.ownerAccountUuid];
+  const config = (signal?: AbortSignal) => ({ signal, ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard });
+  const read = async <Response>(request: () => Promise<Response>) => {
+    guard();
+    const response = await request();
+    guard();
+    return response;
+  };
   const token = useQuery({
-    queryKey: ['company-token', uuid],
-    enabled: !!uuid && access.allowed,
-    queryFn: async () => {
-      const { data } = await getCompanyToken(apiClient, uuid);
-      if (data.uuid !== uuid || wholeShares(data.totalSupply) === null) throw new Error('Invalid share class');
+    queryKey: tokenKey,
+    enabled: !!uuid && !!owner,
+    queryFn: async ({ signal }) => {
+      const { data } = await read(() => getCompanyToken(apiClient, uuid, config(signal)));
+      if (data.uuid !== uuid || !data.companyUuid || wholeShares(data.totalSupply) === null)
+        throw new Error('Invalid share class');
       return data;
     },
   });
-  const enabled = access.allowed && !!token.data && !token.isError;
-  const company = useQuery({
-    queryKey: ['company', token.data?.companyUuid],
-    enabled,
-    queryFn: () => getCompany(apiClient, token.data!.companyUuid).then(({ data }) => data),
-  });
+  const enabled = !!owner && token.isSuccess && !!token.data && !token.isError;
+  const isOwner = enabled && token.data!.isOwner === true;
+  const ownerReads = isOwner && !token.isFetching;
+  const guardOwner = (status?: 'deployed') => {
+    guard();
+    const current = queryClient.getQueryState<CompanyShareToken>(tokenKey);
+    if (
+      current?.status !== 'success' ||
+      current.fetchStatus !== 'idle' ||
+      current.isInvalidated ||
+      current.data?.uuid !== uuid ||
+      current.data.companyUuid !== token.data?.companyUuid ||
+      !current.data.isOwner ||
+      (status && current.data.status !== status)
+    )
+      throw new Error('Refresh the owner share class before submitting this request.');
+  };
   const register = useQuery({
-    queryKey: ['company-token', uuid, 'holders'],
+    queryKey: [...tokenKey, 'holders'],
     enabled,
-    queryFn: async () => checkedRegister(uuid, (await getCompanyTokenHolders(apiClient, uuid)).data),
+    queryFn: async ({ signal }) => {
+      const result = checkedRegister(
+        uuid,
+        (await read(() => getCompanyTokenHolders(apiClient, uuid, config(signal)))).data,
+      );
+      return result;
+    },
   });
   const issuances = useQuery({
-    queryKey: ['company-token', uuid, 'issuances'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
+    queryKey: [...tokenKey, 'issuances'],
+    enabled: ownerReads,
+    queryFn: ({ signal }) =>
+      readEveryPage((page) => read(() => getCompanyTokenIssuances(apiClient, uuid, { page }, config(signal)))),
   });
   const capital = useQuery({
-    queryKey: ['company-token', uuid, 'capital-increases'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
+    queryKey: [...tokenKey, 'capital-increases'],
+    enabled: ownerReads,
+    queryFn: ({ signal }) =>
+      readEveryPage((page) => read(() => getCapitalIncreases(apiClient, { token: uuid, page }, config(signal)))),
   });
   const requests = useQuery({
-    queryKey: ['company-token', uuid, 'issuance-requests'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
+    queryKey: [...tokenKey, 'issuance-requests'],
+    enabled: ownerReads,
+    queryFn: ({ signal }) =>
+      readEveryPage((page) => read(() => getShareIssuanceRequests(apiClient, { token: uuid, page }, config(signal)))),
   });
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['company-token', uuid] }),
+      queryClient.invalidateQueries({ queryKey: tokenKey }),
       queryClient.invalidateQueries({ queryKey: ['company-tokens'] }),
-      queryClient.invalidateQueries({ queryKey: ['company', token.data?.companyUuid] }),
+      queryClient.invalidateQueries({
+        queryKey: ['register-deployments', epoch, owner?.userUuid, owner?.ownerAccountUuid, uuid],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['register-deployment-appointments', epoch, owner?.userUuid, owner?.ownerAccountUuid, uuid],
+      }),
     ]);
-  const deploy = useMutation({ mutationFn: () => deployCompanyToken(apiClient, uuid), onSuccess: refresh });
   const submitCapital = useMutation({
-    mutationFn: (requestUuid: string) => submitCapitalIncrease(apiClient, requestUuid),
-    onSuccess: refresh,
+    mutationFn: async (requestUuid: string) => {
+      guardOwner();
+      const response = await submitCapitalIncrease(apiClient, requestUuid, {
+        ledovaSessionEpoch: epoch,
+        ledovaSubmissionGuard: () => guardOwner(),
+      });
+      guardOwner();
+      return response;
+    },
+    onSuccess: async () => {
+      guardOwner();
+      await refresh();
+      guardOwner();
+    },
   });
-  return { access, token, company, register, issuances, capital, requests, deploy, submitCapital, refresh };
+  return {
+    owner,
+    boundary,
+    epoch,
+    guard,
+    guardOwner,
+    tokenKey,
+    token,
+    isOwner,
+    register,
+    issuances,
+    capital,
+    requests,
+    submitCapital,
+    refresh,
+  };
 }

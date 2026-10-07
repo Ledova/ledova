@@ -30,7 +30,7 @@ Compose runs migrations, checks database roles and reconciles the compliance,
 procedure and asset seeds before serving the application. Before any of that it
 starts a local chain and deploys the core contracts on it (on later starts it
 checks them instead), and the migration step ends by admitting the operator's
-signer for that chain, so staff actions such as deploying a share class sign
+signer for that chain, so authorised actions such as company empty deployment sign
 real transactions; see [the local chain](#the-local-chain). PostgreSQL runs the
 job queue; Redis handles request quotas and trading events. ClamAV must finish
 loading signatures before uploads work. See [upload setup](operations/uploads.md).

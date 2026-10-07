@@ -44,6 +44,8 @@ GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
     "tokens_registercorrectiondecision",
+    "tokens_registerdeployment",
+    "tokens_registerdeploymentdecision",
     "tokens_registerevidence",
     "tokens_registergrant",
     "tokens_registergrantdecision",
@@ -59,6 +61,7 @@ RESTORED_EMPTY_TABLES = {
 }
 ADDED_COLUMNS = {
     "offerings_subscription": ["eligibility_decision_id"],
+    "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_registermemberparticulars": ["source_grant_id", "source_transfer_id"],
     "tokens_transferorder": [
         "eligibility_decision_id",

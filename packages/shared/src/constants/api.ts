@@ -83,7 +83,6 @@ export const COMPANY_ENDPOINTS = {
 export const COMPANY_TOKEN_ENDPOINTS = {
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
-  DEPLOY: (uuid: string) => `/api/v1/tokens/${uuid}/deploy/` as const,
   PAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/pause/` as const,
   UNPAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/unpause/` as const,
   PAUSE_SUBMISSION: (uuid: string, submissionId: string) =>
@@ -94,6 +93,11 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
+  REGISTER_DEPLOYMENTS: '/api/v1/tokens/register-deployments/',
+  REGISTER_DEPLOYMENT_DETAIL: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/` as const,
+  REGISTER_DEPLOYMENT_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-deployments/${uuid}/decision-preview/` as const,
+  REGISTER_DEPLOYMENT_DECIDE: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/decide/` as const,
   REGISTER_MEMBERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/members/` as const,
   REGISTER_TRANSFERS: '/api/v1/tokens/register-transfers/',
   REGISTER_TRANSFER_FILE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/file/` as const,

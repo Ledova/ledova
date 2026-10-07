@@ -3,7 +3,6 @@ import {
   DESTINATIONS,
   REGISTER_COPY,
   appointmentForRegisterStep,
-  canOpen,
   useOpenRows,
   useSubmissionOwner,
   useUserPreferences,
@@ -12,7 +11,6 @@ import {
 } from '@ledova/shared';
 import { Disclosure, LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
@@ -46,9 +44,11 @@ function RegisterPage({
       <Section title="Register instructions">
         <p className="text-sm text-text-muted">
           Company appointees run the supported register commands above, including non-paid grants and direct transfers
-          for imported draft classes. Paid settlement, tokenisation and corporate actions remain planned. Other
-          tokenised register instructions are submitted by the company owner. Staff verify and apply them. Certificates,
-          inspection copies, publications and the company pack are prepared by staff on written instruction.
+          for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
+          this creates no shares and does not mirror existing holdings. Paid settlement, tokenisation of existing
+          holdings and corporate actions remain planned. Other tokenised register instructions are submitted by the
+          company owner. Staff verify and apply them. Certificates, inspection copies, publications and the company pack
+          are prepared by staff on written instruction.
         </p>
       </Section>
     </Page>
@@ -118,8 +118,6 @@ function OwnRegister({
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
   const rows = useOpenRows();
-  const { role } = useRole();
-  const classPages = canOpen(role, DESTINATIONS.companyClass.audience);
 
   return (
     <RegisterPage
@@ -175,14 +173,14 @@ function OwnRegister({
                   </span>
                 }
               >
-                {classPages && (
+                {
                   <div className="border-b border-border-subtle">
                     <LinkRow
                       to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
                       label={DESTINATIONS.companyClass.title}
                     />
                   </div>
-                )}
+                }
                 <RegisterDownload register={register} />
                 <RegisterMembers owner={owner} guard={guard} register={register} company={company.uuid} />
                 {ON_CHAIN.includes(register.token.status) && (

@@ -7,6 +7,8 @@ import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../constants
 import { REGISTER_PARTICULARS_COPY, REGISTER_PARTICULARS_UNMET_COPY } from '../constants/business/register-particulars';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
 import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
+import { REGISTER_DEPLOYMENT_COPY, REGISTER_DEPLOYMENT_UNMET_COPY } from '../constants/business/register-deployments';
+import { decideRegisterDeployment, previewRegisterDeploymentDecision } from '../services/register-deployments';
 import { decideRegisterTransfer, previewRegisterTransferDecision } from '../services/register-transfers';
 import { decideRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
@@ -27,6 +29,8 @@ import type {
   RegisterImportDecisionPreview,
   RegisterGrant,
   RegisterGrantDecisionPreview,
+  RegisterDeployment,
+  RegisterDeploymentDecisionPreview,
   RegisterTransfer,
   RegisterTransferDecisionPreview,
   RegisterLink,
@@ -41,6 +45,7 @@ import { failureStatus, isRegisterDecisionReceipt } from '../utils/register-comm
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
+import { isRegisterDeploymentDecisionReceipt } from '../utils/register-deployments';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
@@ -57,7 +62,7 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
     data: RegisterDecideRequest,
     config?: AxiosRequestConfig,
   ) => Promise<{ data: Proposal }>;
-  isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest) => boolean;
+  isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
 };
@@ -76,6 +81,17 @@ export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, Reg
   isReceipt: isRegisterGrantDecisionReceipt,
   unmet: REGISTER_GRANT_UNMET_COPY,
   copy: REGISTER_GRANT_COPY,
+};
+
+export const REGISTER_DEPLOYMENT_DECISIONS: RegisterDecisionFamily<
+  RegisterDeployment,
+  RegisterDeploymentDecisionPreview
+> = {
+  preview: previewRegisterDeploymentDecision,
+  decide: decideRegisterDeployment,
+  isReceipt: isRegisterDeploymentDecisionReceipt,
+  unmet: REGISTER_DEPLOYMENT_UNMET_COPY,
+  copy: REGISTER_DEPLOYMENT_COPY,
 };
 
 export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfer, RegisterTransferDecisionPreview> = {
@@ -135,6 +151,7 @@ export type RegisterDecisionOptions<Proposal> = {
   appointment: string | undefined;
   newKey: () => string;
   guard: () => void;
+  newEffectGuard?: () => void;
   requestConfig?: () => AxiosRequestConfig;
   onDecided: (proposal: Proposal) => Promise<unknown> | void;
   onRefused?: () => Promise<unknown> | void;
@@ -156,8 +173,9 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
   const mounted = useRef(true);
   const pending = useRef(false);
   const confirmation = useRef<RegisterDecisionTarget<Preview> | null>(null);
-  const retry = useRef<{ signature: string; key: string } | null>(null);
+  const retry = useRef<RegisterDecisionTarget<Preview> | null>(null);
   const [target, setTarget] = useState<RegisterDecisionTarget<Preview> | null>(null);
+  const [recovery, setRecovery] = useState<RegisterDecisionTarget<Preview> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -172,20 +190,36 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
     confirmation.current = next;
     if (mounted.current) setTarget(next);
   };
+  const guardNewEffect = options.newEffectGuard
+    ? () => {
+        options.guard();
+        options.newEffectGuard!();
+      }
+    : options.guard;
   const open = async (kind: RegisterDecisionKind, reason = '') => {
-    if (pending.current || !proposal || !options.appointment) return;
+    if (pending.current) return;
+    if (retry.current) {
+      settle(retry.current);
+      return;
+    }
+    if (!proposal || !options.appointment) return;
     pending.current = true;
     setBusy(true);
     setError(null);
     settle(null);
     let refused = false;
     try {
-      options.guard();
+      guardNewEffect();
       const request = { appointment: options.appointment, kind, reason };
-      const response = await family.preview(apiClient, proposal.uuid, request, options.requestConfig?.() ?? {});
-      options.guard();
+      const response = await family.preview(apiClient, proposal.uuid, request, {
+        ...(options.requestConfig?.() ?? {}),
+        ledovaSubmissionGuard: guardNewEffect,
+      });
+      guardNewEffect();
+      if (!/^[0-9a-f]{64}$/.test(response.data.previewDigest))
+        throw createUserFriendlyError(family.copy.PREVIEW_FAILED);
       const signature = JSON.stringify([proposal.uuid, kind, request.appointment, reason, response.data.previewDigest]);
-      const key = retry.current?.signature === signature ? retry.current.key : options.newKey();
+      const key = options.newKey();
       settle({
         uuid: proposal.uuid,
         signature,
@@ -202,28 +236,32 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
     }
     if (refused) await options.onRefused?.();
   };
-  const confirm = async () => {
-    const current = confirmation.current;
-    if (pending.current || !current || !current.preview.canDecide) return;
+  const retain = (current: RegisterDecisionTarget<Preview> | null) => {
+    retry.current = current;
+    if (mounted.current) setRecovery(current);
+  };
+  const dispatch = async (current: RegisterDecisionTarget<Preview>, recovering = false) => {
+    if (pending.current) return;
     pending.current = true;
     setBusy(true);
     setError(null);
     try {
-      options.guard();
-      retry.current = { signature: current.signature, key: current.request.idempotencyKey };
+      const dispatchGuard = recovering ? options.guard : guardNewEffect;
+      dispatchGuard();
+      retain(current);
       const response = await family.decide(apiClient, current.uuid, current.request, {
         ...(options.requestConfig?.() ?? {}),
-        ledovaSubmissionGuard: options.guard,
+        ledovaSubmissionGuard: dispatchGuard,
       });
       options.guard();
-      if (!family.isReceipt(response.data, current.uuid, current.request))
+      if (!family.isReceipt(response.data, current.uuid, current.request, current.preview))
         throw createUserFriendlyError(family.copy.DECISION_RECEIPT_FAILED);
-      retry.current = null;
+      retain(null);
       settle(null);
       await options.onDecided(response.data);
     } catch (failure) {
       const status = failureStatus(failure);
-      if (status && status < 500) retry.current = null;
+      if (status === 400 || status === 409) retain(null);
       settle(null);
       if (mounted.current)
         setError(
@@ -236,12 +274,21 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
       if (mounted.current) setBusy(false);
     }
   };
+  const confirm = async () => {
+    const current = confirmation.current;
+    if (current?.preview.canDecide) await dispatch(current);
+  };
+  const recover = async () => {
+    if (retry.current) await dispatch(retry.current, true);
+  };
   return {
     target,
     busy,
     error,
     open,
     confirm,
+    recovery,
+    recover,
     cancel: () => {
       if (!pending.current) settle(null);
     },

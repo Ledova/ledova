@@ -283,6 +283,14 @@ REGISTER_CORRECTION_ROUTES = {
     "decision_preview": ("post", "/api/v1/tokens/register-corrections/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-corrections/{uuid}/decide/"),
 }
+REGISTER_DEPLOYMENT_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-deployments/"),
+    "list": ("get", "/api/v1/tokens/register-deployments/"),
+    "detail": ("get", "/api/v1/tokens/register-deployments/{uuid}/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-deployments/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-deployments/{uuid}/decide/"),
+}
+
 REGISTER_GRANT_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-grants/"),
     "list": ("get", "/api/v1/tokens/register-grants/"),
@@ -411,7 +419,6 @@ ROUTES = (
     Route("get", "/api/v1/companies/{own_company}/documents/{company_document}/file/"),
     Route("delete", "/api/v1/companies/{company}/documents/{company_document}/"),
     Route("get", "/api/v1/tokens/{token}/"),
-    Route("post", "/api/v1/tokens/{token}/deploy/", {}, prepare=_activate_company),
     Route("post", "/api/v1/tokens/{deployed_token}/pause/", {"submissionId": "{deployed_token}"}),
     Route("post", "/api/v1/tokens/{deployed_token}/unpause/", {"submissionId": "{deployed_token}"}),
     Route("get", "/api/v1/tokens/{deployed_token}/pause-submissions/{deployed_token}/"),
@@ -681,6 +688,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         yield
 
     def setUp(self):
+        from tokens.tasks import deploy_share_token_task
+
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self._patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
         self.services = []
@@ -699,7 +708,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             side_effect=lambda **inputs: matching_observation(Company.objects.get(acn=inputs["acn"])),
         )
         self._service("offerings.services.offering.send_push_notification")
-        self._service("tokens.tasks.deploy_share_token_task")
+        self._service("tokens.tasks.deploy_share_token_task").name = deploy_share_token_task.name
         share_tokens = self._service("tokens.views.share_token.share_token_service")
         share_tokens.create_issuance_request.side_effect = _create_issuance_request
         pause_commands = self._service("tokens.views.share_token.pause_changes")
@@ -1386,6 +1395,75 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.logout()
         with self.as_an_operator_would():
             self.assertEqual(RegisterCorrection.objects.get(pk=proposal_id).status, "submitted")
+
+    def test_register_deployments_scope_all_five_routes_to_current_company_read_and_steps(self):
+        from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
+        from tokens.models import RegisterDeployment
+        from tokens.tests.deployment_fixtures import FACTORY
+        from tokens.tests.evidence_fixtures import owner_appointment
+
+        with self.as_an_operator_would():
+            tenant = make_tenant("deployment-matrix")
+            with use_migrate():
+                Company.objects.filter(pk=tenant.company.pk).update(status="active")
+            tenant.company.refresh_from_db()
+            appointment = owner_appointment(tenant.company)
+        payload = {"operation_id": str(uuid4()), "appointment": str(appointment.pk), "token": str(tenant.token.pk)}
+        with override_settings(
+            BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY
+        ):
+            self.client.force_authenticate(tenant.user)
+            response = self.client.post(REGISTER_DEPLOYMENT_ROUTES["create"][1], payload, format="json")
+            self.assertEqual(response.status_code, 201, response.content)
+            identifier = response.json()["uuid"]
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                self.assertEqual(
+                    self.client.post(REGISTER_DEPLOYMENT_ROUTES["create"][1], payload, format="json").status_code, 404
+                )
+                self.assertEqual(self.rows(self.client.get(REGISTER_DEPLOYMENT_ROUTES["list"][1])), [])
+                for name in ("detail", "decision_preview", "decide"):
+                    method, template = REGISTER_DEPLOYMENT_ROUTES[name]
+                    body = {
+                        "appointment": str(appointment.pk),
+                        "kind": "approve",
+                        "idempotency_key": str(uuid4()),
+                        "preview_digest": "0" * 64,
+                        "confirmation": True,
+                    }
+                    foreign = getattr(self.client, method)(template.format(uuid=identifier), body, format="json")
+                    absent = getattr(self.client, method)(template.format(uuid=uuid4()), body, format="json")
+                    self.assertEqual((foreign.status_code, foreign.content), (absent.status_code, absent.content))
+                    self.assertEqual(foreign.status_code, 404)
+            self.client.force_authenticate(None)
+            for name, (method, path) in REGISTER_DEPLOYMENT_ROUTES.items():
+                response = getattr(self.client, method)(path.format(uuid=identifier), payload, format="json")
+                self.assertEqual(response.status_code, 401, name)
+            self.client.force_authenticate(tenant.user)
+            self.assertEqual(
+                [row["uuid"] for row in self.rows(self.client.get(REGISTER_DEPLOYMENT_ROUTES["list"][1]))], [identifier]
+            )
+            for kind in ("approve", "apply"):
+                body = {"appointment": str(appointment.pk), "kind": kind}
+                preview = self.client.post(
+                    REGISTER_DEPLOYMENT_ROUTES["decision_preview"][1].format(uuid=identifier), body, format="json"
+                )
+                self.assertEqual(preview.status_code, 200, preview.content)
+                response = self.client.post(
+                    REGISTER_DEPLOYMENT_ROUTES["decide"][1].format(uuid=identifier),
+                    {
+                        **body,
+                        "idempotency_key": str(uuid4()),
+                        "preview_digest": preview.json()["previewDigest"],
+                        "confirmation": True,
+                    },
+                    format="json",
+                )
+                self.assertEqual(response.status_code, 200, response.content)
+            detail = self.client.get(REGISTER_DEPLOYMENT_ROUTES["detail"][1].format(uuid=identifier))
+            self.assertEqual(detail.json()["status"], "applied")
+            with self.as_an_operator_would():
+                self.assertEqual(RegisterDeployment.objects.get(pk=identifier).token_id, tenant.token.pk)
 
     @override_settings(
         STORAGES={

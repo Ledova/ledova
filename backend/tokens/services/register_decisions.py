@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
+from uuid import UUID
 
 from django.db import IntegrityError, connections
 from django.utils import timezone
@@ -154,19 +155,21 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         profile,
         operator,
     ):
-        source = register_appointment(company, current_actor, profile, operator, appointment)
         prior = family.decision_model.objects.filter(decided_by=current_actor, idempotency_key=idempotency_key).first()
         if prior is not None:
             decided = getattr(prior, f"{family.field}_id")
             if (decided, prior.kind, prior.appointment_id, prior.reason, prior.digest) != (
                 initial.pk,
                 kind,
-                source.pk,
+                UUID(str(appointment)),
                 reason,
                 preview_digest,
             ):
                 raise RegisterChangeConflict()
+            if not family.model.objects.register_readable_by(current_actor).filter(pk=decided).exists():
+                raise NotFound(f"Register {family.subject} not found.")
             return family.model.objects.get(pk=decided)
+        source = register_appointment(company, current_actor, profile, operator, appointment)
         proposal = family.lock(initial)
         if _digest(family, proposal, kind, current_actor, source, reason) != preview_digest:
             raise RegisterChangeConflict()

@@ -1423,22 +1423,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/{uuid}/deploy/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_deploy_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/{uuid}/holders/': {
     parameters: {
       query?: never;
@@ -1737,6 +1721,70 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_corrections_file_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-deployments/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_deployments_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_deployments_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-deployments/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_deployments_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-deployments/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_deployments_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-deployments/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_deployments_decision_preview_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4511,6 +4559,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterCorrection'][];
     };
+    PaginatedRegisterDeploymentList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterDeployment'][];
+    };
     PaginatedRegisterGrantList: {
       count: number;
       next?: string | null;
@@ -4966,6 +5020,118 @@ export interface ApiComponents {
     };
     RegisterCorrectionStatusEnum: 'submitted' | 'applied' | 'rejected';
     RegisterDecisionKindEnum: 'approve' | 'apply' | 'reject';
+    RegisterDeployment: {
+      approvalDecision: string | null;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterDeploymentDecision'][];
+      deploymentId: string | null;
+      execution: ApiComponents['schemas']['RegisterDeploymentExecution'] | null;
+      executionUnmetRequirements: string[];
+      intentDigest: string;
+      operationId: string;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      snapshot: ApiComponents['schemas']['RegisterDeploymentSnapshot'];
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterDeploymentCompanySnapshot: {
+      acn: string;
+      name: string;
+      status: string;
+      uuid: string;
+    };
+    RegisterDeploymentCreateRequest: {
+      appointment: string;
+      operationId: string;
+      token: string;
+    };
+    RegisterDeploymentDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterDeploymentDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterDeploymentDecisionPreview: {
+      approvalDecision: string | null;
+      canDecide: boolean;
+      deploymentId: string | null;
+      intentDigest: string;
+      previewDigest: string;
+      snapshot: ApiComponents['schemas']['RegisterDeploymentSnapshot'];
+      unmetRequirements: string[];
+    };
+    RegisterDeploymentDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterDeploymentExecution: {
+      attributionRequired: boolean;
+      claimId: string | null;
+      contractAddress: string | null;
+      deployment: string;
+      operationId: string | null;
+      operationStatus: string | null;
+      projectedAt: string | null;
+      swapApprovalOutcome: string | null;
+      txHash: string | null;
+    };
+    RegisterDeploymentRegisterSnapshot: {
+      headHash: string | null;
+      initialized: boolean | null;
+      issuedSupply: string | null;
+      present: boolean;
+      sequence: number | null;
+      uuid: string | null;
+    };
+    RegisterDeploymentSnapshot: {
+      company: ApiComponents['schemas']['RegisterDeploymentCompanySnapshot'];
+      issuerWallet: ApiComponents['schemas']['RegisterDeploymentWalletSnapshot'];
+      register: ApiComponents['schemas']['RegisterDeploymentRegisterSnapshot'];
+      token: ApiComponents['schemas']['RegisterDeploymentTokenSnapshot'];
+      transaction: ApiComponents['schemas']['RegisterDeploymentTransactionSnapshot'];
+    };
+    RegisterDeploymentTokenSnapshot: {
+      authorisedShares: string;
+      decimals: number;
+      identifier: string;
+      name: string;
+      symbol: string;
+      uuid: string;
+    };
+    RegisterDeploymentTransactionSnapshot: {
+      chainId: number;
+      data: string;
+      sender: string;
+      to: string;
+      value: string;
+    };
+    RegisterDeploymentWalletSnapshot: {
+      address: string;
+      chain: string;
+    };
     RegisterDeviceTokenRequest: {
       deviceType: ApiComponents['schemas']['DeviceTypeEnum'];
       pushToken: string;
@@ -5984,6 +6150,7 @@ export interface ApiComponents {
       deployedAt: string | null;
       deploymentTxHash: string | null;
       isDivisible: boolean;
+      isOwner: boolean;
       isTransferable: boolean;
       name: string;
       status: ApiComponents['schemas']['ShareTokenStatusEnum'];
@@ -6197,10 +6364,6 @@ export interface ApiComponents {
       ownerAccountUuid: string;
       userRole: ApiComponents['schemas']['UserRoleEnum'];
       walletUuid: string;
-    };
-    TokenDeploymentStarted: {
-      message: string;
-      token: ApiComponents['schemas']['ShareTokenDetail'];
     };
     TokenTypeEnum: 'ordinary' | 'preference' | 'redeemable';
     ToStatusEnum: 'cancelled';
@@ -9115,27 +9278,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_deploy_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['TokenDeploymentStarted'];
-        };
-      };
-    };
-  };
   api_v1_tokens_holders_retrieve: {
     parameters: {
       query?: never;
@@ -9664,6 +9806,131 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_deployments_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterDeploymentList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_deployments_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterDeploymentCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterDeploymentCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterDeploymentCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterDeployment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_deployments_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterDeployment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_deployments_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterDeploymentDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterDeploymentDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterDeploymentDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterDeployment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_deployments_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterDeploymentDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterDeploymentDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterDeploymentDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterDeploymentDecisionPreview'];
         };
       };
     };

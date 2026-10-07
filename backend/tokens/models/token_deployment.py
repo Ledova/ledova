@@ -14,6 +14,9 @@ class SwapApprovalOutcome(models.TextChoices):
 
 
 class TokenDeployment(BaseModel):
+    source_deployment = models.OneToOneField(
+        "tokens.RegisterDeployment", on_delete=models.PROTECT, null=True, editable=False, related_name="execution"
+    )
     token_id = models.UUIDField(unique=True, editable=False)
     company_id = models.UUIDField(editable=False)
     principal_id = models.PositiveBigIntegerField(null=True, editable=False)

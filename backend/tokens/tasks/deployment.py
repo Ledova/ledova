@@ -19,10 +19,19 @@ PENDING_DEPLOYMENT_AGE = timedelta(minutes=10)
 def deploy_share_token_task(
     token_uuid: str, *, deployment_id: str, principal_id: int | None, retry_of: str | None = None
 ):
-    with acting_for(principal_id):
-        token = ShareToken.objects.select_related("company").filter(uuid=token_uuid).first()
+    if principal_id is not None and (type(principal_id) is not int or principal_id <= 0):
+        return {"success": False, "error": "Token not found"}
+    with acting_for(principal_id), use_operator():
+        token = (
+            ShareToken.objects.select_related("company").filter(uuid=token_uuid, deployment_id=deployment_id).first()
+        )
         if token is None:
             logger.error(f"Token not found: {token_uuid}")
+            return {"success": False, "error": "Token not found"}
+        from tokens.services.register_deployments import applied_source
+
+        source = applied_source(token)
+        if source is not None and principal_id is not None and principal_id != source.reviewed_by_id:
             return {"success": False, "error": "Token not found"}
         if token.status != ShareTokenStatus.DEPLOYING or str(token.deployment_id) != deployment_id:
             logger.warning(f"Token {token_uuid} not deployable: {token.status}")

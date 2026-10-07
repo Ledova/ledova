@@ -1,4 +1,5 @@
 import React from 'react';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -223,7 +224,11 @@ function deferred() {
   return { promise, resolve };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 async function openClass() {
@@ -246,6 +251,10 @@ beforeEach(() => {
   jest.mocked(Crypto.randomUUID).mockImplementation(() => KEY(++keys) as ReturnType<typeof Crypto.randomUUID>);
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
+  });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
   });
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
@@ -442,7 +451,7 @@ it('previews an approval, records exactly that decision and refetches the class 
   expect(post).toHaveBeenCalledWith(
     URLS.REGISTER_IMPORT_PREVIEW('import-new'),
     { appointment: 'appointment-admin', kind: 'approve', reason: '' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   expect(view.getAllByText(COPY.STATED_FIGURES('9,007,199,254,740,993', 1))).toHaveLength(2);
   expect(view.getAllByText(COPY.IMPORTED_FIGURES('9,007,199,254,740,993', 1))).toHaveLength(2);
@@ -545,7 +554,7 @@ it('rejects only with the reason it previewed, trimmed and at most 1,000 charact
   expect(post).toHaveBeenLastCalledWith(
     URLS.REGISTER_IMPORT_PREVIEW('import-new'),
     { appointment: 'appointment-approver', kind: 'reject', reason: '' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   const reason = () => view.getByLabelText(COPY.REJECTION_REASON);
   expect(reason().props.maxLength).toBe(1000);
@@ -557,7 +566,7 @@ it('rejects only with the reason it previewed, trimmed and at most 1,000 charact
   expect(post).toHaveBeenLastCalledWith(
     URLS.REGISTER_IMPORT_PREVIEW('import-new'),
     { appointment: 'appointment-approver', kind: 'reject', reason: 'Stale register' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   expect(view.getByRole('button', { name: 'Preview rejection' })).toBeDisabled();
   await fireEvent.changeText(reason(), 'Stale register, and late');
@@ -583,25 +592,33 @@ it('rejects only with the reason it previewed, trimmed and at most 1,000 charact
   );
 });
 
-it('clears the previous rejection error when the rejection reopens', async () => {
+it('keeps the original rejection reason and key until its uncertain receipt is recovered', async () => {
   post
     .mockResolvedValueOnce({ data: UNREASONED })
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockRejectedValueOnce(new Error('Network Error'))
-    .mockResolvedValueOnce({ data: UNREASONED });
+    .mockResolvedValueOnce({
+      data: decided('reject', KEY(2), { appointment: 'appointment-approver', reason: 'Stale register' }),
+    });
   const view = await openClass();
+  appointments = [appointment('appointment-approver', ['approve'])];
+  await act(() => view.getByTestId('register-screen').props.refreshControl.props.onRefresh());
   await fireEvent.press(view.getByRole('button', { name: step('Reject') }));
   await view.findByText(REGISTER_IMPORT_UNMET_COPY.reason_required);
   await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Stale register');
   await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
   await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).toBeEnabled());
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
-  expect(await view.findByText('Network Error')).toBeTruthy();
+  await view.findByText('Network Error');
+  expect(view.getByLabelText(COPY.REJECTION_REASON).props.value).toBe('Stale register');
+  expect(view.getByLabelText(COPY.REJECTION_REASON).props.editable).toBe(false);
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  await fireEvent.press(view.getByRole('button', { name: step('Reject') }));
-  expect(await view.findByText(REGISTER_IMPORT_UNMET_COPY.reason_required)).toBeTruthy();
-  expect(view.getByLabelText(COPY.REJECTION_REASON).props.value).toBe('');
-  expect(view.queryByText('Network Error')).toBeNull();
+  expect(view.queryByRole('button', { name: step('Reject') })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: /Recover reject receipt for/ }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /Recover reject receipt for/ })).toBeNull());
+  const calls = post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_DECIDE('import-new'));
+  expect(calls.map(([, body]) => body)).toEqual([calls[0][1], calls[0][1]]);
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_PREVIEW('import-new'))).toHaveLength(2);
 });
 
 it('refetches the class imports, entries, holders and appointments when a decision is refused', async () => {
@@ -691,31 +708,28 @@ it('leaves the cached history unchanged when a decision receipt cannot be confir
   expect(client.getQueryState(key)).toEqual(cached);
 });
 
-it('retries an interrupted decision under its key, without rereading appointments, until the preview changes', async () => {
+it('recovers interrupted decisions with the complete original body without rereading a preview or appointment', async () => {
   post
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockRejectedValueOnce(new Error('Network Error'))
-    .mockResolvedValueOnce({ data: PREVIEW })
     .mockRejectedValueOnce(new Error('Network Error'))
-    .mockResolvedValueOnce({ data: { ...PREVIEW, previewDigest: 'b'.repeat(64) } })
-    .mockRejectedValueOnce(new Error('Network Error'));
+    .mockResolvedValueOnce({ data: decided('approve', KEY(1)) });
   const view = await openClass();
   const appointmentReads = reads(APPOINTMENTS);
   const decide = () => post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_DECIDE('import-new'));
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
-    await view.findByText(COPY.CONFIRMATIONS.approve);
-    await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
-    await view.findByText('Network Error');
-    await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  }
-  expect(decide().map(([, body]) => (body as { idempotencyKey: string }).idempotencyKey)).toEqual([
-    KEY(1),
-    KEY(1),
-    KEY(2),
-  ]);
-  expect((decide()[2][1] as { previewDigest: string }).previewDigest).toBe('b'.repeat(64));
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await view.findByText('Network Error');
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await fireEvent.press(view.getByRole('button', { name: /Recover approve receipt for/ }));
+  await waitFor(() => expect(decide()).toHaveLength(2));
+  await waitFor(() => expect(view.getByRole('button', { name: /Recover approve receipt for/ })).toBeEnabled());
   expect(reads(APPOINTMENTS)).toBe(appointmentReads);
+  await fireEvent.press(view.getByRole('button', { name: /Recover approve receipt for/ }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /Recover approve receipt for/ })).toBeNull());
+  expect(decide().map(([, body]) => body)).toEqual([decide()[0][1], decide()[0][1], decide()[0][1]]);
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_IMPORT_PREVIEW('import-new'))).toHaveLength(1);
 });
 
 it('drops an open decision when the session changes and ignores its late answer', async () => {

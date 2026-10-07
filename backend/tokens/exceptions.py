@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from blockchain.services.outgoing import OutgoingTransactionError
 from shared.utils.token_amounts import format_units
 
 
@@ -66,6 +67,12 @@ class TokenDeploymentFailedException(APIException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     default_detail = "Token deployment failed."
     default_code = "token_deployment_failed"
+
+
+class DeploymentSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned deployment waits for its company source.")
 
 
 class InvalidTokenStateException(APIException):

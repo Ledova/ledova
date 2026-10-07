@@ -44,6 +44,7 @@ from tokens.tests.deployment_fixtures import (
     CREATED,
     FACTORY,
     DeploymentNode,
+    admit_deployment,
     delete_approval_jobs,
 )
 from tokens.tests.pause_fixtures import PauseNode
@@ -266,8 +267,8 @@ class ChainFixtures(SettledTransferFixtures):
                 status=CompanyStatus.ACTIVE, operator_wallet=self.fixture.seller.wallet
             )
             token = ShareToken.objects.get(pk=token.pk)
-            with patch("tokens.tasks.deploy_share_token_task.defer"):
-                deployment.start_deployment(token, principal_id=self.owner.pk)
+            with patch("tokens.services.register_deployments.queue_deployment"):
+                admit_deployment(token, self.owner, appointment=self.administrator)
             self.addCleanup(delete_approval_jobs, token.deployment_id)
             with (
                 patch("tokens.services.deployment.get_base_chain_client", return_value=node.client),

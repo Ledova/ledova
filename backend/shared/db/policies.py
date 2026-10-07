@@ -595,6 +595,11 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registerdeployment": "Immutable private company deployment sources, including captured wallet and "
+    "actor associations. Current exact-company register readers receive only the bounded review projection "
+    "through the operator connection; new signatures require the original consumed company approval.",
+    "tokens_registerdeploymentdecision": "Append-only company deployment decisions, bound to personal company "
+    "appointments and served through their exact-company deployment review.",
     "tokens_registertransferdecision": "Append-only company decisions of exact non-paid direct register transfers, "
     "bound to current company appointments and read through their company-scoped transfer.",
     "tokens_registergrantdecision": "Append-only company decisions of non-paid register grants, bound to current "

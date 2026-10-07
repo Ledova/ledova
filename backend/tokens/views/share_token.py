@@ -32,7 +32,7 @@ from tokens.serializers.pause_change import (
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
-from tokens.services import deployment, pause_changes, share_token_service
+from tokens.services import pause_changes, share_token_service
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -60,7 +60,6 @@ class ShareTokenViewSet(
             "create",
             "list",
             "retrieve",
-            "deploy",
             "pause",
             "unpause",
             "pause_submission",
@@ -108,7 +107,7 @@ class ShareTokenViewSet(
     def narrow(self, queryset):
         if self.action == "register_opening_holders":
             queryset = queryset.register_preparable_by(self.request.user)
-        elif self.action in self.register_reads:
+        elif self.action in self.register_reads or self.action == "retrieve":
             queryset = queryset.register_readable_by(self.request.user)
         else:
             queryset = queryset.issued_by(self.request.user)
@@ -127,20 +126,10 @@ class ShareTokenViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.save()
-        return Response(ShareTokenDetailSerializer(token).data, status=status.HTTP_201_CREATED)
-
-    @extend_schema(
-        responses=inline_serializer(
-            name="TokenDeploymentStarted",
-            fields={"message": serializers.CharField(), "token": ShareTokenDetailSerializer()},
+        return Response(
+            ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED,
         )
-    )
-    @action(detail=True, methods=["post"])
-    def deploy(self, request, uuid=None):
-        token = self.get_object()
-        with company_owner_operation(request.user, token.company_id):
-            deployment.start_deployment(token, principal_id=request.user.pk)
-        return Response({"message": "Token deployment initiated.", "token": ShareTokenDetailSerializer(token).data})
 
     @extend_schema(
         request=PauseSubmissionRequestSerializer,
@@ -170,7 +159,7 @@ class ShareTokenViewSet(
         return Response(
             {
                 "message": pause_changes.message(change),
-                "token": ShareTokenDetailSerializer(token).data,
+                "token": ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data,
                 "submission": pause_changes.outcome(change),
             },
             status=status.HTTP_200_OK if change.completed_at else status.HTTP_202_ACCEPTED,
@@ -212,7 +201,7 @@ class ShareTokenViewSet(
         return Response(
             {
                 "message": "Share issuance request submitted for approval.",
-                "token": ShareTokenDetailSerializer(token).data,
+                "token": ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data,
                 "issuance_request": ShareIssuanceRequestSerializer(issuance_request).data,
             },
             status=status.HTTP_201_CREATED,

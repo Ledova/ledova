@@ -25,7 +25,8 @@ records alignment of the complete baseline document set.
 
 ## Shipped
 
-- Issuance on chain: share-class deployment, whitelisted recipients, authorized
+- Issuance on chain: [company-authorised empty share-class deployment](plans/company-managed-registers/company-deployments.md),
+  whitelisted recipients, authorized
   caps and recovery of interrupted requests
   ([contracts and issuance](architecture/contracts-and-issuance.md),
   [operator recovery](operations/recovery.md)).

@@ -1,8 +1,9 @@
 import logging
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from django.conf import settings
 from django.core import signing
+from django.db import IntegrityError
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
@@ -18,6 +19,7 @@ from integrations.base_chain import get_base_chain_client
 from shared.db import atomic, use_operator
 from tokens.exceptions import (
     CompanyNotReadyException,
+    DeploymentSigningHold,
     InvalidTokenStateException,
     TokenDeploymentFailedException,
 )
@@ -30,14 +32,6 @@ RETRY_SALT = "tokens.deployment.retry"
 ATTRIBUTION_REQUIRED = "This deployment requires operator attribution; its history has been retained."
 
 
-def require_deployable(token):
-    if token.status != ShareTokenStatus.DRAFT:
-        raise InvalidTokenStateException(
-            f"Cannot deploy token with status '{token.get_status_display()}'. Token must be in draft status."
-        )
-    return _eligible_wallet(token)
-
-
 def _eligible_wallet(token):
     if token.company.status != CompanyStatus.ACTIVE:
         raise CompanyNotReadyException("Company must be active before deploying tokens.")
@@ -47,27 +41,6 @@ def _eligible_wallet(token):
             "Company must have an operator wallet or verified owner wallet on Base before deploying tokens."
         )
     return wallet
-
-
-def start_deployment(token, *, principal_id):
-    from tokens.tasks import deploy_share_token_task
-
-    with atomic():
-        current = deployment_journal.lock_token(token.pk, token.company_id, None)
-        if current.deployment_id is None:
-            require_deployable(current)
-            if current.deployment_tx_hash or current.deployment_transaction_id:
-                raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
-            current.deployment_id = uuid4()
-            current.status = ShareTokenStatus.DEPLOYING
-            current.save(update_fields=["deployment_id", "status", "updated_at"])
-        if current.status == ShareTokenStatus.DEPLOYING:
-            deploy_share_token_task.defer(
-                token_uuid=str(current.pk), deployment_id=str(current.deployment_id), principal_id=principal_id
-            )
-        elif current.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED):
-            raise InvalidTokenStateException("The admitted deployment cannot be replaced by a new submission.")
-    token.refresh_from_db()
 
 
 def require_retryable(token):
@@ -109,8 +82,8 @@ def retry_deployment(token, *, principal_id, confirmation):
     )
 
 
-def _intent(token):
-    wallet = _eligible_wallet(token)
+def _intent(token, *, wallet=None):
+    wallet = _eligible_wallet(token) if wallet is None else wallet
     try:
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
         authorized = int(token.total_supply)
@@ -134,23 +107,29 @@ def _intent(token):
     }
 
 
-def _admit(token, principal):
+def _admit(token):
     if token.deployment_id is None:
         raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
     with use_operator(), atomic(durable=True):
-        current = deployment_journal.lock_token(token.pk, token.company_id, principal)
+        current = deployment_journal.lock_token(token.pk, token.company_id, None)
         if current.deployment_id != token.deployment_id or current.status != ShareTokenStatus.DEPLOYING:
             raise InvalidTokenStateException("The queued deployment no longer owns this token.")
         deployment = TokenDeployment.objects.filter(pk=current.deployment_id).first()
         if deployment is None:
             if current.deployment_tx_hash or current.deployment_transaction_id:
                 raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
+            from tokens.services.register_deployments import applied_source
+
+            source = applied_source(current)
+            if source is None:
+                raise DeploymentSigningHold(["legacy_source_unavailable"])
             deployment = TokenDeployment.objects.create(
                 pk=current.deployment_id,
+                source_deployment=source,
                 token_id=current.pk,
                 company_id=current.company_id,
-                principal_id=principal,
-                intent=_intent(current),
+                principal_id=source.reviewed_by_id,
+                intent=source.intent,
             )
         if deployment.token_id != current.pk or deployment.company_id != current.company_id:
             raise InvalidTokenStateException("This submission belongs to a different token or company.")
@@ -186,15 +165,14 @@ def _claim(deployment, retry_of):
     return claim
 
 
-def _check_preparation(deployment, principal, client):
-    with atomic(durable=True):
-        token = deployment_journal.lock_token(deployment.token_id, deployment.company_id, principal)
-        if (
-            token.deployment_id != deployment.pk
-            or token.status != ShareTokenStatus.DEPLOYING
-            or _intent(token) != deployment.intent
-        ):
-            raise InvalidTokenStateException("The deployment identity changed after admission.")
+def _check_preparation(deployment, client):
+    from tokens.services.register_deployments import execution_requirements
+
+    if deployment.source_deployment_id is None:
+        raise DeploymentSigningHold(["legacy_source_unavailable"])
+    unmet = execution_requirements(deployment.source_deployment)
+    if unmet:
+        raise DeploymentSigningHold(unmet)
     if client.assert_expected_chain() != deployment.intent["chain_id"]:
         raise InvalidTokenStateException("The deployment provider is on a different chain.")
 
@@ -250,7 +228,7 @@ def _created_address(deployment, operation, client):
     return address
 
 
-def _process(deployment, principal, retry_of=None):
+def _process(deployment, retry_of=None):
     with use_operator():
         if deployment.attribution_required:
             raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
@@ -261,11 +239,18 @@ def _process(deployment, principal, retry_of=None):
         client = get_base_chain_client()
         if operation.status == OutgoingStatus.PREPARING:
             try:
-                _check_preparation(deployment, principal, client)
+                _check_preparation(deployment, client)
                 if _hold_existing_contract(deployment, claim, client):
                     raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
                 prepared = outgoing.prepare_operation(claim, client)
-                _check_preparation(deployment, principal, client)
+                _check_preparation(deployment, client)
+            except DeploymentSigningHold:
+                operation.refresh_from_db()
+                if operation.claim_id != claim.claim_id or operation.status not in (
+                    OutgoingStatus.SIGNED,
+                    OutgoingStatus.CONFIRMED,
+                ):
+                    return deployment
             except Exception:
                 if outgoing.fail_preparing(claim):
                     raise
@@ -276,14 +261,31 @@ def _process(deployment, principal, retry_of=None):
                 ):
                     raise
             else:
-                outgoing.sign_operation(
-                    claim,
-                    prepared,
-                    settings.BLOCKCHAIN_OPERATOR_KEY,
-                    on_signed=lambda attempt: deployment_journal.record_signed_deployment(
-                        deployment, principal, attempt, _intent
-                    ),
-                )
+                from tokens.services.register_deployments import signing_source
+
+                try:
+                    outgoing.sign_operation(
+                        claim,
+                        prepared,
+                        settings.BLOCKCHAIN_OPERATOR_KEY,
+                        signing_context=lambda: signing_source(deployment, claim),
+                        on_signed=lambda attempt: deployment_journal.record_signed_deployment(deployment, attempt),
+                    )
+                except DeploymentSigningHold:
+                    operation.refresh_from_db()
+                    if operation.claim_id != claim.claim_id or operation.status not in (
+                        OutgoingStatus.SIGNED,
+                        OutgoingStatus.CONFIRMED,
+                    ):
+                        return deployment
+                except IntegrityError:
+                    from tokens.services.register_deployments import (
+                        execution_requirements,
+                    )
+
+                    if execution_requirements(deployment.source_deployment):
+                        return deployment
+                    raise
         operation.refresh_from_db()
         if operation.status == OutgoingStatus.SIGNED:
             outgoing.reconcile_operation(claim, client)
@@ -350,10 +352,10 @@ def _project(deployment):
 
 
 def deploy_token(token, *, retry_of=None):
-    principal = deployment_journal.caller_principal()
-    deployment = _admit(token, principal)
+    deployment_journal.caller_principal()
+    deployment = _admit(token)
     try:
-        current = _process(deployment, principal, retry_of)
+        current = _process(deployment, retry_of)
         address = _project(current)
     except InvalidTokenStateException:
         raise
@@ -374,7 +376,7 @@ def recover(deployment_id):
     if deployment is None:
         return None
     try:
-        result = _project(_process(deployment, deployment.principal_id)) or None
+        result = _project(_process(deployment)) or None
     except Exception:
         logger.exception("Deployment %s remains unresolved", deployment_id)
         result = None

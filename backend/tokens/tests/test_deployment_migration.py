@@ -7,7 +7,12 @@ from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, TokenDeployment
 from tokens.services import deployment
-from tokens.tests.deployment_fixtures import CHAIN_ID, FACTORY, KEY, deployment_token
+from tokens.tests.deployment_fixtures import (
+    CHAIN_ID,
+    FACTORY,
+    KEY,
+    legacy_deployment_token,
+)
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
@@ -49,7 +54,7 @@ class DeploymentMigrationTest(TransactionTestCase):
 
     def test_reverse_refuses_to_remove_queued_submission_identity(self):
         self.addCleanup(restore_every_migration)
-        token = deployment_token("queued-reverse").token
+        token = legacy_deployment_token("queued-reverse", journal=False).token
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):
             migrate_to([("tokens", "0042_mint_request_operations")])
         restore_every_migration()
@@ -57,8 +62,8 @@ class DeploymentMigrationTest(TransactionTestCase):
 
     def test_reverse_refuses_to_remove_admitted_intent(self):
         self.addCleanup(restore_every_migration)
-        token = deployment_token("admitted-reverse").token
-        command = deployment._admit(token, None)
+        token = legacy_deployment_token("admitted-reverse").token
+        command = TokenDeployment.objects.get(pk=token.deployment_id)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove deployment submission or recovery history"):
             migrate_to([("tokens", "0042_mint_request_operations")])
         restore_every_migration()

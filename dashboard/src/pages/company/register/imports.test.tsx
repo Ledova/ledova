@@ -752,7 +752,7 @@ it.each([
   },
 );
 
-it('retries an unconfirmed decision with the same key and takes a new key once the preview changes', async () => {
+it('retains the original unconfirmed decision even when a later preview would change', async () => {
   decideFor = async () => {
     throw Object.assign(new Error('Unable to connect to our servers.'), { isUserFriendly: true });
   };
@@ -773,7 +773,7 @@ it('retries an unconfirmed decision with the same key and takes a new key once t
   expect(writes(DECIDE).map(([, body]) => [body.idempotencyKey, body.previewDigest])).toEqual([
     [KEY(1), DIGEST],
     [KEY(1), DIGEST],
-    [KEY(2), 'e'.repeat(64)],
+    [KEY(1), DIGEST],
   ]);
 });
 

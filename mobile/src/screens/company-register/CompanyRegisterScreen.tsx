@@ -8,7 +8,7 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../company/CompanySelection';
-import { useCompanyAccess, useCompanyRegister } from './useCompanyRegister';
+import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
@@ -22,7 +22,6 @@ export function CompanyRegisterScreen() {
 
 function CompanyRegister({ epoch }: { epoch: number }) {
   const { classes, companies, company, selectCompany, registers, isFetching, refresh } = useCompanyRegister(epoch);
-  const classPageOpens = useCompanyAccess().allowed;
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -73,13 +72,11 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                   <Text style={styles.muted}>{open ? 'Hide members' : 'Show members'}</Text>
                 </Pressable>
                 <Rows>
-                  {classPageOpens && (
-                    <LinkRow
-                      label="Share class"
-                      accessibilityLabel={`Open ${register.token.name}`}
-                      onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
-                    />
-                  )}
+                  <LinkRow
+                    label="Share class"
+                    accessibilityLabel={`Open ${register.token.name}`}
+                    onPress={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
+                  />
                   {open && (
                     <View style={styles.group}>
                       <RegisterDownload
@@ -147,9 +144,11 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       <Section title="Register instructions">
         <Text style={styles.muted}>
           Company appointees run the supported register commands above, including non-paid grants and direct transfers
-          for imported draft classes. Paid settlement, tokenisation and corporate actions remain planned. Other
-          tokenised register instructions are submitted by the company owner. Staff verify and apply them. Certificates,
-          inspection copies, publications and the company pack are prepared by staff on written instruction.
+          for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
+          this creates no shares and does not mirror existing holdings. Paid settlement, tokenisation of existing
+          holdings and corporate actions remain planned. Other tokenised register instructions are submitted by the
+          company owner. Staff verify and apply them. Certificates, inspection copies, publications and the company pack
+          are prepared by staff on written instruction.
         </Text>
       </Section>
     </Page>

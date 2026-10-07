@@ -35,15 +35,16 @@ def lock_token(token_id, company_id, principal):
     return token
 
 
-def record_signed_deployment(deployment, principal, attempt, validate_intent):
-    token = lock_token(deployment.token_id, deployment.company_id, principal)
+def record_signed_deployment(deployment, attempt):
+    token = ShareToken.objects.get(pk=deployment.token_id, company_id=deployment.company_id)
     current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
     if (
         current.attribution_required
         or token.deployment_id != current.pk
         or current.operation_id != attempt.operation_id
         or token.status != ShareTokenStatus.DEPLOYING
-        or validate_intent(token) != current.intent
+        or current.source_deployment_id is None
+        or current.source_deployment.intent != current.intent
     ):
         raise InvalidTokenStateException("The admitted deployment identity or authority changed before signing.")
     previous_hash = None

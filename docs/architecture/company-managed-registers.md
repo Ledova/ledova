@@ -65,8 +65,13 @@ to new or existing walletless members of an imported non-tokenised register,
 with retained company authority and genuine ISSUE entries. [Direct non-paid
 transfers](../plans/company-managed-registers/register-transfers.md) add new and
 returning recipients, attributable cessation history and genuine roll/certificate
-inputs. #866–#873 remain planned. Their company
-offering, issuance and register authority is separate.
+inputs. The first #867 increment implements
+[company-authorised empty deployments](../plans/company-managed-registers/company-deployments.md),
+retaining exact human approval separately from the technical signer and original
+receipt/projection recovery. It issues no shares and mirrors no populated
+register. Wallet nomination/approval, company issuance, capital and pause
+conversion remain later #867 increments. #866 and #868–#873 remain planned.
+Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

@@ -21,6 +21,7 @@ export * from './company-eligibility';
 export * from './company-token';
 export * from './register-command';
 export * from './register-grant';
+export * from './register-deployment';
 export * from './register-transfer';
 export * from './register-import';
 export * from './register-correction';

@@ -10,15 +10,16 @@ The [company-managed plan](company-managed-registers.md#existing-gates-to-replac
 makes the company decision and the technical signer distinct. Company-appointed
 users must authorise supported whitelist, issue/allotment and capital changes
 within their mandates; a backend signing key or privileged connection grants no
-human company authority. Replace the current staff admission checks together
-with the service and database guards, retaining exact company/class/recipient,
-quantity, evidence and commit-time authority checks.
+human company authority. [Empty deployment](../plans/company-managed-registers/company-deployments.md)
+now uses a company decision family in both clients. Wallet approval, issuance,
+capital and pause conversion remain later #867 increments; their current checks
+stay effective until their service and database guards are replaced together.
 
 The lifecycle below describes current code. Preserve whole-share arithmetic,
 authorised headroom, wallet possession and company registry approval for chain
 actions, original signed bytes, finality and atomic register recording. A
 non-paid employee grant must record its actual terms and authority rather than
-invent a paid subscription. An imported register without a deployed class
+invent a paid subscription. An import-origin register
 cannot issue or transfer through chain register instructions. The
 [non-paid grant workflow](../plans/company-managed-registers/register-grants.md)
 records genuine company-approved ledger issues without deployment or a wallet.
@@ -73,19 +74,26 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    uses (`SUPPORTED_ASSETS`: BTC, ETH, USDC, USDT, AUDY, AUSG), in any letter
    case, preventing new symbol collisions with crypto or payment assets.
    Existing classes keep their symbols.
-2. `POST /api/v1/tokens/{uuid}/deploy/` calls `deployment.start_deployment`.
-   A draft requires an active company and primary wallet. Its submission UUID,
-   `DEPLOYING` status and principal-bearing job commit together. Repeated
-   requests retain the UUID and recover the existing deployment.
-3. The worker freezes the admitted token, company, issuer and factory call in
-   a private `TokenDeployment`. The identifier is `<acn>:<symbol>`; a company
+2. `/api/v1/tokens/register-deployments/` provides company preparation, preview,
+   approval, application and rejection. A draft requires an active company, the
+   existing selected issuer wallet and proven empty register state. Preparation
+   freezes company/class/issuer metadata, the factory intent and register boundary.
+   Application consumes the exact approval; its original deployment UUID,
+   `DEPLOYING` status and actual applying-principal job commit together. Exact
+   request replay returns its retained receipt without a new effect. The former
+   owner deploy action and fresh staff deploy admission are retired.
+3. The worker materialises a private `TokenDeployment` under the original applied
+   source and intent, including when source loss now holds unsigned work. Its
+   immutable nullable source association preserves legacy journals without
+   inventing company approval. The identifier is `<acn>:<symbol>`; a company
    may have several share classes. An existing factory address without an
    attributable local deployment remains pending for operator attribution.
 4. The shared outgoing journal commits the signed bytes, nonce, hash and token
    association before broadcast. Recovery uses the original transaction and
    matching factory event. Unknown outcomes remain `DEPLOYING`; a signed admin
    confirmation may retry a definite unsigned failure or revert with the same
-   intent. The five-minute sweep recovers admitted work. Deployment mints
+   intent, subject to the original company source for fresh signing. The
+   five-minute sweep recovers admitted work. Deployment mints
    nothing: the contract's `totalSupply()` starts at zero. See
    [deployment persistence](#deployment-persistence).
 5. An investor wallet is verified, then approved for the company by staff.
@@ -158,17 +166,22 @@ execution of an approved request.
 
 `backend/tokens/services/deployment.py` admits one immutable `TokenDeployment`
 for each queued submission. Its UUID snapshots preserve token/company/issuer
-identity without adding a private foreign-key dependency to customer deletion.
+identity; new journals also retain their exact company proposal and consumed
+approval. Captured wallet/account/profile/user identifiers remain private JSON
+associations rather than customer-deletion foreign keys.
 Historical rows retain null submission identities and their original hashes and
 records; they are not automatically attributed or imported into the outgoing journal.
 
 The shared outgoing journal's local signing callback commits `SignedAttempt`
 bytes, the reserved nonce, the `BlockchainTransaction` and the public token's
 hash/transaction association in one durable operator transaction. It refuses
-surrounding transactions, competing bindings, changed admitted terms and revoked
-issuer ownership. Other public lifecycle and asset writes stay on the issuer
-connection. Operator recovery can reconcile an already-signed transaction after
-issuer access changes; unsigned issuer intent still requires its authority.
+surrounding transactions, competing bindings and changed admitted terms. Inside
+that transaction a narrow source-lock context precedes outgoing/signer/journal
+locks and rechecks the exact consumed approval, approving/applying mandates,
+captured wallet, configuration and register state immediately before signing.
+Temporary contention or source loss holds the original unsigned operation without
+a signed attempt or nonce. Operator recovery reconciles already-signed originals
+after company source loss; legacy NULL-source work cannot obtain a fresh signature.
 
 Unknown sends and lost commit acknowledgements recover the original signed
 bytes, hash and nonce. Definite preparation failures and reverts retain their

@@ -16,6 +16,7 @@ import { TokenPauseControls } from '../components/TokenPauseControls';
 import { ClassRegister } from '../register/ClassRegister';
 import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
 import { useShareClass } from './useShareClass';
+import { DeploymentFlow } from './DeploymentFlow';
 
 function requestTone(status: CapitalIncreaseStatus): Tone {
   if (status === 'executed') return 'done';
@@ -56,53 +57,76 @@ export default function ShareClassPage() {
 export function ShareClass({ uuid }: { uuid: string }) {
   const navigate = useNavigate();
   const data = useShareClass(uuid);
-  const [form, setForm] = useState<'issue' | 'raise' | null>(null);
+  return (
+    <Page actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}>
+      <ShareClassDetails
+        key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
+        data={data}
+      />
+      <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
+    </Page>
+  );
+}
+
+function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
+  const [form, setForm] = useState<{
+    kind: 'issue' | 'raise';
+    owner: typeof data.owner;
+    token: string;
+    company: string;
+  } | null>(null);
   const [copyError, setCopyError] = useState(false);
   const token = data.token.data;
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
-  const requestForms = token && (
+  const activeForm =
+    form?.owner === data.owner && form?.token === token?.uuid && form?.company === token?.companyUuid
+      ? form?.kind
+      : null;
+  const requestForms = data.owner && token?.isOwner && (
     <>
-      {form === 'issue' && (
-        <IssueSharesForm token={token} classRead={data.token} onClose={() => setForm(null)} onSuccess={data.refresh} />
+      {activeForm === 'issue' && (
+        <IssueSharesForm
+          token={token}
+          classRead={data.token}
+          guard={() => data.guardOwner('deployed')}
+          onClose={() => setForm(null)}
+          onSuccess={data.refresh}
+        />
       )}
-      {form === 'raise' && (
-        <RaiseSharesForm token={token} classRead={data.token} onClose={() => setForm(null)} onSuccess={data.refresh} />
+      {activeForm === 'raise' && (
+        <RaiseSharesForm
+          token={token}
+          classRead={data.token}
+          guard={() => data.guardOwner('deployed')}
+          onClose={() => setForm(null)}
+          onSuccess={data.refresh}
+        />
       )}
     </>
   );
-  if (data.token.isPending) return <Page loading actions={back} />;
-  if (data.token.isError || !token)
-    return (
-      <>
-        <Page actions={back}>
+  const content = () => {
+    if (data.token.isPending) return <p role="status">Loading share class…</p>;
+    if (data.token.isError || !token)
+      return (
+        <>
           <div role="alert" className="space-y-3">
             <p className="text-sm text-text-muted">
               This share class could not be loaded. It may be unavailable to this account.
             </p>
             <PageAction label="Try again" onClick={() => void data.token.refetch()} disabled={data.token.isFetching} />
           </div>
-        </Page>
-        {requestForms}
-      </>
-    );
-  const canDeploy =
-    token.status === 'draft' &&
-    !data.token.isFetching &&
-    !data.company.isFetching &&
-    !data.company.isError &&
-    data.company.data?.status === 'active' &&
-    !data.deploy.isPending;
-  const deployed = token.status === 'deployed';
-  const paused = token.status === 'paused';
-  const addressUrl =
-    token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
-  const txUrl = token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
-  const requests = data.requests.data ?? [];
-  const capital = data.capital.data ?? [];
-  const issuances = data.issuances.data ?? [];
-  return (
-    <>
-      <Page actions={back}>
+        </>
+      );
+    const deployed = token.status === 'deployed';
+    const paused = token.status === 'paused';
+    const addressUrl =
+      token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
+    const txUrl =
+      token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
+    const requests = data.requests.data ?? [];
+    const capital = data.capital.data ?? [];
+    const issuances = data.issuances.data ?? [];
+    return (
+      <>
         <Section title={token.name}>
           <p className="text-sm text-text-muted">
             {token.companyName} · {token.symbol} · {token.tokenTypeDisplay}
@@ -172,28 +196,21 @@ export function ShareClass({ uuid }: { uuid: string }) {
               View deployment transaction
             </a>
           )}
-          {token.status === 'draft' && (
-            <ReadResult query={data.company} label="company state">
-              <p className="text-sm text-text-muted">The company must be active before this class can be deployed.</p>
-              <PageAction
-                label="Deploy class"
-                onClick={() => {
-                  if (canDeploy) data.deploy.mutate();
-                }}
-                disabled={!canDeploy}
-              />
-            </ReadResult>
-          )}
-          {data.deploy.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {getErrorMessage(data.deploy.error, 'Deployment could not be started. Try again.')}
-            </p>
-          )}
-          {(deployed || paused) && <TokenPauseControls token={token} />}
-          {deployed && (
+          {data.isOwner && (deployed || paused) && <TokenPauseControls token={token} />}
+          {data.isOwner && deployed && (
             <div className="flex flex-wrap gap-2">
-              <PageAction label="Request issuance" onClick={() => setForm('issue')} />
-              <PageAction label="Raise authorised shares" onClick={() => setForm('raise')} />
+              <PageAction
+                label="Request issuance"
+                onClick={() =>
+                  setForm({ kind: 'issue', owner: data.owner, token: token.uuid, company: token.companyUuid })
+                }
+              />
+              <PageAction
+                label="Raise authorised shares"
+                onClick={() =>
+                  setForm({ kind: 'raise', owner: data.owner, token: token.uuid, company: token.companyUuid })
+                }
+              />
             </div>
           )}
         </Section>
@@ -218,97 +235,108 @@ export function ShareClass({ uuid }: { uuid: string }) {
             {data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>
-        <Section title="Issuance requests">
-          <ReadResult query={data.requests} label="issuance requests">
-            {requests.length === 0 ? (
-              <p className="py-3 text-sm text-text-muted">No issuance requests yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {requests.map((request) => (
-                  <li key={request.uuid} className="space-y-2 py-4 text-sm">
-                    <p className="break-words text-text-primary">
-                      {formatShareCount(String(request.amount))} {request.tokenSymbol} to {request.recipientAddress}
-                    </p>
-                    <p className="text-text-muted">{request.reason || request.issuanceTypeDisplay}</p>
-                    <p>
-                      <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
-                    </p>
-                    <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
-                    {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
-                    {request.executionNotes && (
-                      <details className="text-text-muted">
-                        <summary className="cursor-pointer">Execution history</summary>
-                        <p className="whitespace-pre-wrap">{request.executionNotes}</p>
-                      </details>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </ReadResult>
-        </Section>
-        <Section title="Authorised share requests">
-          <p className="text-sm text-text-muted">
-            Raising the cap requires staff review and execution. It does not issue shares.
-          </p>
-          {data.submitCapital.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {getErrorMessage(data.submitCapital.error, 'The request could not be submitted. Try again.')}
+        {data.isOwner && (
+          <Section title="Issuance requests">
+            <ReadResult query={data.requests} label="issuance requests">
+              {requests.length === 0 ? (
+                <p className="py-3 text-sm text-text-muted">No issuance requests yet.</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {requests.map((request) => (
+                    <li key={request.uuid} className="space-y-2 py-4 text-sm">
+                      <p className="break-words text-text-primary">
+                        {formatShareCount(String(request.amount))} {request.tokenSymbol} to {request.recipientAddress}
+                      </p>
+                      <p className="text-text-muted">{request.reason || request.issuanceTypeDisplay}</p>
+                      <p>
+                        <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
+                      </p>
+                      <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
+                      {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
+                      {request.executionNotes && (
+                        <details className="text-text-muted">
+                          <summary className="cursor-pointer">Execution history</summary>
+                          <p className="whitespace-pre-wrap">{request.executionNotes}</p>
+                        </details>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ReadResult>
+          </Section>
+        )}
+        {data.isOwner && (
+          <Section title="Authorised share requests">
+            <p className="text-sm text-text-muted">
+              Raising the cap requires staff review and execution. It does not issue shares.
             </p>
-          )}
-          <ReadResult query={data.capital} label="authorised share requests">
-            {capital.length === 0 ? (
-              <p className="py-3 text-sm text-text-muted">No authorised share requests yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {capital.map((request) => (
-                  <li key={request.uuid} className="space-y-2 py-4 text-sm">
-                    <p className="break-words text-text-primary">{request.purpose}</p>
-                    <p className="text-text-muted">
-                      +{formatShareCount(String(request.additionalShares))} →{' '}
-                      {formatShareCount(String(request.newAuthorizedTotal))} authorised shares
-                    </p>
-                    <p>
-                      <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
-                    </p>
-                    <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
-                    {request.status === 'draft' && (
-                      <PageAction
-                        label="Submit for review"
-                        onClick={() => data.submitCapital.mutate(request.uuid)}
-                        disabled={data.submitCapital.isPending}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
+            {data.submitCapital.isError && (
+              <p role="alert" className="text-sm text-error-light">
+                {getErrorMessage(data.submitCapital.error, 'The request could not be submitted. Try again.')}
+              </p>
             )}
-          </ReadResult>
-        </Section>
-        <Section title="Issuances">
-          <ReadResult query={data.issuances} label="issuances">
-            {issuances.length === 0 ? (
-              <p className="py-3 text-sm text-text-muted">No issuances yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {issuances.map((issuance) => (
-                  <li key={issuance.uuid} className="space-y-2 py-4 text-sm">
-                    <p className="break-words text-text-primary">
-                      {formatShareCount(issuance.amount)} shares to {issuance.recipientAddress}
-                    </p>
-                    <p className="text-text-muted">
-                      {issuance.statusDisplay} · {formatDate(issuance.createdAt)}
-                    </p>
-                    {issuance.subscriptionReference && (
-                      <p className="text-text-muted">Application {issuance.subscriptionReference}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </ReadResult>
-        </Section>
-      </Page>
+            <ReadResult query={data.capital} label="authorised share requests">
+              {capital.length === 0 ? (
+                <p className="py-3 text-sm text-text-muted">No authorised share requests yet.</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {capital.map((request) => (
+                    <li key={request.uuid} className="space-y-2 py-4 text-sm">
+                      <p className="break-words text-text-primary">{request.purpose}</p>
+                      <p className="text-text-muted">
+                        +{formatShareCount(String(request.additionalShares))} →{' '}
+                        {formatShareCount(String(request.newAuthorizedTotal))} authorised shares
+                      </p>
+                      <p>
+                        <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
+                      </p>
+                      <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
+                      {request.status === 'draft' && (
+                        <PageAction
+                          label="Submit for review"
+                          onClick={() => data.submitCapital.mutate(request.uuid)}
+                          disabled={data.submitCapital.isPending}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ReadResult>
+          </Section>
+        )}
+        {data.isOwner && (
+          <Section title="Issuances">
+            <ReadResult query={data.issuances} label="issuances">
+              {issuances.length === 0 ? (
+                <p className="py-3 text-sm text-text-muted">No issuances yet.</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {issuances.map((issuance) => (
+                    <li key={issuance.uuid} className="space-y-2 py-4 text-sm">
+                      <p className="break-words text-text-primary">
+                        {formatShareCount(issuance.amount)} shares to {issuance.recipientAddress}
+                      </p>
+                      <p className="text-text-muted">
+                        {issuance.statusDisplay} · {formatDate(issuance.createdAt)}
+                      </p>
+                      {issuance.subscriptionReference && (
+                        <p className="text-text-muted">Application {issuance.subscriptionReference}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </ReadResult>
+          </Section>
+        )}
+      </>
+    );
+  };
+  return (
+    <>
+      {content()}
       {requestForms}
     </>
   );

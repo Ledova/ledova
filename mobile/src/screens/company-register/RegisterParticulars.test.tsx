@@ -1,4 +1,5 @@
 import React from 'react';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -206,7 +207,11 @@ function deferred() {
   return { promise, resolve };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 async function openRegister() {
@@ -231,6 +236,10 @@ beforeEach(() => {
   mockNavigate.mockReset();
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
+  });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
   });
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
@@ -387,7 +396,7 @@ it('previews an approval with the current particulars beside the proposal, recor
   expect(post).toHaveBeenCalledWith(
     URLS.REGISTER_PARTICULARS_CHANGE_PREVIEW('change-new'),
     { appointment: 'appointment-admin', kind: 'approve', reason: '' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   expect(view.getByText(COPY.PRECEDENCE_NOTE)).toBeTruthy();
   expect(view.getByText(COPY.CURRENT_PARTICULARS)).toBeTruthy();

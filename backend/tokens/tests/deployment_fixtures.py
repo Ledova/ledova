@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+from uuid import uuid4
 
 from django.db import connections
 from hexbytes import HexBytes
@@ -17,7 +18,12 @@ from companies.models import Company, CompanyStatus
 from shared.db import current_alias, use_migrate, use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import TokenDeployment
-from tokens.services import deployment
+from tokens.services.register_deployments import (
+    decide_deployment,
+    prepare_deployment,
+    preview_deployment_decision,
+)
+from tokens.tests.evidence_fixtures import owner_appointment
 
 FACTORY = "0x" + "f" * 40
 CREATED = Web3.to_checksum_address("0x" + "c0ffee" + "0" * 34)
@@ -28,8 +34,99 @@ def deployment_token(name="deployment"):
     with use_migrate():
         Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
         tenant.company.refresh_from_db()
-    with patch("tokens.tasks.deploy_share_token_task.defer"):
-        deployment.start_deployment(tenant.token, principal_id=tenant.user.pk)
+    with patch("tokens.services.register_deployments.queue_deployment"):
+        admit_deployment(tenant.token, tenant.user)
+    return tenant
+
+
+def admit_deployment(token, actor, *, appointment=None):
+    if appointment is None:
+        appointment = owner_appointment(token.company)
+    proposal = prepare_deployment(actor=actor, operation_id=uuid4(), appointment=appointment.pk, token=token.pk)
+    for kind in ("approve", "apply"):
+        _, preview = preview_deployment_decision(
+            actor=actor, deployment_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        proposal = decide_deployment(
+            actor=actor,
+            deployment_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+    token.refresh_from_db()
+    return proposal
+
+
+def legacy_deployment_token(name="legacy-deployment", *, journal=True, signed=False):
+    from blockchain.models import (
+        BlockchainTransaction,
+        TransactionStatus,
+        TransactionType,
+    )
+    from blockchain.services import outgoing
+    from shared.tests.schema import migrate_to, restore_every_migration
+    from tokens.services import deployment
+
+    tenant = make_tenant(name)
+    with use_migrate():
+        Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+        tenant.company.refresh_from_db()
+    try:
+        historical = migrate_to([("tokens", "0097_company_register_transfer_guards")])
+        old_tokens = historical.get_model("tokens", "ShareToken").objects
+        old_journals = historical.get_model("tokens", "TokenDeployment").objects
+        identifier = uuid4()
+        old_tokens.filter(pk=tenant.token.pk).update(status="deploying", deployment_id=identifier)
+        tenant.token.refresh_from_db()
+        intent = deployment._intent(tenant.token)
+        if journal:
+            command = old_journals.create(
+                uuid=identifier,
+                token_id=tenant.token.pk,
+                company_id=tenant.company.pk,
+                principal_id=tenant.user.pk,
+                intent=intent,
+            )
+        if signed:
+            admitted_signer()
+            fields = {field: intent[field] for field in deployment.INTENT_FIELDS}
+            fields["value"] = int(fields["value"])
+            claim = outgoing.open_operation(f"token-deployment:{identifier}", **fields)
+            command.operation_id = claim.operation_id
+            command.save(update_fields=["operation", "updated_at"])
+            prepared = outgoing.prepare_operation(claim, chain_client())
+
+            def retain(attempt):
+                record = BlockchainTransaction.objects.create(
+                    tx_hash=attempt.tx_hash,
+                    tx_type=TransactionType.SHARE_TOKEN_DEPLOY,
+                    status=TransactionStatus.SUBMITTED,
+                    from_address=intent["sender"],
+                    to_address=intent["to"],
+                    function_name="createShareToken",
+                    function_args={
+                        "name": intent["name"],
+                        "symbol": intent["symbol"],
+                        "identifier": intent["identifier"],
+                        "authorizedShares": intent["authorized_shares"],
+                        "tokenOwner": intent["sender"],
+                        "issuerWallet": intent["issuer_wallet"],
+                    },
+                    related_model="tokens.ShareToken",
+                    related_uuid=tenant.token.pk,
+                    submitted_at=attempt.created_at,
+                )
+                command.transaction_id = record.pk
+                command.save(update_fields=["transaction", "updated_at"])
+                tenant.token.bind_deployment_transaction(attempt.tx_hash, record)
+
+            outgoing.sign_operation(claim, prepared, KEY, on_signed=retain)
+    finally:
+        restore_every_migration()
+    tenant.token.refresh_from_db()
     return tenant
 
 

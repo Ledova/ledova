@@ -14,6 +14,7 @@ DETAIL_KEYS = {
     "uuid",
     "company",
     "companyUuid",
+    "isOwner",
     "companyName",
     "name",
     "symbol",

@@ -14,6 +14,7 @@ from tokens.tests.deployment_fixtures import (
     CREATED,
     FACTORY,
     KEY,
+    admit_deployment,
     install_deployment,
 )
 
@@ -24,7 +25,7 @@ class DeploymentLockOrderTest(RealRowContention, TransactionTestCase):
         super().setUp()
         with use_operator():
             install_deployment(self)
-        self.defer = self.enterContext(patch("tokens.tasks.deploy_share_token_task.defer"))
+        self.defer = self.enterContext(patch("tokens.services.register_deployments.queue_deployment"))
 
     def draft(self):
         with use_operator():
@@ -34,7 +35,7 @@ class DeploymentLockOrderTest(RealRowContention, TransactionTestCase):
 
     def start(self, token):
         current = ShareToken.objects.get(pk=token.pk)
-        deployment.start_deployment(current, principal_id=self.tenant.user.pk)
+        admit_deployment(current, self.tenant.user)
         return current.deployment_id
 
     def projection(self):

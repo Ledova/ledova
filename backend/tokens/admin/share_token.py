@@ -11,7 +11,6 @@ from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
 from tokens.constants import RESERVED_SYMBOL
 from tokens.exceptions import (
-    CompanyNotReadyException,
     InvalidTokenStateException,
     PauseChangeConflict,
 )
@@ -170,7 +169,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            admin_action_path(self, "<uuid:uuid>/deploy/", "tokens_sharetoken_deploy", self.deploy_view),
             admin_action_path(self, "<uuid:uuid>/pause/", "tokens_sharetoken_pause", self.pause_view),
             admin_action_path(self, "<uuid:uuid>/unpause/", "tokens_sharetoken_unpause", self.unpause_view),
             admin_action_path(
@@ -242,14 +240,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
         if obj.pk is None:
             return "-"
 
-        if obj.status == ShareTokenStatus.DRAFT:
-            try:
-                deployment.require_deployable(obj)
-            except CompanyNotReadyException as exc:
-                return action_buttons([(f"⚠ {exc.detail}", None, "#e9ecef", "#6c757d")])
-            deploy_url = reverse("admin:tokens_sharetoken_deploy", args=[obj.uuid])
-            return action_buttons([("🚀 Deploy Token", deploy_url, "#007bff")])
-
         if obj.status == ShareTokenStatus.DEPLOYING:
             retry_url = reverse("admin:tokens_sharetoken_retry_deploy", args=[obj.uuid])
             return action_buttons(
@@ -276,36 +266,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
     @staticmethod
     def _paused_on_chain(obj):
         return bounded_chain_read(lambda: share_token_service.read_paused(obj), f"paused() of {obj.symbol}")
-
-    def deploy_view(self, request, token):
-        change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
-
-        try:
-            if request.method == "POST":
-                deployment.start_deployment(token, principal_id=None)
-            else:
-                primary_wallet = deployment.require_deployable(token)
-        except (InvalidTokenStateException, CompanyNotReadyException) as exc:
-            messages.error(request, f"Cannot deploy: {exc.detail}")
-            return HttpResponseRedirect(change_url)
-
-        if request.method == "POST":
-            messages.success(
-                request,
-                f"Deployment started for '{token.name}'. No shares are minted at deployment; "
-                f"up to {token.total_supply} shares can be issued through issuance requests.",
-            )
-            return HttpResponseRedirect(change_url)
-
-        context = {
-            **self.admin_site.each_context(request),
-            "title": f"Deploy Token: {token.name}",
-            "subtitle": None,
-            "token": token,
-            "primary_wallet": primary_wallet,
-            "opts": self.model._meta,
-        }
-        return render(request, "admin/tokens/sharetoken/deploy_confirm.html", context)
 
     def retry_deploy_view(self, request, token):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])

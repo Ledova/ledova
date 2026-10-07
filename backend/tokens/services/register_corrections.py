@@ -150,12 +150,16 @@ def prepare_correction(
 
 
 def _effect_requirements(proposal):
+    from tokens.services.register_deployments import pending_deployment
+
     unmet = []
     try:
         matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
     except ValidationError:
         unmet.append("evidence_unavailable")
     register = ShareRegister.objects.get(pk=proposal.register_id)
+    if pending_deployment(register.token):
+        unmet.append("deployment_pending")
     if (register.sequence, register.head_hash) != (proposal.base_sequence, proposal.base_hash):
         unmet.append("register_changed")
     if RegisterEntry.objects.filter(corrects_id=proposal.corrects_id).exists():

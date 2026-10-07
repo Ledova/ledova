@@ -142,7 +142,7 @@ from tokens.tasks import (
     execute_review_request_task,
     recover_swap_approval_submissions,
 )
-from tokens.tests.deployment_fixtures import delete_approval_jobs
+from tokens.tests.deployment_fixtures import admit_deployment, delete_approval_jobs
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.test_register_imports import owner_appointment
 from tokens.tests.test_register_openings import (
@@ -348,8 +348,8 @@ class ChainTestMixin:
         SigningAccount.objects.get_or_create(
             chain_id=31337, address=sender, defaults={"admission_state": "admitted", "admission_generation": 1}
         )
-        with patch("tokens.tasks.deploy_share_token_task.defer"):
-            deployment.start_deployment(self.token, principal_id=None)
+        with patch("tokens.services.register_deployments.queue_deployment"):
+            admit_deployment(self.token, self.token.company.owner)
         self.addCleanup(delete_approval_jobs, self.token.deployment_id)
 
     def _deployed(self):
