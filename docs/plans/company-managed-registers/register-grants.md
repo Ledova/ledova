@@ -37,14 +37,23 @@ no compulsory second person; each decision retains its actual actor and
 appointment.
 
 Application rechecks authority, evidence, identity, register state, effective date
-and authorised headroom, with current decision and approval authority checked
-again at commit. A lapsed approval requires a new approval. A changed
+and authorised headroom. The bounded command keeps its constraints deferred and
+checks current decision and approval authority again at commit. A lapsed approval
+requires a new approval. A changed
 preview cannot apply an earlier confirmation. A successful application appends
 one ISSUE entry and updates holdings and issued supply in one transaction. A new
 member and its retained particulars are created in that same transaction.
 Identical retries return the original receipt; changed retries conflict. Private
 documents and grant history are available only within current company register
 authority.
+
+The operator connection is trusted to execute these bounded commands. A direct
+operator SQL caller can force deferred constraints to run early with
+`SET CONSTRAINTS ... IMMEDIATE`; a valid effect checked before expiry can then
+commit after expiry. Statement-time checks still require genuine current
+appointments, approval and an exact effect. Grant HTTP routes expose no arbitrary
+SQL or constraint-mode control. The commit-time expiry guarantee applies to the
+normal bounded command transaction, not arbitrary operator transaction control.
 
 ## Outputs and limits
 
