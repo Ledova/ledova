@@ -32,6 +32,7 @@ from tokens.models import (
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
 )
+from tokens.services.former_holders import purge_member_particulars, retention_cutoff
 from tokens.services.register_events import create_member
 from tokens.services.register_evidence import evidence_snapshot
 from tokens.services.register_particulars import (
@@ -39,6 +40,7 @@ from tokens.services.register_particulars import (
     prepare_particulars_change,
 )
 from tokens.tests.evidence_fixtures import staff_user, upload_evidence
+from tokens.tests.register_command_fixtures import legacy_entry_before_company_transfers
 from tokens.tests.test_register_access import person
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_import_authority import AppointsTeam
@@ -959,6 +961,21 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
         with use_operator():
             held = RegisterMemberParticulars.objects.get(member=self.member)
         self.assertEqual((held.name, held.source_change_id), ("Mia Later", later.pk))
+        with use_migrate(), self.assertRaisesMessage(
+            DatabaseError, "actual exit clock and continued membership"
+        ), atomic():
+            with connections[current_alias()].cursor() as cursor:
+                without_a_command(cursor)
+                cursor.execute("DELETE FROM tokens_registermemberparticulars WHERE member_id = %s", [self.member.pk])
+        with use_operator():
+            self.assertEqual(purge_member_particulars(), 0)
+        legacy_entry_before_company_transfers(
+            self.token,
+            self.owner,
+            "cessation",
+            [{"member": str(self.member.pk), "shares": "-100"}],
+            retention_cutoff() - timedelta(days=1),
+        )
         with use_migrate(), self.assertRaises(RuntimeError), atomic():
             with connections[current_alias()].cursor() as cursor:
                 without_a_command(cursor)
@@ -967,6 +984,12 @@ class RegisterParticularsDecisionGuardTest(ParticularsAuthorityFixture, APITrans
             raise RuntimeError("rollback")
         with use_operator():
             self.assertTrue(RegisterMemberParticulars.objects.filter(member=self.member).exists())
+            self.assertEqual(purge_member_particulars(), 1)
+            self.assertFalse(RegisterMemberParticulars.objects.filter(member=self.member).exists())
+            later.refresh_from_db()
+            self.assertEqual((later.status, later.name), ("applied", "Mia Later"))
+            self.assertTrue(later.file.storage.exists(later.file.name))
+            self.assertTrue(later.supporting_evidence.file.storage.exists(later.supporting_evidence.file.name))
 
     def test_a_temporary_table_cannot_stand_in_for_the_decision_table(self):
         operator = connection.ops.quote_name(settings.RLS_ROLES["operator"])

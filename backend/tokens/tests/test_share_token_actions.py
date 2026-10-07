@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 from rest_framework.test import APITestCase
@@ -99,6 +99,7 @@ class ShareTokenActionTest(APITestCase):
     @patch("tokens.views.share_token.share_token_service")
     def test_issue_and_holders_shapes(self, service_class, register):
         token = self.tenant.deployed_token
+        recorded_at = datetime(2026, 9, 20, tzinfo=timezone.utc)
         issuance_request = ShareIssuanceRequest.objects.create(
             token=token, recipient_address=RECIPIENT, amount=7, reason="Owner request", submitted_by=self.tenant.user
         )
@@ -109,6 +110,9 @@ class ShareTokenActionTest(APITestCase):
             "issued_supply": 5,
             "waiting_effects": 0,
             "former_members": [],
+            "reconciliation": None,
+            "on_chain": True,
+            "recorded_at": recorded_at,
         }
 
         issue = self.client.post(
@@ -150,7 +154,29 @@ class ShareTokenActionTest(APITestCase):
             [holders.json()[key] for key in ("totalHolders", "initialized", "issuedSupply", "waitingEffects")],
             [1, True, "5", 0],
         )
+        self.assertEqual(
+            [
+                holders.json()[key]
+                for key in ("formerMembers", "formerMembersAsAt", "formerMembersBlock", "formerMembersStale")
+            ],
+            [[], None, None, True],
+        )
         register.assert_called_once_with(token)
+
+        ledger_token = self.tenant.token
+        register.reset_mock()
+        register.return_value["rows"] = [{**HOLDERS[0], "share_class": ledger_token.symbol}]
+        register.return_value["on_chain"] = False
+        ledger = self.client.get(f"/api/v1/tokens/{ledger_token.uuid}/holders/")
+        self.assertEqual(ledger.status_code, 200, ledger.content)
+        self.assertEqual(
+            [
+                ledger.json()[key]
+                for key in ("formerMembers", "formerMembersAsAt", "formerMembersBlock", "formerMembersStale")
+            ],
+            [[], "2026-09-20T00:00:00Z", None, False],
+        )
+        register.assert_called_once_with(ledger_token)
 
     @patch("tokens.views.share_token.share_token_service")
     def test_issue_rejects_a_bad_amount_with_a_field_error(self, service_class):
