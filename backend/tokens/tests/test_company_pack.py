@@ -415,29 +415,35 @@ def paused(company, token):
     return PauseChange.objects.get(pk=change.pk)
 
 
-def approval_change(company, registry, holder, reviewer):
+def historical_approval_change(company, registry, holder, reviewer):
     address = holder.lower()
     expiry = int(RENEWED_UNTIL.timestamp())
-    change = WhitelistChange.objects.create(
-        action="add",
-        address=address,
-        chain_id=settings.BLOCKCHAIN_CHAIN_ID,
-        registry_address=registry,
-        company_id=company.pk,
-        expires_at=RENEWED_UNTIL,
-        intent={
-            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
-            "sender": OPERATOR,
-            "to": registry,
-            "value": "0",
-            "data": "0xe0468dcd" + "0" * 24 + address[2:] + f"{expiry:064x}",
-        },
-        initiated_by=reviewer,
-        authority="whitelist_admin",
-        requested_wallet_id=Wallet.objects.get(address=holder).pk,
-        entry_id=WhitelistEntry.objects.get(wallet__address=holder).pk,
-    )
-    WhitelistChange.objects.filter(pk=change.pk).update(status="unchanged", completed_at=RECORDED_AT)
+    with use_migrate(), atomic(), connections[current_alias()].cursor() as cursor:
+        cursor.execute("ALTER TABLE whitelist_whitelistchange DISABLE TRIGGER whitelist_company_change_source")
+        try:
+            with atomic():
+                change = WhitelistChange.objects.create(
+                    action="add",
+                    address=address,
+                    chain_id=settings.BLOCKCHAIN_CHAIN_ID,
+                    registry_address=registry,
+                    company_id=company.pk,
+                    expires_at=RENEWED_UNTIL,
+                    intent={
+                        "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+                        "sender": OPERATOR,
+                        "to": registry,
+                        "value": "0",
+                        "data": "0xe0468dcd" + "0" * 24 + address[2:] + f"{expiry:064x}",
+                    },
+                    initiated_by=reviewer,
+                    authority="whitelist_admin",
+                    requested_wallet_id=Wallet.objects.get(address=holder).pk,
+                    entry_id=WhitelistEntry.objects.get(wallet__address=holder).pk,
+                )
+                WhitelistChange.objects.filter(pk=change.pk).update(status="unchanged", completed_at=RECORDED_AT)
+        finally:
+            cursor.execute("ALTER TABLE whitelist_whitelistchange ENABLE TRIGGER whitelist_company_change_source")
     return WhitelistChange.objects.get(pk=change.pk)
 
 
@@ -572,7 +578,7 @@ def pack_company(label):
         link=link,
         increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
         pause=paused(company, ordinary),
-        change=approval_change(company, registry, addresses["holder"], reviewer),
+        change=historical_approval_change(company, registry, addresses["holder"], reviewer),
         reconciliation=reconciled(company, ordinary, reviewer, label),
     )
 
@@ -843,6 +849,16 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.a = pack_company("pack-a")
         self.staff = pack_staff("pack-staff")
         self.client.force_login(self.staff)
+
+    def test_retained_whitelist_history_does_not_admit_a_new_staff_change(self):
+        original = WhitelistChange.objects.filter(pk=self.a.change.pk).values().get()
+        terms = original | {"uuid": uuid4(), "status": "pending", "completed_at": None}
+        with self.assertRaisesMessage(IntegrityError, "Fresh whitelist admission"), use_operator(), atomic():
+            WhitelistChange.objects.create(**terms)
+        self.assertEqual(WhitelistChange.objects.filter(pk=self.a.change.pk).values().get(), original)
+        self.assertIsNone(self.a.change.source_instruction_id)
+        self.assertEqual(self.a.change.status, "unchanged")
+        self.assertEqual(WhitelistChange.objects.count(), 1)
 
     def test_the_manifest_lists_every_other_file_and_names_the_company_request_and_register_heads(self):
         content = self.pack()
