@@ -96,9 +96,6 @@ EXEMPT = {
     ("get", "/api/v1/whitelist/{}/"): STAFF_WHITELIST,
     ("get", "/api/v1/whitelist/entry/{}/"): STAFF_WHITELIST,
     ("get", "/api/v1/whitelist/export/"): STAFF_WHITELIST,
-    ("post", "/api/v1/whitelist/add/"): STAFF_WHITELIST,
-    ("post", "/api/v1/whitelist/batch-add/"): STAFF_WHITELIST,
-    ("post", "/api/v1/whitelist/remove/"): STAFF_WHITELIST,
     ("post", "/api/v1/whitelist/sync/{}/"): STAFF_WHITELIST,
     ("get", "/api/v1/trading/whitelist/{}/{}/status/"): CHAIN_ADDRESS_READ,
 }
@@ -110,6 +107,8 @@ def matrix_routes():
     def add(method, path):
         routes.add((method.lower(), TEMPLATE.sub("{}", path.split("?")[0])))
 
+    for method, path in matrix.COMPANY_WALLET_ROUTES.values():
+        add(method, path)
     for method, path in matrix.COMPANY_AUTHORITY_ROUTES.values():
         add(method, path)
     for method, path in matrix.REGISTER_CORRECTION_ROUTES.values():

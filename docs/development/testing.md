@@ -227,8 +227,10 @@ Select evidence for the increment:
   routine platform staff, global privilege grants, admin screens or undocumented API
   calls. Record unresolved provider checks and exceptional technical support separately.
 
-Seeded staff-assisted journeys remain useful current-implementation controls and
-historical evidence. They do not satisfy the future company-managed acceptance
+Seeded staff-assisted journeys remain useful historical controls and evidence.
+Fresh company wallet admission refuses the historical no-key treasury target;
+that earlier complete chain/market layer is not current company-workflow
+acceptance. Preserve its genuine historical controls without a source exemption. They do not satisfy the future company-managed acceptance
 journey. A new recording follows working implementation and records its served
 commit, commands, results and limits.
 

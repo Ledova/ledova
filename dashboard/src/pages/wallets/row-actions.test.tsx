@@ -3,7 +3,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { WALLET_ENDPOINTS } from '@ledova/shared';
+import { AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, ApiClientProvider, WALLET_ENDPOINTS } from '@ledova/shared';
+import type { AxiosInstance } from 'axios';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), delete: vi.fn() }));
 const keys = vi.hoisted(() => ({ derive: vi.fn() }));
@@ -55,9 +56,11 @@ let client: QueryClient;
 
 function show() {
   render(
-    <QueryClientProvider client={client}>
-      <WalletsPage />
-    </QueryClientProvider>,
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={client}>
+        <WalletsPage />
+      </QueryClientProvider>
+    </ApiClientProvider>,
   );
 }
 
@@ -70,6 +73,10 @@ const labels = (wallet: string) =>
 beforeEach(() => {
   vi.resetAllMocks();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   api.get.mockResolvedValue({ data: { results: [everyday, savings, keystone], count: 3, next: null, previous: null } });
 });
 
@@ -82,9 +89,9 @@ it('gives every wallet its own actions, with nothing to select first and no tool
   show();
   await screen.findByText('Everyday');
 
-  expect(labels('Everyday')).toEqual(['Edit', 'Sync', 'Delete']);
+  expect(labels('Everyday')).toEqual(['Edit', 'Refresh possession proof', 'Sync', 'Delete']);
   expect(labels('Savings')).toEqual(['Edit', 'Verify', 'Sync', 'Delete']);
-  expect(labels('Keystone')).toEqual(['Edit', 'Derive address', 'Sync', 'Delete']);
+  expect(labels('Keystone')).toEqual(['Edit', 'Refresh possession proof', 'Derive address', 'Sync', 'Delete']);
   for (const wallet of [everyday, savings, keystone]) {
     const row = actionsOf(wallet.name).closest('li')!;
     expect(within(row).getByText(wallet.address)).toBeTruthy();

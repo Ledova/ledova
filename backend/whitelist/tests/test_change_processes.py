@@ -5,41 +5,38 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import timedelta
 from pathlib import Path
-from uuid import uuid4
 
+from django.conf import settings as django_settings
 from django.db import connections
-from django.test import TransactionTestCase, override_settings
+from django.test import override_settings
+from rest_framework.test import APITransactionTestCase
 
 from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
 from blockchain.tests.test_outgoing_processes import finish
 from shared.db import current_alias
-from whitelist.models import WhitelistChange
-from whitelist.tests.change_fixtures import (
-    CHAIN_ID,
-    FACTORY,
-    KEY,
-    admitted_signer,
-    change_actor,
-    change_company,
-    change_entry,
-)
+from whitelist.models import WhitelistChange, WhitelistEntry
+from whitelist.tests.change_fixtures import CHAIN_ID, FACTORY, KEY
+from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
-class WhitelistChangeProcessTest(TransactionTestCase):
+class WhitelistChangeProcessTest(CompanyWalletCases, APITransactionTestCase):
     def setUp(self):
-        self.actor = change_actor()
-        self.entry = change_entry()
-        self.company = change_company()
-        self.submission_id = uuid4()
-        admitted_signer()
+        super().setUp()
+        self.actor = self.owner
+        self.entry = WhitelistEntry.objects.create(wallet=self.wallet)
+        self.proposal = self.prepare_wallet()
+        self.wallet_decide(self.proposal, "approve")
+        self.submission_id = self.proposal.pk
 
     def worker(self, directory, phase, submission_id=None, action="add"):
         settings = connections[current_alias()].settings_dict
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
         env["WHITELIST_TEST_DATABASE"] = json.dumps({key: settings[key] for key in fields})
+        env["WHITELIST_TEST_PRIVATE_MEDIA_ROOT"] = str(django_settings.PRIVATE_MEDIA_ROOT)
         args = [
             sys.executable,
             "-m",
@@ -97,8 +94,22 @@ class WhitelistChangeProcessTest(TransactionTestCase):
     def race(self, *, distinct=False, opposite=False):
         with tempfile.TemporaryDirectory(prefix="whitelist-race-") as temporary:
             directory = Path(temporary)
-            submissions = [self.submission_id, uuid4() if distinct else self.submission_id]
+            second = self.prepare_wallet(self.proposal.nomination) if distinct else self.proposal
+            if distinct:
+                self.wallet_decide(second, "approve")
+            submissions = [self.submission_id, second.pk]
             if opposite:
+                active = self.prepare_wallet(
+                    self.proposal.nomination, expires_at=self.proposal.expires_at - timedelta(days=1)
+                )
+                self.wallet_decide(active, "approve")
+                active, _ = self.wallet_decide(active, "apply")
+                self.execute(active)
+                second = self.prepare_wallet(
+                    action="remove", nomination=None, target_change=active.change_id, expires_at=None
+                )
+                self.wallet_decide(second, "approve")
+                submissions[1] = second.pk
                 code, out, err = finish(self.worker(directory, "signed"))
                 self.assertEqual(code, -signal.SIGKILL, out + err)
             processes = [
@@ -119,8 +130,8 @@ class WhitelistChangeProcessTest(TransactionTestCase):
                 self.assertEqual(
                     sorted(outcomes), ["conflict", "executing"] if distinct else ["executing", "executing"]
                 )
-                self.assertEqual(WhitelistChange.objects.count(), 1)
-                self.assertEqual(SignedAttempt.objects.count(), 1)
+                self.assertEqual(WhitelistChange.objects.count(), 2 if opposite else 1)
+                self.assertEqual(SignedAttempt.objects.count(), 2 if opposite else 1)
                 ledger = json.loads((directory / "node.json").read_text())
                 self.assertEqual(len(ledger["hashes"]), 1)
                 self.assertEqual(len(set(ledger["broadcasts"])), 1)

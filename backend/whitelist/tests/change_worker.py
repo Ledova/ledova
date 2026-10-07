@@ -6,6 +6,7 @@ import sys
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import patch
+from uuid import NAMESPACE_URL, uuid5
 
 import django
 
@@ -20,6 +21,7 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
     if database["ENGINE"] != "django.db.backends.postgresql":
         raise RuntimeError("Whitelist crash tests require real PostgreSQL")
     settings.DATABASES = {"default": database}
+    settings.PRIVATE_MEDIA_ROOT = os.environ["WHITELIST_TEST_PRIVATE_MEDIA_ROOT"]
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     settings.SHARE_TOKEN_FACTORY_ADDRESS = "0x" + "c" * 40
@@ -33,8 +35,16 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
     from blockchain.tests.outgoing_fixtures import receipt
     from companies.models import Company
     from whitelist.exceptions import WhitelistChangeConflict
-    from whitelist.services import changes
-    from whitelist.tests.change_fixtures import ADDRESS, WhitelistNode
+    from whitelist.models import (
+        CompanyWalletInstruction,
+        CompanyWalletInstructionDecision,
+    )
+    from whitelist.services import changes, company_wallet_instructions
+    from whitelist.services.company_wallet_instructions import (
+        decide_wallet_instruction,
+        preview_wallet_instruction_decision,
+    )
+    from whitelist.tests.change_fixtures import WhitelistNode
 
     actor = get_user_model().objects.get(pk=actor_id)
     company = Company.objects.get(pk=company_id)
@@ -70,12 +80,6 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
             return receipt(SignedAttempt.objects.get(tx_hash=tx_hash))
         return None
 
-    def admitted(*args, **kwargs):
-        result = original_admit(*args, **kwargs)
-        if phase == "admitted":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
     def signed(*args, **kwargs):
         result = original_sign(*args, **kwargs)
         if phase == "signed":
@@ -94,7 +98,6 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    original_admit = changes._admit
     original_sign = outgoing.sign_operation
     original_project = changes._project
     original_save = OutgoingOperation.save
@@ -102,7 +105,9 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
     node.client.get_transaction_receipt.side_effect = observed
     with ExitStack() as stack:
         stack.enter_context(patch.object(changes, "get_base_chain_client", return_value=node.client))
-        stack.enter_context(patch.object(changes, "_admit", admitted))
+        stack.enter_context(
+            patch.object(company_wallet_instructions, "get_base_chain_client", return_value=node.client)
+        )
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(changes, "_project", projected))
         if phase == "before_commit":
@@ -111,11 +116,32 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
             (directory / f"ready-{os.getpid()}").touch()
             await_file(directory / "go")
         try:
-            result = (
-                changes.recover(submission_id)
-                if phase == "recover"
-                else changes.submit(submission_id, action, ADDRESS, actor, company=company)
+            proposal = CompanyWalletInstruction.objects.get(pk=submission_id, company=company, action=action)
+            if proposal.status == "applied":
+                prior = CompanyWalletInstructionDecision.objects.get(instruction=proposal, kind="apply")
+                digest = prior.digest
+            else:
+                _, preview = preview_wallet_instruction_decision(
+                    actor=actor,
+                    instruction_id=proposal.pk,
+                    appointment=proposal.preparing_appointment_id,
+                    kind="apply",
+                    reason="",
+                )
+                digest = preview["preview_digest"]
+            applied = decide_wallet_instruction(
+                actor=actor,
+                instruction_id=proposal.pk,
+                appointment=proposal.preparing_appointment_id,
+                kind="apply",
+                idempotency_key=uuid5(NAMESPACE_URL, f"whitelist-worker:{proposal.pk}"),
+                preview_digest=digest,
+                confirmation=True,
+                reason="",
             )
+            if phase == "admitted":
+                os.kill(os.getpid(), signal.SIGKILL)
+            result = changes.recover(applied.change_id)
             outcome = result.status
         except WhitelistChangeConflict:
             outcome = "conflict"

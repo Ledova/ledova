@@ -761,16 +761,31 @@ class RegisterOpeningDecisionGuardTest(OpeningAuthorityFixture, APITransactionTe
                     outcome(actor, **fields)
             raise RuntimeError("rollback")
         approval = forge_decision(self.proposal, "approve", self.owner, self.administrator)
-        with self.assertRaises(RuntimeError), use_operator(), atomic():
+        with (
+            self.assertRaises(RuntimeError),
+            use_operator(),
+            atomic(),
+            company_operation(self.owner, self.company.pk, "register_opening_apply"),
+        ):
+            forge_decision(self.proposal, "apply", self.owner, self.administrator)
             register = ShareRegister.objects.create(
                 token_id=self.proposal.token_id, company_id=self.proposal.company_id
             )
+            for link in self.proposal.mapping:
+                member = create_member(company_id=self.company.pk, member_id=link["member"])
+                RegisterMemberWallet.objects.create(company=self.company, member=member, address=link["address"])
             entry = record_entry(
                 register_id=register.pk,
                 operation_id=self.proposal.pk,
                 kind="opening",
-                changes=[],
-                effective_on=timezone.now().date(),
+                changes=sorted(
+                    [
+                        {"member": self.proposal.mapping[0]["member"], "shares": "80"},
+                        {"member": self.proposal.mapping[1]["member"], "shares": "20"},
+                    ],
+                    key=lambda change: change["member"],
+                ),
+                effective_on=date.fromisoformat(self.proposal.boundary["block"]["date"]),
                 recorded_by=self.owner,
             )
             with self.assertRaisesMessage(DatabaseError, refused), atomic():
@@ -802,7 +817,12 @@ class RegisterOpeningDecisionGuardTest(OpeningAuthorityFixture, APITransactionTe
             (exact, boundary_day - timedelta(days=1), False),
         ):
             with self.subTest(changes=changes, effective_on=effective_on):
-                with self.assertRaises(RuntimeError), use_operator(), atomic():
+                with (
+                    self.assertRaises(RuntimeError),
+                    use_operator(),
+                    atomic(),
+                    company_operation(self.owner, self.company.pk, "register_opening_apply"),
+                ):
                     application = forge_decision(self.proposal, "apply", self.owner, self.administrator)
                     register = ShareRegister.objects.create(
                         token_id=self.proposal.token_id, company_id=self.proposal.company_id

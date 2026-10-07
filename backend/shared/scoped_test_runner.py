@@ -8,6 +8,11 @@ from django.test.runner import DiscoverRunner
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
 
 SCOPED_TEST_LABELS = (
+    "shared.tests.test_seed_participant_approval.ScopedSyntheticParticipantApprovalTest",
+    "whitelist.tests.test_company_wallet_migrations.ScopedCompanyWalletMigrationTest",
+    "shared.tests.test_cross_tenant_routes.ScopedCompanyWalletRouteMatrixTest",
+    "wallets.tests.test_possession_proof.ScopedWalletPossessionProofTest",
+    "whitelist.tests.test_company_wallet_instructions.ScopedCompanyWalletInstructionTest",
     "users.tests.test_company_eligibility_fresh_signup.ScopedCompanyEligibilityFreshSignupTest",
     "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilityCutoverUpgradeTest",
     "users.tests.test_company_eligibility_cutover_migrations.ScopedCompanyEligibilitySubscriptionCutoverReversalTest",

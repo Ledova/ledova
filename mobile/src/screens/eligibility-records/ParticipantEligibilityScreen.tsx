@@ -8,6 +8,7 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 import { EligibilityConfirmation } from './EligibilityConfirmation';
 import { EligibilityExpiry } from './EligibilityExpiry';
+import { WalletNomination } from './WalletNomination';
 import { EligibilityRecord } from './EligibilityRecord';
 
 export function ParticipantEligibilityScreen() {
@@ -30,6 +31,13 @@ export function ParticipantEligibilityScreen() {
         <Text accessibilityRole="alert" style={styles.error}>
           {records.error}
         </Text>
+      )}
+      {records.selectedRequestUuid && (
+        <WalletNomination
+          key={records.selectedRequestUuid}
+          requestUuid={records.selectedRequestUuid}
+          guardRequest={() => records.guardOwnRequest(records.selectedRequestUuid)}
+        />
       )}
       {!records.owner ? (
         <Text style={styles.muted}>Your signed-in account must be checked before opening eligibility requests.</Text>

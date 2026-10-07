@@ -2,7 +2,6 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -12,6 +11,7 @@ from django.db import DatabaseError, IntegrityError, connections
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APITransactionTestCase
 
 from offerings.admin.subscription import SubscriptionAdmin
 from offerings.models import Subscription
@@ -26,7 +26,6 @@ from whitelist.models import (
     WhitelistStatus,
 )
 from whitelist.services import changes, whitelist
-from whitelist.services.eligibility_invalidation import invalidation_worker_context
 from whitelist.tests.change_fixtures import (
     ADDRESS,
     CHAIN_ID,
@@ -34,12 +33,10 @@ from whitelist.tests.change_fixtures import (
     KEY,
     REGISTRY,
     WhitelistNode,
-    admitted_signer,
-    change_actor,
     change_company,
     change_entry,
-    change_investor,
 )
+from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
 
 CHAIN_ACTIONS = {"add_to_blockchain", "remove_from_blockchain"}
 
@@ -63,22 +60,11 @@ def a_request(user):
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
-class WhitelistAuthorityBypassTest(TransactionTestCase):
+class WhitelistAuthorityBypassTest(CompanyWalletCases, APITransactionTestCase):
     def setUp(self):
-        self.actor = change_actor()
-        self.account = change_investor()
-        self.entry = change_entry(self.account)
-        self.company = change_company()
-        self.node = WhitelistNode()
-        admitted_signer()
-        for module in (changes, whitelist):
-            patcher = patch.object(module, "get_base_chain_client", return_value=self.node.client)
-            patcher.start()
-            self.addCleanup(patcher.stop)
-        self.enterContext(invalidation_worker_context())
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute("SELECT current_user")
-            self.assertEqual(cursor.fetchone()[0], settings.RLS_ROLES["operator"])
+        super().setUp()
+        self.actor = self.owner
+        self.entry = WhitelistEntry.objects.create(wallet=self.wallet)
 
     def submit(self, action, actor, **options):
         return changes.submit(uuid4(), action, ADDRESS, actor, company=self.company, **options)
@@ -90,17 +76,25 @@ class WhitelistAuthorityBypassTest(TransactionTestCase):
         self.assertFalse(WhitelistChange.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
-    def test_the_database_refuses_an_authority_the_service_gate_would_let_through(self):
-        with patch.dict(changes.PERMISSIONS, {"board_resolution": None}):
-            with self.assertRaises(IntegrityError):
-                self.submit(WhitelistAction.ADD, self.actor, authority="board_resolution")
-
+    def test_the_database_refuses_fresh_unsigned_staff_admission_independently_of_the_service(self):
+        with self.actual_operator(), self.assertRaises(IntegrityError):
+            WhitelistChange.objects.create(
+                action="add",
+                address=ADDRESS,
+                chain_id=CHAIN_ID,
+                registry_address=REGISTRY,
+                company=self.company,
+                intent=changes._intent("add", ADDRESS, REGISTRY, None),
+                authority="operator_api",
+                initiated_by=self.actor,
+            )
         self.assertFalse(WhitelistChange.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
     def test_the_database_refuses_moving_an_admitted_change_to_another_authority(self):
-        change = self.submit(WhitelistAction.ADD, self.actor)
-        self.assertEqual(change.authority, WhitelistAuthority.OPERATOR_API)
+        proposal, _ = self.applied_wallet()
+        change = self.execute(proposal)
+        self.assertEqual(change.authority, WhitelistAuthority.COMPANY)
 
         with self.assertRaises(DatabaseError):
             with connections[current_alias()].cursor() as cursor:
@@ -109,7 +103,7 @@ class WhitelistAuthorityBypassTest(TransactionTestCase):
                     [WhitelistAuthority.SUBSCRIPTION_ADMIN, str(change.pk)],
                 )
 
-        self.assertEqual(WhitelistChange.objects.get(pk=change.pk).authority, WhitelistAuthority.OPERATOR_API)
+        self.assertEqual(WhitelistChange.objects.get(pk=change.pk).authority, WhitelistAuthority.COMPANY)
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
@@ -131,7 +125,7 @@ class WhitelistAdminActionAuthorityTest(TransactionTestCase):
         editor = a_staff_member("whitelist-editor", "view_whitelistentry", "change_whitelistentry")
 
         self.assertEqual(self.actions_for(viewer) & CHAIN_ACTIONS, set())
-        self.assertEqual(self.actions_for(editor) & CHAIN_ACTIONS, CHAIN_ACTIONS)
+        self.assertEqual(self.actions_for(editor) & CHAIN_ACTIONS, set())
 
     def test_the_sync_action_copies_the_chain_and_grants_no_approval(self):
         viewer = a_staff_member("whitelist-syncer", "view_whitelistentry")
@@ -158,4 +152,4 @@ class WhitelistAdminActionAuthorityTest(TransactionTestCase):
         editor = a_staff_member("subscription-editor", "view_subscription", "change_subscription", model=Subscription)
 
         self.assertNotIn("whitelist_wallets", set(admin.get_actions(a_request(viewer))))
-        self.assertIn("whitelist_wallets", set(admin.get_actions(a_request(editor))))
+        self.assertNotIn("whitelist_wallets", set(admin.get_actions(a_request(editor))))

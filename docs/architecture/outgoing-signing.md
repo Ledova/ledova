@@ -305,79 +305,75 @@ attribution and all-writer cutover requirements above still apply.
 
 ## Whitelist changes
 
-The staff-only operator API, whitelist-admin actions and subscription-admin
-whitelisting use `whitelist.services.changes`. Each change names the company
-whose registry it writes: admission reads `registryOf(acn)` from the configured
-factory and refuses a company with no share class on chain. The one write is
-`setExpiry(address, uint64)`: an addition carries the expiry staff chose, or
-`type(uint64).max` when they left it blank, and a removal writes zero. Each
-accepted `WhitelistChange` freezes its submission UUID, actor, entry-point
-authority, action, requested wallet identity, company, expiry, chain, registry,
-address and transaction intent. The private command
-table reuses the outgoing foundation's signed bytes and nonce reservations.
-Application connections cannot read or write it. Admission requires active staff
-and the originating admin model permission; recovery of accepted work is operator
-owned even after the initiating actor loses permission.
+Company appointees prepare, approve and apply wallet instructions through the
+[company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md).
+A participant explicitly nominates one own Base wallet and its genuine retained
+possession proof to the exact company and current GENERAL eligibility source.
+Company reads expose that nomination's minimal facts, not an account wallet
+directory. The private proof, nominee associations and signature bytes remain
+operator-only. Historical VERIFIED status is not backfilled into proof.
 
-Operator scripts calling `POST /api/v1/whitelist/add/` or `remove/` must supply
-`submission_id`, `wallet_address` and `company`, the company's UUID; `add/` also
-takes an optional `expires_at`, and a blank or null one never expires. Each
-`batch-add/` member carries its own UUID. The API's camel-case transport also
-accepts `submissionId`, `walletAddress` and `expiresAt`. Retain the UUID across
-transport retries. The response identifies the original command, its company,
-expiry, status and original transaction hash when signed; the nullable nested
-`approval` describes the wallet's current approval in that company and may
-reflect a later command. It is absent when the recorded entry was deleted, no
-longer belongs to the command's address, or the approval has since moved to
-another registry.
-`pending` and `executing` are unresolved, `confirmed` records a successful receipt,
-`unchanged` records that no transaction was needed, and `failed` records a known
-pre-signing failure or revert. Single unresolved submissions return 202 when
-processing returns normally, while provider/infrastructure failures return a safe
-503 and require recovery with the same UUID. Batch responses distinguish
-successful, failed and pending members, including unresolved infrastructure errors.
+A current personal company `admin` appointment satisfies each step; narrower
+prepare/approve/apply/read capabilities remain. ADD freezes the nomination,
+company, address, chain, actual registry, finite expiry and exact transaction
+intent. Expiry cannot exceed its captured eligibility expiry. The factory's
+`registryOf(acn)` must identify the company's actual deployed registry. REMOVE
+freezes a genuine retained CONFIRMED or UNCHANGED ADD journal and its exact
+company/registry/address, including historical NULL-source ADDs. Deletion of the
+mutable wallet, entry or approval does not erase that original target.
 
-Reusing a UUID with changed terms or authority is refused. A completed UUID always
-returns its original outcome; it never repeats an add after a later removal.
-A deliberate new command, including a retry after a known failure, needs a new
-UUID. Signed admin confirmation forms retain per-entry UUIDs across repeated POSTs
-and bind the actor, action and selected entries. A fresh form represents new work.
-An unresolved command blocks every competing UUID for the same chain, registry
-and address, including an opposite change and a removal with no local entry.
-There is no contradictory-intent queue.
+Application consumes the retained approval and atomically admits and queues one
+original `WhitelistChange`. Human applied status is admission, not chain
+approval. The one write remains `setExpiry(address, uint64)`: ADD carries its
+finite whole-second expiry and REMOVE writes zero. The nullable immutable source
+link preserves old journals without invented company actors or approvals. New
+staff/operator ADD/REMOVE and batch-add admission, whitelist-admin quick actions
+and subscription-admin whitelisting are replaced; retained private entry reads,
+sync/export and original technical recovery remain.
 
-Admission commits before checking membership. That initial check reads the
-registry's `expiresAt` and either records no change required, when it already
-equals the requested expiry, or commits the decision to send; later membership observations
-cannot complete a signed command. Network calls run outside transactions and
-target locks. Before sending, the change re-reads `registryOf(acn)` and refuses
-if the company's registry has moved. Projection checks the chain, the approval's
-registry and the entry address, and locks the wallet against a concurrent
-identity edit. An old registry's receipt or observation cannot rewrite the
-current registry's approval.
-Terminal outcome, local membership projection and target release
-commit together, and replaying a terminal command cannot overwrite newer membership.
-The generic transaction monitor excludes these projections. Sync remains an
-observation of membership; the recovery job uses the original outgoing receipt
-and signed bytes. The admin page suppresses fresh quick actions while work is
-unresolved. See [whitelist recovery](../operations/recovery.md#whitelist-changes).
+Exact preparation and decision receipts compare their original bodies before
+fresh source checks, while current scoped company read is still required.
+Changed retries conflict. Recover a lost reply with that original body/key,
+never a replacement UUID. Proposal, consumed approval, change, outgoing operation,
+claim and transaction identities remain separate. Browser/mobile scope this state
+to the current account/session; no process-persistent replay or source renewal
+workflow is promised.
 
-Migrations `whitelist/0005` and `0006` create the command table, revoke app-role
-access and guard immutable terms, original associations and terminal outcomes.
-`whitelist/0007` moves approval state from the entry to the per-company
-`WhitelistApproval` table, adds the company and expiry to the command, and
-replaces the guard so the stored calldata must be exactly
-`setExpiry(address, expiry)` for the command's address and expiry. It refuses to
-run while any command written for the retired global registry exists: see the
-[fresh-start redeploy](../operations/chains.md#fresh-start-redeploy). The guard
-refuses reversal after command admission. The optional entry and company
-references are immutable UUID snapshots, so customer wallet deletion can still
-cascade its mutable entry and its approvals without reading the private command
-table. Approvals are staff-only in code, like the entry they belong to, because
-that cascade runs on the customer's connection. Accepted work and signed history
-survive deletion; recovery cannot recreate that entry or redirect its result to
-a replacement. Neither this adapter nor approval sync establishes receipt
-finality or complete same-key writer cutover.
+The target advisory lock precedes company/source locks and outgoing/signer locks.
+Every actual unsigned signature rechecks the captured company mandates,
+nomination/proof, GENERAL source, expiry, configuration and intent inside the
+durable signing transaction. Default-deferred effect guards recheck at the actual
+clock under ordinary constraint mode. Chain RPC calls remain outside transactions
+and locks. Temporary contention retains the original unsigned claim with no
+signature/attempt/nonce. Permanent loss on genuinely never-signed work conditionally
+fails the original claim and projects that failure, releasing its target so a
+genuine eligibility-loss REMOVE is not stranded behind it. It does not invent a
+withdrawal or wallet-deletion cause. Signed work recovers the exact original first.
+
+`pending` and `executing` are unresolved; the original nested operation distinguishes
+PREPARING from SIGNED. `confirmed` records the original successful transaction
+outcome; `unchanged` records a real no-transaction observation; `failed` records a
+known never-signed failure or revert. Later membership observations cannot complete
+a signed command. The initial observation compares `expiresAt` with the intended
+effect; a signed change instead uses original receipt/finality reconciliation.
+An unresolved original serializes the exact chain/registry/address target.
+Terminal outcome, local projection and target release commit together, and terminal
+replay cannot overwrite newer membership.
+
+Projection checks the original company/chain/registry/address and current mutable
+entry association. It cannot recreate a deleted entry or redirect a receipt to
+its replacement. SIGNED/CONFIRMED recovery preserves original bytes, attribution,
+nonce and technical sender admission after human source loss. The generic
+transaction monitor does not take over these projections. See
+[whitelist recovery](../operations/recovery.md#whitelist-changes).
+
+Historical migrations `whitelist/0005`–`0007` retain their journal, per-company
+approval and exact-calldata guards. The historical 0007 fresh-start restriction
+concerns the retired global registry, not company-authority migration policy.
+The wallet-proof and company-instruction migrations retain original wallet,
+change, approval and journal identities/bytes, with no fake backfill. New source
+history prevents destructive reversal. Neither this adapter nor approval sync
+establishes complete same-key writer cutover or a live release.
 
 Every read the platform makes before acting asks the share class's own
 registry, through the token's `whitelist()`: issuance execution and order
@@ -404,54 +400,41 @@ the same predicate the offering paths use; order creation records the refusal as
 
 ## Refreshing an approval
 
-`whitelist.services.refresh` works out what a company's registry should allow
-for one approval row, and submits a change through `whitelist.services.changes`
-only when that differs from what the registry already holds:
+`whitelist.services.refresh` retains technical eligibility invalidation. It can
+submit only REMOVE, using the exact recorded company decision or actual retained
+standing, identity or wallet-loss cause. It does not add or renew approval,
+authorise a new company instruction, or treat possession-proof refresh as wallet
+deletion. A current exact-company GENERAL source can explain why no removal is
+needed; absence of a genuine cause is diagnostic, not permission to write.
 
-- the account is not in good standing, or has no live classification covering
-  that company: zero, which removes the wallet;
-- otherwise the latest `expires_at` among its live classifications for that
-  company, and never expires when one of them carries no expiry;
-- an entry with no investor account - a treasury, issuer, founder or imported
-  member wallet - keeps the expiry staff entered, and the refresh never
-  overwrites it.
+The sweep reads actual registry expiry. An already expired address needs no write:
+its finite on-chain expiry lapses by itself. An unresolved predecessor is recovered
+first. Genuine never-signed permanent company-source loss reaches a real failed
+terminal outcome before the retained removal proceeds; a signed predecessor uses
+its original bytes/receipt. Missing receipts, time or current membership do not
+release an unresolved signed operation.
 
-The comparison is by effect rather than by value, because an expiry already in
-the past and a removal are the same thing to the registry. So an ordinary
-classification expiry needs no write at all: the chain holds the classification's
-own expiry and lapses by itself. Running the refresh twice over one row submits
-nothing the second time, and a row whose own change is still unresolved is left
-to recovery.
+Source/request withdrawal, company decision revocation, expiry and evidence purge
+retain their applicable decision cause. Account standing/identity and wallet
+verification loss/deletion retain actual prior facts and the actor where one
+exists. Deleting a wallet captures company/registry/address targets before the
+mutable entry and approval cascade and queues its removal after commit. These
+attributions remain independent of a new company instruction.
 
-Four actions trigger it, each attributed to the actor behind it under the
-`refresh` authority: revoking or verifying a classification, which attributes to
-the reviewing staff member; changing an account's status in the admin; and
-deleting or relinking a wallet, which attributes to its holder through the API
-or to the staff member in the admin. A holder is not staff, so that entry point
-accepts only a removal from them, and an addition still requires staff. Deleting
-a wallet cascades its entry and its approvals, so the removals are enqueued
-before the row disappears and the job runs a minute later, once the deletion has
-either committed or rolled back.
+The retained `refresh_whitelist_targets` deletion/removal job retries incomplete
+targets every five minutes without an attempt ceiling. It finishes only when the
+address is absent/expired or its own removal is confirmed. A known failed removal
+permits a new bounded technical removal under the same genuine cause; unresolved
+work must finish first. The job never substitutes another actor or grants approval.
+Retain it after deletion: the approval sweep cannot rediscover deleted targets.
 
-The deletion job retains its company, registry, address and actor after that
-cascade. An unresolved predecessor, unreadable registry or unconfirmed removal
-leaves the same job retrying every five minutes, without an attempt limit. It
-finishes only when the address is absent or expired, or its removal is confirmed.
-A failed removal permits a fresh removal submission; an unresolved one must
-first finish through `recover_whitelist_changes`. Completed targets are safe to
-revisit when another target in the job still needs recovery. The job never adds
-an approval or substitutes another actor. An unavailable actor leaves it pending
-for [operator review](../operations/recovery.md#whitelist-changes).
-
-`refresh_whitelist_approvals` sweeps every surviving approval every five minutes
-as the safety net; deleted approvals rely on their retained removal job. It
-submits under the staff member whose review decided the outcome,
-and where no actor explains the change - an account status edited outside the
-admin, for instance - it lists the row at error level for staff instead of
-writing. So the platform refuses at once and the chain follows within fifteen
-minutes in normal operation: one sweep interval plus one
-`recover_whitelist_changes` interval. There is no lease, so an approval does not
-lapse by itself between classification expiries.
+`refresh_whitelist_approvals` sweeps surviving approvals every five minutes;
+`recover_whitelist_changes` recovers original unresolved journals. Unavailable
+providers, actors, retained causes or workers remain pending/diagnostic rather than
+inventing authority. Legacy accountless treasury entries have no fabricated
+participant eligibility or possession source. Their retained chain expiry/history
+is not a new treasury-admission policy. Normal operating intervals do not guarantee
+a removal during a provider outage or unresolved chain outcome.
 
 What a reader may conclude from an approval's status:
 

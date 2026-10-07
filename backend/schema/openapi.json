@@ -116,14 +116,6 @@
         ],
         "type": "string"
       },
-      "ActionEnum": {
-        "description": "* `add` - Add\n* `remove` - Remove",
-        "enum": [
-          "add",
-          "remove"
-        ],
-        "type": "string"
-      },
       "ApprovalDataResponse": {
         "oneOf": [
           {
@@ -3378,6 +3370,728 @@
           "unlisted"
         ],
         "type": "string"
+      },
+      "CompanyWalletCompanySnapshot": {
+        "properties": {
+          "acn": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acn",
+          "name",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstruction": {
+        "properties": {
+          "action": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhitelistActionEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "changeId": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyWalletInstructionDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyWalletInstructionExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "intentDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "nomination": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanyWalletInstructionSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "targetChange": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "approvalDecision",
+          "changeId",
+          "company",
+          "createdAt",
+          "decisions",
+          "execution",
+          "executionUnmetRequirements",
+          "expiresAt",
+          "intentDigest",
+          "nomination",
+          "operationId",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "targetChange",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionCreateRequest": {
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/WhitelistActionEnum"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "nomination": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "targetChange": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "appointment",
+          "company",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionDecisionPreview": {
+        "properties": {
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "changeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CompanyWalletInstructionSnapshot"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "canDecide",
+          "changeId",
+          "intentDigest",
+          "previewDigest",
+          "snapshot",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionExecution": {
+        "properties": {
+          "blockHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "change": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "claimId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "failureCode": {
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationStatus": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transaction": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "change",
+          "claimId",
+          "completedAt",
+          "failureCode",
+          "operationId",
+          "operationStatus",
+          "status",
+          "transaction",
+          "txHash"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletInstructionSnapshot": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyWalletCompanySnapshot"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CompanyWalletSourceSnapshot"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CompanyWalletTargetSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/CompanyWalletTransactionSnapshot"
+          }
+        },
+        "required": [
+          "company",
+          "source",
+          "target",
+          "transaction"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletNomination": {
+        "properties": {
+          "address": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "chain": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "eligibilityExpiresAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "proofCompletedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "request": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "chain",
+          "company",
+          "decision",
+          "digest",
+          "eligibilityExpiresAt",
+          "proofCompletedAt",
+          "request",
+          "submittedAt",
+          "unmetRequirements",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletSourceSnapshot": {
+        "properties": {
+          "decision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "eligibilityExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "nomination": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "proofCompletedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "request": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "targetChange": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "eligibilityExpiresAt",
+          "nomination",
+          "proofCompletedAt",
+          "request",
+          "targetChange"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletTarget": {
+        "properties": {
+          "address": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "chainId": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "company": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "registryAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhitelistChangeStatusEnum"
+              }
+            ],
+            "default": "pending",
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "chainId",
+          "company",
+          "completedAt",
+          "expiresAt",
+          "registryAddress",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletTargetSnapshot": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "registryAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "chain",
+          "chainId",
+          "expiresAt",
+          "registryAddress"
+        ],
+        "type": "object"
+      },
+      "CompanyWalletTransactionSnapshot": {
+        "properties": {
+          "chainId": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chainId",
+          "data",
+          "sender",
+          "to",
+          "value"
+        ],
+        "type": "object"
       },
       "DeclarationVersionEnum": {
         "description": "* `2026-10-04` - 2026-10-04",
@@ -7140,6 +7854,99 @@
         ],
         "type": "object"
       },
+      "PaginatedCompanyWalletInstructionList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyWalletInstruction"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedCompanyWalletNominationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyWalletNomination"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedCompanyWalletTargetList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyWalletTarget"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedDirectoryTokenListList": {
         "properties": {
           "count": {
@@ -8091,6 +8898,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/Wallet"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedWalletNominationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/WalletNomination"
             },
             "type": "array"
           }
@@ -17676,6 +18514,224 @@
         ],
         "type": "object"
       },
+      "WalletNomination": {
+        "properties": {
+          "address": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "chain": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "eligibilityExpiresAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "proof": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "proofCompletedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "request": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "sharingAccepted": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "submittedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "wallet": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "chain",
+          "company",
+          "decision",
+          "digest",
+          "eligibilityExpiresAt",
+          "operationId",
+          "proof",
+          "proofCompletedAt",
+          "request",
+          "sharingAccepted",
+          "submittedAt",
+          "unmetRequirements",
+          "uuid",
+          "wallet"
+        ],
+        "type": "object"
+      },
+      "WalletNominationCreateRequest": {
+        "properties": {
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "request": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sharingAccepted": {
+            "type": "boolean"
+          },
+          "wallet": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operationId",
+          "previewDigest",
+          "request",
+          "sharingAccepted",
+          "wallet"
+        ],
+        "type": "object"
+      },
+      "WalletNominationPreviewRequest": {
+        "properties": {
+          "request": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "wallet": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "wallet"
+        ],
+        "type": "object"
+      },
+      "WalletNominationPreviewResult": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "decision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "eligibilityExpiresAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "proof": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "proofCompletedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "request": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "wallet": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "canSubmit",
+          "chain",
+          "company",
+          "decision",
+          "eligibilityExpiresAt",
+          "previewDigest",
+          "proof",
+          "proofCompletedAt",
+          "request",
+          "unmetRequirements",
+          "wallet"
+        ],
+        "type": "object"
+      },
       "WalletProofEnum": {
         "description": "* `proven` - Proven\n* `not_proven` - Not proven",
         "enum": [
@@ -17894,37 +18950,13 @@
         ],
         "type": "string"
       },
-      "WhitelistAddRequest": {
-        "properties": {
-          "company": {
-            "description": "The company whose whitelist registry this change writes.",
-            "format": "uuid",
-            "type": "string"
-          },
-          "expiresAt": {
-            "description": "When the approval lapses on chain. Omit it or send null for an approval that never expires.",
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "submissionId": {
-            "description": "Retain this UUID when recovering or retrying the same submission.",
-            "format": "uuid",
-            "type": "string"
-          },
-          "walletAddress": {
-            "description": "Ethereum wallet address (0x...)",
-            "maxLength": 42,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "submissionId",
-          "walletAddress"
+      "WhitelistActionEnum": {
+        "description": "* `add` - Add\n* `remove` - Remove",
+        "enum": [
+          "add",
+          "remove"
         ],
-        "type": "object"
+        "type": "string"
       },
       "WhitelistApproval": {
         "properties": {
@@ -17995,131 +19027,6 @@
         ],
         "type": "string"
       },
-      "WhitelistBatchAddRequest": {
-        "properties": {
-          "entries": {
-            "items": {
-              "$ref": "#/components/schemas/WhitelistAddRequest"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "entries"
-        ],
-        "type": "object"
-      },
-      "WhitelistBatchError": {
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "walletAddress": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "error",
-          "walletAddress"
-        ],
-        "type": "object"
-      },
-      "WhitelistBatchResponse": {
-        "properties": {
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/WhitelistBatchError"
-            },
-            "type": "array"
-          },
-          "failed": {
-            "type": "integer"
-          },
-          "pending": {
-            "type": "integer"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/WhitelistChange"
-            },
-            "type": "array"
-          },
-          "successful": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "errors",
-          "failed",
-          "pending",
-          "results",
-          "successful"
-        ],
-        "type": "object"
-      },
-      "WhitelistChange": {
-        "properties": {
-          "action": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ActionEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "approval": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WhitelistApproval"
-              }
-            ],
-            "nullable": true
-          },
-          "company": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "message": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/WhitelistChangeStatusEnum"
-          },
-          "submissionId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "success": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "txHash": {
-            "nullable": true,
-            "type": "string"
-          },
-          "walletAddress": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "action",
-          "approval",
-          "company",
-          "expiresAt",
-          "message",
-          "submissionId",
-          "success",
-          "walletAddress"
-        ],
-        "type": "object"
-      },
       "WhitelistChangeStatusEnum": {
         "description": "* `pending` - Checking the admitted change\n* `executing` - Outcome unresolved\n* `confirmed` - Confirmed\n* `unchanged` - No change required\n* `failed` - Failed",
         "enum": [
@@ -18171,32 +19078,6 @@
           "label",
           "updatedAt",
           "uuid",
-          "walletAddress"
-        ],
-        "type": "object"
-      },
-      "WhitelistRemoveRequest": {
-        "properties": {
-          "company": {
-            "description": "The company whose whitelist registry this change writes.",
-            "format": "uuid",
-            "type": "string"
-          },
-          "submissionId": {
-            "description": "Retain this UUID when recovering or retrying the same submission.",
-            "format": "uuid",
-            "type": "string"
-          },
-          "walletAddress": {
-            "description": "Ethereum wallet address (0x...)",
-            "maxLength": 42,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "submissionId",
           "walletAddress"
         ],
         "type": "object"
@@ -30096,55 +30977,112 @@
         ]
       }
     },
-    "/api/v1/whitelist/add/": {
+    "/api/v1/whitelist/company-wallet-instructions/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_instructions_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "enum": [
+                "add",
+                "remove"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyWalletInstructionList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "post": {
-        "operationId": "api_v1_whitelist_add_create",
+        "operationId": "api_v1_whitelist_company_wallet_instructions_create",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionCreateRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionCreateRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionCreateRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistChange"
-                }
-              }
-            },
-            "description": ""
-          },
           "201": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WhitelistChange"
-                }
-              }
-            },
-            "description": ""
-          },
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistChange"
+                  "$ref": "#/components/schemas/CompanyWalletInstruction"
                 }
               }
             },
@@ -30166,24 +31104,76 @@
         ]
       }
     },
-    "/api/v1/whitelist/batch-add/": {
+    "/api/v1/whitelist/company-wallet-instructions/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_instructions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWalletInstruction"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-instructions/{uuid}/decide/": {
       "post": {
-        "operationId": "api_v1_whitelist_batch_add_create",
+        "operationId": "api_v1_whitelist_company_wallet_instructions_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecideRequest"
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecideRequest"
               }
             },
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/WhitelistBatchAddRequest"
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecideRequest"
               }
             }
           },
@@ -30194,7 +31184,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WhitelistBatchResponse"
+                  "$ref": "#/components/schemas/CompanyWalletInstruction"
                 }
               }
             },
@@ -30209,6 +31199,268 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-instructions/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_whitelist_company_wallet_instructions_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyWalletInstructionDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWalletInstructionDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-nominations/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_nominations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyWalletNominationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-nominations/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_nominations_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWalletNomination"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-targets/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_targets_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCompanyWalletTargetList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/company-wallet-targets/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_whitelist_company_wallet_targets_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyWalletTarget"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [
@@ -30283,66 +31535,6 @@
         ]
       }
     },
-    "/api/v1/whitelist/remove/": {
-      "post": {
-        "operationId": "api_v1_whitelist_remove_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WhitelistRemoveRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/WhitelistRemoveRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/WhitelistRemoveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistChange"
-                }
-              }
-            },
-            "description": ""
-          },
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitelistChange"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/whitelist/sync/{address}/": {
       "post": {
         "operationId": "api_v1_whitelist_sync_create",
@@ -30377,6 +31569,218 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/wallet-nominations/": {
+      "get": {
+        "operationId": "api_v1_whitelist_wallet_nominations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedWalletNominationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_whitelist_wallet_nominations_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletNomination"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletNomination"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/wallet-nominations/preview/": {
+      "post": {
+        "operationId": "api_v1_whitelist_wallet_nominations_preview_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationPreviewRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationPreviewRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletNominationPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletNominationPreviewResult"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/whitelist/wallet-nominations/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_whitelist_wallet_nominations_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletNomination"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

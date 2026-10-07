@@ -32,7 +32,6 @@ from wallets.models import Wallet
 from whitelist.admin import entry_eligibility
 from whitelist.exceptions import WhitelistChangeConflict, WhitelistRemovalPending
 from whitelist.models import (
-    WhitelistAction,
     WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
@@ -63,6 +62,7 @@ from whitelist.tests.change_fixtures import (
     admitted_signer,
     change_actor,
 )
+from whitelist.tests.historical_whitelist_fixtures import retained_signed_add
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
@@ -111,8 +111,11 @@ class CompanyEligibilityInvalidationTest(
             yield
 
     def approve(self):
+        signed = retained_signed_add(
+            actor=self.technical, company=self.company, entry=self.entry, client=self.node.client
+        )
         with self.actual_operator():
-            change = changes.submit(uuid4(), WhitelistAction.ADD, ADDRESS, self.technical, company=self.company)
+            change = changes.recover(signed.pk)
         self.assertEqual(change.status, WhitelistChangeStatus.CONFIRMED)
         self.assertNotEqual(self.node.expiries[ADDRESS], 0)
         return change

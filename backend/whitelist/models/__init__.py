@@ -12,6 +12,9 @@ __all__ = [
     "WhitelistChangeStatus",
     "WhitelistEligibilityInvalidation",
     "WhitelistInvalidationCause",
+    "CompanyWalletNomination",
+    "CompanyWalletInstruction",
+    "CompanyWalletInstructionDecision",
 ]
 from whitelist.models.approval import WhitelistApproval
 from whitelist.models.change import (
@@ -21,4 +24,9 @@ from whitelist.models.change import (
     WhitelistChangeStatus,
     WhitelistEligibilityInvalidation,
     WhitelistInvalidationCause,
+)
+from whitelist.models.company_wallet import (
+    CompanyWalletInstruction,
+    CompanyWalletInstructionDecision,
+    CompanyWalletNomination,
 )

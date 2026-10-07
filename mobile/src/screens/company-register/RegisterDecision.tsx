@@ -30,7 +30,10 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   kind,
   appointment,
   enabled = true,
+  visible: shown = true,
   newEffectGuard,
+  readGuard,
+  onDecided,
   epoch,
   description,
   onSettled,
@@ -44,7 +47,10 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   kind: RegisterDecisionKind;
   appointment?: string;
   enabled?: boolean;
+  visible?: boolean;
   newEffectGuard?: () => void;
+  readGuard?: () => void;
+  onDecided?: (proposal: Proposal) => Promise<unknown>;
   epoch: number;
   description: string;
   onSettled: () => Promise<unknown>;
@@ -70,6 +76,7 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
     assertSessionEpoch(epoch);
     if (!mounted.current || !owner || boundary.get() !== owner || scope.current !== proposal.uuid)
       throw new Error('The account or instruction changed. Reopen it before continuing.');
+    readGuard?.();
   };
   const decision = useRegisterDecision(apiClient, family, proposal, {
     appointment,
@@ -77,9 +84,9 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
     guard,
     newEffectGuard,
     requestConfig: () => ({ ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard }),
-    onDecided: () => {
+    onDecided: (record) => {
       setVisible(false);
-      return onSettled();
+      return onDecided ? onDecided(record) : onSettled();
     },
     onRefused,
   });
@@ -89,6 +96,7 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   const previewed = kind !== 'reject' || target?.request.reason === reason.trim();
   const current = !!target && target.request.appointment === appointment;
   const ready = enabled && !!preview?.canDecide && !busy && previewed && current;
+  if (!shown) return null;
   return (
     <>
       {enabled && appointment && !decision.recovery && (

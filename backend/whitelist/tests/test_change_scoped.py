@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
 from django.test import override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITransactionTestCase
@@ -51,6 +51,10 @@ from whitelist.tests.change_fixtures import (
     change_company,
     change_entry,
 )
+from whitelist.tests.historical_whitelist_fixtures import (
+    retained_signed_add,
+    retained_signed_remove,
+)
 from whitelist.tests.test_admin_blockchain_views import TEST_STORAGES
 
 
@@ -58,7 +62,7 @@ from whitelist.tests.test_admin_blockchain_views import TEST_STORAGES
     BLOCKCHAIN_OPERATOR_KEY=KEY,
     BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
     SHARE_TOKEN_FACTORY_ADDRESS=FACTORY,
-    STORAGES=TEST_STORAGES,
+    STORAGES={**settings.STORAGES, **TEST_STORAGES},
 )
 class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCase):
     def setUp(self):
@@ -164,8 +168,9 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
         return self.removal_jobs()[job_id]
 
     def submit_approval(self):
+        signed = retained_signed_add(actor=self.actor, company=self.company, entry=self.entry, client=self.node.client)
         with use_operator():
-            return changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company)
+            return changes.recover(signed.pk)
 
     def assert_removal_complete(self, job_id, payload, attempts):
         self.assertEqual(self.removal_jobs()[job_id], (payload, "succeeded", attempts))
@@ -333,8 +338,8 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.assertFalse(get_user_model().objects.get(pk=self.customer.pk).is_active)
 
     def test_app_alias_cannot_admit_recover_or_read_private_commands(self):
-        with use_operator():
-            change = changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None, self.company, None)
+        change = retained_signed_add(actor=self.actor, company=self.company, entry=self.entry, client=self.node.client)
+        original = bytes(change.operation.current_attempt.raw_transaction)
         self.node.client.load_contract.reset_mock()
         with acting_for(self.actor.pk):
             for invoke in (
@@ -346,13 +351,42 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             with self.assertRaises(DatabaseError), atomic():
                 WhitelistChange.objects.filter(pk=change.pk).exists()
         with use_operator():
-            self.assertTrue(WhitelistChange.objects.filter(pk=change.pk).exists())
-            self.assertFalse(SignedAttempt.objects.exists())
+            retained = WhitelistChange.objects.get(pk=change.pk)
+            self.assertEqual(retained.operation.current_attempt_id, change.operation.current_attempt_id)
+            self.assertEqual(bytes(retained.operation.current_attempt.raw_transaction), original)
+            self.assertEqual(SignedAttempt.objects.count(), 1)
         self.node.client.load_contract.assert_not_called()
+        self.node.client.send_raw_transaction.assert_not_called()
+
+    def test_predecessor_add_remove_and_add_recover_exact_signed_history_under_current_guards(self):
+        first = self.submit_approval()
+        removal = retained_signed_remove(
+            actor=self.actor, company=self.company, entry=self.entry, client=self.node.client
+        )
+        removed_bytes = bytes(removal.operation.current_attempt.raw_transaction)
+        with use_operator():
+            removed = changes.recover(removal.pk)
+            self.assertEqual(removed.status, "confirmed")
+            self.assertEqual(removed.initiated_by_id, self.actor.pk)
+            self.assertIsNone(removed.source_instruction_id)
+            self.assertEqual(bytes(removed.operation.current_attempt.raw_transaction), removed_bytes)
+        self.assertEqual(self.node.expiries[ADDRESS], 0)
+        third = self.submit_approval()
+        self.assertNotEqual(self.node.expiries[ADDRESS], 0)
+        with use_operator():
+            originals = [WhitelistChange.objects.get(pk=row.pk) for row in (first, removed, third)]
+            self.assertEqual(
+                [(row.action, row.status) for row in originals],
+                [("add", "confirmed"), ("remove", "confirmed"), ("add", "confirmed")],
+            )
+            self.assertTrue(all(row.source_instruction_id is None for row in originals))
+            attempts = list(SignedAttempt.objects.order_by("nonce"))
+            self.assertEqual(len(attempts), 3)
+            self.assertEqual([attempt.nonce for attempt in attempts], [7, 8, 9])
+            self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction) for attempt in attempts])
 
     def test_recovery_job_selects_operator_then_restores_app_principal(self):
-        with use_operator():
-            changes._admit(uuid4(), "add", ADDRESS, self.actor, "operator_api", None, self.company, None)
+        retained_signed_add(actor=self.actor, company=self.company, entry=self.entry, client=self.node.client)
         send = self.node.send
         seen = []
 
@@ -371,38 +405,37 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
             self.assertEqual(principal_of(APP_ALIAS), str(self.actor.pk))
         self.assertEqual(seen, [settings.RLS_ROLES[OPERATOR_ALIAS]])
 
-    def test_operator_api_commits_and_recovers_original_identity(self):
+    def test_fresh_staff_api_admission_is_retired_without_writes_or_provider_work(self):
         self.client.force_authenticate(self.actor)
         incoming = {"submissionId": str(uuid4()), "walletAddress": ADDRESS, "company": str(self.company.pk)}
-        response = self.client.post("/api/v1/whitelist/add/", incoming, format="json")
-        self.assertEqual(response.status_code, 201, response.data)
-        repeated = self.client.post("/api/v1/whitelist/add/", incoming, format="json")
-        self.assertEqual(repeated.json()["txHash"], response.json()["txHash"])
-        self.assertEqual(len(self.node.broadcasts), 1)
+        for action in ("add", "remove", "batch-add"):
+            with self.subTest(action=action):
+                for _ in range(2):
+                    response = self.client.post(f"/api/v1/whitelist/{action}/", incoming, format="json")
+                    self.assertIn(response.status_code, (404, 405), response.content)
         self.assertEqual(current_alias(), APP_ALIAS)
         with use_operator():
-            self.assertEqual(WhitelistChange.objects.get().initiated_by_id, self.actor.pk)
+            self.assertFalse(WhitelistChange.objects.exists())
+            self.assertFalse(WhitelistApproval.objects.exists())
+            self.assertFalse(SignedAttempt.objects.exists())
+        self.node.client.load_contract.assert_not_called()
+        self.node.client.send_raw_transaction.assert_not_called()
 
-    def test_admin_confirmation_preserves_identity_across_repeated_posts(self):
+    def test_fresh_staff_admin_confirmations_are_retired_and_history_page_remains(self):
         with use_operator():
             self.client.force_login(self.actor)
-        url = reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[self.entry.pk])
-        page = self.client.get(url)
-        self.assertEqual(page.status_code, 200)
-        self.node.client.send_raw_transaction.assert_not_called()
-        incoming = {
-            "confirm_whitelist": "1",
-            "whitelist_confirmation": page.context["whitelist_confirmation"],
-            "whitelist_company": str(self.company.pk),
-        }
-        response = self.client.post(url, incoming)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.client.post(url, incoming).status_code, 302)
-        self.assertEqual(len(self.node.broadcasts), 1)
+        for action in ("add_to_blockchain", "remove_from_blockchain"):
+            with self.subTest(action=action), self.assertRaises(NoReverseMatch):
+                reverse(f"admin:whitelist_whitelistentry_{action}", args=[self.entry.pk])
+        response = self.client.get(reverse("admin:whitelist_whitelistentry_change", args=[self.entry.pk]))
+        self.assertContains(response, "Company appointees")
+        self.assertNotContains(response, "Add to blockchain")
+        self.assertNotContains(response, "Remove from blockchain")
         with use_operator():
-            self.assertEqual(WhitelistChange.objects.get().authority, "whitelist_admin")
-            self.assertEqual(WhitelistChange.objects.get().status, "confirmed")
-            self.assertEqual(WhitelistApproval.objects.get().status, "active")
+            self.assertFalse(WhitelistChange.objects.exists())
+            self.assertFalse(WhitelistApproval.objects.exists())
+            self.assertFalse(SignedAttempt.objects.exists())
+        self.node.client.send_raw_transaction.assert_not_called()
 
     def test_customer_can_delete_a_wallet_with_a_company_approval(self):
         with use_operator():
@@ -430,10 +463,10 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
 
     def test_customer_deletion_preserves_private_command_without_recreating_or_reassigning_entry(self):
         self.node.confirmed = False
+        original = self.submit_approval()
         with use_operator():
             wallet = self.entry.wallet
             customer = wallet.user_account.user_profile.user
-            original = changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company)
             attempt = SignedAttempt.objects.get()
         self.signed_in_as(customer)
         response = self.client.delete(f"/api/wallets/{wallet.pk}/")
@@ -457,10 +490,10 @@ class ScopedWhitelistChangeTest(RunsOnTheScopedConnection, APITransactionTestCas
 
     def test_customer_wallet_address_edit_cannot_receive_the_original_address_receipt(self):
         self.node.confirmed = False
+        original = self.submit_approval()
         with use_operator():
             wallet = self.entry.wallet
             customer = wallet.user_account.user_profile.user
-            original = changes.submit(uuid4(), "add", ADDRESS, self.actor, company=self.company)
             attempt = SignedAttempt.objects.get()
         self.signed_in_as(customer)
         response = self.client.patch(f"/api/wallets/{wallet.pk}/", {"address": "0x" + "b" * 40}, format="json")

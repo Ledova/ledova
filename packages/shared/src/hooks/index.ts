@@ -20,6 +20,7 @@ export {
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_DEPLOYMENT_DECISIONS,
+  COMPANY_WALLET_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
   REGISTER_LINK_DECISIONS,
   REGISTER_OPENING_DECISIONS,
@@ -27,6 +28,8 @@ export {
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
+export { useWalletNomination } from './useWalletNomination';
+export { useCompanyWalletInstructions } from './useCompanyWalletInstructions';
 export { useDiscrepancyAcknowledgement } from './useDiscrepancyAcknowledgement';
 export type { DiscrepancyAcknowledgementOptions } from './useDiscrepancyAcknowledgement';
 export { canAdministerCompany, canPersonallyAdministerCompany, useCompanySelection } from './useCompanySelection';

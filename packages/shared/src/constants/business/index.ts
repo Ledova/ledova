@@ -10,6 +10,7 @@ export * from './publications';
 export * from './register';
 export * from './register-grants';
 export * from './register-deployments';
+export * from './company-wallets';
 export * from './register-transfers';
 export * from './register-imports';
 export * from './register-corrections';

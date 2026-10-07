@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
 from django.db import connections
-from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -9,13 +8,9 @@ from web3 import Web3
 
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import current_alias
-from shared.utils.admin_actions import admin_action_path
 from wallets.models import Wallet
-from whitelist.admin_actions import confirm_changes
 from whitelist.models import (
-    WhitelistAction,
     WhitelistApproval,
-    WhitelistAuthority,
     WhitelistChange,
     WhitelistEntry,
 )
@@ -151,7 +146,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         "holder_standing",
     ]
     ordering = ["-created_at"]
-    actions = ["add_to_blockchain", "remove_from_blockchain", "sync_with_blockchain"]
+    actions = ["sync_with_blockchain"]
     inlines = [WhitelistApprovalInline]
 
     def get_form(self, request, obj=None, **kwargs):
@@ -165,7 +160,7 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if obj is None:
             return [
-                ("Add Wallet to Whitelist", {"fields": ["wallet_address", "label"]}),
+                ("Wallet identity entry", {"fields": ["wallet_address", "label"]}),
                 ("Notes", {"fields": ["notes"], "classes": ["collapse"]}),
             ]
         return self._change_fieldsets
@@ -246,77 +241,14 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         if warning:
             messages.warning(request, warning)
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            admin_action_path(
-                self,
-                "<uuid:uuid>/add-to-blockchain/",
-                "whitelist_whitelistentry_add_to_blockchain",
-                self.add_to_blockchain_view,
-            ),
-            admin_action_path(
-                self,
-                "<uuid:uuid>/remove-from-blockchain/",
-                "whitelist_whitelistentry_remove_from_blockchain",
-                self.remove_from_blockchain_view,
-            ),
-        ]
-        return custom_urls + urls
-
     def status_actions(self, obj):
         if obj.pk is None:
             return "-"
         if WhitelistChange.objects.filter(entry_id=obj.pk).unresolved().exists():
             return "A whitelist change is unresolved. Automatic recovery will continue."
-        base_style = (
-            "display: inline-block; padding: 6px 12px; margin: 2px; "
-            "text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold;"
-        )
-        return format_html(
-            '<a href="{}" style="{} background-color: #28a745; color: white;">Approve for a company</a>'
-            '<a href="{}" style="{} background-color: #dc3545; color: white;">Remove for a company</a>',
-            reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[obj.uuid]),
-            base_style,
-            reverse("admin:whitelist_whitelistentry_remove_from_blockchain", args=[obj.uuid]),
-            base_style,
-        )
+        return "Company appointees approve and remove nominated wallets through their company instructions."
 
     status_actions.short_description = "Actions"
-
-    def add_to_blockchain_view(self, request, entry):
-        response = confirm_changes(
-            self,
-            request,
-            self.get_queryset(request).filter(pk=entry.pk),
-            [entry],
-            WhitelistAction.ADD,
-            WhitelistAuthority.WHITELIST_ADMIN,
-        )
-        return response or HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-    def remove_from_blockchain_view(self, request, entry):
-        response = confirm_changes(
-            self,
-            request,
-            self.get_queryset(request).filter(pk=entry.pk),
-            [entry],
-            WhitelistAction.REMOVE,
-            WhitelistAuthority.WHITELIST_ADMIN,
-        )
-        return response or HttpResponseRedirect(reverse("admin:whitelist_whitelistentry_change", args=[entry.pk]))
-
-    @admin.action(description="Approve selected entries for a company on chain", permissions=["change"])
-    def add_to_blockchain(self, request, queryset):
-        return confirm_changes(
-            self, request, queryset, list(queryset), WhitelistAction.ADD, WhitelistAuthority.WHITELIST_ADMIN
-        )
-
-    @admin.action(description="Remove selected entries from a company's whitelist on chain", permissions=["change"])
-    def remove_from_blockchain(self, request, queryset):
-        return confirm_changes(
-            self, request, queryset, list(queryset), WhitelistAction.REMOVE, WhitelistAuthority.WHITELIST_ADMIN
-        )
 
     @admin.action(description="Sync selected entries' company approvals with the chain")
     def sync_with_blockchain(self, request, queryset):

@@ -809,6 +809,18 @@ migration is needed.
   **Reversal does not restore data.** It recreates both columns and issues
   every company a new random key dated at the reversal, which the unique
   constraint needs; the keys dropped are gone.
+- The [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md)
+  adds `wallets/0024`–`0025` and `whitelist/0010`–`0011` after the company
+  empty-deployment foundation. These retain genuine successful possession proof,
+  explicit participant nomination, company instruction/decision and a nullable
+  original `WhitelistChange` source. Apply the coordinated backend/worker/client
+  release; old fresh staff/owner admission is not a fallback. No historical
+  VERIFIED status, signature, actor, approval or treasury record is backfilled
+  into invented proof/company provenance. Existing changes, approvals, wallet
+  identities and signed bytes remain. Empty reverse/forward preserves legacy
+  records; retained new proof/source/decision history prevents destructive
+  reversal. This is a preservation migration, not a new global-registry fresh
+  start. The owning PR records actual migration checks and rollback limits.
 - `whitelist/0007_per_company_approvals` is a fresh start: it refuses to run while
   any whitelist change exists, because those were written for the retired global
   registry. Follow the [fresh-start redeploy](chains.md#fresh-start-redeploy).

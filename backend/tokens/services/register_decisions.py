@@ -44,6 +44,7 @@ class DecisionFamily:
     apply: Callable
     noun: str = ""
     before_command: Callable = _nothing_to_check
+    command: Callable | None = None
 
     @property
     def subject(self):
@@ -145,11 +146,17 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         raise ValidationError(f"Confirm the exact register {family.subject} decision.")
     _check_kind(kind, reason)
     initial = _readable(family, actor, proposal_id)
-    if _recorded_before(family, actor, idempotency_key):
+    recorded = _recorded_before(family, actor, idempotency_key)
+    if recorded:
         checked = []
     else:
         checked = family.before_command(actor, initial, kind, appointment)
-    with register_command(actor, initial.company_id, f"{family.operation}_{kind}") as (
+    command = (
+        family.command(actor, initial, f"{family.operation}_{kind}", recorded)
+        if family.command is not None
+        else register_command(actor, initial.company_id, f"{family.operation}_{kind}")
+    )
+    with command as (
         company,
         current_actor,
         profile,

@@ -66,6 +66,10 @@ from users.services.investor_classification import (
 )
 from users.tests.factories import make_investor
 from users.tests.test_company_eligibility_requests import CompanyEligibilityCases
+from whitelist.tests.change_fixtures import CHAIN_ID as WALLET_CHAIN_ID
+from whitelist.tests.change_fixtures import FACTORY as WALLET_FACTORY
+from whitelist.tests.change_fixtures import KEY as WALLET_KEY
+from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
 
 
 def _classification_payload():
@@ -273,6 +277,22 @@ COMPANY_AUTHORITY_ROUTES = {
     "appointment_list": ("get", "/api/v1/company-authority/appointments/"),
     "appointment_team": ("get", "/api/v1/company-authority/appointments/team/?company={company}"),
     "appointment_revoke": ("post", "/api/v1/company-authority/appointments/{uuid}/revoke/"),
+}
+
+COMPANY_WALLET_ROUTES = {
+    "own_list": ("get", "/api/v1/whitelist/wallet-nominations/"),
+    "own_detail": ("get", "/api/v1/whitelist/wallet-nominations/{uuid}/"),
+    "own_preview": ("post", "/api/v1/whitelist/wallet-nominations/preview/"),
+    "own_create": ("post", "/api/v1/whitelist/wallet-nominations/"),
+    "nomination_list": ("get", "/api/v1/whitelist/company-wallet-nominations/"),
+    "nomination_detail": ("get", "/api/v1/whitelist/company-wallet-nominations/{uuid}/"),
+    "instruction_list": ("get", "/api/v1/whitelist/company-wallet-instructions/"),
+    "instruction_detail": ("get", "/api/v1/whitelist/company-wallet-instructions/{uuid}/"),
+    "instruction_create": ("post", "/api/v1/whitelist/company-wallet-instructions/"),
+    "instruction_preview": ("post", "/api/v1/whitelist/company-wallet-instructions/{uuid}/decision-preview/"),
+    "instruction_decide": ("post", "/api/v1/whitelist/company-wallet-instructions/{uuid}/decide/"),
+    "target_list": ("get", "/api/v1/whitelist/company-wallet-targets/"),
+    "target_detail": ("get", "/api/v1/whitelist/company-wallet-targets/{uuid}/"),
 }
 
 REGISTER_CORRECTION_ROUTES = {
@@ -688,6 +708,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         yield
 
     def setUp(self):
+        from tokens.tasks import deploy_share_token_task
+
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self._patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
         self.services = []
@@ -706,7 +728,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             side_effect=lambda **inputs: matching_observation(Company.objects.get(acn=inputs["acn"])),
         )
         self._service("offerings.services.offering.send_push_notification")
-        self._service("tokens.tasks.deploy_share_token_task")
+        self._service("tokens.tasks.deploy_share_token_task").name = deploy_share_token_task.name
         share_tokens = self._service("tokens.views.share_token.share_token_service")
         share_tokens.create_issuance_request.side_effect = _create_issuance_request
         pause_commands = self._service("tokens.views.share_token.pause_changes")
@@ -2476,4 +2498,119 @@ class CompanyEligibilityRouteMatrixTest(CompanyEligibilityRouteChecks, APITransa
 class ScopedCompanyEligibilityRouteMatrixTest(
     RunsOnTheScopedConnection, CompanyEligibilityRouteChecks, APITransactionTestCase
 ):
+    pass
+
+
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=WALLET_KEY, BLOCKCHAIN_CHAIN_ID=WALLET_CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=WALLET_FACTORY
+)
+class CompanyWalletRouteMatrixTest(CompanyWalletCases, APITransactionTestCase):
+    def test_all_thirteen_company_and_own_operations_reject_foreign_references_with_healthy_controls(self):
+        nomination = self.nominate()
+        proposal = self.prepare_wallet(nomination)
+        self.wallet_decide(proposal, "approve")
+        applied, _ = self.wallet_decide(proposal, "apply")
+        self.assertEqual(self.execute(applied).status, "confirmed")
+        ids = {
+            "own": nomination.pk,
+            "nomination": nomination.pk,
+            "instruction": proposal.pk,
+            "target": applied.change_id,
+        }
+        payloads = {
+            "own_preview": {"request": str(self.request.pk), "wallet": str(self.wallet.pk)},
+            "own_create": {
+                "operation_id": str(uuid4()),
+                "request": str(self.request.pk),
+                "wallet": str(self.wallet.pk),
+                "preview_digest": nomination.preview_digest,
+                "sharing_accepted": True,
+            },
+            "instruction_create": {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.initial.pk),
+                "company": str(self.company.pk),
+                "action": "add",
+                "nomination": str(nomination.pk),
+                "expires_at": proposal.expires_at.isoformat(),
+            },
+            "instruction_preview": {"appointment": str(self.initial.pk), "kind": "approve"},
+            "instruction_decide": {
+                "appointment": str(self.initial.pk),
+                "kind": "approve",
+                "idempotency_key": str(uuid4()),
+                "preview_digest": "0" * 64,
+                "confirmation": True,
+            },
+        }
+        for name, (method, template) in COMPANY_WALLET_ROUTES.items():
+            with self.subTest(route=name):
+                identifier = ids[name.split("_")[0]]
+                self.client.force_authenticate(self.other)
+                response = getattr(self.client, method)(
+                    template.format(uuid=identifier), payloads.get(name, {}), format="json"
+                )
+                if name.endswith("list"):
+                    self.assertEqual(response.status_code, 200, response.content)
+                    self.assertEqual(response.json()["results"], [])
+                else:
+                    self.assertEqual(response.status_code, 404, response.content)
+                    absent = getattr(self.client, method)(
+                        template.format(uuid=uuid4()), payloads.get(name, {}), format="json"
+                    )
+                    if "{uuid}" in template:
+                        self.assertEqual((response.status_code, response.content), (absent.status_code, absent.content))
+                self.client.force_authenticate(None)
+                self.assertEqual(
+                    getattr(self.client, method)(
+                        template.format(uuid=identifier), payloads.get(name, {}), format="json"
+                    ).status_code,
+                    401,
+                )
+                if method == "get":
+                    self.client.force_authenticate(self.participant if name.startswith("own_") else self.owner)
+                    healthy = self.client.get(template.format(uuid=identifier))
+                    self.assertEqual(healthy.status_code, 200, healthy.content)
+                    if name.endswith("list"):
+                        self.assertEqual(len(healthy.json()["results"]), 1)
+        self.client.force_authenticate(self.participant)
+        preview = self.client.post(COMPANY_WALLET_ROUTES["own_preview"][1], payloads["own_preview"], format="json")
+        self.assertEqual(preview.status_code, 200, preview.content)
+        own = self.client.post(
+            COMPANY_WALLET_ROUTES["own_create"][1],
+            {**payloads["own_create"], "preview_digest": preview.json()["previewDigest"]},
+            format="json",
+        )
+        self.assertEqual(own.status_code, 201, own.content)
+        self.assertEqual(own.json()["request"], str(self.request.pk))
+        self.client.force_authenticate(self.owner)
+        created = self.client.post(
+            COMPANY_WALLET_ROUTES["instruction_create"][1], payloads["instruction_create"], format="json"
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        for kind in ("approve", "apply"):
+            terms = {"appointment": str(self.initial.pk), "kind": kind}
+            preview = self.client.post(
+                COMPANY_WALLET_ROUTES["instruction_preview"][1].format(uuid=created.json()["uuid"]),
+                terms,
+                format="json",
+            )
+            self.assertEqual(preview.status_code, 200, preview.content)
+            self.assertTrue(preview.json()["canDecide"])
+            result = self.client.post(
+                COMPANY_WALLET_ROUTES["instruction_decide"][1].format(uuid=created.json()["uuid"]),
+                {
+                    **terms,
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": preview.json()["previewDigest"],
+                    "confirmation": True,
+                },
+                format="json",
+            )
+            self.assertEqual(result.status_code, 200, result.content)
+        self.assertEqual(result.json()["status"], "applied")
+        self.assertIsNotNone(result.json()["changeId"])
+
+
+class ScopedCompanyWalletRouteMatrixTest(RunsOnTheScopedConnection, CompanyWalletRouteMatrixTest):
     pass

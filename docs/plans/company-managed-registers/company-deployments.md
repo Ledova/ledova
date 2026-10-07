@@ -3,8 +3,8 @@
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
 **Status:** First #867 increment implemented. This page describes empty deployment;
-wallet approvals, company issuance, capital and pause conversion remain later
-increments. Each pull request on [#867](https://github.com/Ledova/ledova/issues/867)
+the second [wallet increment](company-wallet-approvals.md) is separate; full
+company issuance, capital and pause conversion remain later increments. Each pull request on [#867](https://github.com/Ledova/ledova/issues/867)
 records its independent review and required checks before delivery.
 
 A company appointment authorises deployment of an empty share class. The existing

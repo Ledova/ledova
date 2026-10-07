@@ -2863,23 +2863,39 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/whitelist/add/': {
+  '/api/v1/whitelist/company-wallet-instructions/': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    get: ApiOperations['api_v1_whitelist_company_wallet_instructions_list'];
     put?: never;
-    post: ApiOperations['api_v1_whitelist_add_create'];
+    post: ApiOperations['api_v1_whitelist_company_wallet_instructions_create'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/whitelist/batch-add/': {
+  '/api/v1/whitelist/company-wallet-instructions/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_company_wallet_instructions_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-instructions/{uuid}/decide/': {
     parameters: {
       query?: never;
       header?: never;
@@ -2888,7 +2904,87 @@ export interface ApiPaths {
     };
     get?: never;
     put?: never;
-    post: ApiOperations['api_v1_whitelist_batch_add_create'];
+    post: ApiOperations['api_v1_whitelist_company_wallet_instructions_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-instructions/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_whitelist_company_wallet_instructions_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-nominations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_company_wallet_nominations_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-nominations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_company_wallet_nominations_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-targets/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_company_wallet_targets_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/company-wallet-targets/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_company_wallet_targets_retrieve'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2927,22 +3023,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/whitelist/remove/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_whitelist_remove_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/whitelist/sync/{address}/': {
     parameters: {
       query?: never;
@@ -2953,6 +3033,54 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_whitelist_sync_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/wallet-nominations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_wallet_nominations_list'];
+    put?: never;
+    post: ApiOperations['api_v1_whitelist_wallet_nominations_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/wallet-nominations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_whitelist_wallet_nominations_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/whitelist/wallet-nominations/preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_whitelist_wallet_nominations_preview_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3133,7 +3261,6 @@ export interface ApiComponents {
       uuid: string;
     };
     AccountTypeEnum: 'individual';
-    ActionEnum: 'add' | 'remove';
     ApprovalDataResponse:
       | ApiComponents['schemas']['SettlementSufficientApproval']
       | ApiComponents['schemas']['SettlementApprovalTransaction'];
@@ -3770,6 +3897,144 @@ export interface ApiComponents {
       uuid: string;
     };
     CompanyTypeEnum: 'pty' | 'public' | 'unlisted';
+    CompanyWalletCompanySnapshot: {
+      acn: string;
+      name: string;
+      status: string;
+      uuid: string;
+    };
+    CompanyWalletInstruction: {
+      action: ApiComponents['schemas']['WhitelistActionEnum'];
+      approvalDecision: string | null;
+      changeId: string | null;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['CompanyWalletInstructionDecision'][];
+      execution: ApiComponents['schemas']['CompanyWalletInstructionExecution'] | null;
+      executionUnmetRequirements: string[];
+      expiresAt: string | null;
+      intentDigest: string;
+      nomination: string | null;
+      operationId: string;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      snapshot: ApiComponents['schemas']['CompanyWalletInstructionSnapshot'];
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      targetChange: string | null;
+      uuid: string;
+    };
+    CompanyWalletInstructionCreateRequest: {
+      action: ApiComponents['schemas']['WhitelistActionEnum'];
+      appointment: string;
+      company: string;
+      expiresAt?: string | null;
+      nomination?: string | null;
+      operationId: string;
+      targetChange?: string | null;
+    };
+    CompanyWalletInstructionDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    CompanyWalletInstructionDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    CompanyWalletInstructionDecisionPreview: {
+      approvalDecision: string | null;
+      canDecide: boolean;
+      changeId: string | null;
+      intentDigest: string;
+      previewDigest: string;
+      snapshot: ApiComponents['schemas']['CompanyWalletInstructionSnapshot'];
+      unmetRequirements: string[];
+    };
+    CompanyWalletInstructionDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    CompanyWalletInstructionExecution: {
+      blockHash: string | null;
+      blockNumber: number | null;
+      change: string;
+      claimId: string | null;
+      completedAt: string | null;
+      failureCode: string;
+      operationId: string | null;
+      operationStatus: string | null;
+      status: string;
+      transaction: string | null;
+      txHash: string | null;
+    };
+    CompanyWalletInstructionSnapshot: {
+      company: ApiComponents['schemas']['CompanyWalletCompanySnapshot'];
+      source: ApiComponents['schemas']['CompanyWalletSourceSnapshot'];
+      target: ApiComponents['schemas']['CompanyWalletTargetSnapshot'];
+      transaction: ApiComponents['schemas']['CompanyWalletTransactionSnapshot'];
+    };
+    CompanyWalletNomination: {
+      address: string;
+      chain: string;
+      company: string;
+      decision: string;
+      digest: string;
+      eligibilityExpiresAt: string;
+      proofCompletedAt: string;
+      request: string;
+      submittedAt: string;
+      unmetRequirements: string[];
+      uuid: string;
+    };
+    CompanyWalletSourceSnapshot: {
+      decision: string | null;
+      eligibilityExpiresAt: string | null;
+      nomination: string | null;
+      proofCompletedAt: string | null;
+      request: string | null;
+      targetChange: string | null;
+    };
+    CompanyWalletTarget: {
+      address: string;
+      chainId: number;
+      company: string;
+      completedAt: string | null;
+      expiresAt: string | null;
+      registryAddress: string;
+      status: ApiComponents['schemas']['WhitelistChangeStatusEnum'];
+      uuid: string;
+    };
+    CompanyWalletTargetSnapshot: {
+      address: string;
+      chain: string;
+      chainId: number;
+      expiresAt: string | null;
+      registryAddress: string;
+    };
+    CompanyWalletTransactionSnapshot: {
+      chainId: number;
+      data: string;
+      sender: string;
+      to: string;
+      value: string;
+    };
     DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
@@ -4487,6 +4752,24 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyTeamInvitation'][];
     };
+    PaginatedCompanyWalletInstructionList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['CompanyWalletInstruction'][];
+    };
+    PaginatedCompanyWalletNominationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['CompanyWalletNomination'][];
+    };
+    PaginatedCompanyWalletTargetList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['CompanyWalletTarget'][];
+    };
     PaginatedDirectoryTokenListList: {
       count: number;
       next?: string | null;
@@ -4672,6 +4955,12 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['Wallet'][];
+    };
+    PaginatedWalletNominationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['WalletNomination'][];
     };
     PaginatedWhitelistEntryList: {
       count: number;
@@ -6547,6 +6836,48 @@ export interface ApiComponents {
       walletType?:
         (ApiComponents['schemas']['WalletSigningPreferenceEnum'] | ApiComponents['schemas']['NullEnum']) | null;
     };
+    WalletNomination: {
+      address: string;
+      chain: string;
+      company: string;
+      decision: string;
+      digest: string;
+      eligibilityExpiresAt: string;
+      operationId: string;
+      proof: string;
+      proofCompletedAt: string;
+      request: string;
+      sharingAccepted: boolean;
+      submittedAt: string;
+      unmetRequirements: string[];
+      uuid: string;
+      wallet: string;
+    };
+    WalletNominationCreateRequest: {
+      operationId: string;
+      previewDigest: string;
+      request: string;
+      sharingAccepted: boolean;
+      wallet: string;
+    };
+    WalletNominationPreviewRequest: {
+      request: string;
+      wallet: string;
+    };
+    WalletNominationPreviewResult: {
+      address: string;
+      canSubmit: boolean;
+      chain: string;
+      company: string;
+      decision: string | null;
+      eligibilityExpiresAt: string | null;
+      previewDigest: string;
+      proof: string | null;
+      proofCompletedAt: string | null;
+      request: string;
+      unmetRequirements: string[];
+      wallet: string;
+    };
     WalletProofEnum: 'proven' | 'not_proven';
     WalletRequest: {
       address: string;
@@ -6592,12 +6923,7 @@ export interface ApiComponents {
       signature: string;
     };
     WalletVerificationStatusEnum: 'PENDING' | 'VERIFIED';
-    WhitelistAddRequest: {
-      company: string;
-      expiresAt?: string | null;
-      submissionId: string;
-      walletAddress: string;
-    };
+    WhitelistActionEnum: 'add' | 'remove';
     WhitelistApproval: {
       company: string;
       companyName: string;
@@ -6609,32 +6935,6 @@ export interface ApiComponents {
       uuid: string;
     };
     WhitelistApprovalStatusEnum: 'pending' | 'active' | 'removed' | 'failed';
-    WhitelistBatchAddRequest: {
-      entries: ApiComponents['schemas']['WhitelistAddRequest'][];
-    };
-    WhitelistBatchError: {
-      error: string;
-      walletAddress: string;
-    };
-    WhitelistBatchResponse: {
-      errors: ApiComponents['schemas']['WhitelistBatchError'][];
-      failed: number;
-      pending: number;
-      results: ApiComponents['schemas']['WhitelistChange'][];
-      successful: number;
-    };
-    WhitelistChange: {
-      action: ApiComponents['schemas']['ActionEnum'];
-      approval: ApiComponents['schemas']['WhitelistApproval'] | null;
-      company: string;
-      expiresAt: string | null;
-      message: string;
-      status?: ApiComponents['schemas']['WhitelistChangeStatusEnum'];
-      submissionId: string;
-      success: boolean;
-      txHash?: string | null;
-      walletAddress: string;
-    };
     WhitelistChangeStatusEnum: 'pending' | 'executing' | 'confirmed' | 'unchanged' | 'failed';
     WhitelistEntry: {
       approvals: ApiComponents['schemas']['WhitelistApproval'][];
@@ -6642,11 +6942,6 @@ export interface ApiComponents {
       label: string;
       updatedAt: string;
       uuid: string;
-      walletAddress: string;
-    };
-    WhitelistRemoveRequest: {
-      company: string;
-      submissionId: string;
       walletAddress: string;
     };
     WhitelistStatus: {
@@ -12349,7 +12644,32 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_whitelist_add_create: {
+  api_v1_whitelist_company_wallet_instructions_list: {
+    parameters: {
+      query?: {
+        action?: 'add' | 'remove';
+        company?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedCompanyWalletInstructionList'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_instructions_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -12358,50 +12678,57 @@ export interface ApiOperations {
     };
     requestBody: {
       content: {
-        'application/json': ApiComponents['schemas']['WhitelistAddRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistAddRequest'];
-        'multipart/form-data': ApiComponents['schemas']['WhitelistAddRequest'];
+        'application/json': ApiComponents['schemas']['CompanyWalletInstructionCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyWalletInstructionCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyWalletInstructionCreateRequest'];
       };
     };
     responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['WhitelistChange'];
-        };
-      };
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['WhitelistChange'];
-        };
-      };
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['WhitelistChange'];
+          'application/json': ApiComponents['schemas']['CompanyWalletInstruction'];
         };
       };
     };
   };
-  api_v1_whitelist_batch_add_create: {
+  api_v1_whitelist_company_wallet_instructions_retrieve: {
     parameters: {
       query?: never;
       header?: never;
-      path?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyWalletInstruction'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_instructions_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': ApiComponents['schemas']['WhitelistBatchAddRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistBatchAddRequest'];
-        'multipart/form-data': ApiComponents['schemas']['WhitelistBatchAddRequest'];
+        'application/json': ApiComponents['schemas']['CompanyWalletInstructionDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyWalletInstructionDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyWalletInstructionDecideRequest'];
       };
     };
     responses: {
@@ -12410,7 +12737,123 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': ApiComponents['schemas']['WhitelistBatchResponse'];
+          'application/json': ApiComponents['schemas']['CompanyWalletInstruction'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_instructions_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyWalletInstructionDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyWalletInstructionDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyWalletInstructionDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyWalletInstructionDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_nominations_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        request?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedCompanyWalletNominationList'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_nominations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyWalletNomination'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_targets_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedCompanyWalletTargetList'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_company_wallet_targets_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyWalletTarget'];
         };
       };
     };
@@ -12455,39 +12898,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_whitelist_remove_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['WhitelistRemoveRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['WhitelistRemoveRequest'];
-        'multipart/form-data': ApiComponents['schemas']['WhitelistRemoveRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['WhitelistChange'];
-        };
-      };
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['WhitelistChange'];
-        };
-      };
-    };
-  };
   api_v1_whitelist_sync_create: {
     parameters: {
       query?: never;
@@ -12505,6 +12915,109 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['WhitelistSyncResponse'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_wallet_nominations_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        request?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedWalletNominationList'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_wallet_nominations_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['WalletNominationCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['WalletNominationCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['WalletNominationCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WalletNomination'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WalletNomination'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_wallet_nominations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WalletNomination'];
+        };
+      };
+    };
+  };
+  api_v1_whitelist_wallet_nominations_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['WalletNominationPreviewRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['WalletNominationPreviewRequest'];
+        'multipart/form-data': ApiComponents['schemas']['WalletNominationPreviewRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['WalletNominationPreviewResult'];
         };
       };
     };

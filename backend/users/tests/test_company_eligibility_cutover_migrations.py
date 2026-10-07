@@ -43,6 +43,10 @@ OLD = [
 GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
+    "wallets_walletpossessionproof",
+    "whitelist_companywalletnomination",
+    "whitelist_companywalletinstruction",
+    "whitelist_companywalletinstructiondecision",
     "tokens_registercorrectiondecision",
     "tokens_registerdeployment",
     "tokens_registerdeploymentdecision",
@@ -78,6 +82,7 @@ ADDED_COLUMNS = {
         "buyer_eligibility_admitted_at",
     ],
     "whitelist_whitelistchange": [
+        "source_instruction_id",
         "eligibility_decision_id",
         "eligibility_invalidation_id",
         "invalidation_cause",

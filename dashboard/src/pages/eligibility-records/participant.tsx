@@ -4,6 +4,7 @@ import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from './components';
+import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
   const read = useParticipantEligibilityRecords(apiClient, () => crypto.randomUUID());
@@ -103,6 +104,13 @@ export default function ParticipantEligibilityPage() {
             </>
           )}
         </>
+      )}
+      {read.selectedRequestUuid && (
+        <WalletNomination
+          key={read.selectedRequestUuid}
+          requestUuid={read.selectedRequestUuid}
+          guardRequest={() => read.guardOwnRequest(read.selectedRequestUuid)}
+        />
       )}
     </Page>
   );

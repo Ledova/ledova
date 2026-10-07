@@ -595,6 +595,14 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "wallets_walletpossessionproof": "Private append-only successful wallet signature proofs. Only the actual "
+    "owned verification producer writes them; bounded own nominations consume exact current associations.",
+    "whitelist_companywalletnomination": "Immutable explicit one-wallet participant sharing sources. Own "
+    "request reads and exact-company register reads expose only their respective bounded projections.",
+    "whitelist_companywalletinstruction": "Private immutable company wallet instructions and original target "
+    "associations, served through current exact-company register authority and checked before new signatures.",
+    "whitelist_companywalletinstructiondecision": "Append-only personal company wallet instruction decisions "
+    "served only through their exact-company instruction.",
     "tokens_registerdeployment": "Immutable private company deployment sources, including captured wallet and "
     "actor associations. Current exact-company register readers receive only the bounded review projection "
     "through the operator connection; new signatures require the original consumed company approval.",

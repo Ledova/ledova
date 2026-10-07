@@ -729,6 +729,12 @@ function useEligibilityRecords(
     refresh,
     records,
     selectedRecord,
+    selectedRequestUuid: selection.record,
+    guardOwnRequest: (uuid: string) => {
+      ownerGuard();
+      if (mode !== 'participant' || selected.current.record !== uuid)
+        throw createUserFriendlyError('Your selected own eligibility request changed.');
+    },
     selectRecord: (uuid: string | null) => change({ record: uuid ?? '' }),
     busy,
     action: readReady ? (action as EligibilityAction | null) : null,

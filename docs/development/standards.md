@@ -88,11 +88,12 @@ insufficient.
 See [admin actions](../architecture/backend.md#admin-row-actions).
 
 The current operator API is a deliberate external consumer: `IsAdminUser`-gated
-whitelist routes and portfolio add/remove-wallet actions may be driven by
-operator scripts without a bundled UI. Keep their existing contracts tested and
-documented until an implemented transition changes them. Routine company register
-work needs company-scoped client workflows under the plan above; the existence of
-an operator script is not acceptance evidence for that self-service outcome.
+whitelist lookup/synchronisation and portfolio add/remove-wallet actions may be
+driven by operator scripts without a bundled UI. Keep those technical contracts
+tested and documented. Fresh whitelist additions and removals use the
+[company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md).
+An operator script supplies no company mandate or acceptance evidence for that
+self-service outcome.
 
 ## Shared TypeScript types
 

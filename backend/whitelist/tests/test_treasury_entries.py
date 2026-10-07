@@ -5,12 +5,12 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITestCase
 
 from blockchain.models import BlockchainTransaction
 from shared.tests.tenants import an_account
 from wallets.models import Wallet
-from whitelist.exceptions import WalletNotRegisteredException
 from whitelist.models import WhitelistApproval, WhitelistEntry, WhitelistStatus
 from whitelist.services import changes, whitelist
 from whitelist.tests.change_fixtures import (
@@ -78,16 +78,14 @@ class TreasuryEntryServiceTest(TransactionTestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
-    def test_add_resolves_the_treasury_entry_without_a_wallet(self):
+    def test_fresh_treasury_admission_is_refused_without_inventing_a_participant_source(self):
         entry = treasury_entry()
-        result = changes.submit(uuid4(), "add", TREASURY_CHECKSUM, self.actor, company=self.company)
-        self.assertEqual(result.entry_id, entry.pk)
-        self.assertEqual(result.approval.entry_id, entry.pk)
-        self.assertEqual(result.status, "confirmed")
-        approval = WhitelistApproval.objects.get(entry=entry, company=self.company)
-        self.assertEqual((approval.status, approval.expires_at), (WhitelistStatus.ACTIVE, None))
-        self.assertEqual(WhitelistEntry.objects.get().wallet, None)
-        self.assertEqual(BlockchainTransaction.objects.get().related_uuid, result.pk)
+        with self.assertRaises(PermissionDenied):
+            changes.submit(uuid4(), "add", TREASURY_CHECKSUM, self.actor, company=self.company)
+        self.assertFalse(WhitelistApproval.objects.exists())
+        self.assertFalse(BlockchainTransaction.objects.exists())
+        self.assertEqual(WhitelistEntry.objects.get().pk, entry.pk)
+        self.assertEqual(self.node.broadcasts, [])
 
     def test_sync_preserves_the_treasury_entry(self):
         entry = treasury_entry()
@@ -99,7 +97,7 @@ class TreasuryEntryServiceTest(TransactionTestCase):
         self.assertEqual(WhitelistEntry.objects.count(), 1)
 
     def test_an_unknown_address_without_a_treasury_entry_is_still_refused(self):
-        with self.assertRaises(WalletNotRegisteredException):
+        with self.assertRaises(PermissionDenied):
             changes.submit(uuid4(), "add", "0x" + "9" * 40, self.actor, company=self.company)
         self.assertFalse(WhitelistEntry.objects.exists())
 
@@ -143,7 +141,7 @@ class TreasuryEntryAdminTest(TestCase):
     def test_change_page_and_confirm_pages_render_for_a_treasury_entry(self):
         entry = treasury_entry("Custodian")
 
-        for name in ("change", "add_to_blockchain"):
+        for name in ("change",):
             response = self.client.get(reverse(f"admin:whitelist_whitelistentry_{name}", args=[entry.pk]))
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, TREASURY_CHECKSUM)

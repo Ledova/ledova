@@ -10,6 +10,7 @@ import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from './components';
+import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 
 export default function CompanyEligibilityPage() {
   const read = useCompanyEligibilityRecords(apiClient, () => crypto.randomUUID());
@@ -166,6 +167,7 @@ export default function CompanyEligibilityPage() {
           )}
         </>
       )}
+      <CompanyWalletInstructions />
     </Page>
   );
 }

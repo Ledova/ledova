@@ -1,6 +1,14 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
+from blockchain.services.outgoing import OutgoingTransactionError
+
+
+class WhitelistSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned whitelist change requires its exact company source.")
+
 
 class WhitelistRemovalPending(Exception):
     pass
@@ -34,21 +42,3 @@ class WhitelistRegistryUnreadable(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The company's whitelist registry could not be read. Try again."
     default_code = "whitelist_registry_unreadable"
-
-
-class BatchEntriesRequiredException(APIException):
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "No entries provided for batch operation."
-    default_code = "batch_entries_required"
-
-
-class BatchSizeLimitExceededException(APIException):
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Batch size exceeds the maximum limit."
-    default_code = "batch_size_limit_exceeded"
-
-    def __init__(self, max_size=100):
-        detail = f"Maximum {max_size} entries per batch."
-        super().__init__(detail=detail)

@@ -123,42 +123,47 @@ or retrying an allotment.
 
 ## Whitelist changes
 
-Each company has its own registry, so a change and its recovery concern one
-company's approval of one address. Keep the original submission UUID when an API response is lost or the outcome is
-unresolved. Repeating the same add/remove request or signed admin confirmation
-recovers that command. The five-minute `recover_whitelist_changes` operator task
-also processes at most 100 unresolved commands, oldest update first. It may
-broadcast only the original signed bytes through the admitted signer; receipt
-reconciliation remains available after admission closes.
+Each original change concerns one company's registry and one address. The
+[company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md)
+retains nomination, preparation and decision bodies/keys across uncertain replies.
+Replay the original receipt under current permitted read access; do not replace a
+UUID or infer chain approval from applied human status. Staff add/remove APIs and
+admin quick actions do not admit fresh company decisions. Historical private
+journals retain original-ID technical recovery.
 
-An opposite change is refused until the earlier operation resolves. Current
-membership, a missing receipt or elapsed time does not release that operation.
-A completed failure requires a deliberate new submission to try again. A stale
-confirmation cannot authorize that retry. For a change the classification
-refresh asked for, the five-minute `refresh_whitelist_approvals` sweep makes
-that new submission itself, and lists at error level any row whose change no
-actor explains rather than writing it. Its rule and the approval statuses are in
-[refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval). A change whose company registry has
-moved since admission stays unresolved with a conflict rather than sending to
-either registry. The [whitelist contract](../architecture/outgoing-signing.md#whitelist-changes)
-describes API outcomes, durable boundaries and historical limits.
+The five-minute `recover_whitelist_changes` task processes at most 100 unresolved
+commands, oldest update first. It broadcasts only original signed bytes through
+the admitted signer and reconciles their real receipts/finality. Current membership,
+a missing receipt or elapsed time does not release an unresolved signed operation.
+An opposite change waits for that original to resolve.
 
-Wallet deletion retains a `refresh_whitelist_targets` job with `remove_only=true`
-after the approval rows disappear. It retries incomplete removals every five
-minutes with no attempt ceiling, including provider failures before a change
-can be admitted. Keep that job: the approval sweep cannot rediscover its targets.
-An earlier unresolved add or removal must finish through
-`recover_whitelist_changes`; a confirmed failure allows the retained job to
-submit another removal under the original actor.
+Temporary source-row contention retains the same never-signed claim without a
+new attempt/nonce. Genuine permanent company-source loss on an actually
+never-signed claim conditionally records and projects its failure, releasing the
+target for a real retained eligibility-loss removal. A worker that already signed
+wins original recovery first. Possession-proof refresh is not a fabricated
+withdrawal/deletion cause. Restoring a read or appointment does not itself create
+a new approval, source renewal or replacement instruction.
 
-Inspect repeatedly pending jobs and their error logs alongside the named
-company's whitelist changes. Restore provider availability or the original
-actor's valid standing where appropriate. If the actor no longer exists, do
-not edit the job to impersonate another actor: staff must review the retained
-targets and explicitly authorize their own removal through the operator API.
-Verify absence before retiring that blocked job. The job never invents authority
-or grants an approval. A missing worker or unresolved chain outcome can exceed
-the normal update window; use the token pause procedure when necessary.
+Wallet deletion retains the `refresh_whitelist_targets` job after the mutable
+entry and approvals disappear. Its actual prior cause, company, registry and
+address remain. The job retries incomplete removals every five minutes without an
+attempt ceiling, including provider failures before admission. Keep it: the
+approval sweep cannot rediscover deleted targets. A known failed removal allows a
+new bounded technical removal under that genuine cause; unresolved signed work
+must finish first. No job substitutes another actor or grants approval.
+
+Inspect pending journals/jobs with the named company's instruction history.
+Restore original provider availability or valid source/standing where appropriate.
+Do not alter a job to impersonate another actor or manually mark an uncertain
+outcome complete. An authorised company appointee can prepare REMOVE from a
+genuine retained CONFIRMED/UNCHANGED ADD journal, including a historical
+NULL-source ADD, even after wallet deletion. An approval-only row with no genuine
+journal is not invented into an ADD source; retain its diagnostic history and
+resolve unsupported work explicitly. Verify actual absence before retiring a
+blocked removal job. Missing workers/providers or unresolved receipts can exceed
+normal operating intervals; existing token pause remains under its own current
+authority until its #867 conversion.
 
 ### Holder standing review
 

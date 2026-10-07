@@ -39,8 +39,10 @@ retained evidence and a genuine ISSUE entry. The second adds [direct non-paid
 transfers](register-transfers.md), returning/new recipients and attributable
 cessation history with genuine roll/certificate inputs. The first #867 increment
 implements [company-authorised empty deployments](company-deployments.md), with
-retained approval and original execution recovery. Wallet nomination/approval,
-company issuance, capital and pause conversion remain later #867 increments.
+retained approval and original execution recovery. The second increment's
+[wallet nomination and company instruction guide](company-wallet-approvals.md)
+records its in-progress scope and retained boundaries. Company issuance, capital
+and pause conversion remain later #867 increments.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and

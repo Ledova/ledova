@@ -36,7 +36,8 @@ export const REGISTER_COPY = {
     "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +
     'relying on the register.',
   UNIDENTIFIED_NOTE:
-    'No wallet linked to this member resolves to a person through its whitelist entry. Ask the operator to add one.',
+    'No linked wallet resolves to a person through its retained whitelist entry. Ask the participant to verify ' +
+    'and nominate the linked wallet for company approval.',
   APPLICATIONS_TITLE: 'Applications',
   APPLICATIONS_EMPTY: 'No one has applied to this offering yet.',
   APPLICATIONS_NOTE: (operator: string) =>

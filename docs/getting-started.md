@@ -35,11 +35,11 @@ real transactions; see [the local chain](#the-local-chain). PostgreSQL runs the
 job queue; Redis handles request quotas and trading events. ClamAV must finish
 loading signatures before uploads work. See [upload setup](operations/uploads.md).
 
-| Surface | Address |
-| --- | --- |
-| Dashboard | <http://localhost:5174> |
-| Marketing | <http://localhost:5173> |
-| API and admin | <http://localhost:8000> |
+| Surface                                | Address                 |
+| -------------------------------------- | ----------------------- |
+| Dashboard                              | <http://localhost:5174> |
+| Marketing                              | <http://localhost:5173> |
+| API and admin                          | <http://localhost:8000> |
 | Local chain (JSON-RPC, chain id 31337) | <http://127.0.0.1:8545> |
 
 Rebuild changed services: the dashboard is a built image with no source volume,
@@ -66,24 +66,29 @@ classification and share class; rerunning resolves and applies a password
 again. The first run on a fresh database also adds six months of synthetic
 history: staff, about sixty investors in every sign-up and verification state,
 four more companies, wallets and their transactions, notifications and
-compliance alerts. With the stack's chain up, it then adds a chain layer, signing
-about 130 transactions there in under a minute: share classes deployed, wallets
-approved, each company's register issued, opened from the chain and imported,
-closed offerings allotted, and offerings, applications, issuance requests and
-capital increases in every state. A market layer follows on the same chain:
-AUDY deposits for the buyers, an order book in every deployed class, about 20
-settled trades entered in the registers, and 27 notices to members, among them
-dividends and resolutions open, upcoming and closed. Without a configured local
-chain it writes nothing to any chain and says why; a later `make dev-seed` adds
-both layers. Later runs leave them alone; `make dev-clean` starts over.
+compliance alerts. Its historical staff-assisted chain layer deployed classes,
+approved wallets and issued/opened/imported registers, followed by offerings,
+market trades and notices. Preserve that earlier journey as evidence.
+
+The default fresh treasury-bearing chain plan now returns `SKIPPED` before
+chain-layer records, deployments, minting, signatures or market work. Supported
+participant helpers follow the guarded company deployment and explicit wallet
+workflows. An owned participant with an actual synthetic signing key can produce
+proof and nomination. The historical no-key
+employee-trust treasury cannot: its fresh approval is explicitly unsupported, so
+the complete historical chain/market layer is not a current fresh-seed completion
+claim. Skipping its approval would not make treasury issuance valid. Without a
+configured local chain the seed writes nothing on chain and explains why. Do not
+reset retained data or bypass guards to obtain the earlier fixture result.
 See [demo details](operations/operator-console.md#demo-data).
 
 For issuance beyond the seed, the stack has already deployed the core
-contracts, configured their addresses and admitted the signer. Open the
-[operator console](operations/operator-console.md) and exercise the
-[issuance flow](architecture/contracts-and-issuance.md): deploying a share
-class, approving a wallet for its company and minting each sign a transaction on
-the local chain.
+contracts, configured their addresses and admitted the signer. Use the Register
+for [company-authorised empty deployment](plans/company-managed-registers/company-deployments.md)
+and the [participant nomination/company wallet workflow](plans/company-managed-registers/company-wallet-approvals.md).
+Human application and actual chain confirmation remain distinct. Existing mint,
+capital and pause paths retain their current boundaries until their #867
+conversion; the [issuance guide](architecture/contracts-and-issuance.md) records them.
 
 ## The local chain
 
@@ -110,22 +115,22 @@ what to do when a check refuses. While the stack is up the chain holds port
 
 ## Stop and clean up
 
-| Command | Effect |
-| --- | --- |
-| `make dev-down` | Runs `docker compose down`: stops the stack and removes its containers. The database, the chain, Redis data, uploads and virus signatures stay in their volumes for the next start. |
-| `make dev-clean` | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. Compose names the project `ledova` (the file's `name:`), so from any checkout or worktree this deletes that one local stack's data; a `COMPOSE_PROJECT_NAME` set in the environment overrides the name and points the deletion at that project instead. |
-| `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it. |
+| Command             | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make dev-down`     | Runs `docker compose down`: stops the stack and removes its containers. The database, the chain, Redis data, uploads and virus signatures stay in their volumes for the next start.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `make dev-clean`    | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. Compose names the project `ledova` (the file's `name:`), so from any checkout or worktree this deletes that one local stack's data; a `COMPOSE_PROJECT_NAME` set in the environment overrides the name and points the deletion at that project instead. |
+| `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it.                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Run individual components
 
-| Component | Command from the repository root |
-| --- | --- |
-| Dashboard/shared development | `npm ci && npm run dev:dashboard` |
-| Backend dependencies | `make install-backend` |
-| Backend server | `cd backend && make run` |
-| Worker | `cd backend && make worker` |
-| Contract compilation | `cd contracts && npm ci && npx hardhat compile` |
-| Mobile development server | `cd mobile && make install && make start` |
+| Component                    | Command from the repository root                |
+| ---------------------------- | ----------------------------------------------- |
+| Dashboard/shared development | `npm ci && npm run dev:dashboard`               |
+| Backend dependencies         | `make install-backend`                          |
+| Backend server               | `cd backend && make run`                        |
+| Worker                       | `cd backend && make worker`                     |
+| Contract compilation         | `cd contracts && npm ci && npx hardhat compile` |
+| Mobile development server    | `cd mobile && make install && make start`       |
 
 Backend commands require a filled environment and reachable PostgreSQL/Redis.
 Outside Compose, apply migrations, role checks and seeds using the
