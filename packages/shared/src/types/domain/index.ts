@@ -39,3 +39,4 @@ export * from './order-action';
 export * from './swap-settlement';
 export * from './register-issue';
 export * from './register-capital-increase';
+export * from './register-pause-change';

@@ -170,8 +170,8 @@ NULL-source ADD, even after wallet deletion. An approval-only row with no genuin
 journal is not invented into an ADD source; retain its diagnostic history and
 resolve unsupported work explicitly. Verify actual absence before retiring a
 blocked removal job. Missing workers/providers or unresolved receipts can exceed
-normal operating intervals; existing token pause remains under its own current
-authority until its #867 conversion.
+normal operating intervals; pause uses its own exact company instruction and
+original recovery boundary.
 
 ### Holder standing review
 
@@ -242,12 +242,17 @@ Redis, PostgreSQL or the chain are healthy.
 
 ## Pause and unpause
 
-Keep the original pause submission when a response is lost. The dashboard's
-**Check outcome** reads it and **Retry same request** repeats its identifier;
-neither action creates new intent. Reloading retains the reminder on the same
-browser and issuer account. Staff can repeat the same signed confirmation and
-read **Latest pause request** on the token page. A pending response does not mean
-transfers have stopped or resumed.
+Keep the original company preparation or decision body and key when a response
+is lost. Both clients recover the exact receipt and repeat the original command;
+changed drafts cannot rebuild its authority. Approval alone admits no execution.
+A pending result does not mean transfers have stopped or resumed. The company
+history shows its requested state and genuine observation or original receipt
+separately from the class's current state.
+
+Existing issuer reminders retain **Check outcome**, **Retry same request**,
+same-account reload and original UUID/direction. Only an existing exact issuer
+row can replay the old POST; a never-admitted UUID receives an explicit fresh
+admission refusal. Fresh issuer/staff submission and confirmation are retired.
 
 The exact job runs after durable admission. Every five minutes,
 `check_pending_pause_changes` also recovers up to 100 incomplete commands untouched
@@ -255,14 +260,14 @@ for ten minutes, oldest update first. It retains original signed bytes and nonce
 or finishes an already recorded outcome without provider access. A completed
 original outcome can differ from the token's current state after a later request.
 
-An unresolved request blocks new requests for that chain and contract. Known
-authorized competing requests receive a permanent unsigned refusal, which can be
-dismissed. Replaying that UUID always returns its refusal, even after the earlier
-operation resolves; a deliberate later action needs a new submission. Other
-unresolved responses must keep their saved identifier. Known
-unsigned authority refusals release this barrier; transient provider failures and
-signed uncertainty do not. If a confirmed or observed outcome cannot reach its
-original issuer-scoped token, restore the correct identity/authority and recover
-that submission. Do not change private status or create an operator projection to
-bypass the barrier. A completed failure permits a deliberate new submission.
+An unresolved original reserves its chain and contract. Company application
+refuses a competing target before consuming its proposal. Temporary provider,
+configuration, readiness and contention holds keep the same unsigned original.
+Actual consumed appointment revocation/database-clock expiry can retire only an
+original that never signed, releasing that slot; signed uncertainty retains it.
+Recover the original observation or canonical receipt and projection rather than
+creating a new command for an ambiguous outcome. If a retained NULL-source
+issuer outcome cannot reach its original scoped token, restore the correct
+identity and recover it; no operator fallback bypasses that barrier. A completed
+failure permits a deliberate new company preparation and decisions.
 See the [pause recovery contract](../architecture/outgoing-signing.md#pause-and-unpause).

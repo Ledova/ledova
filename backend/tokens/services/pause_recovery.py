@@ -1,18 +1,19 @@
+from contextlib import contextmanager
 from uuid import UUID
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.utils import timezone
 from eth_account import Account
 from hexbytes import HexBytes
-from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 from web3.logs import DISCARD
 
 from blockchain.models import OutgoingOperation, OutgoingStatus
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
-from shared.db import APP_ALIAS, atomic, current_alias
-from tokens.exceptions import InvalidTokenStateException, PauseChangeConflict
+from shared.db import APP_ALIAS, current_alias
+from tokens.exceptions import PauseChangeConflict, PauseSigningHold
 from tokens.models import PauseChange, PauseChangeStatus
 from tokens.services import pause_changes
 
@@ -26,16 +27,18 @@ def _configuration(change, client):
         or client.assert_expected_chain() != change.chain_id
     ):
         raise PauseChangeConflict("The pause chain or signer changed after admission.")
-    with atomic(durable=True):
-        current = PauseChange.objects.select_for_update().get(pk=change.pk)
+    with pause_changes.target_transaction(change.chain_id, change.contract_address):
+        current = pause_changes.lock_original(change.pk)
         pause_changes.check_authority(current)
 
 
 def _decide(change, client):
     try:
         _configuration(change, client)
-    except (PauseChangeConflict, InvalidTokenStateException, PermissionDenied, ValueError):
-        return pause_changes.refuse_unsigned(change)
+    except (PauseChangeConflict, PauseSigningHold, ValueError):
+        pause_changes.retire_lapsed_source(change)
+        change.refresh_from_db()
+        return change
     block = client.get_block("latest")
     number = block["number"]
     block_hash = Web3.to_hex(HexBytes(block["hash"]))
@@ -51,8 +54,19 @@ def _decide(change, client):
             paused,
             {"block_number": number, "block_hash": block_hash, "observed_at": timezone.now().isoformat()},
         )
-    except (PauseChangeConflict, InvalidTokenStateException, PermissionDenied):
-        return pause_changes.refuse_unsigned(change)
+    except PauseSigningHold:
+        pause_changes.retire_lapsed_source(change)
+        change.refresh_from_db()
+        return change
+
+
+@contextmanager
+def _claim_context(change):
+    pause_changes.lock_target(change.chain_id, change.contract_address)
+    current = pause_changes.lock_original(change.pk)
+    if current.completed_at is not None or current.status != PauseChangeStatus.EXECUTING:
+        raise PauseChangeConflict("This pause submission no longer admits its original operation.")
+    yield
 
 
 def _claim(change):
@@ -61,10 +75,11 @@ def _claim(change):
         **{field: change.intent[field] for field in ("chain_id", "sender", "to", "data")},
         value=int(change.intent["value"]),
         restart_of=UUID(int=0),
+        opening_context=lambda: _claim_context(change),
     )
-    with atomic(durable=True):
+    with pause_changes.target_transaction(change.chain_id, change.contract_address):
+        current = pause_changes.lock_original(change.pk)
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current = PauseChange.objects.select_for_update().get(pk=change.pk)
         if operation.claim_id != claim.claim_id or current.operation_id not in (None, operation.pk):
             raise PauseChangeConflict("A different outgoing operation owns this pause request.")
         if current.operation_id is None:
@@ -79,7 +94,6 @@ def _record_signed(change_id, attempt):
     current = PauseChange.objects.select_for_update().get(pk=change_id)
     if current.status != PauseChangeStatus.EXECUTING or current.operation_id != attempt.operation_id:
         raise PauseChangeConflict("This pause submission no longer permits signing.")
-    pause_changes.check_authority(current)
 
 
 def _verify_event(change, operation, client):
@@ -114,9 +128,10 @@ def _verify_event(change, operation, client):
 
 
 def _record_outcome(change_id, claim, verified=False):
-    with atomic(durable=True):
+    initial = PauseChange.objects.get(pk=change_id)
+    with pause_changes.target_transaction(initial.chain_id, initial.contract_address):
+        current = pause_changes.lock_original(change_id)
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current = PauseChange.objects.select_for_update().get(pk=change_id)
         if operation.claim_id != claim.claim_id or current.operation_id != operation.pk:
             raise PauseChangeConflict("A different attempt owns this pause outcome.")
         if current.status == PauseChangeStatus.EXECUTING and (operation.status in FAILED or verified):
@@ -132,16 +147,32 @@ def _execute(change, client):
         return
     client = client or get_base_chain_client()
     if operation.status == OutgoingStatus.PREPARING:
+        from tokens.services.register_pause_changes import signing_source
+
         try:
-            _configuration(change, client)
+            try:
+                _configuration(change, client)
+            except PauseSigningHold:
+                raise
+            except Exception:
+                raise PauseSigningHold(["pause_configuration_changed"]) from None
             prepared = outgoing.prepare_operation(claim, client)
-            _configuration(change, client)
+            try:
+                _configuration(change, client)
+            except PauseSigningHold:
+                raise
+            except Exception:
+                raise PauseSigningHold(["pause_configuration_changed"]) from None
             outgoing.sign_operation(
                 claim,
                 prepared,
                 settings.BLOCKCHAIN_OPERATOR_KEY,
                 on_signed=lambda attempt: _record_signed(change.pk, attempt),
+                signing_context=lambda: signing_source(change, claim),
             )
+        except (PauseSigningHold, IntegrityError):
+            pause_changes.retire_lapsed_source(change)
+            return
         except Exception:
             if outgoing.fail_preparing(claim):
                 _record_outcome(change.pk, claim)

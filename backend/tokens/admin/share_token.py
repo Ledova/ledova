@@ -5,14 +5,12 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from rest_framework.exceptions import PermissionDenied
 
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
 from tokens.constants import RESERVED_SYMBOL
 from tokens.exceptions import (
     InvalidTokenStateException,
-    PauseChangeConflict,
 )
 from tokens.models import (
     IssuanceStatus,
@@ -30,7 +28,7 @@ from tokens.services import (
     swap_approval,
 )
 
-from ._helpers import bounded_chain_read, hex_column, status_badge
+from ._helpers import hex_column, status_badge
 
 logger = logging.getLogger(__name__)
 
@@ -169,8 +167,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            admin_action_path(self, "<uuid:uuid>/pause/", "tokens_sharetoken_pause", self.pause_view),
-            admin_action_path(self, "<uuid:uuid>/unpause/", "tokens_sharetoken_unpause", self.unpause_view),
             admin_action_path(
                 self, "<uuid:uuid>/retry-deploy/", "tokens_sharetoken_retry_deploy", self.retry_deploy_view
             ),
@@ -246,26 +242,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
                 [("⏳ Deployment in Progress", None, "#17a2b8"), ("↻ Retry Deployment", retry_url, "#007bff")]
             )
 
-        unpause_url = reverse("admin:tokens_sharetoken_unpause", args=[obj.uuid])
-        if obj.status == ShareTokenStatus.DEPLOYED:
-
-            pause_url = reverse("admin:tokens_sharetoken_pause", args=[obj.uuid])
-            paused_on_chain = self._paused_on_chain(obj)
-            if paused_on_chain is True:
-                return action_buttons([("▶ Unpause Token", unpause_url, "#28a745")])
-            buttons = [("⏸ Pause Token", pause_url, "#ffc107", "black")]
-            if paused_on_chain is None:
-                buttons.append(("▶ Unpause Token", unpause_url, "#6c757d"))
-            return action_buttons(buttons)
-
-        if obj.status == ShareTokenStatus.PAUSED:
-            return action_buttons([("▶ Unpause Token", unpause_url, "#28a745")])
-
         return "-"
-
-    @staticmethod
-    def _paused_on_chain(obj):
-        return bounded_chain_read(lambda: share_token_service.read_paused(obj), f"paused() of {obj.symbol}")
 
     def retry_deploy_view(self, request, token):
         change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
@@ -294,42 +271,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/tokens/sharetoken/retry_deploy_confirm.html", context)
-
-    def pause_view(self, request, token):
-        return self._pause_view(request, token, "pause")
-
-    def unpause_view(self, request, token):
-        return self._pause_view(request, token, "unpause")
-
-    def _pause_view(self, request, token, verb):
-        change_url = reverse("admin:tokens_sharetoken_change", args=[token.pk])
-        try:
-            if request.method == "POST":
-                change = pause_changes.submit_confirmation(
-                    token, request.user, verb == "pause", request.POST.get("confirmation")
-                )
-                notice = f"Submission {change.pk}: {pause_changes.message(change)}"
-                self.log_change(request, token, notice)
-            else:
-                confirmation = pause_changes.confirmation(token, request.user, verb == "pause")
-        except (InvalidTokenStateException, PauseChangeConflict, PermissionDenied) as exc:
-            messages.error(request, f"Cannot {verb}: {getattr(exc, 'detail', exc)}")
-            return HttpResponseRedirect(change_url)
-
-        if request.method == "POST":
-            messages.info(request, notice)
-            return HttpResponseRedirect(change_url)
-
-        context = {
-            **self.admin_site.each_context(request),
-            "title": f"{verb.capitalize()} Token: {token.name}",
-            "subtitle": None,
-            "token": token,
-            "verb": verb,
-            "confirmation": confirmation,
-            "opts": self.model._meta,
-        }
-        return render(request, "admin/tokens/sharetoken/pause_confirm.html", context)
 
     @admin.display(description="Latest pause request")
     def pause_submission_status(self, obj):

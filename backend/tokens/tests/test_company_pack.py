@@ -390,31 +390,49 @@ def linked(company, member, label):
     return decide_link(owner, appointment, link, "apply")
 
 
+@contextmanager
+def predecessor_pause_guards():
+    nested = connections["default"].in_atomic_block
+    with use_migrate():
+        if nested:
+            with connections["default"].cursor() as cursor:
+                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+        try:
+            migrate_to([("tokens", "0104_company_register_pause_changes")])
+            yield
+        finally:
+            restore_every_migration()
+            if nested:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+
+
 def paused(company, token):
-    contract = token.contract_address.lower()
-    change = PauseChange.objects.create(
-        token_id=token.pk,
-        company_id=company.pk,
-        initiated_by=company.owner,
-        authority="issuer",
-        paused=True,
-        chain_id=settings.BLOCKCHAIN_CHAIN_ID,
-        contract_address=contract,
-        intent={
-            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
-            "sender": OPERATOR,
-            "to": contract,
-            "value": "0",
-            "data": "0x8456cb59",
-        },
-    )
-    PauseChange.objects.filter(pk=change.pk).update(
-        status="observed",
-        observation={"block_number": 90, "block_hash": "0x" + "ab" * 32, "observed_at": RECORDED_AT.isoformat()},
-        completed_at=RECORDED_AT,
-    )
-    ShareToken.objects.filter(pk=token.pk).update(status="paused")
-    return PauseChange.objects.get(pk=change.pk)
+    with predecessor_pause_guards():
+        contract = token.contract_address.lower()
+        change = PauseChange.objects.create(
+            token_id=token.pk,
+            company_id=company.pk,
+            initiated_by=company.owner,
+            authority="issuer",
+            paused=True,
+            chain_id=settings.BLOCKCHAIN_CHAIN_ID,
+            contract_address=contract,
+            intent={
+                "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+                "sender": OPERATOR,
+                "to": contract,
+                "value": "0",
+                "data": "0x8456cb59",
+            },
+        )
+        PauseChange.objects.filter(pk=change.pk).update(
+            status="observed",
+            observation={"block_number": 90, "block_hash": "0x" + "ab" * 32, "observed_at": RECORDED_AT.isoformat()},
+            completed_at=RECORDED_AT,
+        )
+        ShareToken.objects.filter(pk=token.pk).update(status="paused")
+        return PauseChange.objects.get(pk=change.pk)
 
 
 @contextmanager

@@ -14,12 +14,14 @@ from tokens.views.register_opening import (
     RegisterWalletLinkViewSet,
 )
 from tokens.views.register_particulars import RegisterParticularsChangeViewSet
+from tokens.views.register_pause_change import RegisterPauseChangeViewSet
 from tokens.views.register_reconciliation import RegisterReconciliationViewSet
 from tokens.views.register_transfer import RegisterTransferViewSet
 
 app_name = "tokens"
 
 router = DefaultRouter()
+router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")
 router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")
 router.register(r"register-issues", RegisterIssueViewSet, basename="register-issues")

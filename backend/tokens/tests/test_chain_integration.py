@@ -75,6 +75,7 @@ from tokens.models import (
     CapitalIncreaseRequest,
     FormerHolder,
     IssuanceStatus,
+    PauseChange,
     RegisterEntry,
     RegisterEvidenceKind,
     RegisterMemberWallet,
@@ -102,7 +103,6 @@ from tokens.services import (
     issuance_execution,
     nav,
     nav_recovery,
-    pause_changes,
     pause_recovery,
     register_snapshot,
     share_token_service,
@@ -152,6 +152,11 @@ from tokens.services.register_openings import (
     decide_opening,
     prepare_opening,
     preview_opening_decision,
+)
+from tokens.services.register_pause_changes import (
+    decide_pause_change,
+    prepare_pause_change,
+    preview_pause_change_decision,
 )
 from tokens.services.register_reconciliation import reconcile_register
 from tokens.services.share_token_service import (
@@ -397,9 +402,46 @@ class ChainTestMixin:
         self.token.refresh_from_db()
         return result
 
-    def _pause(self, paused):
+    def _prepared_pause(self, paused):
         self.token.refresh_from_db()
-        change = pause_changes.submit(self.token, self.tenant.user, uuid4(), paused)
+        appointment = owner_appointment(self.token.company)
+        with patch("shared.uploads.scan_upload"):
+            evidence = upload_evidence(self.tenant.user, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_pause_change(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            token=self.token.pk,
+            paused=paused,
+            reason="Synthetic company pause instruction",
+            authority_reference=f"BOARD-PAUSED-{paused}",
+            authority_evidence=evidence.pk,
+        )
+        self.assertFalse(PauseChange.objects.filter(pk=proposal.pk).exists())
+        for kind in ("approve", "apply"):
+            _, preview = preview_pause_change_decision(
+                actor=self.tenant.user, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
+            )
+            proposal = decide_pause_change(
+                actor=self.tenant.user,
+                pause_change_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+            if kind == "approve":
+                self.assertFalse(PauseChange.objects.filter(pk=proposal.pk).exists())
+        change = PauseChange.objects.get(pk=proposal.pk)
+        self.assertEqual(
+            (change.source_pause_id, change.initiated_by_id, change.paused), (proposal.pk, self.tenant.user.pk, paused)
+        )
+        self.assertFalse(self.tenant.user.is_staff)
+        return change
+
+    def _pause(self, paused):
+        change = self._prepared_pause(paused)
         result = pause_recovery.recover(change.pk)
         self.assertIsNotNone(result.completed_at)
         self.assertIn(result.status, ("confirmed", "observed"))
@@ -1625,11 +1667,9 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         register = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/")
         self.assertEqual((register.status_code, register.json()["code"]), (409, "register_not_initialized"))
 
-        self._pause(True)
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
-        self.assertTrue(self._contract().functions.paused().call())
         while_paused = self._issuance_request(amount=1)
+        self.chain.send_transaction(self._contract().functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertTrue(self._contract().functions.paused().call())
         blocks_before = self.w3.eth.block_number
         self.assertEqual(self._execute(while_paused)["status"], "failed")
         self.assertEqual(self.w3.eth.block_number, blocks_before)
@@ -1638,11 +1678,21 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIn(TOKEN_PAUSED, while_paused.execution_notes)
         self.assertNotIn("Refused", while_paused.review_notes)
         self.assertEqual(ShareIssuance.objects.filter(token=self.token, status="completed").count(), 1)
+        self.chain.send_transaction(self._contract().functions.unpause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertFalse(self._contract().functions.paused().call())
+        self.assertTrue(self._execute(while_paused)["success"])
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 11)
+        while_paused.refresh_from_db()
+        self.assertIsNone(ShareIssuanceExecution.objects.get(request_id=while_paused.pk).source_instruction_id)
+        self.assertEqual(while_paused.executed_issuance.initiated_by, self.staff)
+        self._pause(True)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
+        self.assertTrue(self._contract().functions.paused().call())
         self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(self._contract().functions.paused().call())
-        self.assertTrue(self._execute(while_paused)["success"])
         self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 11)
 
         increase = self._increase(500)
@@ -2068,6 +2118,23 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
     def test_real_pause_observation_and_unpause_preserve_issuance_guards(self):
         self._deployed()
         contract = self._contract()
+        request = self._whitelisted_request(amount=5)
+        self.chain.send_transaction(contract.functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertTrue(contract.functions.paused().call())
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
+        blocks_before = self.w3.eth.block_number
+        self.assertEqual(self._execute(request)["status"], "failed")
+        request.refresh_from_db()
+        self.assertIn(TOKEN_PAUSED, request.execution_notes)
+        self.assertEqual(self.w3.eth.block_number, blocks_before)
+        self.chain.send_transaction(contract.functions.unpause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertFalse(contract.functions.paused().call())
+        self.assertTrue(self._execute(request)["success"])
+        self.assertEqual(contract.functions.balanceOf(self.investor).call(), 5)
+        request.refresh_from_db()
+        self.assertIsNone(ShareIssuanceExecution.objects.get(request_id=request.pk).source_instruction_id)
+        self.assertEqual(request.executed_issuance.initiated_by, self.staff)
 
         self._pause(True)
         self.token.refresh_from_db()
@@ -2085,21 +2152,10 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self._pause(True)
         self.token.refresh_from_db()
         self.assertEqual((self.token.status, self._signer_nonce()), (ShareTokenStatus.PAUSED, nonce_before))
-
-        ShareToken.objects.filter(pk=self.token.pk).update(status=ShareTokenStatus.DEPLOYED)
-        self.token.refresh_from_db()
-        request = self._whitelisted_request(amount=5)
-        blocks_before = self.w3.eth.block_number
-        self.assertEqual(self._execute(request)["status"], "failed")
-        request.refresh_from_db()
-        self.assertIn(TOKEN_PAUSED, request.execution_notes)
-        self.assertEqual(self.w3.eth.block_number, blocks_before)
         self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(contract.functions.paused().call())
-
-        self.assertTrue(self._execute(request)["success"])
         self.assertEqual(contract.functions.balanceOf(self.investor).call(), 5)
 
     def test_worker_killed_after_the_mint_is_finished_by_the_executing_sweep(self):
@@ -2562,7 +2618,7 @@ class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
     def setUp(self):
         super().setUp()
         self._deployed()
-        self.change = pause_changes.submit(self.token, self.tenant.user, uuid4(), True)
+        self.change = self._prepared_pause(True)
 
     def test_worker_killed_after_real_pause_acceptance_recovers_the_original_receipt(self):
         database = connections[current_alias()].settings_dict
@@ -2570,6 +2626,8 @@ class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
         env = os.environ.copy()
         env["PAUSE_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
         env["PAUSE_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        env["PAUSE_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
+        env["PAUSE_TEST_STORAGES"] = json.dumps(settings.STORAGES)
         nonce = self._signer_nonce()
         process = subprocess.Popen(
             [sys.executable, "-m", "tokens.tests.pause_chain_worker", str(self.change.pk)],

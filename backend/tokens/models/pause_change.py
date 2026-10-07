@@ -8,6 +8,7 @@ from tokens.querysets.pause_change import PauseChangeQuerySet
 class PauseAuthority(models.TextChoices):
     ISSUER = "issuer", "Issuer"
     STAFF = "staff", "Token administration"
+    COMPANY = "company", "Company"
 
 
 class PauseChangeStatus(models.TextChoices):
@@ -22,12 +23,15 @@ class PauseChange(BaseModel):
     token_id = models.UUIDField(editable=False)
     company_id = models.UUIDField(editable=False)
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
-    authority = models.CharField(max_length=6, choices=PauseAuthority.choices, editable=False)
+    authority = models.CharField(max_length=7, choices=PauseAuthority.choices, editable=False)
     paused = models.BooleanField(editable=False)
     chain_id = models.PositiveBigIntegerField(editable=False)
     contract_address = models.CharField(max_length=42, editable=False)
     intent = models.JSONField(editable=False)
     status = models.CharField(max_length=10, choices=PauseChangeStatus.choices, default=PauseChangeStatus.PENDING)
+    source_pause = models.OneToOneField(
+        "tokens.RegisterPauseChange", on_delete=models.PROTECT, null=True, editable=False, related_name="execution"
+    )
     operation = models.OneToOneField(
         "blockchain.OutgoingOperation", on_delete=models.PROTECT, null=True, related_name="pause_change"
     )

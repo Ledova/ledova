@@ -56,6 +56,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   completed = false;
   status = 'deployed';
+  id = '66666666-6666-4666-8666-666666666666';
+  pauseSubmissionStore.retain({ ...owner, tokenUuid, submissionId: id, paused: true });
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
@@ -77,19 +79,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('persists before posting and reports pending without claiming transfers stopped', async () => {
+it('retains the existing identity before replay and reports pending without claiming transfers stopped', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   expect(screen.queryByText('Token paused. Transfers and issuance are suspended.')).toBeNull();
-  expect((screen.getByRole('button', { name: 'Pause' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
   expect(api.post.mock.calls[0][0]).toBe(COMPANY_TOKEN_ENDPOINTS.PAUSE(tokenUuid));
   expect(screen.queryByRole('button', { name: 'Dismiss outcome' })).toBeNull();
 });
 
 it('shows each saved request as a labelled row between rules, with its outcome and its own actions', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   const request = screen.getByRole('group', { name: `Pause request ${id}` });
   expect(within(request).getByRole('status').textContent).toMatch(/Pause request retained/);
@@ -107,7 +109,7 @@ it('recovers an uncertain post after remount and retries with the original ident
     throw new Error('Lost response');
   });
   const first = show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   first.unmount();
@@ -122,21 +124,23 @@ it('recovers an uncertain post after remount and retries with the original ident
 
 it('keeps an original completed outcome separate from a later current token state', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   completed = true;
   fireEvent.click(screen.getByRole('button', { name: 'Check outcome' }));
   await screen.findByText(/original pause transaction was confirmed/);
-  expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Dismiss outcome' }));
   await waitFor(() => expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(0));
   expect(api.post).toHaveBeenCalledTimes(1);
 });
 
 it('cannot send when the identifier was not retained by storage', async () => {
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  await screen.findByRole('button', { name: 'Retry same request' });
+  localStorage.clear();
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {});
+  fireEvent.click(screen.getByRole('button', { name: 'Retry same request' }));
   await screen.findByRole('alert');
   expect(api.post).not.toHaveBeenCalled();
   expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(0);
@@ -144,7 +148,7 @@ it('cannot send when the identifier was not retained by storage', async () => {
 
 it('retains the displayed identity and refuses a retry whose storage write is lost', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   const original = id;
   localStorage.clear();
@@ -153,12 +157,12 @@ it('retains the displayed identity and refuses a retry whose storage write is lo
   await screen.findByRole('alert');
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(screen.getByText(`Pause request ${original}`)).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Pause' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
 });
 
 it('restores the exact displayed request before retrying after its storage entry disappeared', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   localStorage.clear();
@@ -170,7 +174,7 @@ it('restores the exact displayed request before retrying after its storage entry
 
 it('refuses to replace different stored terms with a displayed retry', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   const original = pauseSubmissionStore.list(owner, tokenUuid)[0];
   const name = Object.keys(localStorage)[0];
@@ -188,7 +192,7 @@ it('does not erase recovery when the server responds with another submission', a
     return response('44444444-4444-4444-8444-444444444444');
   });
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
   expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1);
   expect(screen.queryByRole('button', { name: 'Dismiss outcome' })).toBeNull();
@@ -203,7 +207,7 @@ it('hides the old issuer requests on account change and rejects a delayed respon
     });
   });
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   act(() =>
     client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
@@ -217,53 +221,74 @@ it('hides the old issuer requests on account change and rejects a delayed respon
   expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(1);
 });
 
-it('retains both completed and newer requests instead of overwriting the older reminder', async () => {
+it('retains both completed and newer legacy requests instead of overwriting the older reminder', async () => {
   show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/Pause request retained/);
   completed = true;
   fireEvent.click(screen.getByRole('button', { name: 'Check outcome' }));
   await screen.findByRole('button', { name: 'Dismiss outcome' });
   completed = false;
   const original = id;
-  api.post.mockImplementation(async (_url: string, body: { submissionId: string }) => {
-    id = body.submissionId;
-    return response();
+  const newer = { ...owner, tokenUuid, paused: true, submissionId: '77777777-7777-4777-8777-777777777777' };
+  pauseSubmissionStore.retain(newer);
+  api.get.mockImplementation(async (url: string) => {
+    const uuid = url.split('/').filter(Boolean).at(-1)!;
+    const value = response(uuid);
+    if (uuid === original) value.data.submission.completedAt = '2026-09-15T00:00:00Z';
+    return value;
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+  act(() => window.dispatchEvent(new StorageEvent('storage')));
+  const row = await screen.findByRole('group', { name: `Pause request ${newer.submissionId}` });
+  fireEvent.click(within(row).getByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(id).not.toBe(original);
   expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
 });
 
-it('recovers a permanent unpause refusal and permits a later deliberate opposite request', async () => {
+it('keeps a permanent original unpause refusal separate from a later opposite retained request', async () => {
   status = 'paused';
-  let refusedId: string;
+  const original = { ...owner, tokenUuid, submissionId: id, paused: false };
+  pauseSubmissionStore.remove(pauseSubmissionStore.list(owner, tokenUuid)[0]);
+  pauseSubmissionStore.retain(original);
+  let refused = false;
   const refusal = () => ({
     status: 200,
     data: {
-      ...response(refusedId).data,
+      ...response(original.submissionId).data,
       message: 'The original unpause request was refused before signing. A new request needs a new submission.',
-      submission: {
-        uuid: refusedId,
-        paused: false,
-        status: 'failed',
-        completedAt: '2026-09-15T00:00:00Z',
-      },
+      submission: { uuid: original.submissionId, paused: false, status: 'failed', completedAt: '2026-09-15T00:00:00Z' },
     },
   });
+  api.get.mockImplementation(async () =>
+    refused
+      ? refusal()
+      : {
+          ...response(original.submissionId),
+          data: {
+            ...response(original.submissionId).data,
+            submission: { ...response(original.submissionId).data.submission, paused: false },
+          },
+        },
+  );
   api.post.mockImplementationOnce(async (_url: string, body: { submissionId: string }) => {
-    refusedId = body.submissionId;
+    expect(body.submissionId).toBe(original.submissionId);
     expect(pauseSubmissionStore.list(owner, tokenUuid)[0].paused).toBe(false);
+    refused = true;
     return refusal();
   });
-  api.get.mockImplementation(async () => refusal());
   const first = show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Unpause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await screen.findByText(/unpause request was refused before signing/);
   expect(api.post.mock.calls[0][0]).toBe(COMPANY_TOKEN_ENDPOINTS.UNPAUSE(tokenUuid));
   first.unmount();
   status = 'deployed';
+  const newer = { ...owner, tokenUuid, submissionId: '77777777-7777-4777-8777-777777777777', paused: true };
+  pauseSubmissionStore.retain(newer);
+  api.get.mockImplementation(async (url: string) =>
+    url.includes(original.submissionId) ? refusal() : response(newer.submissionId),
+  );
   show();
   await screen.findByRole('button', { name: 'Dismiss outcome' });
   expect(api.post).toHaveBeenCalledTimes(1);
@@ -271,11 +296,12 @@ it('recovers a permanent unpause refusal and permits a later deliberate opposite
     id = body.submissionId;
     return response();
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
   expect(api.post.mock.calls[1][0]).toBe(COMPANY_TOKEN_ENDPOINTS.PAUSE(tokenUuid));
-  expect(id).not.toBe(refusedId!);
+  expect(id).not.toBe(original.submissionId);
   expect(pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
 });
 
 it('blocks sending while saved requests are unreadable on mount and lists them after a storage event', async () => {
@@ -287,7 +313,7 @@ it('blocks sending while saved requests are unreadable on mount and lists them a
   show();
   expect(screen.getByRole('alert').textContent).toContain('Saved pause requests could not be read.');
   expect(screen.queryByText(`Pause request ${saved.submissionId}`)).toBeNull();
-  expect((screen.getByRole('button', { name: 'Pause' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
   localStorage.removeItem(unreadable);
   act(() => {
     window.dispatchEvent(new StorageEvent('storage'));
@@ -295,4 +321,18 @@ it('blocks sending while saved requests are unreadable on mount and lists them a
   expect(screen.getByText(`Pause request ${saved.submissionId}`)).toBeTruthy();
   await waitFor(() => expect(api.get).toHaveBeenCalledOnce());
   expect(api.post).not.toHaveBeenCalled();
+});
+
+it('retains a never-admitted v1 reminder after explicit fresh-retirement refusal without manufacturing completion', async () => {
+  api.post.mockRejectedValueOnce(
+    new Error('New issuer pause requests are retired. Prepare a company pause instruction.'),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry same request' }));
+  await screen.findByText('New issuer pause requests are retired. Prepare a company pause instruction.');
+  expect(pauseSubmissionStore.list(owner, tokenUuid)).toEqual([
+    { ...owner, tokenUuid, submissionId: id, paused: true },
+  ]);
+  expect(screen.queryByRole('button', { name: 'Dismiss outcome' })).toBeNull();
+  expect(api.post.mock.calls[0][1]).toEqual({ submissionId: id });
 });

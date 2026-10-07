@@ -181,3 +181,4 @@ export * from './company-eligibility';
 export * from './company-wallets';
 export * from './register-issues';
 export * from './register-capital-increases';
+export * from './register-pause-changes';

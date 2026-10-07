@@ -1,4 +1,9 @@
 import type {
+  RegisterPauseChange,
+  RegisterPauseChangeDecisionRequest,
+  RegisterPauseChangeDecideRequest,
+} from './register-pause-change';
+import type {
   RegisterCapitalIncrease,
   RegisterCapitalIncreaseDecisionRequest,
   RegisterCapitalIncreaseDecideRequest,
@@ -40,6 +45,7 @@ export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
+  | RegisterPauseChange
   | RegisterCapitalIncrease
   | RegisterImport
   | RegisterIssue
@@ -52,6 +58,7 @@ export type RegisterProposal =
   | RegisterDeployment
   | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
+  | RegisterPauseChangeDecisionRequest
   | RegisterCapitalIncreaseDecisionRequest
   | RegisterImportDecisionRequest
   | RegisterIssueDecisionRequest
@@ -64,6 +71,7 @@ export type RegisterDecisionRequest =
   | RegisterLinkDecisionRequest
   | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
+  | RegisterPauseChangeDecideRequest
   | RegisterCapitalIncreaseDecideRequest
   | RegisterImportDecideRequest
   | RegisterIssueDecideRequest

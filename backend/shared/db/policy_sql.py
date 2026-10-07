@@ -83,6 +83,8 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         "tokens_registermemberparticulars": ("tokens", "0072_register_import"),
         "tokens_importedformermember": ("tokens", "0072_register_import"),
         "tokens_registerinstruction": ("tokens", "0073_register_instructions"),
+        "tokens_registerpausechange": ("tokens", "0104_company_register_pause_changes"),
+        "tokens_registerpausechangedecision": ("tokens", "0104_company_register_pause_changes"),
         "tokens_registergrant": ("tokens", "0094_company_register_grants"),
         "tokens_registertransfer": ("tokens", "0096_company_register_transfers"),
         "tokens_registermembercessation": ("tokens", "0096_company_register_transfers"),

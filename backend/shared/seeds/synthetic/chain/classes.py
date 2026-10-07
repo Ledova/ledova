@@ -9,12 +9,12 @@ from shared.seeds.synthetic.identities import slug
 from shared.seeds.synthetic.paper import acn_text, pdf
 from tokens.models import (
     CapitalIncreaseRequest,
+    PauseChange,
     PauseChangeStatus,
     RegisterEvidenceKind,
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services import pause_changes
 from tokens.services.register_capital_increases import (
     decide_capital_increase,
     prepare_capital_increase,
@@ -26,6 +26,11 @@ from tokens.services.register_deployments import (
     preview_deployment_decision,
 )
 from tokens.services.register_evidence import retain_register_evidence
+from tokens.services.register_pause_changes import (
+    decide_pause_change,
+    prepare_pause_change,
+    preview_pause_change_decision,
+)
 
 NOT_DEPLOYED = "{symbol} of {company} did not reach the deployed state: {status}."
 NOT_EXECUTED = "{label} did not execute on the chain: {status}."
@@ -90,7 +95,53 @@ def deploy(share_class, records):
 
 def pause(share_class, records):
     token = ShareToken.objects.get(pk=records.classes[share_class.key].pk)
-    change = pause_changes.submit(token, records.owner(share_class.company), uuid4(), True)
+    actor = records.owner(share_class.company)
+    appointment = historical_owner_appointment(token.company)
+    reference = f"PAUSE-{slug(share_class.key)}"
+    raw = pdf(
+        f"Company instruction: pause transfers of {token.name}",
+        [
+            token.company.name,
+            acn_text(token.company.acn),
+            reference,
+            "The company instructs the existing share contract to pause transfers.",
+        ],
+    )
+    evidence, _ = retain_register_evidence(
+        actor=actor,
+        company_id=token.company_id,
+        appointment=appointment.pk,
+        kind=RegisterEvidenceKind.AUTHORITY,
+        idempotency_key=uuid4(),
+        name=f"pause-{slug(share_class.key)}.pdf",
+        raw=raw,
+        mime_type="application/pdf",
+    )
+    proposal = prepare_pause_change(
+        actor=actor,
+        operation_id=uuid4(),
+        appointment=appointment.pk,
+        token=token.pk,
+        paused=True,
+        reason="The company directs a pause of share transfers",
+        authority_reference=reference,
+        authority_evidence=evidence.pk,
+    )
+    for kind in ("approve", "apply"):
+        _, preview = preview_pause_change_decision(
+            actor=actor, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        with patch("tokens.services.pause_changes.App", return_value=app):
+            proposal = decide_pause_change(
+                actor=actor,
+                pause_change_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+    change = PauseChange.objects.get(pk=proposal.pk)
     records.run()
     change.refresh_from_db()
     token.refresh_from_db()

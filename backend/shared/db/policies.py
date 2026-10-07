@@ -596,6 +596,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registerpausechange": "Private immutable company pause sources and retained authority evidence, "
+    "served through current exact-company register authority.",
+    "tokens_registerpausechangedecision": "Append-only personal company pause decisions served through "
+    "their exact-company proposal.",
     "tokens_registercapitalincrease": "Private immutable company capital sources and retained authority files; "
     "current exact-company register readers receive the bounded projection and "
     "unsigned signatures require the consumed source.",

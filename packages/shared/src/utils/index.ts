@@ -127,3 +127,4 @@ export { activityAmount, activityDirection, activityStatus, feeUnit } from './ac
 export { shownSymbol } from './asset-symbol';
 export * from './register-issues';
 export * from './register-capital-increases';
+export * from './register-pause-changes';

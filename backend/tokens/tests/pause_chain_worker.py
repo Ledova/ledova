@@ -16,6 +16,8 @@ def run(submission_id):
     if database["ENGINE"] != "django.db.backends.postgresql" or configured["BLOCKCHAIN_CHAIN_ID"] != 31337:
         raise RuntimeError("Pause crash evidence requires PostgreSQL and the isolated local chain")
     settings.DATABASES = {"default": database}
+    settings.PRIVATE_MEDIA_ROOT = os.environ["PAUSE_TEST_PRIVATE_MEDIA_ROOT"]
+    settings.STORAGES = json.loads(os.environ["PAUSE_TEST_STORAGES"])
     for key, value in configured.items():
         setattr(settings, key, value)
     django.setup()

@@ -67,6 +67,7 @@ from .register_particulars import (
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
 )
+from .register_pause_change import RegisterPauseChange, RegisterPauseChangeDecision
 from .register_transfer import (
     RegisterMemberCessation,
     RegisterTransfer,
@@ -105,6 +106,8 @@ __all__ = [
     "OrderSubmissionStatus",
     "RequestStatus",
     "RegisterAcknowledgement",
+    "RegisterPauseChange",
+    "RegisterPauseChangeDecision",
     "RegisterCapitalIncrease",
     "RegisterCapitalIncreaseDecision",
     "RegisterCorrection",
@@ -140,6 +143,8 @@ __all__ = [
     "RegisterParticularsChange",
     "RegisterParticularsChangeDecision",
     "RegisterPosition",
+    "RegisterPauseChange",
+    "RegisterPauseChangeDecision",
     "RegisterReconciliation",
     "RegisterReconciliationStatus",
     "RegisterWalletLink",

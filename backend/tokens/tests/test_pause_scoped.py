@@ -34,7 +34,7 @@ class ScopedPauseRecoveryTest(RunsOnTheScopedConnection, TransactionTestCase):
     def setUp(self):
         super().setUp()
         with use_operator():
-            install_pause(self)
+            install_pause(self, legacy=True, signed=True)
             self.other = make_tenant("other-pause")
 
     def test_admission_is_private_signing_is_autocommit_and_public_projection_uses_the_issuer_role(self):
@@ -96,16 +96,13 @@ class ScopedPauseRecoveryTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.assertEqual(
                 (self.change.status, self.change.completed_at, self.token.status), ("confirmed", None, "paused")
             )
-            refused = pause_changes.submit(self.token, self.tenant.user, uuid4(), False)
-            self.assertEqual(refused.status, "failed")
-            self.assertIsNotNone(refused.completed_at)
+            with self.assertRaises(PauseChangeConflict):
+                pause_changes.submit(self.token, self.tenant.user, uuid4(), False)
             self.assertIsNotNone(pause_recovery.recover(self.change.pk).completed_at)
-            next_change = pause_changes.submit(self.token, self.tenant.user, uuid4(), False)
-            pause_recovery.recover(next_change.pk)
             pause_recovery.recover(self.change.pk)
             self.token.refresh_from_db()
-            self.assertEqual(self.token.status, "deployed")
-            self.assertEqual(SignedAttempt.objects.count(), 2)
+            self.assertEqual(self.token.status, "paused")
+            self.assertEqual(SignedAttempt.objects.count(), 1)
 
     def test_ownership_change_after_signed_confirmation_never_falls_back_to_operator_projection(self):
         with use_operator():
@@ -138,4 +135,4 @@ class ScopedPauseRecoveryTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.assertEqual(client.get(path).status_code, 404)
         with use_operator():
             self.assertEqual(PauseChange.objects.count(), 1)
-            self.assertFalse(OutgoingOperation.objects.exists())
+            self.assertEqual(OutgoingOperation.objects.count(), 1)

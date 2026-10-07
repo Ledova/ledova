@@ -97,17 +97,15 @@ function PauseRequests({
         query.state.data?.submission.completedAt ? (false as const) : 5000,
     })),
   });
-  const blocked = !ready || sending || queries.some((query) => !query.data?.submission.completedAt);
-  const send = async (paused: boolean, previous?: SavedPause) => {
+  const send = async (previous: SavedPause) => {
+    const paused = previous.paused;
     if (inFlight.current) return;
     inFlight.current = true;
     setSending(true);
     setError(null);
     try {
       guard();
-      const record = previous
-        ? pauseSubmissionStore.retain(previous)
-        : pauseSubmissionStore.save(owner, token.uuid, paused);
+      const record = pauseSubmissionStore.retain(previous);
       load();
       guard();
       const response = await (paused ? pauseCompanyToken : unpauseCompanyToken)(
@@ -141,11 +139,8 @@ function PauseRequests({
   };
   return (
     <div className="w-full space-y-3 text-sm text-text-primary">
-      <PageAction
-        label={sending ? 'Saving request...' : token.status === 'paused' ? 'Unpause' : 'Pause'}
-        disabled={blocked}
-        onClick={() => void send(token.status !== 'paused')}
-      />
+      <p className="text-text-muted">Retained issuer requests. Prepare new pause decisions in the company panel.</p>
+      {!ready && !error && <p>Loading saved pause requests…</p>}
       {error && (
         <div role="alert" className="space-y-2">
           <p className="text-error-light">{error}</p>
@@ -185,11 +180,7 @@ function PauseRequests({
                         disabled={query.isFetching}
                         onClick={() => void query.refetch()}
                       />
-                      <PageAction
-                        label="Retry same request"
-                        disabled={sending}
-                        onClick={() => void send(record.paused, record)}
-                      />
+                      <PageAction label="Retry same request" disabled={sending} onClick={() => void send(record)} />
                     </>
                   )}
                 </div>
@@ -206,7 +197,7 @@ export function TokenPauseControls({ token }: { token: Pick<CompanyShareToken, '
   const { owner, boundary } = useSubmissionOwner();
   if (!owner)
     return (
-      <p className="text-sm text-text-primary">Verify your issuer session before requesting a pause or unpause.</p>
+      <p className="text-sm text-text-primary">Verify your issuer session before reading retained pause requests.</p>
     );
   return (
     <PauseRequests
