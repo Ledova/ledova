@@ -62,6 +62,7 @@ from tokens.tests.deployment_fixtures import (
     FACTORY,
     KEY,
     DeploymentNode,
+    admit_deployment,
     admitted_signer,
 )
 from tokens.tests.evidence_fixtures import staff_user, upload_evidence
@@ -87,8 +88,8 @@ def deployed_class():
     with use_migrate():
         Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
         tenant.company.refresh_from_db()
-    with patch("tokens.tasks.deploy_share_token_task.defer"):
-        deployment.start_deployment(tenant.token, principal_id=tenant.user.pk)
+    with patch("tokens.services.register_deployments.queue_deployment"):
+        admit_deployment(tenant.token, tenant.user)
     deployment_node = DeploymentNode()
     admitted_signer()
     with (

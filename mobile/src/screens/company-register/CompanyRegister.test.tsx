@@ -1,4 +1,5 @@
 import React from 'react';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
@@ -103,7 +104,11 @@ function defaultRead(url: string, number: number): Promise<unknown> {
 const requested = () => get.mock.calls.map(([url]) => url);
 const holderReads = () => requested().filter((url) => url.endsWith('/holders/'));
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {
@@ -111,6 +116,10 @@ beforeEach(() => {
   resetFiles();
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
+  });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
   });
   pages = [[shareClass], [preference]];
   read = defaultRead;
@@ -189,7 +198,7 @@ it('lets an investor appointee read every register class and its members and sha
   expect(getCompanyTokens).not.toHaveBeenCalled();
   expect(requested()).not.toContain(URLS.BASE);
   expect(view.queryByText('Choose company')).toBeNull();
-  expect(view.queryByRole('button', { name: 'Open Ordinary shares' })).toBeNull();
+  expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toBeTruthy();
   expect(view.getByText('Paper Company · ORD')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));
   expect(view.getByText('Alex Member')).toBeTruthy();
@@ -205,6 +214,7 @@ it('lets an investor appointee read every register class and its members and sha
   expect(get).toHaveBeenCalledWith(URLS.REGISTER_EXPORT('ordinary'), {
     responseType: 'arraybuffer',
     ledovaSessionEpoch: epoch,
+    ledovaSubmissionGuard: expect.any(Function),
   });
   expect(files.size).toBe(1);
   await fireEvent.press(view.getByRole('button', { name: 'Preference shares register' }));
@@ -408,20 +418,11 @@ it('does not share a register CSV that arrives after the session changes', async
   expect(files.size).toBe(0);
 });
 
-it.each([
-  ['an investor', () => (mockPreferences.userAccount = { role: 'investor' }), false],
-  ['a company', () => (mockPreferences.userAccount = { role: 'company' }), true],
-  ['a dual-role', () => (mockPreferences.userAccount = { role: 'both' }), true],
-  ['an unrecognised', () => (mockPreferences.userAccount = { role: 'staff' }), false],
-  ['a loading', () => Object.assign(mockPreferences, { userAccount: undefined, isLoading: true }), false],
-  ['a failed', () => (mockPreferences.isError = true), false],
-])(
-  'reads the register for %s account role and links class management only where it opens',
-  async (_, account, linked) => {
-    account();
-    const view = await render(<CompanyRegisterScreen />, { wrapper });
-    await view.findByRole('button', { name: 'Preference shares register' });
-    expect(Boolean(view.queryByRole('button', { name: 'Open Preference shares' }))).toBe(linked);
-    expect(getCompanyTokens).not.toHaveBeenCalled();
-  },
-);
+it('opens the class from a successful investor register read without a company-role preference', async () => {
+  mockPreferences.userAccount = { role: 'investor' };
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await view.findByRole('button', { name: 'Preference shares register' });
+  await fireEvent.press(view.getByRole('button', { name: 'Open Preference shares' }));
+  expect(mockNavigate).toHaveBeenCalledWith('TokenDetail', { uuid: 'preference', name: 'Preference shares' });
+  expect(getCompanyTokens).not.toHaveBeenCalled();
+});

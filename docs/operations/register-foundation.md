@@ -43,6 +43,17 @@ cessation history. Tokenisation remains design-only later work. No real company'
 the decisions reserved for real data are made, among them production retention
 and how to undo a mistaken opening import.
 
+The [company empty-deployment workflow](../plans/company-managed-registers/company-deployments.md)
+can deploy an empty class without issuing shares. Positive issued register supply
+refuses; an existing zero book keeps its entries and head. Once a company admits
+deployment, register head advances, imports and corrections wait for the original
+attributed projection. A genuinely new opening then binds the original confirmed
+deployment through the company-approved chain-opening workflow. An import-origin
+zero book cannot receive a second opening or a fresh issuance execution merely
+because its class has a contract. A chain opening followed by a matching-holdings
+particulars import retains its existing meaning. Mirroring existing holdings and
+imported-baseline chain attribution remain later work.
+
 ## Identity and events
 
 A member has a UUID belonging to one company, independent of a wallet or platform

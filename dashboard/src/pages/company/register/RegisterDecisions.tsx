@@ -24,6 +24,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   proposal,
   steps,
   guard,
+  newEffectGuard,
   context,
   onDecided,
   onRefused,
@@ -36,8 +37,9 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   proposal: Shown;
   steps: RegisterSteps;
   guard: () => void;
+  newEffectGuard?: (kind: RegisterDecisionKind) => void;
   context?: string;
-  onDecided: () => Promise<unknown>;
+  onDecided: (proposal: Shown) => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   note?: (kind: RegisterDecisionKind, preview: Previewed) => ReactNode;
   children: (preview: Previewed) => ReactNode;
@@ -48,10 +50,11 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     appointment: steps[kind]?.uuid,
     newKey: () => crypto.randomUUID(),
     guard,
+    newEffectGuard: () => newEffectGuard?.(kind),
     requestConfig: () => ({ ledovaSubmissionGuard: guard }),
-    onDecided: async () => {
+    onDecided: async (receipt: Shown) => {
       setActive(null);
-      await onDecided();
+      await onDecided(receipt);
     },
     onRefused,
   });
@@ -70,13 +73,13 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     !!decision &&
     !decision.busy &&
     !!target &&
-    current &&
+    (current || !!decision.recovery) &&
     target.preview.canDecide &&
     (active !== 'reject' || target.request.reason === reason.trim());
   const title = active ? `${copy.DECISIONS[active]} ${noun}` : '';
   const begin = (kind: RegisterDecisionKind) => {
     if (active || busy) return;
-    setReason('');
+    setReason(decisions[kind].recovery?.request.reason ?? '');
     setActive(kind);
     void decisions[kind].open(kind);
   };
@@ -100,6 +103,27 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
           ))}
         </div>
       )}
+      {KINDS.map(
+        (kind) =>
+          decisions[kind].recovery && (
+            <div key={`recover-${kind}`} className="flex flex-col items-start gap-2">
+              <p className="text-sm text-text-muted">
+                The original decision receipt is uncertain. Recover it with the same request.
+              </p>
+              <PageAction
+                label={`Recover ${copy.DECISIONS[kind].toLowerCase()} receipt`}
+                context={context}
+                disabled={busy}
+                onClick={() => void decisions[kind].recover()}
+              />
+              {active !== kind && decisions[kind].error && (
+                <p role="alert" className="text-sm text-error-light">
+                  {decisions[kind].error}
+                </p>
+              )}
+            </div>
+          ),
+      )}
       <Modal
         isOpen={!!active}
         onClose={close}
@@ -109,13 +133,25 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         confirmLoading={!!decision?.busy}
         confirmDisabled={!ready}
         onConfirm={() => {
-          if (ready && decision) void decision.confirm();
+          if (ready && decision) void (decision.recovery ? decision.recover() : decision.confirm());
         }}
         size="lg"
       >
         {active && decision && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-text-primary">{copy.CONFIRMATIONS[active]}</p>
+            {decision.recovery && (
+              <>
+                <p className="text-sm text-text-muted">
+                  Recovering the original request and its receipt. No new preview or decision key is created.
+                </p>
+                <PageAction
+                  label="Recover original decision receipt"
+                  disabled={busy}
+                  onClick={() => void decision.recover()}
+                />
+              </>
+            )}
             {active === 'reject' && (
               <>
                 <label className="block space-y-1 text-sm text-text-primary">
@@ -125,13 +161,15 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                     rows={3}
                     maxLength={1000}
                     value={reason}
-                    disabled={decision.busy}
+                    disabled={decision.busy || !!decision.recovery}
                     onChange={(event) => setReason(event.target.value)}
                   />
                 </label>
                 <PageAction
                   label="Preview the rejection"
-                  disabled={decision.busy || !reason.trim() || target?.request.reason === reason.trim()}
+                  disabled={
+                    decision.busy || !!decision.recovery || !reason.trim() || target?.request.reason === reason.trim()
+                  }
                   onClick={() => void reject.open('reject', reason.trim())}
                 />
               </>
@@ -141,7 +179,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                 {decision.error}
               </p>
             )}
-            {preview && !current && (
+            {preview && !current && !decision.recovery && (
               <p role="alert" className="text-sm text-error-light">
                 {STEP_CHANGED}
               </p>

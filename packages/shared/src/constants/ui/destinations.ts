@@ -20,7 +20,7 @@ export const DESTINATIONS = {
   investorEligibility: { path: '/investor-eligibility', title: 'Verification', audience: 'investing' },
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
-  companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'company' },
+  companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'everyone' },
   companyRegister: { path: '/company/register', title: 'Register', audience: 'everyone' },
   companyRegisterImport: { path: '/company/register/:uuid/import', title: 'Register', audience: 'everyone' },
   companyRegisterCorrection: {

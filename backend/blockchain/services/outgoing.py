@@ -1,8 +1,9 @@
 from collections.abc import Mapping
+from contextlib import nullcontext
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
-from django.db import connections
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from eth_account import Account
 from eth_account._utils.legacy_transactions import Transaction as LegacyTransaction
@@ -234,7 +235,7 @@ def prepare_operation(claim, client):
     )
 
 
-def sign_operation(claim, prepared, private_key, *, on_signed=None):
+def sign_operation(claim, prepared, private_key, *, on_signed=None, signing_context=None):
     _boundary()
     if prepared.claim != claim:
         raise OutgoingTransactionError(STALE_ATTEMPT)
@@ -253,7 +254,7 @@ def sign_operation(claim, prepared, private_key, *, on_signed=None):
     if _integer(prepared.gas) == 0:
         raise OutgoingTransactionError("The transaction gas limit must be positive.")
     try:
-        with atomic(durable=True):
+        with atomic(durable=True), signing_context() if signing_context else nullcontext() as validate_source:
             operation = _current(claim, lock=True)
             if operation.intent != intent:
                 raise OutgoingTransactionError("The prepared transaction differs from the outgoing intent.")
@@ -262,6 +263,8 @@ def sign_operation(claim, prepared, private_key, *, on_signed=None):
             signer = _admitted_signer(intent, lock=True, generation=prepared.admission_generation)
             if operation.status in (OutgoingStatus.SIGNED, OutgoingStatus.CONFIRMED):
                 return operation.current_attempt
+            if validate_source is not None:
+                validate_source(operation)
             nonce = _integer(max(signer.next_nonce, prepared.observed_nonce), MAX_DATABASE_INTEGER - 1)
             transaction = {
                 "chainId": prepared.chain_id,
@@ -294,6 +297,10 @@ def sign_operation(claim, prepared, private_key, *, on_signed=None):
                 on_signed(attempt)
     except OutgoingTransactionError:
         raise
+    except IntegrityError:
+        if signing_context is not None:
+            raise
+        raise OutgoingTransactionError("The signed outgoing transaction could not be committed.") from None
     except Exception:
         raise OutgoingTransactionError("The signed outgoing transaction could not be committed.") from None
     return attempt

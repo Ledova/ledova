@@ -312,6 +312,40 @@ the new direction.
   that route; the older backend serves register reads to owners alone, through
   the share-class routes.
 
+### Company-authorised empty deployments
+
+`tokens/0098_company_register_deployments` adds company deployment proposals and
+append-only decisions, plus a nullable source association on `TokenDeployment`.
+Private captured wallet/account/profile/user associations remain on operator-only
+records; bounded company services expose the review snapshot. Historical journals,
+nullable principals, signatures and transactions retain their original identities.
+No company source, approval or actor is backfilled.
+
+`tokens/0099_company_register_deployment_guards` binds preparation, decisions,
+original admission and every fresh signature to the exact company source. It also
+fences register-head advances while original deployment projection is pending,
+binds a genuinely new opening to its approved original chain boundary, and refuses
+fresh issuance execution over an import-origin register. Signed original recovery
+retains its existing receipt/finality protections. Default-deferred authority
+checks use actual time; as with the existing company decision guards, a trusted
+caller that forces constraints early controls that deferred-check boundary.
+
+Deploy the backend, workers and clients together. Both clients replace direct
+owner deployment with `/api/v1/tokens/register-deployments/`; an older backend
+cannot serve that family, and an older client's retired deploy route is refused
+by the new backend. The company's Register links to the bounded class detail;
+metadata access does not grant old private issuer-history or unconverted
+issue/capital/pause permissions. Empty deployment issues no shares and does not
+mirror a populated register. See the
+[company workflow and recovery limits](../plans/company-managed-registers/company-deployments.md).
+
+Reversal of `0099` refuses while any company deployment proposal, decision or
+nonnull execution source exists, including rejected and merely submitted work.
+An empty reversal restores the prior guards before `0098` removes its empty new
+tables and nullable association. Preserve database and private storage together;
+do not delete company history to force a downgrade. Historical NULL-source
+deployment/signature recovery remains separate from fresh signing authority.
+
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not
 authorise staff to manufacture company appointments or approvals while the

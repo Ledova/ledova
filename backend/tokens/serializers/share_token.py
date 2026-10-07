@@ -76,6 +76,12 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
 
 
 class ShareTokenDetailSerializer(serializers.ModelSerializer):
+    is_owner = serializers.SerializerMethodField()
+
+    def get_is_owner(self, obj) -> bool:
+        actor = getattr(self.context.get("request"), "user", None)
+        return bool(actor and actor.is_authenticated and obj.company.owner_id == actor.pk)
+
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     token_type_display = serializers.CharField(source="get_token_type_display", read_only=True)
     company_uuid = serializers.UUIDField(source="company.uuid", read_only=True)
@@ -85,6 +91,7 @@ class ShareTokenDetailSerializer(serializers.ModelSerializer):
         model = ShareToken
         fields = [
             "uuid",
+            "is_owner",
             "company",
             "company_uuid",
             "company_name",

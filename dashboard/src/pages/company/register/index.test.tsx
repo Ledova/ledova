@@ -452,7 +452,7 @@ it.each(['1.5', '-1', '1e3'])('rejects inexact share balance %s instead of publi
   expect(screen.queryByText('Example Member')).toBeNull();
 });
 
-it('opens the register to an investor-role appointee, with members and the CSV but no owner-only class page', async () => {
+it('opens the register and class detail to an investor-role appointee, with members and the CSV', async () => {
   const downloads = stubDownloads();
   let exportFails = true;
   api.get.mockImplementation(async (url: string) => {
@@ -468,7 +468,7 @@ it('opens the register to an investor-role appointee, with members and the CSV b
   expect(screen.getByText('Harbour Example Pty Ltd')).toBeTruthy();
   expect(screen.getByText('Example Member')).toBeTruthy();
   expect(screen.getByText(REGISTER_COPY.PRIVACY_NOTE)).toBeTruthy();
-  expect(screen.queryByRole('link', { name: 'Share class' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Share class' }).getAttribute('href')).toBe('/company/register/ordinary');
   fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
   expect(await screen.findByText(REGISTER_COPY.DOWNLOAD_FAILED)).toBeTruthy();
   expect(downloads.create).not.toHaveBeenCalled();
@@ -477,7 +477,10 @@ it('opens the register to an investor-role appointee, with members and the CSV b
   await waitFor(() => expect(downloads.saved).toEqual(['register-ORDINARY.csv']));
   expect(downloads.create).toHaveBeenCalledWith(expect.any(Blob));
   expect(downloads.revoke).toHaveBeenCalledWith('blob:synthetic');
-  expect(api.get).toHaveBeenCalledWith(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT('ordinary'), { responseType: 'blob' });
+  expect(api.get).toHaveBeenCalledWith(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT('ordinary'), {
+    responseType: 'blob',
+    ledovaSubmissionGuard: expect.any(Function),
+  });
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
 

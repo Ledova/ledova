@@ -94,7 +94,7 @@ export function useRegisterDownload(uuid: string, symbol: string | undefined) {
           throw new Error('Your signed-in account changed. Reopen the register to download it.');
       };
       guard();
-      const { data } = await downloadTokenRegister(apiClient, uuid);
+      const { data } = await downloadTokenRegister(apiClient, uuid, { ledovaSubmissionGuard: guard });
       guard();
       saveFile(data, `register-${symbol ?? uuid}.csv`);
     },

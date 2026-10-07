@@ -3,7 +3,6 @@ import { COMPANY_TOKEN_ENDPOINTS } from '../constants';
 import type {
   CompanyShareToken,
   CompanyShareTokenListItem,
-  CompanyTokenActionResponse,
   PauseSubmissionRequest,
   PauseSubmissionResponse,
   TokenCreate,
@@ -24,16 +23,13 @@ export const getCompanyTokens = (
   params?: { page?: number; page_size?: number; status?: string; company_uuid?: string },
 ) => apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.BASE, { params });
 
-export const getCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid));
+export const getCompanyToken = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  apiClient.get<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), config);
 
 export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate, config?: AxiosRequestConfig) =>
   config === undefined
     ? apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data)
     : apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data, config);
-
-export const deployCompanyToken = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.post<CompanyTokenActionResponse>(COMPANY_TOKEN_ENDPOINTS.DEPLOY(uuid));
 
 export const pauseCompanyToken = (
   apiClient: AxiosInstance,
@@ -68,31 +64,60 @@ export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string, c
     ? apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid))
     : apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid), config);
 
-export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { responseType: 'blob' });
+export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { ...config, responseType: 'blob' });
 
 export const getCompanyTokenIssuances = (
   apiClient: AxiosInstance,
   uuid: string,
   params?: { page?: number; page_size?: number; status?: string },
-) => apiClient.get<PaginatedResponse<TokenIssuance>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCES(uuid), { params });
+  config: AxiosRequestConfig = {},
+) => apiClient.get<PaginatedResponse<TokenIssuance>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCES(uuid), { ...config, params });
 
 export const issueCompanyShares = (
   apiClient: AxiosInstance,
   tokenUuid: string,
   data: { recipient: string; amount: number; reason?: string },
-) => apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data);
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data)
+    : apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data, config);
 
 export const getCapitalIncreases = (
   apiClient: AxiosInstance,
   params?: { token?: string; status?: string; page?: number; page_size?: number },
-) => apiClient.get<PaginatedResponse<CapitalIncreaseListItem>>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, { params });
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<PaginatedResponse<CapitalIncreaseListItem>>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, {
+    ...config,
+    params,
+  });
 
-export const createCapitalIncrease = (apiClient: AxiosInstance, data: CapitalIncreaseCreate) =>
-  apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data);
+export const createCapitalIncrease = (
+  apiClient: AxiosInstance,
+  data: CapitalIncreaseCreate,
+  config?: AxiosRequestConfig,
+) =>
+  config === undefined
+    ? apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data)
+    : apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data, config);
 
-export const submitCapitalIncrease = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.post<CapitalIncreaseSubmission>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid));
+export const submitCapitalIncrease = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  config === undefined
+    ? apiClient.post<CapitalIncreaseSubmission>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid))
+    : apiClient.post<CapitalIncreaseSubmission>(
+        COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid),
+        undefined,
+        config,
+      );
 
-export const getShareIssuanceRequests = (apiClient: AxiosInstance, params?: ShareIssuanceRequestQueryParams) =>
-  apiClient.get<PaginatedResponse<ShareIssuanceRequest>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS, { params });
+export const getShareIssuanceRequests = (
+  apiClient: AxiosInstance,
+  params?: ShareIssuanceRequestQueryParams,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<PaginatedResponse<ShareIssuanceRequest>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS, {
+    ...config,
+    params,
+  });

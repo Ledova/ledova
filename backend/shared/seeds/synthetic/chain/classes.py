@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from shared.db import atomic
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.clock import frozen
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -8,8 +9,13 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services import capital_execution, deployment, pause_changes
+from tokens.services import capital_execution, pause_changes
 from tokens.services.capital_increase import submit_capital_increase
+from tokens.services.register_deployments import (
+    decide_deployment,
+    prepare_deployment,
+    preview_deployment_decision,
+)
 
 NOT_DEPLOYED = "{symbol} of {company} did not reach the deployed state: {status}."
 NOT_EXECUTED = "{label} did not execute on the chain: {status}."
@@ -48,7 +54,22 @@ def create_class(share_class, records):
 
 def deploy(share_class, records):
     token = records.classes[share_class.key]
-    deployment.start_deployment(token, principal_id=None)
+    actor = records.owner(share_class.company)
+    appointment = historical_owner_appointment(token.company)
+    proposal = prepare_deployment(actor=actor, operation_id=uuid4(), appointment=appointment.pk, token=token.pk)
+    for kind in ("approve", "apply"):
+        _, preview = preview_deployment_decision(
+            actor=actor, deployment_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        decide_deployment(
+            actor=actor,
+            deployment_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
     records.run()
     token.refresh_from_db()
     if token.status != ShareTokenStatus.DEPLOYED or not token.contract_address:

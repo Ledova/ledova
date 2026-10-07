@@ -38,6 +38,7 @@ from .register_correction import (
     RegisterCorrectionStatus,
 )
 from .register_decision import RegisterDecisionKind
+from .register_deployment import RegisterDeployment, RegisterDeploymentDecision
 from .register_evidence import RegisterEvidence, RegisterEvidenceKind
 from .register_grant import RegisterGrant, RegisterGrantDecision
 from .register_import import (
@@ -101,6 +102,8 @@ __all__ = [
     "RegisterCorrectionDecision",
     "RegisterCorrectionStatus",
     "RegisterDecisionKind",
+    "RegisterDeployment",
+    "RegisterDeploymentDecision",
     "RegisterEntry",
     "RegisterEntryKind",
     "ImportedFormerMember",

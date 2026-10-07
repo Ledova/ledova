@@ -1,4 +1,5 @@
 import React from 'react';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -129,7 +130,11 @@ function transferFrom(body: RegisterTransferPreparation): RegisterTransfer {
   };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 async function open() {
   const view = await render(<PrepareRegisterTransferScreen />, { wrapper });
@@ -182,6 +187,10 @@ beforeEach(() => {
   append = jest.spyOn(FormData.prototype, 'append');
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
+  });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
   });
   appointments = [appointment];
   get.mockReset().mockImplementation(async (url) => {

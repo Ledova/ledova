@@ -13,9 +13,12 @@ const providedApi = Object.assign(axios.create(), api);
 import { MemoryRouter } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
 import { ShareClass } from './classes';
+import { prepareCompanyClient } from './testSupport';
 
 const TOKEN = {
   uuid: 'token-1',
+  company: 'company-one',
+  isOwner: true,
   companyUuid: 'company-one',
   companyName: 'Fictional Company',
   name: 'Ordinary Shares',
@@ -117,10 +120,12 @@ beforeEach(() => {
   tokenStatus = 'deployed';
   refuseRequests = false;
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  prepareCompanyClient(queryClient);
   api.get.mockReset();
   api.post.mockReset();
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
-    if (url === '/api/v1/companies/company-one/') return { data: { uuid: 'company-one', status: 'active' } };
+    if (url === '/api/v1/company-authority/appointments/' || url === COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS)
+      return { data: { results: [], count: 0, next: null, previous: null } };
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('token-1')) return { data: { ...TOKEN, status: tokenStatus } };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('token-1')) return { data: register };
     if (url === COMPANY_TOKEN_ENDPOINTS.ISSUANCES('token-1') || url === COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES) {
@@ -208,11 +213,15 @@ describe('the issuer request history through real query and service hooks', () =
 
     await screen.findByText('Submitted');
     expect(screen.getByText(/10,000 QAT to/)).toBeDefined();
-    expect(api.post).toHaveBeenCalledExactlyOnceWith(COMPANY_TOKEN_ENDPOINTS.ISSUE('token-1'), {
-      recipient: REQUEST.recipientAddress,
-      amount: 10000,
-      reason: 'Founder allocation',
-    });
+    expect(api.post).toHaveBeenCalledExactlyOnceWith(
+      COMPANY_TOKEN_ENDPOINTS.ISSUE('token-1'),
+      {
+        recipient: REQUEST.recipientAddress,
+        amount: 10000,
+        reason: 'Founder allocation',
+      },
+      expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+    );
   });
 
   it('reads every page before displaying the full history', async () => {
@@ -227,19 +236,20 @@ describe('the issuer request history through real query and service hooks', () =
     expect(screen.queryByRole('button', { name: 'Load more issuance requests' })).toBeNull();
     expect(api.get).toHaveBeenCalledWith(COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS, {
       params: { token: 'token-1', page: 2 },
+      ledovaSubmissionGuard: expect.any(Function),
     });
   });
 
   it('reports a failed history load and retries without claiming it is empty', async () => {
     refuseRequests = true;
     showHistory();
-    await screen.findByRole('alert');
+    await screen.findByText("We couldn't load issuance requests.");
     expect(screen.queryByText('No issuance requests yet.')).toBeNull();
     refuseRequests = false;
     requests = [REQUEST];
     fireEvent.click(screen.getByRole('button', { name: 'Retry issuance requests' }));
     await screen.findByText('Submitted');
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    await waitFor(() => expect(screen.queryByText("We couldn't load issuance requests.")).toBeNull());
   });
 
   it('shows safe execution history and distinguishes approved and rejected requests', async () => {
@@ -264,10 +274,12 @@ describe('the issuer request history through real query and service hooks', () =
   it('keeps draft history readable and refreshes existing requests', async () => {
     tokenStatus = 'draft';
     showHistory();
-    await screen.findByText('Deploy class');
+    await screen.findByText('No issuance requests yet.');
     expect(screen.getByText('No issuance requests yet.')).toBeDefined();
     requests = [REQUEST];
-    await queryClient.invalidateQueries({ queryKey: ['token', 'token-1', 'issuance-requests'] });
+    await queryClient.invalidateQueries({
+      queryKey: ['token', 'token-1', 'profile-one', 'account-one', 'issuance-requests'],
+    });
     await screen.findByText('Submitted');
     expect(screen.getByText('Issuance requests')).toBeDefined();
   });

@@ -120,7 +120,7 @@ function behaves<Proposal, Preview extends { previewDigest: string; canDecide: b
       expect(post.mock.calls[0]).toEqual([
         `${path}decision-preview/`,
         { appointment: 'appointment-a', kind: 'apply', reason: '' },
-        SESSION,
+        { ...SESSION, ledovaSubmissionGuard: guard },
       ]);
       const [decided, body, config] = post.mock.calls[1]!;
       expect(decided).toBe(`${path}decide/`);
@@ -131,7 +131,7 @@ function behaves<Proposal, Preview extends { previewDigest: string; canDecide: b
       expect(hook.result.current.error).toBeNull();
     });
 
-    it('retries an unconfirmed decision with the same key and takes a new key for a changed preview', async () => {
+    it('retains the unconfirmed original body and key instead of taking a changed preview', async () => {
       const { post, hook } = setup();
       post
         .mockResolvedValueOnce({ data: preview })
@@ -144,7 +144,9 @@ function behaves<Proposal, Preview extends { previewDigest: string; canDecide: b
       await act(() => hook.result.current.open('apply'));
       expect(hook.result.current.target?.request.idempotencyKey).toBe('key-1');
       await act(() => hook.result.current.open('apply'));
-      expect(hook.result.current.target?.request.idempotencyKey).toBe('key-2');
+      expect(hook.result.current.target?.request.idempotencyKey).toBe('key-1');
+      expect(hook.result.current.target?.request.previewDigest).toBe(DIGEST);
+      expect(post).toHaveBeenCalledTimes(2);
     });
 
     it('refuses an unconfirmed receipt and refreshes after a refusal', async () => {
@@ -154,7 +156,7 @@ function behaves<Proposal, Preview extends { previewDigest: string; canDecide: b
       await act(() => hook.result.current.confirm());
       expect(onDecided).not.toHaveBeenCalled();
       expect(hook.result.current.error).toBe(copy.DECISION_RECEIPT_FAILED);
-      post.mockResolvedValueOnce({ data: preview }).mockRejectedValueOnce({ response: { status: 409, data: {} } });
+      post.mockRejectedValueOnce({ response: { status: 409, data: {} } });
       await act(() => hook.result.current.open('apply'));
       await act(() => hook.result.current.confirm());
       expect(onRefused).toHaveBeenCalledTimes(1);
@@ -455,4 +457,87 @@ it('confirms an applied correction only once it names the entry it applied', asy
   await act(() => hook.result.current.confirm());
   expect(onDecided).not.toHaveBeenCalled();
   expect(hook.result.current.error).toBe(REGISTER_CORRECTION_COPY.DECISION_RECEIPT_FAILED);
+});
+
+it('recovers the original body and key without a new preview after its proposal and appointment disappear', async () => {
+  const api = axios.create();
+  const post = jest.spyOn(api, 'post');
+  const guard = jest.fn();
+  const newEffectGuard = jest.fn();
+  const onDecided = jest.fn();
+  const newKey = jest.fn(() => 'original-key');
+  const family: RegisterDecisionFamily<{ received: boolean }, { previewDigest: string; canDecide: boolean }> = {
+    preview: (client, uuid, body, config) => client.post(`/preview/${uuid}`, body, config),
+    decide: (client, uuid, body, config) => client.post(`/decide/${uuid}`, body, config),
+    isReceipt: (value) => value.received,
+    unmet: {},
+    copy: REGISTER_IMPORT_COPY,
+  };
+  type Props = { appointment: string | undefined; proposal: { uuid: string } | undefined };
+  const hook = renderHook(
+    (props: Props) =>
+      useRegisterDecision(api, family, props.proposal, {
+        appointment: props.appointment,
+        guard,
+        newEffectGuard,
+        newKey,
+        onDecided,
+      }),
+    { initialProps: { appointment: 'original-appointment', proposal: { uuid: 'original-proposal' } } as Props },
+  );
+  post
+    .mockResolvedValueOnce({ data: { previewDigest: DIGEST, canDecide: true } })
+    .mockRejectedValueOnce(new Error('Response lost'))
+    .mockRejectedValueOnce({ response: { status: 403 } })
+    .mockResolvedValueOnce({ data: { received: true } });
+  await act(() => hook.result.current.open('apply'));
+  await act(() => hook.result.current.confirm());
+  const original = post.mock.calls[1]![1];
+  newEffectGuard.mockImplementation(() => {
+    throw new Error('The appointment ended.');
+  });
+  hook.rerender({ appointment: undefined, proposal: undefined });
+  expect(hook.result.current.recovery?.request).toEqual(original);
+  await act(() => hook.result.current.recover());
+  expect(hook.result.current.recovery?.request).toEqual(original);
+  expect(onDecided).not.toHaveBeenCalled();
+  await act(() => hook.result.current.recover());
+  expect(post.mock.calls[2]![1]).toEqual(original);
+  expect(post.mock.calls.map(([path]) => path)).toEqual([
+    '/preview/original-proposal',
+    '/decide/original-proposal',
+    '/decide/original-proposal',
+    '/decide/original-proposal',
+  ]);
+  expect(newKey).toHaveBeenCalledTimes(1);
+  expect(onDecided).toHaveBeenCalledWith({ received: true });
+  expect(hook.result.current.recovery).toBeNull();
+});
+
+it('creates no decision key or request from a malformed preview digest', async () => {
+  const api = axios.create();
+  const post = jest
+    .spyOn(api, 'post')
+    .mockResolvedValueOnce({ data: { previewDigest: 'not-a-digest', canDecide: true } });
+  const newKey = jest.fn(() => 'unused-key');
+  const onDecided = jest.fn();
+  const hook = renderHook(() =>
+    useRegisterDecision(
+      api,
+      REGISTER_IMPORT_DECISIONS,
+      { uuid: 'proposal' },
+      {
+        appointment: 'appointment',
+        newKey,
+        guard: () => undefined,
+        onDecided,
+      },
+    ),
+  );
+  await act(() => hook.result.current.open('apply'));
+  await act(() => hook.result.current.confirm());
+  expect(hook.result.current.target).toBeNull();
+  expect(newKey).not.toHaveBeenCalled();
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(onDecided).not.toHaveBeenCalled();
 });

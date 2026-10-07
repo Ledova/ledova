@@ -11,7 +11,6 @@ from tokens.models import (
     ShareIssuanceRequest,
     ShareTokenStatus,
 )
-from wallets.models import Wallet
 
 RECIPIENT = "0x" + "9" * 40
 MEMBER = "00000000-0000-4000-8000-000000000001"
@@ -43,47 +42,13 @@ class ShareTokenActionTest(APITestCase):
         Company.objects.filter(pk=self.tenant.company.pk).update(status=CompanyStatus.ACTIVE)
 
     @patch("tokens.tasks.deploy_share_token_task")
-    def test_deploy_moves_status_and_queues_the_issuer(self, deploy_task):
+    def test_owner_deployment_admission_is_retired(self, deploy_task):
         self._activate()
-        draft = self.tenant.token
-
-        response = self.client.post(f"/api/v1/tokens/{draft.uuid}/deploy/")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["message"], "Token deployment initiated.")
-        self.assertEqual(response.json()["token"]["status"], ShareTokenStatus.DEPLOYING)
-        draft.refresh_from_db()
-        self.assertEqual(draft.status, ShareTokenStatus.DEPLOYING)
-        deploy_task.defer.assert_called_once_with(
-            token_uuid=str(draft.uuid), deployment_id=str(draft.deployment_id), principal_id=self.tenant.user.pk
-        )
-
-    @patch("tokens.tasks.deploy_share_token_task")
-    def test_deploy_guards_leave_the_token_in_draft(self, deploy_task):
-        draft = self.tenant.token
-
-        not_active = self.client.post(f"/api/v1/tokens/{draft.uuid}/deploy/")
-        self.assertEqual(not_active.status_code, 400)
-        self.assertEqual(not_active.json()["detail"], "Company must be active before deploying tokens.")
-
-        self._activate()
-        Company.objects.filter(pk=self.tenant.company.pk).update(operator_wallet=None)
-        Wallet.objects.filter(user_account=self.tenant.account).update(chain="bitcoin")
-        no_wallet = self.client.post(f"/api/v1/tokens/{draft.uuid}/deploy/")
-        self.assertEqual(no_wallet.status_code, 400)
-        self.assertEqual(
-            no_wallet.json()["detail"],
-            "Company must have an operator wallet or verified owner wallet on Base before deploying tokens.",
-        )
-
-        already_deployed = self.client.post(f"/api/v1/tokens/{self.tenant.deployed_token.uuid}/deploy/")
-        self.assertEqual(already_deployed.status_code, 400)
-        self.assertEqual(
-            already_deployed.json()["detail"],
-            "Cannot deploy token with status 'Deployed'. Token must be in draft status.",
-        )
-
-        draft.refresh_from_db()
-        self.assertEqual(draft.status, ShareTokenStatus.DRAFT)
+        response = self.client.post(f"/api/v1/tokens/{self.tenant.token.uuid}/deploy/")
+        self.assertEqual(response.status_code, 404)
+        self.tenant.token.refresh_from_db()
+        self.assertEqual(self.tenant.token.status, ShareTokenStatus.DRAFT)
+        self.assertIsNone(self.tenant.token.deployment_id)
         deploy_task.defer.assert_not_called()
 
     def test_duplicate_symbol_is_rejected_by_the_unique_validator(self):

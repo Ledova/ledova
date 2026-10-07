@@ -14,6 +14,7 @@ from tokens.tests.deployment_fixtures import (
     CREATED,
     FACTORY,
     KEY,
+    admit_deployment,
     install_deployment,
 )
 
@@ -164,17 +165,19 @@ class DeploymentSigningBoundaryTest(TransactionTestCase):
             return original
 
         self.node.client.estimate_gas.side_effect = edit_token
-        with self.assertRaises(InvalidTokenStateException):
-            self.execute()
+        self.assertIsNone(self.execute()["contract_address"])
         self.assertFalse(SignedAttempt.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
         self.assertNotEqual(TokenDeployment.objects.get().intent["authorized_shares"], "9999")
+        self.assertEqual(TokenDeployment.objects.get().operation.status, "preparing")
 
     def test_queue_failure_rolls_back_the_first_submission_and_status(self):
         token = self.tenant.company.tokens.create(name="Queue failure", symbol="QUE", total_supply="100")
-        with patch("tokens.tasks.deploy_share_token_task.defer", side_effect=RuntimeError("Synthetic queue failure")):
+        with patch(
+            "tokens.services.register_deployments.queue_deployment", side_effect=RuntimeError("Synthetic queue failure")
+        ):
             with self.assertRaises(RuntimeError):
-                deployment.start_deployment(token, principal_id=self.tenant.user.pk)
+                admit_deployment(token, self.tenant.user)
         token.refresh_from_db()
         self.assertEqual(token.status, "draft")
         self.assertIsNone(token.deployment_id)

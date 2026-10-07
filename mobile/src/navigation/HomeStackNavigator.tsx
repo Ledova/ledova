@@ -12,6 +12,7 @@ import { PrepareRegisterOpeningScreen } from '../screens/company-register/Prepar
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
 import { PrepareRegisterTransferScreen } from '../screens/company-register/PrepareRegisterTransferScreen';
+import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
@@ -21,6 +22,7 @@ export type HomeStackParamList = {
   ParticipantEligibility: undefined;
   CompanyEligibility: undefined;
   CompanyRegister: undefined;
+  TokenDetail: { uuid: string; name?: string };
   PrepareRegisterOpening: { tokenUuid: string; companyUuid: string };
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
@@ -75,6 +77,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
       <Stack.Screen
         name="CompanyRegister"
         component={CompanyRegisterScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="TokenDetail"
+        component={TokenDetailScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen

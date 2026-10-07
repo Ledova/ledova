@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.db import DatabaseError, connections
+from django.db.models.deletion import ProtectedError
 from django.test import TransactionTestCase, override_settings
 from eth_account.signers.local import LocalAccount
 from rest_framework.test import APIClient
@@ -12,6 +13,7 @@ from assets.models import AssetChainDeployment
 from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
 from blockchain.tests.outgoing_fixtures import receipt
 from companies.models import Company
+from companies.services.team import revoke_company_appointment
 from shared.db import (
     APP_ALIAS,
     MIGRATE_ALIAS,
@@ -25,7 +27,7 @@ from shared.db import (
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import InvalidTokenStateException, TokenDeploymentFailedException
-from tokens.models import ShareToken, TokenDeployment
+from tokens.models import RegisterDeployment, ShareToken, TokenDeployment
 from tokens.services import deployment
 from tokens.tasks import deploy_share_token_task
 from tokens.tests.deployment_fixtures import (
@@ -33,6 +35,7 @@ from tokens.tests.deployment_fixtures import (
     CREATED,
     FACTORY,
     KEY,
+    admit_deployment,
     deployment_token,
     install_deployment,
 )
@@ -118,12 +121,9 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             SignedAttempt._meta.db_table,
         }
         self.assertEqual({alias for alias, _, table in statements if table in private_tables}, {OPERATOR_ALIAS})
-        self.assertEqual(
-            [row for row in statements if row == (OPERATOR_ALIAS, "UPDATE", ShareToken._meta.db_table)],
-            [(OPERATOR_ALIAS, "UPDATE", ShareToken._meta.db_table)],
-        )
-        self.assertIn((APP_ALIAS, "UPDATE", ShareToken._meta.db_table), statements)
-        self.assertIn((APP_ALIAS, "INSERT", AssetChainDeployment._meta.db_table), statements)
+        self.assertEqual({alias for alias, _, _ in statements}, {OPERATOR_ALIAS})
+        self.assertIn((OPERATOR_ALIAS, "UPDATE", ShareToken._meta.db_table), statements)
+        self.assertIn((OPERATOR_ALIAS, "INSERT", AssetChainDeployment._meta.db_table), statements)
         with use_operator():
             self.other.token.refresh_from_db()
             self.assertIsNone(self.other.token.deployment_tx_hash)
@@ -161,11 +161,11 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.node.client.assert_expected_chain.assert_not_called()
         self.assertTrue(self.run_task(self.other.token, self.other.user.pk)["success"])
 
-    def test_start_commits_submission_and_principal_with_the_job_and_rechecks_ownership(self):
+    def test_company_admission_commits_original_applier_with_job_and_owner_changes_do_not_replace_it(self):
         with use_operator():
             token = self.tenant.company.tokens.create(name="Queued", symbol="QUE", total_supply="100")
         with acting_for(self.tenant.user.pk):
-            deployment.start_deployment(token, principal_id=self.tenant.user.pk)
+            admit_deployment(token, self.tenant.user)
         jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
         self.assertEqual(
             jobs,
@@ -184,9 +184,8 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             with use_migrate():
                 Company.objects.filter(pk=token.company_id).update(owner=self.other.user)
             result = deploy_share_token_task.func(**jobs[0][1])
-        self.assertEqual(result, {"success": False, "error": "Token not found"})
-        self.node.client.assert_expected_chain.assert_not_called()
-        self.assertTrue(self.run_task(token, self.other.user.pk)["success"])
+        self.assertTrue(result["success"])
+        self.assertEqual(self.run_task(token, self.other.user.pk), {"success": False, "error": "Token not found"})
 
     def test_retry_preserves_original_signed_claim_and_captured_principal(self):
         self.node.confirmed = False
@@ -213,24 +212,28 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             with use_migrate():
                 Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
             attempt = SignedAttempt.objects.get()
-        self.assertEqual(self.run_task(), {"success": False, "error": "Token not found"})
+        self.assertFalse(self.run_task()["success"])
         self.node.receipts[attempt.tx_hash] = receipt(attempt)
         self.node.existing_address = CREATED
         with use_operator():
             self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
-        self.assertEqual(len(self.node.broadcasts), 1)
+        self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)] * 2)
+        with use_operator():
+            self.assertEqual(SignedAttempt.objects.count(), 1)
 
     def test_operator_recovery_does_not_sign_unsigned_issuer_intent_after_revocation(self):
         with acting_for(self.tenant.user.pk):
-            command = deployment._admit(self.token, self.tenant.user.pk)
+            command = deployment._admit(self.token)
         with use_operator():
-            with use_migrate():
-                Company.objects.filter(pk=self.token.company_id).update(owner=self.other.user)
+            source = RegisterDeployment.objects.get(deployment_id=command.pk)
+            appointment = source.approval_decision.appointment_id
+        revoke_company_appointment(requester=self.tenant.user, appointment_id=appointment)
+        with use_operator():
             self.assertIsNone(deployment.recover(command.pk))
             self.assertFalse(SignedAttempt.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
-    def test_private_history_is_unreadable_and_a_removed_class_is_not_recovered(self):
+    def test_private_history_is_unreadable_and_company_sources_protect_class_and_signed_recovery(self):
         self.node.confirmed = False
         self.run_task()
         with acting_for(self.tenant.user.pk):
@@ -242,12 +245,14 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
         response = client.delete(f"/api/v1/tokens/{self.token.pk}/")
         self.assertEqual(response.status_code, 405)
         with use_operator():
-            ShareToken.objects.filter(pk=self.token.pk).delete()
+            with self.assertRaises(ProtectedError):
+                ShareToken.objects.filter(pk=self.token.pk).delete()
             self.assertTrue(TokenDeployment.objects.filter(pk=self.token.deployment_id).exists())
             attempt = SignedAttempt.objects.get()
             self.node.receipts[attempt.tx_hash] = receipt(attempt)
-            self.assertIsNone(deployment.recover(self.token.deployment_id))
-            self.assertFalse(ShareToken.objects.filter(pk=self.token.pk).exists())
+            self.node.existing_address = CREATED
+            self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
+            self.assertTrue(ShareToken.objects.filter(pk=self.token.pk).exists())
 
     def test_explicit_operator_job_restores_ambient_connection(self):
         result = deploy_share_token_task.func(
@@ -279,28 +284,43 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
 
     def change_during_signing(self, sql, parameters, *, alias=OPERATOR_ALIAS):
         sign = LocalAccount.sign_transaction
+        observed = []
 
         def changed(account, transaction, *args, **kwargs):
             raw = sign(account, transaction, *args, **kwargs)
             observer = connections[alias].copy(alias="deployment_revocation")
             try:
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    signing_pid = cursor.fetchone()[0]
                 with observer.cursor() as cursor:
-                    cursor.execute(sql, parameters)
+                    cursor.execute("SELECT pg_backend_pid()")
+                    observer_pid = cursor.fetchone()[0]
+                    self.assertNotEqual(signing_pid, observer_pid)
+                    cursor.execute("SET lock_timeout = '100ms'")
+                    with self.assertRaises(DatabaseError) as refusal:
+                        cursor.execute(sql, parameters)
+                    self.assertEqual(refusal.exception.__cause__.sqlstate, "55P03")
+                    observed.append((signing_pid, observer_pid))
             finally:
                 observer.close()
             return raw
 
         with patch.object(LocalAccount, "sign_transaction", changed):
-            with self.assertRaises(TokenDeploymentFailedException):
-                self.run_task()
+            self.assertTrue(self.run_task()["success"])
+        self.assertEqual(len(observed), 1)
         with use_operator():
-            self.assertFalse(SignedAttempt.objects.exists())
-            self.assertFalse(BlockchainTransaction.objects.exists())
-            self.token.refresh_from_db()
-            self.assertIsNone(self.token.deployment_tx_hash)
-        self.assertEqual(self.node.broadcasts, [])
+            self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertEqual(BlockchainTransaction.objects.count(), 1)
+        self.assertEqual(len(self.node.broadcasts), 1)
+        observer = connections[alias].copy(alias="deployment_after_commit")
+        try:
+            with observer.cursor() as cursor:
+                cursor.execute(sql, parameters)
+        finally:
+            observer.close()
 
-    def test_committed_ownership_revocation_while_signing_prevents_binding_and_broadcast(self):
+    def test_company_prefix_blocks_owner_change_during_signing_and_allows_it_after_commit(self):
         self.change_during_signing(
             "UPDATE companies_company SET owner_id=%s WHERE uuid=%s",
             [self.other.user.pk, self.token.company_id],
@@ -309,9 +329,11 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
         with use_operator():
             self.assertEqual(Company.objects.get(pk=self.token.company_id).owner_id, self.other.user.pk)
 
-    def test_committed_company_move_while_signing_prevents_binding_and_broadcast(self):
+    def test_class_prefix_blocks_company_move_during_signing_and_allows_it_after_commit(self):
         self.change_during_signing(
             "UPDATE tokens_sharetoken SET company_id=%s, symbol='MOVED' WHERE uuid=%s",
             [self.other.company.pk, self.token.pk],
         )
-        self.assertEqual(self.token.company_id, self.other.company.pk)
+        with use_operator():
+            self.token.refresh_from_db()
+            self.assertEqual(self.token.company_id, self.other.company.pk)

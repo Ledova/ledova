@@ -1,41 +1,77 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCompanyToken,
-  getCompany,
   getCompanyTokenHolders,
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
   readEveryPage,
-  deployCompanyToken,
   submitCapitalIncrease,
   wholeShares,
+  useSubmissionOwner,
+  createUserFriendlyError,
+  type CompanyShareToken,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useRegisterDownload } from '../register/useCompanyRegister';
 
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();
+  const { owner, boundary } = useSubmissionOwner();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const guard = () => {
+    if (!mounted.current || !owner || boundary.get() !== owner)
+      throw createUserFriendlyError('Your signed-in account changed. Reopen the share class.');
+  };
+  const tokenKey = ['token', uuid, owner?.userUuid, owner?.ownerAccountUuid];
+  const config = { ledovaSubmissionGuard: guard };
   const token = useQuery({
-    queryKey: ['token', uuid],
-    enabled: !!uuid,
+    queryKey: tokenKey,
+    enabled: !!uuid && !!owner,
     queryFn: async () => {
-      const { data } = await getCompanyToken(apiClient, uuid);
-      if (wholeShares(data.totalSupply) === null) throw new Error('Authorised shares are not a whole quantity');
+      guard();
+      const { data } = await getCompanyToken(apiClient, uuid, config);
+      guard();
+      if (
+        data.uuid !== uuid ||
+        !data.companyUuid ||
+        data.company !== data.companyUuid ||
+        wholeShares(data.totalSupply) === null
+      )
+        throw new Error('The share class did not identify its company and authorised shares.');
       return data;
     },
   });
-  const company = useQuery({
-    queryKey: ['company', token.data?.companyUuid],
-    enabled: !!token.data && !token.isError,
-    queryFn: () => getCompany(apiClient, token.data!.companyUuid).then(({ data }) => data),
-  });
-  const enabled = !!token.data && !token.isError;
+  const enabled = !!owner && token.isSuccess;
+  const isOwner = enabled && !token.isFetching && token.data.isOwner === true;
+  const guardOwner = (status?: 'deployed') => {
+    guard();
+    const current = queryClient.getQueryState<CompanyShareToken>(tokenKey);
+    if (
+      current?.status !== 'success' ||
+      current.fetchStatus !== 'idle' ||
+      current.isInvalidated ||
+      current.data?.uuid !== uuid ||
+      current.data.companyUuid !== token.data?.companyUuid ||
+      !current.data.isOwner ||
+      (status && current.data.status !== status)
+    )
+      throw createUserFriendlyError('Refresh the owner share class before submitting this request.');
+  };
   const register = useQuery({
-    queryKey: ['token', uuid, 'holders'],
+    queryKey: [...tokenKey, 'holders'],
     enabled,
     queryFn: async () => {
-      const { data } = await getCompanyTokenHolders(apiClient, uuid);
+      guard();
+      const { data } = await getCompanyTokenHolders(apiClient, uuid, config);
+      guard();
       const quantities = [data.token.totalSupply, ...data.holders.map(({ balance }) => balance)];
       if (data.issuedSupply !== null) quantities.push(data.issuedSupply);
       if (data.token.uuid !== uuid || quantities.some((quantity) => wholeShares(quantity) === null)) {
@@ -45,31 +81,73 @@ export function useShareClass(uuid: string) {
     },
   });
   const issuances = useQuery({
-    queryKey: ['token', uuid, 'issuances'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getCompanyTokenIssuances(apiClient, uuid, { page })),
+    queryKey: [...tokenKey, 'issuances'],
+    enabled: isOwner,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const result = await getCompanyTokenIssuances(apiClient, uuid, { page }, config);
+        guard();
+        return result;
+      }),
   });
   const capital = useQuery({
-    queryKey: ['token', uuid, 'capital-increases'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getCapitalIncreases(apiClient, { token: uuid, page })),
+    queryKey: [...tokenKey, 'capital-increases'],
+    enabled: isOwner,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const result = await getCapitalIncreases(apiClient, { token: uuid, page }, config);
+        guard();
+        return result;
+      }),
   });
   const requests = useQuery({
-    queryKey: ['token', uuid, 'issuance-requests'],
-    enabled,
-    queryFn: () => readEveryPage((page) => getShareIssuanceRequests(apiClient, { token: uuid, page })),
+    queryKey: [...tokenKey, 'issuance-requests'],
+    enabled: isOwner,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const result = await getShareIssuanceRequests(apiClient, { token: uuid, page }, config);
+        guard();
+        return result;
+      }),
   });
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['token', uuid] }),
       queryClient.invalidateQueries({ queryKey: ['tokens'] }),
-      queryClient.invalidateQueries({ queryKey: ['company', token.data?.companyUuid] }),
     ]);
-  const deploy = useMutation({ mutationFn: () => deployCompanyToken(apiClient, uuid), onSuccess: refresh });
   const submitCapital = useMutation({
-    mutationFn: (requestUuid: string) => submitCapitalIncrease(apiClient, requestUuid),
-    onSuccess: refresh,
+    mutationFn: async (requestUuid: string) => {
+      guardOwner();
+      const response = await submitCapitalIncrease(apiClient, requestUuid, {
+        ledovaSubmissionGuard: () => guardOwner(),
+      });
+      guardOwner();
+      return response;
+    },
+    onSuccess: async () => {
+      guardOwner();
+      await refresh();
+      guardOwner();
+    },
   });
   const download = useRegisterDownload(uuid, token.data?.symbol);
-  return { token, company, register, issuances, capital, requests, deploy, submitCapital, download, refresh };
+  return {
+    owner,
+    boundary,
+    guard,
+    guardOwner,
+    tokenKey,
+    isOwner,
+    token,
+    register,
+    issuances,
+    capital,
+    requests,
+    submitCapital,
+    download,
+    refresh,
+  };
 }

@@ -203,6 +203,15 @@ anything changed.
 
 ## Automatic swap approval
 
+Company empty deployments retain their original consumed approval and applying
+actor separately from this technical approval. Inside the durable signing
+transaction, source locks precede outgoing/signer/journal locks. After checking
+the actual outgoing state, every fresh deployment signature rechecks its exact
+company source immediately before the local signature. Unsigned source loss or
+contention holds the original operation; original signed receipt recovery and this
+automatic swap-approval suffix keep their existing association checks. See
+[company deployment](../plans/company-managed-registers/company-deployments.md).
+
 After the issuer's token projection and asset bridge succeed, a bounded operator
 transaction commits `projected_at`, a frozen approval disposition and the exact
 `recover_swap_approval` job together on the existing private `TokenDeployment`.

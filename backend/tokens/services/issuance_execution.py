@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from contextlib import contextmanager
 from typing import NamedTuple
 from uuid import UUID
 
@@ -49,7 +50,10 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.holder_identity import identity_at_allotment
-from tokens.services.register_inclusions import record_completed_effects
+from tokens.services.register_inclusions import (
+    opened_by_import,
+    record_completed_effects,
+)
 from wallets.models import ChainObservationFinality, ChainObservationResult
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
@@ -204,6 +208,7 @@ def _enqueue(execution):
 
 
 def _new(request, token, actor, authority, subscription=None):
+    _require_register(token.pk)
     if request.dispatch_id is None or request.status != RequestStatus.APPROVED:
         raise IssuanceExecutionConflict("Only a newly approved issuance can be admitted.")
     if ShareIssuance.objects.filter(idempotency_key=f"issuance-request:{request.pk}").exists():
@@ -260,6 +265,7 @@ def admit(request, user, *, confirmed, subscription=None):
                 raise IssuanceExecutionConflict("This confirmation no longer identifies the failed issuance attempt.")
             if current.status != RequestStatus.FAILED or (linked and linked.status != SubscriptionStatus.PAID):
                 raise IssuanceExecutionConflict("Only the original failed, unrefunded issuance can be retried.")
+            _require_register(token.pk)
             if _intent(current, token) != execution.intent:
                 raise IssuanceExecutionConflict("The original issuance configuration has changed.")
             execution.retry_of = retry_of
@@ -305,6 +311,8 @@ def cancel_queued(request, subscription):
 def _preflight(execution, client):
     from tokens.services import share_token_service
 
+    _require_register(execution.token_id)
+
     if client.assert_expected_chain() != execution.intent["chain_id"]:
         raise IssuanceExecutionUnresolved("The provider is on a different chain from the admitted issuance.")
     token = ShareToken.objects.get(pk=execution.token_id)
@@ -327,6 +335,7 @@ def _start(execution):
         current, request, token, subscription, _ = _lock(execution.pk, execution.operation_id)
         if current.status != IssuanceExecutionStatus.QUEUED:
             return current
+        _require_register(token.pk)
         if request.status != RequestStatus.APPROVED or (
             subscription and subscription.status != SubscriptionStatus.PAID
         ):
@@ -351,7 +360,17 @@ def _start(execution):
         current.status = IssuanceExecutionStatus.EXECUTING
         current.save(update_fields=["status", "issuance_id", "updated_at"])
         request.mark_executing()
-        return current
+    return current
+
+
+def _require_register(token_id):
+    if opened_by_import(token_id):
+        raise IssuanceExecutionConflict("An imported register cannot admit or sign a new on-chain issue.")
+
+
+@contextmanager
+def _signing_register(execution):
+    yield lambda operation: _require_register(execution.token_id)
 
 
 def _claim(execution):
@@ -595,6 +614,7 @@ def _recover(execution_id):
                 claim,
                 prepared,
                 settings.BLOCKCHAIN_OPERATOR_KEY,
+                signing_context=lambda: _signing_register(execution),
                 on_signed=lambda attempt: _record_signed(execution.pk, attempt),
             )
         except IssuanceRefusedException as exc:

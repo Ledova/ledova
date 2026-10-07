@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from unittest.mock import patch
 
 from procrastinate.testing import InMemoryConnector
 
@@ -41,7 +42,11 @@ class Deferrals:
 @contextmanager
 def captured():
     connector = InMemoryConnector()
-    with app.replace_connector(connector):
+    from tokens.tasks import deploy_share_token_task
+
+    with app.replace_connector(connector), patch(
+        "tokens.services.register_deployments.queue_deployment", deploy_share_token_task.defer
+    ):
         deferrals = Deferrals(connector)
         yield deferrals
         deferrals.require_empty()

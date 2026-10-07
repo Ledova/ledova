@@ -80,7 +80,6 @@ export {
   getCompanyTokens,
   getCompanyToken,
   createCompanyToken,
-  deployCompanyToken,
   pauseCompanyToken,
   unpauseCompanyToken,
   getPauseSubmission,
@@ -96,6 +95,7 @@ export {
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
 export * from './register-grants';
+export * from './register-deployments';
 export * from './register-transfers';
 export {
   prepareRegisterImport,

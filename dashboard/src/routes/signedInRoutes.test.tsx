@@ -102,6 +102,7 @@ describe('which signed-in pages an account can open', () => {
     'publications',
     'company',
     'companyRegister',
+    'companyClass',
     'companyRegisterImport',
     'companyRegisterCorrection',
     'companyRegisterLinks',
@@ -125,14 +126,14 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it('sends an investor opening a company page to their home at once, even before the frame is showing', () => {
+  it('keeps the class destination while checking the session before the frame shows', () => {
     open('companyClass', 'investor', { frameShowing: false });
 
-    expect(screen.getByTestId('address').textContent).toBe(DESTINATIONS.home.path);
-    expect(screen.queryByText('company')).toBeNull();
+    expect(screen.getByTestId('address').textContent).toBe(addressOf('companyClass'));
+    expect(screen.getByRole('status', { name: 'Checking your session' })).toBeTruthy();
   });
 
-  it.each(['companyClass', 'companyOffering', 'companyPublications'] as const)(
+  it.each(['companyOffering', 'companyPublications'] as const)(
     'sends an investor opening %s to their home instead',
     (key) => {
       open(key, 'investor');
@@ -190,7 +191,7 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each(['trading', 'companyClass'] as const)(
+  it.each(['trading'] as const)(
     'keeps %s titled and loading until the role is known, and shows neither the page nor a landing',
     (key) => {
       open(key, 'investor', { roleLoading: true });
@@ -202,25 +203,25 @@ describe('which signed-in pages an account can open', () => {
     },
   );
 
-  it.each([
-    ['companyClass', 'company'],
-    ['trading', 'investor'],
-  ] as const)('says the account could not be checked on %s rather than deciding with a guessed role', (key, role) => {
-    open(key, role, { roleUnavailable: true });
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
-    expect(screen.getByRole('alert').textContent).toContain('Your account could not be checked');
-    expect(screen.queryByText(key)).toBeNull();
-    expect(screen.queryByText('home')).toBeNull();
-    expect(screen.queryByText('company')).toBeNull();
-  });
+  it.each([['trading', 'investor']] as const)(
+    'says the account could not be checked on %s rather than deciding with a guessed role',
+    (key, role) => {
+      open(key, role, { roleUnavailable: true });
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(DESTINATIONS[key].title);
+      expect(screen.getByRole('alert').textContent).toContain('Your account could not be checked');
+      expect(screen.queryByText(key)).toBeNull();
+      expect(screen.queryByText('home')).toBeNull();
+      expect(screen.queryByText('company')).toBeNull();
+    },
+  );
 
   it('checks the account again from Try again', () => {
-    open('companyClass', 'company', { roleUnavailable: true });
+    open('trading', 'investor', { roleUnavailable: true });
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['wallets', 'companyRegister'] as const)(
+  it.each(['wallets', 'companyRegister', 'companyClass'] as const)(
     'opens %s, a page for everyone, even when the account could not be checked',
     (key) => {
       open(key, 'company', { roleUnavailable: true });

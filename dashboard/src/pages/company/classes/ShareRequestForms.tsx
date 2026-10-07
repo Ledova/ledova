@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -20,8 +20,24 @@ const LIMIT_COPY = `Each request supports up to ${formatShareCount(MAX_REQUEST_S
 interface RequestProps {
   token: CompanyShareToken;
   classRead: { isError: boolean; isFetching: boolean; refetch: () => Promise<unknown> };
+  guard: () => void;
+  epoch?: number;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
+}
+
+function useRequestGuard(guard: () => void) {
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  return () => {
+    if (!mounted.current) throw new Error('The owner request is no longer open.');
+    guard();
+  };
 }
 
 function ClassReadState({ query }: { query: RequestProps['classRead'] }) {
@@ -39,26 +55,40 @@ function ClassReadState({ query }: { query: RequestProps['classRead'] }) {
   );
 }
 
-export function IssueSharesForm({ token, classRead, onClose, onSuccess }: RequestProps) {
+export function IssueSharesForm({ token, classRead, guard, epoch, onClose, onSuccess }: RequestProps) {
+  const guardRequest = useRequestGuard(guard);
+  const config = { ledovaSubmissionGuard: guardRequest, ledovaSessionEpoch: epoch };
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const quantity = requestShares(amount);
   const valid =
+    token.isOwner &&
     !classRead.isError &&
     !classRead.isFetching &&
     token.status === 'deployed' &&
     recipient.trim() !== '' &&
     quantity !== null;
   const request = useMutation({
-    mutationFn: () =>
-      issueCompanyShares(apiClient, token.uuid, {
-        recipient: recipient.trim(),
-        amount: quantity!,
-        reason: reason.trim() || undefined,
-      }),
+    mutationFn: async () => {
+      guardRequest();
+      const response = await issueCompanyShares(
+        apiClient,
+        token.uuid,
+        {
+          recipient: recipient.trim(),
+          amount: quantity!,
+          reason: reason.trim() || undefined,
+        },
+        config,
+      );
+      guardRequest();
+      return response;
+    },
     onSuccess: async () => {
+      guardRequest();
       await onSuccess();
+      guardRequest();
       onClose();
     },
   });
@@ -118,7 +148,9 @@ export function IssueSharesForm({ token, classRead, onClose, onSuccess }: Reques
   );
 }
 
-export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: RequestProps) {
+export function RaiseSharesForm({ token, classRead, guard, epoch, onClose, onSuccess }: RequestProps) {
+  const guardRequest = useRequestGuard(guard);
+  const config = { ledovaSubmissionGuard: guardRequest, ledovaSessionEpoch: epoch };
   const [additional, setAdditional] = useState('');
   const [purpose, setPurpose] = useState('');
   const [boardReference, setBoardReference] = useState('');
@@ -127,6 +159,7 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
   const newTotal = raisedSupply(token.totalSupply, additional);
   const newAuthorizedTotal = newTotal === null ? null : requestShares(newTotal);
   const valid =
+    token.isOwner &&
     !classRead.isError &&
     !classRead.isFetching &&
     token.status === 'deployed' &&
@@ -135,17 +168,27 @@ export function RaiseSharesForm({ token, classRead, onClose, onSuccess }: Reques
     purpose.trim() !== '' &&
     boardReference.trim() !== '';
   const request = useMutation({
-    mutationFn: () =>
-      createCapitalIncrease(apiClient, {
-        token: token.uuid,
-        additionalShares: additionalShares!,
-        newAuthorizedTotal: newAuthorizedTotal!,
-        purpose: purpose.trim(),
-        boardResolutionReference: boardReference.trim(),
-        shareholderApprovalReference: shareholderReference.trim() || undefined,
-      }),
+    mutationFn: async () => {
+      guardRequest();
+      const response = await createCapitalIncrease(
+        apiClient,
+        {
+          token: token.uuid,
+          additionalShares: additionalShares!,
+          newAuthorizedTotal: newAuthorizedTotal!,
+          purpose: purpose.trim(),
+          boardResolutionReference: boardReference.trim(),
+          shareholderApprovalReference: shareholderReference.trim() || undefined,
+        },
+        config,
+      );
+      guardRequest();
+      return response;
+    },
     onSuccess: async () => {
+      guardRequest();
       await onSuccess();
+      guardRequest();
       onClose();
     },
   });

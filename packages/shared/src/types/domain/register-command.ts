@@ -7,6 +7,11 @@ import type {
 import type { RegisterImport, RegisterImportDecideRequest, RegisterImportDecisionRequest } from './register-import';
 import type { RegisterGrant, RegisterGrantDecideRequest, RegisterGrantDecisionRequest } from './register-grant';
 import type {
+  RegisterDeployment,
+  RegisterDeploymentDecideRequest,
+  RegisterDeploymentDecisionRequest,
+} from './register-deployment';
+import type {
   RegisterTransfer,
   RegisterTransferDecideRequest,
   RegisterTransferDecisionRequest,
@@ -30,9 +35,11 @@ export type RegisterProposal =
   | RegisterParticularsChange
   | RegisterLink
   | RegisterGrant
-  | RegisterTransfer;
+  | RegisterTransfer
+  | RegisterDeployment;
 export type RegisterDecisionRequest =
   | RegisterImportDecisionRequest
+  | RegisterDeploymentDecisionRequest
   | RegisterGrantDecisionRequest
   | RegisterTransferDecisionRequest
   | RegisterCorrectionDecisionRequest
@@ -41,6 +48,7 @@ export type RegisterDecisionRequest =
   | RegisterLinkDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterImportDecideRequest
+  | RegisterDeploymentDecideRequest
   | RegisterGrantDecideRequest
   | RegisterTransferDecideRequest
   | RegisterCorrectionDecideRequest

@@ -6,7 +6,14 @@ from shared.db import atomic
 from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.models import TokenDeployment
 from tokens.services import deployment, swap_approval
-from tokens.tests.deployment_fixtures import CHAIN_ID, FACTORY, KEY, install_deployment
+from tokens.tests.deployment_fixtures import (
+    CHAIN_ID,
+    CREATED,
+    FACTORY,
+    KEY,
+    DeploymentNode,
+    legacy_deployment_token,
+)
 from tokens.tests.swap_approval_fixtures import SWAP
 
 
@@ -18,11 +25,25 @@ from tokens.tests.swap_approval_fixtures import SWAP
 )
 class SwapApprovalMigrationTest(TransactionTestCase):
     def setUp(self):
-        install_deployment(self)
+        self.tenant = legacy_deployment_token(signed=True)
+        self.token = self.tenant.token
+        self.node = DeploymentNode()
+        self.node.existing_address = CREATED
+        from unittest.mock import patch
+
+        from blockchain.models import SignedAttempt
+        from blockchain.tests.outgoing_fixtures import receipt
+
+        self.node.receipts[SignedAttempt.objects.get().tx_hash] = receipt(SignedAttempt.objects.get())
+        for target in (
+            "tokens.services.deployment.get_base_chain_client",
+            "tokens.services.share_token_service.get_base_chain_client",
+        ):
+            self.enterContext(patch(target, return_value=self.node.client))
         self.addCleanup(restore_every_migration)
 
     def test_historical_projection_keeps_all_terms_without_acquiring_approval_authority(self):
-        command = deployment._process(deployment._admit(self.token, None), None)
+        command = deployment._process(deployment._admit(self.token))
         before = migrate_to([("tokens", "0048_issuance_execution_guards")])
         old_deployments = before.get_model("tokens", "TokenDeployment").objects
         old_deployments.filter(pk=command.pk).update(projected_at=timezone.now())
@@ -32,6 +53,7 @@ class SwapApprovalMigrationTest(TransactionTestCase):
         for field in tuple(current):
             if field.startswith("approval_"):
                 self.assertEqual(current.pop(field), "" if field == "approval_outcome" else None)
+        self.assertIsNone(current.pop("source_deployment_id"))
         self.assertEqual(current, original)
         self.assertEqual(swap_approval.recover(command.pk), "")
         with self.assertRaisesMessage(DatabaseError, "Historical deployments"), atomic():
@@ -40,7 +62,7 @@ class SwapApprovalMigrationTest(TransactionTestCase):
             )
 
     def test_old_binary_cannot_complete_projection_without_the_approval_handoff(self):
-        command = deployment._process(deployment._admit(self.token, None), None)
+        command = deployment._process(deployment._admit(self.token))
         before = migrate_to([("tokens", "0048_issuance_execution_guards")])
         old_deployments = before.get_model("tokens", "TokenDeployment").objects
         restore_every_migration()

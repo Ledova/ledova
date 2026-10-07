@@ -376,6 +376,10 @@ def _recheck_boundary(boundary):
 
 
 def _check_uninitialized(token):
+    from tokens.services.register_deployments import pending_deployment
+
+    if pending_deployment(token):
+        raise ValidationError("The original company deployment must be projected before the register can advance.")
     register, _ = ShareRegister.objects.get_or_create(token=token, defaults={"company_id": token.company_id})
     if RegisterEntry.objects.filter(register=register).exists():
         raise ValidationError("This share class already has a stored register.")
@@ -447,7 +451,11 @@ def _boundary_requirements(actor, proposal, kind, appointment):
 
 
 def _effect_requirements(proposal):
+    from tokens.services.register_deployments import pending_deployment
+
     unmet = []
+    if pending_deployment(proposal.token):
+        unmet.append("deployment_pending")
     try:
         matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
     except ValidationError:

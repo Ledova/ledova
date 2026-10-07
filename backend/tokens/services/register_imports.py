@@ -141,6 +141,12 @@ def _opening(token):
 
 
 def _check_openable(token):
+    from tokens.services.register_deployments import applied_source
+
+    if applied_source(token) is not None:
+        raise ValidationError(
+            "Open the original company deployment from its confirmed chain before importing particulars."
+        )
     if (
         ShareIssuanceRequest.objects.filter(token=token, status__in=APPROVED).exists()
         or RegisterInstruction.objects.filter(token=token, status="applied").exists()
@@ -373,7 +379,11 @@ def _open(proposal, token, actor):
 
 
 def _effect_requirements(proposal):
+    from tokens.services.register_deployments import pending_deployment
+
     unmet = []
+    if pending_deployment(proposal.token):
+        unmet.append("deployment_pending")
     try:
         matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
         matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)

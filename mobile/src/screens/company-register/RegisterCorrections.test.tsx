@@ -1,4 +1,5 @@
 import React from 'react';
+import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -301,7 +302,11 @@ function deferred() {
   return { promise, resolve, reject };
 }
 function wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 async function openClass() {
@@ -333,6 +338,10 @@ beforeEach(() => {
   mockNavigate.mockReset();
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
+  });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
   });
   post.mockReset();
   get.mockReset().mockImplementation(async (url, config) => {
@@ -783,7 +792,7 @@ it('previews an approval with the named original and inverse changes and the reg
   expect(post).toHaveBeenCalledWith(
     URLS.REGISTER_CORRECTION_PREVIEW('correction-new'),
     { appointment: 'appointment-admin', kind: 'approve', reason: '' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   expect(within(view.getByText('Register sequence').parent!).getByText('3')).toBeTruthy();
   expect(view.getAllByText('Alex Member: +9,007,199,254,740,993')).toHaveLength(1);
@@ -827,7 +836,6 @@ it('applies a correction once its receipt names the compensating entry', async (
   post
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockResolvedValueOnce({ data: { ...decided('apply', KEY(1)), appliedEntry: null } })
-    .mockResolvedValueOnce({ data: PREVIEW })
     .mockResolvedValueOnce({ data: decided('apply', KEY(1)) });
   const view = await openClass();
   await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
@@ -835,10 +843,8 @@ it('applies a correction once its receipt names the compensating entry', async (
   await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
   expect(await view.findByText(COPY.DECISION_RECEIPT_FAILED)).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  await fireEvent.press(view.getByRole('button', { name: step('Apply') }));
-  await view.findByText(COPY.CONFIRMATIONS.apply);
-  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
-  await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
+  await fireEvent.press(view.getByRole('button', { name: /Recover apply receipt for/ }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /Recover apply receipt for/ })).toBeNull());
   const decide = post.mock.calls.filter(([url]) => url === URLS.REGISTER_CORRECTION_DECIDE('correction-new'));
   expect(decide.map(([, body]) => (body as { idempotencyKey: string }).idempotencyKey)).toEqual([KEY(1), KEY(1)]);
 });
@@ -863,7 +869,7 @@ it('rejects only with the reason it previewed, trimmed and at most 1,000 charact
   expect(post).toHaveBeenLastCalledWith(
     URLS.REGISTER_CORRECTION_PREVIEW('correction-new'),
     { appointment: 'appointment-approver', kind: 'reject', reason: 'Wrong entry' },
-    { ledovaSessionEpoch: epoch },
+    { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: expect.any(Function) },
   );
   await fireEvent.changeText(reason(), 'Wrong entry, and late');
   expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
@@ -945,28 +951,22 @@ it('leaves the cached corrections unchanged when a decision receipt cannot be co
   expect(client.getQueryState(key)).toEqual(cached);
 });
 
-it('retries an interrupted decision under its key until the preview changes', async () => {
+it('recovers an interrupted correction using its complete original decision body', async () => {
   post
     .mockResolvedValueOnce({ data: PREVIEW })
     .mockRejectedValueOnce(new Error('Network Error'))
-    .mockResolvedValueOnce({ data: PREVIEW })
-    .mockRejectedValueOnce(new Error('Network Error'))
-    .mockResolvedValueOnce({ data: { ...PREVIEW, previewDigest: 'b'.repeat(64) } })
-    .mockRejectedValueOnce(new Error('Network Error'));
+    .mockResolvedValueOnce({ data: decided('approve', KEY(1)) });
   const view = await openClass();
-  const decide = () => post.mock.calls.filter(([url]) => url === URLS.REGISTER_CORRECTION_DECIDE('correction-new'));
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
-    await view.findByText(COPY.CONFIRMATIONS.approve);
-    await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
-    await view.findByText('Network Error');
-    await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  }
-  expect(decide().map(([, body]) => (body as { idempotencyKey: string }).idempotencyKey)).toEqual([
-    KEY(1),
-    KEY(1),
-    KEY(2),
-  ]);
+  await fireEvent.press(view.getByRole('button', { name: step('Approve') }));
+  await view.findByText(COPY.CONFIRMATIONS.approve);
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await view.findByText('Network Error');
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await fireEvent.press(view.getByRole('button', { name: /Recover approve receipt for/ }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /Recover approve receipt for/ })).toBeNull());
+  const decide = post.mock.calls.filter(([url]) => url === URLS.REGISTER_CORRECTION_DECIDE('correction-new'));
+  expect(decide.map(([, body]) => body)).toEqual([decide[0][1], decide[0][1]]);
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_CORRECTION_PREVIEW('correction-new'))).toHaveLength(1);
 });
 
 it('drops an open decision when the session changes and ignores its late answer', async () => {

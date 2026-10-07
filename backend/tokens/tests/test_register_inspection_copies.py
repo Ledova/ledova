@@ -132,7 +132,7 @@ class InspectionCopyTest(TestCase):
         self.client.force_login(self.staff)
 
         self.assertEqual(
-            self.client.get(reverse("admin:tokens_sharetoken_deploy", args=[self.token.pk])).status_code, 403
+            self.client.get(reverse("admin:tokens_sharetoken_retry_deploy", args=[self.token.pk])).status_code, 403
         )
         self.assertEqual(self.client.get(self.page()).status_code, 200)
         self.assertEqual(self.prepare().status_code, 200)

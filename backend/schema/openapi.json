@@ -7512,6 +7512,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterDeploymentList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterDeployment"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterGrantList": {
         "properties": {
           "count": {
@@ -9713,6 +9744,555 @@
           "reject"
         ],
         "type": "string"
+      },
+      "RegisterDeployment": {
+        "properties": {
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterDeploymentDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "deploymentId": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDeploymentExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "intentDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDeploymentSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "company",
+          "createdAt",
+          "decisions",
+          "deploymentId",
+          "execution",
+          "executionUnmetRequirements",
+          "intentDigest",
+          "operationId",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentCompanySnapshot": {
+        "properties": {
+          "acn": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acn",
+          "name",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "operationId",
+          "token"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentDecisionPreview": {
+        "properties": {
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "deploymentId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RegisterDeploymentSnapshot"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "canDecide",
+          "deploymentId",
+          "intentDigest",
+          "previewDigest",
+          "snapshot",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentExecution": {
+        "properties": {
+          "attributionRequired": {
+            "type": "boolean"
+          },
+          "claimId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "contractAddress": {
+            "nullable": true,
+            "type": "string"
+          },
+          "deployment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationStatus": {
+            "nullable": true,
+            "type": "string"
+          },
+          "projectedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "swapApprovalOutcome": {
+            "nullable": true,
+            "type": "string"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributionRequired",
+          "claimId",
+          "contractAddress",
+          "deployment",
+          "operationId",
+          "operationStatus",
+          "projectedAt",
+          "swapApprovalOutcome",
+          "txHash"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentRegisterSnapshot": {
+        "properties": {
+          "headHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "initialized": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "sequence": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "headHash",
+          "initialized",
+          "issuedSupply",
+          "present",
+          "sequence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentSnapshot": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/RegisterDeploymentCompanySnapshot"
+          },
+          "issuerWallet": {
+            "$ref": "#/components/schemas/RegisterDeploymentWalletSnapshot"
+          },
+          "register": {
+            "$ref": "#/components/schemas/RegisterDeploymentRegisterSnapshot"
+          },
+          "token": {
+            "$ref": "#/components/schemas/RegisterDeploymentTokenSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RegisterDeploymentTransactionSnapshot"
+          }
+        },
+        "required": [
+          "company",
+          "issuerWallet",
+          "register",
+          "token",
+          "transaction"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentTokenSnapshot": {
+        "properties": {
+          "authorisedShares": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "integer"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorisedShares",
+          "decimals",
+          "identifier",
+          "name",
+          "symbol",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentTransactionSnapshot": {
+        "properties": {
+          "chainId": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chainId",
+          "data",
+          "sender",
+          "to",
+          "value"
+        ],
+        "type": "object"
+      },
+      "RegisterDeploymentWalletSnapshot": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "chain"
+        ],
+        "type": "object"
       },
       "RegisterDeviceTokenRequest": {
         "properties": {
@@ -14896,6 +15476,10 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "isOwner": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "isTransferable": {
             "readOnly": true,
             "type": "boolean"
@@ -14959,6 +15543,7 @@
           "deployedAt",
           "deploymentTxHash",
           "isDivisible",
+          "isOwner",
           "isTransferable",
           "name",
           "status",
@@ -16058,21 +16643,6 @@
           "cancelled"
         ],
         "type": "string"
-      },
-      "TokenDeploymentStarted": {
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "token": {
-            "$ref": "#/components/schemas/ShareTokenDetail"
-          }
-        },
-        "required": [
-          "message",
-          "token"
-        ],
-        "type": "object"
       },
       "TokenTypeEnum": {
         "description": "* `ordinary` - Ordinary\n* `preference` - Preference\n* `redeemable` - Redeemable",
@@ -23833,6 +24403,294 @@
         ]
       }
     },
+    "/api/v1/tokens/register-deployments/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_deployments_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterDeploymentList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_deployments_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDeployment"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-deployments/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_deployments_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDeployment"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-deployments/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_deployments_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDeployment"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-deployments/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_deployments_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeploymentDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterDeploymentDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-evidence/": {
       "post": {
         "operationId": "api_v1_tokens_register_evidence_create",
@@ -26606,48 +27464,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/{uuid}/deploy/": {
-      "post": {
-        "operationId": "api_v1_tokens_deploy_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenDeploymentStarted"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

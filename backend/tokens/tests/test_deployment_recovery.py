@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import DatabaseError
+from django.db.models.deletion import ProtectedError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
@@ -17,6 +18,7 @@ from blockchain.services import outgoing
 from blockchain.services.transaction import check_pending_transactions
 from blockchain.tests.outgoing_fixtures import receipt
 from shared.db import atomic
+from shared.tests.tenants import make_tenant
 from tokens.exceptions import InvalidTokenStateException, TokenDeploymentFailedException
 from tokens.models import ShareToken, TokenDeployment
 from tokens.services import deployment
@@ -29,13 +31,18 @@ from tokens.tests.deployment_fixtures import (
     DeploymentNode,
     admitted_signer,
     deployment_token,
+    legacy_deployment_token,
 )
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
 class DeploymentRecoveryTest(TransactionTestCase):
     def setUp(self):
-        self.tenant = deployment_token()
+        self.tenant = (
+            legacy_deployment_token(signed=True)
+            if self._testMethodName == "test_deleted_legacy_token_does_not_redirect_signed_recovery"
+            else deployment_token()
+        )
         self.token = self.tenant.token
         self.node = DeploymentNode()
         for target in (
@@ -45,7 +52,8 @@ class DeploymentRecoveryTest(TransactionTestCase):
             patcher = patch(target, return_value=self.node.client)
             patcher.start()
             self.addCleanup(patcher.stop)
-        admitted_signer()
+        if not SigningAccount.objects.exists():
+            admitted_signer()
 
     def execute(self, **options):
         return deployment.deploy_token(self.token, **options)
@@ -262,15 +270,31 @@ class DeploymentRecoveryTest(TransactionTestCase):
         self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
         self.assertEqual(len(self.node.broadcasts), 1)
 
-    def test_deleted_or_retargeted_token_does_not_redirect_recovery(self):
-        self.node.confirmed = False
-        self.execute()
+    def test_deleted_legacy_token_does_not_redirect_signed_recovery(self):
         attempt = SignedAttempt.objects.get()
         self.node.receipts[attempt.tx_hash] = receipt(attempt)
         original_id = self.token.pk
         self.token.delete()
         self.assertIsNone(deployment.recover(self.token.deployment_id))
         self.assertFalse(ShareToken.objects.filter(pk=original_id).exists())
+        self.assertEqual(TokenDeployment.objects.get().token_id, original_id)
+        self.assertEqual(TokenDeployment.objects.get().contract_address, CREATED)
+        self.assertIsNone(TokenDeployment.objects.get().source_deployment_id)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
+
+    def test_company_source_protects_token_deletion_and_retargeted_recovery_never_redirects(self):
+        self.node.confirmed = False
+        self.execute()
+        attempt = SignedAttempt.objects.get()
+        self.node.receipts[attempt.tx_hash] = receipt(attempt)
+        original_id = self.token.pk
+        with self.assertRaises(ProtectedError):
+            self.token.delete()
+        other = make_tenant("retargeted-recovery")
+        ShareToken.objects.filter(pk=other.token.pk).update(symbol="OTHER")
+        ShareToken.objects.filter(pk=self.token.pk).update(company=other.company)
+        self.assertIsNone(deployment.recover(self.token.deployment_id))
+        self.assertTrue(ShareToken.objects.filter(pk=original_id, company=other.company).exists())
         self.assertEqual(TokenDeployment.objects.get().token_id, original_id)
         self.assertEqual(TokenDeployment.objects.get().contract_address, CREATED)
 
@@ -308,17 +332,6 @@ class DeploymentRecoveryTest(TransactionTestCase):
             token_uuid=str(self.token.pk), deployment_id=str(self.token.deployment_id), principal_id=None
         )
         self.assertTrue(result["success"])
-
-    def test_duplicate_start_keeps_identity_and_the_current_outcome(self):
-        identity = self.token.deployment_id
-        with patch("tokens.tasks.deploy_share_token_task.defer") as queue:
-            deployment.start_deployment(self.token, principal_id=self.tenant.user.pk)
-        self.assertEqual(queue.call_args.kwargs["deployment_id"], str(identity))
-        self.execute()
-        with patch("tokens.tasks.deploy_share_token_task.defer") as queue:
-            deployment.start_deployment(self.token, principal_id=self.tenant.user.pk)
-        queue.assert_not_called()
-        self.assertEqual(self.token.deployment_id, identity)
 
     def test_bridge_failure_remains_recoverable_after_the_token_contract_is_recorded(self):
         with patch(

@@ -8,6 +8,7 @@ import { PrepareRegisterOpeningScreen } from '../screens/company-register/Prepar
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
 import { PrepareRegisterTransferScreen } from '../screens/company-register/PrepareRegisterTransferScreen';
+import { TokenDetailScreen } from '../screens/company-tokens/TokenDetailScreen';
 import { HomeStackNavigator, type HomeStackParamList } from './HomeStackNavigator';
 import { CompanyStackNavigator, type CompanyStackParamList } from './CompanyStackNavigator';
 
@@ -122,6 +123,17 @@ it('registers participant requests in the always reachable Home stack', async ()
     }),
   );
 });
+
+it.each([HomeStackNavigator, CompanyStackNavigator])(
+  'opens the same share class screen from either stack',
+  async (Navigator) => {
+    await render(<Navigator onNotifications={jest.fn()} unreadCount={0} />);
+    const screen = mockScreens.find((item) => item.name === 'TokenDetail');
+    expect(screen?.component).toBe(TokenDetailScreen);
+    const options = typeof screen?.options === 'function' ? screen.options({ route: { params: {} } }) : screen?.options;
+    expect(options).toEqual(expect.objectContaining({ headerBackVisible: true }));
+  },
+);
 
 it('types the import preparation params alike in both register stacks', () => {
   const home: HomeStackParamList['PrepareRegisterImport'] = { tokenUuid: 'ordinary', companyUuid: 'paper' };

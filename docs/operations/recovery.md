@@ -31,11 +31,28 @@ signed attempt merely to replace the placeholder.
 
 ## Deployment and issuance
 
-An unsigned share-class deployment failure requires its existing **Retry Deployment**
+New empty share-class deployments use the company's
+[prepare, approve and apply workflow](../plans/company-managed-registers/company-deployments.md).
+Application admits the original deployment job; it does not establish a deployed
+contract. Fresh owner/staff deployment controls are retired.
+
+An unsigned deployment holds when its exact consumed approval, applying mandate,
+captured wallet, company/class terms or register boundary no longer apply. Source
+contention leaves its original operation preparing, without a new signed attempt
+or nonce. This increment provides no replacement, reapproval or source-renewal
+route. Legacy deployments without a company source cannot obtain a fresh signature.
+Already signed originals retain their bytes, attribution and normal receipt
+recovery after source loss.
+
+An actual unsigned technical failure retains the existing **Retry Deployment**
 admin confirmation. It binds the original class, deployment and failed claim;
 the worker retains the deployment and operation identities while admitting a new
-claim. A queue job marked succeeded can have returned an unresolved result, so
-check the deployment journal and actual class outcome before claiming completion.
+claim. A retry does not renew company authority or replace the captured intent;
+fresh signing still needs the original current company source and technical
+signer admission. A queue job marked succeeded can have returned an unresolved
+result, so check the deployment journal and actual class outcome before claiming
+completion. Confirmation awaiting projection and an attributed projected outcome
+remain separate.
 
 Deployment, capital and issuance sweeps recover accepted work; see the
 [issuance flow](../architecture/contracts-and-issuance.md). New share issuances
@@ -59,6 +76,12 @@ New completion waits for the configured network finality policy and updates the
 issuance, request and subscription together. Missing policy/provider evidence or
 a changed receipt outcome remains held; see the
 [issuance finality boundary](../architecture/outgoing-signing.md#share-issuances).
+
+An import-origin register cannot admit new issuance execution, retry a failed
+issuance into queued work or sign an unsigned issuance. Its retained requests
+and journals remain. Already signed/confirmed original issuance still recovers
+with its actual receipts and register-effect gaps; deploying an imported zero
+book does not supply an attributed issuance workflow for that book.
 
 Historical null-dispatch requests keep their old journal and transaction fields.
 Recovery validates saved signed bytes before replay; a named hash without bytes
