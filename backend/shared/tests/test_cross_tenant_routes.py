@@ -1402,6 +1402,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         response = self.client.post(REGISTER_GRANT_ROUTES["create"][1], payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         grant_id = response.json()["uuid"]
+        self.assertIsNone(response.json()["effectiveOn"])
         listing = REGISTER_GRANT_ROUTES["list"][1]
         self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [grant_id])
         for name in ("detail", "file", "terms_file", "acceptance_file"):
@@ -1453,8 +1454,28 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             format="json",
         )
         self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
+        decision["kind"] = "apply"
+        preview = self.client.post(
+            REGISTER_GRANT_ROUTES["decision_preview"][1].format(uuid=grant_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        applied = self.client.post(
+            REGISTER_GRANT_ROUTES["decide"][1].format(uuid=grant_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((applied.status_code, applied.json()["stage"]), (200, "applied"), applied.content)
+        self.assertEqual(applied.json()["termsOn"], payload["terms_on"])
+        self.assertEqual(applied.json()["approvingDirector"], payload["approving_director"])
+        self.assertEqual(applied.json()["effectiveOn"], timezone.now().date().isoformat())
+        self.assertIsNotNone(applied.json()["registerEntry"])
         with self.as_an_operator_would():
-            self.assertEqual(RegisterGrant.objects.get(pk=grant_id).status, "submitted")
+            self.assertEqual(RegisterGrant.objects.get(pk=grant_id).status, "applied")
             self.assertEqual(RegisterGrant.objects.count(), 1)
 
     @override_settings(

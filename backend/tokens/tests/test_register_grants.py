@@ -31,6 +31,10 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.models.register_evidence import RegisterEvidenceKind
+from tokens.serializers.register_grant import (
+    RegisterGrantCreateSerializer,
+    RegisterGrantSerializer,
+)
 from tokens.services.register import _certificate_pages, _stored_register
 from tokens.services.register_events import record_entry, verify_register
 from tokens.services.register_grants import (
@@ -73,7 +77,8 @@ def grant_fixture():
         "name": "Synthetic Employee",
         "residential_address": "4 Example Street, Sydney NSW 2000",
         "shares": "25",
-        "effective_on": DAY.isoformat(),
+        "terms_on": DAY.isoformat(),
+        "approving_director": "Synthetic Independent Director",
         "terms": "Non-paid employee grant without payment; signed acceptance required",
         "authority_reference": "SYNTHETIC-GRANT-1",
         "reason": "Record the company-approved employee grant",
@@ -118,6 +123,12 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
 
     def test_new_and_existing_walletless_grants_supply_real_roll_and_certificate_inputs(self):
         proposal = self.prepare()
+        self.assertIsNone(RegisterGrantSerializer().get_effective_on(proposal))
+        prepared = preview(self.owner, self.appointment, proposal, "approve")
+        self.assertEqual(
+            (prepared["terms_on"], prepared["effective_on"], prepared["approving_director"]),
+            (DAY, timezone.now().date(), self.payload["approving_director"]),
+        )
         self.assertEqual(preview(self.owner, self.appointment, proposal, "approve")["unmet_requirements"], [])
         self.decide(proposal, "approve")
         self.assertEqual(preview(self.owner, self.appointment, proposal)["after_issued_supply"], "125")
@@ -129,11 +140,15 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
                 (proposal.name, proposal.pk, None, None),
             )
             self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "125")
-            roll = frozen_rows(self.token, self.token.stored_register, DAY)
+            roll = frozen_rows(self.token, self.token.stored_register, timezone.now().date())
             employee = next(row for row in roll if row["member_id"] == proposal.member)
             self.assertEqual((employee["shares"], employee["name"], employee["user_id"]), (25, proposal.name, None))
             self.assertEqual(holdings_at(self.token.stored_register, DAY - timedelta(days=1)), {})
             grant = RegisterGrant.objects.get(pk=proposal.pk)
+            self.assertEqual((grant.terms_on, grant.register_entry.effective_on), (DAY, timezone.now().date()))
+            self.assertEqual(held.as_at, timezone.now().date())
+            self.assertNotIn(proposal.member, holdings_at(self.token.stored_register, DAY))
+            self.assertEqual(RegisterGrantSerializer(grant).data["effective_on"], timezone.now().date())
             page = _certificate_pages(self.token, grant.register_entry)[0]
             self.assertEqual((page["name"], page["shares"], page["holding"]), (proposal.name, 25, 25))
             row = next(row for row in _stored_register(self.token)["rows"] if row["member"] == str(proposal.member))
@@ -164,7 +179,9 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
             {"shares": "1.5"},
             {"shares": str(2**256)},
             {"shares": "901"},
-            {"effective_on": (DAY - timedelta(days=1)).isoformat()},
+            {"terms_on": (timezone.now().date() + timedelta(days=1)).isoformat()},
+            {"approving_director": ""},
+            {"approving_director": "\tSynthetic  Employee\t"},
         ):
             with self.subTest(changes=changes), self.assertRaises(ValidationError):
                 self.prepare(**changes)
@@ -198,6 +215,8 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
             {"shares": "26"},
             {"acceptance_required": False, "acceptance_evidence": None},
             {"terms": "Changed terms"},
+            {"terms_on": (DAY - timedelta(days=1)).isoformat()},
+            {"approving_director": "Other Director"},
         ):
             with self.subTest(changes=changes), self.assertRaises(RegisterChangeConflict):
                 self.prepare(**changes)
@@ -208,6 +227,115 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
         self.assertEqual(prepare_grant(actor=self.owner, **self.payload), (proposal, False))
         separate = self.prepare(operation_id=uuid4(), member=uuid4(), name="Mia Member", residential_address=RESIDENCE)
         self.assertNotEqual(separate.member, self.member.pk)
+
+    def test_named_director_is_required_and_recipient_conflicts_refuse_service_and_sql(self):
+        payload = {key: value for key, value in self.payload.items() if key != "approving_director"}
+        missing = RegisterGrantCreateSerializer(data=payload)
+        self.assertFalse(missing.is_valid())
+        self.assertIn("approving_director", missing.errors)
+        for name, director in (
+            ("Synthetic Employee", "\t synthetic  employee \t"),
+            ("Straße Example", " STRASSE   EXAMPLE "),
+        ):
+            with self.subTest(name=name), self.assertRaises(ValidationError):
+                self.prepare(name=name, approving_director=director)
+        with self.assertRaises(ValidationError):
+            self.prepare(
+                member=self.member.pk,
+                new_member=False,
+                name="",
+                residential_address="",
+                approving_director="\tMia   Member\t",
+            )
+        original_save = RegisterGrant.save
+
+        def conflicting_sql_identity(instance, *args, **kwargs):
+            if kwargs.get("force_insert"):
+                instance.approving_director = "\t Synthetic   Employee\t"
+            return original_save(instance, *args, **kwargs)
+
+        with patch.object(RegisterGrant, "save", conflicting_sql_identity), self.assertRaises(RegisterChangeConflict):
+            self.prepare()
+        with use_operator():
+            self.assertFalse(RegisterGrant.objects.exists())
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "100")
+
+    def test_past_terms_cannot_backdate_the_issue_or_new_identity_and_valid_retry_uses_today(self):
+        proposal = self.prepare(terms_on=(DAY - timedelta(days=4000)).isoformat())
+        self.decide(proposal, "approve")
+
+        def backdated_entry(**values):
+            return record_entry(**{**values, "effective_on": DAY})
+
+        with patch("tokens.services.register_grants.record_entry", backdated_entry), self.assertRaises(
+            RegisterChangeConflict
+        ):
+            self.decide(proposal, "apply")
+        with use_operator():
+            self.assertFalse(RegisterMember.objects.filter(pk=proposal.member).exists())
+            self.assertFalse(RegisterMemberParticulars.objects.filter(member_id=proposal.member).exists())
+            self.assertFalse(RegisterEntry.objects.filter(operation_id=proposal.pk).exists())
+            self.assertEqual(list(proposal.decisions.values_list("kind", flat=True)), ["approve"])
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "100")
+        applied = self.decide(proposal, "apply")
+        with use_operator():
+            self.assertEqual(applied.register_entry.effective_on, timezone.now().date())
+            self.assertEqual(
+                RegisterMemberParticulars.objects.get(member_id=proposal.member).as_at, timezone.now().date()
+            )
+        self.assertEqual(
+            prepare_grant(actor=self.owner, **{**self.payload, "terms_on": (DAY - timedelta(days=4000)).isoformat()}),
+            (applied, False),
+        )
+
+    def test_a_new_director_conflict_in_current_particulars_refuses_the_pending_grant(self):
+        proposal = self.prepare(member=self.member.pk, new_member=False, name="", residential_address="")
+        self.decide(proposal, "approve")
+        change = prepare_particulars_change(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=self.appointment.pk,
+            member=self.member.pk,
+            supporting_evidence=self.payload["terms_evidence"],
+            name=proposal.approving_director,
+            residential_address=proposal.residential_address,
+            as_at=timezone.now().date(),
+            reason="Record the current company-provided identity",
+        )[0]
+        for kind in ("approve", "apply"):
+            digest = preview_particulars_decision(
+                actor=self.owner, change_id=change.pk, appointment=self.appointment.pk, kind=kind
+            )[1]["preview_digest"]
+            decide_particulars_change(
+                actor=self.owner,
+                change_id=change.pk,
+                appointment=self.appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=digest,
+                confirmation=True,
+            )
+        unmet = preview(self.owner, self.appointment, proposal)["unmet_requirements"]
+        self.assertIn("member_particulars_changed", unmet)
+        self.assertIn("approving_director_conflict", unmet)
+        with self.assertRaises(ValidationError):
+            self.decide(proposal, "apply")
+        digest = preview(self.owner, self.appointment, proposal)["preview_digest"]
+        with company_operation(self.owner, self.company.pk, "register_grant_apply"), self.assertRaises(
+            DatabaseError
+        ), atomic():
+            RegisterGrantDecision.objects.create(
+                register_grant=proposal,
+                kind="apply",
+                decided_by=self.owner,
+                appointment=self.appointment,
+                idempotency_key=uuid4(),
+                digest=digest,
+                decided_at=timezone.now(),
+            )
+        with use_operator():
+            self.assertFalse(RegisterEntry.objects.filter(operation_id=proposal.pk).exists())
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "100")
 
     def test_revoked_approval_tampered_terms_and_stale_register_or_identity_block_new_effects(self):
         proposal = self.prepare()
@@ -438,7 +566,9 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
         self.assertEqual(apply_import(self.owner, self.appointment, imported).status, "applied")
         with use_operator():
             held = RegisterMemberParticulars.objects.get(member=member)
-            self.assertEqual((held.name, held.as_at, held.source_grant_id), (proposal.name, DAY, proposal.pk))
+            self.assertEqual(
+                (held.name, held.as_at, held.source_grant_id), (proposal.name, timezone.now().date(), proposal.pk)
+            )
             self.assertEqual(verify_register(other.stored_register.pk)["issued_supply"], "100")
 
     def test_a_real_later_particulars_change_keeps_new_member_grant_history(self):
@@ -453,7 +583,7 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
             supporting_evidence=self.payload["terms_evidence"],
             name="Employee Renamed",
             residential_address=proposal.residential_address,
-            as_at=DAY,
+            as_at=timezone.now().date(),
             reason="Company records changed name",
         )[0]
         for kind in ("approve", "apply"):
@@ -529,13 +659,47 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
             self.assertEqual([future.result(timeout=20) for future in futures], ["applied", "applied"])
         with self.assertRaises(RegisterChangeConflict):
             decide_grant(**{**request, "preview_digest": "0" * 64})
+        other = self.prepare(operation_id=uuid4(), member=uuid4(), name="Later Employee", shares="1")
+        self.decide(other, "approve")
+        self.decide(other, "apply")
+        replayed = decide_grant(**request)
+        self.assertEqual(prepare_grant(actor=self.owner, **self.payload), (replayed, False))
         with use_operator():
             self.assertEqual(RegisterEntry.objects.filter(operation_id=proposal.pk).count(), 1)
             self.assertEqual(RegisterGrantDecision.objects.filter(register_grant=proposal, kind="apply").count(), 1)
-            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "125")
+            self.assertEqual(replayed.register_entry.effective_on, timezone.now().date())
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "126")
 
 
 class RegisterGrantMigrationTest(TransactionTestCase):
+    def test_a_legacy_future_ledger_day_refuses_a_current_day_issue_in_service_and_sql(self):
+        with use_operator():
+            owner, _, token, member, appointment, payload = grant_fixture()
+        try:
+            migrate_to([("tokens", "0093_company_register_wallet_link_guards")])
+            with use_operator():
+                record_entry(
+                    register_id=token.stored_register.pk,
+                    operation_id=uuid4(),
+                    kind="issue",
+                    changes=[{"member": str(member.pk), "shares": "1"}],
+                    effective_on=timezone.now().date() + timedelta(days=1),
+                    recorded_by=owner,
+                )
+        finally:
+            restore_every_migration()
+        with self.assertRaises(ValidationError) as refused:
+            prepare_grant(actor=owner, **payload)
+        self.assertIn("effective_date_before_latest_entry", str(refused.exception))
+        with patch("tokens.services.register_grants._state", return_value=[]), self.assertRaises(
+            RegisterChangeConflict
+        ):
+            prepare_grant(actor=owner, **payload)
+        with use_operator():
+            self.assertFalse(RegisterGrant.objects.exists())
+            self.assertEqual(verify_register(token.stored_register.pk)["issued_supply"], "101")
+            self.assertFalse(RegisterMember.objects.filter(pk=payload["member"]).exists())
+
     def test_upgrade_preserves_imported_identity_and_projection_and_refuses_to_discard_a_grant(self):
         with use_operator():
             owner, _, token, member, appointment, payload = grant_fixture()

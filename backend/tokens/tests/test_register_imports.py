@@ -93,6 +93,7 @@ from tokens.tests.evidence_fixtures import (
     upload_evidence,
 )
 from tokens.tests.instruction_fixtures import instruction_payload
+from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_instructions import instruction_fixture
@@ -591,7 +592,7 @@ class RegisterImportTest(TransactionTestCase):
         )
         other = create_member(company_id=self.company.pk, member_id=uuid4())
         returned = timezone.now().date()
-        self.move(self.member, other, 105)
+        self.move(self.member, other, 105, effective_on=returned)
         self.move(other, self.member, 105, effective_on=returned)
         member = self.members()[str(self.member.pk)]
         self.assertEqual(

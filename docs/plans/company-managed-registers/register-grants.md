@@ -22,14 +22,19 @@ their name and residential address. Names do not establish an account link or
 merge members. This increment accepts recipients with no member-wallet links
 anywhere in the company. Linked-wallet grants remain with later issuance work.
 
-The company supplies the whole-share quantity, effective date, non-paid terms,
-reason and authority reference. Upload the authority document and terms document
+The company supplies the whole-share quantity, terms date, non-paid terms,
+reason, authority reference and named approving director. The named director
+cannot be the recipient. A company appointment supplies the capability to record
+the decision; it does not establish that the appointee is that director. The
+director need not have a platform account. Upload the director-resolution
+authority document and terms document
 as company-provided evidence. If the terms require acceptance, also retain its
 acceptance document. Preparation keeps private copies, fingerprints and
 snapshots. Neither those documents nor the particulars are labelled verified by
 Ledova.
 
-The preview shows the exact member, terms and quantity, current holdings,
+The preview shows the exact member, named director, terms and quantity, terms
+date and actual proposed UTC entry day, current holdings,
 register sequence, issued supply, authorised cap and resulting totals. A current
 administrator or register approver approves that preview. A current
 administrator or register applier then applies it with a current approval. A
@@ -37,12 +42,14 @@ current administrator or approver may reject it with a written reason. There is
 no compulsory second person; each decision retains its actual actor and
 appointment.
 
-Application rechecks authority, evidence, identity, register state, effective date
+Application rechecks authority, evidence, identity, director conflict, register state
 and authorised headroom. The bounded command keeps its constraints deferred and
 checks current decision and approval authority again at commit. A lapsed approval
 requires a new approval. A changed
 preview cannot apply an earlier confirmation. A successful application appends
-one ISSUE entry and updates holdings and issued supply in one transaction. A new
+one ISSUE entry dated on the actual UTC application day and updates holdings and
+issued supply in one transaction. The supplied terms date stays separate; it
+never backdates the register entry, historical roll or certificate deadline. A new
 member and its retained particulars are created in that same transaction.
 Identical retries return the original receipt; changed retries conflict. Private
 documents and grant history are available only within current company register
@@ -55,6 +62,13 @@ commit after expiry. Statement-time checks still require genuine current
 appointments, approval and an exact effect. Grant HTTP routes expose no arbitrary
 SQL or constraint-mode control. The commit-time expiry guarantee applies to the
 normal bounded command transaction, not arbitrary operator transaction control.
+
+Director-party comparison in the API and service preserves Python's Unicode
+casefold and whitespace normalization. PostgreSQL 16's guard uses lowercase and
+whitespace normalization, which is narrower: `Straße Example` and `STRASSE
+EXAMPLE` compare equal in the service and unequal in that SQL comparison. The
+customer command refuses this conflict. Arbitrary operator SQL does not receive
+the service's full Unicode comparison guarantee.
 
 ## Outputs and limits
 

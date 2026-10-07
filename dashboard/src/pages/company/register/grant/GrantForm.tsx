@@ -59,7 +59,8 @@ export function GrantForm({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [shares, setShares] = useState('');
-  const [effectiveOn, setEffectiveOn] = useState(today);
+  const [termsOn, setTermsOn] = useState(today);
+  const [approvingDirector, setApprovingDirector] = useState('');
   const [terms, setTerms] = useState('');
   const [authorityReference, setAuthorityReference] = useState('');
   const [reason, setReason] = useState('');
@@ -89,10 +90,10 @@ export function GrantForm({
       ? 'Give the new member’s name and residential address.'
       : !/^[1-9]\d*$/.test(shares)
         ? 'Enter a positive whole number of shares.'
-        : !/^\d{4}-\d{2}-\d{2}$/.test(effectiveOn) || effectiveOn > today
-          ? 'Enter an effective date no later than today (UTC).'
-          : !terms.trim() || !authorityReference.trim() || !reason.trim()
-            ? 'Give the non-paid terms, authority reference and reason.'
+        : !/^\d{4}-\d{2}-\d{2}$/.test(termsOn) || termsOn > today
+          ? 'Enter a terms date no later than today (UTC).'
+          : !terms.trim() || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
+            ? 'Give the non-paid terms, approving director, authority reference and reason.'
             : documentKinds.some((kind) => !files[kind])
               ? 'Choose the authority, terms and any required acceptance documents.'
               : null;
@@ -143,8 +144,9 @@ export function GrantForm({
         newMember: member === 'new',
         ...(member === 'new' ? { name: name.trim(), residentialAddress: address.trim() } : {}),
         shares,
-        effectiveOn,
+        termsOn,
         terms: terms.trim(),
+        approvingDirector: approvingDirector.trim(),
         authorityReference: authorityReference.trim(),
         reason: reason.trim(),
         authorityEvidence: authority.uuid,
@@ -234,13 +236,13 @@ export function GrantForm({
           />
         </label>
         <label className={LABEL}>
-          {COPY.EFFECTIVE_ON}
+          {COPY.TERMS_ON}
           <input
             type="date"
             max={today}
             className={FIELD_CLASS}
-            value={effectiveOn}
-            onChange={(event) => setEffectiveOn(event.target.value)}
+            value={termsOn}
+            onChange={(event) => setTermsOn(event.target.value)}
           />
         </label>
         <label className={LABEL}>
@@ -253,6 +255,18 @@ export function GrantForm({
             onChange={(event) => setTerms(event.target.value)}
           />
         </label>
+        <label className={LABEL}>
+          {COPY.DIRECTOR}
+          <input
+            className={FIELD_CLASS}
+            maxLength={255}
+            value={approvingDirector}
+            onChange={(event) => setApprovingDirector(event.target.value)}
+          />
+        </label>
+        <p className="text-sm text-text-muted">
+          {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
+        </p>
         <label className={LABEL}>
           {COPY.AUTHORITY_REFERENCE}
           <input

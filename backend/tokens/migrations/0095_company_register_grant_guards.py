@@ -18,6 +18,7 @@ CREATE FUNCTION tokens_register_grant_decision_digest(grant_uuid uuid, decision_
     appointment_uuid uuid, decision_reason text) RETURNS text
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
     SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'grant', to_jsonb(proposal),
+        'effective_on', (clock_timestamp() AT TIME ZONE 'UTC')::date,
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid, 'reason', decision_reason,
         'register', to_jsonb(register), 'authorised_supply', token.total_supply,
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
@@ -39,14 +40,17 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             AND register.issued_supply + proposal.shares < 2::numeric^256
             AND EXISTS (SELECT 1 FROM tokens_registerimport source WHERE source.token_id = token.uuid AND source.status = 'applied')
             AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry WHERE entry.register_id = register.uuid
-                AND entry.sequence = register.sequence AND entry.effective_on > proposal.effective_on))
+                AND entry.sequence = register.sequence AND entry.effective_on > (clock_timestamp() AT TIME ZONE 'UTC')::date))
+        AND lower(btrim(regexp_replace(proposal.approving_director, '[[:space:]]+', ' ', 'g')))
+            <> lower(btrim(regexp_replace(proposal.name, '[[:space:]]+', ' ', 'g')))
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet wallet WHERE wallet.company_id = proposal.company_id AND wallet.member_id = proposal.member)
         AND CASE WHEN proposal.new_member AND before_effect THEN
             NOT EXISTS (SELECT 1 FROM tokens_registermember member WHERE member.uuid = proposal.member)
         ELSE EXISTS (SELECT 1 FROM tokens_registermember member JOIN tokens_registermemberparticulars held ON held.member_id = member.uuid
             WHERE member.uuid = proposal.member AND member.company_id = proposal.company_id
                 AND held.name = proposal.name AND held.residential_address = proposal.residential_address
-                AND (NOT proposal.new_member OR held.source_grant_id = proposal.uuid)) END;
+                AND (NOT proposal.new_member OR (held.source_grant_id = proposal.uuid
+                    AND held.as_at = (clock_timestamp() AT TIME ZONE 'UTC')::date))) END;
 $$;
 CREATE FUNCTION tokens_register_grant_evidence_matches(evidence_uuid uuid, issuer uuid, actor bigint, evidence_kind text,
     fingerprint text, snapshot jsonb, retained_file text, grant_uuid uuid) RETURNS boolean
@@ -78,7 +82,7 @@ BEGIN
             OR NEW.name !~ '[^[:space:]]' OR NEW.residential_address !~ '[^[:space:]]'
             OR length(NEW.residential_address) > 1000 OR NEW.terms !~ '[^[:space:]]'
             OR NEW.authority_reference !~ '[^[:space:]]' OR NEW.reason !~ '[^[:space:]]'
-            OR NEW.effective_on > current_date OR NEW.shares <= 0 OR NEW.shares >= 2::numeric^256
+            OR NEW.approving_director !~ '[^[:space:]]' OR NEW.terms_on > (clock_timestamp() AT TIME ZONE 'UTC')::date OR NEW.shares <= 0 OR NEW.shares >= 2::numeric^256
             OR NOT tokens_register_grant_ready(NEW, true)
             OR NOT tokens_register_grant_evidence_matches(NEW.authority_evidence_id, NEW.company_id, principal,
                 'authority', NEW.evidence_fingerprint, NEW.evidence_snapshot, NEW.file, NEW.uuid)
@@ -107,7 +111,7 @@ BEGIN
         OR (NEW.status = 'applied' AND (NEW.rejection_reason <> '' OR NOT EXISTS (
             SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
             WHERE entry.uuid = NEW.register_entry_id AND register.token_id = NEW.token_id AND entry.operation_id = NEW.uuid
-                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.effective_on = NEW.effective_on
+                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.effective_on = (clock_timestamp() AT TIME ZONE 'UTC')::date
                 AND entry.changes = jsonb_build_array(jsonb_build_object('member', NEW.member::text, 'shares', NEW.shares::text)))))
         OR (NEW.status = 'rejected' AND (NEW.register_entry_id IS NOT NULL OR NEW.rejection_reason !~ '[^[:space:]]'))
     THEN
@@ -192,7 +196,7 @@ BEGIN
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_grant_apply'
         OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text
         OR proposal.company_id IS DISTINCT FROM issuer OR proposal.token_id IS DISTINCT FROM token_uuid OR proposal.status <> 'submitted'
-        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM proposal.effective_on
+        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM (clock_timestamp() AT TIME ZONE 'UTC')::date
         OR NEW.changes IS DISTINCT FROM jsonb_build_array(jsonb_build_object('member', proposal.member::text, 'shares', proposal.shares::text))
         OR NOT tokens_register_grant_ready(proposal, false) OR NOT tokens_register_grant_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registergrantdecision decision WHERE decision.register_grant_id = proposal.uuid
@@ -238,7 +242,7 @@ GRANT_PARTICULARS = """    IF NEW.source_grant_id IS NOT NULL THEN
             SELECT 1 FROM tokens_registergrant grant_record JOIN tokens_registergrantdecision decision ON decision.register_grant_id = grant_record.uuid
             WHERE grant_record.uuid = NEW.source_grant_id AND grant_record.new_member AND grant_record.status = 'submitted'
                 AND grant_record.member = NEW.member_id AND grant_record.name = NEW.name AND grant_record.residential_address = NEW.residential_address
-                AND grant_record.effective_on = NEW.as_at AND decision.kind = 'apply' AND decision.decided_by_id = principal
+                AND NEW.as_at = (clock_timestamp() AT TIME ZONE 'UTC')::date AND decision.kind = 'apply' AND decision.decided_by_id = principal
                 AND current_setting('app.company_id', true) = grant_record.company_id::text
                 AND current_setting('app.company_operation', true) = 'register_grant_apply'
                 AND tokens_register_grant_approved(grant_record.uuid, clock_timestamp())

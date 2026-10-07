@@ -46,7 +46,8 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   const [name, setName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
   const [shares, setShares] = useState('');
-  const [effectiveOn, setEffectiveOn] = useState(utcToday);
+  const [termsOn, setTermsOn] = useState(utcToday);
+  const [approvingDirector, setApprovingDirector] = useState('');
   const [terms, setTerms] = useState('');
   const [authorityReference, setAuthorityReference] = useState('');
   const [reason, setReason] = useState('');
@@ -62,16 +63,16 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       live.current = false;
     };
   }, []);
-  const date = effectiveOn.trim();
+  const date = termsOn.trim();
   const problem =
     member === 'new' && (!name.trim() || !residentialAddress.trim())
       ? 'Give the new member’s name and residential address.'
       : !/^[1-9]\d*$/.test(shares.trim())
         ? 'Enter a positive whole number of shares.'
         : !isoDay(date) || date > utcToday()
-          ? 'Enter an effective date as YYYY-MM-DD, today (UTC) or earlier.'
-          : !terms.trim() || !authorityReference.trim() || !reason.trim()
-            ? 'Give the non-paid terms, authority reference and reason.'
+          ? 'Enter a terms date as YYYY-MM-DD, today (UTC) or earlier.'
+          : !terms.trim() || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
+            ? 'Give the non-paid terms, approving director, authority reference and reason.'
             : !authority.name || !retainedTerms.name || (acceptanceRequired && !acceptance.name)
               ? 'Choose the authority, terms and any required acceptance documents.'
               : null;
@@ -119,8 +120,9 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         newMember: member === 'new',
         ...(member === 'new' ? { name: name.trim(), residentialAddress: residentialAddress.trim() } : {}),
         shares: shares.trim(),
-        effectiveOn: date,
+        termsOn: date,
         terms: terms.trim(),
+        approvingDirector: approvingDirector.trim(),
         authorityReference: authorityReference.trim(),
         reason: reason.trim(),
         authorityEvidence: retainedAuthority.uuid,
@@ -230,13 +232,23 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         )}
         <Field label={COPY.SHARES} value={shares} editable={!busy} keyboardType="number-pad" onChange={setShares} />
         <Field
-          label={`${COPY.EFFECTIVE_ON} (YYYY-MM-DD)`}
-          accessibilityLabel={COPY.EFFECTIVE_ON}
-          value={effectiveOn}
+          label={`${COPY.TERMS_ON} (YYYY-MM-DD)`}
+          accessibilityLabel={COPY.TERMS_ON}
+          value={termsOn}
           editable={!busy}
-          onChange={setEffectiveOn}
+          onChange={setTermsOn}
         />
         <Field label={COPY.TERMS} value={terms} editable={!busy} multiline maxLength={1000} onChange={setTerms} />
+        <Field
+          label={COPY.DIRECTOR}
+          value={approvingDirector}
+          editable={!busy}
+          maxLength={255}
+          onChange={setApprovingDirector}
+        />
+        <Text style={styles.muted}>
+          {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
+        </Text>
         <Field
           label={COPY.AUTHORITY_REFERENCE}
           value={authorityReference}

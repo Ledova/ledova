@@ -7,6 +7,7 @@ import * as Sharing from 'expo-sharing';
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_GRANT_COPY as COPY,
+  REGISTER_GRANT_UNMET_COPY,
   type RegisterGrantPreparation,
   type RegisterGrant,
   type OwnCompanyAppointment,
@@ -91,7 +92,9 @@ function grantFrom(body: RegisterGrantPreparation): RegisterGrant {
     name: body.name || holder.name,
     residentialAddress: body.residentialAddress || ADDRESS,
     shares: body.shares,
-    effectiveOn: body.effectiveOn,
+    termsOn: body.termsOn,
+    approvingDirector: body.approvingDirector,
+    effectiveOn: null,
     terms: body.terms,
     authorityReference: body.authorityReference,
     reason: body.reason,
@@ -134,7 +137,8 @@ async function fill(view: Awaited<ReturnType<typeof open>>, newMember = true, ac
   } else await fireEvent.press(view.getByRole('button', { name: `Use existing member ${holder.name} ${MEMBER}` }));
   for (const [label, value] of [
     [COPY.SHARES, '10'],
-    [COPY.EFFECTIVE_ON, '2026-10-07'],
+    [COPY.TERMS_ON, '2020-01-01'],
+    [COPY.DIRECTOR, ' Independent Director '],
     [COPY.TERMS, ' Non-paid employee grant '],
     [COPY.AUTHORITY_REFERENCE, ' Resolution 1 '],
     [COPY.REASON, ' Employee grant '],
@@ -214,14 +218,26 @@ it('prepares a new walletless member with retained terms and required recipient 
       name: 'Synthetic New Member',
       residentialAddress: ADDRESS,
       terms: 'Non-paid employee grant',
+      termsOn: '2020-01-01',
+      approvingDirector: 'Independent Director',
       shares: '10',
       acceptanceRequired: true,
       acceptanceEvidence: expect.any(String),
     }),
   );
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
+  expect(submissions()[0]).not.toHaveProperty('effectiveOn');
   expect(submissions()[0]).not.toHaveProperty('wallet');
   expect(submissions()[0]).not.toHaveProperty('payment');
+});
+
+it('requires a company-provided approving director and shows no user-chosen register entry date', async () => {
+  const view = await open();
+  await fill(view);
+  await fireEvent.changeText(view.getByLabelText(COPY.DIRECTOR), ' ');
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
+  expect(view.queryByLabelText('Effective on')).toBeNull();
+  expect(submissions()).toHaveLength(0);
 });
 
 it('replays the same uncertain grant and evidence for an existing member without retyping their particulars', async () => {
@@ -268,7 +284,8 @@ const PREPARATION: RegisterGrantPreparation = {
   member: MEMBER,
   newMember: false,
   shares: '10',
-  effectiveOn: '2026-10-07',
+  termsOn: '2020-01-01',
+  approvingDirector: 'Independent Director',
   terms: 'Non-paid employee grant',
   authorityReference: 'Resolution 1',
   reason: 'Employee grant',
@@ -312,6 +329,7 @@ it('reads the genuine register outcome after an interrupted application response
       return {
         data: {
           ...GRANT,
+          effectiveOn: '2026-10-07',
           previewDigest: DIGEST,
           canDecide: true,
           unmetRequirements: [],
@@ -323,7 +341,13 @@ it('reads the genuine register outcome after an interrupted application response
           afterShares: '30',
         },
       };
-    recorded = { ...GRANT, status: 'applied', stage: 'applied', registerEntry: 'entry-recorded' };
+    recorded = {
+      ...GRANT,
+      status: 'applied',
+      stage: 'applied',
+      registerEntry: 'entry-recorded',
+      effectiveOn: '2026-10-07',
+    };
     throw { response: { status: 503 } };
   });
   const refresh = jest.fn(async () => {});
@@ -363,6 +387,38 @@ it('reads the genuine register outcome after an interrupted application response
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANT_DECIDE(GRANT.uuid))).toHaveLength(1);
 });
 
+it('shows the named director conflict and withholds application confirmation', async () => {
+  post.mockResolvedValue({
+    data: {
+      ...GRANT,
+      effectiveOn: '2026-10-07',
+      previewDigest: DIGEST,
+      canDecide: false,
+      unmetRequirements: ['approving_director_conflict'],
+      registerSequence: 1,
+      issuedSupply: '20',
+      authorisedSupply: '100',
+      afterIssuedSupply: '30',
+      currentShares: '20',
+      afterShares: '30',
+    },
+  });
+  const view = await render(
+    <GrantRecord
+      grant={GRANT}
+      epoch={getSessionEpoch()}
+      steps={{ prepare: undefined, approve: undefined, reject: undefined, apply: appointment }}
+      last
+      onSettled={jest.fn()}
+    />,
+    { wrapper },
+  );
+  await fireEvent.press(view.getByRole('button', { name: /^Apply the non-paid grant/ }));
+  await view.findByText(REGISTER_GRANT_UNMET_COPY.approving_director_conflict);
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANT_DECIDE(GRANT.uuid))).toHaveLength(0);
+});
+
 it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
   'previews and confirms the company’s exact %s grant decision',
   async (kind) => {
@@ -373,6 +429,7 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
         return {
           data: {
             ...GRANT,
+            effectiveOn: '2026-10-07',
             previewDigest: DIGEST,
             canDecide: kind !== 'reject' || !!request.reason,
             unmetRequirements: kind === 'reject' && !request.reason ? ['reason_required'] : [],
@@ -404,6 +461,7 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
             reviewedAt: kind === 'approve' ? null : decision.decidedAt,
             rejectionReason: decision.reason,
             registerEntry: kind === 'apply' ? 'entry-a' : null,
+            effectiveOn: kind === 'apply' ? '2026-10-07' : null,
           },
         };
       }
@@ -437,6 +495,9 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
       view.getByRole('button', { name: new RegExp(`^${COPY.DECISIONS[kind]} the non-paid grant`) }),
     );
     await view.findByText('Member holding');
+    expect(view.getAllByText('2020-01-01')).toHaveLength(2);
+    expect(view.getByText('2026-10-07')).toBeTruthy();
+    expect(view.getAllByText('Independent Director')).toHaveLength(2);
     expect(view.getAllByText('20 → 30')).toHaveLength(2);
     if (kind === 'reject') {
       await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), ' Terms need correction ');

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_GRANT_COPY as COPY,
+  REGISTER_GRANT_UNMET_COPY,
   type OwnCompanyAppointment,
   type RegisterGrant,
   type RegisterGrantPreparation,
@@ -63,7 +64,9 @@ function grantFrom(body: RegisterGrantPreparation): RegisterGrant {
     name: body.name || HOLDER.name!,
     residentialAddress: body.residentialAddress || ADDRESS,
     shares: body.shares,
-    effectiveOn: body.effectiveOn,
+    termsOn: body.termsOn,
+    approvingDirector: body.approvingDirector,
+    effectiveOn: null,
     terms: body.terms,
     authorityReference: body.authorityReference,
     reason: body.reason,
@@ -126,7 +129,8 @@ function fill(newMember = true, acceptance = false) {
   } else fireEvent.change(screen.getByLabelText('Member'), { target: { value: HOLDER.member } });
   for (const [label, value] of [
     [COPY.SHARES, '10'],
-    [COPY.EFFECTIVE_ON, '2026-10-07'],
+    [COPY.TERMS_ON, '2020-01-01'],
+    [COPY.DIRECTOR, ' Independent Director '],
     [COPY.TERMS, ' Non-paid employee grant '],
     [COPY.AUTHORITY_REFERENCE, ' Resolution 1 '],
     [COPY.REASON, ' Employee grant '],
@@ -191,6 +195,8 @@ it('retains new walletless particulars and the actual terms, authority and requi
       residentialAddress: ADDRESS,
       shares: '10',
       terms: 'Non-paid employee grant',
+      termsOn: '2020-01-01',
+      approvingDirector: 'Independent Director',
       authorityReference: 'Resolution 1',
       acceptanceRequired: true,
       acceptanceEvidence: expect.any(String),
@@ -203,7 +209,8 @@ it('retains new walletless particulars and the actual terms, authority and requi
       'appointment',
       'authorityEvidence',
       'authorityReference',
-      'effectiveOn',
+      'termsOn',
+      'approvingDirector',
       'member',
       'name',
       'newMember',
@@ -217,6 +224,15 @@ it('retains new walletless particulars and the actual terms, authority and requi
     ].sort(),
   );
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
+});
+
+it('requires the company-provided approving director without adding an account requirement', () => {
+  openForm();
+  fill();
+  fireEvent.change(screen.getByLabelText(COPY.DIRECTOR), { target: { value: ' ' } });
+  expect((screen.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByLabelText('Effective on')).toBeNull();
+  expect(submissions()).toHaveLength(0);
 });
 
 it('reuses an uncertain preparation and its uploaded evidence, while changed terms create a new command', async () => {
@@ -267,7 +283,8 @@ const PREPARATION: RegisterGrantPreparation = {
   member: HOLDER.member,
   newMember: false,
   shares: '10',
-  effectiveOn: '2026-10-07',
+  termsOn: '2020-01-01',
+  approvingDirector: 'Independent Director',
   terms: 'Non-paid employee grant',
   authorityReference: 'Resolution 1',
   reason: 'Employee grant',
@@ -288,6 +305,7 @@ it('refreshes retained history after an interrupted application response', async
       return {
         data: {
           ...GRANT,
+          effectiveOn: '2026-10-07',
           previewDigest: DIGEST,
           canDecide: true,
           unmetRequirements: [],
@@ -299,7 +317,13 @@ it('refreshes retained history after an interrupted application response', async
           afterShares: '30',
         },
       };
-    recorded = { ...GRANT, status: 'applied', stage: 'applied', registerEntry: 'entry-recorded' };
+    recorded = {
+      ...GRANT,
+      status: 'applied',
+      stage: 'applied',
+      registerEntry: 'entry-recorded',
+      effectiveOn: '2026-10-07',
+    };
     throw { response: { status: 503 } };
   });
   const register: TokenHoldersResponse = {
@@ -338,6 +362,35 @@ it('refreshes retained history after an interrupted application response', async
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANT_DECIDE(GRANT.uuid))).toHaveLength(1);
 });
 
+it('shows the retained director conflict and refuses application until company authority is corrected', async () => {
+  api.post.mockResolvedValue({
+    data: {
+      ...GRANT,
+      effectiveOn: '2026-10-07',
+      previewDigest: DIGEST,
+      canDecide: false,
+      unmetRequirements: ['approving_director_conflict'],
+      registerSequence: 1,
+      issuedSupply: '20',
+      authorisedSupply: '100',
+      afterIssuedSupply: '30',
+      currentShares: '20',
+      afterShares: '30',
+    },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <ul>
+        <GrantRecord grant={GRANT} steps={{ apply: APPOINTMENT }} guard={() => {}} onSettled={vi.fn()} />
+      </ul>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /^Apply/ }));
+  await screen.findByText(REGISTER_GRANT_UNMET_COPY.approving_director_conflict);
+  expect((screen.getByRole('button', { name: 'Apply non-paid grant' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANT_DECIDE(GRANT.uuid))).toHaveLength(0);
+});
+
 it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
   'previews and confirms exact %s authority and ledger effect',
   async (kind) => {
@@ -363,6 +416,7 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
           reviewedAt: kind === 'approve' ? null : decision.decidedAt,
           rejectionReason: decision.reason,
           registerEntry: kind === 'apply' ? 'entry-a' : null,
+          effectiveOn: kind === 'apply' ? '2026-10-07' : null,
         },
       };
     });
@@ -371,6 +425,7 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
         return {
           data: {
             ...GRANT,
+            effectiveOn: '2026-10-07',
             previewDigest: DIGEST,
             canDecide: body.kind !== 'reject' || !!body.reason,
             unmetRequirements: body.kind === 'reject' && !body.reason ? ['reason_required'] : [],
@@ -394,6 +449,9 @@ it.each<RegisterDecisionKind>(['approve', 'apply', 'reject'])(
     );
     fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${COPY.DECISIONS[kind]}`) }));
     await screen.findByText('Member holding');
+    expect(screen.getAllByText('2020-01-01')).toHaveLength(2);
+    expect(screen.getByText('2026-10-07')).toBeTruthy();
+    expect(screen.getAllByText('Independent Director')).toHaveLength(2);
     expect(screen.getAllByText(/20 shares → 30 shares/)).toHaveLength(2);
     if (kind === 'reject') {
       fireEvent.change(screen.getByLabelText(COPY.REJECTION_REASON), { target: { value: ' Terms need correction ' } });
