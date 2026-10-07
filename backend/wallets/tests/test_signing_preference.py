@@ -1,16 +1,18 @@
+import json
 from unittest import skipUnless
-from unittest.mock import patch
 
 from django.conf import settings
-from django.db import connection
+from django.db import connection, connections
 from django.test import TransactionTestCase
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from rest_framework.test import APITestCase
 
+from shared.db import current_alias, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from wallets.models import Wallet
+from wallets.tasks.sync import sync_wallet
 
 
 class SigningPreferenceTest(APITestCase):
@@ -72,8 +74,7 @@ class SigningPreferenceTest(APITestCase):
         self.assertIsNone(response.json()["signingPreference"])
         self.assertEqual(response.json()["verificationStatus"], "PENDING")
 
-    @patch("wallets.tasks.sync_wallet.defer")
-    def test_a_signature_from_code_proves_address_control_for_either_preference(self, defer):
+    def test_a_signature_from_code_proves_address_control_for_either_preference(self):
         for preference in ("hardware", "software"):
             with self.subTest(preference=preference):
                 signer = Account.create()
@@ -99,7 +100,19 @@ class SigningPreferenceTest(APITestCase):
                 wallet.refresh_from_db()
                 self.assertEqual(wallet.verification_status, "VERIFIED")
                 self.assertEqual(wallet.verification_signature, signature)
-        self.assertEqual(defer.call_count, 2)
+                with use_operator(), connections[current_alias()].cursor() as cursor:
+                    cursor.execute(
+                        "SELECT task_name, args FROM procrastinate_jobs WHERE args->>'wallet_uuid' = %s ORDER BY id",
+                        [str(wallet.pk)],
+                    )
+                    queued = [
+                        (name, payload if isinstance(payload, dict) else json.loads(payload))
+                        for name, payload in cursor.fetchall()
+                    ]
+                self.assertEqual(
+                    queued,
+                    [(sync_wallet.name, {"wallet_uuid": str(wallet.pk), "principal_id": self.tenant.user.pk})],
+                )
 
     def test_a_preference_does_not_give_another_account_access_to_the_wallet(self):
         other = make_tenant("other-pref")

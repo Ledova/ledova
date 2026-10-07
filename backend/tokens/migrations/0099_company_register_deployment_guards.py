@@ -242,7 +242,8 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_deploym
 OLD_TOKEN = _function(DEPLOYMENT.GUARD, "protect_token_deployment_identity")
 TOKEN = OLD_TOKEN.replace(
     "    RETURN NEW;",
-    """    IF OLD.deployment_id IS NULL AND NEW.deployment_id IS NOT NULL AND NOT EXISTS (
+    """    IF OLD.deployment_id IS NULL AND NEW.deployment_id IS NOT NULL THEN
+        IF NOT EXISTS (
         SELECT 1 FROM tokens_registerdeployment proposal JOIN tokens_registerdeploymentdecision decision
             ON decision.register_deployment_id = proposal.uuid AND decision.kind = 'apply'
         WHERE proposal.token_id = NEW.uuid AND proposal.company_id = NEW.company_id AND proposal.status = 'submitted'
@@ -253,7 +254,8 @@ TOKEN = OLD_TOKEN.replace(
             AND tokens_register_deployment_ready(proposal, true)
             AND tokens_register_deployment_approved(proposal.uuid, clock_timestamp())
             AND tokens_register_appointment_current(decision.appointment_id, NEW.company_id, decision.decided_by_id, 'apply', clock_timestamp())
-    ) THEN RAISE EXCEPTION 'New deployment admission requires its exact company decision' USING ERRCODE = '23514'; END IF;
+        ) THEN RAISE EXCEPTION 'New deployment admission requires its exact company decision' USING ERRCODE = '23514'; END IF;
+    END IF;
     RETURN NEW;""",
 )
 OLD_JOURNAL = _function(DEPLOYMENT.GUARD, "protect_token_deployment")

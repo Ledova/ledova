@@ -68,10 +68,27 @@ ADDED_COLUMNS = {
     "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_shareissuanceexecution": ["source_instruction_id"],
     "tokens_registerinstruction": [
-        "preparing_appointment_id", "member_id", "nomination_id", "wallet_approval_id", "request_id", "terms_on", "terms",
-        "acceptance_required", "authority_evidence_id", "terms_evidence_id", "terms_fingerprint", "terms_snapshot", "terms_file",
-        "acceptance_evidence_id", "acceptance_fingerprint", "acceptance_snapshot", "acceptance_file", "snapshot", "intent",
-        "intent_digest", "approval_decision_id",
+        "preparing_appointment_id",
+        "member_id",
+        "nomination_id",
+        "wallet_approval_id",
+        "request_id",
+        "terms_on",
+        "terms",
+        "acceptance_required",
+        "authority_evidence_id",
+        "terms_evidence_id",
+        "terms_fingerprint",
+        "terms_snapshot",
+        "terms_file",
+        "acceptance_evidence_id",
+        "acceptance_fingerprint",
+        "acceptance_snapshot",
+        "acceptance_file",
+        "snapshot",
+        "intent",
+        "intent_digest",
+        "approval_decision_id",
     ],
     "tokens_registermemberparticulars": ["source_grant_id", "source_transfer_id"],
     "tokens_transferorder": [
@@ -413,6 +430,7 @@ class CompanyEligibilitySourceCutoverReversalTest(
         try:
             second = self.submit_source()
             self.assertNotEqual(second.pk, self.source.pk)
+            self.migrate([("whitelist", "0009_company_eligibility_invalidation")])
             before_bytes = self.private_bytes(self.source.evidence_file, second.evidence_file)
             self.assert_refusal_preserves_schema_and_records(
                 [("users", "0034_company_eligibility_consumption")],
@@ -436,6 +454,7 @@ class CompanyEligibilitySourceCutoverReversalTest(
                 with invalidation_writer_context():
                     event = record_invalidation(self.account.pk, "identity_loss", cause_fields=["is_id_verified"])
                     UserProfile.objects.filter(pk=self.account.user_profile_id).update(is_id_verified=False)
+            self.migrate([("whitelist", "0009_company_eligibility_invalidation")])
             self.assert_refusal_preserves_schema_and_records(
                 [("whitelist", "0008_classification_refresh_authority")],
                 DatabaseError,
