@@ -27,6 +27,9 @@ TEST_STORAGES = {
 )
 class ShareTokenAdminDeployTest(TransactionTestCase):
     def setUp(self):
+        from tokens.tasks import deploy_share_token_task
+
+        self.deployment_task_name = deploy_share_token_task.name
         self.client.force_login(User.objects.create_superuser(email="admin@example.test", password="pw-12345678"))
         self.tenant = make_tenant("owner")
         self.change_url = reverse("admin:tokens_sharetoken_change", args=[self.tenant.token.pk])
@@ -46,6 +49,7 @@ class ShareTokenAdminDeployTest(TransactionTestCase):
 
     @patch("tokens.tasks.deploy_share_token_task")
     def test_retry_deployment_requeues_the_task_for_a_deploying_token_only(self, deploy_task):
+        deploy_task.name = self.deployment_task_name
         token = self.tenant.token
         retry_url = reverse("admin:tokens_sharetoken_retry_deploy", args=[token.uuid])
 

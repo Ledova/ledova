@@ -436,6 +436,7 @@ class CompanyEligibilitySourceCutoverReversalTest(
         try:
             second = self.submit_source()
             self.assertNotEqual(second.pk, self.source.pk)
+            self.migrate([("whitelist", "0009_company_eligibility_invalidation")])
             before_bytes = self.private_bytes(self.source.evidence_file, second.evidence_file)
             self.assert_refusal_preserves_schema_and_records(
                 [("users", "0034_company_eligibility_consumption")],
@@ -459,6 +460,7 @@ class CompanyEligibilitySourceCutoverReversalTest(
                 with invalidation_writer_context():
                     event = record_invalidation(self.account.pk, "identity_loss", cause_fields=["is_id_verified"])
                     UserProfile.objects.filter(pk=self.account.user_profile_id).update(is_id_verified=False)
+            self.migrate([("whitelist", "0009_company_eligibility_invalidation")])
             self.assert_refusal_preserves_schema_and_records(
                 [("whitelist", "0008_classification_refresh_authority")],
                 DatabaseError,

@@ -77,20 +77,22 @@ def _register_snapshot(token):
 
 
 def _lock_wallet(wallet_id, *, captured=None):
-    wallet = Wallet.objects.select_for_update(nowait=True, of=("self",)).filter(pk=wallet_id).first()
+    wallet = Wallet.objects.select_for_update(no_key=True, nowait=True, of=("self",)).filter(pk=wallet_id).first()
     if wallet is None:
         raise ValidationError({"unmet_requirements": ["issuer_wallet_unavailable"]})
     if captured is not None and str(wallet.user_account_id) != captured["account"]:
         raise RegisterChangeConflict()
-    account = UserAccount.objects.select_for_update(nowait=True, of=("self",)).get(pk=wallet.user_account_id)
+    account = UserAccount.objects.select_for_update(no_key=True, nowait=True, of=("self",)).get(
+        pk=wallet.user_account_id
+    )
     if captured is not None and str(account.user_profile_id) != captured["profile"]:
         raise RegisterChangeConflict()
     profile = UserProfile.objects.get(pk=account.user_profile_id)
     user_id = profile.user_id
     if captured is not None and user_id != captured["user"]:
         raise RegisterChangeConflict()
-    get_user_model().objects.select_for_update(nowait=True, of=("self",)).get(pk=user_id)
-    profile = UserProfile.objects.select_for_update(nowait=True, of=("self",)).get(pk=profile.pk)
+    get_user_model().objects.select_for_update(no_key=True, nowait=True, of=("self",)).get(pk=user_id)
+    profile = UserProfile.objects.select_for_update(no_key=True, nowait=True, of=("self",)).get(pk=profile.pk)
     if profile.pk != account.user_profile_id or profile.user_id != user_id:
         raise RegisterChangeConflict()
     return wallet, account, profile
@@ -496,9 +498,13 @@ def signing_source(deployment, claim):
             yield None
             return
         captured = source.snapshot["issuer_wallet"]
-        wallet = Wallet.objects.select_for_update(nowait=True, of=("self",)).filter(pk=captured["uuid"]).first()
+        wallet = (
+            Wallet.objects.select_for_update(no_key=True, nowait=True, of=("self",)).filter(pk=captured["uuid"]).first()
+        )
         account = (
-            UserAccount.objects.select_for_update(nowait=True, of=("self",)).filter(pk=captured["account"]).first()
+            UserAccount.objects.select_for_update(no_key=True, nowait=True, of=("self",))
+            .filter(pk=captured["account"])
+            .first()
         )
         if (
             wallet is None
@@ -517,10 +523,15 @@ def signing_source(deployment, claim):
         user_ids = {captured["user"], *(row.decided_by_id for row in decisions)}
         profile_ids = {UUID(captured["profile"]), *(row.appointee_profile_id for row in appointments)}
         list(
-            get_user_model().objects.select_for_update(nowait=True, of=("self",)).filter(pk__in=user_ids).order_by("pk")
+            get_user_model()
+            .objects.select_for_update(no_key=True, nowait=True, of=("self",))
+            .filter(pk__in=user_ids)
+            .order_by("pk")
         )
         list(
-            UserProfile.objects.select_for_update(nowait=True, of=("self",)).filter(pk__in=profile_ids).order_by("uuid")
+            UserProfile.objects.select_for_update(no_key=True, nowait=True, of=("self",))
+            .filter(pk__in=profile_ids)
+            .order_by("uuid")
         )
         Operator.objects.select_for_update().get(pk=1)
         list(

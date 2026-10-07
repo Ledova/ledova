@@ -66,6 +66,7 @@ from users.services.investor_classification import (
 )
 from users.tests.factories import make_investor
 from users.tests.test_company_eligibility_requests import CompanyEligibilityCases
+from wallets.services.verification import start_wallet_verification
 from whitelist.tests.change_fixtures import CHAIN_ID as WALLET_CHAIN_ID
 from whitelist.tests.change_fixtures import FACTORY as WALLET_FACTORY
 from whitelist.tests.change_fixtures import KEY as WALLET_KEY
@@ -119,6 +120,11 @@ ALLOWANCE = {
 def _activate_company(tenant):
     with use_migrate():
         Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
+
+
+def _prepare_wallet_verification(tenant):
+    with use_operator():
+        start_wallet_verification(tenant.user, tenant.wallet.pk)
 
 
 def _prepare_company_activation(tenant):
@@ -425,7 +431,9 @@ ROUTES = (
     Route("patch", "/api/wallets/{wallet}/", {"name": "Renamed"}),
     Route("delete", "/api/wallets/{spare_wallet}/"),
     Route("post", "/api/wallets/{wallet}/request-verification/", {}),
-    Route("post", "/api/wallets/{wallet}/verify-signature/", {"signature": "0x01"}),
+    Route(
+        "post", "/api/wallets/{wallet}/verify-signature/", {"signature": "0x01"}, prepare=_prepare_wallet_verification
+    ),
     Route("post", "/api/wallets/{wallet}/sync/", {}),
     Route("get", "/api/wallets/{wallet}/holdings/"),
     Route("post", "/api/wallets/{wallet}/prepare-transfer/", {"toAddress": "0x" + "c" * 40, "amountEth": "0.1"}),
@@ -731,6 +739,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
     def setUp(self):
         from tokens.tasks import deploy_share_token_task
+        from wallets.tasks.sync import sync_wallet
 
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self._patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
@@ -743,7 +752,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             Decimal("0")
         )
         self._service("wallets.services.verification.verify_wallet_signature", return_value=True)
-        self._service("wallets.tasks.sync_wallet").defer.return_value = "job"
+        self._service("wallets.tasks.sync_wallet").name = sync_wallet.name
         self._service("wallets.views.fiat_purchase.generate_transak_widget_url", return_value="https://widget.test")
         self._service(
             "companies.services.registry.lookup_company",
@@ -1688,7 +1697,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
         with self.as_an_operator_would():
             tenant = make_tenant("deployment-matrix")
-            Company.objects.filter(pk=tenant.company.pk).update(status="active")
+            with use_migrate():
+                Company.objects.filter(pk=tenant.company.pk).update(status="active")
             tenant.company.refresh_from_db()
             appointment = owner_appointment(tenant.company)
         payload = {"operation_id": str(uuid4()), "appointment": str(appointment.pk), "token": str(tenant.token.pk)}

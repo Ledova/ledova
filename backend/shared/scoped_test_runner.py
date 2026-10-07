@@ -111,6 +111,7 @@ SCOPED_TEST_LABELS = (
     "shareholders.tests.test_distributions_scoped.ScopedDistributionTest",
     "tokens.tests.test_nav_scoped.ScopedNAVRecoveryTest",
     "tokens.tests.test_pause_scoped.ScopedPauseRecoveryTest",
+    "tokens.tests.test_deployment_pause_projection.ScopedCompanyDeploymentPauseProjectionTest",
     "whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest",
     "tokens.tests.test_mint_request_scoped.ScopedMintRequestRecoveryTest",
     "tokens.tests.test_capital_execution_scoped.ScopedCapitalExecutionTest",
