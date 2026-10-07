@@ -18,24 +18,29 @@ from shared.db import use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import (
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterMember,
     RegisterMemberWallet,
     RegisterOpening,
     ShareRegister,
     ShareToken,
 )
-from tokens.services.register_events import create_member, open_register
+from tokens.services.register_events import create_member
 from tokens.services.register_snapshot import ZERO_ADDRESS
+from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.test_register_access import person
 from tokens.tests.test_register_corrections import correction_fixture
-from tokens.tests.test_register_events import DAY, register_fixture
+from tokens.tests.test_register_events import register_fixture
 from tokens.tests.test_register_import_authority import AppointsTeam
 from tokens.tests.test_register_imports import live_wallet
 from tokens.tests.test_register_openings import (
     ALICE,
     BOB,
     SETTINGS,
+    apply_opening,
     deployed_class,
+    opening_payload,
+    prepared,
     reading,
 )
 from tokens.tests.test_register_snapshot import transfer
@@ -188,10 +193,9 @@ class RegisterOpeningHoldersTest(AppointsTeam, APITransactionTestCase):
         with use_migrate():
             ShareToken.objects.filter(pk=self.token.pk).update(status="paused")
         self.assertEqual(self.read(self.owner).status_code, 200)
-        with use_operator():
-            open_register(
-                token_id=self.token.pk, operation_id=uuid4(), changes=[], effective_on=DAY, recorded_by=self.owner
-            )
+        evidence = upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepared(self.owner, opening_payload(self.token.pk, evidence, self.administrator))
+        apply_opening(self.owner, self.administrator, proposal)
         self.get_block.reset_mock()
         self.assertContains(self.read(self.owner), "already has a stored register", status_code=400)
         self.get_block.assert_not_called()

@@ -1,9 +1,11 @@
+import json
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import connections
 from django.urls import include, path
 from drf_spectacular.generators import SchemaGenerator
 from eth_account.messages import encode_defunct
@@ -12,8 +14,10 @@ from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment
 from assets.services.identity import native_asset_for_chain
+from shared.db import current_alias, use_operator
 from users.models import UserAccount, UserProfile
 from wallets.models import Holding, Wallet
+from wallets.tasks.sync import sync_wallet
 from wallets.tests.test_broadcast_transfer_guard import RECIPIENT, SIGNER, sign
 from wallets.views.wallet import WalletViewSet
 
@@ -100,13 +104,24 @@ class WalletActionContractTest(APITestCase):
         schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
         self.assert_shape(schema, response.json())
 
-    @patch("wallets.tasks.sync_wallet.defer")
-    def test_challenge_and_signature_responses_match_the_generated_contract(self, defer):
+    def test_challenge_and_signature_responses_match_the_generated_contract(self):
         challenge = self.post_action("request-verification")
         signature = SIGNER.sign_message(encode_defunct(text=challenge["challenge"])).signature.to_0x_hex()
         verified = self.post_action("verify-signature", {"signature": signature})
         self.assertEqual(verified["verificationStatus"], "VERIFIED")
-        defer.assert_called_once()
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT task_name, args FROM procrastinate_jobs WHERE args->>'wallet_uuid' = %s ORDER BY id",
+                [str(self.wallet.pk)],
+            )
+            queued = [
+                (name, payload if isinstance(payload, dict) else json.loads(payload))
+                for name, payload in cursor.fetchall()
+            ]
+        self.assertEqual(
+            queued,
+            [(sync_wallet.name, {"wallet_uuid": str(self.wallet.pk), "principal_id": self.user.pk})],
+        )
 
     def test_a_skipped_sync_documents_its_actual_result_without_inventing_a_task_id(self):
         self.wallet.verification_status = "PENDING"

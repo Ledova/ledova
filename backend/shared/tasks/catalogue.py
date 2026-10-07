@@ -4,8 +4,9 @@ SYSTEM_WIDE = {
     "recorded company actors and cannot admit new intent or replace an original signed outcome.",
     "tokens.tasks.nav.recover_nav_update": "Recovers one durably admitted staff NAV update using its original journal.",
     "tokens.tasks.nav.check_pending_nav_updates": "Recovers admitted staff NAV work without inferring new intent.",
-    "tokens.tasks.pause.recover_pause_change": "Recovers one durably authorized issuer or staff pause command "
-    "through its original outgoing operation. Public issuer projection re-enters the admitted principal's scope.",
+    "tokens.tasks.pause.recover_pause_change": "Recovers durably admitted company pauses or retained issuer/staff "
+    "originals using their original journal and actor. Company sources and retained staff originals use operator "
+    "projection; retained issuer originals re-enter their admitted principal's APP scope. It opens no new intent.",
     "tokens.tasks.pause.check_pending_pause_changes": "Recovers admitted pause commands across issuers; it cannot "
     "admit new intent, reopen terminal submissions or substitute current state for a signed outcome.",
     "tokens.tasks.deployment.recover_swap_approval": "Recovers one deployment's durably admitted swap approval "
