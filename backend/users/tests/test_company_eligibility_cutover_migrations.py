@@ -43,7 +43,6 @@ OLD = [
 GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
-    "wallets_walletpossessionproof",
     "whitelist_companywalletnomination",
     "whitelist_companywalletinstruction",
     "whitelist_companywalletinstructiondecision",
