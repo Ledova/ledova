@@ -18,12 +18,13 @@ from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
 from companies.services.authority_requests import submit_authority_request
 from companies.tests.test_authority_requests import authority_fixture, evidence
 from documents.models import Document, DocumentType
-from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.db import atomic, use_migrate
+from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
+    RegisterCapitalIncrease,
     RegisterCorrection,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -38,7 +39,6 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_instructions import submit_instruction
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import instruction_company, instruction_payload
 from tokens.tests.test_register_corrections import (
@@ -173,6 +173,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "file"),
                         (RegisterImport, "asic_file"),
                         (RegisterEvidence, "file"),
+                        (RegisterCapitalIncrease, "file"),
                         (RegisterGrant, "file"),
                         (RegisterGrant, "terms_file"),
                         (RegisterGrant, "acceptance_file"),
@@ -196,6 +197,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterWalletLink,
                     RegisterImport,
                     RegisterEvidence,
+                    RegisterCapitalIncrease,
                     RegisterGrant,
                     RegisterInstruction,
                     RegisterParticularsChange,
@@ -273,8 +275,11 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     values.pop("document_id")
                     values["items"] = _items(values["kind"], values["items"])
                     with use_migrate(), atomic():
-                        proposal = _retain(RegisterInstruction(
-                            uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values), document.pk, owner)
+                        proposal = _retain(
+                            RegisterInstruction(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
+                            document.pk,
+                            owner,
+                        )
                 finally:
                     restore_every_migration()
                 original = objects.files[proposal.file.name]

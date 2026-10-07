@@ -43,6 +43,8 @@ OLD = [
 GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
+    "tokens_registercapitalincrease",
+    "tokens_registercapitalincreasedecision",
     "whitelist_companywalletnomination",
     "whitelist_companywalletinstruction",
     "whitelist_companywalletinstructiondecision",
@@ -64,14 +66,32 @@ RESTORED_EMPTY_TABLES = {
     "whitelist_whitelisteligibilityinvalidation",
 }
 ADDED_COLUMNS = {
+    "tokens_capitalincreaseexecution": ["source_increase_id"],
     "offerings_subscription": ["eligibility_decision_id"],
     "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_shareissuanceexecution": ["source_instruction_id"],
     "tokens_registerinstruction": [
-        "preparing_appointment_id", "member_id", "nomination_id", "wallet_approval_id", "request_id", "terms_on", "terms",
-        "acceptance_required", "authority_evidence_id", "terms_evidence_id", "terms_fingerprint", "terms_snapshot", "terms_file",
-        "acceptance_evidence_id", "acceptance_fingerprint", "acceptance_snapshot", "acceptance_file", "snapshot", "intent",
-        "intent_digest", "approval_decision_id",
+        "preparing_appointment_id",
+        "member_id",
+        "nomination_id",
+        "wallet_approval_id",
+        "request_id",
+        "terms_on",
+        "terms",
+        "acceptance_required",
+        "authority_evidence_id",
+        "terms_evidence_id",
+        "terms_fingerprint",
+        "terms_snapshot",
+        "terms_file",
+        "acceptance_evidence_id",
+        "acceptance_fingerprint",
+        "acceptance_snapshot",
+        "acceptance_file",
+        "snapshot",
+        "intent",
+        "intent_digest",
+        "approval_decision_id",
     ],
     "tokens_registermemberparticulars": ["source_grant_id", "source_transfer_id"],
     "tokens_transferorder": [
