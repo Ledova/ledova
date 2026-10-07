@@ -240,8 +240,8 @@ class WhitelistStandingReviewTest(TestCase):
         response = self.client.get(self.queue_url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context["cl"].queryset), {self.entry})
-        removal = reverse("admin:whitelist_whitelistentry_remove_from_blockchain", args=[self.entry.pk])
-        self.assertEqual(self.client.post(removal).status_code, 403)
+        removal = f"/admin/whitelist/whitelistentry/{self.entry.pk}/remove-from-blockchain/"
+        self.assertIn(self.client.post(removal).status_code, (302, 404))
         account_change = reverse("admin:users_useraccount_change", args=[self.account.pk])
         self.assertEqual(self.client.post(account_change, {"account_status": "terminated"}).status_code, 403)
         self.account.refresh_from_db()

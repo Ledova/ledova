@@ -434,7 +434,7 @@ def predecessor_wallet_guards():
                     cursor.execute("SET CONSTRAINTS ALL DEFERRED")
 
 
-def approval_change(company, registry, holder, reviewer):
+def historical_approval_change(company, registry, holder, reviewer):
     address = holder.lower()
     expiry = int(RENEWED_UNTIL.timestamp())
     with predecessor_wallet_guards():
@@ -593,7 +593,7 @@ def pack_company(label):
         link=link,
         increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
         pause=paused(company, ordinary),
-        change=approval_change(company, registry, addresses["holder"], reviewer),
+        change=historical_approval_change(company, registry, addresses["holder"], reviewer),
         reconciliation=reconciled(company, ordinary, reviewer, label),
     )
 
@@ -864,6 +864,16 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.a = pack_company("pack-a")
         self.staff = pack_staff("pack-staff")
         self.client.force_login(self.staff)
+
+    def test_retained_whitelist_history_does_not_admit_a_new_staff_change(self):
+        original = WhitelistChange.objects.filter(pk=self.a.change.pk).values().get()
+        terms = original | {"uuid": uuid4(), "status": "pending", "completed_at": None}
+        with self.assertRaisesMessage(IntegrityError, "Fresh whitelist admission"), use_operator(), atomic():
+            WhitelistChange.objects.create(**terms)
+        self.assertEqual(WhitelistChange.objects.filter(pk=self.a.change.pk).values().get(), original)
+        self.assertIsNone(self.a.change.source_instruction_id)
+        self.assertEqual(self.a.change.status, "unchanged")
+        self.assertEqual(WhitelistChange.objects.count(), 1)
 
     def test_the_manifest_lists_every_other_file_and_names_the_company_request_and_register_heads(self):
         content = self.pack()
