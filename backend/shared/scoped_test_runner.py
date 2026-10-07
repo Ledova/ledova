@@ -72,6 +72,7 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_grants.ScopedRegisterGrantsTest",
     "tokens.tests.test_register_deployments.ScopedRegisterDeploymentsTest",
     "tokens.tests.test_register_issues.ScopedRegisterIssuesTest",
+    "tokens.tests.test_issuer_sees_its_issuance_requests.ScopedCompanyIssueRequestHistoryTest",
     "tokens.tests.test_register_deployment_migration.ScopedRegisterDeploymentMigrationTest",
     "tokens.tests.test_register_deployment_issuance_guards.ScopedRegisterDeploymentIssuanceGuardTest",
     "tokens.tests.test_register_transfers.ScopedRegisterTransfersTest",
