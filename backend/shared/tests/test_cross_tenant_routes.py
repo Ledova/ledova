@@ -688,6 +688,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         yield
 
     def setUp(self):
+        from tokens.tasks import deploy_share_token_task
+
         FeatureFlag.objects.update_or_create(name="trading_enabled", defaults={"enabled": True})
         self._patch("rest_framework.throttling.SimpleRateThrottle.allow_request", return_value=True)
         self.services = []
@@ -706,7 +708,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             side_effect=lambda **inputs: matching_observation(Company.objects.get(acn=inputs["acn"])),
         )
         self._service("offerings.services.offering.send_push_notification")
-        self._service("tokens.tasks.deploy_share_token_task")
+        self._service("tokens.tasks.deploy_share_token_task").name = deploy_share_token_task.name
         share_tokens = self._service("tokens.views.share_token.share_token_service")
         share_tokens.create_issuance_request.side_effect = _create_issuance_request
         pause_commands = self._service("tokens.views.share_token.pause_changes")

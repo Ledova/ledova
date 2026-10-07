@@ -720,7 +720,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
                         self.assertEqual(Offering.objects.get(pk=offering.pk).summary, "")
                         self.assertFalse(CapitalIncreaseRequest.objects.exists())
 
-    def test_personal_administrator_does_not_receive_the_owners_share_class_scope(self):
+    def test_personal_administrator_reads_class_metadata_without_owner_action_authority(self):
         self.invite(["admin"])
         with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status="active")
@@ -735,14 +735,23 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(denied.status_code, 400)
-        self.assertEqual(self.client.get(f"/api/v1/tokens/{token.pk}/").status_code, 404)
+        detail = self.client.get(f"/api/v1/tokens/{token.pk}/")
+        self.assertEqual(detail.status_code, 200, detail.content)
+        self.assertFalse(detail.json()["isOwner"])
         self.assertEqual(self.client.get("/api/v1/tokens/").json()["results"], [])
+        register_classes = self.client.get("/api/v1/tokens/register/")
+        self.assertEqual(register_classes.status_code, 200, register_classes.content)
+        self.assertEqual([row["uuid"] for row in register_classes.json()["results"]], [str(token.pk)])
         self.assertEqual(self.client.get("/api/v1/tokens/issuance-requests/").json()["results"], [])
         with self.role(self.other, "app"):
             self.assertFalse(ShareToken.objects.filter(pk=token.pk).exists())
             reset_principal()
             self.assertFalse(ShareToken.objects.exists())
             self.assertFalse(ShareIssuanceRequest.objects.exists())
+        self.client.force_authenticate(self.owner)
+        owned = self.client.get(f"/api/v1/tokens/{token.pk}/")
+        self.assertEqual(owned.status_code, 200, owned.content)
+        self.assertTrue(owned.json()["isOwner"])
 
     def test_offering_private_document_references_recheck_administration_after_company_lock_wait(self):
         self.admit()
