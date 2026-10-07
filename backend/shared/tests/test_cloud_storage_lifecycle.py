@@ -38,7 +38,6 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_instructions import submit_instruction
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import instruction_company, instruction_payload
 from tokens.tests.test_register_corrections import (
