@@ -104,6 +104,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegister',
     'companyRegisterImport',
     'companyRegisterCorrection',
+    'companyRegisterLinks',
     'companyRegisterOpening',
     'companyRegisterParticulars',
     'companyTeam',
@@ -144,6 +145,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegister',
     'companyRegisterImport',
     'companyRegisterCorrection',
+    'companyRegisterLinks',
     'companyRegisterOpening',
     'companyRegisterParticulars',
   ] as const)('lets a company open %s, a page for everyone', (key) => {
@@ -258,6 +260,13 @@ describe('which signed-in pages an account can open', () => {
     open('companyRegisterParticulars', 'investor');
     expect(screen.getByTestId('address').textContent).toBe('/company/register/members/:member/particulars');
     expect(opened('companyRegisterParticulars')).toBe(true);
+    expect(screen.queryByText('companyClass')).toBeNull();
+  });
+
+  it("opens a company's wallet links page at its own address beneath Register, not a class page", () => {
+    open('companyRegisterLinks', 'investor');
+    expect(screen.getByTestId('address').textContent).toBe('/company/register/companies/:company/links');
+    expect(opened('companyRegisterLinks')).toBe(true);
     expect(screen.queryByText('companyClass')).toBeNull();
   });
 

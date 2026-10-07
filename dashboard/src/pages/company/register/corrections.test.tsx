@@ -35,6 +35,8 @@ const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
+const LINKS = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINKS;
+const WAITING = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_WAITING_WALLETS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PREVIEW = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_PREVIEW('correction-new');
 const DECIDE = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_DECIDE('correction-new');
@@ -283,7 +285,9 @@ function serve(read?: (url: string, config?: ReadConfig) => unknown) {
     if (url === REGISTER) return page([LISTED]);
     if (url === HOLDERS) return { data: holders() };
     if (url === APPOINTMENTS) return page(appointments);
-    if (url === OPENINGS || url === IMPORTS || url === RECONCILIATIONS || url === PARTICULARS) return page([]);
+    if (url === WAITING) return { data: { wallets: [] } };
+    if (url === OPENINGS || url === IMPORTS || url === RECONCILIATIONS || url === PARTICULARS || url === LINKS)
+      return page([]);
     if (url === ENTRIES && config?.params?.entry)
       return page(
         entryPages.flatMap(({ data }) => data.results).filter(({ uuid }) => config.params!.entry!.includes(uuid)),

@@ -104,6 +104,11 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
   REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
+  REGISTER_LINKS: '/api/v1/tokens/register-links/',
+  REGISTER_LINK_WAITING_WALLETS: '/api/v1/tokens/register-links/waiting-wallets/',
+  REGISTER_LINK_FILE: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/file/` as const,
+  REGISTER_LINK_PREVIEW: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/decision-preview/` as const,
+  REGISTER_LINK_DECIDE: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/decide/` as const,
   REGISTER_OPENINGS: '/api/v1/tokens/register-openings/',
   REGISTER_OPENING_FILE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/file/` as const,
   REGISTER_OPENING_PREVIEW: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decision-preview/` as const,

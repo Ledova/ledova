@@ -6,6 +6,7 @@ import {
   REGISTER_CORRECTION_UNMET_COPY,
 } from '../../src/constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../../src/constants/business/register-imports';
+import { REGISTER_LINK_COPY, REGISTER_LINK_UNMET_COPY } from '../../src/constants/business/register-links';
 import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../../src/constants/business/register-openings';
 import {
   REGISTER_PARTICULARS_COPY,
@@ -14,11 +15,13 @@ import {
 import {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
+  REGISTER_LINK_DECISIONS,
   REGISTER_OPENING_DECISIONS,
   REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
   type RegisterDecisionFamily,
 } from '../../src/hooks/useRegisterDecision';
+import { decideRegisterLink, previewRegisterLinkDecision } from '../../src/services/register-links';
 import { decideRegisterOpening, previewRegisterOpeningDecision } from '../../src/services/register-openings';
 import {
   decideRegisterParticularsChange,
@@ -388,6 +391,14 @@ behaves('opening', REGISTER_OPENING_DECISIONS, {
   copy: REGISTER_OPENING_COPY,
   unmet: REGISTER_OPENING_UNMET_COPY,
   code: 'boundary_changed',
+});
+
+it('decides wallet links through their own routes and copy, with the generic receipt check', () => {
+  expect(REGISTER_LINK_DECISIONS.preview).toBe(previewRegisterLinkDecision);
+  expect(REGISTER_LINK_DECISIONS.decide).toBe(decideRegisterLink);
+  expect(REGISTER_LINK_DECISIONS.isReceipt).toBe(isRegisterDecisionReceipt);
+  expect(REGISTER_LINK_DECISIONS.unmet).toBe(REGISTER_LINK_UNMET_COPY);
+  expect(REGISTER_LINK_DECISIONS.copy).toBe(REGISTER_LINK_COPY);
 });
 
 it('decides openings through their own routes and copy, with the generic receipt check', () => {

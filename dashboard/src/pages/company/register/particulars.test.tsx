@@ -221,6 +221,7 @@ function serve(read?: (url: string, config?: ReadConfig) => unknown) {
     if (url === APPOINTMENTS) return page(appointments);
     if (url === PARTICULARS) return changePages[(config?.params?.page ?? 1) - 1];
     if (url === FILE) return { data: new Blob(['%PDF synthetic'], { type: 'application/pdf' }) };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === ENTRIES || url.startsWith('/api/v1/tokens/register-')) return page([]);
     throw new Error(`Unexpected read ${url} ${JSON.stringify(config)}`);
   });

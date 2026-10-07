@@ -39,7 +39,7 @@ Regenerate shared API types and release both clients with the removal of the
 legacy deployment-mode field and evidence-visibility branch. Supporting evidence
 keeps private access, retention and review safeguards in the one product; an
 absent field must not hide it. Apart from the register imports, openings,
-particulars changes, register history, corrections and discrepancy
+particulars changes, wallet links, register history, corrections and discrepancy
 acknowledgement in both clients, the detailed current screen descriptions below
 do not claim these company-managed controls are shipped.
 
@@ -233,12 +233,62 @@ confirmed; a conflict reads the class register and appointments again and takes
 a new operation, a refusal shows the server's words, and a 404 reads the
 appointments again, so the form gives way to the read-only note once the
 appointment is gone.
+After the particulars changes, Register lists the chosen company's
+[wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening),
+read on every page with the company filter, newest first and each once: stage
+and number of wallets, whether the company provided the authority document or
+staff verified it before wallet links were company-run, preparer and dates, the
+decision trail, any rejection reason, the authority, approving director,
+reference and reason, then each wallet address in the order the link records it
+with its member, labelled as the link form labels it: a current member of the
+class registers by its name when no other current member shares it, and
+otherwise as an unnamed member or by the shared name with its first wallet
+shortened, or its first holding when it has no wallet, numbered in register
+order if two would still read alike; an existing member no longer on the
+registers neutrally; and a member the link creates numbered as a new member, so
+wallets that share a member read alike; and last the document's download. Links
+of another company fail the read, and a link's step and download labels name its
+stage, number of wallets and when it was prepared. Approval and rejection
+(administration or `approve`) and application (administration or `apply`) use
+the same preview-first dialog, listing each address with its member, labelled
+the same way, and, for information only, whether the holder proved control of
+the wallet on Ledova and the holder's name on Ledova, or that the wallet is not
+on the company's whitelist, with the application note before application; a
+retained staff-era link offers only rejection. A recorded or refused link
+decision reads the links, the waiting wallets, the class registers with their
+waiting counts, any open register entries and the appointments again.
+Administration or `prepare` gets **Link waiting wallets**, enabled once the
+company's waiting wallets are read and at least one waits; when none waits, a
+note says so. A 404 from that read reads the appointments again, so the action
+gives way to the read-only note once the appointment is gone. It opens a form in
+the same stack that reads the waiting wallets, the company's class registers and
+the appointments, and lists each waiting wallet, in the order a link records
+them, with the number of issues and transfers waiting for it and its statuses.
+The form maps each wallet to a current member of the class registers or to a new
+member under a new ID that several wallets may share, each labelled as the
+link's record and preview will label it, with the current members first in
+register order; a current member's label never changes with the choices. No
+wallet has a member until the person chooses one, never by matching names.
+Choices are kept by address: a re-read drops a choice only when its wallet no
+longer waits or its member is no longer on the class registers, and the page
+then says the choices were reset, announcing it on iOS and in a polite live
+region, until a choice changes or the link is prepared. It takes the authority
+document, the authority, the approving director of a resolution, the reference
+and the reason. The upload keeps its own retry key and confirmed receipt,
+preparation reuses its operation only for an identical request, and the links
+are refreshed once the receipt is confirmed; a conflict reads the waiting
+wallets, class registers and appointments again and takes a new operation, a
+refusal shows the server's words and reads the waiting wallets and class
+registers again, keeping each choice that still applies, and a 404 from the
+waiting-wallets read or from preparation reads the appointments again, so the
+form gives way to the read-only note once the appointment is gone.
 Register reads the person's appointments itself rather than through Company
 team's cache, and hides every register action while they cannot be read. It
 reads them again after a revocation on Company team or
-Representative authority, a pull to refresh, an opening, correction or
-particulars decision, or a decision, preview or acknowledgement the server
-refuses. Every register read and every
+Representative authority, a pull to refresh, an opening, correction,
+particulars or wallet link decision, a waiting-wallets read refused as not
+found, or a decision, preview or acknowledgement the server refuses. Every
+register read and every
 upload, preview, decision, acknowledgement and preparation is bound to the
 session the screen opened under.
 Accounts without the company role reach it from the drawer only when they have
@@ -755,6 +805,61 @@ and when the change was prepared, and each **Change particulars** after the
 member; every read, decision, download and preparation is bound to the signed-in
 account.
 
+Beside the particulars changes, the dashboard's Register lists the selected
+company's [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)
+in a section of their own, read on every page with the company filter, newest
+first and each once: the stage, preparer and dates, each wallet address in the
+order the link records it with its member, labelled as the link page labels it:
+a current member of the class registers by its name when no other current
+member shares it, and otherwise as an unnamed member or by the shared name with
+its first wallet shortened, or its first holding when it has no wallet, numbered
+in register order if two would still read alike; an existing member no longer on
+the registers neutrally; and a member the link creates numbered as a new member,
+so wallets that share a member read alike; then the authority,
+approving director, reference and reason, the decision trail and any rejection
+reason, whether the company provided the authority document or staff verified
+it before wallet links were company-run,
+and the document's download. Links of another company fail the read. Approve,
+Apply and Reject use the decision dialog the other register commands share,
+through `useRegisterDecision` with the link family: its preview lists each
+wallet with its member, labelled the same way, and, for a wallet on the
+company's whitelist, whether its holder proved control of it on Ledova and the
+holder's name, for information
+only, and before application notes what applying records. A retained staff-era
+link offers only rejection. Confirming needs the step's current appointment to
+be the one previewed, a rejection takes a reason of up to 1,000 characters, and a
+decision or refusal refreshes the links, the waiting wallets, the registers,
+their entries and the person's appointments. Readers with none of these steps
+see the links read-only. Holders of administration or `prepare` get **Link
+waiting wallets** once the company's waiting-wallets read returns a wallet, and
+otherwise the note that nothing waits. It opens
+`/company/register/companies/:company/links`, a page for every signed-in account
+like Register, which reads the wallets that completed issues and transfers wait
+for, each with the number of effects waiting for it and its proof and holder for
+information, in the order a link records them, and maps every one of them to a
+member chosen on the page: a current member of the company's class registers, or
+a new member under a client-generated ID that several wallets may share, each
+labelled as the link's record and preview will label it, and a current member's
+label never changes with the choices. Each wallet starts as its own new member
+and is never matched to a member by name. Choices are kept by address: a re-read
+drops a choice only when its wallet no longer waits or its member is no longer
+offered, returning that wallet to its own new member, and then says the choices
+were reset until a choice changes or the link is prepared. The page offers only
+waiting wallets, although
+the API accepts any address. It takes the authority document, the authority, an
+approving director for a resolution, the reference and the reason. The upload
+keeps its own retry key and confirmed receipt, preparation reuses its operation
+only for an identical request, and both receipts are checked before the links
+are refreshed and the page returns to Register. A conflict reads the waiting
+wallets, the registers and the appointments again and takes a new operation, a
+refusal shows the server's words and reads the waiting wallets and the registers
+again, and a refusal as not found, of preparation or
+of the waiting-wallets read, reads the appointments again, so the form is
+withdrawn once the appointment is gone. Each repeated download and decision
+control is named for screen readers after its visible label and when its link
+was prepared; every read, decision, download and preparation is bound to the
+signed-in account.
+
 `packages/shared` also holds the client layer for the company-run
 [corrections](../operations/register-foundation.md#compensating-corrections) and
 [discrepancy acknowledgements](../operations/register-foundation.md#acknowledging-a-discrepancy)
@@ -794,6 +899,25 @@ while a member's live verified identity wins over both, and the
 `companyRegisterParticulars` destination at
 `/company/register/members/:member/particulars`. The dashboard and mobile
 particulars screens described above are built on this layer.
+
+`packages/shared` also holds the client layer for company-run
+[wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening):
+services for links (every page of a list with the company and status filters,
+the company's waiting wallets, prepare, decision preview, decide and the
+authority document download), a link's mapping narrowed at runtime,
+`isPreparedRegisterLink`, which checks a prepared link against every field of
+its request and its mapping as address and member pairs in any order and letter
+case, `registerLinkMemberLabels`, which labels each member a link page offers or
+a link maps from the mapping in recorded order and the company's current
+members, so the page, the record and the preview give each member the same
+label while the registers are unchanged,
+`REGISTER_LINK_DECISIONS` for `useRegisterDecision` with the generic
+decision receipt check, the link copy with a sentence for every requirement a
+link decision can leave unmet and each wallet's proof worded as the holder's own
+proof on Ledova, never as a verification by Ledova, and the
+`companyRegisterLinks` destination at
+`/company/register/companies/:company/links`. The dashboard and mobile wallet
+link screens described above are built on this layer.
 
 Company details and Company › Application use the same ledger blocks. Company
 keeps the existing first-owned-company selection, reads its complete detail and

@@ -19,6 +19,7 @@ import { ClassImports } from './ClassImports';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
+import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
@@ -28,18 +29,18 @@ const ON_CHAIN = ['deployed', 'paused'];
 
 function RegisterPage({
   selection,
-  particulars,
+  sections,
   children,
 }: {
   selection?: ReactNode;
-  particulars?: ReactNode;
+  sections?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
       {selection}
       <Section title="Share classes">{children}</Section>
-      {particulars}
+      {sections}
       <Section title="Register instructions">
         <p className="text-sm text-text-muted">
           The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection
@@ -126,11 +127,14 @@ function OwnRegister({
           />
         )
       }
-      particulars={
+      sections={
         company &&
         classes.isSuccess &&
         registers.isSuccess && (
-          <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+          <>
+            <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+            <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+          </>
         )
       }
     >

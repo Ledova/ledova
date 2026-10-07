@@ -111,6 +111,14 @@ export {
   downloadRegisterCorrectionFile,
 } from './register-corrections';
 export {
+  getRegisterLinks,
+  getRegisterWaitingWallets,
+  prepareRegisterLink,
+  previewRegisterLinkDecision,
+  decideRegisterLink,
+  downloadRegisterLinkFile,
+} from './register-links';
+export {
   getRegisterOpeningHolders,
   getRegisterOpenings,
   prepareRegisterOpening,

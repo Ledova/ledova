@@ -28,6 +28,7 @@ export const DESTINATIONS = {
     title: 'Register',
     audience: 'everyone',
   },
+  companyRegisterLinks: { path: '/company/register/companies/:company/links', title: 'Register', audience: 'everyone' },
   companyRegisterOpening: { path: '/company/register/:uuid/open', title: 'Register', audience: 'everyone' },
   companyRegisterParticulars: {
     path: '/company/register/members/:member/particulars',

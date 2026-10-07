@@ -589,8 +589,9 @@ closed:
   rejected. The company then prepares a new one.
 
 Staff permissions, company ownership alone and shareholding grant none of these
-steps. The API below is delivered; Register screens for it in both clients are
-planned.
+steps. The Register screen in both clients lists the company's wallet links,
+prepares a link for the wallets still waiting for a member and runs these steps,
+through the API below.
 
 A link maps wallet addresses to company member IDs. A member ID may be new, and
 application creates it, or may already belong to the company, and several

@@ -4,7 +4,7 @@ import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { ParticularsRecord } from './ParticularsRecord';
-import { registerSteps } from './proposals';
+import { registerMembers, registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
 import { useOwnAppointments } from './useRegisterImports';
 import { particularsKey, useRegisterParticulars } from './useRegisterParticulars';
@@ -26,9 +26,7 @@ export function RegisterParticulars({
   const changes = useRegisterParticulars(owner, company, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
-  const names = new Map<string, string>();
-  for (const { member, name } of registers.flatMap((register) => register.holders))
-    if (name && !names.has(member)) names.set(member, name);
+  const names = registerMembers(registers);
   const refresh = async () => {
     try {
       guard();
@@ -79,7 +77,7 @@ export function RegisterParticulars({
             <ParticularsRecord
               key={change.uuid}
               change={change}
-              member={names.get(change.member) ?? COPY.UNNAMED_MEMBER}
+              member={names.get(change.member) || COPY.UNNAMED_MEMBER}
               steps={steps ?? {}}
               guard={guard}
               onDecided={refresh}

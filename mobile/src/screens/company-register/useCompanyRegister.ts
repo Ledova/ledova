@@ -11,10 +11,12 @@ import {
   getRegisterEntries,
   getRegisterImports,
   getNextPageParam,
+  getRegisterLinks,
   getRegisterOpeningHolders,
   getRegisterOpenings,
   getRegisterParticularsChanges,
   getRegisterReconciliations,
+  getRegisterWaitingWallets,
   hasWholeShares,
   readEveryPage,
   useLaterPages,
@@ -60,6 +62,8 @@ export const entriesKey = recordsKey('entries');
 export const correctionsKey = recordsKey('corrections');
 export const reconciliationKey = recordsKey('reconciliation');
 export const particularsKey = recordsKey('particulars');
+export const linksKey = recordsKey('links');
+export const waitingWalletsKey = recordsKey('waiting-wallets');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 function distinct<Row>(rows: Row[], uuid: (row: Row) => string) {
@@ -148,6 +152,8 @@ export function useCompanyRegister(epoch: number) {
           correctionsKey,
           reconciliationKey,
           particularsKey,
+          linksKey,
+          waitingWalletsKey,
           registerAppointmentsKey,
         ].map((key) => queryClient.refetchQueries({ queryKey: key(epoch), type: 'active' })),
       ]),
@@ -220,6 +226,54 @@ export function useRegisterParticulars(epoch: number, company: string) {
         throw new Error('The particulars changes do not belong to this company');
       }
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterLinks(epoch: number, company: string) {
+  return useQuery({
+    queryKey: linksKey(epoch, company),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await sessionRead(epoch, () => getRegisterLinks(apiClient, { company }, { ledovaSessionEpoch: epoch, signal })),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.company !== company)) {
+        throw new Error('The wallet links do not belong to this company');
+      }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterWaitingWallets(epoch: number, company: string, enabled: boolean) {
+  return useQuery({
+    queryKey: waitingWalletsKey(epoch, company),
+    enabled,
+    queryFn: async ({ signal }) => {
+      const { data } = await sessionRead(epoch, () =>
+        getRegisterWaitingWallets(apiClient, company, { ledovaSessionEpoch: epoch, signal }),
+      );
+      return data.wallets;
+    },
+  });
+}
+
+export function useCompanyMembers(epoch: number, company: string) {
+  return useQuery({
+    queryKey: [...registerKey(epoch), 'members', company],
+    queryFn: async ({ signal }) => {
+      const classes = (await readEveryPage((page) => readClasses(epoch, page, signal))).filter(
+        ({ companyUuid }) => companyUuid === company,
+      );
+      const registers = await Promise.all(classes.map(({ uuid }) => readRegister(epoch, uuid, signal)));
+      return {
+        name: classes[0]?.companyName,
+        holders: distinct(
+          registers.flatMap(({ holders }) => holders),
+          ({ member }) => member,
+        ),
+      };
     },
   });
 }
