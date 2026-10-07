@@ -75,7 +75,7 @@ MINT_BLOCK = 12
 
 class InclusionFixtures:
     def setUp(self):
-        self.tenant, self.owner, self.administrator, self.target, self.node = deployed_class()
+        self.tenant, self.owner, self.administrator, self.target, self.node = deployed_class(legacy_deployment=True)
         self.evidence = None
         reading(self, self.node)
         self.actor = self.reviewer = instruction_reviewer()
