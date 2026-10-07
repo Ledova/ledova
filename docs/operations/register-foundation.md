@@ -45,8 +45,8 @@ and how to undo a mistaken opening import.
 A member has a UUID belonging to one company, independent of a wallet or platform
 account. The owner chose this so imports can include walletless members and one
 member can have multiple wallet links. Wallet links are durable insert-only
-identity records created by an applied opening or a reviewed link request
-below: one address resolves to
+identity records created by an applied opening or an applied
+[wallet link](#linking-wallets-after-the-opening): one address resolves to
 one member per company, and an existing link for a mapped address must agree
 with the mapping. The register routes name members from their wallets'
 identities and allotment stamps; an [import's](#importing-an-existing-register)
@@ -187,9 +187,9 @@ and [backend verification](../development/testing.md#backend-verification).
 The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
 not proof of director authority. The company-document admin provides its
-content-verification prerequisite; the wallet link and register instruction
-workflows below are its current consumers. Openings, imports and corrections use
-company-provided evidence instead.
+content-verification prerequisite; the register instruction workflows below are
+its only consumer. Openings, imports, corrections, wallet links and particulars
+changes use company-provided evidence instead.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -564,29 +564,67 @@ retention needs its own decision before real data. Applying an opening
 initialises the register the holders and CSV routes serve; until then they report
 it as not initialised.
 
-## Reviewed wallet links after the opening
+## Linking wallets after the opening
 
-A wallet that no opening mapped, such as a new subscriber's, a first-time
-buyer's or another wallet of an existing member, is linked to a company member
-by a reviewed request (owner decision, 21 September 2026). The company owner
-submits an exact mapping of wallet addresses to member IDs with documentary
-authority: a staff-verified company document carrying a director resolution that
-names the approving director, or a court order. A member ID may be new or may already
-belong to the company. Links are company-wide, so one link serves every share
-class. The request retains a private copy of the authority file.
+After a class is opened, an issue or transfer that completes to a wallet no
+member owns waits with the reason `unlinked` rather than creating a member, and
+members are never merged by matching names (owner decision, 21 September 2026).
+A wallet link records which member of the company owns each such wallet: a new
+subscriber's, a first-time buyer's or another wallet of an existing member.
+The company links wallets itself, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence)
+of 5 October 2026, which reached links once [#863](https://github.com/Ledova/ledova/issues/863)
+closed:
+- the authority is documentary, as decided on 21 September 2026: a director
+  resolution that names the approving director, or a court order. The company
+  uploads it as an `authority` upload. Ledova staff do not verify it, and the
+  link's copy is shown as provided by the company;
+- a current appointment holding `admin` or `prepare` uploads and prepares,
+  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
+  person may take every step, and no second person is required;
+- application needs an approval whose approver still holds a current
+  appointment. If that appointment was revoked or has expired, a current
+  approver approves again;
+- a link submitted for the retired staff review and still waiting can only be
+  rejected. The company then prepares a new one.
+
+Staff permissions, company ownership alone and shareholding grant none of these
+steps. The API below is delivered; Register screens for it in both clients are
+planned.
+
+A link maps wallet addresses to company member IDs. A member ID may be new, and
+application creates it, or may already belong to the company, and several
+addresses may map to one member. Links are company-wide, so one link serves
+every share class, and a company needs no opened register to link: a link
+applied before an opening shows its member in the
+[opening holders read](#opening-the-register-from-the-chain). One address
+resolves to one member per company, matched regardless of letter case, and an
+address linked once is never linked again.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-links/` | Submit the owner's link request; return the retained request |
-| `GET /api/v1/tokens/register-links/` | Paginated requests for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-links/{uuid}/` | Request, mapping and decision |
-| `GET /api/v1/tokens/register-links/{uuid}/file/` | Authenticated attachment of the retained authority file |
+| `GET /api/v1/tokens/register-links/waiting-wallets/?company=` | `wallets`: each wallet that a completed issue or transfer of the company's opened classes waits for, as the [waiting list](#the-issuers-waiting-list) names it in `unlinkedWallets`, with `waiting`, the number of waiting effects naming it, and its statuses below, ordered by address. Only for a current appointment holding `admin` or `prepare` |
+| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-links/` | Prepare the link; return the retained link |
+| `GET /api/v1/tokens/register-links/` | Paginated links for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `status` |
+| `GET /api/v1/tokens/register-links/{uuid}/` | The link, its mapping and `mappingSummary`, evidence, stage and decisions |
+| `GET /api/v1/tokens/register-links/{uuid}/file/` | Authenticated attachment of the link's copy of the authority document |
+| `POST /api/v1/tokens/register-links/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, each address with its member and statuses, and the preview digest |
+| `POST /api/v1/tokens/register-links/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+
+The waiting-wallets read reads only the database, never the chain, and takes no
+lock. Anyone else, platform staff and the owner alone included, gets the same
+404 as an unknown company, and a `company` that is not a UUID is refused with
+400.
+
+Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000021",
+  "appointment": "10000000-0000-4000-8000-000000000030",
   "company_id": "10000000-0000-4000-8000-000000000022",
-  "document_id": "10000000-0000-4000-8000-000000000013",
+  "authority_evidence": "10000000-0000-4000-8000-000000000023",
   "mapping": [
     {"address": "0x3333333333333333333333333333333333333333", "member": "10000000-0000-4000-8000-000000000024"}
   ],
@@ -597,24 +635,123 @@ class. The request retains a private copy of the authority file.
 }
 ```
 
-In **Admin → Tokens → Register wallet links**, open the request's review link.
-An active staff user with change permission inspects the retained file, the
-named authority, the company identity and each address-member pair, then
-explicitly confirms and chooses **Approve and apply**. Application rechecks the
-reviewer-bound, expiring confirmation and the retained evidence under the
-company lock, then creates any new members and the links atomically; a failure
-rolls both back.
+Preparation stores each address checksummed, in address order, and refuses,
+with a message naming the problem:
+- a company in which the caller holds no current appointment, as not found, or
+  an appointment that holds neither `admin` nor `prepare`, also as not found;
+- an empty mapping, one that is not a list of addresses and member UUIDs, or one
+  that repeats an address in any letter case;
+- a mapped member of another company;
+- an address already linked in the company, whether an opening or another link
+  linked it;
+- evidence that is not the preparer's own `authority` upload for this company,
+  or whose stored bytes no longer match its fingerprint;
+- incomplete authority fields. A director resolution names the approving
+  director; `court_order` instead uses a court reference and an empty
+  `approving_director`. An owner account is not proof of director authority.
 
-An address already linked in the company is refused at submission, at review and
-at application, including one linked by another request or an opening after
-this one was submitted. Rejection with a reason stays available. Repeated
-identical submissions and decisions are idempotent, and conflicting UUID reuse is
-refused. The database keeps requests immutable and undeletable, refuses forged
-or customer-role decisions, and refuses an application that leaves a mapped
-wallet unlinked. Retention follows openings and corrections.
+The link keeps its own private copy of the upload, with a snapshot naming the
+upload, its size, type and SHA-256, and marked as provided by the company. An
+identical preparation retry returns the link; the same operation ID with any
+change conflicts. The response's `mappingSummary` gives each address with its
+member and `memberExists`, true when the member already belongs to the company.
 
-A link records no register event of its own. Applying it records any issue or
-transfer that was [waiting for it](#recording-issues-and-transfers-after-the-opening).
+The preview and the waiting-wallets read show two statuses of each address, but
+only for an address with a whitelist approval for the company, whatever its
+status: `walletProof`, `proven` when the holder proved control of a Base wallet
+at that address on Ledova with their own signature, otherwise `not_proven`, and
+the `holderType` and `holderName` of the address's live identity, as the register
+reads it. Any other address, such as one typed into a mapping, gets `null` for
+all three, so the statuses reveal nothing about who holds an arbitrary address.
+They are live and informational: no step requires them, they are not stored or
+bound into the digest, and they never choose a member.
+
+Each decision starts with a preview, which lists what the decision still lacks:
+
+| Requirement | Meaning |
+| --- | --- |
+| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
+| `link_decided` | The link is already applied or rejected |
+| `company_provided_evidence_required` | A retained staff-era link, which can only be rejected |
+| `already_approved` | A current approval exists |
+| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
+| `wallet_linked_elsewhere` | A mapped address was linked to another member after preparation |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+
+The preview digest binds the link, the decision, the person, the appointment,
+the reason and, for application, the current links of the mapped addresses. The
+decision must carry the same digest, so a link made between the preview and the
+decision conflicts: the new preview passes when the address was linked to the
+same member, and reports `wallet_linked_elsewhere` otherwise. An identical
+decision retry with the same retry key returns the link; the same key with any
+change conflicts. Every step rechecks the appointment after taking the company
+lock, so a revocation that commits first refuses the decision and records
+nothing.
+
+Application takes the company lock and then every share class of the company,
+in order, and records in one transaction:
+- the new members and the links, skipping an address an opening or another link
+  has since linked to the same member;
+- then, for each share class in order, whatever issue or transfer was
+  [waiting for the link](#recording-issues-and-transfers-after-the-opening).
+  Each entry keeps its own recorder, the approving reviewer of an issue or the
+  transferor, and is dated the day it is recorded. Recording in a class stops at
+  the first effect it still cannot record, and an entry the register refuses is
+  left waiting without undoing the link;
+- the link as applied, with the decision.
+
+A failure rolls them all back. A link makes no register entry of its own, changes
+no whitelist approval and creates no proof of possession: deleting a wallet or
+losing its proof later does not unlink it. Rejection with a reason stays
+available until a decision applies or rejects the link, including when the
+retained copy is unavailable.
+
+Application can deadlock with an issue or transfer completing at the same moment
+whose recorder, its approving reviewer or transferor, is the person applying the
+link: the application holds that person's user row while it waits for the
+share-class lock, and the completion needs the row to commit. PostgreSQL aborts
+one of them, which can be retried. Corrections share this pattern.
+
+Openings follow the same rules. An opening's own mapping links its addresses
+when it is applied, and its preparation refuses an address already linked to
+another member. An applied link makes a pending opening that maps the address to
+another member report `wallet_linked_elsewhere`, as an applied opening does for a
+pending link.
+
+Once linked, the member's [register name](../architecture/register.md#membership-and-identity)
+resolves from all of its wallets: a live identity wins over recorded particulars,
+and wallets that resolve to different people make the member ambiguous. Linking
+an address that an acknowledged `unlinked` reconciliation discrepancy names can
+also surface new discrepancies at the next reconciliation. Both are existing
+behaviour, unchanged by company-run links.
+
+**Admin → Tokens → Register wallet links** shows links and their copies as
+read-only history; the review page is gone. The database keeps links, uploads,
+decisions and the member wallets they record immutable and refuses:
+- a preparation not made through the company command by a person whose current
+  appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own `authority` upload for the company;
+- a mapping that is empty, repeats an address, holds a value that is not a JSON
+  string, names another company's member or names an address already linked in
+  the company, and incomplete authority fields;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a second
+  current approval, an approval or application of a staff-era link, or an
+  application without a current approval;
+- an applied or rejected link without its matching decision, and a decision
+  whose link does not carry its effect when the transaction commits;
+- an application that leaves a mapped wallet unlinked to its member.
+
+Retention follows openings and corrections: links, their copies of the authority
+upload and their decisions are retained without automatic expiry during the
+synthetic-only experiment, and ordinary deletion is blocked. A link submitted
+before links were company-run keeps its copy of the staff-verified company
+document and its reviewer, readable through the API, the admin and the
+[company pack](../architecture/company-pack.md), shown as `staff_verified`. The
+company's uploads are kept like import evidence. Production retention needs its
+own decision before real data.
 
 ## Register instructions for issues
 
@@ -623,8 +760,8 @@ verified a named director's approval (owner decision 2, 22 September 2026). The
 company owner submits a register instruction listing the exact issues
 it approves, each with its recipient wallet and whole number of shares: a direct
 issue by its issuance request, and an offering allotment by its subscription. It
-names the approving director and carries a verified company document, as a
-wallet link does, and it retains a private copy of the authority file. Its kind is
+names the approving director and carries a verified company document, and it
+retains a private copy of the authority file. Its kind is
 `issue`; a [transfer instruction](#register-instructions-for-transfers) has its
 own kind.
 
@@ -886,9 +1023,10 @@ commits, because a register record must not stall the workflow; the reason is
 logged. Recording resumes at the next completion in that share class, the next
 applied wallet link in the company or the next applied register instruction for
 that share class, so an effect waits until one of those runs after its cause is
-resolved. Applying a reviewed wallet link or a register instruction records
-whatever was waiting for it; each takes the share class's lock first, so a
-completion in progress cannot miss the new link or cover.
+resolved. Applying a wallet link or a register instruction records whatever was
+waiting for it; each takes the share class's lock first, a wallet link every
+class of its company, so a completion in progress cannot miss the new link or
+cover.
 `register_inclusions` reports `recorded` for each effect.
 
 The register never dates an issue or transfer before its latest entry.
@@ -920,7 +1058,7 @@ seller's then the buyer's for a transfer), its `shares`, its `reason` and
 | Reason | Why it waits | What resolves it |
 | --- | --- | --- |
 | `attribution` | The opening's captured boundary cannot place its completion | The attribution procedure, not yet specified |
-| `unlinked` | A wallet it names has no reviewed link to a member; `unlinkedWallets` lists which | A [reviewed link request](#reviewed-wallet-links-after-the-opening) |
+| `unlinked` | A wallet it names is linked to no member; `unlinkedWallets` lists which | A [wallet link](#linking-wallets-after-the-opening) |
 | `unreviewed` | The issue's request records no approving reviewer, as when the reviewer's account was deleted | Nothing yet: recording does not invent a recorder |
 | `uninstructed` | No applied register instruction covers the issue or transfer | A register instruction that lists it: [for an issue](#register-instructions-for-issues) or [for a transfer](#register-instructions-for-transfers) |
 | `refused` | Nothing of its own: recording last tried it and the register refused the entry | The logged refusal's cause, such as a seller's stored holding that does not cover the transfer or a latest entry dated after today; recording tries again at its next run |
@@ -1272,7 +1410,7 @@ refuse another once one is applied, and a partial unique index backs them.
 
 | Method and route | Result |
 | --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain) or a [correction](#compensating-corrections), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain), a [correction](#compensating-corrections) or a [wallet link](#linking-wallets-after-the-opening), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
 | `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
 | `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
 | `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
@@ -1376,7 +1514,7 @@ transaction. It creates the new members and records the opening entry: its
 operation ID is the import's UUID, it is dated the register date, it holds each
 member's shares, and the person applying it records it, so the register's
 sequence is 1. It links no wallets: a
-[reviewed link request](#reviewed-wallet-links-after-the-opening) links them. A
+[wallet link](#linking-wallets-after-the-opening) links them. A
 class opened another way after preparation takes the import by the opened
 class's rules. Application then stores each member's particulars, dated the
 register date, except where the member already has particulars dated later, from

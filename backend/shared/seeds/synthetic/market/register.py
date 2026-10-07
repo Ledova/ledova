@@ -5,7 +5,9 @@ from uuid import uuid4
 from django.db.models.functions import Lower
 from web3 import Web3
 
+from companies.services.document_review import private_document_bytes
 from integrations.base_chain import get_base_chain_client
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
 from shared.seeds.synthetic.chain.registers import reference_prefix
@@ -14,11 +16,14 @@ from shared.seeds.synthetic.chain.story import CHAIRS
 from shared.seeds.synthetic.market import trading
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
+    RegisterDecisionKind,
+    RegisterEvidenceKind,
     RegisterMemberWallet,
     RegisterReconciliationStatus,
     SwapOrder,
 )
 from tokens.services.former_holders import fold_former_holders
+from tokens.services.register_evidence import retain_register_evidence
 from tokens.services.register_inclusions import waiting_effects
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -27,8 +32,8 @@ from tokens.services.register_instructions import (
 )
 from tokens.services.register_openings import (
     decide_link,
-    prepare_link_review,
-    submit_link,
+    prepare_link,
+    preview_link_decision,
 )
 from tokens.services.register_reconciliation import reconcile_register
 from wallets.models import Holding
@@ -86,24 +91,45 @@ def link_buyers(market, swaps):
             market.documents,
         )
         mapping = [{"address": address, "member": str(member_id(company_key, investor))} for address, investor in rows]
-        proposal = submit_link(
+        appointment = historical_owner_appointment(company)
+        evidence, _ = retain_register_evidence(
+            actor=company.owner,
+            company_id=company.pk,
+            appointment=appointment.pk,
+            kind=RegisterEvidenceKind.AUTHORITY,
+            idempotency_key=uuid4(),
+            name=document.name,
+            raw=private_document_bytes(document.file),
+            mime_type=document.mime_type,
+        )
+        link, _ = prepare_link(
             actor=company.owner,
             operation_id=uuid4(),
+            appointment=appointment.pk,
             company_id=company.pk,
-            document_id=document.pk,
+            authority_evidence=evidence.pk,
             mapping=mapping,
             authority="director_resolution",
             approving_director=CHAIRS[company_key],
             authority_reference=f"{_prefix(company)}-LNK-{len(rows):02d}",
             reason="Enter the buyers' wallets as members before their transfers are recorded.",
         )
-        _, confirmation = prepare_link_review(proposal_id=proposal.pk, reviewer=market.operations)
-        decided = decide_link(
-            proposal_id=proposal.pk, reviewer=market.operations, confirmation=confirmation, decision="apply"
-        )
-        if decided.status != "applied":
-            raise ChainStepFailed(NOT_APPLIED.format(kind="wallet link", name=company.name, status=decided.status))
-        applied.append(decided)
+        for kind in (RegisterDecisionKind.APPROVE, RegisterDecisionKind.APPLY):
+            _, preview = preview_link_decision(
+                actor=company.owner, link_id=link.pk, appointment=appointment.pk, kind=kind
+            )
+            link = decide_link(
+                actor=company.owner,
+                link_id=link.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+        if link.status != "applied":
+            raise ChainStepFailed(NOT_APPLIED.format(kind="wallet link", name=company.name, status=link.status))
+        applied.append(link)
     return applied
 
 

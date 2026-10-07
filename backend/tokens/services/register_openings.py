@@ -1,5 +1,5 @@
 import hashlib
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping
 from datetime import date
 from uuid import UUID
@@ -28,8 +28,7 @@ from companies.services.document_review import (
 from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
-from tokens.constants import REGISTER_LINK_REVIEW_MAX_AGE
+from shared.db import APP_ALIAS, current_alias, use_operator
 from tokens.exceptions import (
     RegisterChangeConflict,
     RegisterOpeningHoldingsMoved,
@@ -46,11 +45,12 @@ from tokens.models import (
     RegisterOpening,
     RegisterOpeningDecision,
     RegisterWalletLink,
+    RegisterWalletLinkDecision,
     ShareRegister,
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register import member_identities
+from tokens.services.register import _snapshot, member_identities
 from tokens.services.register_authority import (
     APPOINTMENT_NOT_FOUND,
     register_appointment,
@@ -72,17 +72,25 @@ from tokens.services.register_evidence import (
 from tokens.services.register_inclusions import (
     assert_boundary_represents_completions,
     record_completed_effects,
+    waiting_list,
 )
 from tokens.services.register_snapshot import _boundary, capture_snapshot
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
+from wallets.models import Wallet
 from wallets.services.chain_observations import finality_policy
+from whitelist.models import WhitelistApproval, WhitelistEntry
+from whitelist.services.identity import identities_for
 
 SHARE_CLASS_NOT_FOUND = "Share class not found."
+COMPANY_NOT_FOUND = "Company not found."
 EVIDENCE_REFUSAL = "Name the authority document you uploaded for this company."
+PROVEN = "proven"
+NOT_PROVEN = "not_proven"
 
 
 def _mapping(mapping):
     if not isinstance(mapping, list):
-        raise ValidationError("The opening mapping must be a list of wallet addresses and member IDs.")
+        raise ValidationError("The mapping must be a list of wallet addresses and member IDs.")
     normalized = []
     try:
         for link in mapping:
@@ -94,9 +102,9 @@ def _mapping(mapping):
                 {"address": Web3.to_checksum_address(link["address"]), "member": str(UUID(str(link["member"])))}
             )
     except (ValueError, TypeError, AttributeError):
-        raise ValidationError("The opening mapping requires wallet addresses and member UUIDs.") from None
+        raise ValidationError("The mapping requires wallet addresses and member UUIDs.") from None
     if len({link["address"].lower() for link in normalized}) != len(normalized):
-        raise ValidationError("The opening mapping repeats a wallet address.")
+        raise ValidationError("The mapping repeats a wallet address.")
     return sorted(normalized, key=lambda link: link["address"])
 
 
@@ -520,100 +528,206 @@ def decide_opening(*, actor, opening_id, appointment, kind, idempotency_key, pre
     )
 
 
-def _check_unlinked(company, links):
-    _members_of(company, links)
-    if _existing_links(company, links):
-        raise ValidationError("A mapped wallet address is already linked to a member of this company.")
+def _appointed_in(actor, company_id):
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    with use_operator(), _requester_principal(actor.pk):
+        if not appointments.filter(company_id=company_id).exists():
+            raise NotFound(COMPANY_NOT_FOUND)
 
 
-def submit_link(
+def prepare_link(
     *,
     actor,
     operation_id,
+    appointment,
     company_id,
-    document_id,
+    authority_evidence,
     mapping,
     authority,
     approving_director,
     authority_reference,
     reason,
 ):
-    if not get_user_model().objects.filter(pk=actor.pk, is_active=True).exists():
-        raise PermissionDenied("An active company owner must submit the wallet links.")
     try:
-        operation_id, company_id, document_id = (UUID(str(value)) for value in (operation_id, company_id, document_id))
+        operation_id, appointment, company_id, authority_evidence = (
+            UUID(str(value)) for value in (operation_id, appointment, company_id, authority_evidence)
+        )
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Wallet link references must be UUIDs.") from None
     values = _authority_values(authority, approving_director, authority_reference, reason)
     normalized = _mapping(mapping)
     if not normalized:
         raise ValidationError("Name at least one wallet address and its member.")
-    with atomic():
-        company = Company.objects.select_for_update(no_key=True).filter(pk=company_id, owner=actor).first()
-        if company is None:
-            raise NotFound("Company not found.")
-        existing = _replayed(
-            RegisterWalletLink,
-            operation_id,
-            {
-                **values,
-                "company_id": company.pk,
-                "mapping": normalized,
-                "source_document": document_id,
-                "submitted_by_id": actor.pk,
-            },
-        )
-        if existing:
-            return existing
-        _check_unlinked(company, normalized)
-        return _retain(
-            RegisterWalletLink(uuid=operation_id, company=company, mapping=normalized, **values), document_id, actor
-        )
-
-
-def _link_preview(proposal, reviewer):
-    return {"proposal": str(proposal.pk), "reviewer": reviewer.pk, "evidence": proposal.evidence_fingerprint}
-
-
-def prepare_link_review(*, proposal_id, reviewer):
-    reviewer = _reviewer(reviewer, RegisterWalletLink)
-    proposal = RegisterWalletLink.objects.select_related("company").get(pk=proposal_id)
-    if proposal.status != "submitted":
-        raise ValidationError("This wallet link request already has a decision.")
-    _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
-    _check_unlinked(proposal.company, proposal.mapping)
-    return proposal, signing.dumps(_link_preview(proposal, reviewer), salt="tokens.register-wallet-link")
-
-
-def decide_link(*, proposal_id, reviewer, confirmation, decision, rejection_reason=""):
-    reviewer = _reviewer(reviewer, RegisterWalletLink)
-    _check_decision(decision, rejection_reason)
-    initial = RegisterWalletLink.objects.get(pk=proposal_id)
-    if initial.status != "submitted":
-        return _completed_decision(initial, reviewer, decision, rejection_reason)
-    with atomic():
-        company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
-        document = CompanyDocument.objects.select_for_update().filter(pk=initial.source_document).first()
-        proposal = RegisterWalletLink.objects.select_for_update().get(pk=proposal_id)
-        if proposal.status != "submitted":
-            return _completed_decision(proposal, reviewer, decision, rejection_reason)
-        if decision == "apply":
-            _confirm(
-                confirmation,
-                "tokens.register-wallet-link",
-                REGISTER_LINK_REVIEW_MAX_AGE,
-                _link_preview(proposal, reviewer),
+    _appointed_in(actor, company_id)
+    link = None
+    try:
+        with register_command(actor, company_id, "register_link_prepare") as (
+            company,
+            current_actor,
+            profile,
+            operator,
+        ):
+            source = register_appointment(
+                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
             )
-            _check_evidence(proposal, company, document)
-            _check_unlinked(company, proposal.mapping)
-            _link(company, proposal.mapping)
-            for token in ShareToken.objects.select_for_update().filter(company=company).order_by("pk"):
-                record_completed_effects(token.pk)
-            proposal.status = "applied"
-        else:
-            proposal.status = "rejected"
-            proposal.rejection_reason = rejection_reason
-        proposal.reviewed_by = reviewer
-        proposal.reviewed_at = timezone.now()
-        proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "rejection_reason", "updated_at"])
-        return proposal
+            existing = RegisterWalletLink.objects.filter(pk=operation_id).first()
+            if existing is not None:
+                expected = {
+                    **values,
+                    "company_id": company.pk,
+                    "mapping": normalized,
+                    "authority_evidence_id": authority_evidence,
+                    "preparing_appointment_id": source.pk,
+                    "submitted_by_id": current_actor.pk,
+                }
+                if any(getattr(existing, key) != value for key, value in expected.items()):
+                    raise RegisterChangeConflict()
+                return existing, False
+            _members_of(company, normalized)
+            if _existing_links(company, normalized):
+                raise ValidationError("A mapped wallet address is already linked to a member of this company.")
+            copy = RegisterEvidence.objects.select_for_update().filter(pk=authority_evidence).first()
+            raw = own_evidence_bytes(copy, RegisterEvidenceKind.AUTHORITY, company, current_actor, EVIDENCE_REFUSAL)
+            link = RegisterWalletLink(
+                uuid=operation_id,
+                company=company,
+                mapping=normalized,
+                preparing_appointment=source,
+                authority_evidence=copy,
+                evidence_fingerprint=copy.sha256,
+                evidence_snapshot=evidence_snapshot(copy),
+                submitted_by=current_actor,
+                **values,
+            )
+            link.file.save("authority.bin", ContentFile(raw), save=False)
+            try:
+                link.save(force_insert=True)
+            except IntegrityError:
+                raise RegisterChangeConflict() from None
+            return link, True
+    except BaseException:
+        if link is not None:
+            discard(link.file)
+        raise
+
+
+def wallet_statuses(company_id, addresses):
+    listed = {
+        approval.entry.wallet_address.lower()
+        for approval in WhitelistApproval.objects.filter(
+            company_id=company_id, entry__in=WhitelistEntry.objects.for_addresses(addresses)
+        ).select_related("entry__wallet")
+    }
+    identities = identities_for(sorted(listed))
+    proven = set(
+        Wallet.objects.filter(chain=BLOCKCHAIN_BASE, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED)
+        .annotate(lowered=Lower("address"))
+        .filter(lowered__in=listed)
+        .values_list("lowered", flat=True)
+    )
+
+    def status(key):
+        if key not in listed:
+            return {"wallet_proof": None, "holder_type": None, "holder_name": None}
+        return {
+            "wallet_proof": PROVEN if key in proven else NOT_PROVEN,
+            "holder_type": identities[key].holder_type,
+            "holder_name": identities[key].name or None,
+        }
+
+    return {address.lower(): status(address.lower()) for address in addresses}
+
+
+def mapping_summary(link):
+    existing = {
+        str(member)
+        for member in RegisterMember.objects.filter(
+            company_id=link.company_id, pk__in=[item["member"] for item in link.mapping]
+        ).values_list("pk", flat=True)
+    }
+    return [{**item, "member_exists": item["member"] in existing} for item in link.mapping]
+
+
+def waiting_wallets(actor, company_id):
+    company = Company.objects.register_preparable_by(actor).filter(pk=company_id).first()
+    if company is None:
+        raise NotFound(COMPANY_NOT_FOUND)
+    waiting = Counter()
+    with _snapshot():
+        for token_id in ShareToken.objects.filter(company=company).order_by("pk").values_list("pk", flat=True):
+            for effect in waiting_list(token_id) or []:
+                waiting.update({Web3.to_checksum_address(address) for address in effect["unlinked_wallets"]})
+        statuses = wallet_statuses(company.pk, list(waiting))
+    return [
+        {"address": address, "waiting": waiting[address], **statuses[address.lower()]}
+        for address in sorted(waiting, key=str.lower)
+    ]
+
+
+def _link_requirements(link):
+    unmet = []
+    try:
+        matching_bytes(link.file, link.evidence_snapshot["file_size"], link.evidence_fingerprint)
+    except ValidationError:
+        unmet.append("evidence_unavailable")
+    if _linked_elsewhere(link.company_id, link.mapping):
+        unmet.append("wallet_linked_elsewhere")
+    return unmet
+
+
+def _link_details(link):
+    statuses = wallet_statuses(link.company_id, [item["address"] for item in link.mapping])
+    return {"links": [{**row, **statuses[row["address"].lower()]} for row in mapping_summary(link)]}
+
+
+def _lock_link(link):
+    list(
+        ShareToken.objects.select_for_update()
+        .filter(company_id=link.company_id)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+    return RegisterWalletLink.objects.select_for_update().get(pk=link.pk)
+
+
+def _apply_link(link, actor, decision):
+    _link(link.company, link.mapping)
+    for token_id in ShareToken.objects.filter(company_id=link.company_id).order_by("pk").values_list("pk", flat=True):
+        record_completed_effects(token_id)
+    link.status = "applied"
+    link.reviewed_by = actor
+    link.reviewed_at = decision.decided_at
+    link.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+
+
+LINKS = DecisionFamily(
+    model=RegisterWalletLink,
+    decision_model=RegisterWalletLinkDecision,
+    field="register_wallet_link",
+    operation="register_link",
+    approved_function="tokens_register_link_approved",
+    digest_function="tokens_register_link_decision_digest",
+    effect_requirements=_link_requirements,
+    lock=_lock_link,
+    apply=_apply_link,
+)
+
+
+def preview_link_decision(*, actor, link_id, appointment, kind, reason=""):
+    return preview(
+        LINKS, _link_details, actor=actor, proposal_id=link_id, appointment=appointment, kind=kind, reason=reason
+    )
+
+
+def decide_link(*, actor, link_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
+    return decide(
+        LINKS,
+        actor=actor,
+        proposal_id=link_id,
+        appointment=appointment,
+        kind=kind,
+        idempotency_key=idempotency_key,
+        preview_digest=preview_digest,
+        confirmation=confirmation,
+        reason=reason,
+    )

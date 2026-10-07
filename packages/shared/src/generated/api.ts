@@ -1919,6 +1919,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-links/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_links_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-links/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_links_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-links/{uuid}/file/': {
     parameters: {
       query?: never;
@@ -1927,6 +1959,22 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_register_links_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-links/waiting-wallets/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_links_waiting_wallets_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -5030,35 +5078,96 @@ export interface ApiComponents {
       uuid: string;
     };
     RegisterReconciliationStatusEnum: 'matched' | 'discrepant' | 'failed';
+    RegisterWaitingWallet: {
+      address: string;
+      holderName: string | null;
+      holderType: (ApiComponents['schemas']['HolderTypeEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+      waiting: number;
+      walletProof: (ApiComponents['schemas']['WalletProofEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+    };
+    RegisterWaitingWallets: {
+      wallets: ApiComponents['schemas']['RegisterWaitingWallet'][];
+    };
     RegisterWalletLink: {
       approvingDirector: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string | null;
       authorityReference: string;
       company: string;
       createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterWalletLinkDecision'][];
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       mapping: unknown;
+      mappingSummary: ApiComponents['schemas']['RegisterWalletLinkMapping'][];
+      preparedByName: string | null;
+      preparingAppointment: string | null;
+      providedBy: string;
       reason: string;
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
-      sourceDocument: string;
+      sourceDocument: string | null;
+      stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       uuid: string;
     };
     RegisterWalletLinkCreateRequest: {
+      appointment: string;
       approvingDirector?: string;
       authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authorityEvidence: string;
       authorityReference: string;
       companyId: string;
-      documentId: string;
       mapping: {
         [key: string]: string;
       }[];
       operationId: string;
       reason: string;
+    };
+    RegisterWalletLinkDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterWalletLinkDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterWalletLinkDecisionPreview: {
+      canDecide: boolean;
+      links: ApiComponents['schemas']['RegisterWalletLinkPreview'][];
+      previewDigest: string;
+      unmetRequirements: string[];
+    };
+    RegisterWalletLinkDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterWalletLinkMapping: {
+      address: string;
+      member: string;
+      memberExists: boolean;
+    };
+    RegisterWalletLinkPreview: {
+      address: string;
+      holderName: string | null;
+      holderType: (ApiComponents['schemas']['HolderTypeEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+      member: string;
+      memberExists: boolean;
+      walletProof: (ApiComponents['schemas']['WalletProofEnum'] | ApiComponents['schemas']['NullEnum']) | null;
     };
     ResendVerificationRequest: {
       email?: string;
@@ -5798,6 +5907,7 @@ export interface ApiComponents {
       walletType?:
         (ApiComponents['schemas']['WalletSigningPreferenceEnum'] | ApiComponents['schemas']['NullEnum']) | null;
     };
+    WalletProofEnum: 'proven' | 'not_proven';
     WalletRequest: {
       address: string;
       addressIndex?: number | null;
@@ -9358,8 +9468,10 @@ export interface ApiOperations {
   api_v1_tokens_register_links_list: {
     parameters: {
       query?: {
+        company?: string;
         ordering?: string;
         page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
       };
       header?: never;
       path?: never;
@@ -9392,6 +9504,14 @@ export interface ApiOperations {
       };
     };
     responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWalletLink'];
+        };
+      };
       201: {
         headers: {
           [name: string]: unknown;
@@ -9423,6 +9543,60 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_links_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterWalletLinkDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterWalletLinkDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterWalletLinkDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWalletLink'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterWalletLinkDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterWalletLinkDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterWalletLinkDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWalletLinkDecisionPreview'];
+        };
+      };
+    };
+  };
   api_v1_tokens_register_links_file_retrieve: {
     parameters: {
       query?: never;
@@ -9440,6 +9614,27 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_links_waiting_wallets_retrieve: {
+    parameters: {
+      query: {
+        company: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterWaitingWallets'];
         };
       };
     };

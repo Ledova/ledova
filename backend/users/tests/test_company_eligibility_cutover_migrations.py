@@ -49,6 +49,7 @@ RESTORED_EMPTY_TABLES = {
     "tokens_registeropeningdecision",
     "tokens_registerparticularschange",
     "tokens_registerparticularschangedecision",
+    "tokens_registerwalletlinkdecision",
     "whitelist_whitelisteligibilityinvalidation",
 }
 ADDED_COLUMNS = {

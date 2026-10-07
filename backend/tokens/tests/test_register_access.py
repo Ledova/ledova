@@ -20,13 +20,13 @@ from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterExport, ShareToken
 from tokens.querysets import RegisterProposalQuerySet
 from tokens.services.register_corrections import prepare_correction
-from tokens.services.register_openings import submit_link
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
 )
 from tokens.tests.test_register_imports import import_fixture, import_payload, prepared
 from tokens.tests.test_register_links import link_fixture, link_payload
+from tokens.tests.test_register_links import prepared as prepared_link
 from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_import import RegisterImportViewSet
 from tokens.views.register_instruction import RegisterInstructionViewSet
@@ -269,10 +269,8 @@ class RegisterProposalFamiliesTest(APITransactionTestCase):
             self.correction, _ = prepare_correction(
                 actor=correction_owner, **correction_payload(issue, evidence, self.correction_administrator)
             )
-            link_owner, link_company, _, _, link_document = link_fixture()
-            self.link = submit_link(actor=link_owner, **link_payload(link_company, link_document))
-            UserProfile.objects.get_or_create(user=link_owner, defaults={"full_name": link_owner.email})
-            self.link_administrator = historical_owner_appointment(link_company)
+            link_owner, link_company, _, self.link_administrator, link_evidence = link_fixture()
+            self.link = prepared_link(link_owner, link_payload(link_company, link_evidence, self.link_administrator))
 
     def reader(self, administrator):
         appointee = person(f"reader-{uuid4()}@example.test")

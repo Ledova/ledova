@@ -51,6 +51,7 @@ from .register_opening import (
     RegisterOpening,
     RegisterOpeningDecision,
     RegisterWalletLink,
+    RegisterWalletLinkDecision,
 )
 from .register_particulars import (
     RegisterParticularsChange,
@@ -117,6 +118,7 @@ __all__ = [
     "RegisterReconciliation",
     "RegisterReconciliationStatus",
     "RegisterWalletLink",
+    "RegisterWalletLinkDecision",
     "ShareRegister",
     "ShareIssuance",
     "ShareIssuanceExecution",

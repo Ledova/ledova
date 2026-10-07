@@ -7,6 +7,7 @@ from tokens.models import (
     RegisterOpening,
     RegisterOpeningDecision,
     RegisterWalletLink,
+    RegisterWalletLinkDecision,
 )
 from tokens.serializers.register_decision import (
     RegisterDecidedSerializer,
@@ -15,6 +16,8 @@ from tokens.serializers.register_decision import (
     RegisterDecisionSerializer,
 )
 from tokens.services.register import member_identities
+from tokens.services.register_openings import NOT_PROVEN, PROVEN, mapping_summary
+from whitelist.models import HolderType
 
 
 class RegisterOpeningCreateSerializer(serializers.Serializer):
@@ -154,8 +157,9 @@ class RegisterOpeningSerializer(RegisterDecidedSerializer):
 
 class RegisterWalletLinkCreateSerializer(serializers.Serializer):
     operation_id = serializers.UUIDField()
+    appointment = serializers.UUIDField()
     company_id = serializers.UUIDField()
-    document_id = serializers.UUIDField()
+    authority_evidence = serializers.UUIDField()
     mapping = serializers.ListField(
         child=serializers.DictField(child=serializers.CharField()), allow_empty=False, max_length=10000
     )
@@ -165,13 +169,66 @@ class RegisterWalletLinkCreateSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=1000)
 
 
-class RegisterWalletLinkSerializer(serializers.ModelSerializer):
+class RegisterWalletLinkDecisionRequestSerializer(RegisterDecisionRequestSerializer):
+    pass
+
+
+class RegisterWalletLinkDecideSerializer(RegisterDecideSerializer):
+    pass
+
+
+class RegisterWalletLinkMappingSerializer(serializers.Serializer):
+    address = serializers.CharField()
+    member = serializers.CharField()
+    member_exists = serializers.BooleanField()
+
+
+class RegisterWalletStatusSerializer(serializers.Serializer):
+    wallet_proof = serializers.ChoiceField(choices=[(PROVEN, "Proven"), (NOT_PROVEN, "Not proven")], allow_null=True)
+    holder_type = serializers.ChoiceField(choices=HolderType.choices, allow_null=True)
+    holder_name = serializers.CharField(allow_null=True)
+
+
+class RegisterWalletLinkPreviewSerializer(RegisterWalletStatusSerializer, RegisterWalletLinkMappingSerializer):
+    pass
+
+
+class RegisterWalletLinkDecisionPreviewSerializer(serializers.Serializer):
+    preview_digest = serializers.CharField()
+    unmet_requirements = serializers.ListField(child=serializers.CharField())
+    can_decide = serializers.BooleanField()
+    links = RegisterWalletLinkPreviewSerializer(many=True)
+
+
+class RegisterWaitingWalletSerializer(RegisterWalletStatusSerializer):
+    address = serializers.CharField()
+    waiting = serializers.IntegerField()
+
+
+class RegisterWaitingWalletsSerializer(serializers.Serializer):
+    wallets = RegisterWaitingWalletSerializer(many=True)
+
+
+class RegisterWaitingWalletsRequestSerializer(serializers.Serializer):
+    company = serializers.UUIDField()
+
+
+class RegisterWalletLinkDecisionSerializer(RegisterDecisionSerializer):
+    class Meta(RegisterDecisionSerializer.Meta):
+        model = RegisterWalletLinkDecision
+
+
+class RegisterWalletLinkSerializer(RegisterDecidedSerializer):
+    decisions = RegisterWalletLinkDecisionSerializer(many=True, read_only=True)
+    mapping_summary = serializers.SerializerMethodField()
+
     class Meta:
         model = RegisterWalletLink
         fields = [
             "uuid",
             "company",
             "mapping",
+            "mapping_summary",
             "authority",
             "approving_director",
             "authority_reference",
@@ -179,11 +236,21 @@ class RegisterWalletLinkSerializer(serializers.ModelSerializer):
             "source_document",
             "evidence_fingerprint",
             "evidence_snapshot",
+            "authority_evidence",
+            "preparing_appointment",
+            "prepared_by_name",
+            "provided_by",
             "submitted_by",
             "status",
+            "stage",
             "reviewed_by",
             "reviewed_at",
             "rejection_reason",
+            "decisions",
             "created_at",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(RegisterWalletLinkMappingSerializer(many=True))
+    def get_mapping_summary(self, obj):
+        return mapping_summary(obj)

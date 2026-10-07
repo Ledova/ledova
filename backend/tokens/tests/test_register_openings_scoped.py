@@ -19,7 +19,6 @@ from tokens.models import (
     RegisterMemberWallet,
     RegisterOpening,
     RegisterOpeningDecision,
-    RegisterWalletLink,
     ShareRegister,
 )
 from tokens.services.register_events import verify_register
@@ -29,15 +28,9 @@ from tokens.services.register_inclusions import (
     opening_boundary,
     record_completed_effects,
 )
-from tokens.services.register_openings import (
-    decide_link,
-    decide_opening,
-    prepare_link_review,
-    submit_link,
-)
+from tokens.services.register_openings import decide_opening
 from tokens.services.register_snapshot import capture_snapshot
 from tokens.tests.test_register_events import register_fixture
-from tokens.tests.test_register_links import link_fixture, link_payload
 from tokens.tests.test_register_openings import (
     SETTINGS,
     apply_opening,
@@ -223,39 +216,3 @@ class ScopedRegisterOpeningTest(RunsOnTheScopedConnection, APITransactionTestCas
             refused = RegisterOpening.objects.get(status="submitted")
             self.assertIn(refused.pk, {self.proposal.pk, second.pk})
             self.assertNotEqual(applied.pk, refused.pk)
-
-
-class ScopedRegisterWalletLinkTest(RunsOnTheScopedConnection, APITransactionTestCase):
-    def setUp(self):
-        with use_operator():
-            self.owner, self.company, _, self.reviewer, self.document = link_fixture()
-            self.stranger, _, _, _, _, _ = register_fixture()
-        self.the_principal_the_middleware_would_set(self.owner)
-        self.proposal = submit_link(actor=self.owner, **link_payload(self.company, self.document))
-
-    def test_app_submits_and_reads_but_only_the_operator_reviews_decides_and_links(self):
-        self.assertEqual(list(RegisterWalletLink.objects.values_list("pk", flat=True)), [self.proposal.pk])
-        with self.assertRaises(PermissionDenied):
-            prepare_link_review(proposal_id=self.proposal.pk, reviewer=self.reviewer)
-        with self.assertRaises(PermissionDenied):
-            decide_link(proposal_id=self.proposal.pk, reviewer=self.reviewer, confirmation="", decision="apply")
-        for change in ({"status": "rejected", "rejection_reason": "forged"}, {"reason": "forged"}):
-            with self.subTest(change=change), self.assertRaises(DatabaseError), atomic():
-                RegisterWalletLink.objects.filter(pk=self.proposal.pk).update(**change)
-        with self.assertRaises(DatabaseError), atomic():
-            self.proposal.delete()
-        self.the_principal_the_middleware_would_set(self.stranger)
-        self.assertEqual(RegisterWalletLink.objects.count(), 0)
-        self.no_principal_is_set()
-        self.assertEqual(RegisterWalletLink.objects.count(), 0)
-        self.the_principal_the_middleware_would_set(self.owner)
-        with use_operator():
-            _, confirmation = prepare_link_review(proposal_id=self.proposal.pk, reviewer=self.reviewer)
-            applied = decide_link(
-                proposal_id=self.proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
-            )
-        self.assertEqual(applied.status, "applied")
-        self.assertEqual(
-            list(RegisterMemberWallet.objects.values_list("address", flat=True)),
-            [self.proposal.mapping[0]["address"]],
-        )

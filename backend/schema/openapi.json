@@ -11438,6 +11438,64 @@
         ],
         "type": "string"
       },
+      "RegisterWaitingWallet": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "holderName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "holderType": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HolderTypeEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "waiting": {
+            "type": "integer"
+          },
+          "walletProof": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WalletProofEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "holderName",
+          "holderType",
+          "waiting",
+          "walletProof"
+        ],
+        "type": "object"
+      },
+      "RegisterWaitingWallets": {
+        "properties": {
+          "wallets": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterWaitingWallet"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "wallets"
+        ],
+        "type": "object"
+      },
       "RegisterWalletLink": {
         "properties": {
           "approvingDirector": {
@@ -11451,6 +11509,13 @@
               }
             ],
             "readOnly": true
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "authorityReference": {
             "readOnly": true,
@@ -11467,6 +11532,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterWalletLinkDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
           "evidenceFingerprint": {
             "readOnly": true,
             "type": "string"
@@ -11476,6 +11548,29 @@
           },
           "mapping": {
             "readOnly": true
+          },
+          "mappingSummary": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterWalletLinkMapping"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
           },
           "reason": {
             "readOnly": true,
@@ -11498,6 +11593,11 @@
           },
           "sourceDocument": {
             "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "stage": {
             "readOnly": true,
             "type": "string"
           },
@@ -11523,17 +11623,24 @@
         "required": [
           "approvingDirector",
           "authority",
+          "authorityEvidence",
           "authorityReference",
           "company",
           "createdAt",
+          "decisions",
           "evidenceFingerprint",
           "evidenceSnapshot",
           "mapping",
+          "mappingSummary",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
           "reason",
           "rejectionReason",
           "reviewedAt",
           "reviewedBy",
           "sourceDocument",
+          "stage",
           "status",
           "submittedBy",
           "uuid"
@@ -11542,6 +11649,10 @@
       },
       "RegisterWalletLinkCreateRequest": {
         "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "approvingDirector": {
             "default": "",
             "maxLength": 255,
@@ -11550,16 +11661,16 @@
           "authority": {
             "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
           },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
           "authorityReference": {
             "maxLength": 255,
             "minLength": 1,
             "type": "string"
           },
           "companyId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "documentId": {
             "format": "uuid",
             "type": "string"
           },
@@ -11585,13 +11696,229 @@
           }
         },
         "required": [
+          "appointment",
           "authority",
+          "authorityEvidence",
           "authorityReference",
           "companyId",
-          "documentId",
           "mapping",
           "operationId",
           "reason"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkDecisionPreview": {
+        "properties": {
+          "canDecide": {
+            "type": "boolean"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterWalletLinkPreview"
+            },
+            "type": "array"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "canDecide",
+          "links",
+          "previewDigest",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkMapping": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "member": {
+            "type": "string"
+          },
+          "memberExists": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "address",
+          "member",
+          "memberExists"
+        ],
+        "type": "object"
+      },
+      "RegisterWalletLinkPreview": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "holderName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "holderType": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HolderTypeEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "member": {
+            "type": "string"
+          },
+          "memberExists": {
+            "type": "boolean"
+          },
+          "walletProof": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WalletProofEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "holderName",
+          "holderType",
+          "member",
+          "memberExists",
+          "walletProof"
         ],
         "type": "object"
       },
@@ -15475,6 +15802,14 @@
           "verifiedAt"
         ],
         "type": "object"
+      },
+      "WalletProofEnum": {
+        "description": "* `proven` - Proven\n* `not_proven` - Not proven",
+        "enum": [
+          "proven",
+          "not_proven"
+        ],
+        "type": "string"
       },
       "WalletRequest": {
         "properties": {
@@ -22807,6 +23142,14 @@
         "operationId": "api_v1_tokens_register_links_list",
         "parameters": [
           {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "Which field to use when ordering the results.",
             "in": "query",
             "name": "ordering",
@@ -22822,6 +23165,18 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -22872,6 +23227,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWalletLink"
+                }
+              }
+            },
+            "description": ""
+          },
           "201": {
             "content": {
               "application/json": {
@@ -22891,6 +23256,45 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-links/waiting-wallets/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_links_waiting_wallets_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWaitingWallets"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [
@@ -22931,6 +23335,130 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-links/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_links_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWalletLink"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-links/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_links_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWalletLinkDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWalletLinkDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

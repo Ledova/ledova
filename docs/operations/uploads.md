@@ -32,13 +32,14 @@ Register export records share this clock, measured from the export. So do
 imported former members, from their date ceased, and a member's recorded
 particulars, from the last date the member held shares in the company. The same
 daily job purges them all (owner decisions, 21 September 2026). It removes
-nothing else of a register opening, import, correction or particulars change:
-the import, its copies of the register document and ASIC extract, an opening's
-or correction's copy of its authority document, a particulars change with its
-copy of the supporting document, and the company's evidence uploads of kind
-`share_register`, `asic_extract`, `authority` or `supporting`, including those
-no opening, import, correction or change used, are evidence, kept with no
-automatic expiry during the synthetic experiment. Their production retention is
+nothing else of a register opening, import, correction, wallet link or
+particulars change: the import, its copies of the register document and ASIC
+extract, an opening's, correction's or wallet link's copy of its authority
+document, a particulars change with its copy of the supporting document, and the
+company's evidence uploads of kind `share_register`, `asic_extract`, `authority`
+or `supporting`, including those no opening, import, correction, link or change
+used, are evidence, kept with no automatic expiry during the synthetic
+experiment. Their production retention is
 decided before any real data (owner decisions, 22 September and 5 October 2026).
 
 [Publications to members](../architecture/shareholder-publications.md#retention)

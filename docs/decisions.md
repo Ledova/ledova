@@ -52,9 +52,9 @@ both are shown as provided by the company, with no Ledova staff verification ste
 Holders of `prepare`, `approve` or `apply` read the full register, including
 residential addresses in the CSV and retained evidence copies, because they work
 from member details. The invitation labels for those capabilities say that they
-include reading the register. The owner's amendment recorded on #860 also lets
-#864 start before #863 closes, except member-wallet links, which wait until #863
-closes.
+include reading the register. The owner's amendment recorded on #860 also let
+#864 start before #863 closed, except member-wallet links, which waited until #863
+closed.
 
 For company-run imports the owner decided four more questions the same day
 ([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5988960147)).
@@ -78,8 +78,23 @@ The same rules apply to company-run openings, decided the same day (recorded on
 it, and approval and application check that boundary against the chain again. An
 opening still waiting for the retired staff review can only be rejected, whether
 or not a reviewer captured its boundary. Proposals that link a member's wallet
-after the opening wait for #863; an opening's own mapping of boundary addresses
+after the opening waited for #863; an opening's own mapping of boundary addresses
 to members is part of the opening.
+
+#863 closed on 6 October 2026, and member-wallet links then became company-run
+under the same rules: a current `admin` appointment may take every step, with
+`prepare`, `approve` and `apply` as the narrower delegates; application needs a
+current approval; the company's authority document is company-provided evidence;
+and a link still waiting for the retired staff review can only be rejected. A
+link keeps the documentary authority decided on 21 September 2026, a director
+resolution naming the approving director or a court order, uploaded as an
+`authority` upload as openings and corrections do. The recorded default of
+5 October
+([#864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
+is that a link shows each address's proof of control and identity without
+requiring either. Both are built that way, and the owner has yet to confirm
+them: the statuses are live and informational, shown only for an address on the
+company's whitelist, and never choose a member.
 
 For reconciliation discrepancies the owner decided the same day
 ([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
@@ -203,9 +218,9 @@ implementation. The [new decision](#company-managed-registers-and-one-product)
 supersedes that responsibility and the API-only client scope. Exact authority,
 evidence, identity, event history and retention controls remain requirements.
 
-Wallets become linked to register members only through documentary authority
-verified by staff: an opening's mapping, or a later reviewed link request.
-Openings have since become company-run, with company-provided evidence
+Wallets become linked to register members only through documentary authority:
+an opening's mapping, or a later wallet link. Staff verified it at first;
+openings and links have since become company-run, with company-provided evidence
 ([company-run register authority](#company-run-register-authority-and-evidence)). A
 completion to an unlinked wallet waits for that link instead of creating a member,
 because one person holding two wallets would otherwise become two members that

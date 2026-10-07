@@ -16,8 +16,7 @@ from web3 import Web3
 from companies.services.administration import company_operation
 from offerings.tests.factories import allottable_subscription, eligible_subscriber
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import atomic, current_alias, use_migrate, use_operator
-from shared.seeds.synthetic.authority import historical_owner_appointment
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
@@ -86,7 +85,11 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
-from tokens.tests.evidence_fixtures import staff_user, upload_evidence
+from tokens.tests.evidence_fixtures import (
+    owner_appointment,
+    staff_user,
+    upload_evidence,
+)
 from tokens.tests.instruction_fixtures import instruction_payload
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
@@ -119,12 +122,6 @@ NEWCOMER = {
     "entered_on": "2020-02-02",
     "amount_paid": None,
 }
-
-
-def owner_appointment(company):
-    with use_migrate():
-        UserProfile.objects.get_or_create(user=company.owner, defaults={"full_name": "Synthetic register owner"})
-    return historical_owner_appointment(company)
 
 
 def import_fixture():

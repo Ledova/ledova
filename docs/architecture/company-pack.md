@@ -110,7 +110,7 @@ in UTC, and share quantities and supplies are strings of whole numbers.
 | `manifest.json` | Generated, as above |
 | `company.json` | The company row, the full name on the owner account's profile, and its business-register checks |
 | `approvals.json` | The registry addresses the company's approvals and approval changes recorded; each approval's wallet, registry, status, expiry and whether it was listed at the as-at time; each approval change's action, wallet, expiry, authority kind, status, times and transaction hash |
-| `wallet_links.json` | Every reviewed wallet link request of the company, as an [authority record](#approvals-and-history) |
+| `wallet_links.json` | Every wallet link of the company, applied, pending and rejected alike, as an [authority record](#approvals-and-history) |
 | `particulars_changes.json` | Every change the company prepared to a member's particulars, with its evidence and decisions: see [approvals and history](#approvals-and-history) |
 | `documents.json` | Every company document, oldest first: see [documents](#documents) |
 | `documents/<document id>.<extension>` | Each company document Ledova holds a file for, as uploaded |
@@ -291,11 +291,11 @@ carries it: the pack runs on the operator connection, where no policy narrows a
 read, so those joins are its only tenancy guard.
 
 An **authority record** is a register opening, import, correction, register
-instruction or wallet link request. Each carries its id, when it was submitted,
+instruction or wallet link. Each carries its id, when it was submitted,
 its authority kind, approving director, reference and reason, the terms it was
 submitted with, its status, the reviewer's name, when it was decided, and any
 rejection reason. An applied opening or correction also names its register
-entry. Wallet link requests belong to the company rather than a class, so they
+entry. Wallet links belong to the company rather than a class, so they
 have a file of their own, `wallet_links.json`, rather than a copy in each class's
 `authority.json`.
 
@@ -316,7 +316,8 @@ names the member.
   relies on, and the name, type, media type, size and SHA-256 of the copy Ledova
   retained, all from the snapshot taken when it was submitted, and `path`, where
   the copy's bytes are under `documents/evidence/` (see [documents](#documents)).
-  A company-run opening, import or correction names no company document: its
+  A company-run opening, import, correction or wallet link names no company
+  document: its
   copy is of the company's own upload, and its `document_type` is the upload's
   kind. The
   snapshot's company identity, storage path and owner id stay behind.
@@ -395,12 +396,12 @@ under `companies/<company id>/` ([files and retention](files-and-retention.md)).
   changed or gone since the record was submitted, and the copy is what was
   reviewed. A company-run import also keeps a copy of its ASIC extract, carried at
   `documents/evidence/registerimport-asic/<record id>` and named by the record's
-  `asic.path` with its `asic.sha256` and `asic.size`. An opening's, import's or
-  correction's record carries `provided_by` (`company`, or `staff_verified` for
-  one made before openings, imports or corrections were company-run) and its
-  `decisions`, each with its kind, the decider's name, time and any reason; a
-  particulars change's record does the same, always `company`, and its copy is of
-  the company's `supporting` upload.
+  `asic.path` with its `asic.sha256` and `asic.size`. An opening's, import's,
+  correction's or wallet link's record carries `provided_by` (`company`, or
+  `staff_verified` for one made before openings, imports, corrections or wallet
+  links were company-run) and its `decisions`, each with its kind, the decider's
+  name, time and any reason; a particulars change's record does the same, always
+  `company`, and its copy is of the company's `supporting` upload.
 - **The digest tie.** While streaming an evidence copy, the builder computes its
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
@@ -542,11 +543,12 @@ subscription under an applied register instruction; one subscription paid and
 one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
 is a settlement order; a correction reversing the issue, prepared, approved and
 applied by the company owner's appointment through the correction service; a
-reviewed wallet link; a former member; an approved capital increase; a pause; one
+wallet link the same appointment prepared, approved and applied; a former member; an approved capital increase; a pause; one
 listed and one lapsed wallet approval and an approval change; a discrepant
 reconciliation with a staff-era and a company acknowledgement; and a registry
 check. Every authority record rests on evidence with bytes of its own: a verified
-company document, or for the correction the company's own `authority` upload. It
+company document, or for the correction and the wallet link the company's own
+`authority` upload. It
 produces the pack
 through the admin page and gives it to
 [company_pack_consumer.py](../../backend/tokens/tests/company_pack_consumer.py),

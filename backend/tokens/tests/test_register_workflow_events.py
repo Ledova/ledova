@@ -23,6 +23,7 @@ from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterEntry,
     RegisterEntryKind,
+    RegisterEvidenceKind,
     RegisterMemberWallet,
     ShareIssuanceRequest,
     ShareToken,
@@ -47,12 +48,9 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
-from tokens.services.register_openings import (
-    decide_link,
-    prepare_link_review,
-    submit_link,
-)
+from tokens.services.register_openings import decide_link, waiting_wallets
 from tokens.tests import test_swap_finality
+from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import (
     apply_instruction,
     instruction_payload,
@@ -62,7 +60,13 @@ from tokens.tests.instruction_fixtures import (
 from tokens.tests.issuance_fixtures import IssuanceNode, admit
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
-from tokens.tests.test_register_links import link_payload
+from tokens.tests.test_register_links import (
+    decide,
+    link_payload,
+    linked,
+    prepared,
+    preview,
+)
 from tokens.tests.test_register_openings import SETTINGS
 from tokens.tests.test_register_snapshot import block_hash
 
@@ -92,12 +96,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         }
 
     def link(self, address, member):
-        proposal = submit_link(
-            actor=self.owner,
-            **link_payload(self.tenant.company, self.document, mapping=[{"address": address, "member": member}]),
-        )
-        _, confirmation = prepare_link_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-        return decide_link(proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply")
+        return linked(self.owner, self.administrator, [{"address": address, "member": member}])
 
     def test_an_issue_after_the_opening_is_recorded_with_its_completion_by_the_approving_reviewer(self):
         later = self.mint(block=MINT_BLOCK + 4)
@@ -131,6 +130,18 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
             },
             {str(waiting.pk): (AFTER_OPENING, False), str(behind.pk): (AFTER_OPENING, False)},
         )
+        self.assertEqual(
+            waiting_wallets(self.owner, self.tenant.company.pk),
+            [
+                {
+                    "address": NEWCOMER,
+                    "waiting": 1,
+                    "wallet_proof": None,
+                    "holder_type": None,
+                    "holder_name": None,
+                }
+            ],
+        )
         newcomer = str(uuid4())
         self.assertEqual(self.link(NEWCOMER, newcomer).status, "applied")
         self.assertEqual(
@@ -141,16 +152,27 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
                 ("issue", behind.pk, [{"member": self.member, "shares": "10"}]),
             ],
         )
+        self.assertEqual(
+            RegisterEntry.objects.get(operation_id=waiting.pk).recorded_by_id,
+            ShareIssuanceRequest.objects.get(executed_issuance=waiting).reviewed_by_id,
+        )
+        self.assertEqual(waiting_wallets(self.owner, self.tenant.company.pk), [])
         self.assertEqual(verify_register(RegisterEntry.objects.first().register_id)["members"], 2)
         self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 
-    def test_a_link_approved_during_a_completion_waits_for_it_and_records_its_issue_once(self):
+    def test_a_link_applied_during_a_completion_waits_for_it_and_records_its_issue_once(self):
         command = self.admitted(block=MINT_BLOCK + 4, recipient=NEWCOMER)
-        proposal = submit_link(
-            actor=self.owner,
-            **link_payload(self.tenant.company, self.document, mapping=[{"address": NEWCOMER, "member": str(uuid4())}]),
+        link = prepared(
+            self.owner,
+            link_payload(
+                self.tenant.company,
+                upload_evidence(self.owner, self.administrator, RegisterEvidenceKind.AUTHORITY),
+                self.administrator,
+                mapping=[{"address": NEWCOMER, "member": str(uuid4())}],
+            ),
         )
-        _, confirmation = prepare_link_review(proposal_id=proposal.pk, reviewer=self.reviewer)
+        decide(self.owner, self.administrator, link, "approve")
+        digest = preview(self.owner, self.administrator, link, "apply")["preview_digest"]
         held, release, pids, errors = Event(), Event(), Queue(), []
         recorder = issuance_execution.record_completed_effects
 
@@ -172,15 +194,21 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
             finally:
                 connections.close_all()
 
-        def approve():
+        def apply():
             try:
                 if not held.wait(timeout=10):
                     raise RuntimeError("Test synchronization timed out")
                 with connections["default"].cursor() as cursor:
                     cursor.execute("SELECT pg_backend_pid()")
-                    pids.put(("approve", cursor.fetchone()[0]))
+                    pids.put(("apply", cursor.fetchone()[0]))
                 return decide_link(
-                    proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
+                    actor=self.owner,
+                    link_id=link.pk,
+                    appointment=self.administrator.pk,
+                    kind="apply",
+                    idempotency_key=uuid4(),
+                    preview_digest=digest,
+                    confirmation=True,
                 ).status
             except Exception as exc:
                 errors.append((type(exc).__name__, str(exc)))
@@ -188,17 +216,17 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=2) as pool:
-            completed, approved = pool.submit(complete), pool.submit(approve)
+            completed, applied = pool.submit(complete), pool.submit(apply)
             workers = dict(pids.get(timeout=10) for _ in range(2))
             deadline, blocked = time.monotonic() + 8, False
             while time.monotonic() < deadline and not blocked:
                 with connections["default"].cursor() as cursor:
-                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["approve"]])
+                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
                     blocked = workers["complete"] in (cursor.fetchone()[0] or [])
                 time.sleep(0.02)
             release.set()
-            outcomes = (completed.result(timeout=20), approved.result(timeout=20))
-        self.assertTrue(blocked, "The link approval never waited for the completion's share-class lock")
+            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
+        self.assertTrue(blocked, "The link application never waited for the completion's share-class lock")
         self.assertFalse(errors, errors)
         self.assertEqual(outcomes, ("executed", "applied"))
         command.refresh_from_db()
@@ -444,7 +472,7 @@ class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
                 Company.objects.filter(pk=self.swap.share_token.company_id).update(owner=self.owner)
             company = Company.objects.get(pk=self.swap.share_token.company_id)
             initial = company.appointments.select_related("appointee").get(request__isnull=False)
-            invite_company_administrator(company, initial, self.owner)
+            self.administrator = invite_company_administrator(company, initial, self.owner)
             self.reviewer = instruction_reviewer()
             self.document = verified_authority(company, self.reviewer)
 
@@ -596,16 +624,17 @@ class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
             self.assertEqual(
                 waiting_list(self.swap.share_token_id), [self.waiting("unlinked", [self.swap.buyer_address])]
             )
-            RegisterMemberWallet.objects.create(
-                company_id=self.swap.share_token.company_id, member=self.buyer_member, address=self.swap.buyer_address
+        linked_on = self.swap.completed_at + timedelta(days=3)
+        with patch("django.utils.timezone.now", return_value=linked_on):
+            linked(
+                self.owner,
+                self.administrator,
+                [{"address": self.swap.buyer_address, "member": str(self.buyer_member.pk)}],
             )
-            linked_on = self.swap.completed_at + timedelta(days=3)
-            with patch("django.utils.timezone.now", return_value=linked_on):
-                recorded = record_completed_effects(self.swap.share_token_id)
+        with use_operator():
+            entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
             self.assertEqual(waiting_effects(self.swap.share_token_id), 0)
-        self.assertEqual(
-            [(entry.operation_id, entry.effective_on) for entry in recorded], [(self.swap.pk, linked_on.date())]
-        )
+        self.assertEqual((entry.effective_on, entry.recorded_by_id), (linked_on.date(), self.fixture.seller.user.pk))
 
     def test_a_transfer_the_register_refuses_is_listed_as_refused(self):
         self.open_register(held=self.swap.share_amount // 2)
@@ -619,6 +648,21 @@ class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
         with use_operator():
             self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("refused")])
             self.assertEqual(waiting_effects(self.swap.share_token_id), 1)
+
+    def test_a_transfer_the_register_refuses_while_a_link_applies_waits_and_leaves_the_link_applied(self):
+        self.open_register(link_buyer=False, held=self.swap.share_amount // 2)
+        self.complete()
+        self.assertEqual(self.instruct().status, "applied")
+        with self.assertLogs(register_inclusions.logger, "WARNING") as refused:
+            link = linked(
+                self.owner,
+                self.administrator,
+                [{"address": self.swap.buyer_address, "member": str(self.buyer_member.pk)}],
+            )
+        self.assertIn(f"The register refused transfer {self.swap.pk}", refused.output[0])
+        self.assertEqual((link.status, self.transfers()), ("applied", []))
+        with use_operator():
+            self.assertEqual(waiting_list(self.swap.share_token_id), [self.waiting("refused")])
 
     def test_a_settlement_waiting_for_its_instruction_holds_a_later_issue_and_both_record_in_chain_order(self):
         self.open_register()

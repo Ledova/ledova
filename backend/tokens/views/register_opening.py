@@ -14,19 +14,29 @@ from tokens.serializers.register_opening import (
     RegisterOpeningDecisionPreviewSerializer,
     RegisterOpeningDecisionRequestSerializer,
     RegisterOpeningSerializer,
+    RegisterWaitingWalletsRequestSerializer,
+    RegisterWaitingWalletsSerializer,
     RegisterWalletLinkCreateSerializer,
+    RegisterWalletLinkDecideSerializer,
+    RegisterWalletLinkDecisionPreviewSerializer,
+    RegisterWalletLinkDecisionRequestSerializer,
     RegisterWalletLinkSerializer,
 )
 from tokens.services.register_openings import (
+    LINKS,
     OPENINGS,
+    decide_link,
     decide_opening,
+    prepare_link,
     prepare_opening,
+    preview_link_decision,
     preview_opening_decision,
-    submit_link,
+    waiting_wallets,
 )
 from tokens.views.register_proposal import RegisterProposalViewSet, with_decisions
 
 FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
+LINK_FILTERS = {"company": "company_id", "status": "status"}
 
 
 @extend_schema_view(
@@ -88,18 +98,80 @@ class RegisterOpeningViewSet(RegisterProposalViewSet):
         return self._respond(decide_opening(actor=request.user, opening_id=uuid, **serializer.validated_data))
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter("company", OpenApiTypes.UUID),
+            OpenApiParameter("status", str, enum=["submitted", "applied", "rejected"]),
+        ]
+    )
+)
 class RegisterWalletLinkViewSet(RegisterProposalViewSet):
     queryset = RegisterWalletLink.objects.none()
     serializer_class = RegisterWalletLinkSerializer
     scoped_model = RegisterWalletLink
+    operator_actions = RegisterProposalViewSet.operator_actions | {
+        "create",
+        "decision_preview",
+        "decide",
+        "waiting_wallets",
+    }
     operator_actions_because = (
         "Retained wallet-link reads require this request's company owner or a current appointment holding "
-        "administration or a register capability. The queryset binds every proposal and file to those companies."
+        "administration or a register capability. The queryset binds every link and file to those companies. "
+        "Preparation, previews and decisions run the bounded company register command, which checks the caller's "
+        "current appointment under the company lock, and their responses read the operator-only decisions. "
+        "The waiting-wallets read admits only a current appointment holding administration or prepare, and lists "
+        "the wallets of completed effects as the waiting list classifies them, which no policy admits to the caller."
     )
 
-    @extend_schema(request=RegisterWalletLinkCreateSerializer, responses={201: RegisterWalletLinkSerializer})
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        for name, field in LINK_FILTERS.items():
+            value = self.request.query_params.get(name)
+            if value:
+                queryset = queryset.filter(**{field: value})
+        return with_decisions(queryset, LINKS.approved_function)
+
+    def _respond(self, link, status=200):
+        current = with_decisions(self.get_queryset(), LINKS.approved_function).get(pk=link.pk)
+        return Response(RegisterWalletLinkSerializer(current).data, status=status)
+
+    @extend_schema(
+        request=RegisterWalletLinkCreateSerializer,
+        responses={201: RegisterWalletLinkSerializer, 200: RegisterWalletLinkSerializer},
+    )
     def create(self, request):
         serializer = RegisterWalletLinkCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        proposal = submit_link(actor=request.user, **serializer.validated_data)
-        return Response(RegisterWalletLinkSerializer(proposal).data, status=201)
+        link, created = prepare_link(actor=request.user, **serializer.validated_data)
+        return self._respond(link, 201 if created else 200)
+
+    @extend_schema(
+        request=RegisterWalletLinkDecisionRequestSerializer, responses=RegisterWalletLinkDecisionPreviewSerializer
+    )
+    @action(detail=True, methods=["post"], url_path="decision-preview")
+    def decision_preview(self, request, uuid=None):
+        serializer = RegisterWalletLinkDecisionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        _, preview = preview_link_decision(actor=request.user, link_id=uuid, **serializer.validated_data)
+        return Response(RegisterWalletLinkDecisionPreviewSerializer(preview).data)
+
+    @extend_schema(request=RegisterWalletLinkDecideSerializer, responses=RegisterWalletLinkSerializer)
+    @action(detail=True, methods=["post"])
+    def decide(self, request, uuid=None):
+        serializer = RegisterWalletLinkDecideSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return self._respond(decide_link(actor=request.user, link_id=uuid, **serializer.validated_data))
+
+    @extend_schema(
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID, required=True)],
+        responses=RegisterWaitingWalletsSerializer,
+        filters=False,
+    )
+    @action(detail=False, methods=["get"], url_path="waiting-wallets")
+    def waiting_wallets(self, request):
+        serializer = RegisterWaitingWalletsRequestSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        wallets = waiting_wallets(request.user, serializer.validated_data["company"])
+        return Response(RegisterWaitingWalletsSerializer({"wallets": wallets}).data)
