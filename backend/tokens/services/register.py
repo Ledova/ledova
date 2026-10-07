@@ -42,10 +42,12 @@ from tokens.models import (
     RegisterExport,
     RegisterExportKind,
     RegisterImport,
+    RegisterMemberCessation,
     RegisterMemberParticulars,
     RegisterMemberWallet,
     RegisterPosition,
     RegisterReconciliation,
+    RegisterTransfer,
     ShareIssuance,
     ShareRegister,
     SwapOrder,
@@ -452,6 +454,7 @@ def _stored_register(token):
             identity_source=Value(IDENTITY_PARTICULARS),
         )
     )
+    former.extend(_ledger_cessations(register))
     former.sort(key=lambda row: row.wallet_address or "")
     former.sort(key=lambda row: row.ceased_on, reverse=True)
     return {
@@ -462,7 +465,21 @@ def _stored_register(token):
         "former_members": former,
         "reconciliation": RegisterReconciliation.objects.filter(token=token).first(),
         "on_chain": not opened_by_import(token.pk),
+        "recorded_at": RegisterEntry.objects.filter(register=register, sequence=register.sequence)
+        .values_list("created_at", flat=True)
+        .get(),
     }
+
+
+def _ledger_cessations(register):
+    return list(
+        RegisterMemberCessation.objects.filter(register=register)
+        .select_related("entry__correction")
+        .annotate(
+            wallet_address=Value(None, output_field=CharField()),
+            ceased_at_block=Value(None, output_field=BigIntegerField()),
+        )
+    )
 
 
 def stored_register(token):
@@ -806,6 +823,9 @@ def months_after(day, months) -> date:
 def _certificate_due_on(entry) -> date:
     if entry.kind == RegisterEntryKind.ISSUE:
         return months_after(entry.effective_on, ISSUE_CERTIFICATE_MONTHS)
+    lodged_on = getattr(entry, "direct_lodged_on", None)
+    if lodged_on is not None:
+        return months_after(lodged_on, TRANSFER_CERTIFICATE_MONTHS)
     return months_after(entry.ordered_at.astimezone(STATUTORY_CALENDAR).date(), TRANSFER_CERTIFICATE_MONTHS)
 
 
@@ -840,6 +860,11 @@ def outputs_due(company=None) -> list[dict]:
                     )
                 ),
                 ordered_at=Subquery(SwapOrder.objects.filter(pk=OuterRef("operation_id")).values("created_at")),
+                direct_lodged_on=Subquery(
+                    RegisterTransfer.objects.filter(register_entry_id=OuterRef("uuid"), status="applied").values(
+                        "lodged_on"
+                    )
+                ),
             )
             .exclude(certified=True, noticed=True)
             .select_related("register__token__company")

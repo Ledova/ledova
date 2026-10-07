@@ -117,6 +117,7 @@ export {
 } from './register-openings';
 export { isPreparedRegisterParticularsChange } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
+export { isPreparedRegisterTransfer } from './register-transfers';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, priceCents } from './market-data';

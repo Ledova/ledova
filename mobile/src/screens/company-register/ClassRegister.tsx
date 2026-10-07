@@ -81,6 +81,45 @@ export function ClassRegister({
               );
             })
           )}
+          {!!register.formerMembers?.length && (
+            <View style={styles.group}>
+              <Text accessibilityRole="header" style={styles.heading}>
+                {REGISTER_COPY.FORMER_TITLE} · {register.formerMembers.length}
+              </Text>
+              <Text style={styles.muted}>{REGISTER_COPY.FORMER_NOTE}</Text>
+              {register.formerMembersStale && (
+                <Text style={styles.muted}>The former-member history needs a refresh before relying on it.</Text>
+              )}
+              {register.formerMembers.map((former, index) => (
+                <View
+                  key={former.uuid}
+                  style={[styles.entry, index === register.formerMembers.length - 1 && styles.lastEntry]}
+                >
+                  <Text style={styles.heading}>{former.name || 'Name not recorded'}</Text>
+                  <Rows>
+                    {former.member && <Row label="Member ID">{former.member}</Row>}
+                    <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
+                    <Row label="Ceased on">{former.ceasedOn}</Row>
+                    <Row label="Identity source">{former.identitySourceDisplay}</Row>
+                    {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
+                    {former.sourceEntrySequence !== null && (
+                      <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
+                    )}
+                    {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
+                    {former.sourceEffectiveOn && <Row label="Source effective date">{former.sourceEffectiveOn}</Row>}
+                    {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
+                    {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
+                    {former.returnedOn && <Row label="Returned on">{former.returnedOn}</Row>}
+                    {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
+                    {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
+                    {former.ceasedAtBlock !== null && (
+                      <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>
+                    )}
+                  </Rows>
+                </View>
+              ))}
+            </View>
+          )}
         </>
       )}
     </View>

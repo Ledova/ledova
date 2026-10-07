@@ -58,6 +58,11 @@ from .register_particulars import (
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
 )
+from .register_transfer import (
+    RegisterMemberCessation,
+    RegisterTransfer,
+    RegisterTransferDecision,
+)
 from .share_issuance import ShareIssuance
 from .share_issuance_request import ShareIssuanceRequest
 from .share_token import ShareToken
@@ -103,6 +108,9 @@ __all__ = [
     "RegisterEvidenceKind",
     "RegisterGrant",
     "RegisterGrantDecision",
+    "RegisterTransfer",
+    "RegisterTransferDecision",
+    "RegisterMemberCessation",
     "RegisterImport",
     "RegisterImportDecision",
     "RegisterInstruction",

@@ -20,7 +20,7 @@ from tokens.models import (
     RegisterParticularsChangeDecision,
     RegisterPosition,
 )
-from tokens.services.former_holders import retention_cutoff
+from tokens.services.former_holders import member_left_on, retention_cutoff
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_evidence import (
@@ -64,7 +64,7 @@ def _beyond_retention(member_id):
     positions = RegisterPosition.objects.filter(member_id=member_id)
     if positions.filter(shares__gt=0).exists():
         return False
-    left_on = positions.order_by("-last_entry__effective_on").values_list("last_entry__effective_on", flat=True).first()
+    left_on = member_left_on(member_id)
     return left_on is None or left_on < retention_cutoff()
 
 
@@ -183,6 +183,7 @@ def _details(change):
                 "source_import": held.source_import_id,
                 "source_change": held.source_change_id,
                 "source_grant": held.source_grant_id,
+                "source_transfer": held.source_transfer_id,
             }
         ),
     }
@@ -206,6 +207,7 @@ def _apply(change, actor, decision):
             "as_at": change.as_at,
             "source_import": None,
             "source_grant": None,
+            "source_transfer": None,
             "source_change": change,
         },
     )

@@ -162,6 +162,7 @@ function preview(overrides: Partial<RegisterParticularsChangeDecisionPreview> = 
       sourceImport: 'import-one',
       sourceChange: null,
       sourceGrant: null,
+      sourceTransfer: null,
     },
     ...overrides,
   };

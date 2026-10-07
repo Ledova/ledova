@@ -2,7 +2,13 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
-import { COMPANY_TOKEN_ENDPOINTS as URLS, getCompanyTokens, HOLDER_TYPE_LABELS, REGISTER_COPY } from '@ledova/shared';
+import {
+  COMPANY_TOKEN_ENDPOINTS as URLS,
+  getCompanyTokens,
+  HOLDER_TYPE_LABELS,
+  REGISTER_COPY,
+  type FormerMember,
+} from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
@@ -118,6 +124,54 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+});
+
+it('shows walletless cessation and return clocks with stable identity and entry provenance beside current holdings', async () => {
+  const former: FormerMember = {
+    uuid: 'cessation-a',
+    member: 'member-1',
+    walletAddress: null,
+    name: 'Prior retained identity',
+    residentialAddress: '1 Private Synthetic Street',
+    sharesAtCessation: '15',
+    ceasedOn: '2026-10-05',
+    ceasedAtBlock: null,
+    identitySource: 'recorded',
+    identitySourceDisplay: 'Company register record',
+    identityRecordedAt: '2026-10-05T00:00:00Z',
+    sourceEntry: 'cessation-entry-a',
+    sourceEntrySequence: 3,
+    sourceEntryKind: 'CORRECT',
+    sourceEffectiveOn: '2020-01-01',
+    corrects: 'corrected-entry-a',
+    correctedBy: 'later-correction-a',
+    returnedEntry: 'return-entry-a',
+    returnedOn: '2026-10-07',
+  };
+  read = (url, number) =>
+    url === URLS.HOLDERS('ordinary')
+      ? Promise.resolve({ data: { ...register, formerMembers: [former], formerMembersStale: false } })
+      : defaultRead(url, number);
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(view.getByText('Former-member history · 1')).toBeTruthy();
+  expect(view.getByText('Current members · 2')).toBeTruthy();
+  expect(view.getByText('Alex Member')).toBeTruthy();
+  for (const value of [
+    'Prior retained identity',
+    'member-1',
+    '2026-10-05',
+    '2026-10-07',
+    '2020-01-01',
+    'cessation-entry-a',
+    'corrected-entry-a',
+    'later-correction-a',
+    'return-entry-a',
+  ])
+    expect(view.getByText(value)).toBeTruthy();
+  expect(view.queryByText(former.residentialAddress)).toBeNull();
+  expect(view.queryByText('Recorded wallet')).toBeNull();
+  expect(view.queryByText('Recorded cessation block')).toBeNull();
 });
 
 it('lets an investor appointee read every register class and its members and share the class CSV', async () => {

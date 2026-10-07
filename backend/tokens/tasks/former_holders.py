@@ -8,6 +8,7 @@ from tokens.services.former_holders import (
     fold_former_holders,
     purge_former_holders,
     purge_imported_former_members,
+    purge_member_cessations,
     purge_member_particulars,
     purge_register_exports,
 )
@@ -46,5 +47,6 @@ def purge_former_members_past_the_clock(timestamp: int = 0):
         "removed": purge_former_holders(),
         "imported_removed": purge_imported_former_members(),
         "particulars_removed": purge_member_particulars(),
+        "ledger_removed": purge_member_cessations(),
         "exports_removed": purge_register_exports(),
     }

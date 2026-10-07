@@ -11,6 +11,7 @@ import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRe
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
 import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
+import { PrepareRegisterTransferScreen } from '../screens/company-register/PrepareRegisterTransferScreen';
 import { useAppTheme } from '../contexts';
 import { MainHeader, getMainHeaderStyle } from './headers';
 
@@ -25,6 +26,7 @@ export type HomeStackParamList = {
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
   PrepareRegisterGrant: { tokenUuid: string; companyUuid: string };
+  PrepareRegisterTransfer: { tokenUuid: string; companyUuid: string };
   PrepareRegisterLink: { company: string };
 };
 
@@ -103,6 +105,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
       <Stack.Screen
         name="PrepareRegisterGrant"
         component={PrepareRegisterGrantScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="PrepareRegisterTransfer"
+        component={PrepareRegisterTransferScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>

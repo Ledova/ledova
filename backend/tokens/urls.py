@@ -12,6 +12,7 @@ from tokens.views.register_opening import (
 )
 from tokens.views.register_particulars import RegisterParticularsChangeViewSet
 from tokens.views.register_reconciliation import RegisterReconciliationViewSet
+from tokens.views.register_transfer import RegisterTransferViewSet
 
 app_name = "tokens"
 
@@ -20,6 +21,7 @@ router.register(r"register-corrections", RegisterCorrectionViewSet, basename="re
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
 router.register(r"register-grants", RegisterGrantViewSet, basename="register-grants")
+router.register(r"register-transfers", RegisterTransferViewSet, basename="register-transfers")
 router.register(r"register-imports", RegisterImportViewSet, basename="register-imports")
 router.register(r"register-evidence", RegisterEvidenceViewSet, basename="register-evidence")
 router.register(

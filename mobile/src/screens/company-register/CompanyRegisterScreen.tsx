@@ -101,6 +101,9 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         onPrepareGrant={() =>
                           navigation.navigate('PrepareRegisterGrant', { tokenUuid: uuid, companyUuid: company.uuid })
                         }
+                        onPrepareTransfer={() =>
+                          navigation.navigate('PrepareRegisterTransfer', { tokenUuid: uuid, companyUuid: company.uuid })
+                        }
                         onCorrect={(entry) =>
                           navigation.navigate('PrepareRegisterCorrection', {
                             tokenUuid: uuid,
@@ -143,9 +146,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       )}
       <Section title="Register instructions">
         <Text style={styles.muted}>
-          Company appointees run the supported register commands above. Other tokenised register instructions are
-          submitted by the company owner. Staff verify and apply them. Certificates, inspection copies, publications and
-          the company pack are prepared by staff on written instruction.
+          Company appointees run the supported register commands above, including non-paid grants and direct transfers
+          for imported draft classes. Paid settlement, tokenisation and corporate actions remain planned. Other
+          tokenised register instructions are submitted by the company owner. Staff verify and apply them. Certificates,
+          inspection copies, publications and the company pack are prepared by staff on written instruction.
         </Text>
       </Section>
     </Page>

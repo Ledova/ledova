@@ -22,6 +22,7 @@ import CompanyRegisterLinksPage from '@pages/company/register/links';
 import CompanyRegisterOpeningPage from '@pages/company/register/open';
 import CompanyRegisterParticularsPage from '@pages/company/register/particulars';
 import CompanyRegisterGrantPage from '@pages/company/register/grant';
+import CompanyRegisterTransferPage from '@pages/company/register/transfer';
 import ListingPage from '@pages/company/listing';
 import IssuerPublicationsPage from '@pages/company/publications';
 import OfferingPage from '@pages/company/offering';
@@ -50,6 +51,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyRegisterOpening: <CompanyRegisterOpeningPage />,
   companyRegisterParticulars: <CompanyRegisterParticularsPage />,
   companyRegisterGrant: <CompanyRegisterGrantPage />,
+  companyRegisterTransfer: <CompanyRegisterTransferPage />,
   company: <CompanyPage />,
   companyAuthority: <CompanyAuthorityPage />,
   companyTeam: <CompanyTeamPage />,

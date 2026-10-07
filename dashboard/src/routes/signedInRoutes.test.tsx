@@ -108,6 +108,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegisterOpening',
     'companyRegisterParticulars',
     'companyRegisterGrant',
+    'companyRegisterTransfer',
     'companyTeam',
     'companyListing',
     'companyEligibility',
@@ -150,6 +151,7 @@ describe('which signed-in pages an account can open', () => {
     'companyRegisterOpening',
     'companyRegisterParticulars',
     'companyRegisterGrant',
+    'companyRegisterTransfer',
   ] as const)('lets a company open %s, a page for everyone', (key) => {
     open(key, 'company');
     expect(opened(key)).toBe(true);

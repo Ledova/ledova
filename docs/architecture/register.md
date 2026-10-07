@@ -36,8 +36,10 @@ retain members with no wallet, but an imported non-chain class currently accepts
 neither chain issue nor transfer instructions. Company-run
 [non-paid register grants](../plans/company-managed-registers/register-grants.md)
 now add genuine issues for new or existing walletless members with retained
-terms, acceptance where required, and current company approval. Direct ledger
-transfers remain later #865 work; publications also require a deployed or paused
+terms, acceptance where required, and current company approval. [Direct non-paid
+transfers](../plans/company-managed-registers/register-transfers.md) preserve
+supply, instrument/lodgement dates and attributable cessation/return history.
+Publications also require a deployed or paused
 class until #870 converts that workflow. A wallet is required only when the chosen action uses the chain. A
 non-chain issue or transfer must record its real approved ledger effect, never a
 fabricated chain completion. Later tokenisation must mirror existing authorised

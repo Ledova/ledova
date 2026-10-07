@@ -293,6 +293,16 @@ REGISTER_GRANT_ROUTES = {
     "decision_preview": ("post", "/api/v1/tokens/register-grants/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-grants/{uuid}/decide/"),
 }
+
+REGISTER_TRANSFER_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-transfers/"),
+    "list": ("get", "/api/v1/tokens/register-transfers/"),
+    "detail": ("get", "/api/v1/tokens/register-transfers/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-transfers/{uuid}/file/"),
+    "instrument_file": ("get", "/api/v1/tokens/register-transfers/{uuid}/instrument-file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-transfers/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-transfers/{uuid}/decide/"),
+}
 REGISTER_PARTICULARS_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-particulars-changes/"),
     "list": ("get", "/api/v1/tokens/register-particulars-changes/"),
@@ -1446,6 +1456,106 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         with self.as_an_operator_would():
             self.assertEqual(RegisterGrant.objects.get(pk=grant_id).status, "submitted")
             self.assertEqual(RegisterGrant.objects.count(), 1)
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_register_transfers_keep_instruments_members_and_company_decisions_private(self):
+        from tokens.models import RegisterTransfer
+        from tokens.tests.test_register_transfers import transfer_fixture
+
+        with self.as_an_operator_would():
+            owner, _, token, _, appointment, payload = transfer_fixture()
+        selector = f"/api/v1/tokens/{token.pk}/register/members/"
+        self.client.force_authenticate(owner)
+        self.assertEqual(self.client.get(selector).status_code, 200)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            denied = self.client.get(selector)
+            missing = self.client.get(selector.replace(str(token.pk), str(uuid4())))
+            self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+            self.assertEqual(denied.status_code, 404)
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(selector).status_code, 401)
+        self.client.force_authenticate(owner)
+        response = self.client.post(REGISTER_TRANSFER_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        transfer_id = response.json()["uuid"]
+        listing = REGISTER_TRANSFER_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [transfer_id])
+        for name in ("detail", "file", "instrument_file"):
+            path = REGISTER_TRANSFER_ROUTES[name][1].format(uuid=transfer_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(transfer_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.client.force_authenticate(owner)
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_TRANSFER_ROUTES[name][1].format(uuid=transfer_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(transfer_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            self.assertEqual(
+                self.client.post(REGISTER_TRANSFER_ROUTES["create"][1], payload, format="json").status_code, 404
+            )
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_TRANSFER_ROUTES["decision_preview"][1].format(uuid=transfer_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_TRANSFER_ROUTES["decide"][1].format(uuid=transfer_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
+        decision = {"appointment": str(appointment.pk), "kind": "apply"}
+        applied_preview = self.client.post(
+            REGISTER_TRANSFER_ROUTES["decision_preview"][1].format(uuid=transfer_id), decision, format="json"
+        )
+        self.assertEqual(applied_preview.status_code, 200, applied_preview.content)
+        applied = self.client.post(
+            REGISTER_TRANSFER_ROUTES["decide"][1].format(uuid=transfer_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": applied_preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((applied.status_code, applied.json()["stage"]), (200, "applied"), applied.content)
+        self.assertIsNotNone(applied.json()["registerEntry"])
+        self.assertEqual(applied.json()["effectiveOn"], timezone.now().date().isoformat())
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterTransfer.objects.get(pk=transfer_id).status, "applied")
+            self.assertEqual(RegisterTransfer.objects.count(), 1)
 
     @override_settings(
         STORAGES={

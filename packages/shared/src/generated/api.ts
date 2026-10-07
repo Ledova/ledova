@@ -1551,6 +1551,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/members/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_members_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/opening-holders/': {
     parameters: {
       query?: never;
@@ -2297,6 +2313,102 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_tokens_register_reconciliations_acknowledge_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_transfers_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_transfers_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_transfers_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_transfers_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_transfers_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_transfers_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-transfers/{uuid}/instrument-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_transfers_instrument_file_retrieve'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -3862,12 +3974,21 @@ export interface ApiComponents {
     FormerMember: {
       ceasedAtBlock: number | null;
       ceasedOn: string;
+      correctedBy: string | null;
+      corrects: string | null;
       identityRecordedAt: string;
       identitySource: ApiComponents['schemas']['IdentitySourceEnum'];
       identitySourceDisplay: string;
+      member: string | null;
       name: string;
       residentialAddress: string;
+      returnedEntry: string | null;
+      returnedOn: string | null;
       sharesAtCessation: string;
+      sourceEffectiveOn: string | null;
+      sourceEntry: string | null;
+      sourceEntryKind: string | null;
+      sourceEntrySequence: number | null;
       uuid: string;
       walletAddress: string | null;
     };
@@ -4425,6 +4546,12 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterReconciliation'][];
+    };
+    PaginatedRegisterTransferList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterTransfer'][];
     };
     PaginatedRegisterWalletLinkList: {
       count: number;
@@ -5108,6 +5235,19 @@ export interface ApiComponents {
       tokenId: string;
     };
     RegisterInstructionKindEnum: 'issue' | 'transfer';
+    RegisterMembers: {
+      members: ApiComponents['schemas']['RegisterMemberSelection'][];
+    };
+    RegisterMemberSelection: {
+      currentShares: string;
+      enteredOn: string | null;
+      lastCeasedOn: string | null;
+      member: string;
+      name: string | null;
+      particularsRetained: boolean;
+      residentialAddress: string | null;
+      walletless: boolean;
+    };
     RegisterOpening: {
       appliedEntry: string | null;
       approvingDirector: string;
@@ -5280,6 +5420,7 @@ export interface ApiComponents {
       sourceChange: string | null;
       sourceGrant: string | null;
       sourceImport: string | null;
+      sourceTransfer: string | null;
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -5294,6 +5435,121 @@ export interface ApiComponents {
       uuid: string;
     };
     RegisterReconciliationStatusEnum: 'matched' | 'discrepant' | 'failed';
+    RegisterTransfer: {
+      approvingDirector: string;
+      authority: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterTransferDecision'][];
+      effectiveOn: string | null;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      fromMember: string;
+      fromName: string;
+      fromParticulars: unknown;
+      fromResidentialAddress: string;
+      instrumentEvidence: string;
+      instrumentFingerprint: string;
+      instrumentSnapshot: unknown;
+      lodgedOn: string;
+      name: string;
+      newMember: boolean;
+      newParticulars: boolean;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      reason: string;
+      registerEntry: string | null;
+      rejectionReason: string;
+      residentialAddress: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      shares: string;
+      signedOn: string;
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      terms: string;
+      token: string;
+      toMember: string;
+      toParticulars: unknown;
+      uuid: string;
+    };
+    RegisterTransferCreateAuthorityEnum: 'director_resolution';
+    RegisterTransferCreateRequest: {
+      appointment: string;
+      approvingDirector: string;
+      authority?: ApiComponents['schemas']['RegisterTransferCreateAuthorityEnum'];
+      authorityEvidence: string;
+      authorityReference: string;
+      fromMember: string;
+      instrumentEvidence: string;
+      lodgedOn: string;
+      name?: string;
+      newMember: boolean;
+      operationId: string;
+      reason: string;
+      residentialAddress?: string;
+      shares: string;
+      signedOn: string;
+      terms: string;
+      tokenId: string;
+      toMember: string;
+    };
+    RegisterTransferDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterTransferDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterTransferDecisionPreview: {
+      afterIssuedSupply: string;
+      approvingDirector: string;
+      authorisedSupply: string;
+      authority: string;
+      canDecide: boolean;
+      effectiveOn: string;
+      fromAfterShares: string;
+      fromCurrentShares: string;
+      fromMember: string;
+      fromName: string;
+      fromResidentialAddress: string;
+      issuedSupply: string;
+      lodgedOn: string;
+      name: string;
+      newMember: boolean;
+      newParticulars: boolean;
+      previewDigest: string;
+      registerSequence: number;
+      residentialAddress: string;
+      shares: string;
+      signedOn: string;
+      terms: string;
+      toAfterShares: string;
+      toCurrentShares: string;
+      toMember: string;
+      unmetRequirements: string[];
+    };
+    RegisterTransferDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
     RegisterWaitingWallet: {
       address: string;
       holderName: string | null;
@@ -9057,6 +9313,27 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_members_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMembers'];
+        };
+      };
+    };
+  };
   api_v1_tokens_register_opening_holders_retrieve: {
     parameters: {
       query?: never;
@@ -10436,6 +10713,183 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterReconciliation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        from_member?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        to_member?: string;
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterTransferList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterTransferCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterTransferCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterTransferCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterTransfer'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterTransfer'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterTransfer'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterTransferDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterTransferDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterTransferDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterTransfer'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterTransferDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterTransferDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterTransferDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterTransferDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_instrument_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

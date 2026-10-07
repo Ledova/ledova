@@ -62,8 +62,10 @@ and the Register in both clients runs those links too. #864 is complete through
 [PR #936](https://github.com/Ledova/ledova/pull/936). The first #865 increment adds
 [non-paid register grants](../plans/company-managed-registers/register-grants.md)
 to new or existing walletless members of an imported non-tokenised register,
-with retained company authority and genuine ISSUE entries. Direct ledger
-transfers and #865's remaining work, plus #866–#873, remain planned. Their company
+with retained company authority and genuine ISSUE entries. [Direct non-paid
+transfers](../plans/company-managed-registers/register-transfers.md) add new and
+returning recipients, attributable cessation history and genuine roll/certificate
+inputs. #866–#873 remain planned. Their company
 offering, issuance and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
@@ -303,8 +305,9 @@ Relevant existing sources include
 
 Imported classes open without a contract and now support company-run non-paid
 grants to new or existing walletless members, with genuine company authority and
-ISSUE entries. Direct ledger transfers and other non-tokenised commands remain
-planned; current publications still depend on a deployed class. Each supported
+ISSUE entries, and [direct non-paid transfers](../plans/company-managed-registers/register-transfers.md)
+with genuine instruments and retained exit/return history. Other unsupported
+commands remain explicit; current publications still depend on a deployed class. Each supported
 command must retain actual register effects without fabricated chain receipts. Later
 tokenisation must mirror existing holdings rather than issue them a second time.
 This is separate implementation work, not a consequence of changing permissions.

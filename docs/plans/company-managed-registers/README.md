@@ -35,8 +35,10 @@ seventh company-run member-wallet links, each through the API and both clients.
 #864 is complete through [PR #936](https://github.com/Ledova/ledova/pull/936).
 The first #865 increment delivers [non-paid register grants](register-grants.md)
 to new or existing walletless members through current company appointments,
-retained evidence and a genuine ISSUE entry. Direct ledger transfers and #865's
-remaining work, plus #866–#873, remain dependency-ordered and own the later
+retained evidence and a genuine ISSUE entry. The second adds [direct non-paid
+transfers](register-transfers.md), returning/new recipients and attributable
+cessation history with genuine roll/certificate inputs. #866–#873 remain
+dependency-ordered and own the later
 company offering, issuance and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private

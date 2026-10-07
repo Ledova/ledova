@@ -74,6 +74,8 @@ from tokens.services.register_events import (
     record_entry,
     verify_register,
 )
+from tokens.tests.register_command_fixtures import legacy_cessation_before_transfer_guards, transfer_existing_member
+from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.services.register_imports import (
     decide_import,
     prepare_import,
@@ -346,6 +348,8 @@ class RegisterImportTest(TransactionTestCase):
         return self.preview(proposal, kind)["unmet_requirements"]
 
     def move(self, source, target, shares, effective_on=DAY):
+        if RegisterImport.objects.filter(token=self.token, status="applied").exists() and not self.token.contract_address:
+            return transfer_existing_member(self.owner, self.appointment, self.token, source, target, shares)
         record_entry(
             register_id=self.opening.register_id,
             operation_id=uuid4(),
@@ -579,21 +583,14 @@ class RegisterImportTest(TransactionTestCase):
             ],
             ["Fred Former", "", "40", "2022-03-01", PARTICULARS],
         )
-        record_entry(
-            register_id=self.opening.register_id,
-            operation_id=uuid4(),
-            kind=RegisterEntryKind.ISSUE,
-            changes=[{"member": str(self.member.pk), "shares": "5"}],
-            effective_on=DAY,
-            recorded_by=self.owner,
-        )
+        grant_existing_member(self.owner, self.appointment, self.token, self.member, 5, DAY)
         member = self.members()[str(self.member.pk)]
         self.assertEqual(
             [member[header] for header in ("Name", "Shares held", "Date entered", "Amount paid")],
             ["Mia Member", "105", "2019-05-01", ""],
         )
         other = create_member(company_id=self.company.pk, member_id=uuid4())
-        returned = DAY + timedelta(days=1)
+        returned = timezone.now().date()
         self.move(self.member, other, 105)
         self.move(other, self.member, 105, effective_on=returned)
         member = self.members()[str(self.member.pk)]
@@ -1149,7 +1146,7 @@ class RegisterImportTest(TransactionTestCase):
             self.token, self.staff, period_from=DAY, instruction="SYNTHETIC-NOTICE-IMPORTED"
         )
         rows = list(csv.reader(io.StringIO(content.decode())))
-        self.assertIn(["2", "Transfer", DAY.isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
+        self.assertIn(["2", "Transfer", timezone.now().date().isoformat(), "", str(self.member.pk), "Mia Member", "-30", ""], rows)
         self.assertIn([str(self.member.pk), "Mia Member", RESIDENCE, "70", "not recorded"], rows)
 
     def trust_import(self):
