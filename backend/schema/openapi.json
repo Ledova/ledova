@@ -9836,6 +9836,10 @@
             "nullable": true,
             "readOnly": true
           },
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
           "authorityEvidence": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -9866,6 +9870,7 @@
           },
           "effectiveOn": {
             "format": "date",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -9970,6 +9975,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "termsOn": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
           "termsSnapshot": {
             "readOnly": true
           },
@@ -9991,6 +10001,7 @@
           "acceptanceFingerprint",
           "acceptanceRequired",
           "acceptanceSnapshot",
+          "approvingDirector",
           "authorityEvidence",
           "authorityReference",
           "company",
@@ -10018,6 +10029,7 @@
           "terms",
           "termsEvidence",
           "termsFingerprint",
+          "termsOn",
           "termsSnapshot",
           "token",
           "uuid"
@@ -10038,6 +10050,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "approvingDirector": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
           "authorityEvidence": {
             "format": "uuid",
             "type": "string"
@@ -10045,10 +10062,6 @@
           "authorityReference": {
             "maxLength": 255,
             "minLength": 1,
-            "type": "string"
-          },
-          "effectiveOn": {
-            "format": "date",
             "type": "string"
           },
           "member": {
@@ -10091,6 +10104,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "termsOn": {
+            "format": "date",
+            "type": "string"
+          },
           "tokenId": {
             "format": "uuid",
             "type": "string"
@@ -10099,9 +10116,9 @@
         "required": [
           "acceptanceRequired",
           "appointment",
+          "approvingDirector",
           "authorityEvidence",
           "authorityReference",
-          "effectiveOn",
           "member",
           "newMember",
           "operationId",
@@ -10109,6 +10126,7 @@
           "shares",
           "terms",
           "termsEvidence",
+          "termsOn",
           "tokenId"
         ],
         "type": "object"
@@ -10222,6 +10240,9 @@
           "afterShares": {
             "type": "string"
           },
+          "approvingDirector": {
+            "type": "string"
+          },
           "authorisedSupply": {
             "type": "string"
           },
@@ -10263,6 +10284,10 @@
           "terms": {
             "type": "string"
           },
+          "termsOn": {
+            "format": "date",
+            "type": "string"
+          },
           "unmetRequirements": {
             "items": {
               "type": "string"
@@ -10274,6 +10299,7 @@
           "acceptanceRequired",
           "afterIssuedSupply",
           "afterShares",
+          "approvingDirector",
           "authorisedSupply",
           "canDecide",
           "currentShares",
@@ -10287,6 +10313,7 @@
           "residentialAddress",
           "shares",
           "terms",
+          "termsOn",
           "unmetRequirements"
         ],
         "type": "object"

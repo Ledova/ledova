@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
@@ -21,7 +23,8 @@ class RegisterGrantCreateSerializer(serializers.Serializer):
         max_length=REGISTER_IMPORT_ADDRESS_LENGTH, allow_blank=True, required=False, default=""
     )
     shares = serializers.RegexField(regex=r"^[1-9][0-9]{0,77}$")
-    effective_on = serializers.DateField()
+    terms_on = serializers.DateField()
+    approving_director = serializers.CharField(max_length=255)
     terms = serializers.CharField(max_length=1000)
     authority_reference = serializers.CharField(max_length=255)
     reason = serializers.CharField(max_length=1000)
@@ -49,6 +52,8 @@ class RegisterGrantDecisionPreviewSerializer(serializers.Serializer):
     residential_address = serializers.CharField()
     shares = serializers.CharField()
     effective_on = serializers.DateField()
+    terms_on = serializers.DateField()
+    approving_director = serializers.CharField()
     terms = serializers.CharField()
     acceptance_required = serializers.BooleanField()
     register_sequence = serializers.IntegerField()
@@ -65,6 +70,7 @@ class RegisterGrantDecisionSerializer(RegisterDecisionSerializer):
 
 
 class RegisterGrantSerializer(RegisterDecidedSerializer):
+    effective_on = serializers.SerializerMethodField()
     decisions = RegisterGrantDecisionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -79,6 +85,8 @@ class RegisterGrantSerializer(RegisterDecidedSerializer):
             "residential_address",
             "shares",
             "effective_on",
+            "terms_on",
+            "approving_director",
             "terms",
             "acceptance_required",
             "authority_reference",
@@ -106,3 +114,6 @@ class RegisterGrantSerializer(RegisterDecidedSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+    def get_effective_on(self, obj) -> date | None:
+        return obj.register_entry.effective_on if obj.register_entry_id else None

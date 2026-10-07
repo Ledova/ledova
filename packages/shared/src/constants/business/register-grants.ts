@@ -12,7 +12,8 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
     'This grant requires an opened, imported register for a draft share class without a deployed contract.',
   authorised_headroom_required: 'The grant exceeds the authorised share supply.',
   effective_date_before_latest_entry:
-    'The effective date is before the latest register entry. Prepare a grant with a current effective date.',
+    'The register’s latest entry is dated after today. This grant cannot be recorded yet.',
+  approving_director_conflict: 'The approving director is the recipient. Another director must approve the grant.',
   member_reference_conflict: 'The proposed new member already exists. Reject this grant and prepare a new one.',
   identified_company_member_required: 'The recipient must be an identified member of this company.',
   member_particulars_changed: 'The member particulars changed. Reject this grant and prepare a new one.',
@@ -31,7 +32,12 @@ export const REGISTER_GRANT_COPY = {
   NAME: 'Name',
   RESIDENTIAL_ADDRESS: 'Residential address',
   SHARES: 'Shares to grant',
-  EFFECTIVE_ON: 'Effective on',
+  TERMS_ON: 'Terms dated on',
+  DIRECTOR: 'Approving director',
+  DIRECTOR_NOTE:
+    'The company supplies the approving director’s name. This director must be someone other than the recipient.',
+  EFFECTIVE_NOTE:
+    'Application records the ISSUE entry on the actual day it is made (UTC). The company’s terms date is retained separately.',
   TERMS: 'Non-paid grant terms',
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for grant',
@@ -39,7 +45,7 @@ export const REGISTER_GRANT_COPY = {
   TERMS_DOCUMENT: 'Terms document',
   ACCEPTANCE_DOCUMENT: 'Acceptance document',
   ACCEPTANCE_REQUIRED: 'The terms require recipient acceptance',
-  PROVIDED_BY_COMPANY: 'Terms, authority and particulars are provided by the company.',
+  PROVIDED_BY_COMPANY: 'Terms, approving director, authority and particulars are provided by the company.',
   RECOVERY_NOTE:
     'If a decision response is interrupted, refresh grants to read its recorded outcome before starting another decision.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
@@ -48,7 +54,8 @@ export const REGISTER_GRANT_COPY = {
   >,
   DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
-    approve: 'Approve the exact member, terms, evidence, shares and effective date shown.',
+    approve:
+      'Approve the exact member, terms date, approving director, evidence, shares and actual register entry date shown.',
     apply: 'Record this authorised non-paid grant once, increasing the member’s holding and issued supply.',
     reject: 'Reject this grant with the reason given.',
   } as Record<RegisterDecisionKind, string>,

@@ -91,6 +91,7 @@ from tokens.tests.evidence_fixtures import (
     upload_evidence,
 )
 from tokens.tests.instruction_fixtures import instruction_payload
+from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_instructions import instruction_fixture
@@ -579,22 +580,15 @@ class RegisterImportTest(TransactionTestCase):
             ],
             ["Fred Former", "", "40", "2022-03-01", PARTICULARS],
         )
-        record_entry(
-            register_id=self.opening.register_id,
-            operation_id=uuid4(),
-            kind=RegisterEntryKind.ISSUE,
-            changes=[{"member": str(self.member.pk), "shares": "5"}],
-            effective_on=DAY,
-            recorded_by=self.owner,
-        )
+        grant_existing_member(self.owner, self.appointment, self.token, self.member, 5, DAY)
         member = self.members()[str(self.member.pk)]
         self.assertEqual(
             [member[header] for header in ("Name", "Shares held", "Date entered", "Amount paid")],
             ["Mia Member", "105", "2019-05-01", ""],
         )
         other = create_member(company_id=self.company.pk, member_id=uuid4())
-        returned = DAY + timedelta(days=1)
-        self.move(self.member, other, 105)
+        returned = timezone.now().date()
+        self.move(self.member, other, 105, effective_on=returned)
         self.move(other, self.member, 105, effective_on=returned)
         member = self.members()[str(self.member.pk)]
         self.assertEqual(

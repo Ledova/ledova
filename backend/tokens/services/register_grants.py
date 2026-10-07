@@ -36,6 +36,7 @@ from tokens.services.register_evidence import (
     own_evidence_bytes,
 )
 from tokens.services.register_imports import _company_of
+from tokens.services.register_instructions import _named
 
 
 def _text(value, label, limit):
@@ -65,9 +66,11 @@ def _state(proposal):
         if after > int(token.total_supply) or after >= 2**256:
             unmet.append("authorised_headroom_required")
         if RegisterEntry.objects.filter(
-            register=register, sequence=register.sequence, effective_on__gt=proposal.effective_on
+            register=register, sequence=register.sequence, effective_on__gt=timezone.now().date()
         ).exists():
             unmet.append("effective_date_before_latest_entry")
+    if _named(proposal.approving_director) == _named(proposal.name):
+        unmet.append("approving_director_conflict")
     if RegisterMemberWallet.objects.filter(company_id=proposal.company_id, member_id=proposal.member).exists():
         unmet.append("member_wallet_linked")
     member = RegisterMember.objects.filter(pk=proposal.member).first()
@@ -80,8 +83,11 @@ def _state(proposal):
         ).first()
         if member is None or member.company_id != proposal.company_id or held is None:
             unmet.append("identified_company_member_required")
-        elif (held.name, held.residential_address) != (proposal.name, proposal.residential_address):
-            unmet.append("member_particulars_changed")
+        else:
+            if (held.name, held.residential_address) != (proposal.name, proposal.residential_address):
+                unmet.append("member_particulars_changed")
+            if _named(proposal.approving_director) == _named(held.name):
+                unmet.append("approving_director_conflict")
     return unmet
 
 
@@ -94,7 +100,8 @@ def prepare_grant(
     member,
     new_member,
     shares,
-    effective_on,
+    terms_on,
+    approving_director,
     terms,
     authority_reference,
     reason,
@@ -111,15 +118,15 @@ def prepare_grant(
             for value in (operation_id, appointment, token_id, member, authority_evidence, terms_evidence)
         )
         acceptance_evidence = UUID(str(acceptance_evidence)) if acceptance_evidence is not None else None
-        effective_on = date.fromisoformat(str(effective_on))
+        terms_on = date.fromisoformat(str(terms_on))
     except (ValueError, TypeError, AttributeError):
-        raise ValidationError("Grant references must be UUIDs and the effective date an ISO date.") from None
+        raise ValidationError("Grant references must be UUIDs and the terms date an ISO date.") from None
     if type(new_member) is not bool or type(acceptance_required) is not bool:
         raise ValidationError("State whether the member is new and the terms require acceptance.")
     if acceptance_required != (acceptance_evidence is not None):
         raise ValidationError("Retain acceptance evidence exactly when the company's terms require acceptance.")
-    if effective_on > timezone.localdate():
-        raise ValidationError("A grant's effective date cannot be in the future.")
+    if terms_on > timezone.now().date():
+        raise ValidationError("A grant's terms date cannot be in the future (UTC).")
     if not isinstance(shares, str) or not re.fullmatch(r"[1-9][0-9]{0,77}", shares) or int(shares) >= 2**256:
         raise ValidationError("A non-paid grant needs positive whole shares within the share limit.")
     if not isinstance(name, str) or not isinstance(residential_address, str):
@@ -129,7 +136,8 @@ def prepare_grant(
         residential_address = _text(residential_address, "residential address", REGISTER_IMPORT_ADDRESS_LENGTH)
     values = {
         "shares": int(shares),
-        "effective_on": effective_on,
+        "terms_on": terms_on,
+        "approving_director": _text(approving_director, "named approving director", 255),
         "new_member": new_member,
         "terms": _text(terms, "non-paid terms summary", 1000),
         "authority_reference": _text(authority_reference, "company authority reference", 255),
@@ -251,7 +259,9 @@ def _details(proposal):
         "name": proposal.name,
         "residential_address": proposal.residential_address,
         "shares": str(proposal.shares),
-        "effective_on": proposal.effective_on,
+        "effective_on": timezone.now().date(),
+        "terms_on": proposal.terms_on,
+        "approving_director": proposal.approving_director,
         "terms": proposal.terms,
         "acceptance_required": proposal.acceptance_required,
         "register_sequence": register.sequence if register else 0,
@@ -275,13 +285,14 @@ def _lock(proposal):
 
 
 def _apply(proposal, actor, decision):
+    effective_on = timezone.now().date()
     if proposal.new_member:
         create_member(company_id=proposal.company_id, member_id=proposal.member)
         RegisterMemberParticulars.objects.create(
             member_id=proposal.member,
             name=proposal.name,
             residential_address=proposal.residential_address,
-            as_at=proposal.effective_on,
+            as_at=effective_on,
             source_grant=proposal,
         )
     proposal.register_entry = record_entry(
@@ -289,7 +300,7 @@ def _apply(proposal, actor, decision):
         operation_id=proposal.pk,
         kind=RegisterEntryKind.ISSUE,
         changes=[{"member": str(proposal.member), "shares": str(proposal.shares)}],
-        effective_on=proposal.effective_on,
+        effective_on=effective_on,
         recorded_by=actor,
     )
     proposal.status = "applied"

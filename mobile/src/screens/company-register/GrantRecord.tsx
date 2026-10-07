@@ -25,7 +25,9 @@ function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPrev
       <Row label={COPY.RESIDENTIAL_ADDRESS}>{grant.residentialAddress}</Row>
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{grant.shares}</Row>
-      <Row label={COPY.EFFECTIVE_ON}>{grant.effectiveOn}</Row>
+      <Row label={COPY.TERMS_ON}>{grant.termsOn}</Row>
+      <Row label="Register entry date">{grant.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.DIRECTOR}>{grant.approvingDirector}</Row>
       <Row label={COPY.TERMS}>{grant.terms}</Row>
       <Row label="Recipient acceptance">
         {grant.acceptanceRequired ? 'Required, evidence retained' : 'Not required by these terms'}
@@ -113,6 +115,7 @@ export function GrantRecord({
                   {(preview) => (
                     <>
                       <GrantRows grant={preview} />
+                      <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
                       <Rows>
                         <Row label="Register sequence">{preview.registerSequence}</Row>
                         <Row label="Member holding">

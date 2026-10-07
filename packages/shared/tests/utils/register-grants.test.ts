@@ -10,7 +10,8 @@ const REQUEST: RegisterGrantPreparation = {
   name: 'Synthetic Member',
   residentialAddress: '1 Synthetic Street, Sydney NSW 2000',
   shares: '10',
-  effectiveOn: '2026-10-07',
+  termsOn: '2020-01-01',
+  approvingDirector: 'Independent Director',
   terms: 'Non-paid employee grant, fully paid without cash consideration',
   authorityReference: 'Resolution 1',
   reason: 'Employee grant',
@@ -20,6 +21,7 @@ const REQUEST: RegisterGrantPreparation = {
   acceptanceEvidence: 'acceptance-a',
 };
 const GRANT: RegisterGrant = {
+  effectiveOn: null,
   uuid: 'grant-a',
   company: 'company-a',
   token: 'ordinary',
@@ -28,7 +30,8 @@ const GRANT: RegisterGrant = {
   name: 'Synthetic Member',
   residentialAddress: '1 Synthetic Street, Sydney NSW 2000',
   shares: '10',
-  effectiveOn: '2026-10-07',
+  termsOn: '2020-01-01',
+  approvingDirector: 'Independent Director',
   terms: REQUEST.terms,
   authorityReference: REQUEST.authorityReference,
   reason: REQUEST.reason,
@@ -63,6 +66,9 @@ it('binds preparation to the stable member, terms, authority and required accept
     { terms: 'Paid subscription' },
     { acceptanceEvidence: null },
     { shares: '11' },
+    { termsOn: '2019-01-01' },
+    { approvingDirector: 'Another Director' },
+    { status: 'applied' as const, effectiveOn: null, registerEntry: null },
     { name: 'Another name' },
     { authorityEvidence: 'another-document' },
   ])
@@ -98,8 +104,11 @@ it('requires an actual register entry and the exact retained decision before acc
     reviewedAt: decision.decidedAt,
     decisions: [decision],
     registerEntry: 'entry-a',
+    effectiveOn: '2026-10-07',
   };
   expect(isRegisterGrantDecisionReceipt(applied, 'grant-a', request)).toBe(true);
+  expect(isPreparedRegisterGrant(applied, REQUEST)).toBe(true);
   expect(isRegisterGrantDecisionReceipt({ ...applied, registerEntry: null }, 'grant-a', request)).toBe(false);
+  expect(isRegisterGrantDecisionReceipt({ ...applied, effectiveOn: null }, 'grant-a', request)).toBe(false);
   expect(isRegisterGrantDecisionReceipt(applied, 'grant-a', { ...request, previewDigest: 'e'.repeat(64) })).toBe(false);
 });

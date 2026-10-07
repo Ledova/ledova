@@ -362,6 +362,7 @@ class RegisterParticularsTest(TransactionTestCase):
                 "as_at": DAY,
                 "source_import": None,
                 "source_change": change.pk,
+                "source_grant": None,
             },
         )
         self.apply(later)

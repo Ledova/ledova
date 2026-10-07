@@ -4883,12 +4883,13 @@ export interface ApiComponents {
       acceptanceFingerprint: string;
       acceptanceRequired: boolean;
       acceptanceSnapshot: unknown;
+      approvingDirector: string;
       authorityEvidence: string;
       authorityReference: string;
       company: string;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterGrantDecision'][];
-      effectiveOn: string;
+      effectiveOn: string | null;
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       member: string;
@@ -4910,6 +4911,7 @@ export interface ApiComponents {
       terms: string;
       termsEvidence: string;
       termsFingerprint: string;
+      termsOn: string;
       termsSnapshot: unknown;
       token: string;
       uuid: string;
@@ -4918,9 +4920,9 @@ export interface ApiComponents {
       acceptanceEvidence?: string | null;
       acceptanceRequired: boolean;
       appointment: string;
+      approvingDirector: string;
       authorityEvidence: string;
       authorityReference: string;
-      effectiveOn: string;
       member: string;
       name?: string;
       newMember: boolean;
@@ -4930,6 +4932,7 @@ export interface ApiComponents {
       shares: string;
       terms: string;
       termsEvidence: string;
+      termsOn: string;
       tokenId: string;
     };
     RegisterGrantDecideRequest: {
@@ -4955,6 +4958,7 @@ export interface ApiComponents {
       acceptanceRequired: boolean;
       afterIssuedSupply: string;
       afterShares: string;
+      approvingDirector: string;
       authorisedSupply: string;
       canDecide: boolean;
       currentShares: string;
@@ -4968,6 +4972,7 @@ export interface ApiComponents {
       residentialAddress: string;
       shares: string;
       terms: string;
+      termsOn: string;
       unmetRequirements: string[];
     };
     RegisterGrantDecisionRequestRequest: {
