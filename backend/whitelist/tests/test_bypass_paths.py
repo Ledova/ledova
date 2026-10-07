@@ -83,7 +83,7 @@ class WhitelistAuthorityBypassTest(CompanyWalletCases, APITransactionTestCase):
                 address=ADDRESS,
                 chain_id=CHAIN_ID,
                 registry_address=REGISTRY,
-                company=self.company,
+                company_id=self.company.pk,
                 intent=changes._intent("add", ADDRESS, REGISTRY, None),
                 authority="operator_api",
                 initiated_by=self.actor,

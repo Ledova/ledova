@@ -10,8 +10,8 @@ This guide exercises the current implementation, including seeded staff accounts
 and admin steps. The accepted [company-managed register plan](architecture/company-managed-registers.md)
 replaces routine platform-staff register work with company authority and participant
 tools; those workflows are not delivered by running this setup. Private self-hosting
-uses the same product. Existing deployment-mode settings and staff gates remain
-until their coordinated replacements are implemented.
+uses the same product. Remaining staff gates persist until their coordinated
+replacements are implemented.
 
 ## Start the stack
 
