@@ -268,7 +268,7 @@ class ChainFixtures(SettledTransferFixtures):
             )
             token = ShareToken.objects.get(pk=token.pk)
             with patch("tokens.services.register_deployments.queue_deployment"):
-                admit_deployment(token, self.owner)
+                admit_deployment(token, self.owner, appointment=self.administrator)
             self.addCleanup(delete_approval_jobs, token.deployment_id)
             with (
                 patch("tokens.services.deployment.get_base_chain_client", return_value=node.client),

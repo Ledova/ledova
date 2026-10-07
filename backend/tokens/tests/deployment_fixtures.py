@@ -39,8 +39,9 @@ def deployment_token(name="deployment"):
     return tenant
 
 
-def admit_deployment(token, actor):
-    appointment = owner_appointment(token.company)
+def admit_deployment(token, actor, *, appointment=None):
+    if appointment is None:
+        appointment = owner_appointment(token.company)
     proposal = prepare_deployment(actor=actor, operation_id=uuid4(), appointment=appointment.pk, token=token.pk)
     for kind in ("approve", "apply"):
         _, preview = preview_deployment_decision(
