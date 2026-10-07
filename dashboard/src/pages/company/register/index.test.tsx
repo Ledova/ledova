@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
+const GRANTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANTS;
 const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
@@ -80,7 +81,7 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
 }
 
 function noCommands(url: string) {
-  return [OPENINGS, IMPORTS, CORRECTIONS, RECONCILIATIONS, PARTICULARS, LINKS, APPOINTMENTS].includes(url) ||
+  return [OPENINGS, IMPORTS, GRANTS, CORRECTIONS, RECONCILIATIONS, PARTICULARS, LINKS, APPOINTMENTS].includes(url) ||
     url.endsWith('/register/entries/')
     ? { data: { results: [], count: 0, next: null, previous: null } }
     : null;
@@ -189,11 +190,13 @@ it('reads every register class page and renders exact stored shares with each me
     LINKS,
     OPENINGS,
     IMPORTS,
+    GRANTS,
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary'),
     CORRECTIONS,
     RECONCILIATIONS,
     OPENINGS,
     IMPORTS,
+    GRANTS,
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('preference'),
     CORRECTIONS,
     RECONCILIATIONS,

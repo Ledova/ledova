@@ -283,6 +283,16 @@ REGISTER_CORRECTION_ROUTES = {
     "decision_preview": ("post", "/api/v1/tokens/register-corrections/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-corrections/{uuid}/decide/"),
 }
+REGISTER_GRANT_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-grants/"),
+    "list": ("get", "/api/v1/tokens/register-grants/"),
+    "detail": ("get", "/api/v1/tokens/register-grants/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-grants/{uuid}/file/"),
+    "terms_file": ("get", "/api/v1/tokens/register-grants/{uuid}/terms-file/"),
+    "acceptance_file": ("get", "/api/v1/tokens/register-grants/{uuid}/acceptance-file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-grants/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-grants/{uuid}/decide/"),
+}
 REGISTER_PARTICULARS_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-particulars-changes/"),
     "list": ("get", "/api/v1/tokens/register-particulars-changes/"),
@@ -1365,6 +1375,77 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             self.client.logout()
         with self.as_an_operator_would():
             self.assertEqual(RegisterCorrection.objects.get(pk=proposal_id).status, "submitted")
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+        }
+    )
+    def test_register_grants_keep_all_evidence_private_and_company_decisions_bound(self):
+        from tokens.models import RegisterGrant
+        from tokens.tests.test_register_grants import grant_fixture
+
+        with self.as_an_operator_would():
+            owner, _, _, _, appointment, payload = grant_fixture()
+        self.client.force_authenticate(owner)
+        response = self.client.post(REGISTER_GRANT_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        grant_id = response.json()["uuid"]
+        listing = REGISTER_GRANT_ROUTES["list"][1]
+        self.assertEqual([row["uuid"] for row in self.rows(self.client.get(listing))], [grant_id])
+        for name in ("detail", "file", "terms_file", "acceptance_file"):
+            path = REGISTER_GRANT_ROUTES[name][1].format(uuid=grant_id)
+            self.assertEqual(self.client.get(path).status_code, 200)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.get(path)
+                missing = self.client.get(path.replace(grant_id, str(uuid4())))
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+                self.assertEqual(self.rows(self.client.get(listing)), [])
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.get(path).status_code, 401)
+            self.client.force_authenticate(owner)
+        decision = {"appointment": str(appointment.pk), "kind": "approve"}
+        bodies = {
+            "decision_preview": decision,
+            "decide": {**decision, "idempotency_key": str(uuid4()), "preview_digest": "0" * 64, "confirmation": True},
+        }
+        for name, body in bodies.items():
+            path = REGISTER_GRANT_ROUTES[name][1].format(uuid=grant_id)
+            for actor in self.actors:
+                self.client.force_authenticate(actor.user)
+                denied = self.client.post(path, body, format="json")
+                missing = self.client.post(path.replace(grant_id, str(uuid4())), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (missing.status_code, missing.content))
+                self.assertEqual(denied.status_code, 404)
+            self.client.force_authenticate(None)
+            self.assertEqual(self.client.post(path, body, format="json").status_code, 401)
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            self.assertEqual(
+                self.client.post(REGISTER_GRANT_ROUTES["create"][1], payload, format="json").status_code, 404
+            )
+        self.client.force_authenticate(owner)
+        preview = self.client.post(
+            REGISTER_GRANT_ROUTES["decision_preview"][1].format(uuid=grant_id), decision, format="json"
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        approved = self.client.post(
+            REGISTER_GRANT_ROUTES["decide"][1].format(uuid=grant_id),
+            {
+                **decision,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual((approved.status_code, approved.json()["stage"]), (200, "approved"), approved.content)
+        with self.as_an_operator_would():
+            self.assertEqual(RegisterGrant.objects.get(pk=grant_id).status, "submitted")
+            self.assertEqual(RegisterGrant.objects.count(), 1)
 
     @override_settings(
         STORAGES={

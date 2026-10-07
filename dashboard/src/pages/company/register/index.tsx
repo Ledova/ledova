@@ -16,6 +16,7 @@ import { useRole } from '@hooks/useRole';
 import { CompanySelection } from '../CompanySelection';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
+import { ClassGrants } from './ClassGrants';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
@@ -43,8 +44,9 @@ function RegisterPage({
       {sections}
       <Section title="Register instructions">
         <p className="text-sm text-text-muted">
-          The company owner submits written register instructions. Staff verify and apply them. Certificates, inspection
-          copies, publications and the company pack are prepared by staff on written instruction.
+          Company appointees run the supported register commands above. Other tokenised register instructions are
+          submitted by the company owner. Staff verify and apply them. Certificates, inspection copies, publications and
+          the company pack are prepared by staff on written instruction.
         </p>
       </Section>
     </Page>
@@ -185,6 +187,7 @@ function OwnRegister({
                   <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />
                 )}
                 <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
+                <ClassGrants owner={owner} guard={guard} register={register} company={company.uuid} />
                 <ClassCorrections owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
                 <ClassReconciliation
                   owner={owner}

@@ -52,6 +52,8 @@ const LEDES: Partial<Record<DestinationKey, string>> = {
   companyRegisterParticulars:
     "Prepare a change to a member's name and residential address on the register. The supporting document is " +
     'provided by the company.',
+  companyRegisterGrant:
+    'Prepare a non-paid share grant on an opened register with the company’s terms, authority and any required acceptance.',
   companyPublications: "Staff prepare and publish these records on your company's written instruction.",
   eligibilityRequests:
     'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.',

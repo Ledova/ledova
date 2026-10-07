@@ -19,8 +19,10 @@ authorised headroom, wallet possession and company registry approval for chain
 actions, original signed bytes, finality and atomic register recording. A
 non-paid employee grant must record its actual terms and authority rather than
 invent a paid subscription. An imported register without a deployed class
-currently cannot issue or transfer through register instructions; supporting
-non-chain changes or later tokenisation needs additional ledger/execution work.
+cannot issue or transfer through chain register instructions. The
+[non-paid grant workflow](../plans/company-managed-registers/register-grants.md)
+records genuine company-approved ledger issues without deployment or a wallet.
+Direct ledger transfers and later tokenisation need additional ledger/execution work.
 Non-chain changes must retain real ledger authority without fake chain receipts;
 later tokenisation mirrors those holdings without issuing them twice.
 Changing company authority does not by itself change deployed contract ownership

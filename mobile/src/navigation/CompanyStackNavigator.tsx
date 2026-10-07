@@ -6,6 +6,7 @@ import { PrepareRegisterImportScreen } from '../screens/company-register/Prepare
 import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
+import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
 import { OfferingsScreen } from '../screens/company-offerings/OfferingsScreen';
 import { CompanyScreen } from '../screens/company';
 import { CompanyPublicationsScreen } from '../screens/company-publications/CompanyPublicationsScreen';
@@ -30,6 +31,7 @@ export type CompanyStackParamList = {
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
+  PrepareRegisterGrant: { tokenUuid: string; companyUuid: string };
   PrepareRegisterLink: { company: string };
 };
 
@@ -118,6 +120,11 @@ export function CompanyStackNavigator({
       <Stack.Screen
         name="PrepareRegisterLink"
         component={PrepareRegisterLinkScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
+      <Stack.Screen
+        name="PrepareRegisterGrant"
+        component={PrepareRegisterGrantScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
     </Stack.Navigator>

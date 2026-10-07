@@ -7455,6 +7455,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterGrantList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterGrant"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterImportList": {
         "properties": {
           "count": {
@@ -9784,6 +9815,503 @@
         ],
         "type": "object"
       },
+      "RegisterGrant": {
+        "properties": {
+          "acceptanceEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptanceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptanceRequired": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "acceptanceSnapshot": {
+            "nullable": true,
+            "readOnly": true
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterGrantDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "newMember": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "registerEntry": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "terms": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsSnapshot": {
+            "readOnly": true
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceEvidence",
+          "acceptanceFingerprint",
+          "acceptanceRequired",
+          "acceptanceSnapshot",
+          "authorityEvidence",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "decisions",
+          "effectiveOn",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "member",
+          "name",
+          "newMember",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "registerEntry",
+          "rejectionReason",
+          "residentialAddress",
+          "reviewedAt",
+          "reviewedBy",
+          "shares",
+          "stage",
+          "status",
+          "submittedBy",
+          "terms",
+          "termsEvidence",
+          "termsFingerprint",
+          "termsSnapshot",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterGrantCreateRequest": {
+        "properties": {
+          "acceptanceEvidence": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "acceptanceRequired": {
+            "type": "boolean"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "newMember": {
+            "type": "boolean"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "shares": {
+            "minLength": 1,
+            "pattern": "^[1-9][0-9]{0,77}$",
+            "type": "string"
+          },
+          "terms": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "termsEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tokenId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceRequired",
+          "appointment",
+          "authorityEvidence",
+          "authorityReference",
+          "effectiveOn",
+          "member",
+          "newMember",
+          "operationId",
+          "reason",
+          "shares",
+          "terms",
+          "termsEvidence",
+          "tokenId"
+        ],
+        "type": "object"
+      },
+      "RegisterGrantDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterGrantDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterGrantDecisionPreview": {
+        "properties": {
+          "acceptanceRequired": {
+            "type": "boolean"
+          },
+          "afterIssuedSupply": {
+            "type": "string"
+          },
+          "afterShares": {
+            "type": "string"
+          },
+          "authorisedSupply": {
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "currentShares": {
+            "type": "string"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "issuedSupply": {
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "newMember": {
+            "type": "boolean"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "registerSequence": {
+            "type": "integer"
+          },
+          "residentialAddress": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "acceptanceRequired",
+          "afterIssuedSupply",
+          "afterShares",
+          "authorisedSupply",
+          "canDecide",
+          "currentShares",
+          "effectiveOn",
+          "issuedSupply",
+          "member",
+          "name",
+          "newMember",
+          "previewDigest",
+          "registerSequence",
+          "residentialAddress",
+          "shares",
+          "terms",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterGrantDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
       "RegisterImport": {
         "properties": {
           "approvingDirector": {
@@ -11343,6 +11871,11 @@
             "nullable": true,
             "type": "string"
           },
+          "sourceGrant": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sourceImport": {
             "format": "uuid",
             "nullable": true,
@@ -11354,6 +11887,7 @@
           "name",
           "residentialAddress",
           "sourceChange",
+          "sourceGrant",
           "sourceImport"
         ],
         "type": "object"
@@ -22573,6 +23107,435 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_grants_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterGrantList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_grants_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterGrant"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterGrant"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_grants_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterGrant"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/acceptance-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_grants_acceptance_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_grants_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterGrant"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_grants_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterGrantDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterGrantDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_grants_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-grants/{uuid}/terms-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_grants_terms_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
           }
         ],
         "tags": [

@@ -10,6 +10,7 @@ import {
   getRegisterCorrections,
   getRegisterEntries,
   getRegisterImports,
+  getRegisterGrants,
   getNextPageParam,
   getRegisterLinks,
   getRegisterOpeningHolders,
@@ -56,6 +57,7 @@ const recordsKey = (records: string) => (epoch: number, scope?: string) => [
   ...(scope ? [scope] : []),
 ];
 export const importsKey = recordsKey('imports');
+export const grantsKey = recordsKey('grants');
 export const openingsKey = recordsKey('openings');
 export const openingHoldersKey = (epoch: number, token: string) => ['opening-holders', epoch, token];
 export const entriesKey = recordsKey('entries');
@@ -148,6 +150,7 @@ export function useCompanyRegister(epoch: number) {
         ...[
           openingsKey,
           importsKey,
+          grantsKey,
           entriesKey,
           correctionsKey,
           reconciliationKey,
@@ -182,6 +185,25 @@ export function useRegisterImports(epoch: number, company: string, token: string
       if (rows.some((row) => row.token !== token || row.company !== company)) {
         throw new Error('The imports do not belong to this share class');
       }
+      return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useRegisterGrants(epoch: number, company: string, token: string) {
+  return useQuery({
+    queryKey: grantsKey(epoch, token),
+    queryFn: async ({ signal }) => {
+      const rows = distinct(
+        await readEveryPage((page) =>
+          sessionRead(epoch, () =>
+            getRegisterGrants(apiClient, { token, page }, { ledovaSessionEpoch: epoch, signal }),
+          ),
+        ),
+        ({ uuid }) => uuid,
+      );
+      if (rows.some((row) => row.token !== token || row.company !== company))
+        throw new Error('The grants do not belong to this share class');
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
     },
   });

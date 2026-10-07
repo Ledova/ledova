@@ -58,9 +58,13 @@ and the Register in both clients runs those changes too. The seventh lets the
 company link member wallets through the API with its own authority document,
 recording the issues and transfers that waited for a link
 ([wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)),
-and the Register in both clients runs those links too. #864's other register
-commands and #865–#873 remain planned. Their company offering, issuance and
-register authority is separate.
+and the Register in both clients runs those links too. #864 is complete through
+[PR #936](https://github.com/Ledova/ledova/pull/936). The first #865 increment adds
+[non-paid register grants](../plans/company-managed-registers/register-grants.md)
+to new or existing walletless members of an imported non-tokenised register,
+with retained company authority and genuine ISSUE entries. Direct ledger
+transfers and #865's remaining work, plus #866–#873, remain planned. Their company
+offering, issuance and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 

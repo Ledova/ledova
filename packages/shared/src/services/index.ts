@@ -95,6 +95,7 @@ export {
   submitCapitalIncrease,
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
+export * from './register-grants';
 export {
   prepareRegisterImport,
   getRegisterImports,

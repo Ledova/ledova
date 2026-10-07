@@ -161,6 +161,7 @@ function preview(overrides: Partial<RegisterParticularsChangeDecisionPreview> = 
       asAt: '2026-09-01',
       sourceImport: 'import-one',
       sourceChange: null,
+      sourceGrant: null,
     },
     ...overrides,
   };

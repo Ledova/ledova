@@ -305,6 +305,7 @@ POLICIES = {
         f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
+    "tokens_registergrant": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "shareholders_publication": (
@@ -592,6 +593,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registergrantdecision": "Append-only company decisions of non-paid register grants, bound to current "
+    "company appointments and exact immutable commands, read through their company-scoped grant.",
     "tokens_registerevidence": "Immutable company-provided register evidence uploads, written by the bounded "
     "register command on the operator connection and read there only through register-readable queries. Each "
     "prepared import keeps its own copy of the files it used.",
