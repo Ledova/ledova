@@ -301,11 +301,11 @@ Relevant existing sources include
 [bounded issuer reads](../../backend/tokens/views/share_token.py), and
 [console keeper attribution](../../backend/operators/services.py).
 
-Imported classes can currently open without a contract, but later issues,
-transfers and publications depend on tokenisation. Company-managed traditional
-register workflows need genuine non-tokenised ledger commands where supported,
-including non-paid grants and members with no wallet. They must record company
-authority and actual register effects without fabricated chain receipts. Later
+Imported classes open without a contract and now support company-run non-paid
+grants to new or existing walletless members, with genuine company authority and
+ISSUE entries. Direct ledger transfers and other non-tokenised commands remain
+planned; current publications still depend on a deployed class. Each supported
+command must retain actual register effects without fabricated chain receipts. Later
 tokenisation must mirror existing holdings rather than issue them a second time.
 This is separate implementation work, not a consequence of changing permissions.
 
