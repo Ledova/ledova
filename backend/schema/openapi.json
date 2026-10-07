@@ -8304,6 +8304,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterPaidIssueList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterPaidIssue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterParticularsChangeList": {
         "properties": {
           "count": {
@@ -14394,6 +14425,605 @@
         "required": [
           "block",
           "holdings"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssue": {
+        "properties": {
+          "allottedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterPaidIssueDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterIssueExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "intentDigest": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "request": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "shares": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterPaidIssueSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "subscription": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "subscriptionStatus": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "allottedAt",
+          "approvalDecision",
+          "approvingDirector",
+          "authorityEvidence",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "decisions",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "execution",
+          "executionUnmetRequirements",
+          "intentDigest",
+          "operationId",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "rejectionReason",
+          "request",
+          "reviewedAt",
+          "reviewedBy",
+          "shares",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "subscription",
+          "subscriptionStatus",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "approvingDirector": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "subscription": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "approvingDirector",
+          "authorityEvidence",
+          "authorityReference",
+          "operationId",
+          "reason",
+          "subscription"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueDecisionPreview": {
+        "properties": {
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "approvingDirector": {
+            "type": "string"
+          },
+          "authorisedSupply": {
+            "type": "string"
+          },
+          "authorityReference": {
+            "type": "string"
+          },
+          "availableShares": {
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "issuedSupply": {
+            "type": "string"
+          },
+          "offeringHeadroom": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reservedShares": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RegisterPaidIssueSnapshot"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "approvingDirector",
+          "authorisedSupply",
+          "authorityReference",
+          "availableShares",
+          "canDecide",
+          "intentDigest",
+          "issuedSupply",
+          "offeringHeadroom",
+          "previewDigest",
+          "reason",
+          "reservedShares",
+          "shares",
+          "snapshot",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueRegisterSnapshot": {
+        "properties": {
+          "headHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "sequence": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "headHash",
+          "issuedSupply",
+          "present",
+          "sequence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueSnapshot": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/RegisterIssueCompanySnapshot"
+          },
+          "register": {
+            "$ref": "#/components/schemas/RegisterPaidIssueRegisterSnapshot"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RegisterPaidIssueSource"
+          },
+          "token": {
+            "$ref": "#/components/schemas/RegisterIssueTokenSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RegisterDeploymentTransactionSnapshot"
+          }
+        },
+        "required": [
+          "company",
+          "register",
+          "source",
+          "token",
+          "transaction"
+        ],
+        "type": "object"
+      },
+      "RegisterPaidIssueSource": {
+        "properties": {
+          "amountDue": {
+            "type": "string"
+          },
+          "amountReceived": {
+            "nullable": true,
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "moneyHeld": {
+            "type": "string"
+          },
+          "offering": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "paymentConfirmedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "paymentReceivedOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "paymentReferenceSeen": {
+            "type": "string"
+          },
+          "paymentTxHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "pricePerShare": {
+            "type": "string"
+          },
+          "recipientAddress": {
+            "type": "string"
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "refundAmount": {
+            "nullable": true,
+            "type": "string"
+          },
+          "refundedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "requestedShares": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          },
+          "subscription": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amountDue",
+          "amountReceived",
+          "company",
+          "currency",
+          "moneyHeld",
+          "offering",
+          "paymentConfirmedAt",
+          "paymentReceivedOn",
+          "paymentReferenceSeen",
+          "paymentTxHash",
+          "pricePerShare",
+          "recipientAddress",
+          "recipientName",
+          "refundAmount",
+          "refundedAt",
+          "requestedShares",
+          "shares",
+          "subscription",
+          "token"
         ],
         "type": "object"
       },
@@ -29678,6 +30308,386 @@
     "/api/v1/tokens/register-openings/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_openings_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_paid_issues_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterPaidIssueList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_paid_issues_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPaidIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/ready-subscriptions/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_paid_issues_ready_subscriptions_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RegisterPaidIssueSource"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_paid_issues_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPaidIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_paid_issues_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPaidIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_paid_issues_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPaidIssueDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPaidIssueDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-paid-issues/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_paid_issues_file_retrieve",
         "parameters": [
           {
             "in": "path",

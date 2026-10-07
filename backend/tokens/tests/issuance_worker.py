@@ -47,8 +47,11 @@ def run(directory, phase, request_id, actor_id, confirmation):
         request_id=request.pk, kind="issue", preparing_appointment__isnull=False
     ).first()
     if source is not None:
-        node.contract.functions.whitelist.return_value.call.return_value = source.snapshot["wallet"]["registry_address"]
-        opening = RegisterOpening.objects.get(pk=source.snapshot["register"]["opening"])
+        if source.paid_subscription_id is None:
+            node.contract.functions.whitelist.return_value.call.return_value = source.snapshot["wallet"][
+                "registry_address"
+            ]
+        opening = RegisterOpening.objects.get(token_id=source.token_id, status="applied")
         node.receipt_height = int(opening.boundary["block"]["number"]) + 1
         node.head = node.finalized = node.receipt_height
         node.block_hashes[node.receipt_height] = block_hash(node.receipt_height)

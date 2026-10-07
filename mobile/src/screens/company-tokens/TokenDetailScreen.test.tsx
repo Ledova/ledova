@@ -106,6 +106,7 @@ function screen() {
 function defaultRead(url: string, number: number): Promise<unknown> {
   if (url === URLS.REGISTER_DEPLOYMENTS) return Promise.resolve(page(deployments));
   if (
+    url === URLS.REGISTER_PAID_ISSUES ||
     url === URLS.REGISTER_PAUSE_CHANGES ||
     url === URLS.REGISTER_CAPITAL_INCREASES ||
     url === URLS.REGISTER_ISSUES ||
@@ -126,6 +127,7 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([issuance]));
   if (url === URLS.ISSUANCE_REQUESTS)
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([request]));
+  if (url === URLS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS) return Promise.resolve({ data: [] });
   if (url === URLS.CAPITAL_INCREASES)
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([capital]));
   if (url === URLS.REGISTER_EXPORT(uuid))
@@ -678,5 +680,18 @@ it('mounts company pause preparation for an appointed nonowner on a deployed who
   for (const url of [URLS.ISSUANCES(uuid), URLS.ISSUANCE_REQUESTS, URLS.CAPITAL_INCREASES])
     expect(get.mock.calls.map(([path]) => path)).not.toContain(url);
   expect(view.queryByText('Retained issuer pause requests')).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('mounts company paid issue authority for an appointed nonowner without loading owner financial history', async () => {
+  mockCompanyRole = 'investor';
+  classRecord = { ...token, isOwner: false };
+  appointmentRows = [appointment];
+  const view = await render(screen(), { wrapper });
+  await view.findByRole('button', { name: 'Prepare paid issue' });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(get.mock.calls.map(([url]) => url)).toContain(URLS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS);
+  for (const url of [URLS.ISSUANCES(uuid), URLS.ISSUANCE_REQUESTS, URLS.CAPITAL_INCREASES])
+    expect(get.mock.calls.map(([path]) => path)).not.toContain(url);
   expect(post).not.toHaveBeenCalled();
 });

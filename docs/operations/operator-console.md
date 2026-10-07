@@ -265,7 +265,9 @@ balance the node would not set included, says to start over. It adds:
 - Registers: each company's existing register (founders, directors, an employee
   share trust held at a custodian address with no key behind it, and investors
   from earlier rounds) is issued on chain through issuance requests that one
-  applied register instruction approves, and each closed offering is allotted.
+  applied register instruction approves. Closed offering allotments use the
+  company's retained authority, exact paid ISSUE approval/application and the
+  original captured task, preserving recorded payment/refund quantities and dates.
   Each class's register is then opened from the chain by a company-run opening,
   its particulars are imported with names, dates entered back to the founding,
   amounts paid and a few pre-platform former members, and it is reconciled with

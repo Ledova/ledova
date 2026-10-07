@@ -7,12 +7,13 @@ from uuid import UUID
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import signing
-from django.db import IntegrityError, connections
+from django.db import IntegrityError, OperationalError, connections
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
 from procrastinate import App
 from procrastinate.contrib.django.django_connector import DjangoConnector
+from requests.exceptions import RequestException
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 from web3.logs import DISCARD
@@ -98,11 +99,6 @@ def _authorize(user, authority):
     return actor
 
 
-def authorize_allotment(user):
-    _boundary()
-    return _authorize(user, SUBSCRIPTION_AUTHORITY)
-
-
 def confirmation(request, user, *, subscription=None):
     _boundary()
     authority = SUBSCRIPTION_AUTHORITY if subscription else REQUEST_AUTHORITY
@@ -170,6 +166,11 @@ def _intent(request, token):
 
 
 def _lock(execution_id, operation_id=None):
+    observed = ShareIssuanceExecution.objects.get(pk=execution_id)
+    if observed.subscription_id and observed.source_instruction_id:
+        from tokens.services.register_paid_issues import lock_execution_source
+
+        lock_execution_source(observed)
     operation = OutgoingOperation.objects.select_for_update().get(pk=operation_id) if operation_id else None
     observed = ShareIssuanceExecution.objects.get(pk=execution_id)
     token = ShareToken.objects.get(pk=observed.token_id)
@@ -211,33 +212,7 @@ def _enqueue(execution):
         )
 
 
-def _new(request, token, actor, authority, subscription=None):
-    _require_register(token.pk)
-    if request.dispatch_id is None or request.status != RequestStatus.APPROVED:
-        raise IssuanceExecutionConflict("Only a newly approved issuance can be admitted.")
-    if ShareIssuance.objects.filter(idempotency_key=f"issuance-request:{request.pk}").exists():
-        raise IssuanceExecutionConflict(ATTRIBUTION_REQUIRED)
-    if BlockchainTransaction.objects.filter(
-        related_model="tokens.ShareIssuanceRequest", related_uuid=request.pk
-    ).exists():
-        raise IssuanceExecutionConflict(ATTRIBUTION_REQUIRED)
-    if subscription is None:
-        raise PermissionDenied("New non-paid grants require the company's retained register instruction.")
-    execution = ShareIssuanceExecution.objects.create(
-        pk=request.dispatch_id,
-        request_id=request.pk,
-        token_id=token.pk,
-        company_id=token.company_id,
-        subscription_id=subscription.pk if subscription else None,
-        executed_by_id=actor.pk,
-        authority=authority,
-        intent=_intent(request, token),
-    )
-    _enqueue(execution)
-    return execution
-
-
-def admit_company(request, proposal, actor):
+def admit_company(request, proposal, actor, *, subscription=None):
     _operator()
     if (
         not connections[current_alias()].in_atomic_block
@@ -254,21 +229,13 @@ def admit_company(request, proposal, actor):
         token_id=proposal.token_id,
         company_id=proposal.company_id,
         executed_by_id=actor.pk,
+        subscription_id=subscription.pk if subscription else None,
         authority="company",
         intent=proposal.intent,
         source_instruction=proposal,
     )
     _enqueue(execution)
     return execution
-
-
-def admit_allotment(request, subscription, user):
-    _operator()
-    actor = _authorize(user, SUBSCRIPTION_AUTHORITY)
-    if not connections[current_alias()].in_atomic_block:
-        raise IssuanceExecutionConflict("Allotment admission must commit with its subscription and job.")
-    token = ShareToken.objects.select_for_update().get(pk=request.token_id)
-    return _new(request, token, actor, SUBSCRIPTION_AUTHORITY, subscription)
 
 
 def admit(request, user, *, confirmed, subscription=None):
@@ -284,8 +251,11 @@ def admit(request, user, *, confirmed, subscription=None):
         and retry_of is not None
         and previous.status == IssuanceExecutionStatus.FAILED
     ):
-        from tokens.services.register_issues import signing_source
+        from tokens.services import register_issues, register_paid_issues
 
+        signing_source = (
+            register_paid_issues.signing_source if previous.subscription_id else register_issues.signing_source
+        )
         retry_context = signing_source(previous, outgoing.OperationClaim(previous.operation_id, retry_of))
     try:
         with atomic(durable=True), retry_context as validate_retry:
@@ -340,7 +310,16 @@ def _admit_locked(request, actor, authority, subscription, retry_of, previous, v
         return existing
     if Subscription.objects.filter(issuance_request=current).exists():
         raise IssuanceExecutionConflict("Admit this issuance through its subscription.")
-    return _new(current, token, actor, authority)
+    _require_register(token.pk)
+    if current.dispatch_id is None or current.status != RequestStatus.APPROVED:
+        raise IssuanceExecutionConflict("Only a newly approved issuance can be admitted.")
+    if ShareIssuance.objects.filter(idempotency_key=f"issuance-request:{current.pk}").exists():
+        raise IssuanceExecutionConflict(ATTRIBUTION_REQUIRED)
+    if BlockchainTransaction.objects.filter(
+        related_model="tokens.ShareIssuanceRequest", related_uuid=current.pk
+    ).exists():
+        raise IssuanceExecutionConflict(ATTRIBUTION_REQUIRED)
+    raise PermissionDenied("New non-paid grants require the company's retained register instruction.")
 
 
 def cancel_queued(request, subscription):
@@ -375,7 +354,7 @@ def _preflight(execution, client):
     contract = client.load_contract("ShareToken", execution.intent["to"])
     if token.status == ShareTokenStatus.PAUSED or contract.functions.paused().call():
         raise IssuanceRefusedException(share_token_service.TOKEN_PAUSED)
-    if execution.source_instruction_id:
+    if execution.source_instruction_id and not execution.subscription_id:
         retained_registry = execution.source_instruction.snapshot["wallet"]["registry_address"]
         if str(contract.functions.whitelist().call()).lower() != retained_registry:
             raise IssuanceSigningHold(["class_identity_changed"])
@@ -390,7 +369,7 @@ def _preflight(execution, client):
 
 
 def _start(execution):
-    if execution.source_instruction_id:
+    if execution.source_instruction_id and not execution.subscription_id:
         from tokens.models import RegisterInstruction
 
         retained = RegisterInstruction.objects.get(pk=execution.source_instruction_id).snapshot["member"]
@@ -439,18 +418,18 @@ def _require_register(token_id):
 
 @contextmanager
 def _signing_register(execution):
-    from tokens.services.register_issues import signing_source
+    from tokens.services import register_issues, register_paid_issues
 
-    if execution.subscription_id:
-        yield lambda operation: _require_register(execution.token_id)
-    else:
-        with signing_source(
-            execution,
-            outgoing.OperationClaim(
-                execution.operation_id, OutgoingOperation.objects.get(pk=execution.operation_id).claim_id
-            ),
-        ) as validate:
-            yield validate
+    signing_source = (
+        register_paid_issues.signing_source if execution.subscription_id else register_issues.signing_source
+    )
+    with signing_source(
+        execution,
+        outgoing.OperationClaim(
+            execution.operation_id, OutgoingOperation.objects.get(pk=execution.operation_id).claim_id
+        ),
+    ) as validate:
+        yield validate
 
 
 def _claim(execution):
@@ -463,10 +442,26 @@ def _claim(execution):
             return outgoing.OperationClaim(operation.pk, operation.claim_id)
     intent = {field: execution.intent[field] for field in INTENT_FIELDS}
     intent["value"] = int(intent["value"])
+    source_context = None
+    if execution.subscription_id and execution.source_instruction_id:
+        from tokens.services import register_paid_issues
+
+        @contextmanager
+        def opening_context():
+            register_paid_issues.lock_execution_source(execution)
+            yield
+
+        source_context = opening_context
+
     claim = outgoing.open_operation(
-        f"share-issuance:{execution.request_id}:{execution.pk}", **intent, restart_of=execution.retry_of or UUID(int=0)
+        f"share-issuance:{execution.request_id}:{execution.pk}",
+        **intent,
+        restart_of=execution.retry_of or UUID(int=0),
+        opening_context=source_context,
     )
     with atomic(durable=True):
+        if execution.subscription_id and execution.source_instruction_id:
+            register_paid_issues.lock_execution_source(execution)
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
         current, request, _, _, _ = _lock(execution.pk, execution.operation_id)
         if current.status in TERMINAL and current.operation_id == operation.pk:
@@ -690,9 +685,10 @@ def _recover(execution_id):
     if operation.status == OutgoingStatus.PREPARING:
         try:
             if execution.source_instruction_id:
-                from tokens.services.register_issues import execution_requirements
+                from tokens.services import register_issues, register_paid_issues
 
-                unmet = execution_requirements(execution.source_instruction)
+                family = register_paid_issues if execution.subscription_id else register_issues
+                unmet = family.execution_requirements(execution.source_instruction)
                 if unmet:
                     raise IssuanceSigningHold(unmet)
             _preflight(execution, client)
@@ -705,14 +701,15 @@ def _recover(execution_id):
                 on_signed=lambda attempt: _record_signed(execution.pk, attempt),
             )
         except IssuanceSigningHold as error:
-            from tokens.services.register_issues import permanent_source_loss
+            from tokens.services import register_issues, register_paid_issues
 
-            if execution.source_instruction_id and permanent_source_loss(
+            family = register_paid_issues if execution.subscription_id else register_issues
+            if execution.source_instruction_id and family.permanent_source_loss(
                 execution.source_instruction, error.unmet_requirements
             ):
                 if outgoing.fail_preparing(claim):
                     return _result(
-                        _project(execution, claim, refusal="The original company grant source lapsed before signing.")
+                        _project(execution, claim, refusal="The original company issue source lapsed before signing.")
                     )
             return _result(execution)
         except IntegrityError:
@@ -724,10 +721,13 @@ def _recover(execution_id):
                 return _result(execution)
             refusal = str(exc.detail)
             outgoing.fail_preparing(claim)
-        except Exception:
+        except Exception as error:
             logger.warning("Issuance execution %s requires committed-state recovery", execution.pk)
             if execution.source_instruction_id:
-                return _result(execution)
+                if not execution.subscription_id or not isinstance(error, outgoing.OutgoingPreparationError):
+                    return _result(execution)
+                if isinstance(error.exception, (ConnectionError, TimeoutError, RequestException)):
+                    return _result(execution)
             outgoing.fail_preparing(claim)
     operation.refresh_from_db()
     execution.refresh_from_db()
@@ -762,6 +762,13 @@ def recover(execution_id):
         try:
             result = _recover(execution_id)
             break
+        except OperationalError as exception:
+            if getattr(exception.__cause__, "sqlstate", None) != "55P03":
+                raise
+            execution = ShareIssuanceExecution.objects.get(pk=execution_id)
+            if not execution.source_instruction_id or not execution.subscription_id:
+                raise
+            return _result(execution)
         except IssuanceExecutionAdvanced:
             if attempt == ISSUANCE_RECOVERY_COLLISION_RETRIES - 1:
                 raise

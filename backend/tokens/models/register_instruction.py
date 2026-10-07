@@ -50,6 +50,9 @@ class RegisterInstruction(BaseModel):
     wallet_approval = models.ForeignKey(
         "whitelist.WhitelistChange", on_delete=models.PROTECT, related_name="+", null=True
     )
+    paid_subscription = models.ForeignKey(
+        "offerings.Subscription", on_delete=models.PROTECT, related_name="+", null=True
+    )
     request = models.OneToOneField(
         "tokens.ShareIssuanceRequest", on_delete=models.PROTECT, related_name="company_instruction", null=True
     )

@@ -33,6 +33,7 @@ class OutgoingTransactionError(ValueError):
 class OutgoingPreparationError(OutgoingTransactionError):
     def __init__(self, exception):
         super().__init__("The outgoing transaction could not be prepared.")
+        self.exception = exception
         self.revert_message = decode_exception_to_message(exception, "")
 
 

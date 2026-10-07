@@ -16,11 +16,15 @@ transfer and stablecoin instructions and staff-attested receipts below are the
 existing implementation, not the completed company-managed AUD design.
 
 The [accepted plan](company-managed-registers.md#delivery-sequence) replaces the
-admin-only acceptance, receipt/refund recording and allotment paths with
+admin-only acceptance and receipt/refund recording paths with
 company-capability workflows. Company or appointed-provider payment settings
 and instruction snapshots must identify the actual primary recipient. Retain
 existing instructions as historical evidence; migrate secondary-market deposits
 and settlement separately rather than silently retargeting them.
+
+The [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation separately: it authorises exact issuance over an existing
+recorded PAID subscription without selecting new collection or refund mechanics.
 
 Company finance and issue authority are separate capabilities. A recorded receipt
 does not approve an issue, and evidence of a payment must not claim more than
@@ -28,8 +32,11 @@ the configured provider/check actually establishes. Allotment must still bind
 the exact approved subscription, recipient and shares, with atomic admission,
 headroom, refund holds, idempotency, original transaction finality and bounded
 recovery. Non-paid grants use genuine non-paid terms and issue authority, not a
-fabricated receipt. The detailed flow below describes current staff-assisted
-code, including its bank and stablecoin attestation limitations.
+fabricated receipt. The [paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation and replaces staff issue admission with exact company
+decisions over existing recorded PAID subscriptions. Acceptance and financial
+receipt/refund producers remain staff-assisted pending #868, including the bank
+and stablecoin attestation limitations below.
 
 ## Data flow of a subscription
 
@@ -86,7 +93,7 @@ code, including its bank and stablecoin attestation limitations.
    throughout this admin. The bank rail has no such key: settlement there is
    operator-attested, so a statement line already recorded against another
    subscription is a **warning** naming the other references, not a refusal.
-   Acceptance, confirmation, refund, rejection, retry, bulk allotment and scale
+   Acceptance, confirmation, refund, rejection, technical retry and scale
    back each write a `LogEntry`, so a restated
    `amount_received` leaves the earlier figure in the object's history though
    the column holds only the latest; restating downwards warns as well.
@@ -105,35 +112,33 @@ code, including its bank and stablecoin attestation limitations.
    failures and confirmed reverts permit cancellation; unknown delivery does not.
    Historical failed rows with unresolved hashes or unidentified mint evidence
    retain their holds. An allotted subscription may still return only its excess.
-6. Allotment needs an applied
-   [register instruction](../operations/register-foundation.md#register-instructions-for-issues)
-   that lists the subscription with its current recipient and shares. It admits
-   one private `ShareIssuanceExecution` alongside its approved
-   request, `OneToOne` subscription link and exact task identity. Initial queued
+6. Paid issuance needs the exact applied company
+   [paid-issue instruction](../plans/company-managed-registers/company-paid-issues.md)
+   over the recorded subscription and captured recipient, quantity and payment
+   facts. Preparation and approval admit no request or execution. Application
+   consumes company approval and admits one private `ShareIssuanceExecution`
+   alongside its approved request, original subscription link and exact task
+   identity. Initial queued
    work remains refundable until the worker claims it. The shared outgoing journal
    commits the original signed transaction and public associations before send.
    The database protects approved terms, first linkage, money and share quantities
-   against stale edits. Execution and retry require current active staff and
-   subscription change permission; recovery of accepted work is operator-owned.
+   against stale edits. Fresh signing needs the original current company source;
+   technical retry preserves that source and original identity. Recovery of
+   accepted signed work is operator-owned after authority loss.
    Retry confirmations bind the subscription, actor and exact failed claim.
    See [issuance boundaries](outgoing-signing.md#share-issuances).
-7. The headroom test lives in `allot()`, the exported single-subscription entry
-   point, so the offering cap — a disclosure limit, not an internal convenience
-   — is guarded however the shares are raised. Bulk allotment groups by
-   offering, drops the rows `allot()`
-   would refuse anyway — already linked to a request, not `paid`, scaled to
-   nothing, or listed by no applied instruction — before it sums, so one stale
-   row does not poison the batch, makes one `share_supply()` read before locks,
-   then admits the group under the
-   offering and token locks with the same snapshot. It
-   refuses the **whole** remaining batch when the total exceeds `min(offering
-   headroom, authorized - issued - unminted)`, because part-filling first-come
-   would destroy the pro-rata fairness `scale_back` exists to give.
+7. The company paid-issue family checks both offering headroom and class capacity
+   under the original source locks, with current chain observations taken before
+   locking. The offering cap remains a disclosure limit. Existing `scale_back`
+   determines paid allotment quantities; the company does not use a retired staff
+   bulk-admission path to choose a different quantity. Each exact application
+   requires its amount to fit `min(offering headroom, authorized - issued -
+   unminted)`, including original reservations and finalised unentered work.
    `totalSupply()` counts what is on chain, not what has been promised, so the
    chain half of that `min()` also subtracts every request for the token that
    can still mint: `approved` and `executing`, plus historical failed issuances
    retaining unresolved hashes. A new command with a confirmed revert retains
-   its hash as evidence without holding unminted headroom. Without that subtraction two sequential batches
+   its hash as evidence without holding unminted headroom. Without that subtraction two sequential applications
    each fit alone and jointly do not, stranding the second as a `paid` row whose
    task refuses forever. `scale_back` writes the money it strands: cutting
    `allotted_quantity` leaves `amount_due` and `amount_received` alone by
@@ -147,8 +152,12 @@ code, including its bank and stablecoin attestation limitations.
    The issuance sweep handles queued and executing private commands, plus
    unresolved historical requests. The daily `expire_unpaid_subscriptions` only
    touches rows with no payment recorded.
-9. Allotment is currently an admin action. The API carries create, list, detail, submit
-   and withdraw for the investor and no operator write route. The issuer reads
+9. Both clients expose company preparation and exact approval/application through
+   `/api/v1/tokens/register-paid-issues/`, with a narrow ready-source selector for
+   current ADMIN/PREPARE in the exact company and class. Approvers and register
+   readers can inspect proposals without that selector or the financial ledger.
+   The existing subscription API carries create, list, detail, submit and withdraw
+   for the investor and no operator financial write route. The issuer reads
    its own offering's subscriptions at `GET
    /api/v1/offerings/{uuid}/subscriptions/`, scoped by the offering's own
    `subscribed_by(user)` and read-only, so payment confirmed and allotment pending

@@ -21,6 +21,8 @@ SWEEP_BATCH = 200
 
 @app.task(retry=RetryStrategy(max_attempts=4, wait=30))
 def allot_subscription_task(subscription_uuid: str, executed_by: int | None = None, execution_id: str | None = None):
+    if executed_by is not None and (type(executed_by) is not int or executed_by <= 0):
+        return {"success": False, "error": "Allotment requires its original plain integer actor"}
     with use_operator():
         execution = ShareIssuanceExecution.objects.filter(
             pk=execution_id, subscription_id=subscription_uuid, executed_by_id=executed_by

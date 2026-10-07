@@ -74,6 +74,7 @@ ADDED_COLUMNS = {
     "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_shareissuanceexecution": ["source_instruction_id"],
     "tokens_registerinstruction": [
+        "paid_subscription_id",
         "preparing_appointment_id",
         "member_id",
         "nomination_id",

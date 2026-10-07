@@ -1,3 +1,7 @@
+import { REGISTER_PAID_ISSUE_COPY, REGISTER_PAID_ISSUE_UNMET_COPY } from '../constants/business/register-paid-issues';
+import { previewRegisterPaidIssueDecision, decideRegisterPaidIssue } from '../services/register-paid-issues';
+import { isRegisterPaidIssueDecisionReceipt } from '../utils/register-paid-issues';
+import type { RegisterPaidIssue, RegisterPaidIssueDecisionPreview } from '../types';
 import {
   REGISTER_PAUSE_CHANGE_COPY,
   REGISTER_PAUSE_CHANGE_UNMET_COPY,
@@ -91,6 +95,17 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
+};
+
+export const REGISTER_PAID_ISSUE_DECISIONS: RegisterDecisionFamily<
+  RegisterPaidIssue,
+  RegisterPaidIssueDecisionPreview
+> = {
+  preview: previewRegisterPaidIssueDecision,
+  decide: decideRegisterPaidIssue,
+  isReceipt: isRegisterPaidIssueDecisionReceipt,
+  copy: REGISTER_PAID_ISSUE_COPY,
+  unmet: REGISTER_PAID_ISSUE_UNMET_COPY,
 };
 
 export const REGISTER_PAUSE_CHANGE_DECISIONS: RegisterDecisionFamily<

@@ -91,15 +91,18 @@ once-only ISSUE entry. The first-member LINK can precede a first mint. Imported
 books retain their separate walletless grant workflow and cannot obtain chain
 issue authority by deploying a contract, including when imported supply is zero.
 
-A paid issue is approved only under a
-[register instruction](../operations/register-foundation.md#register-instructions-for-issues):
-the company owner lists the exact issuance requests, and offering subscriptions
-for allotments, that a named director approved, with staff-verified documentary
-authority, and staff review it. Applying it approves each listed request with the
-reviewer, who becomes the issue entry's recorder, and allotment refuses a
-subscription no applied instruction lists on its current terms. PostgreSQL keeps
-instructions immutable, and keeps an issuance request's review decision and
-reviewer out of the company's own connection. An import-origin class takes no
+The [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. It binds the company's exact preparation, approval and
+application to an existing recorded PAID subscription. Application admits its
+original request and execution; a genuine finalised Mint supplies the original
+member's ISSUE once its wallet link exists. The entry records the company
+appointee who applied the issue. Payment, approval, Mint, ALLOTTED and register
+recording remain separate. Financial decisions remain pending #868.
+Retained paid instructions keep their original staff decisions and financial
+source. Fresh legacy paid admission is retired; retained non-paid requests may
+still obtain their earlier guarded register cover. PostgreSQL keeps those
+instructions immutable and rejects fabricated company or legacy authority.
+An import-origin class takes no
 chain issue or transfer instruction; later tokenisation needs a genuine mirror
 that preserves its recorded holdings.
 

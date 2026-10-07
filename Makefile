@@ -262,6 +262,7 @@ chain-test:
 	    wallets.tests.test_submission_chain tokens.tests.test_chain_journey shared.tests.test_seed_chain \
 	    tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest \
 	    tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest \
+	    tokens.tests.test_company_paid_issue_chain \
 	--settings=ledova_backend.settings.test --noinput
 
 .DEFAULT_GOAL := help

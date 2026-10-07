@@ -215,15 +215,18 @@ existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
-`.deployed-contracts.env` and runs the five real-chain modules,
+`.deployed-contracts.env` and runs the real-chain modules,
 `tokens.tests.test_chain_integration`, `offerings.tests.test_chain_allotment`,
 `wallets.tests.test_submission_chain`, `tokens.tests.test_chain_journey`
 (the [demonstration journey](demonstration-journey.md)) and
-`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data)),
-plus `tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest` for
-the genuine company capital seed command and its captured original job. It then
-stops the node. The added class verifies cap-only execution without relying on
-the currently unsupported no-key treasury seed path.
+`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data))
+and `tokens.tests.test_company_paid_issue_chain` for genuine paid company issue
+authority, original execution and separate Mint/register outcomes,
+plus `tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest`
+and `tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest` for
+the genuine company capital and pause seed commands and their captured original
+jobs. It then stops the node. The capital class verifies cap-only execution
+without relying on the currently unsupported no-key treasury seed path.
 `CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
 deploy connects to (through `LOCALHOST_RPC_URL`, which
 `contracts/hardhat.config.ts` reads) and the backend's `BLOCKCHAIN_RPC_URL` — so

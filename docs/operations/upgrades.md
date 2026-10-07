@@ -369,9 +369,8 @@ import-origin registers still cannot acquire fresh chain issue authority.
 Deploy the backend, workers and both clients together. The new clients use
 `/api/v1/tokens/register-issues/` and the existing LINK family for an exact nominated
 wallet before a first mint. An older backend cannot serve this family; an older
-client's direct owner issue POST is retired by the new backend. Paid issuance
-remains a later conversion; capital and pause have their own coordinated upgrades
-below.
+client's direct owner issue POST is retired by the new backend. Paid issuance,
+capital and pause have their own coordinated upgrades below.
 
 Reversal of `0101` refuses retained company preparations, decisions or nonnull
 execution sources, including rejected or merely prepared work. Empty reversal
@@ -380,6 +379,34 @@ removes its empty new records and nullable associations. Preserve database and
 private storage together, including original signed and paid history. Final
 fresh migration/role/catalogue, reversal and recovery evidence belongs in the
 increment's pull request; these release notes authorise no live migration.
+
+### Company paid issues
+
+The sixth #867 increment is under implementation; its
+[paid-issue guide](../plans/company-managed-registers/company-paid-issues.md)
+distinguishes its source contract from completed release verification.
+`tokens/0106_company_register_paid_issues` adds nullable immutable PROTECT
+subscription provenance to the existing register instruction. Historical
+instructions, requests, payments, execution journals and actors receive no
+invented company source or approval.
+
+`tokens/0107_company_register_paid_issue_guards` extends the actual paid/request
+and company-source guards. It binds exact company preparation, consumed approval,
+late application, original subscription/request/execution pairing and fresh
+signing while preserving original financial cancellation, finality and retained
+register outcomes. Preparation and approval create no request, paid link, journal
+or issuance job. Existing original paid request bindings and unique executions
+remain immutable after permanent never-signed authority loss. No duplicate
+request, renewed source or automatic refund is an upgrade fallback.
+
+Coordinate backend, workers and both clients for
+`/api/v1/tokens/register-paid-issues/`. Fresh legacy staff paid ISSUE review,
+admission and allotment controls are retired together. Original technical
+recovery, retained ISSUE history, TRANSFER pending #869 and existing financial
+receipt/refund producers pending #868 remain. Reversal must refuse retained
+company-paid preparations or decisions rather than discard their evidence or
+restore fresh staff authority over them. No live migration or financial payment
+policy is selected by this implementation contract.
 
 ### Company capital increases
 

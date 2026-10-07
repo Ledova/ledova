@@ -128,3 +128,4 @@ export { shownSymbol } from './asset-symbol';
 export * from './register-issues';
 export * from './register-capital-increases';
 export * from './register-pause-changes';
+export * from './register-paid-issues';

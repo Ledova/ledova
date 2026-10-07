@@ -148,33 +148,49 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
         from decimal import Decimal
         from unittest.mock import patch
 
-        from offerings.models import Subscription
-        from offerings.services.subscription import allot, record_refund
+        from companies.services.editing import update_company
+        from offerings.models import Offering, OfferingExemption, Subscription
+        from offerings.services.offering import submit_offering, transition_offering
+        from offerings.services.subscription import record_refund
         from offerings.tests.factories import (
-            allottable_subscription,
             configure_operator,
-            eligible_subscriber,
-            open_offering,
             subscription_technical_actor,
         )
-        from shared.tests.tenants import make_tenant
+        from tokens.services.register_paid_issues import prepare_paid_issue
+        from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 
+        fixture = self.company_issue
+        fixture.company = update_company(fixture.company, {"is_open_to_investors": True}, actor=fixture.owner)
         with use_operator():
-            issuer = make_tenant("scoped-paid-issuer")
-            subscriber = make_tenant("scoped-issuance-subscriber")
-            technical_actor = subscription_technical_actor()
             configure_operator()
-            eligible_subscriber(issuer)
-            subscriber.offering = open_offering(issuer)
-            eligible_subscriber(subscriber, issuer_decision=issuer.eligibility_decision)
-            subscription = allottable_subscription(subscriber, quantity=10)
-        with acting_for(subscriber.user.pk):
+            fixture.technical = subscription_technical_actor()
+            fixture.offer = Offering.objects.create(
+                token=fixture.token,
+                exemption=OfferingExemption.PROFESSIONAL,
+                price_per_share=Decimal("2.50"),
+                minimum_shares=1,
+                target_shares=100,
+                cap_shares=100,
+                maximum_shares=100,
+                opens_at=timezone.now(),
+                summary="Exact paid subscriber guard terms",
+            )
+            submit_offering(fixture.offer, submitted_by=fixture.owner)
+            transition_offering(fixture.offer, "approve", reviewed_by=fixture.technical)
+            fixture.offer.refresh_from_db()
+        self.enterContext(patch("tokens.services.register_paid_issues.chain_snapshot", return_value=(100, 0, 0)))
+        self.enterContext(patch("tokens.services.issuance_execution._enqueue"))
+        fixture.subscription = subscription = CompanyPaidIssueCases.genuine_paid_subscription(fixture, quantity=10)
+        with acting_for(fixture.participant.pk):
             Subscription.objects.filter(pk=subscription.pk).update(payment_notes="Investor payment note")
             self.assertEqual(Subscription.objects.get(pk=subscription.pk).payment_notes, "Investor payment note")
-        with use_operator(), patch("offerings.tasks.allot_subscription_task.defer"):
-            request = allot(subscription, technical_actor, headroom=(1000, 1000))
+        proposal = prepare_paid_issue(**CompanyPaidIssueCases.paid_payload(fixture))
+        CompanyPaidIssueCases.paid_decide(fixture, proposal, "approve")
+        proposal, _ = CompanyPaidIssueCases.paid_decide(fixture, proposal, "apply")
+        with use_operator():
+            request = ShareIssuanceRequest.objects.get(pk=proposal.request_id)
             command = ShareIssuanceExecution.objects.get(request_id=request.pk)
-        with acting_for(subscriber.user.pk):
+        with acting_for(fixture.participant.pk):
             self.assertTrue(ShareIssuanceRequest.objects.filter(pk=request.pk).exists())
             for fields in (
                 {"issuance_request": None},
@@ -192,12 +208,12 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             record_refund(subscription, Decimal("1.00"))
             command.refresh_from_db()
             self.assertEqual(command.status, "cancelled")
-        with acting_for(subscriber.user.pk):
+        with acting_for(fixture.participant.pk):
             from offerings.tasks import allot_subscription_task
 
             result = allot_subscription_task(
-                str(subscription.pk), executed_by=technical_actor.pk, execution_id=str(command.pk)
+                str(subscription.pk), executed_by=fixture.owner.pk, execution_id=str(command.pk)
             )
             self.assertEqual(result["status"], "rejected")
             self.assertEqual(current_alias(), APP_ALIAS)
-        self.node.client.send_raw_transaction.assert_not_called()
+        fixture.issuance_node.client.send_raw_transaction.assert_not_called()

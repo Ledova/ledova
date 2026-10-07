@@ -9,12 +9,12 @@ from django.contrib.auth import get_user_model
 from django.db import DatabaseError, IntegrityError, connection, connections
 from django.test import TransactionTestCase
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
 from web3 import Web3
 
 from companies.services.administration import company_operation
-from offerings.tests.factories import allottable_subscription, eligible_subscriber
+from offerings.tests.factories import eligible_subscriber
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
@@ -90,7 +90,11 @@ from tokens.tests.evidence_fixtures import (
     staff_user,
     upload_evidence,
 )
-from tokens.tests.instruction_fixtures import instruction_payload
+from tokens.tests.instruction_fixtures import (
+    instruction_payload,
+    retained_instruction,
+    retained_paid_instruction,
+)
 from tokens.tests.register_command_fixtures import (
     legacy_entry_before_company_transfers,
     transfer_existing_member,
@@ -99,7 +103,10 @@ from tokens.tests.register_grant_fixtures import grant_existing_member
 from tokens.tests.retained_issuance_fixtures import approve_retained_request
 from tokens.tests.test_register_certificates import pages_of
 from tokens.tests.test_register_events import DAY, register_fixture
-from tokens.tests.test_register_instructions import instruction_fixture
+from tokens.tests.test_register_instructions import (
+    instruction_fixture,
+    issuance_request,
+)
 from tokens.tests.test_the_fold_that_writes_former_members import (
     ALICE,
     BOB,
@@ -1286,7 +1293,12 @@ class ImportOpenedInstructionTest(TransactionTestCase):
     def test_an_applied_register_instruction_keeps_a_class_from_being_opened_by_an_import(self):
         proposal = self.submit()
         eligible_subscriber(self.tenant)
-        allottable_subscription(self.tenant)
+        retained_paid_instruction(
+            actor=self.tenant.user,
+            reviewer=self.reviewer,
+            status="applied",
+            **instruction_payload(self.token, self.document, [self.subscription]),
+        )
         self.assertFalse(ShareIssuanceRequest.objects.filter(token=self.token, status__in=APPROVED).exists())
         refusal = "has an approved issue or an applied register instruction"
         with self.assertRaisesMessage(ValidationError, refusal):
@@ -1308,25 +1320,35 @@ class ImportOpenedInstructionTest(TransactionTestCase):
 
     def test_an_import_opened_class_takes_no_issue_instruction(self):
         payload = instruction_payload(self.token, self.document, [self.subscription])
-        waiting = submit_instruction(actor=self.tenant.user, **payload)
-        _, _, confirmation = prepare_instruction_review(proposal_id=waiting.pk, reviewer=self.reviewer)
+        waiting = retained_paid_instruction(actor=self.tenant.user, reviewer=self.reviewer, **payload)
+        nonpaid_payload = instruction_payload(self.token, self.document, [issuance_request(self.tenant)])
+        original_nonpaid = retained_instruction(actor=self.tenant.user, **nonpaid_payload)
+        confirmation = "Retired original paid proposal"
+        with self.assertRaisesMessage(ValidationError, "New paid issues"):
+            prepare_instruction_review(proposal_id=waiting.pk, reviewer=self.reviewer)
         applied = {"status": "applied", "reviewed_by": self.reviewer, "reviewed_at": timezone.now()}
-        with self.assertRaises(RuntimeError), atomic():
+        with self.assertRaisesMessage(DatabaseError, "Fresh paid ISSUE authority"), atomic():
             RegisterInstruction.objects.filter(pk=waiting.pk).update(**applied)
-            raise RuntimeError("rollback")
         self.apply(self.submit())
         refusal = "opened from an imported register"
-        with self.assertRaisesMessage(ValidationError, refusal):
+        with self.assertRaises(PermissionDenied):
             submit_instruction(actor=self.tenant.user, **{**payload, "operation_id": uuid4()})
         with self.assertRaisesMessage(ValidationError, refusal):
             prepare_instruction_review(proposal_id=waiting.pk, reviewer=self.reviewer)
-        with self.assertRaisesMessage(ValidationError, refusal):
+        with self.assertRaises(PermissionDenied):
             decide_instruction(
                 proposal_id=waiting.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
             )
-        with self.assertRaisesMessage(DatabaseError, "takes no register instruction until it is on chain"), atomic():
+        with self.assertRaisesMessage(DatabaseError, "Fresh paid ISSUE authority"), atomic():
             RegisterInstruction.objects.filter(pk=waiting.pk).update(**applied)
+        with self.assertRaisesMessage(ValidationError, refusal):
+            submit_instruction(actor=self.tenant.user, **{**nonpaid_payload, "operation_id": uuid4()})
+        with self.assertRaisesMessage(ValidationError, refusal):
+            prepare_instruction_review(proposal_id=original_nonpaid.pk, reviewer=self.reviewer)
+        with self.assertRaisesMessage(DatabaseError, "takes no register instruction until it is on chain"), atomic():
+            RegisterInstruction.objects.filter(pk=original_nonpaid.pk).update(**applied)
         self.assertEqual(RegisterInstruction.objects.get(pk=waiting.pk).status, "submitted")
+        self.assertEqual(RegisterInstruction.objects.get(pk=original_nonpaid.pk).status, "submitted")
 
 
 class RegisterImportOpeningMigrationTest(TransactionTestCase):

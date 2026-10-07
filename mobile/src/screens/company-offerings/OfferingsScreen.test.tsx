@@ -192,7 +192,7 @@ it('reads all owned offering, class and application pages and retains precise mo
   expect(view.getByRole('header', { name: 'Applications' })).toBeTruthy();
   expect(
     view.getByText(
-      'Read-only. Payment confirmation and allotment are done by Example Operator; this is where you watch them happen.',
+      'Read-only. Payment recording is done by Example Operator. Company paid issue authority is managed on the share class; this ledger shows the recorded financial outcome.',
     ),
   ).toBeTruthy();
   expect(view.getByText('2 applications')).toBeTruthy();

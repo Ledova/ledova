@@ -78,7 +78,11 @@ The fourth [capital increment](../plans/company-managed-registers/company-capita
 is under implementation, with exact company decisions and the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
 is under implementation with exact company decisions and original observation or
-transaction recovery. Paid issuance remains a later #867 increment.
+transaction recovery. The sixth
+[paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation, separating existing recorded payment from exact company
+issue approval, original execution and allotment. New payment mechanics remain
+#868 work.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.

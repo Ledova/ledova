@@ -71,12 +71,8 @@ from tokens.services.company_pack import COMPILER, produce_company_pack
 from tokens.services.register import REGISTER_HEADERS, export_rows, months_after
 from tokens.services.register_corrections import prepare_correction
 from tokens.services.register_events import open_register, record_entry
-from tokens.services.register_instructions import (
-    decide_instruction,
-    prepare_instruction_review,
-    submit_instruction,
-)
-from tokens.services.register_openings import prepare_link
+from tokens.services.register_instructions import _items
+from tokens.services.register_openings import _retain, prepare_link
 from tokens.services.register_particulars import prepare_particulars_change
 from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.services.settlement_context import configured_domain
@@ -216,7 +212,28 @@ def with_account_details(label, addresses):
         )
 
 
+@contextmanager
+def predecessor_paid_issue_guards():
+    nested = connections["default"].in_atomic_block
+    with use_migrate():
+        if nested:
+            with connections["default"].cursor() as cursor:
+                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+        try:
+            yield migrate_to([("tokens", "0106_company_register_paid_issues")])
+        finally:
+            restore_every_migration()
+            if nested:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+
+
 def allotted_subscription(tenant, reviewer, document, allottee, label):
+    with predecessor_paid_issue_guards() as historical:
+        return retained_allotted_subscription(tenant, reviewer, document, allottee, label, historical)
+
+
+def retained_allotted_subscription(tenant, reviewer, document, allottee, label, historical):
     wallet = Wallet.objects.get(address=allottee)
     subscription = Subscription.objects.create(
         offering=tenant.offering,
@@ -237,17 +254,23 @@ def allotted_subscription(tenant, reviewer, document, allottee, label):
         payment_confirmed_by=reviewer,
         payment_confirmed_at=RECORDED_AT,
     )
-    instruction = submit_instruction(
-        actor=tenant.company.owner,
-        operation_id=uuid4(),
+    instruction = historical.get_model("tokens", "RegisterInstruction")(
+        uuid=uuid4(),
+        company_id=tenant.company.pk,
         token_id=tenant.deployed_token.pk,
-        document_id=document.pk,
         kind="issue",
-        items=[{"subscription": str(subscription.pk), "recipient": allottee, "amount": "25"}],
+        items=_items("issue", [{"subscription": str(subscription.pk), "recipient": allottee, "amount": "25"}]),
         **authority_terms(label, "allotment"),
     )
-    _, _, confirmation = prepare_instruction_review(proposal_id=instruction.pk, reviewer=reviewer)
-    decide_instruction(proposal_id=instruction.pk, reviewer=reviewer, confirmation=confirmation, decision="apply")
+    owner = historical.get_model("authentication", "CustomUser").objects.get(pk=tenant.company.owner_id)
+    with atomic(), patch(
+        "tokens.services.register_openings.CompanyDocument", historical.get_model("companies", "CompanyDocument")
+    ):
+        _retain(instruction, document.pk, owner)
+        instruction.status = "applied"
+        instruction.reviewed_by_id = reviewer.pk
+        instruction.reviewed_at = timezone.now()
+        instruction.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
     issuance = ShareIssuance.objects.create(
         token=tenant.deployed_token,
         recipient_address=allottee,

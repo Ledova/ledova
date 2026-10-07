@@ -8,9 +8,8 @@ from uuid import uuid4
 from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
-from web3 import Web3
 
-from companies.models import Company, CompanyStatus
+from companies.models import CompanyStatus
 from companies.services.authority_requests import _requester_principal
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
@@ -32,11 +31,8 @@ from offerings.services.payments import (
 from operators.models import Operator
 from shared.db import atomic, current_alias, principal_of, use_operator
 from tokens.models import (
-    IssuanceType,
-    RegisterInstruction,
     RequestStatus,
     ShareIssuanceRequest,
-    ShareToken,
     ShareTokenStatus,
 )
 from tokens.services import share_token_service
@@ -85,22 +81,6 @@ REFERENCE_SEEN_REUSED = (
 )
 NOTHING_COVERED = (
     "{received} covers no whole share at {price} each. Refund it instead of accepting it as the final payment."
-)
-ALREADY_ALLOTTED = "This subscription already has issuance request {uuid}; it cannot be allotted twice."
-NOT_PAID = "Only a paid subscription can be allotted; this one is {status}."
-NOTHING_TO_ALLOT = "This subscription has been scaled back to zero shares; refund it instead."
-NOT_INSTRUCTED = (
-    "No applied register instruction approves allotting {amount} shares to {recipient} for subscription "
-    "{reference}. The company submits one naming its approving director, and staff review it, before allotment."
-)
-ALLOTMENT_ABOVE_HEADROOM = (
-    "Allotting {amount} shares of {symbol} would exceed the {room} still available "
-    "({cap_room} left under the offering cap, {chain_room} left of the authorized supply)."
-)
-BATCH_ABOVE_HEADROOM = (
-    "Allotting {total} shares of {symbol} would exceed the {room} still available "
-    "({cap_room} left under the offering cap, {chain_room} left of the authorized supply). "
-    "The whole batch is refused; scale back first rather than allotting a first-come subset."
 )
 NO_REQUEST_TO_RETRY = "This subscription has no issuance request yet; allot it first."
 ISSUANCE_ALREADY_CLAIMED = (
@@ -664,133 +644,6 @@ def scale_back(offering: Offering) -> dict:
         scaled += 1
     logger.info(f"Scaled {scaled} subscriptions of {locked.token.symbol} from {requested} into {room} shares")
     return {"scaled": scaled, "requested": requested, "room": room}
-
-
-def _not_allottable(subscription: Subscription):
-    if subscription.issuance_request_id is not None:
-        return ALREADY_ALLOTTED.format(uuid=subscription.issuance_request_id)
-    if subscription.status != SubscriptionStatus.PAID:
-        return NOT_PAID.format(status=subscription.get_status_display().lower())
-    if subscription.allotment_quantity < 1:
-        return NOTHING_TO_ALLOT
-    recipient = Web3.to_checksum_address(subscription.wallet.address)
-    amount = str(subscription.allotment_quantity)
-    if not RegisterInstruction.objects.covering(
-        {"subscription": str(subscription.pk), "recipient": recipient, "amount": amount}
-    ).exists():
-        return NOT_INSTRUCTED.format(
-            amount=amount, recipient=recipient, reference=subscription.reference or subscription.uuid
-        )
-    return None
-
-
-def allot(subscription: Subscription, operator_user, notes: str = "", headroom=None):
-    from tokens.services.issuance_execution import authorize_allotment
-
-    authorize_allotment(operator_user)
-    supply = None if headroom is not None else chain_snapshot(subscription.offering)
-    with atomic():
-        return _admit_allotment(subscription, operator_user, notes, headroom, supply)
-
-
-def _admit_allotment(subscription, operator_user, notes, headroom, supply):
-    from tokens.services.issuance_execution import admit_allotment
-
-    offering = _lock_offering(subscription.offering_id)
-    locked = _locked(subscription)
-    if locked.offering_id != offering.pk:
-        raise SubscriptionRefusedException("The subscription no longer belongs to this offering.")
-    refusal = _not_allottable(locked)
-    if refusal is not None:
-        raise SubscriptionRefusedException(refusal)
-    amount = locked.allotment_quantity
-
-    cap_room, chain_room = headroom if headroom is not None else offering_headroom(offering, supply=supply)
-    room = min(cap_room, chain_room)
-    if amount > room:
-        raise SubscriptionRefusedException(
-            ALLOTMENT_ABOVE_HEADROOM.format(
-                amount=amount, symbol=offering.token.symbol, room=room, cap_room=cap_room, chain_room=chain_room
-            )
-        )
-
-    request = share_token_service.create_issuance_request(
-        offering.token,
-        recipient=locked.wallet.address,
-        amount=amount,
-        user=operator_user,
-        reason=f"Allotment of subscription {locked.reference or locked.uuid}",
-        issuance_type=IssuanceType.ADDITIONAL,
-    )
-    request.approve(operator_user, notes)
-    locked.issuance_request = request
-    locked.save(update_fields=["issuance_request", "updated_at"])
-    subscription.issuance_request = request
-    admit_allotment(request, locked, operator_user)
-    logger.info(f"Subscription {locked.uuid} allotted {amount} shares through request {request.uuid}")
-    return request
-
-
-def allot_batch(subscriptions, operator_user, notes: str = "", service=None) -> dict:
-    from tokens.services.issuance_execution import authorize_allotment
-
-    authorize_allotment(operator_user)
-    service = service or share_token_service
-    grouped = {}
-    for subscription in subscriptions:
-        grouped.setdefault(subscription.offering_id, []).append(subscription)
-
-    result = {"allotted": 0, "refusals": []}
-    for offering_id, group in grouped.items():
-        allotted, refusals = _allot_group(offering_id, group, operator_user, notes, service)
-        result["allotted"] += allotted
-        result["refusals"].extend(refusals)
-    return result
-
-
-def _allot_group(offering_id, group, operator_user, notes, service) -> tuple[int, list[str]]:
-    ready, refusals = [], []
-    for subscription in group:
-        refusal = _not_allottable(subscription)
-        if refusal is None:
-            ready.append(subscription)
-        else:
-            refusals.append(refusal)
-    if not ready:
-        return 0, refusals
-    try:
-        return _allot_ready(offering_id, ready, operator_user, notes, service), refusals
-    except SubscriptionRefusedException as exc:
-        return 0, refusals + [str(exc.detail)]
-
-
-def _allot_ready(offering_id, ready, operator_user, notes, service) -> int:
-    observed = Offering.objects.select_related("token").get(pk=offering_id)
-    supply = chain_snapshot(observed, service)
-    with atomic():
-        offering = _lock_offering(offering_id)
-        cap_room, chain_room = offering_headroom(offering, supply=supply)
-        room = min(cap_room, chain_room)
-        total = sum(subscription.allotment_quantity for subscription in ready)
-        if total > room:
-            raise SubscriptionRefusedException(
-                BATCH_ABOVE_HEADROOM.format(
-                    total=total, symbol=offering.token.symbol, room=room, cap_room=cap_room, chain_room=chain_room
-                )
-            )
-        for subscription in ready:
-            _admit_allotment(subscription, operator_user, notes, (cap_room, chain_room), None)
-    return len(ready)
-
-
-def _lock_offering(offering_id):
-    observed = Offering.objects.values("token_id", "token__company_id").get(pk=offering_id)
-    company = Company.objects.select_for_update().get(pk=observed["token__company_id"])
-    token = ShareToken.objects.select_for_update(of=("self",)).get(pk=observed["token_id"], company_id=company.pk)
-    offering = Offering.objects.select_for_update(of=("self",)).get(pk=offering_id, token_id=token.pk)
-    token.company = company
-    offering.token = token
-    return offering
 
 
 def retry_allotment(subscription: Subscription, operator_user, *, confirmed) -> Subscription:
