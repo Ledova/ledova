@@ -39,16 +39,6 @@ function show() {
   return renderCompanyPage(client, <ShareClass uuid="class-one" />, 'Share class');
 }
 
-async function openRaise() {
-  fireEvent.click(await screen.findByRole('button', { name: 'Raise authorised shares' }));
-  const dialog = await screen.findByRole('dialog');
-  fireEvent.change(within(dialog).getByLabelText('Purpose'), { target: { value: 'Fictional expansion' } });
-  fireEvent.change(within(dialog).getByLabelText('Board resolution reference'), {
-    target: { value: 'EXAMPLE-2026-1' },
-  });
-  return dialog;
-}
-
 beforeEach(() => {
   vi.resetAllMocks();
   failed = null;
@@ -140,7 +130,7 @@ it.each(['draft', 'deploying', 'deployed', 'paused'] as const)(
     await screen.findByText('Ordinary shares');
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(screen.queryByRole('button', { name: 'Request issuance' })).toBeNull();
-    expect(!!screen.queryByRole('button', { name: 'Raise authorised shares' })).toBe(status === 'deployed');
+    expect(screen.queryByRole('button', { name: 'Raise authorised shares' })).toBeNull();
     expect(!!screen.queryByText('Existing pause controls')).toBe(status === 'deployed' || status === 'paused');
     expect(screen.queryByRole('button', { name: 'Deploy class' })).toBeNull();
   },
@@ -182,174 +172,6 @@ it('hides a stale class and its actions after its read starts failing', async ()
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.queryByText('Ordinary shares')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Raise authorised shares' })).toBeNull();
-});
-
-it.each(['raise'] as const)('preserves the open %s form during a failed class refresh and retries safely', async () => {
-  show();
-  let dialog: HTMLElement;
-  dialog = await openRaise();
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-  const confirm = 'Create request';
-  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false);
-  failed = CLASS;
-  await act(async () =>
-    client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true }),
-  );
-  await waitFor(() => expect(screen.queryByText('Ordinary shares')).toBeNull());
-  dialog = screen.getByRole('dialog');
-  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-  expect(api.post).not.toHaveBeenCalled();
-  const label = 'Purpose';
-  const value = 'Fictional expansion';
-  expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
-  failed = null;
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Retry class state' }));
-  await waitFor(() =>
-    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
-  );
-  expect((within(dialog).getByLabelText(label) as HTMLInputElement).value).toBe(value);
-  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-});
-
-it.each([
-  ['1', true],
-  ['2', false],
-] as const)(
-  'calculates an authorised raise of %s without exceeding the existing total limit',
-  async (additional, allowed) => {
-    token.totalSupply = '2147483646';
-    show();
-    const dialog = await openRaise();
-    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: additional } });
-    const submit = within(dialog).getByRole('button', { name: 'Create request' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(!allowed);
-    fireEvent.click(submit);
-    if (!allowed) expect(api.post).not.toHaveBeenCalled();
-    else
-      await waitFor(() =>
-        expect(api.post).toHaveBeenCalledWith(
-          CAPITAL,
-          {
-            token: 'class-one',
-            additionalShares: 1,
-            newAuthorizedTotal: 2147483647,
-            purpose: 'Fictional expansion',
-            boardResolutionReference: 'EXAMPLE-2026-1',
-            shareholderApprovalReference: undefined,
-          },
-          expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-        ),
-      );
-  },
-);
-
-it('shows a huge existing supply and computed raise exactly but sends no unsupported request', async () => {
-  token.totalSupply = '9007199254740993';
-  show();
-  const dialog = await openRaise();
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-  expect(within(dialog).getByText('Current authorised shares: 9,007,199,254,740,993')).toBeTruthy();
-  expect(within(dialog).getByText('New authorised total: 9,007,199,254,740,995')).toBeTruthy();
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
-  expect(api.post).not.toHaveBeenCalled();
-  expect(within(dialog).getByRole('alert')).toBeTruthy();
-});
-
-it('retains the raise form and its error after a refused request', async () => {
-  api.post.mockRejectedValue(new Error('Refused'));
-  show();
-  const dialog = await openRaise();
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '10' } });
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
-  expect(await within(dialog).findByRole('alert')).toBeTruthy();
-  expect((within(dialog).getByLabelText('Additional shares') as HTMLInputElement).value).toBe('10');
-  expect((within(dialog).getByLabelText('Board resolution reference') as HTMLInputElement).value).toBe(
-    'EXAMPLE-2026-1',
-  );
-});
-
-it('stops a prepared raise when a refresh says the class is paused', async () => {
-  show();
-  const dialog = await openRaise();
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '10' } });
-  token.status = 'paused';
-  await act(async () =>
-    client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true }),
-  );
-  await waitFor(() =>
-    expect((within(dialog).getByRole('button', { name: 'Create request' }) as HTMLButtonElement).disabled).toBe(true),
-  );
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
-  expect(api.post).not.toHaveBeenCalled();
-});
-
-it.each(['raise'] as const)(
-  'keeps a pending %s request open through Escape and outside clicks, then retains a refusal for retry',
-  async () => {
-    let rejectRequest: (error: Error) => void = () => {};
-    api.post.mockImplementationOnce(
-      () =>
-        new Promise((_resolve, reject) => {
-          rejectRequest = reject;
-        }),
-    );
-    show();
-    const dialog = await openRaise();
-    fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-    const confirm = 'Create request';
-    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-    await within(dialog).findByRole('button', { name: 'Loading...' });
-    expect(within(dialog).getByLabelText('Additional shares').matches(':disabled')).toBe(true);
-    await act(async () => {
-      fireEvent.keyDown(window, { key: 'Escape' });
-    });
-    expect(screen.getByRole('dialog')).toBe(dialog);
-    await act(async () => {
-      fireEvent.pointerDown(document.body);
-      fireEvent.mouseDown(document.body);
-      fireEvent.click(document.body);
-    });
-    expect(screen.getByRole('dialog')).toBe(dialog);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Loading...' }));
-    expect(api.post).toHaveBeenCalledTimes(1);
-    await act(async () => rejectRequest(new Error('Refused')));
-    expect(await within(dialog).findByRole('alert')).toBeTruthy();
-    expect((within(dialog).getByLabelText('Additional shares') as HTMLInputElement).value).toBe('2');
-    fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  },
-);
-
-it.each(['raise'] as const)('blocks the prepared %s request while class state is refreshing', async () => {
-  show();
-  const dialog = await openRaise();
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-  let resolveRead: (value: unknown) => void = () => {};
-  const original = api.get.getMockImplementation()!;
-  api.get.mockImplementation((url: string) =>
-    url === CLASS
-      ? new Promise((resolve) => {
-          resolveRead = resolve;
-        })
-      : original(url),
-  );
-  act(() => {
-    void client.invalidateQueries({ queryKey: ['token', 'class-one', 'profile-one', 'account-one'], exact: true });
-  });
-  expect(await within(dialog).findByText('Refreshing class state before continuing.')).toBeTruthy();
-  const confirm = 'Create request';
-  expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(within(dialog).getByRole('button', { name: confirm }));
-  expect(api.post).not.toHaveBeenCalled();
-  await act(async () => resolveRead({ data: { ...token } }));
-  await waitFor(() =>
-    expect((within(dialog).getByRole('button', { name: confirm }) as HTMLButtonElement).disabled).toBe(false),
-  );
-  expect((within(dialog).getByLabelText('Additional shares') as HTMLInputElement).value).toBe('2');
 });
 
 it('downloads only the successful register CSV and reports failed attempts', async () => {
@@ -402,7 +224,7 @@ it('requests and saves no register CSV once the session has ended', async () => 
   expect(clicked).not.toHaveBeenCalled();
 });
 
-it('reads every issuance and authorised-share request page and submits a retained draft for review', async () => {
+it('reads every original private issuance and capital history page without exposing retired draft submission', async () => {
   const original = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number; token?: string } }) => {
     const page = config?.params?.page ?? 1;
@@ -452,14 +274,8 @@ it('reads every issuance and authorised-share request page and submits a retaine
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(api.get).toHaveBeenCalledWith(ISSUANCES, { params: { page: 2 }, ledovaSubmissionGuard: expect.any(Function) });
-  fireEvent.click(screen.getByRole('button', { name: 'Submit for review' }));
-  await waitFor(() =>
-    expect(api.post).toHaveBeenCalledWith(
-      COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT('capital-2'),
-      undefined,
-      expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-    ),
-  );
+  expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it('suppresses previously displayed history when a later page refresh fails', async () => {
@@ -735,108 +551,6 @@ it.each(['session', 'account'])(
     expect(() => config.ledovaSubmissionGuard()).toThrow('signed-in account changed');
     await act(async () => respond({ data: proposal(body) }));
     expect(screen.queryByText(body.operationId)).toBeNull();
-    expect(api.post).toHaveBeenCalledTimes(1);
-  },
-);
-
-async function ownerDraft(shown = false) {
-  if (!shown) show();
-  fireEvent.click(await screen.findByRole('button', { name: 'Raise authorised shares' }));
-  const dialog = await screen.findByRole('dialog');
-  fireEvent.change(within(dialog).getByLabelText('Additional shares'), { target: { value: '2' } });
-  fireEvent.change(within(dialog).getByLabelText('Purpose'), { target: { value: 'Private owner draft' } });
-  fireEvent.change(within(dialog).getByLabelText('Board resolution reference'), { target: { value: 'OWNER-1' } });
-  return dialog;
-}
-
-it.each(['owner', 'account', 'session'] as const)(
-  'isolates the pending raise owner draft after its %s boundary changes and refuses its transport retry/callback',
-  async (boundary) => {
-    let reply!: (value: unknown) => void;
-    api.post.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          reply = resolve;
-        }),
-    );
-    const dialog = await ownerDraft();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-    const config = api.post.mock.calls[0][2];
-    if (boundary === 'owner') {
-      token.isOwner = false;
-      await act(async () => client.invalidateQueries({ queryKey: ['token', 'class-one'] }));
-    } else if (boundary === 'session') {
-      act(() => {
-        client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-        client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-      });
-    } else {
-      act(() =>
-        client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-          data: { userProfile: 'profile-one', userAccount: { uuid: 'account-two', role: 'company' } },
-        }),
-      );
-    }
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(screen.queryByDisplayValue('Private owner draft')).toBeNull();
-    expect(() => config.ledovaSubmissionGuard()).toThrow();
-    token.isOwner = true;
-    await act(async () => client.invalidateQueries({ queryKey: ['token', 'class-one'] }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Raise authorised shares' }));
-    const fresh = await screen.findByRole('dialog');
-    const label = 'Purpose';
-    expect((within(fresh).getByLabelText(label) as HTMLInputElement).value).toBe('');
-    fireEvent.change(within(fresh).getByLabelText(label), { target: { value: 'New current draft' } });
-    await act(async () => reply({ data: {} }));
-    expect((within(screen.getByRole('dialog')).getByLabelText(label) as HTMLInputElement).value).toBe(
-      'New current draft',
-    );
-    expect(api.post).toHaveBeenCalledTimes(1);
-  },
-);
-
-it.each(['raise'] as const)(
-  'blocks %s transport/auth retry during a same-owner class refresh and accepts the original healthy response',
-  async () => {
-    let reply!: (value: unknown) => void;
-    api.post.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          reply = resolve;
-        }),
-    );
-    const dialog = await ownerDraft();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Create request' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-    const config = api.post.mock.calls[0][2];
-    const originalRead = api.get.getMockImplementation()!;
-    let finish!: (value: unknown) => void;
-    api.get.mockImplementation((url: string) =>
-      url === CLASS
-        ? new Promise((resolve) => {
-            finish = resolve;
-          })
-        : originalRead(url),
-    );
-    let refreshed!: Promise<unknown>;
-    act(() => {
-      refreshed = client.invalidateQueries({
-        queryKey: ['token', 'class-one', 'profile-one', 'account-one'],
-        exact: true,
-      });
-    });
-    await within(dialog).findByText('Refreshing class state before continuing.');
-    expect(() => config.ledovaSubmissionGuard()).toThrow('Refresh the owner share class');
-    expect((within(dialog).getByLabelText('Purpose') as HTMLInputElement).value).toBe('Private owner draft');
-    api.get.mockImplementation(originalRead);
-    await act(async () => {
-      finish({ data: { ...token } });
-      await refreshed;
-    });
-    expect(() => config.ledovaSubmissionGuard()).not.toThrow();
-    await act(async () => reply({ data: {} }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(api.post).toHaveBeenCalledTimes(1);
   },
 );

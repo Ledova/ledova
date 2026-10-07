@@ -279,7 +279,7 @@ POLICIES = {
     ),
     "tokens_capitalincreaserequest": (
         _company("company_id", VISIBLE_COMPANIES),
-        _company("company_id", MANAGEABLE_COMPANIES),
+        "false",
     ),
     "tokens_shareissuancerequest": (
         f"{_company('company_id', VISIBLE_COMPANIES)} OR uuid IN "
@@ -596,6 +596,11 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registercapitalincrease": "Private immutable company capital sources and retained authority files; "
+    "current exact-company register readers receive the bounded projection and "
+    "unsigned signatures require the consumed source.",
+    "tokens_registercapitalincreasedecision": "Append-only personal company capital decisions served only through "
+    "their exact-company capital instruction.",
     "wallets_walletpossessionproof": "Private append-only successful wallet signature proofs. Only the actual "
     "owned verification producer writes them; bounded own nominations consume exact current associations.",
     "whitelist_companywalletnomination": "Immutable explicit one-wallet participant sharing sources. Own "

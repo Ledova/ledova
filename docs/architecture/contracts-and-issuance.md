@@ -14,7 +14,8 @@ human company authority. [Empty deployment](../plans/company-managed-registers/c
 now uses a company decision family in both clients. Explicit
 [wallet nomination and company approval](../plans/company-managed-registers/company-wallet-approvals.md)
 and [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
-have their own bounded company workflows. Paid issuance, capital and pause
+have their own bounded company workflows. [Capital increases](../plans/company-managed-registers/company-capital-increases.md)
+use exact company preparation, approval and application. Paid issuance and pause
 conversion remain later #867 increments; their current checks stay effective
 until their service and database guards are replaced together.
 
@@ -143,7 +144,9 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    [Share-issuance boundaries](outgoing-signing.md#share-issuances) describe
    queued refunds, public guards and historical recovery.
 8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and
-   mints nothing. Staff execution commits the approved request, immutable private
+   mints nothing. A current company appointee prepares the exact current cap,
+   positive delta and target with retained authority evidence. Approval alone
+   admits no execution; application commits the original request, immutable private
    intent and background job before any chain call. Network work runs outside
    database transactions; an unresolved request retains the existing per-token
    in-flight slot. The shared signing journal preserves the original bytes, hash
@@ -151,9 +154,13 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    and its `AuthorizedSharesUpdated` event matching both approved cap values.
    A matching current cap alone never establishes execution.
    The five-minute `recover_capital_increases` task repairs admitted work.
-   Known unsigned or reverted failures need a fresh confirmation of that exact
-   failed attempt. A provably unsigned request overtaken by the recorded cap can
-   become `superseded`; historical uncertainty requires attribution.
+   Fresh signing rechecks the exact source and consumed personal authority.
+   Temporary source or lock unavailability retains unsigned work; explicit
+   revocation or expiry of its consumed appointment retires a genuinely never-signed
+   original and releases its slot. Signed work recovers the original receipt.
+   Definite unsigned or reverted failures need a fresh technical confirmation of
+   that exact failed attempt and current company source. Retained historical
+   supersession and attribution remain separate; no company authority is backfilled.
    See [capital recovery boundaries](outgoing-signing.md#capital-increases).
 9. Pause and unpause read `paused()` first and reconcile the database when the
    chain is already in the target state.

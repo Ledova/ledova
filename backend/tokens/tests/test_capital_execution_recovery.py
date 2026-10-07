@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from blockchain.models import (
     BlockchainTransaction,
     OutgoingOperation,
-    SignedAttempt,
     SigningAccount,
 )
 from blockchain.services import outgoing
@@ -40,10 +39,10 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
     def test_success_requires_original_receipt_and_replay_cannot_lower_a_later_cap(self):
         result = self.execute()
         self.assertEqual(result["status"], "executed")
-        self.assertEqual(result["tx_hash"], SignedAttempt.objects.get().tx_hash)
+        self.assertEqual(result["tx_hash"], self.attempts.get().tx_hash)
         self.token.refresh_from_db()
         self.assertEqual(int(self.token.total_supply), 1100)
-        self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
+        self.assertEqual(self.transactions.get().status, "confirmed")
         self.assertFalse(self.token.issuances.exists())
         self.token.total_supply = "1200"
         self.token.save(update_fields=["total_supply"])
@@ -57,10 +56,10 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.node.confirmed = False
         self.node.lose_acknowledgement = True
         self.assertEqual(self.execute()["status"], "executing")
-        attempt = SignedAttempt.objects.get()
+        attempt = self.attempts.get()
         self.assertEqual(self.execute()["status"], "executing")
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)] * 2)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
         self.token.refresh_from_db()
         self.assertEqual(int(self.token.total_supply), 1000)
@@ -71,6 +70,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_cap_reads_broadcast_and_receipts_leave_rows_unlocked_on_an_independent_connection(self):
+        admit(self.request, self.actor)
         current = connections[current_alias()]
         probe = current.copy(alias="capital-rpc-probe")
         self.addCleanup(probe.close)
@@ -114,6 +114,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.assertEqual(set(seen), {"cap", "send", "receipt"})
 
     def test_matching_unattributed_cap_remains_held_even_after_restoration(self):
+        admit(self.request, self.actor)
         self.node.cap = 1100
         self.assertTrue(self.execute()["attribution_required"])
         command = CapitalIncreaseExecution.objects.get()
@@ -123,8 +124,8 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         result = capital_execution.recover(command.pk)
         self.assertEqual(result["status"], "executing")
         self.assertTrue(result["attribution_required"])
-        self.assertFalse(SignedAttempt.objects.exists())
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
         self.request.refresh_from_db()
         self.request.execution_notes = "Operator changed the public notes"
         self.request.save(update_fields=["execution_notes"])
@@ -135,56 +136,57 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
                 CapitalIncreaseExecution.objects.filter(pk=command.pk).update(attribution_evidence=replacement)
 
     def test_unsigned_failure_requires_exact_explicit_retry(self):
+        admit(self.request, self.actor)
         original_form = capital_execution.confirmation(self.request, self.actor)
         self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation failure")
         self.assertEqual(self.execute(confirmed=original_form)["status"], "failed")
-        first_claim = OutgoingOperation.objects.get().claim_id
+        first_claim = self.operations.get().claim_id
         self.node.client.estimate_gas.side_effect = None
         self.assertEqual(self.execute(confirmed=original_form)["status"], "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertFalse(self.attempts.exists())
         self.assertEqual(self.execute()["status"], "executed")
-        self.assertNotEqual(OutgoingOperation.objects.get().claim_id, first_claim)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertNotEqual(self.operations.get().claim_id, first_claim)
+        self.assertEqual(self.attempts.count(), 1)
 
     def test_replayed_retry_form_cannot_authorize_another_failed_attempt(self):
         self.node.receipt_status = 0
         self.assertEqual(self.execute()["status"], "failed")
-        first = SignedAttempt.objects.get()
+        first = self.attempts.get()
         form = capital_execution.confirmation(self.request, self.actor)
         self.assertEqual(self.execute(confirmed=form)["status"], "failed")
-        second_claim = OutgoingOperation.objects.get().claim_id
+        second_claim = self.operations.get().claim_id
         self.assertEqual(self.execute(confirmed=form)["status"], "failed")
-        self.assertEqual(OutgoingOperation.objects.get().claim_id, second_claim)
-        self.assertEqual(SignedAttempt.objects.count(), 2)
-        self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 2)
-        self.assertEqual(SignedAttempt.objects.get(pk=first.pk).tx_hash, first.tx_hash)
+        self.assertEqual(self.operations.get().claim_id, second_claim)
+        self.assertEqual(self.attempts.count(), 2)
+        self.assertEqual(self.transactions.filter(status="reverted").count(), 2)
+        self.assertEqual(self.attempts.get(pk=first.pk).tx_hash, first.tx_hash)
 
     def test_confirmation_loaded_while_executing_cannot_authorize_a_later_revert_retry(self):
         self.node.confirmed = False
         self.assertEqual(self.execute()["status"], "executing")
         shown_while_executing = capital_execution.confirmation(self.request, self.actor)
-        attempt = SignedAttempt.objects.get()
+        attempt = self.attempts.get()
         intent = CapitalIncreaseExecution.objects.get().intent
         self.node.receipts[attempt.tx_hash] = receipt(attempt, 0) | {"to": intent["to"], "from": intent["sender"]}
         self.assertEqual(capital_execution.recover(self.request.dispatch_id)["status"], "failed")
         self.assertEqual(self.execute(confirmed=shown_while_executing)["status"], "failed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
         self.node.confirmed = True
         self.assertEqual(self.execute()["status"], "executed")
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.attempts.count(), 2)
 
     def test_worker_stop_after_admitted_retry_keeps_slot_and_recovers_original_authorization(self):
         self.node.receipt_status = 0
         self.execute()
-        previous_claim = OutgoingOperation.objects.get().claim_id
+        previous_claim = self.operations.get().claim_id
         command = admit(self.request, self.actor)
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
         self.assertEqual(command.retry_of, previous_claim)
         self.node.receipt_status = 1
         self.assertEqual(capital_execution.recover(command.pk)["status"], "executed")
-        self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.transactions.filter(status="reverted").count(), 1)
+        self.assertEqual(self.attempts.count(), 2)
 
     def test_lost_signed_commit_acknowledgement_recovers_original_attempt(self):
         original = outgoing.sign_operation
@@ -195,7 +197,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
 
         with patch.object(outgoing, "sign_operation", side_effect=committed_then_lost):
             self.assertEqual(self.execute()["status"], "executed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_signed_callback_rollback_does_not_consume_nonce_or_link_a_transaction(self):
@@ -207,9 +209,9 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
 
         with patch.object(capital_execution, "_record_signed", side_effect=rolled_back):
             self.assertEqual(self.execute()["status"], "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
-        self.assertFalse(BlockchainTransaction.objects.exists())
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
+        self.assertFalse(self.attempts.exists())
+        self.assertFalse(self.transactions.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
 
     def test_failed_committed_state_read_does_not_prove_unsigned_failure(self):
         self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation error")
@@ -218,7 +220,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
                 self.execute()
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
-        self.assertEqual(OutgoingOperation.objects.get().status, "preparing")
+        self.assertEqual(self.operations.get().status, "preparing")
 
     def test_receipt_event_mismatch_cannot_project_cap_from_current_chain_state(self):
         self.node.events_missing = True
@@ -228,7 +230,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.token.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
         self.assertEqual(int(self.token.total_supply), 1000)
-        self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
+        self.assertEqual(self.transactions.get().status, "confirmed")
         self.node.events_missing = False
         self.assertEqual(self.execute()["status"], "executed")
         self.assertEqual(len(self.node.broadcasts), 1)
@@ -246,15 +248,16 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         ShareToken.objects.filter(pk=self.token.pk).update(status="paused")
         self.assertEqual(capital_execution.recover(command.pk)["status"], "executed")
 
-    def test_enclosing_transaction_and_current_nonstaff_cannot_admit(self):
-        form = capital_execution.confirmation(self.request, self.actor)
+    def test_enclosing_transaction_and_raw_staff_cannot_create_fresh_capital_admission(self):
         with atomic(), self.assertRaises(CapitalIncreaseConflict):
-            admit(self.request, self.actor, confirmed=form)
+            capital_execution.admit(self.request, self.actor, confirmed="retired")
+        with self.assertRaises(PermissionDenied):
+            capital_execution.admit(self.request, self.actor, confirmed="retired")
+        self.assertFalse(CapitalIncreaseExecution.objects.exists())
         self.actor.is_staff = False
         self.actor.save(update_fields=["is_staff"])
-        with self.assertRaises(PermissionDenied):
-            admit(self.request, self.actor, confirmed=form)
-        self.assertFalse(CapitalIncreaseExecution.objects.exists())
+        command = admit(self.request, self.actor)
+        self.assertEqual(command.executed_by_id, self.actor.pk)
 
     def test_old_task_cannot_start_capital_execution(self):
         outcome = execute_review_request_task(
@@ -263,8 +266,15 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.assertFalse(outcome["success"])
         self.assertFalse(CapitalIncreaseExecution.objects.exists())
 
-    def test_sweep_recovers_committed_admission_without_renewing_actor_authority(self):
+    def test_sweep_recovers_original_signed_admission_without_renewing_actor_authority(self):
         command = admit(self.request, self.actor)
+        self.node.confirmed = False
+        capital_execution.recover(command.pk)
+        attempt = self.attempts.get()
+        self.node.receipts[attempt.tx_hash] = receipt(attempt) | {
+            "to": command.intent["to"],
+            "from": command.intent["sender"],
+        }
         self.actor.is_active = False
         self.actor.save(update_fields=["is_active"])
         CapitalIncreaseExecution.objects.filter(pk=command.pk).update(updated_at=timezone.now() - timedelta(hours=1))
@@ -276,7 +286,7 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         result = self.execute()
         self.assertEqual(result["status"], "executing")
         self.assertTrue(result["attribution_required"])
-        record = BlockchainTransaction.objects.get()
+        record = self.transactions.get()
         command = CapitalIncreaseExecution.objects.get()
         self.assertEqual(record.status, "confirmed")
         self.assertEqual(command.attribution_evidence["source"], "receipt")
@@ -288,14 +298,14 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
     def test_generic_monitor_cannot_overwrite_the_original_capital_projection(self):
         self.node.confirmed = False
         self.execute()
-        record = BlockchainTransaction.objects.get()
+        record = self.transactions.get()
         self.assertFalse(
             BlockchainTransaction.objects.pending().without_outgoing_operations().filter(pk=record.pk).exists()
         )
 
     def test_bounded_recovery_advances_past_an_unresolved_command(self):
         first = admit(self.request, self.actor)
-        other, actor = capital_request("later-capital")
+        other, actor = capital_request(self)
         second = admit(other.capital_increase, actor)
         CapitalIncreaseExecution.objects.filter(pk=first.pk).update(updated_at=timezone.now() - timedelta(hours=2))
         CapitalIncreaseExecution.objects.filter(pk=second.pk).update(updated_at=timezone.now() - timedelta(hours=1))
@@ -316,4 +326,4 @@ class CapitalExecutionRecoveryTest(TransactionTestCase):
         self.assertEqual(winner["status"], "executed")
         self.assertNotEqual(winner["tx_hash"], failed_hash)
         self.assertEqual(capital_execution._result(stale), winner)
-        self.assertEqual(BlockchainTransaction.objects.get(tx_hash=winner["tx_hash"]).status, "confirmed")
+        self.assertEqual(self.transactions.get(tx_hash=winner["tx_hash"]).status, "confirmed")

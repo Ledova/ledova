@@ -437,7 +437,8 @@ beforeEach(() => {
         if (failHistory) return refuse(config, 404, {});
         return response(config, page(issues));
       }
-      if (url === URLS.REGISTER_DEPLOYMENTS) return response(config, page([]));
+      if (url === URLS.REGISTER_CAPITAL_INCREASES || url === URLS.REGISTER_DEPLOYMENTS)
+        return response(config, page([]));
       if (url === AUTH_ENDPOINTS.VERIFY) {
         if (csrfAccountChange)
           client.setQueryData(USER_PREFERENCES_QUERY_KEY, {

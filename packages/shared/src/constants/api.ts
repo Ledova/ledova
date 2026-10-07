@@ -147,8 +147,14 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_ISSUE_TERMS_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/terms-file/` as const,
   REGISTER_ISSUE_ACCEPTANCE_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/acceptance-file/` as const,
   ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,
+  REGISTER_CAPITAL_INCREASES: '/api/v1/tokens/register-capital-increases/',
+  REGISTER_CAPITAL_INCREASE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/` as const,
+  REGISTER_CAPITAL_INCREASE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-capital-increases/${uuid}/decision-preview/` as const,
+  REGISTER_CAPITAL_INCREASE_DECIDE: (uuid: string) =>
+    `/api/v1/tokens/register-capital-increases/${uuid}/decide/` as const,
+  REGISTER_CAPITAL_INCREASE_FILE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/file/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
-  CAPITAL_INCREASE_SUBMIT: (uuid: string) => `/api/v1/tokens/capital-increases/${uuid}/submit/` as const,
   ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
 } as const;
 

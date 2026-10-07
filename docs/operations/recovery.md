@@ -99,8 +99,9 @@ programme requirements; see [outgoing signing](../architecture/outgoing-signing.
 ## Capital increases
 
 The five-minute `recover_capital_increases` operator task processes admitted
-capital work in bounded batches. The admin execution page commits its durable
-request and job before chain access. If a response is lost, reload that request:
+capital work in bounded batches. Company application consumes the exact approval
+and commits its durable request and job before chain access. If a response is lost,
+replay that original company command and reload its receipt:
 its original signed transaction is recovered, never replaced merely because a
 receipt is missing. Admin shows its hash and safe error category while unresolved.
 
@@ -111,6 +112,13 @@ do not clear public status or notes to bypass them. Matching the current cap,
 a historical failure label, a deleted request or a missing hash does not establish
 that the approved transaction executed or that no send occurred. Historical work
 still needs the [cutover process](../reference/outgoing-history.md).
+
+Unsigned company work must retain its current captured source before a fresh
+signature or retry. Temporary source or provider unavailability and contention
+keep the original claim. Explicit revocation or database-clock expiry of a consumed
+appointment can fail genuinely never-signed work and release the class slot;
+already signed work recovers its original bytes. Retained legacy unsigned work
+does not acquire a new company mandate.
 
 ## Subscriptions
 

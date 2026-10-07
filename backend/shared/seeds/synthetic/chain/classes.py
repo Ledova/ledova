@@ -1,21 +1,31 @@
+from unittest.mock import patch
 from uuid import uuid4
 
+from ledova_backend.procrastinate_app import app
 from shared.db import atomic
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.clock import frozen
+from shared.seeds.synthetic.identities import slug
+from shared.seeds.synthetic.paper import acn_text, pdf
 from tokens.models import (
     CapitalIncreaseRequest,
     PauseChangeStatus,
+    RegisterEvidenceKind,
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services import capital_execution, pause_changes
-from tokens.services.capital_increase import submit_capital_increase
+from tokens.services import pause_changes
+from tokens.services.register_capital_increases import (
+    decide_capital_increase,
+    prepare_capital_increase,
+    preview_capital_increase_decision,
+)
 from tokens.services.register_deployments import (
     decide_deployment,
     prepare_deployment,
     preview_deployment_decision,
 )
+from tokens.services.register_evidence import retain_register_evidence
 
 NOT_DEPLOYED = "{symbol} of {company} did not reach the deployed state: {status}."
 NOT_EXECUTED = "{label} did not execute on the chain: {status}."
@@ -93,26 +103,67 @@ def pause(share_class, records):
 def apply_raise(item, records):
     token = ShareToken.objects.get(pk=records.classes[item.share_class].pk)
     founder = records.owner(token_company_key(item.share_class))
-    staff = records.operations
-    with atomic(), frozen(item.created_at):
-        request = CapitalIncreaseRequest.objects.create(
-            token=token,
-            additional_shares=item.additional,
-            new_authorized_total=item.new_total,
-            purpose=item.purpose,
-            board_resolution_reference=item.board_reference,
+    if not item.submitted_at:
+        with atomic(), frozen(item.created_at):
+            return CapitalIncreaseRequest.objects.create(
+                token=token,
+                additional_shares=item.additional,
+                new_authorized_total=item.new_total,
+                purpose=item.purpose,
+                board_resolution_reference=item.board_reference,
+            )
+    appointment = historical_owner_appointment(token.company)
+    raw = pdf(
+        f"Directors' resolution: the authorised share cap of {token.name}",
+        [
+            token.company.name,
+            acn_text(token.company.acn),
+            item.purpose,
+            item.board_reference,
+            f"Resolution date provided by the company: {item.created_at.date().isoformat()}",
+            f"Raise the authorised share cap to {item.new_total} whole shares.",
+        ],
+    )
+    evidence, _ = retain_register_evidence(
+        actor=founder,
+        company_id=token.company_id,
+        appointment=appointment.pk,
+        kind=RegisterEvidenceKind.AUTHORITY,
+        idempotency_key=uuid4(),
+        name=f"capital-{slug(item.key)}.pdf",
+        raw=raw,
+        mime_type="application/pdf",
+    )
+    proposal = prepare_capital_increase(
+        actor=founder,
+        operation_id=uuid4(),
+        appointment=appointment.pk,
+        token=token.pk,
+        additional_shares=item.additional,
+        new_authorized_total=item.new_total,
+        purpose=item.purpose,
+        board_resolution_reference=item.board_reference,
+        authority_evidence=evidence.pk,
+    )
+    kinds = ("reject",) if item.status == "rejected" else ("approve", "apply") if item.status == "executed" else ()
+    for kind in kinds:
+        reason = item.decision if kind == "reject" else ""
+        _, preview = preview_capital_increase_decision(
+            actor=founder, capital_increase_id=proposal.pk, appointment=appointment.pk, kind=kind, reason=reason
         )
-    if item.submitted_at:
-        with frozen(item.submitted_at):
-            submit_capital_increase(request, founder)
-    if item.status == "rejected":
-        with atomic(), frozen(item.decided_at):
-            request.reject(staff, item.decision)
-    elif item.status == "executed":
-        with atomic(), frozen(item.decided_at):
-            request.approve(staff, "Board resolution and shareholder approval checked.")
-        confirmed = capital_execution.confirmation(request, staff)
-        capital_execution.admit(request, staff, confirmed=confirmed)
+        with patch("tokens.services.capital_execution.App", return_value=app):
+            proposal = decide_capital_increase(
+                actor=founder,
+                capital_increase_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+                reason=reason,
+            )
+    request = proposal.request
+    if item.status == "executed":
         records.run()
         request.refresh_from_db()
         if request.status != "executed":

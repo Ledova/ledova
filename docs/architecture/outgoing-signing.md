@@ -451,21 +451,32 @@ call can still move shares, and pausing the token is the operator's lever.
 
 ## Capital increases
 
-`tokens.services.capital_execution` admits staff-admin execution with current
-`change_capitalincreaserequest` permission. Its signed confirmation binds the
-request, dispatch identity, actor and exact failed claim when retrying. Admission
-commits the private `CapitalIncreaseExecution`, public `executing` state and job
-together before RPC. Recovery is operator-owned after admission; it does not
-need renewed customer or staff permission. The issuer's ordinary draft, edit,
-submit and delete paths never read the private journal.
+The [company capital family](../plans/company-managed-registers/company-capital-increases.md)
+prepares exact before-cap, delta and target with retained company authority.
+Human approval admits no journal or job. Application consumes the exact personal
+approval and commits the original `CapitalIncreaseExecution`, public `executing`
+state and durable job together before RPC. Fresh owner/staff creation, submission,
+review and admission are retired. Original private histories remain readable.
+Technical retry retains `change_capitalincreaserequest` permission and a signed
+confirmation binding request, dispatch, actor and exact failed claim; it supplies
+no new company decision. Already signed recovery needs no renewed human authority.
 
 The immutable intent retains the original token, company, actor, chain, signer,
 contract, approved target and prior recorded cap. PostgreSQL guards freeze public
 identity and non-draft terms, and prevent token cap/identity edits while the
 request is executing. Pause/unpause remains available. The existing per-token
 in-flight constraint is the hold; network reads, signing preparation and broadcast
-do not hold that token lock. Operation locks precede token, request and command
-locks whenever an operation exists.
+do not hold that token lock. Source and class locks precede outgoing operation
+and signer locks, consistently with the other class writers.
+
+Fresh preparation and signing recheck the immutable source, consumed approval,
+current personal appointments, evidence, class and configuration; default-deferred
+guards recheck each effect. Temporary source/configuration/provider or row-lock
+unavailability holds the same original unsigned claim without a nonce. Explicit
+revocation or database-clock expiry of a consumed approval/application appointment
+can atomically fail that same PREPARING operation and request only when no signed
+attempt ever existed. This releases the class slot while retaining the intent and
+journal. It does not recategorise a definite gas/preparation failure or signed work.
 
 All signed attempts use the common nonce journal. Recovery retains the exact
 original terminal receipt before verifying the cap event. Only a matching
@@ -479,9 +490,10 @@ The generic transaction monitor excludes these projections.
 Unsigned failure and confirmed revert permit a deliberate retry of the exact
 failed claim. Retry admission reacquires the public slot and records that claim
 before enqueueing. Replaying a stale form cannot reopen a newer failed attempt,
-and the previous reverted transaction survives. A new, provably unsigned request
-whose target no longer raises the recorded cap can retire as `superseded` without
-an operation. A known failed request overtaken by a later cap can also retire;
+and the previous reverted transaction survives. New company preparation refuses
+non-increasing or incoherent terms before admission. Genuine predecessor
+superseded records retain their original figures and attribution. A known failed
+request overtaken by a later cap can also retire;
 an unresolved signed request cannot.
 
 Migrations `tokens/0045` and `0046` preserve historical requests and transactions

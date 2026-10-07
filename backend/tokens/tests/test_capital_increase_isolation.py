@@ -87,82 +87,53 @@ class CapitalIncreaseIsolationTest(APITestCase):
                 self.assertNotIn(foreign_request, what_the_policies_admit_to(actor, CapitalIncreaseRequest))
                 self.assertNotIn(foreign_request, what_the_policies_admit_to(actor, CapitalIncreaseRequest))
 
-    def test_create_binds_the_named_token_and_submit_records_the_submitter(self):
+    def test_retired_owner_create_and_submit_routes_cannot_change_the_original_draft(self):
         owner = self._make_user("owner")
         token = self._make_token(self._make_company(owner, "Owner"), "OWN")
         draft = self._make_request(token, "DRAFT")
         self.client.force_authenticate(owner)
-
-        create_response = self.client.post(
+        before = CapitalIncreaseRequest.objects.filter(pk=draft.pk).values().get()
+        response = self.client.post(
             "/api/v1/tokens/capital-increases/",
-            {
-                "token": str(token.uuid),
-                "additionalShares": 100,
-                "newAuthorizedTotal": 1100,
-                "purpose": "Fund product expansion",
-                "boardResolutionReference": "BOARD-API-001",
-                "shareholderApprovalReference": "SHARE-API-001",
-            },
+            dict(
+                token=str(token.pk),
+                additionalShares=100,
+                newAuthorizedTotal=1100,
+                purpose="Growth",
+                boardResolutionReference="BOARD-API-001",
+            ),
             format="json",
         )
-        self.assertEqual(create_response.status_code, 201)
-        created = CapitalIncreaseRequest.objects.get(uuid=create_response.json()["uuid"])
-        self.assertEqual(created.token, token)
-        self.assertEqual(created.status, RequestStatus.DRAFT)
-        self.assertEqual(created.board_resolution_reference, "BOARD-API-001")
-
-        submit_response = self.client.post(
-            f"/api/v1/tokens/capital-increases/{draft.uuid}/submit/", QUERY_STRING="status=submitted&search=zzz"
+        self.assertEqual(response.status_code, 405)
+        response = self.client.post(
+            f"/api/v1/tokens/capital-increases/{draft.pk}/submit/", QUERY_STRING="status=submitted&search=zzz"
         )
-        self.assertEqual(submit_response.status_code, 200)
-        self.assertEqual(submit_response.json()["request"]["uuid"], str(draft.uuid))
-        draft.refresh_from_db()
-        self.assertEqual(draft.status, RequestStatus.SUBMITTED)
-        self.assertEqual(draft.submitted_by, owner)
-        self.assertIsNotNone(draft.submitted_at)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=draft.pk).values().get(), before)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=token).count(), 1)
 
-    def test_create_and_submit_rules_answer_with_detail_or_field_errors(self):
+    def test_retired_owner_routes_refuse_even_previously_valid_or_invalid_payloads_without_creating_rows(self):
         owner = self._make_user("rules-owner")
         company = self._make_company(owner, "Rules")
         token = self._make_token(company, "RUL")
         draft_token = ShareToken.objects.create(company=company, name="Draft", symbol="DRA", total_supply="10")
-        self.client.force_authenticate(owner)
-        payload = {
-            "token": str(token.uuid),
-            "additionalShares": 100,
-            "newAuthorizedTotal": 1100,
-            "purpose": "Growth",
-            "boardResolutionReference": "BOARD-1",
-        }
-
-        not_deployed = self.client.post(
-            "/api/v1/tokens/capital-increases/", {**payload, "token": str(draft_token.uuid)}, format="json"
-        )
-        self.assertEqual(not_deployed.status_code, 400)
-        self.assertEqual(
-            not_deployed.json()["detail"], "Capital increase requests can only be created for deployed tokens."
-        )
-
-        short = self.client.post(
-            "/api/v1/tokens/capital-increases/", {**payload, "newAuthorizedTotal": 1050}, format="json"
-        )
-        self.assertEqual(short.status_code, 400)
-        self.assertEqual(
-            short.json()["newAuthorizedTotal"],
-            ["Must be at least current supply (1000) + additional shares (100) = 1100"],
-        )
-
-        missing = self.client.post("/api/v1/tokens/capital-increases/", {**payload, "token": ""}, format="json")
-        self.assertEqual(missing.status_code, 400)
-        self.assertIn("token", missing.json())
-
         draft = self._make_request(token, "SUBMIT")
-        submit_url = f"/api/v1/tokens/capital-increases/{draft.uuid}/submit/"
-        submitted = self.client.post(submit_url)
-        self.assertEqual(submitted.status_code, 200)
-        self.assertEqual(submitted.json()["request"]["uuid"], str(draft.uuid))
-        self.assertEqual(submitted.json()["request"]["status"], RequestStatus.SUBMITTED)
-        resubmitted = self.client.post(submit_url)
-        self.assertEqual(resubmitted.status_code, 400)
-        self.assertTrue(resubmitted.json()["detail"].startswith("Cannot submit request with status"))
-        self.assertTrue(CapitalIncreaseRequest.objects.filter(pk=draft.pk).exists())
+        self.client.force_authenticate(owner)
+        payload = dict(
+            token=str(token.pk),
+            additionalShares=100,
+            newAuthorizedTotal=1100,
+            purpose="Growth",
+            boardResolutionReference="BOARD-1",
+        )
+        for changes in ({}, {"token": str(draft_token.pk)}, {"token": ""}, {"newAuthorizedTotal": 1050}):
+            with self.subTest(changes=changes):
+                response = self.client.post("/api/v1/tokens/capital-increases/", payload | changes, format="json")
+                self.assertEqual(response.status_code, 405)
+        response = self.client.post(f"/api/v1/tokens/capital-increases/{draft.pk}/submit/")
+        self.assertEqual(response.status_code, 404)
+        draft.refresh_from_db()
+        self.assertEqual(draft.status, RequestStatus.DRAFT)
+        self.assertIsNone(draft.submitted_by_id)
+        self.assertIsNone(draft.submitted_at)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=token).count(), 1)

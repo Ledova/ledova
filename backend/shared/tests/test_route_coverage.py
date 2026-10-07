@@ -115,6 +115,8 @@ def matrix_routes():
         add(method, path)
     for method, path in matrix.REGISTER_ISSUE_ROUTES.values():
         add(method, path)
+    for method, path in matrix.REGISTER_CAPITAL_ROUTES.values():
+        add(method, path)
     for method, path in matrix.REGISTER_DEPLOYMENT_ROUTES.values():
         add(method, path)
     for method, path in matrix.REGISTER_GRANT_ROUTES.values():
