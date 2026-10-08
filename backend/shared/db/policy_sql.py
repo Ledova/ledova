@@ -38,6 +38,10 @@ OWNER_SUBMITTED = (
 )
 
 PRE_COMPANY_DECISION_POLICIES = {
+    "tokens_registerinstruction": (
+        "tokens_registerinstructiondecision",
+        (f"company_id IN (SELECT {VISIBLE_COMPANIES}())", OWNER_SUBMITTED[1]),
+    ),
     "tokens_registerimport": ("tokens_registerimportdecision", OWNER_SUBMITTED),
     "tokens_registercorrection": ("tokens_registercorrectiondecision", OWNER_SUBMITTED),
     "tokens_registeropening": ("tokens_registeropeningdecision", OWNER_SUBMITTED),

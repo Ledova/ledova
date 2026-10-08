@@ -8443,6 +8443,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterIssueList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterIssue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterOpeningList": {
         "properties": {
           "count": {
@@ -12426,6 +12457,7 @@
           },
           "sourceDocument": {
             "format": "uuid",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -12538,6 +12570,864 @@
           "transfer"
         ],
         "type": "string"
+      },
+      "RegisterIssue": {
+        "properties": {
+          "acceptanceEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptanceFingerprint": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptanceRequired": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "acceptanceSnapshot": {
+            "nullable": true,
+            "readOnly": true
+          },
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvingDirector": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterIssueDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterIssueExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "intentDigest": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "nomination": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "request": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "shares": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterIssueSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "terms": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsFingerprint": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsOn": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "termsSnapshot": {
+            "nullable": true,
+            "readOnly": true
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "walletApproval": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceEvidence",
+          "acceptanceFingerprint",
+          "acceptanceRequired",
+          "acceptanceSnapshot",
+          "approvalDecision",
+          "approvingDirector",
+          "authorityEvidence",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "decisions",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "execution",
+          "executionUnmetRequirements",
+          "intentDigest",
+          "member",
+          "nomination",
+          "operationId",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "rejectionReason",
+          "request",
+          "reviewedAt",
+          "reviewedBy",
+          "shares",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "terms",
+          "termsEvidence",
+          "termsFingerprint",
+          "termsOn",
+          "termsSnapshot",
+          "token",
+          "uuid",
+          "walletApproval"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueCompanySnapshot": {
+        "properties": {
+          "acn": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acn",
+          "name",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueCreateRequest": {
+        "properties": {
+          "acceptanceEvidence": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "acceptanceRequired": {
+            "type": "boolean"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "approvingDirector": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nomination": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,10}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "terms": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "termsEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "termsOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "walletApproval": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceRequired",
+          "appointment",
+          "approvingDirector",
+          "authorityEvidence",
+          "authorityReference",
+          "member",
+          "nomination",
+          "operationId",
+          "reason",
+          "shares",
+          "terms",
+          "termsEvidence",
+          "termsOn",
+          "token",
+          "walletApproval"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueDecisionPreview": {
+        "properties": {
+          "acceptanceRequired": {
+            "type": "boolean"
+          },
+          "afterIssuedSupply": {
+            "type": "string"
+          },
+          "afterShares": {
+            "type": "string"
+          },
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "approvingDirector": {
+            "type": "string"
+          },
+          "authorisedSupply": {
+            "type": "string"
+          },
+          "authorityReference": {
+            "type": "string"
+          },
+          "availableShares": {
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "currentShares": {
+            "type": "string"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "issuedSupply": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "registerSequence": {
+            "type": "integer"
+          },
+          "reservedShares": {
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RegisterIssueSnapshot"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "termsOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "acceptanceRequired",
+          "afterIssuedSupply",
+          "afterShares",
+          "approvalDecision",
+          "approvingDirector",
+          "authorisedSupply",
+          "authorityReference",
+          "availableShares",
+          "canDecide",
+          "currentShares",
+          "intentDigest",
+          "issuedSupply",
+          "previewDigest",
+          "reason",
+          "registerSequence",
+          "reservedShares",
+          "shares",
+          "snapshot",
+          "terms",
+          "termsOn",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueExecution": {
+        "properties": {
+          "blockHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "claimId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "dispatchId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "execution": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "issuance": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationStatus": {
+            "nullable": true,
+            "type": "string"
+          },
+          "registerEntry": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "request": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transaction": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "claimId",
+          "completedAt",
+          "dispatchId",
+          "effectiveOn",
+          "execution",
+          "issuance",
+          "operationId",
+          "operationStatus",
+          "registerEntry",
+          "request",
+          "status",
+          "transaction",
+          "txHash"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueMemberSnapshot": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "identitySource": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "residentialAddress": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "identitySource",
+          "name",
+          "residentialAddress",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueRegisterSnapshot": {
+        "properties": {
+          "currentShares": {
+            "type": "string"
+          },
+          "headHash": {
+            "type": "string"
+          },
+          "issuedSupply": {
+            "type": "string"
+          },
+          "opening": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentShares",
+          "headHash",
+          "issuedSupply",
+          "opening",
+          "sequence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueSnapshot": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/RegisterIssueCompanySnapshot"
+          },
+          "member": {
+            "$ref": "#/components/schemas/RegisterIssueMemberSnapshot"
+          },
+          "register": {
+            "$ref": "#/components/schemas/RegisterIssueRegisterSnapshot"
+          },
+          "token": {
+            "$ref": "#/components/schemas/RegisterIssueTokenSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RegisterDeploymentTransactionSnapshot"
+          },
+          "wallet": {
+            "$ref": "#/components/schemas/RegisterIssueWalletSnapshot"
+          }
+        },
+        "required": [
+          "company",
+          "member",
+          "register",
+          "token",
+          "transaction",
+          "wallet"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueTokenSnapshot": {
+        "properties": {
+          "authorisedShares": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "contractAddress": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorisedShares",
+          "chain",
+          "contractAddress",
+          "name",
+          "symbol",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterIssueWalletSnapshot": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "approval": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "chainId": {
+            "type": "integer"
+          },
+          "eligibilityExpiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nomination": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "proofCompletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "registryAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "approval",
+          "chainId",
+          "eligibilityExpiresAt",
+          "expiresAt",
+          "nomination",
+          "proofCompletedAt",
+          "registryAddress"
+        ],
+        "type": "object"
       },
       "RegisterMemberSelection": {
         "properties": {
@@ -15531,35 +16421,6 @@
         ],
         "type": "object"
       },
-      "ShareIssuanceCreateRequest": {
-        "properties": {
-          "amount": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "issuanceType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IssuanceTypeEnum"
-              }
-            ],
-            "default": "additional"
-          },
-          "reason": {
-            "default": "",
-            "type": "string"
-          },
-          "recipient": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "amount",
-          "recipient"
-        ],
-        "type": "object"
-      },
       "ShareIssuanceList": {
         "properties": {
           "amount": {
@@ -15878,25 +16739,6 @@
           "tokenSymbol",
           "updatedAt",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "ShareIssuanceRequested": {
-        "properties": {
-          "issuanceRequest": {
-            "$ref": "#/components/schemas/ShareIssuanceRequest"
-          },
-          "message": {
-            "type": "string"
-          },
-          "token": {
-            "$ref": "#/components/schemas/ShareTokenDetail"
-          }
-        },
-        "required": [
-          "issuanceRequest",
-          "message",
-          "token"
         ],
         "type": "object"
       },
@@ -26608,6 +27450,417 @@
         ]
       }
     },
+    "/api/v1/tokens/register-issues/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_issues_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterIssueList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_issues_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_issues_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/acceptance-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_issues_acceptance_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_issues_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterIssue"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_issues_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterIssueDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterIssueDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_issues_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-issues/{uuid}/terms-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_issues_terms_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-links/": {
       "get": {
         "operationId": "api_v1_tokens_register_links_list",
@@ -28441,68 +29694,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/{uuid}/issue/": {
-      "post": {
-        "operationId": "api_v1_tokens_issue_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareIssuanceCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareIssuanceCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareIssuanceCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareIssuanceRequested"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

@@ -22,6 +22,7 @@ import {
   type RegisterDecisionFamily,
 } from '../../src/hooks/useRegisterDecision';
 import { decideRegisterLink, previewRegisterLinkDecision } from '../../src/services/register-links';
+import { isRegisterLinkDecisionReceipt } from '../../src/utils/register-links';
 import { decideRegisterOpening, previewRegisterOpeningDecision } from '../../src/services/register-openings';
 import {
   decideRegisterParticularsChange,
@@ -395,10 +396,10 @@ behaves('opening', REGISTER_OPENING_DECISIONS, {
   code: 'boundary_changed',
 });
 
-it('decides wallet links through their own routes and copy, with the generic receipt check', () => {
+it('decides wallet links through their own routes and copy, binding the retained mapping receipt', () => {
   expect(REGISTER_LINK_DECISIONS.preview).toBe(previewRegisterLinkDecision);
   expect(REGISTER_LINK_DECISIONS.decide).toBe(decideRegisterLink);
-  expect(REGISTER_LINK_DECISIONS.isReceipt).toBe(isRegisterDecisionReceipt);
+  expect(REGISTER_LINK_DECISIONS.isReceipt).toBe(isRegisterLinkDecisionReceipt);
   expect(REGISTER_LINK_DECISIONS.unmet).toBe(REGISTER_LINK_UNMET_COPY);
   expect(REGISTER_LINK_DECISIONS.copy).toBe(REGISTER_LINK_COPY);
 });

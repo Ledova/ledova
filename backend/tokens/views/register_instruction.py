@@ -19,6 +19,9 @@ class RegisterInstructionViewSet(RegisterProposalViewSet):
         "administration or a register capability. The queryset binds every proposal and file to those companies."
     )
 
+    def narrow(self, queryset):
+        return super().narrow(queryset.legacy_instructions())
+
     @extend_schema(request=RegisterInstructionCreateSerializer, responses={201: RegisterInstructionSerializer})
     def create(self, request):
         serializer = RegisterInstructionCreateSerializer(data=request.data)

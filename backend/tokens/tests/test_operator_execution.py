@@ -27,7 +27,12 @@ from shared.db import (
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from tokens.models import RequestStatus, ShareIssuance, ShareIssuanceRequest
+from tokens.models import (
+    RequestStatus,
+    ShareIssuance,
+    ShareIssuanceExecution,
+    ShareIssuanceRequest,
+)
 from tokens.services import issuance_execution, share_token_service
 from tokens.tasks import execute_review_request_task
 from tokens.tests.issuance_fixtures import (
@@ -35,8 +40,8 @@ from tokens.tests.issuance_fixtures import (
     FINALITY_POLICIES,
     KEY,
     IssuanceNode,
-    admit,
 )
+from tokens.tests.retained_issuance_fixtures import retain_signed_issuance
 from wallets.models import Holding
 from whitelist.models import WhitelistEntry
 
@@ -56,7 +61,8 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
         stack.enter_context(patch.object(share_token_service, "is_recipient_whitelisted", return_value=True))
         stack.enter_context(patch.object(share_token_service, "share_supply", return_value=(1000, 0)))
         stack.enter_context(patch("wallets.services.holdings.fetch_chain_balance", return_value=Decimal("10")))
-        self.defer = stack.enter_context(patch("offerings.tasks.subscription.allot_subscription_task.defer"))
+        dispatcher = stack.enter_context(patch("tokens.services.issuance_execution.App"))
+        self.defer = dispatcher.return_value.configure_task.return_value.defer
         with use_operator():
             self.issuer = make_tenant("operator-issuer")
             self.investor = make_tenant("operator-investor")
@@ -99,40 +105,48 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
                 self.assertEqual(current_alias(), APP_ALIAS)
                 self.assertEqual(principal_of(APP_ALIAS), str(self.investor.user.pk))
 
-    def assert_operator_writes(self):
+    def assert_operator_writes(self, *, inserted):
         self.assertTrue(self.statements)
         self.assertEqual(
             {(alias, role) for alias, role, _ in self.statements},
             {(OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS])},
         )
-        self.assertIn("INSERT", [operation for _, _, operation in self.statements])
+        operations = [operation for _, _, operation in self.statements]
+        if inserted:
+            self.assertIn("INSERT", operations)
+        else:
+            self.assertNotIn("INSERT", operations)
         self.assertIn("UPDATE", [operation for _, _, operation in self.statements])
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
-    def assert_issuance_completed(self):
+    def assert_issuance_completed(self, *, original_issuance=None):
         with use_operator():
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, RequestStatus.EXECUTED)
             issuance = ShareIssuance.objects.get(idempotency_key=share_token_service.issuance_key(self.request))
+            if original_issuance is not None:
+                self.assertEqual(issuance.pk, original_issuance)
             self.assertEqual(issuance.initiated_by_id, self.staff.pk)
             holding = Holding.objects.get(wallet=self.investor.wallet, asset=self.issuer.refs.spare_asset)
             self.assertEqual(holding.quantity, Decimal("10"))
         self.node.client.send_raw_transaction.assert_called_once()
-        self.assert_operator_writes()
+        self.assert_operator_writes(inserted=original_issuance is None)
 
     def review_command(self):
         with use_operator():
-            self.request = ShareIssuanceRequest.objects.create(
+            self.request, command_id = retain_signed_issuance(
                 token=self.issuer.deployed_token,
-                recipient_address=self.investor.wallet.address,
+                actor=self.staff,
+                recipient=self.investor.wallet.address,
                 amount=10,
-                reason="Direct operator issuance",
+                reason="Retained original operator issuance",
+                client=self.node.client,
             )
-            self.request.approve(self.staff)
-            return admit(self.request, self.staff)
+            return ShareIssuanceExecution.objects.get(pk=command_id)
 
     def test_review_execution_writes_the_issuer_ledger_and_investor_holding_as_operator(self):
         command = self.review_command()
+        original_issuance = command.issuance_id
         result = self.run_job(
             execute_review_request_task,
             {
@@ -143,7 +157,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             },
         )
         self.assertTrue(result["success"], result)
-        self.assert_issuance_completed()
+        self.assert_issuance_completed(original_issuance=original_issuance)
 
     def test_allotment_writes_both_parties_as_operator_and_retains_the_enqueued_audit_actor(self):
         self.defer.assert_called_once_with(

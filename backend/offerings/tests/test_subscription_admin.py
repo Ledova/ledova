@@ -25,6 +25,7 @@ from offerings.services.subscription import (
     submit,
 )
 from offerings.tests.factories import (
+    allotment_queue,
     allottable_subscription,
     configure_operator,
     draft_subscription,
@@ -53,7 +54,6 @@ from users.models import InvestorClassification
 
 User = get_user_model()
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 SUPPLY = "tokens.services.share_token_service.share_supply"
 SIGNER = "0x" + "e" * 40
 TEST_STORAGES = {
@@ -74,7 +74,7 @@ class SubscriptionAdminTestCase(TransactionTestCase):
         chain.is_valid_address.return_value = True
         chain.to_checksum_address.side_effect = Web3.to_checksum_address
         chain.get_address_from_private_key.return_value = SIGNER
-        self.defer = patch(DEFER).start()
+        self.defer = self.enterContext(allotment_queue())
         self.addCleanup(patch.stopall)
 
         self.tenant = make_tenant("adminsub")

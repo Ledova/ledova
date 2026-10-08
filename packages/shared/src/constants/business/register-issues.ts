@@ -1,0 +1,52 @@
+export const REGISTER_ISSUE_COPY = {
+  TITLE: 'Non-paid chain grants',
+  NOTE: 'Company-authorised outright non-paid grants use a genuine chain-opened Base register, an explicitly nominated approved wallet and a documented member link. Imported registers use their separate walletless grant workflow.',
+  PREPARE: 'Prepare non-paid grant',
+  PROVIDED_BY_COMPANY: 'Terms and documentary authority provided by the company.',
+  PREPARATION_RECEIPT_FAILED: 'The grant receipt could not be confirmed. Recover its identical original request.',
+  PREVIEW_FAILED: 'The grant decision could not be previewed.',
+  DECIDE_FAILED: 'The grant decision could not be confirmed.',
+  DECISION_RECEIPT_FAILED: 'The decision receipt did not identify the original grant. Recover the same request.',
+  REJECTION_REASON: 'Reason for rejection',
+  DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' },
+  CONFIRMATIONS: {
+    approve: 'Approve the exact member, nomination, company ADD, shares, terms and evidence shown.',
+    apply:
+      'Admit this exact approved non-paid grant for execution once. Shares and the ISSUE entry wait for the genuine finalised mint.',
+    reject: 'Reject this grant with the stated reason.',
+  },
+  STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' },
+  ADMITTED_NOTE:
+    'Application admits the original issue execution. Shares and the register entry wait for the genuine finalised mint.',
+} as const;
+
+export const REGISTER_ISSUE_UNMET_COPY: Record<string, string> = {
+  chain_register_required: 'Open this deployed class register from its genuine chain boundary first.',
+  imported_register: 'Imported registers cannot issue on chain. Use the supported walletless grant workflow.',
+  member_link_required: 'Record and apply the exact nominated wallet/member link first.',
+  member_identity_unavailable:
+    'The linked member identity is unavailable. Resolve its documented identity before issuing.',
+  member_identity_changed: 'The retained member identity changed. Review the current exact source.',
+  approving_director_conflict: 'The named director is the recipient. Another director must approve this grant.',
+  wallet_source_changed: 'The exact nominated wallet source changed.',
+  wallet_proof_required: 'The participant must refresh genuine possession proof for this selected wallet.',
+  eligibility_source_lapsed: 'The selected company GENERAL eligibility source is no longer current.',
+  wallet_approval_required: 'Apply a finite company ADD for this exact nomination and wait for its genuine outcome.',
+  wallet_approval_lapsed: 'The selected finite company wallet approval has expired.',
+  class_identity_changed: 'The class or chain configuration changed after preparation.',
+  class_not_deployed: 'This class must be deployed and unpaused.',
+  company_not_active: 'The company must be active.',
+  evidence_unavailable: 'The retained authority, terms or required acceptance evidence is unavailable.',
+  insufficient_headroom: 'Available authorised headroom does not cover this grant and current reservations.',
+  company_source_expired: 'The original company issue authority is no longer current for fresh signing.',
+  source_lock_busy: 'The original source is temporarily busy. Its unsigned operation remains recoverable.',
+  legacy_source_unavailable: 'This historical unsigned operation has no current company source.',
+  appointment_capability_required: 'Your current personal company appointment does not include this step.',
+  approval_required: 'Approve the exact grant before applying it.',
+  already_approved: 'This grant already has a current approval.',
+  company_provided_evidence_required: 'The grant must retain authority and evidence provided by the company.',
+  reason_required: 'Give a reason for rejection.',
+  reason_not_allowed: 'Approval and application take no reason.',
+  approval_lapsed: 'The original approval is no longer current.',
+  issue_decided: 'This grant has already been admitted or rejected.',
+};

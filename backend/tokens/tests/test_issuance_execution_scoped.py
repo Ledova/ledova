@@ -3,7 +3,6 @@ from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from blockchain.models import OutgoingOperation
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -23,13 +22,12 @@ from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuanc
 class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase):
     def setUp(self):
         super().setUp()
-        with use_operator():
-            install_issuance(self)
+        install_issuance(self)
 
     def test_issuer_and_staff_app_roles_cannot_read_or_admit_private_execution(self):
         with use_operator():
             command = admit(self.request, self.actor)
-        for user in (self.tenant.user, self.actor):
+        for user in (self.company_issue.participant, self.actor):
             with acting_for(user.pk):
                 with self.assertRaises(PermissionDenied):
                     issuance_execution.confirmation(self.request, self.actor)
@@ -39,7 +37,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
                     ShareIssuanceExecution.objects.filter(pk=command.pk).exists()
         self.node.client.send_raw_transaction.assert_not_called()
 
-    def test_issuer_can_create_and_delete_unreviewed_request_without_private_access(self):
+    def test_issuer_pending_request_edits_supply_no_private_admission(self):
         with acting_for(self.tenant.user.pk):
             request = ShareIssuanceRequest.objects.create(
                 token=self.token, recipient_address=self.tenant.wallet.address, amount=2, reason="Additional request"
@@ -47,10 +45,13 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             self.assertIsNotNone(request.dispatch_id)
             request.amount = 3
             request.save(update_fields=["amount"])
+            with self.assertRaises(PermissionDenied):
+                issuance_execution.confirmation(request, self.actor)
             request.delete()
             self.assertFalse(ShareIssuanceRequest.objects.filter(pk=request.pk).exists())
         with use_operator():
             self.assertFalse(ShareIssuanceExecution.objects.exists())
+            self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "under_review")
 
     def test_stale_issuer_cannot_retarget_or_claim_an_admitted_issuance(self):
         with use_operator():
@@ -85,7 +86,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             bad = execute_review_request_task(
                 model_label="tokens.ShareIssuanceRequest",
                 request_uuid=str(self.request.pk),
-                executed_by=self.tenant.user.pk,
+                executed_by=self.company_issue.participant.pk,
                 execution_id=str(command.pk),
             )
             self.assertFalse(bad["success"])
@@ -99,7 +100,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             self.assertTrue(result["success"])
             self.assertEqual(current_alias(), APP_ALIAS)
         with use_operator():
-            self.assertEqual(OutgoingOperation.objects.count(), 1)
+            self.assertEqual(self.operations.count(), 1)
 
     def test_old_job_without_admission_cannot_create_a_new_operator_mint(self):
         with acting_for(self.tenant.user.pk):
@@ -110,7 +111,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
         self.node.client.assert_expected_chain.assert_not_called()
         with use_operator():
             self.assertFalse(ShareIssuanceExecution.objects.exists())
-            self.assertFalse(OutgoingOperation.objects.exists())
+            self.assertFalse(self.operations.exists())
 
     def test_operator_job_from_app_context_holds_until_finality_without_locks_during_rpc(self):
         with use_operator():
@@ -126,7 +127,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             return original(identifier)
 
         self.node.client.w3.eth.get_block.side_effect = block
-        self.node.finalized = 11
+        self.node.finalized = self.node.receipt_height - 1
         with acting_for(self.tenant.user.pk):
             pending = execute_review_request_task(
                 model_label="tokens.ShareIssuanceRequest",
@@ -136,7 +137,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             )
             self.assertEqual((pending["success"], pending["status"]), (False, "executing"))
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executing")
-            self.node.finalized = 12
+            self.node.finalized = self.node.receipt_height
             self.assertEqual(check_executing_issuance_requests(), {"checked": 1, "resolved": 1})
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, "executed")
             self.assertEqual(current_alias(), APP_ALIAS)
@@ -154,21 +155,24 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             configure_operator,
             eligible_subscriber,
             open_offering,
+            subscription_technical_actor,
         )
         from shared.tests.tenants import make_tenant
 
         with use_operator():
+            issuer = make_tenant("scoped-paid-issuer")
             subscriber = make_tenant("scoped-issuance-subscriber")
+            technical_actor = subscription_technical_actor()
             configure_operator()
-            eligible_subscriber(self.tenant)
-            subscriber.offering = open_offering(self.tenant)
-            eligible_subscriber(subscriber, issuer_decision=self.tenant.eligibility_decision)
+            eligible_subscriber(issuer)
+            subscriber.offering = open_offering(issuer)
+            eligible_subscriber(subscriber, issuer_decision=issuer.eligibility_decision)
             subscription = allottable_subscription(subscriber, quantity=10)
         with acting_for(subscriber.user.pk):
             Subscription.objects.filter(pk=subscription.pk).update(payment_notes="Investor payment note")
             self.assertEqual(Subscription.objects.get(pk=subscription.pk).payment_notes, "Investor payment note")
         with use_operator(), patch("offerings.tasks.allot_subscription_task.defer"):
-            request = allot(subscription, self.actor, headroom=(1000, 1000))
+            request = allot(subscription, technical_actor, headroom=(1000, 1000))
             command = ShareIssuanceExecution.objects.get(request_id=request.pk)
         with acting_for(subscriber.user.pk):
             self.assertTrue(ShareIssuanceRequest.objects.filter(pk=request.pk).exists())
@@ -192,7 +196,7 @@ class ScopedIssuanceExecutionTest(RunsOnTheScopedConnection, TransactionTestCase
             from offerings.tasks import allot_subscription_task
 
             result = allot_subscription_task(
-                str(subscription.pk), executed_by=self.actor.pk, execution_id=str(command.pk)
+                str(subscription.pk), executed_by=technical_actor.pk, execution_id=str(command.pk)
             )
             self.assertEqual(result["status"], "rejected")
             self.assertEqual(current_alias(), APP_ALIAS)

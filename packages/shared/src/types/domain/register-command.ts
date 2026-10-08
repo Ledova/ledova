@@ -1,3 +1,4 @@
+import type { RegisterIssue, RegisterIssueDecisionRequest, RegisterIssueDecideRequest } from './register-issue';
 import type { ApiRequest, ApiSchema } from '../contracts';
 import type {
   CompanyWalletInstruction,
@@ -35,6 +36,7 @@ export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
   | RegisterImport
+  | RegisterIssue
   | RegisterCorrection
   | RegisterOpening
   | RegisterParticularsChange
@@ -45,6 +47,7 @@ export type RegisterProposal =
   | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
   | RegisterImportDecisionRequest
+  | RegisterIssueDecisionRequest
   | RegisterDeploymentDecisionRequest
   | RegisterGrantDecisionRequest
   | RegisterTransferDecisionRequest
@@ -55,6 +58,7 @@ export type RegisterDecisionRequest =
   | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterImportDecideRequest
+  | RegisterIssueDecideRequest
   | RegisterDeploymentDecideRequest
   | RegisterGrantDecideRequest
   | RegisterTransferDecideRequest

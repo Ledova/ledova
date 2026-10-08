@@ -11,9 +11,12 @@ makes the company decision and the technical signer distinct. Company-appointed
 users must authorise supported whitelist, issue/allotment and capital changes
 within their mandates; a backend signing key or privileged connection grants no
 human company authority. [Empty deployment](../plans/company-managed-registers/company-deployments.md)
-now uses a company decision family in both clients. Wallet approval, issuance,
-capital and pause conversion remain later #867 increments; their current checks
-stay effective until their service and database guards are replaced together.
+now uses a company decision family in both clients. Explicit
+[wallet nomination and company approval](../plans/company-managed-registers/company-wallet-approvals.md)
+and [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
+have their own bounded company workflows. Paid issuance, capital and pause
+conversion remain later #867 increments; their current checks stay effective
+until their service and database guards are replaced together.
 
 The lifecycle below describes current code. Preserve whole-share arithmetic,
 authorised headroom, wallet possession and company registry approval for chain
@@ -35,14 +38,14 @@ or bytecode, and must not be presented as such.
 
 The current contracts are Solidity 0.8.24, OpenZeppelin-based, and operator-key owned.
 
-| Contract | Responsibility |
-| --- | --- |
-| `WhitelistRegistry.sol` | One company's allowlist. `setExpiry(address, uint64)` is the only write and is owner-only; `expiresAt(address)` is the stored expiry; `isWhitelisted(address)` is `expiresAt > block.timestamp`. Zero removes a wallet and `type(uint64).max` never expires. It has no pause: the token pause is the incident lever |
-| `ShareToken.sol` | One share class. ERC-20 with 0 decimals, burnable, pausable, bound at construction to its company's registry. `authorizedShares` is the cap; `mint` reverts unless the cap holds; `_update` refuses any movement to a wallet the registry does not list and any transfer from one, so an expired or removed holder can neither receive nor send, directly or through `transferFrom`. Burning one's own shares is not checked. `setAuthorizedShares` cannot go below `totalSupply()` |
-| `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, acn, authorizedShares, owner)`, `getTokenByIdentifier(identifier)` and `registryOf(acn)`. The identifier is the deduplication key and must be the company's own, `<acn>:<symbol>`, which the factory checks. A company's first class creates its `WhitelistRegistry`, owned by the class owner, and emits `WhitelistRegistryCreated(acn, registry)`; its later classes share that registry and must have the same owner |
-| `AtomicSwap.sol` | EIP-712 swap settlement between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's own `_update` checks both parties |
-| `AUDY.sol` | Minter-gated AUD stablecoin, 2 decimals, the payment token. Its `assets.Asset` row plus its `AssetChainDeployment` on the operator's receiving chain are the only representation of a settlement token; `operators/settlement.py` resolves them |
-| `AUSG.sol` | NAV-bearing token with a redemption queue; not part of the issuance flow |
+| Contract                | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WhitelistRegistry.sol` | One company's allowlist. `setExpiry(address, uint64)` is the only write and is owner-only; `expiresAt(address)` is the stored expiry; `isWhitelisted(address)` is `expiresAt > block.timestamp`. Zero removes a wallet and `type(uint64).max` never expires. It has no pause: the token pause is the incident lever                                                                                                                                                                 |
+| `ShareToken.sol`        | One share class. ERC-20 with 0 decimals, burnable, pausable, bound at construction to its company's registry. `authorizedShares` is the cap; `mint` reverts unless the cap holds; `_update` refuses any movement to a wallet the registry does not list and any transfer from one, so an expired or removed holder can neither receive nor send, directly or through `transferFrom`. Burning one's own shares is not checked. `setAuthorizedShares` cannot go below `totalSupply()` |
+| `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, acn, authorizedShares, owner)`, `getTokenByIdentifier(identifier)` and `registryOf(acn)`. The identifier is the deduplication key and must be the company's own, `<acn>:<symbol>`, which the factory checks. A company's first class creates its `WhitelistRegistry`, owned by the class owner, and emits `WhitelistRegistryCreated(acn, registry)`; its later classes share that registry and must have the same owner                 |
+| `AtomicSwap.sol`        | EIP-712 swap settlement between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's own `_update` checks both parties                                                                                                                                                                                                                                                                                 |
+| `AUDY.sol`              | Minter-gated AUD stablecoin, 2 decimals, the payment token. Its `assets.Asset` row plus its `AssetChainDeployment` on the operator's receiving chain are the only representation of a settlement token; `operators/settlement.py` resolves them                                                                                                                                                                                                                                     |
+| `AUSG.sol`              | NAV-bearing token with a redemption queue; not part of the issuance flow                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 `deploy-all.ts` deploys `ShareTokenFactory`, `AtomicSwap` and `AUDY` and writes
 their addresses to `.deployed-contracts.env` at the
@@ -96,20 +99,34 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    five-minute sweep recovers admitted work. Deployment mints
    nothing: the contract's `totalSupply()` starts at zero. See
    [deployment persistence](#deployment-persistence).
-5. An investor wallet is verified, then approved for the company by staff.
+5. A participant proves possession of their selected wallet and explicitly
+   nominates it against current GENERAL eligibility for the exact company.
+   Company appointees approve its finite registry expiry and admit the original
+   ADD journal. Possession, eligibility and company approval remain separate.
    `WhitelistEntry` is the one identity row per wallet: it either points at a
    `Wallet` or carries a bare `address` plus a `label` for an operator-held
    treasury address; a database constraint requires one of the two and makes
    bare addresses unique. Each company approval is a `WhitelistApproval` row for
    that entry and company, mirroring the company registry's expiry. See
    [whitelist changes](outgoing-signing.md#whitelist-changes).
-6. `POST /api/v1/tokens/{uuid}/issue/` creates a `ShareIssuanceRequest`. It
-   is approved only by applying a
+6. `/api/v1/tokens/register-issues/` provides company preparation, preview,
+   approval, application and rejection for one exact non-paid chain grant.
+   It requires a genuine CHAIN opening, exact member link, current nomination
+   and finite company ADD. Preparation retains authority, terms and any required
+   acceptance evidence and freezes one request under the existing `UNDER_REVIEW`
+   state. Human approval remains separate; application makes the request approved
+   and admits its original execution atomically. No paid subscription or receipt
+   is created. The old direct owner issue POST is retired. Genuine paid allotments
+   retain their current
    [register instruction](../operations/register-foundation.md#register-instructions-for-issues)
-   that lists it, and execution admission is separate. Admission retains the
+   that lists them, and execution admission is separate. Admission retains the
    approved terms and matching job in a private command. Before signing,
    execution checks whitelist membership, the cap and pause state. A known
-   refusal becomes a definite unsigned failure with a safe explanation.
+   refusal in the paid or legacy path becomes a definite unsigned failure with a
+   safe explanation. An unsigned company grant retains its original recoverable
+   intent during source contention, temporary technical refusal or provider
+   failure. Permanent loss of its captured source can terminalise only its
+   original never-signed allocation; signed originals retain their recovery.
 7. The worker durably claims the request before opening its shared outgoing
    operation. Its public `ShareIssuance` uses `issuance-request:<uuid>` as the
    idempotency key. Signed bytes, hash, nonce and the transaction association
@@ -120,6 +137,9 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    `check_executing_issuance_requests` recovers interrupted work every five
    minutes. Unknown sends retain the original identity; a confirmed failure
    requires a fresh confirmation naming that failed attempt.
+   A company grant records its original member's ISSUE once after the outcome
+   transaction. An executed but unentered original remains reserved until that
+   entry exists; chain completion alone does not establish register recording.
    [Share-issuance boundaries](outgoing-signing.md#share-issuances) describe
    queued refunds, public guards and historical recovery.
 8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and

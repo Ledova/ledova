@@ -14,9 +14,10 @@ import { ClassRegister } from '../company-register/ClassRegister';
 import { RegisterDownload } from '../company-register/RegisterDownload';
 import { useCompanyStyles } from '../company-register/styles';
 import { useTokenDetail } from './useTokenDetail';
-import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
+import { RaiseSharesForm } from './ShareRequestForms';
 import { TokenPauseControls } from './TokenPauseControls';
 import { DeploymentFlow } from './DeploymentFlow';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
 
 type Props = { route: { params: { uuid: string; name?: string } }; navigation?: unknown };
 
@@ -50,7 +51,7 @@ export function TokenDetailScreen({ route }: Props) {
 function ShareClass({ uuid }: { uuid: string }) {
   const styles = useCompanyStyles();
   const data = useTokenDetail(uuid);
-  const [form, setForm] = useState<{ kind: 'issue' | 'raise'; scope: string; owner: typeof data.owner } | null>(null);
+  const [form, setForm] = useState<{ kind: 'raise'; scope: string; owner: typeof data.owner } | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   useEffect(() => {
@@ -66,17 +67,6 @@ function ShareClass({ uuid }: { uuid: string }) {
   const activeForm = form?.scope === formScope && form.owner === data.owner ? form.kind : null;
   const forms = data.owner && token?.isOwner && (
     <>
-      {activeForm === 'issue' && (
-        <IssueSharesForm
-          key={formScope}
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          epoch={data.epoch}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
       {activeForm === 'raise' && (
         <RaiseSharesForm
           key={formScope}
@@ -173,10 +163,6 @@ function ShareClass({ uuid }: { uuid: string }) {
               )}
               {data.isOwner && !data.token.isFetching && token.status === 'deployed' && (
                 <>
-                  <Action
-                    label="Request issuance"
-                    onPress={() => setForm({ kind: 'issue', scope: formScope, owner: data.owner })}
-                  />
                   <Action
                     label="Raise authorised shares"
                     onPress={() => setForm({ kind: 'raise', scope: formScope, owner: data.owner })}
@@ -300,6 +286,11 @@ function ShareClass({ uuid }: { uuid: string }) {
         )}
         <DeploymentFlow
           key={`${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyIssueFlow
+          key={`company-issues/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
           uuid={uuid}
           data={data}
         />

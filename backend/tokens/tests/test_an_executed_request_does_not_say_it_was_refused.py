@@ -6,11 +6,12 @@ from uuid import uuid4
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareIssuanceRequest
+from tokens.tests.retained_issuance_fixtures import approve_retained_request
 
 _MIGRATION = import_module("tokens.migrations.0029_execution_notes")
 ANNOTATE = _MIGRATION.retain_legacy_history
@@ -24,7 +25,7 @@ def staff_reviewer():
     return get_user_model().objects.create_user(email=f"reviewer-{uuid4()}@example.test", is_staff=True, is_active=True)
 
 
-class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
+class AnExecutedRequestDoesNotSayItWasRefusedTest(TransactionTestCase):
 
     def setUp(self):
         self.tenant = make_tenant("issuer")
@@ -39,7 +40,7 @@ class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
         )
 
     def _approved(self, notes=REVIEWER_WROTE):
-        self.request.approve(staff_reviewer(), notes=notes)
+        approve_retained_request(self.request, staff_reviewer(), notes=notes)
         self.request.refresh_from_db()
         return self.request
 
@@ -136,7 +137,7 @@ class AnExecutedRequestDoesNotSayItWasRefusedTest(TestCase):
         self.assertIn(NOT_WHITELISTED, self.request.execution_notes)
 
 
-class TheMigrationPreservesUnattributedNotesTest(TestCase):
+class TheMigrationPreservesUnattributedNotesTest(TransactionTestCase):
 
     def setUp(self):
         self.tenant = make_tenant("issuer")
@@ -194,7 +195,7 @@ class TheMigrationPreservesUnattributedNotesTest(TestCase):
             with self.subTest(prefix=prefix):
                 notes = f"{prefix}during the earlier proposal; this allocation is now approved."
                 request = self.a_request("", status=RequestStatus.SUBMITTED)
-                request.approve(self.reviewer, notes=notes)
+                approve_retained_request(request, self.reviewer, notes=notes)
 
                 self.run_the_annotation()
 

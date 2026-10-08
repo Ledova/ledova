@@ -13,6 +13,7 @@ from web3 import Web3
 
 from blockchain.tests.outgoing_fixtures import admitted_signer, chain_client
 from shared.db import atomic
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -23,13 +24,13 @@ from tokens.models import (
 from tokens.services import capital_execution, issuance_execution, share_token_service
 from tokens.services.capital_increase import submit_capital_increase
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, CapitalNode
-from tokens.tests.instruction_fixtures import apply_instruction
-from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode
+from tokens.tests.issuance_fixtures import FINALITY_POLICIES
 
 User = get_user_model()
 
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "private": {"BACKEND": "shared.storage.PrivateMediaStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
@@ -63,11 +64,6 @@ class ReviewRequestAdminTest(TransactionTestCase):
         )
         self.requests = (self.capital_increase, self.issuance)
         self.node = CapitalNode()
-        self.issuance_node = IssuanceNode()
-        self.enterContext(
-            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.issuance_node.client)
-        )
-        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
         admitted_signer()
         patcher = patch("tokens.services.capital_execution.get_base_chain_client", return_value=self.node.client)
         patcher.start()
@@ -88,7 +84,11 @@ class ReviewRequestAdminTest(TransactionTestCase):
             email="review-staff@example.test", password="pw", is_staff=True, is_active=True
         )
         for obj in self.requests:
-            obj.approve(self.admin)
+            if isinstance(obj, CapitalIncreaseRequest):
+                obj.approve(self.admin)
+            else:
+                with self.assertRaises(DatabaseError), atomic():
+                    obj.approve(self.admin)
             with self.subTest(model=obj._meta.model_name), patch(
                 "tokens.tasks.execute_review_request_task.defer"
             ) as task:
@@ -102,9 +102,15 @@ class ReviewRequestAdminTest(TransactionTestCase):
                         self.assertIn(reverse("admin:login"), response.url)
                     task.assert_not_called()
                 staff.user_permissions.add(Permission.objects.get(codename=f"change_{obj._meta.model_name}"))
-                response = self.client.post(url(obj, "execute"), self.execution_data(obj))
-                self.assertRedirects(response, url(obj, "change"), fetch_redirect_response=False)
-                self.assert_deferred(task, obj, staff)
+                if isinstance(obj, CapitalIncreaseRequest):
+                    response = self.client.post(url(obj, "execute"), self.execution_data(obj))
+                    self.assertRedirects(response, url(obj, "change"), fetch_redirect_response=False)
+                    self.assert_deferred(task, obj, staff)
+                else:
+                    response = self.client.post(url(obj, "execute"))
+                    self.assertRedirects(response, url(obj, "change"), fetch_redirect_response=False)
+                    self.assertContains(self.client.get(url(obj, "change")), "current company decision")
+                    task.assert_not_called()
 
     def test_changelist_and_change_pages_render_with_the_review_buttons(self):
         for obj in self.requests:
@@ -123,22 +129,31 @@ class ReviewRequestAdminTest(TransactionTestCase):
             url(self.issuance, "approve")
 
     def test_legacy_recovery_renders_the_hash_form_without_a_release_action(self):
-        self.issuance = ShareIssuanceRequest.objects.create(
-            token=self.tenant.deployed_token,
-            recipient_address=self.issuance.recipient_address,
-            amount=10,
-            status=RequestStatus.FAILED,
-            dispatch_id=None,
-        )
+        try:
+            migrate_to([("tokens", "0047_issuance_execution")])
+            self.issuance = ShareIssuanceRequest.objects.create(
+                token=self.tenant.deployed_token,
+                recipient_address=self.issuance.recipient_address,
+                amount=10,
+                dispatch_id=None,
+            )
+            self.issuance.approve(self.admin)
+            self.issuance.mark_executing()
+            recorded = ShareIssuance.objects.create(
+                token=self.issuance.token,
+                recipient_address=self.issuance.recipient_address,
+                amount=str(self.issuance.amount),
+                initiated_by=self.admin,
+                status="processing",
+                idempotency_key=share_token_service.issuance_key(self.issuance),
+                processed_at=timezone.now() - timedelta(hours=1),
+            )
+            self.issuance.mark_failed("Synthetic provider acknowledgement loss")
+            recorded.status = "failed"
+            recorded.save(update_fields=["status", "updated_at"])
+        finally:
+            restore_every_migration()
         ShareIssuanceRequest.objects.filter(pk=self.issuance.pk).update(updated_at=timezone.now() - timedelta(hours=1))
-        recorded = ShareIssuance.objects.create(
-            token=self.issuance.token,
-            recipient_address=self.issuance.recipient_address,
-            amount=str(self.issuance.amount),
-            status="failed",
-            idempotency_key=share_token_service.issuance_key(self.issuance),
-            processed_at=timezone.now() - timedelta(hours=1),
-        )
         change = self.client.get(url(self.issuance, "change"))
         self.assertContains(change, "Record legacy transaction hash")
         self.assertNotContains(change, "Release claim")
@@ -182,8 +197,16 @@ class ReviewRequestAdminTest(TransactionTestCase):
                     self.assertRedirects(approved, url(obj, "change"), fetch_redirect_response=False)
                     notes, shown = "Looks fine", "Ready for execution"
                 else:
-                    instruction = apply_instruction(obj.token, obj, reviewer=self.admin)
-                    notes, shown = f"Approved by register instruction {instruction.pk}.", "Approved"
+                    with self.assertRaises(DatabaseError), atomic():
+                        obj.approve(self.admin)
+                    with patch("tokens.tasks.execute_review_request_task.defer") as task:
+                        refused = self.client.post(url(obj, "execute"))
+                    self.assertRedirects(refused, url(obj, "change"), fetch_redirect_response=False)
+                    task.assert_not_called()
+                    obj.refresh_from_db()
+                    self.assertEqual(obj.status, RequestStatus.UNDER_REVIEW)
+                    self.assertContains(self.client.get(url(obj, "change")), "current company decision")
+                    continue
                 obj.refresh_from_db()
                 self.assertEqual(
                     (obj.status, obj.reviewed_by, obj.review_notes), (RequestStatus.APPROVED, self.admin, notes)
@@ -242,6 +265,12 @@ class ReviewRequestAdminTest(TransactionTestCase):
             with self.subTest(model=obj._meta.model_name):
                 refused = self.client.post(url(obj, "execute"))
                 self.assertRedirects(refused, url(obj, "change"), fetch_redirect_response=False)
+                if isinstance(obj, ShareIssuanceRequest):
+                    self.assertContains(self.client.get(url(obj, "change")), "current company decision")
+                    with self.assertRaises(DatabaseError), atomic():
+                        obj.approve(self.admin)
+                    self.assertEqual(self.client.get(url(obj, "execute")).status_code, 302)
+                    continue
                 self.assertContains(
                     self.client.get(url(obj, "change")), "Cannot execute: request status is &#x27;Submitted&#x27;"
                 )
@@ -254,14 +283,6 @@ class ReviewRequestAdminTest(TransactionTestCase):
                             obj, self.admin, confirmed=capital_execution.confirmation(obj, self.admin)
                         )
                     capital_execution.recover(command.pk)
-                else:
-                    obj.approve(self.admin)
-                    self.issuance_node.client.estimate_gas.side_effect = RuntimeError("Synthetic preparation refusal")
-                    with patch("tokens.tasks.execute_review_request_task.defer"):
-                        command = issuance_execution.admit(
-                            obj, self.admin, confirmed=issuance_execution.confirmation(obj, self.admin)
-                        )
-                    issuance_execution.recover(command.pk)
                 change = self.client.get(url(obj, "change"))
                 self.assertContains(change, "Retry Execute")
                 self.assertContains(change, url(obj, "execute"))
@@ -286,6 +307,60 @@ class ReviewRequestAdminTest(TransactionTestCase):
             purpose="Draft deletion control",
             board_resolution_reference="DRAFT-BOARD",
         )
-        self.issuance.approve(self.admin)
+        with self.assertRaises(DatabaseError), atomic():
+            self.issuance.approve(self.admin)
+        self.issuance.refresh_from_db()
         self.assertTrue(capital_admin.has_delete_permission(request, draft))
-        self.assertFalse(issuance_admin.has_delete_permission(request, self.issuance))
+        self.assertTrue(issuance_admin.has_delete_permission(request, self.issuance))
+
+
+class CompanyIssueAdminRecoveryTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.issuance_fixtures import install_issuance
+
+        install_issuance(self)
+        self.client.force_login(self.actor)
+
+    def test_company_admission_retains_its_actor_and_is_recoverable_by_the_technical_admin(self):
+        from tokens.tests.issuance_fixtures import admit
+
+        command = admit(self.request, self.actor)
+        self.request.refresh_from_db()
+        page = self.client.get(url(self.request, "execute"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, f"mint({self.request.recipient_address}, {self.request.amount})")
+        confirmation = page.context["form"]["confirmation"].value()
+        with patch("tokens.services.issuance_execution.App") as queue:
+            response = self.client.post(url(self.request, "execute"), {"confirmation": confirmation})
+        self.assertRedirects(response, url(self.request, "change"), fetch_redirect_response=False)
+        from tokens.tasks import execute_review_request_task
+
+        queue.return_value.configure_task.assert_called_once_with(execute_review_request_task.name)
+        queue.return_value.configure_task.return_value.defer.assert_called_once_with(
+            model_label=self.request._meta.label,
+            request_uuid=str(self.request.pk),
+            executed_by=self.actor.pk,
+            execution_id=str(command.pk),
+        )
+        admin_request = RequestFactory().get("/")
+        admin_request.user = self.actor
+        self.assertFalse(site._registry[ShareIssuanceRequest].has_delete_permission(admin_request, self.request))
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        self.assertEqual(len(self.node.broadcasts), 1)
+
+    def test_a_finalized_company_revert_offers_only_an_explicit_original_claim_retry(self):
+        from tokens.tests.issuance_fixtures import admit
+
+        command = admit(self.request, self.actor)
+        self.node.receipt_status = 0
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "failed")
+        self.assertContains(self.client.get(url(self.request, "change")), "Retry Execute")
+        page = self.client.get(url(self.request, "execute"))
+        confirmation = page.context["form"]["confirmation"].value()
+        self.node.receipt_status = 1
+        with patch("tokens.services.issuance_execution.App"):
+            response = self.client.post(url(self.request, "execute"), {"confirmation": confirmation})
+        self.assertRedirects(response, url(self.request, "change"), fetch_redirect_response=False)
+        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        self.assertEqual(self.attempts.count(), 2)
+        self.assertEqual(self.transactions.filter(status="reverted").count(), 1)

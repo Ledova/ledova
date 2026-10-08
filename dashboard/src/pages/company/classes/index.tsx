@@ -14,9 +14,10 @@ import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { TokenPauseControls } from '../components/TokenPauseControls';
 import { ClassRegister } from '../register/ClassRegister';
-import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
+import { RaiseSharesForm } from './ShareRequestForms';
 import { useShareClass } from './useShareClass';
 import { DeploymentFlow } from './DeploymentFlow';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
 
 function requestTone(status: CapitalIncreaseStatus): Tone {
   if (status === 'executed') return 'done';
@@ -64,13 +65,18 @@ export function ShareClass({ uuid }: { uuid: string }) {
         data={data}
       />
       <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
+      <CompanyIssueFlow
+        key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
     </Page>
   );
 }
 
 function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
   const [form, setForm] = useState<{
-    kind: 'issue' | 'raise';
+    kind: 'raise';
     owner: typeof data.owner;
     token: string;
     company: string;
@@ -83,15 +89,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
       : null;
   const requestForms = data.owner && token?.isOwner && (
     <>
-      {activeForm === 'issue' && (
-        <IssueSharesForm
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
       {activeForm === 'raise' && (
         <RaiseSharesForm
           token={token}
@@ -199,12 +196,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
           {data.isOwner && (deployed || paused) && <TokenPauseControls token={token} />}
           {data.isOwner && deployed && (
             <div className="flex flex-wrap gap-2">
-              <PageAction
-                label="Request issuance"
-                onClick={() =>
-                  setForm({ kind: 'issue', owner: data.owner, token: token.uuid, company: token.companyUuid })
-                }
-              />
               <PageAction
                 label="Raise authorised shares"
                 onClick={() =>

@@ -42,8 +42,10 @@ implements [company-authorised empty deployments](company-deployments.md), with
 retained approval and original execution recovery. The second increment implements
 [wallet nominations and company instructions](company-wallet-approvals.md),
 retaining genuine possession proof, exact company approval and original journal
-execution. Company issuance, capital and pause conversion remain later #867
-increments.
+execution. The third increment implements
+[non-paid on-chain grants](company-register-issues.md), with exact company
+instructions and a first-member LINK bootstrap. Paid issuance, capital and pause conversion
+remain later #867 increments.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and
