@@ -311,3 +311,42 @@ it.each([
 ] as const)('keeps queued, signed, failed and incomplete original receipts distinct (%s)', (execution, label) => {
   expect(registerPauseChangeExecutionState({ ...prepared(), execution })).toBe(label);
 });
+
+it.each(
+  (['observed completion', 'observation time', 'confirmed completion'] as const).flatMap((field) =>
+    [
+      ['date array', ['2026-10-08T00:02:00Z']],
+      ['number', 1],
+    ].map(([valueName, value]) => [field, valueName, value] as const),
+  ),
+)('refuses a completed original %s label for a coercible %s timestamp', (field, _valueName, value) => {
+  const record = applied();
+  const completedAt = '2026-10-08T00:02:00Z';
+  record.execution =
+    field === 'confirmed completion'
+      ? {
+          ...record.execution!,
+          status: 'confirmed',
+          completedAt,
+          operationId: ID(170),
+          claimId: ID(171),
+          operationStatus: 'confirmed',
+          txHash: `0x${'3'.repeat(64)}`,
+          blockNumber: 7,
+          blockHash: `0x${'4'.repeat(64)}`,
+          gasUsed: 24000,
+        }
+      : {
+          ...record.execution!,
+          status: 'observed',
+          completedAt,
+          observation: { blockNumber: 7, blockHash: `0x${'4'.repeat(64)}`, observedAt: completedAt },
+        };
+  if (field === 'observation time') record.execution.observation!.observedAt = value as unknown as string;
+  else record.execution.completedAt = value as unknown as string;
+  expect(registerPauseChangeExecutionState(record)).toBe(
+    field === 'confirmed completion'
+      ? 'Original marked confirmed; complete original chain receipt unavailable'
+      : 'Original marked observed; complete original no-transaction observation unavailable',
+  );
+});
