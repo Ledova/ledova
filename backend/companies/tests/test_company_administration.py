@@ -590,7 +590,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
         self.client.force_authenticate(self.other)
         self.assertEqual(self.client.post(f"{endpoint}{request_id}/submit/").status_code, 404)
         self.assertEqual(self.client.post(endpoint, payload, format="json").status_code, 405)
-        self.assertEqual(self.client.get(endpoint).json()["results"], [])
+        self.assertEqual([row["uuid"] for row in self.client.get(endpoint).json()["results"]], [str(foreign.pk)])
         with use_migrate():
             self.assertEqual(list(CapitalIncreaseRequest.objects.order_by("pk").values()), retained_values)
 
