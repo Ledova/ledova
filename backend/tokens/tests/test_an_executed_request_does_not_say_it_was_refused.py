@@ -269,20 +269,21 @@ class ExecutionNotesMigrationRoundTripTest(TransactionTestCase):
     def test_both_request_tables_preserve_review_and_machine_notes_through_a_round_trip(self):
         self.addCleanup(restore_every_migration)
         tenant = make_tenant("issuer")
+        before = [("tokens", "0030_superseded_capital_increase")]
+        historical = migrate_to(before)
         cases = []
         for model, fields in (
             (
-                ShareIssuanceRequest,
-                {"recipient_address": "0x" + "c" * 40, "amount": 10, "reason": "Allocation", "dispatch_id": None},
+                historical.get_model("tokens", "ShareIssuanceRequest"),
+                {"recipient_address": "0x" + "c" * 40, "amount": 10, "reason": "Allocation"},
             ),
             (
-                CapitalIncreaseRequest,
+                historical.get_model("tokens", "CapitalIncreaseRequest"),
                 {
                     "additional_shares": 10,
                     "new_authorized_total": 1010,
                     "purpose": "Growth",
                     "board_resolution_reference": "Board 1",
-                    "dispatch_id": None,
                 },
             ),
         ):
@@ -292,17 +293,16 @@ class ExecutionNotesMigrationRoundTripTest(TransactionTestCase):
                 "Execution failed: the node timed out",
             ):
                 request = model.objects.create(
-                    token=tenant.deployed_token,
-                    submitted_by=tenant.user,
+                    company_id=tenant.company.pk,
+                    token_id=tenant.deployed_token.pk,
+                    submitted_by_id=tenant.user.pk,
                     status=RequestStatus.EXECUTED,
                     review_notes=notes,
                     **fields,
                 )
                 cases.append((model.__name__, request.pk, notes))
 
-        before = [("tokens", "0030_superseded_capital_increase")]
         after = [("tokens", "0029_execution_notes")]
-        migrate_to(before)
         migrated = migrate_to(after)
         for name, pk, notes in cases:
             request = migrated.get_model("tokens", name).objects.get(pk=pk)
