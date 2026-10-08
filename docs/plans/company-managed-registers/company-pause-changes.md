@@ -7,7 +7,8 @@ following empty deployments, company wallet approvals, non-paid grants and capit
 increases. Exact company decisions and original observation/transaction recovery
 work through the API and both clients. The pull request records final independent
 review and current-main CI; no live migration or deployment is implied.
-Paid issuance remains a later increment; payment design remains with #868/#869.
+The [paid-issue workflow](company-paid-issues.md) authorises exact issues over
+existing recorded payments; new payment design remains with #868/#869.
 
 ## Exact company instruction
 
