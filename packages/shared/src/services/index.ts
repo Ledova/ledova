@@ -89,8 +89,6 @@ export {
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
-  createCapitalIncrease,
-  submitCapitalIncrease,
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
 export * from './register-grants';
@@ -182,3 +180,4 @@ export { getShareHoldings } from './share-holdings';
 export * from './company-eligibility';
 export * from './company-wallets';
 export * from './register-issues';
+export * from './register-capital-increases';

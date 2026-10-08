@@ -8,10 +8,7 @@ import type {
   TokenCreate,
   TokenHoldersResponse,
   TokenIssuance,
-  CapitalIncreaseCreate,
-  CapitalIncreaseRequest,
   CapitalIncreaseListItem,
-  CapitalIncreaseSubmission,
   PaginatedResponse,
   ShareIssuanceRequest,
   ShareIssuanceRequestQueryParams,
@@ -82,24 +79,6 @@ export const getCapitalIncreases = (
     ...config,
     params,
   });
-
-export const createCapitalIncrease = (
-  apiClient: AxiosInstance,
-  data: CapitalIncreaseCreate,
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data)
-    : apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data, config);
-
-export const submitCapitalIncrease = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
-  config === undefined
-    ? apiClient.post<CapitalIncreaseSubmission>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid))
-    : apiClient.post<CapitalIncreaseSubmission>(
-        COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid),
-        undefined,
-        config,
-      );
 
 export const getShareIssuanceRequests = (
   apiClient: AxiosInstance,

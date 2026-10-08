@@ -369,8 +369,8 @@ import-origin registers still cannot acquire fresh chain issue authority.
 Deploy the backend, workers and both clients together. The new clients use
 `/api/v1/tokens/register-issues/` and the existing LINK family for an exact nominated
 wallet before a first mint. An older backend cannot serve this family; an older
-client's direct owner issue POST is retired by the new backend. Paid issuance,
-capital and pause remain separate later conversions.
+client's direct owner issue POST is retired by the new backend. Paid issuance and
+pause remain separate later conversions; capital has its own coordinated upgrade below.
 
 Reversal of `0101` refuses retained company preparations, decisions or nonnull
 execution sources, including rejected or merely prepared work. Empty reversal
@@ -379,6 +379,32 @@ removes its empty new records and nullable associations. Preserve database and
 private storage together, including original signed and paid history. Final
 fresh migration/role/catalogue, reversal and recovery evidence belongs in the
 increment's pull request; these release notes authorise no live migration.
+
+### Company capital increases
+
+`tokens/0102_company_register_capital_increases` adds immutable company capital
+proposals, decisions and a nullable association on the existing private execution.
+It backfills no company approval; old actors, terms, signatures and receipts remain
+original. `tokens/0103_company_register_capital_guards` binds new preparation,
+decisions, application and fresh signatures to exact current company authority,
+retained evidence and coherent before-cap plus delta equals target. Capital mints
+zero shares and records no payment, holding or issue.
+
+Release backend, workers and both clients together. New clients use the six-operation
+`/api/v1/tokens/register-capital-increases/` family. The fresh owner create and submit
+POSTs are retired; their private history GET remains. The technical original retry
+and recovery journal stays separate from the company's human approval/application.
+An older backend cannot serve the family, and an older client cannot use its retired
+fresh submission path on the new backend. Paid and pause workflows retain their
+existing guards until their own increments.
+
+Both `0103` and `0102` reversal refuse any retained company preparation, decision
+or nonnull original execution source, including rejected and never-applied work.
+Only an empty reversal restores the genuine predecessor guards/policies before
+dropping empty new records and their association. Preserve database and private
+storage together; do not delete records to make reversal succeed. Actual migration,
+role/catalogue, source/deferred, reversal, original recovery and finality checks
+belong to the pull request. These instructions authorise no live migration.
 
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not

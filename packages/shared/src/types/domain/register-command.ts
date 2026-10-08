@@ -1,3 +1,8 @@
+import type {
+  RegisterCapitalIncrease,
+  RegisterCapitalIncreaseDecisionRequest,
+  RegisterCapitalIncreaseDecideRequest,
+} from './register-capital-increase';
 import type { RegisterIssue, RegisterIssueDecisionRequest, RegisterIssueDecideRequest } from './register-issue';
 import type { ApiRequest, ApiSchema } from '../contracts';
 import type {
@@ -35,6 +40,7 @@ export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
+  | RegisterCapitalIncrease
   | RegisterImport
   | RegisterIssue
   | RegisterCorrection
@@ -46,6 +52,7 @@ export type RegisterProposal =
   | RegisterDeployment
   | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
+  | RegisterCapitalIncreaseDecisionRequest
   | RegisterImportDecisionRequest
   | RegisterIssueDecisionRequest
   | RegisterDeploymentDecisionRequest
@@ -57,6 +64,7 @@ export type RegisterDecisionRequest =
   | RegisterLinkDecisionRequest
   | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
+  | RegisterCapitalIncreaseDecideRequest
   | RegisterImportDecideRequest
   | RegisterIssueDecideRequest
   | RegisterDeploymentDecideRequest

@@ -5,6 +5,9 @@ from tokens.querysets.capital_execution import CapitalIncreaseExecutionQuerySet
 
 
 class CapitalIncreaseExecution(BaseModel):
+    source_increase = models.ForeignKey(
+        "tokens.RegisterCapitalIncrease", on_delete=models.PROTECT, null=True, editable=False, related_name="executions"
+    )
     request_id = models.UUIDField(unique=True, editable=False)
     token_id = models.UUIDField(editable=False)
     company_id = models.UUIDField(editable=False)

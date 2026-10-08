@@ -126,3 +126,4 @@ export { marketAmount, marketQuantity, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
 export * from './register-issues';
+export * from './register-capital-increases';

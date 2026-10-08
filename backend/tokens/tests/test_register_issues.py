@@ -434,33 +434,57 @@ class RegisterIssuesTest(CompanyIssueCases, APITransactionTestCase):
             self.assertEqual(RegisterEntry.objects.filter(register__token=self.token, kind="issue").count(), 0)
 
     def test_same_class_capital_and_grant_sign_token_before_the_common_signer_without_deadlock(self):
-        from django.contrib.auth import get_user_model
         from eth_account.signers.local import LocalAccount
 
         from blockchain.services import outgoing
-        from tokens.models import CapitalIncreaseRequest
+        from tokens.models import CapitalIncreaseExecution, RegisterEvidenceKind
         from tokens.services import capital_execution
-        from tokens.services.capital_increase import submit_capital_increase
-        from tokens.tests.capital_fixtures import CapitalNode, admit
+        from tokens.services.register_capital_increases import (
+            decide_capital_increase,
+            prepare_capital_increase,
+            preview_capital_increase_decision,
+        )
+        from tokens.tests.capital_fixtures import CapitalNode
+        from tokens.tests.evidence_fixtures import upload_evidence
 
         proposal = self.applied_issue()
-        with use_operator():
-            actor = get_user_model().objects.create_superuser(
-                email="same-class-capital@example.test", password="synthetic"
-            )
-            request = CapitalIncreaseRequest.objects.create(
-                token=self.token,
-                additional_shares=10,
-                new_authorized_total=110,
-                purpose="Retained current capital increase",
-                board_resolution_reference="SAME-CLASS-CAPITAL",
-            )
-            submit_capital_increase(request, self.owner)
-            request.approve(actor)
-            capital = admit(request, actor)
-            nonce = SigningAccount.objects.get().next_nonce
         node = CapitalNode(cap=100)
         node.event_changes = {"oldAmount": 100, "newAmount": 110}
+        evidence = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.AUTHORITY)
+        with (
+            patch("tokens.services.register_capital_increases.get_base_chain_client", return_value=node.client),
+            patch("tokens.services.capital_execution._enqueue"),
+        ):
+            increase = prepare_capital_increase(
+                actor=self.owner,
+                operation_id=uuid4(),
+                appointment=self.initial.pk,
+                token=self.token.pk,
+                additional_shares=10,
+                new_authorized_total=110,
+                purpose="Current company capital increase",
+                board_resolution_reference="SAME-CLASS-CAPITAL",
+                authority_evidence=evidence.pk,
+            )
+            for kind in ("approve", "apply"):
+                _, preview = preview_capital_increase_decision(
+                    actor=self.owner,
+                    capital_increase_id=increase.pk,
+                    appointment=self.initial.pk,
+                    kind=kind,
+                )
+                decide_capital_increase(
+                    actor=self.owner,
+                    capital_increase_id=increase.pk,
+                    appointment=self.initial.pk,
+                    kind=kind,
+                    idempotency_key=uuid4(),
+                    preview_digest=preview["preview_digest"],
+                    confirmation=True,
+                )
+        with use_operator():
+            capital = CapitalIncreaseExecution.objects.get(source_increase=increase)
+            nonce = SigningAccount.objects.get().next_nonce
         capital_ready, release_signature, release_projection = Event(), Event(), Event()
         grant_ready = Event()
         sessions = {}
@@ -523,7 +547,10 @@ class RegisterIssuesTest(CompanyIssueCases, APITransactionTestCase):
                     release_projection.set()
                 capital_result = capital_future.result(timeout=15)
             self.assertNotIn("blockchain_signingaccount", waited_query)
-            self.assertTrue(waited_query == "COMMIT" or "tokens_sharetoken" in waited_query, waited_query)
+            self.assertTrue(
+                waited_query == "COMMIT" or "tokens_sharetoken" in waited_query or "companies_company" in waited_query,
+                waited_query,
+            )
             self.assertEqual((grant_result["status"], capital_result["status"]), ("executed", "executed"))
             self.assertNotEqual(sessions["grant"][0], sessions["capital"][0])
             if isinstance(self, RunsOnTheScopedConnection):

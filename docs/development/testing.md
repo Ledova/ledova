@@ -12,27 +12,27 @@ Run root commands from the repository root unless the table says otherwise.
 Use an isolated PostgreSQL database with the required role privileges. Backend
 tests now use PostgreSQL in both ordinary and specialized settings.
 
-| Area | Commands |
-| --- | --- |
-| Source checks and type-checking | `make check` |
-| Gate unit tests | `make test-gates` |
-| Lint | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
-| JavaScript and contracts | `make test` |
-| Backend suites | The three suites under [backend verification](#backend-verification), always together |
-| Migration drift | `cd backend && python manage.py makemigrations --check --dry-run` |
-| Real EVM chain | `make chain-test` |
-| Real Bitcoin chain | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL |
-| Browser bundle smoke | `make build && make smoke` |
-| Dependency advisories | `make audit` |
-| Design tokens | `make generate-tokens`, then check generated CSS is unchanged |
-| Native/mobile | [Builds](mobile-builds.md) and [probes](native-probes.md) |
+| Area                            | Commands                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Source checks and type-checking | `make check`                                                                                        |
+| Gate unit tests                 | `make test-gates`                                                                                   |
+| Lint                            | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
+| JavaScript and contracts        | `make test`                                                                                         |
+| Backend suites                  | The three suites under [backend verification](#backend-verification), always together               |
+| Migration drift                 | `cd backend && python manage.py makemigrations --check --dry-run`                                   |
+| Real EVM chain                  | `make chain-test`                                                                                   |
+| Real Bitcoin chain              | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL                                  |
+| Browser bundle smoke            | `make build && make smoke`                                                                          |
+| Dependency advisories           | `make audit`                                                                                        |
+| Design tokens                   | `make generate-tokens`, then check generated CSS is unchanged                                       |
+| Native/mobile                   | [Builds](mobile-builds.md) and [probes](native-probes.md)                                           |
 
 `make check` installs backend development requirements and any missing workspace
 dependencies. Workspace-only commands require the correct workspace installation;
 mobile resolves from its own `node_modules`. `make help` lists entry points.
 Formatting checks remain local: CI has no general workspace format step.
 
-The five real-chain modules that `make chain-test` runs, listed in
+The five real-chain modules and exact company-capital seed class that `make chain-test` runs, listed in
 [chains and keys](../operations/chains.md#chain-configuration), are skipped by an
 ordinary backend suite without their chain environment. Use a free
 `CHAIN_TEST_PORT` per checkout, and one other than 8545 while the local stack is
@@ -74,11 +74,11 @@ python manage.py check_rls_roles
 python manage.py check_rls_catalogue
 ```
 
-| Suite | What only it sees |
-| --- | --- |
-| Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The app role on one shared connection, through `SET ROLE` |
-| Scoped | Real, separate app and operator aliases: a different code path from the ordinary suite's shared connection |
-| Roles and catalogue | Grants and installed policies, which no test can observe |
+| Suite                                                                             | What only it sees                                                                                          |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The app role on one shared connection, through `SET ROLE`                                                  |
+| Scoped                                                                            | Real, separate app and operator aliases: a different code path from the ordinary suite's shared connection |
+| Roles and catalogue                                                               | Grants and installed policies, which no test can observe                                                   |
 
 An empty or suppressed run is not a pass: find the `Ran N tests` tally before
 reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)

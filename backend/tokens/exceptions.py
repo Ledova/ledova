@@ -93,6 +93,12 @@ class CapitalIncreaseUnresolved(APIException):
     default_code = "capital_increase_unresolved"
 
 
+class CapitalIncreaseSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned capital increase waits for its company source.")
+
+
 class TokenPauseFailedException(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "Token pause or unpause failed on chain."

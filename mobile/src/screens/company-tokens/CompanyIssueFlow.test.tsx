@@ -451,7 +451,7 @@ beforeEach(() => {
           holders: [],
         },
       };
-    if (url === URLS.REGISTER_DEPLOYMENTS) return page([]);
+    if (url === URLS.REGISTER_CAPITAL_INCREASES || url === URLS.REGISTER_DEPLOYMENTS) return page([]);
     if (url === NOMINATIONS) {
       if (failNominations) throw new Error('Unavailable selected nomination');
       return page(nominees);

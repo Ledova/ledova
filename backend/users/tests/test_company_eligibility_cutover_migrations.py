@@ -43,6 +43,8 @@ OLD = [
 GRANTS = ("shared", "0015_scoped_grants_queue_prerequisite")
 HISTORICAL_GRANTS = ("shared", "0008_scoped_role_table_grants")
 RESTORED_EMPTY_TABLES = {
+    "tokens_registercapitalincrease",
+    "tokens_registercapitalincreasedecision",
     "whitelist_companywalletnomination",
     "whitelist_companywalletinstruction",
     "whitelist_companywalletinstructiondecision",
@@ -64,6 +66,7 @@ RESTORED_EMPTY_TABLES = {
     "whitelist_whitelisteligibilityinvalidation",
 }
 ADDED_COLUMNS = {
+    "tokens_capitalincreaseexecution": ["source_increase_id"],
     "offerings_subscription": ["eligibility_decision_id"],
     "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_shareissuanceexecution": ["source_instruction_id"],

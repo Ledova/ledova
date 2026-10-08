@@ -24,6 +24,7 @@ from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
+    RegisterCapitalIncrease,
     RegisterCorrection,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -172,6 +173,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "file"),
                         (RegisterImport, "asic_file"),
                         (RegisterEvidence, "file"),
+                        (RegisterCapitalIncrease, "file"),
                         (RegisterGrant, "file"),
                         (RegisterGrant, "terms_file"),
                         (RegisterGrant, "acceptance_file"),
@@ -195,6 +197,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterWalletLink,
                     RegisterImport,
                     RegisterEvidence,
+                    RegisterCapitalIncrease,
                     RegisterGrant,
                     RegisterInstruction,
                     RegisterParticularsChange,

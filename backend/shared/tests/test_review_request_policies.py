@@ -1,7 +1,7 @@
 from unittest import skipUnless
 
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import DatabaseError, connection, transaction
 from django.db.utils import IntegrityError, ProgrammingError
 from django.test import TestCase
 
@@ -60,7 +60,11 @@ class ReviewRequestPolicyTest(TestCase):
                 model = type(own)
                 self.assertEqual(model.objects.select_for_update().get(pk=own.pk), own)
                 self.assertFalse(model.objects.select_for_update().filter(pk=foreign.pk).exists())
-                self.assertEqual(model.objects.filter(pk=own.pk).update(**{field: "Updated"}), 1)
+                if model is CapitalIncreaseRequest:
+                    with self.assertRaises(DatabaseError), transaction.atomic():
+                        model.objects.filter(pk=own.pk).update(**{field: "Updated"})
+                else:
+                    self.assertEqual(model.objects.filter(pk=own.pk).update(**{field: "Updated"}), 1)
                 self.assertEqual(model.objects.filter(pk=foreign.pk).update(**{field: "Forged"}), 0)
 
     def test_a_foreign_request_cannot_be_deleted(self):
@@ -87,16 +91,23 @@ class ReviewRequestPolicyTest(TestCase):
         self.as_app(self.one.user)
         for model, fields in self.create_requests(self.one):
             with self.subTest(model=model.__name__):
-                self.assertEqual(model.objects.create(**fields).company_id, self.one.company.pk)
+                if model is CapitalIncreaseRequest:
+                    with self.assertRaises(DatabaseError), transaction.atomic():
+                        model.objects.create(**fields)
+                else:
+                    self.assertEqual(model.objects.create(**fields).company_id, self.one.company.pk)
 
     def test_inserts_for_a_foreign_company_are_refused_by_the_policy(self):
         self.as_app(self.one.user)
         for model, fields in self.create_requests(self.two):
             with self.subTest(model=model.__name__):
-                with self.assertRaises(ProgrammingError) as refused:
+                with self.assertRaises(
+                    DatabaseError if model is CapitalIncreaseRequest else ProgrammingError
+                ) as refused:
                     with transaction.atomic():
                         model.objects.create(**fields)
-                self.assertIn("row-level security", str(refused.exception))
+                expected = "bounded company command" if model is CapitalIncreaseRequest else "row-level security"
+                self.assertIn(expected, str(refused.exception))
 
     def link_another_issuers_request(self):
         request = self.requests[1][1]

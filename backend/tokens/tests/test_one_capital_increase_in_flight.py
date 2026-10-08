@@ -3,26 +3,25 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.db import DatabaseError, IntegrityError, connection, transaction
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
+from rest_framework.exceptions import ValidationError
+from rest_framework.test import APITransactionTestCase
 
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import InvalidTokenStateException
+from tokens.exceptions import RegisterChangeConflict
 from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareToken
-from tokens.services.capital_increase import submit_capital_increase
+from tokens.services.register_capital_increases import prepare_capital_increase
+from tokens.tests.company_capital_fixtures import CompanyCapitalCases
 
 CONSTRAINT_NAME = "one_capital_increase_in_flight_per_token"
 GUARD = import_module("tokens.migrations.0026_one_capital_increase_in_flight").refuse_a_token_that_already_has_two
 
 
-class ASecondRaiseIsRefusedWithAReasonTest(TestCase):
-
+class ASecondRaiseIsRefusedWithAReasonTest(CompanyCapitalCases, APITransactionTestCase):
     def setUp(self):
-        self.tenant = make_tenant("raise")
-        self.token = self.tenant.deployed_token
-        self.first = self.tenant.capital_increase
-        CapitalIncreaseRequest.objects.filter(pk=self.first.pk).update(status=RequestStatus.SUBMITTED)
-        self.first.refresh_from_db()
+        super().setUp()
+        self.first = self.prepare_capital()
 
     def a_draft(self, additional=50):
         return CapitalIncreaseRequest.objects.create(
@@ -33,66 +32,63 @@ class ASecondRaiseIsRefusedWithAReasonTest(TestCase):
             board_resolution_reference="BOARD-2",
         )
 
-    def test_the_second_submit_is_refused_before_the_constraint_sees_it(self):
+    def test_the_second_preparation_is_refused_before_the_constraint_sees_it(self):
         second = self.a_draft()
+        before = CapitalIncreaseRequest.objects.filter(pk=second.pk).values().get()
+        with self.assertRaises(ValidationError) as refusal:
+            self.prepare_capital(additional_shares=50, new_authorized_total=1050)
+        self.assertEqual(refusal.exception.detail, {"unmet_requirements": ["capital_in_flight"]})
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=second.pk).values().get(), before)
 
-        with self.assertRaises(InvalidTokenStateException) as refusal:
-            submit_capital_increase(second, self.tenant.user)
+    def test_human_approval_keeps_the_same_one_in_flight(self):
+        self.capital_decide(self.first, "approve")
+        with self.assertRaises(ValidationError) as refusal:
+            self.prepare_capital(additional_shares=50, new_authorized_total=1050)
+        self.assertEqual(refusal.exception.detail, {"unmet_requirements": ["capital_in_flight"]})
+        self.first.request.refresh_from_db()
+        self.assertEqual(self.first.request.status, RequestStatus.UNDER_REVIEW)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).in_flight().count(), 1)
 
-        self.assertIn("already has a capital increase in flight", str(refusal.exception.detail))
-        second.refresh_from_db()
-        self.assertEqual(second.status, RequestStatus.DRAFT)
+    def test_the_company_can_reject_the_one_in_flight_without_an_operator(self):
+        self.capital_decide(self.first, "reject", reason="Prepare the replacement")
+        self.first.request.refresh_from_db()
+        self.assertEqual(
+            (self.first.request.status, self.first.request.rejection_reason), ("rejected", "Prepare the replacement")
+        )
+        replacement = self.prepare_capital(additional_shares=50, new_authorized_total=1050)
+        self.assertEqual(replacement.request.status, RequestStatus.UNDER_REVIEW)
+        self.assertEqual(replacement.submitted_by_id, self.owner.pk)
 
-    def test_the_refusal_names_the_one_that_is_in_flight(self):
-        with self.assertRaises(InvalidTokenStateException) as refusal:
-            submit_capital_increase(self.a_draft(), self.tenant.user)
-
-        served = str(refusal.exception.detail)
-        self.assertIn(self.token.symbol, served)
-        self.assertIn(self.first.get_status_display(), served)
-
-    def test_the_refusal_names_a_remedy_the_issuer_can_actually_reach(self):
-        with self.assertRaises(InvalidTokenStateException) as refusal:
-            submit_capital_increase(self.a_draft(), self.tenant.user)
-
-        served = str(refusal.exception.detail)
-        self.assertIn("ask the operator to reject it", served)
-        self.assertNotIn("withdraw", served.lower())
-
-    def test_a_draft_beside_one_in_flight_is_allowed_to_exist(self):
+    def test_a_retained_draft_beside_one_in_flight_is_allowed_to_exist(self):
         self.a_draft()
-
         self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).count(), 2)
 
     def test_the_raise_is_allowed_once_the_first_one_is_rejected(self):
-        self.first.reject(self.tenant.user, reason="Submit the replacement")
-        second = self.a_draft()
-
-        submit_capital_increase(second, self.tenant.user)
-
+        self.capital_decide(self.first, "reject", reason="Prepare the replacement")
+        second = self.prepare_capital(additional_shares=50, new_authorized_total=1050)
+        self.capital_decide(second, "approve")
+        self.capital_decide(second, "apply")
+        second.request.refresh_from_db()
+        self.assertEqual(second.request.status, RequestStatus.EXECUTING)
         second.refresh_from_db()
-        self.assertEqual(second.status, RequestStatus.SUBMITTED)
+        self.assertEqual(second.reviewed_by_id, self.owner.pk)
 
-    def test_a_second_token_raises_on_its_own_schedule(self):
-        other = make_tenant("raise-other")
-        request = CapitalIncreaseRequest.objects.create(
-            token=other.deployed_token,
-            additional_shares=10,
-            new_authorized_total=int(other.deployed_token.total_supply) + 10,
-            purpose="Unrelated",
-            board_resolution_reference="BOARD-3",
-        )
+    def test_a_second_company_token_raises_on_its_own_schedule(self):
+        from tokens.tests.capital_fixtures import capital_request
 
-        submit_capital_increase(request, other.user)
-
-        request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.SUBMITTED)
+        other, actor = capital_request(self)
+        self.assertNotEqual(other.token.pk, self.token.pk)
+        self.assertEqual(other.capital_increase.status, RequestStatus.UNDER_REVIEW)
+        self.assertEqual(CapitalIncreaseRequest.objects.in_flight().count(), 2)
+        self.assertEqual(other.capital_increase.submitted_by_id, actor.pk)
 
 
 class TheDatabaseRefusesASecondInFlightRowTest(TransactionTestCase):
 
     def setUp(self):
         super().setUp()
+        self.addCleanup(restore_every_migration)
+        migrate_to([("tokens", "0102_company_register_capital_increases")])
         self.tenant = make_tenant("constraint")
         self.token = self.tenant.deployed_token
         CapitalIncreaseRequest.objects.filter(pk=self.tenant.capital_increase.pk).update(status=RequestStatus.SUBMITTED)
@@ -223,27 +219,23 @@ class TheMigrationGuardRefusesRatherThanChoosingTest(TransactionTestCase):
         self.assertIsNone(self.run_the_guard())
 
 
-class SubmissionReadsThePersistedDraftTest(TestCase):
-    def test_a_stale_draft_cannot_submit_the_same_request_again(self):
-        tenant = make_tenant("stale-submit")
-        stale = CapitalIncreaseRequest.objects.get(pk=tenant.capital_increase.pk)
-        submit_capital_increase(tenant.capital_increase, tenant.user)
-        before = CapitalIncreaseRequest.objects.filter(pk=stale.pk).values().get()
-
-        with self.assertRaises(InvalidTokenStateException):
-            submit_capital_increase(stale, tenant.user)
-
-        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=stale.pk).values().get(), before)
+class PreparationRetainsTheExactRequestTest(CompanyCapitalCases, APITransactionTestCase):
+    def test_an_identical_preparation_returns_the_original_and_changed_terms_conflict(self):
+        payload = self.capital_payload()
+        original = prepare_capital_increase(**payload)
+        before = CapitalIncreaseRequest.objects.filter(pk=original.request_id).values().get()
+        replay = prepare_capital_increase(**payload)
+        self.assertEqual(replay.pk, original.pk)
+        with self.assertRaises(RegisterChangeConflict):
+            prepare_capital_increase(**(payload | {"purpose": "Changed request"}))
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=original.request_id).values().get(), before)
+        self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).count(), 1)
 
     def test_an_unrelated_database_failure_is_not_called_competition(self):
-        tenant = make_tenant("submit-db-error")
-        request = tenant.capital_increase
-        before = CapitalIncreaseRequest.objects.filter(pk=request.pk).values().get()
+        payload = self.capital_payload()
         failure = DatabaseError("unrelated failure")
-
-        with patch("tokens.services.capital_increase.dilution_for", side_effect=failure):
+        with patch("tokens.services.dilution.dilution_for", side_effect=failure):
             with self.assertRaises(DatabaseError) as raised:
-                submit_capital_increase(request, tenant.user)
-
+                prepare_capital_increase(**payload)
         self.assertIs(raised.exception, failure)
-        self.assertEqual(CapitalIncreaseRequest.objects.filter(pk=request.pk).values().get(), before)
+        self.assertFalse(CapitalIncreaseRequest.objects.filter(token=self.token).exists())
