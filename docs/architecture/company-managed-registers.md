@@ -73,7 +73,7 @@ register. The second [wallet increment](../plans/company-managed-registers/compa
 retains genuine possession proof and explicit participant nomination separately
 from company approval and original journal execution. The third
 [non-paid on-chain grant increment](../plans/company-managed-registers/company-register-issues.md)
-is in progress, with exact company instructions and a first-member LINK consumer.
+implements exact company instructions and a first-member LINK consumer.
 Paid issuance, capital and pause conversion remain later #867 increments.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.

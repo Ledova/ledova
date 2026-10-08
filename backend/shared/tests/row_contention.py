@@ -31,14 +31,18 @@ class RealRowContention:
         self.assertNotEqual(waiter, blocker)
         deadline = monotonic() + 5
         last = None
+        expected = query
+        if expected is None and row is not None:
+            expected = row._meta.db_table
         while monotonic() < deadline:
             with inspection.cursor() as cursor:
+                cursor.execute("SELECT pg_stat_clear_snapshot()")
                 cursor.execute(
                     "SELECT pg_blocking_pids(pid), wait_event_type, query FROM pg_stat_activity WHERE pid = %s",
                     [waiter],
                 )
                 last = cursor.fetchone()
-            if last and blocker in last[0] and last[1] == "Lock":
+            if last and blocker in last[0] and last[1] == "Lock" and (expected is None or expected in (last[2] or "")):
                 logger.info(
                     "Observed PostgreSQL waiter=%s blocker=%s blocking_pids=%s row=%s/%s query=%s",
                     waiter,

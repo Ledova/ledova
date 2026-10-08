@@ -477,13 +477,21 @@ class HistoryPreservationChecks:
                     observed = None
                     while monotonic() < deadline:
                         with connections["default"].cursor() as cursor:
+                            cursor.execute("SELECT pg_stat_clear_snapshot()")
                             cursor.execute(
                                 "SELECT query, %s = ANY(pg_blocking_pids(pid)), wait_event_type "
                                 "FROM pg_stat_activity WHERE pid = %s",
                                 [pids[True], pids[False]],
                             )
                             observed = cursor.fetchone()
-                        if observed and observed[1] and observed[2] == "Lock" and observed[0] != "BEGIN":
+                        if (
+                            observed
+                            and observed[1]
+                            and observed[2] == "Lock"
+                            and observed[0] != "BEGIN"
+                            and 'FROM "wallets"' in (observed[0] or "")
+                            and "FOR UPDATE" in (observed[0] or "")
+                        ):
                             break
                         if second.done():
                             self.fail(f"History import finished before the first writer committed: {second.result()}")

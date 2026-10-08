@@ -59,14 +59,12 @@ def run(mode, row_id, detail):
         with connections[alias].cursor() as cursor:
             cursor.execute("SET statement_timeout = '20s'")
             cursor.execute("SET lock_timeout = '15s'")
-    row = SwapOrder.objects.get(pk=row_id)
-    test_case = TestCase()
-    service = swap_service(test_case)
     if mode == "reverse_inclusion":
-        from shared.tests.schema import migrate_to
-
         report("schema_preparation", target="0063_swap_finalized_receipt")
-        migrate_to([("tokens", "0063_swap_finalized_receipt")])
+    else:
+        row = SwapOrder.objects.get(pk=row_id)
+        test_case = TestCase()
+        service = swap_service(test_case)
     report("loaded", private_media_root=str(settings.PRIVATE_MEDIA_ROOT))
     command("run")
 
