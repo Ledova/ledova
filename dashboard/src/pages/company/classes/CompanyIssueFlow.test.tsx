@@ -21,7 +21,8 @@ import {
   type CompanyWalletNomination,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { ShareClass } from './index';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
+import { useShareClass } from './useShareClass';
 const ID = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const TOKEN = ID(100);
 const COMPANY = ID(101);
@@ -336,12 +337,18 @@ function refuse(config: InternalAxiosRequestConfig, status: number, data: unknow
     status,
   });
 }
+function Subject() {
+  const data = useShareClass(TOKEN);
+  return (
+    <CompanyIssueFlow key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={TOKEN} data={data} />
+  );
+}
 function show() {
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
         <MemoryRouter>
-          <ShareClass uuid={TOKEN} />
+          <Subject />
         </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
