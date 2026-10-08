@@ -87,7 +87,7 @@ export function UserProfileScreen() {
                 accessibilityLabel="Full name"
                 style={styles.input}
                 value={fullName}
-                maxLength={255}
+                maxLength={100}
                 editable={!blocked}
                 onChangeText={setFullName}
               />

@@ -104,7 +104,7 @@ export function UserProfilePage() {
                 type="text"
                 autoComplete="name"
                 value={fullName}
-                maxLength={255}
+                maxLength={100}
                 disabled={blocked}
                 onChange={(event) => setFullName(event.target.value)}
                 className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
