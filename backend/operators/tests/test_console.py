@@ -6,7 +6,7 @@ from uuid import uuid4
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db import connection
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -96,7 +96,7 @@ def _stored_rows(token, holdings, recorded_by):
     return stored_register(token)["rows"]
 
 
-class WorklistTest(TestCase):
+class WorklistTest(TransactionTestCase):
     def setUp(self):
         self.owner = User.objects.create_user(email="console-owner@example.test", password="pw-12345678")
         self.company = Company.objects.create(
