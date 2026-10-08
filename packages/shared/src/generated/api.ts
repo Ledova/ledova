@@ -1455,22 +1455,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/{uuid}/issue/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_issue_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/{uuid}/pause-submissions/{submission_id}/': {
     parameters: {
       query?: never;
@@ -2055,6 +2039,118 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_register_instructions_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_issues_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_issues_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_issues_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/acceptance-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_issues_acceptance_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_issues_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_issues_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_issues_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-issues/{uuid}/terms-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_issues_terms_file_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -4866,6 +4962,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterInstruction'][];
     };
+    PaginatedRegisterIssueList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterIssue'][];
+    };
     PaginatedRegisterOpeningList: {
       count: number;
       next?: string | null;
@@ -5676,7 +5778,7 @@ export interface ApiComponents {
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
-      sourceDocument: string;
+      sourceDocument: string | null;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       token: string;
@@ -5695,6 +5797,177 @@ export interface ApiComponents {
       tokenId: string;
     };
     RegisterInstructionKindEnum: 'issue' | 'transfer';
+    RegisterIssue: {
+      acceptanceEvidence: string | null;
+      acceptanceFingerprint: string | null;
+      acceptanceRequired: boolean | null;
+      acceptanceSnapshot: unknown;
+      approvalDecision: string | null;
+      approvingDirector: string;
+      authorityEvidence: string | null;
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterIssueDecision'][];
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      execution: ApiComponents['schemas']['RegisterIssueExecution'] | null;
+      executionUnmetRequirements: string[];
+      intentDigest: string | null;
+      member: string | null;
+      nomination: string | null;
+      operationId: string;
+      preparedByName: string | null;
+      preparingAppointment: string | null;
+      providedBy: string;
+      reason: string;
+      rejectionReason: string;
+      request: string | null;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      shares: string;
+      snapshot: ApiComponents['schemas']['RegisterIssueSnapshot'];
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      terms: string | null;
+      termsEvidence: string | null;
+      termsFingerprint: string | null;
+      termsOn: string | null;
+      termsSnapshot: unknown;
+      token: string;
+      uuid: string;
+      walletApproval: string | null;
+    };
+    RegisterIssueCompanySnapshot: {
+      acn: string;
+      name: string;
+      status: string;
+      uuid: string;
+    };
+    RegisterIssueCreateRequest: {
+      acceptanceEvidence?: string | null;
+      acceptanceRequired: boolean;
+      appointment: string;
+      approvingDirector: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      member: string;
+      nomination: string;
+      operationId: string;
+      reason: string;
+      shares: string;
+      terms: string;
+      termsEvidence: string;
+      termsOn: string;
+      token: string;
+      walletApproval: string;
+    };
+    RegisterIssueDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterIssueDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterIssueDecisionPreview: {
+      acceptanceRequired: boolean;
+      afterIssuedSupply: string;
+      afterShares: string;
+      approvalDecision: string | null;
+      approvingDirector: string;
+      authorisedSupply: string;
+      authorityReference: string;
+      availableShares: string;
+      canDecide: boolean;
+      currentShares: string;
+      intentDigest: string;
+      issuedSupply: string;
+      previewDigest: string;
+      reason: string;
+      registerSequence: number;
+      reservedShares: string;
+      shares: string;
+      snapshot: ApiComponents['schemas']['RegisterIssueSnapshot'];
+      terms: string;
+      termsOn: string;
+      unmetRequirements: string[];
+    };
+    RegisterIssueDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterIssueExecution: {
+      blockHash: string | null;
+      blockNumber: number | null;
+      claimId: string | null;
+      completedAt: string | null;
+      dispatchId: string;
+      effectiveOn: string | null;
+      execution: string;
+      issuance: string | null;
+      operationId: string | null;
+      operationStatus: string | null;
+      registerEntry: string | null;
+      request: string;
+      status: string;
+      transaction: string | null;
+      txHash: string | null;
+    };
+    RegisterIssueMemberSnapshot: {
+      address: string;
+      identitySource: string;
+      name: string;
+      residentialAddress: string;
+      uuid: string;
+    };
+    RegisterIssueRegisterSnapshot: {
+      currentShares: string;
+      headHash: string;
+      issuedSupply: string;
+      opening: string;
+      sequence: number;
+      uuid: string;
+    };
+    RegisterIssueSnapshot: {
+      company: ApiComponents['schemas']['RegisterIssueCompanySnapshot'];
+      member: ApiComponents['schemas']['RegisterIssueMemberSnapshot'];
+      register: ApiComponents['schemas']['RegisterIssueRegisterSnapshot'];
+      token: ApiComponents['schemas']['RegisterIssueTokenSnapshot'];
+      transaction: ApiComponents['schemas']['RegisterDeploymentTransactionSnapshot'];
+      wallet: ApiComponents['schemas']['RegisterIssueWalletSnapshot'];
+    };
+    RegisterIssueTokenSnapshot: {
+      authorisedShares: string;
+      chain: string;
+      contractAddress: string;
+      name: string;
+      symbol: string;
+      uuid: string;
+    };
+    RegisterIssueWalletSnapshot: {
+      address: string;
+      approval: string;
+      chainId: number;
+      eligibilityExpiresAt: string;
+      expiresAt: string;
+      nomination: string;
+      proofCompletedAt: string;
+      registryAddress: string;
+    };
     RegisterMembers: {
       members: ApiComponents['schemas']['RegisterMemberSelection'][];
     };
@@ -6292,12 +6565,6 @@ export interface ApiComponents {
       primaryType: ApiComponents['schemas']['PrimaryTypeEnum'];
       types: ApiComponents['schemas']['SwapSigningTypes'];
     };
-    ShareIssuanceCreateRequest: {
-      amount: number;
-      issuanceType?: ApiComponents['schemas']['IssuanceTypeEnum'];
-      reason?: string;
-      recipient: string;
-    };
     ShareIssuanceList: {
       amount: string;
       blockNumber: number | null;
@@ -6346,11 +6613,6 @@ export interface ApiComponents {
       tokenSymbol: string;
       updatedAt: string;
       uuid: string;
-    };
-    ShareIssuanceRequested: {
-      issuanceRequest: ApiComponents['schemas']['ShareIssuanceRequest'];
-      message: string;
-      token: ApiComponents['schemas']['ShareTokenDetail'];
     };
     ShareRegister: {
       formerMembers: ApiComponents['schemas']['FormerMember'][];
@@ -9618,33 +9880,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_issue_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['ShareIssuanceCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['ShareIssuanceCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['ShareIssuanceCreateRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ShareIssuanceRequested'];
-        };
-      };
-    };
-  };
   api_v1_tokens_pause_submissions_retrieve: {
     parameters: {
       query?: never;
@@ -10702,6 +10937,194 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_instructions_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterIssueList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterIssueCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterIssueCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterIssueCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterIssue'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterIssue'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_acceptance_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterIssueDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterIssueDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterIssueDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterIssue'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterIssueDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterIssueDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterIssueDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterIssueDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_issues_terms_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;

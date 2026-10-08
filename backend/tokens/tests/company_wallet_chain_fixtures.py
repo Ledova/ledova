@@ -25,44 +25,48 @@ from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
 logger = logging.getLogger(__name__)
 
 
+def install_company_wallet_chain(test):
+    for name in (
+        "whitelist.services.changes.get_base_chain_client",
+        "whitelist.services.whitelist.get_base_chain_client",
+        "whitelist.services.company_wallet_instructions.get_base_chain_client",
+        "whitelist.services.eligibility_invalidation.get_base_chain_client",
+    ):
+        test.enterContext(patch(name, return_value=test.chain))
+    test.signer = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
+    with use_operator():
+        test.signing_account = admitted_signer(sender=test.signer, chain_id=settings.BLOCKCHAIN_CHAIN_ID)
+        test.issuer_wallet = Wallet.objects.create(
+            user_account=test.owner_account,
+            address=test.signer,
+            chain="base",
+            verification_status="VERIFIED",
+        )
+        test.token = ShareToken.objects.create(
+            company=test.company, name="Company wallet chain shares", symbol="WCHAIN", total_supply="1000"
+        )
+    test.deployment_proposal = admit_deployment(test.token, test.owner, appointment=test.initial)
+    test.addCleanup(delete_approval_jobs, test.token.deployment_id)
+    result = deploy_share_token_task(
+        token_uuid=str(test.token.pk),
+        deployment_id=str(test.token.deployment_id),
+        principal_id=test.owner.pk,
+    )
+    test.assertTrue(result["success"], result)
+    with use_operator():
+        test.token.refresh_from_db()
+        test.deployment = TokenDeployment.objects.select_related("operation__current_attempt").get(
+            pk=test.token.deployment_id
+        )
+    test.contract = test.chain.load_contract("ShareToken", test.token.contract_address)
+    test.registry_address = whitelist.registry_for(test.company, test.chain)
+    test.registry = whitelist.registry_contract(test.registry_address, test.chain)
+
+
 class CompanyWalletChainCases(CompanyWalletCases):
     def setUp(self):
         super().setUp()
-        for name in (
-            "whitelist.services.changes.get_base_chain_client",
-            "whitelist.services.whitelist.get_base_chain_client",
-            "whitelist.services.company_wallet_instructions.get_base_chain_client",
-            "whitelist.services.eligibility_invalidation.get_base_chain_client",
-        ):
-            self.enterContext(patch(name, return_value=self.chain))
-        self.signer = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address
-        with use_operator():
-            self.signing_account = admitted_signer(sender=self.signer, chain_id=settings.BLOCKCHAIN_CHAIN_ID)
-            self.issuer_wallet = Wallet.objects.create(
-                user_account=self.owner_account,
-                address=self.signer,
-                chain="base",
-                verification_status="VERIFIED",
-            )
-            self.token = ShareToken.objects.create(
-                company=self.company, name="Company wallet chain shares", symbol="WCHAIN", total_supply="1000"
-            )
-        self.deployment_proposal = admit_deployment(self.token, self.owner, appointment=self.initial)
-        self.addCleanup(delete_approval_jobs, self.token.deployment_id)
-        result = deploy_share_token_task(
-            token_uuid=str(self.token.pk),
-            deployment_id=str(self.token.deployment_id),
-            principal_id=self.owner.pk,
-        )
-        self.assertTrue(result["success"], result)
-        with use_operator():
-            self.token.refresh_from_db()
-            self.deployment = TokenDeployment.objects.select_related("operation__current_attempt").get(
-                pk=self.token.deployment_id
-            )
-        self.contract = self.chain.load_contract("ShareToken", self.token.contract_address)
-        self.registry_address = whitelist.registry_for(self.company, self.chain)
-        self.registry = whitelist.registry_contract(self.registry_address, self.chain)
+        install_company_wallet_chain(self)
 
     def assert_company_wallet_receipt(self, proposal, nonce, expiry):
         with use_operator():

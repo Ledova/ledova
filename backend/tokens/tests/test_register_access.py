@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -258,7 +258,16 @@ class RegisterAccessByAppointmentTest(APITransactionTestCase):
         ):
             with self.subTest(view=view.__name__):
                 self.assertTrue(issubclass(view, RegisterProposalViewSet))
-                self.assertFalse({"narrow", "file", "get_queryset", "get_object"} & set(view.__dict__))
+                self.assertFalse({"file", "get_queryset", "get_object"} & set(view.__dict__))
+                if view is RegisterInstructionViewSet:
+                    queryset = Mock()
+                    instance = view()
+                    with patch.object(RegisterProposalViewSet, "narrow", autospec=True) as shared_narrow:
+                        self.assertIs(instance.narrow(queryset), shared_narrow.return_value)
+                        queryset.legacy_instructions.assert_called_once_with()
+                        shared_narrow.assert_called_once_with(instance, queryset.legacy_instructions.return_value)
+                else:
+                    self.assertNotIn("narrow", view.__dict__)
                 self.assertIsInstance(view.scoped_model._default_manager.all(), RegisterProposalQuerySet)
 
 

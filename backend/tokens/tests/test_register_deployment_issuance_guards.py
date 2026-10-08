@@ -8,7 +8,12 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
-from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
+from blockchain.models import (
+    BlockchainTransaction,
+    OutgoingOperation,
+    SignedAttempt,
+    SigningAccount,
+)
 from blockchain.services import outgoing
 from blockchain.services.outgoing import OutgoingTransactionError
 from shared.db import (
@@ -90,6 +95,9 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
             self.actor = get_user_model().objects.create_superuser(
                 email="retained-issuance-operator@example.test", password="synthetic"
             )
+            executor = MigrationExecutor(connections[MIGRATE_ALIAS])
+            executor.migrate([("tokens", "0100_company_register_issue_instructions")])
+        self.addCleanup(restore_every_migration)
         with use_operator():
             self.request = ShareIssuanceRequest.objects.create(
                 token=self.token,
@@ -103,6 +111,7 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
             self.assertEqual((self.head["sequence"], self.head["issued_supply"]), (2, 0))
             self.assertTrue(opened_by_import(self.token.pk))
             self.assertIsNone(opening_boundary(self.token.pk))
+        restore_every_migration()
 
     def before_guards(self):
         self.addCleanup(restore_every_migration)
@@ -145,10 +154,38 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
             executions.filter(pk=command.pk).update(status="executing", issuance_id=issuance.pk)
             requests.filter(pk=self.request.pk).update(status="executing", updated_at=timezone.now())
         with use_operator():
-            current = ShareIssuanceExecution.objects.get(pk=command.pk)
-            claim = issuance_execution._claim(current)
-            current.refresh_from_db()
-        return current, claim
+            intent = {field: command.intent[field] for field in issuance_execution.INTENT_FIELDS}
+            intent["value"] = int(intent["value"])
+            claim = outgoing.open_operation(f"share-issuance:{self.request.pk}:{command.pk}", **intent)
+            command = executions.get(pk=command.pk)
+            command.operation_id = claim.operation_id
+            command.save(update_fields=["operation", "updated_at"])
+        return command, claim
+
+    def retain_signed(self, command, attempt):
+        with use_operator():
+            record = BlockchainTransaction.objects.create(
+                tx_hash=attempt.tx_hash,
+                tx_type="token_mint",
+                status="submitted",
+                from_address=command.intent["sender"],
+                to_address=command.intent["to"],
+                function_name="mint",
+                function_args={"recipient": command.intent["recipient"], "amount": command.intent["amount"]},
+                related_model="tokens.ShareIssuanceRequest",
+                related_uuid=self.request.pk,
+                submitted_at=attempt.created_at,
+            )
+            command.transaction_id = record.pk
+            command.save(update_fields=["transaction", "updated_at"])
+            issuances = self.historical.get_model("tokens", "ShareIssuance").objects
+            issuances.filter(pk=command.issuance_id).update(
+                transaction_id=record.pk,
+                tx_hash=attempt.tx_hash,
+                status="processing",
+                processed_at=attempt.created_at,
+                updated_at=attempt.created_at,
+            )
 
     def unchanged_unsigned(self):
         with use_operator():
@@ -158,22 +195,24 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
         self.assertEqual(self.node.broadcasts, [])
 
     def test_non_imported_class_keeps_its_existing_admission_and_finalized_execution(self):
+        install_issuance(self)
         with use_operator():
-            install_issuance(self)
             self.assertFalse(opened_by_import(self.token.pk))
             command = admit(self.request, self.actor)
             result = issuance_execution.recover(command.pk)
             self.assertEqual(result["status"], "executed")
-            self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertEqual(self.attempts.count(), 1)
             self.assertEqual(len(self.node.broadcasts), 1)
             command.refresh_from_db()
-            self.assertEqual(command.finalized_receipt["block_number"], 12)
+            self.assertEqual(command.finalized_receipt["block_number"], self.node.receipt_height)
 
     def test_new_service_and_sql_admission_refuse_the_genuine_imported_zero_book(self):
         self.imported_zero()
         with use_operator():
             with self.assertRaisesMessage(IssuanceExecutionConflict, "An imported register"):
-                admit(self.request, self.actor)
+                issuance_execution.admit(
+                    self.request, self.actor, confirmed=issuance_execution.confirmation(self.request, self.actor)
+                )
             with self.assertRaisesMessage(DatabaseError, "Imported registers"), atomic():
                 ShareIssuanceExecution.objects.create(
                     pk=self.request.dispatch_id,
@@ -198,7 +237,9 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
             original = self.historical.get_model("tokens", "ShareIssuanceExecution").objects.values().get(pk=command.pk)
         restore_every_migration()
         with use_operator():
-            self.assertEqual(ShareIssuanceExecution.objects.values().get(pk=command.pk), original)
+            current = ShareIssuanceExecution.objects.values().get(pk=command.pk)
+            self.assertIsNone(current.pop("source_instruction_id"))
+            self.assertEqual(current, original)
             with self.assertRaisesMessage(IssuanceExecutionConflict, "An imported register"):
                 issuance_execution.recover(command.pk)
             self.assertEqual(ShareIssuanceExecution.objects.get(pk=command.pk).status, "queued")
@@ -223,7 +264,9 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
                     )
                 signature.assert_not_called()
             self.assertEqual(OutgoingOperation.objects.get(pk=claim.operation_id).status, "preparing")
-            with self.assertRaisesMessage(DatabaseError, "Imported registers"):
+            with self.assertRaisesMessage(
+                DatabaseError, "Fresh issuance signatures require the current original company source"
+            ):
                 outgoing.sign_operation(
                     claim,
                     prepared,
@@ -238,15 +281,17 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
         self.imported_zero()
         self.before_guards()
         command, claim = self.historical_start()
+        restore_every_migration()
         with use_operator():
             outgoing.fail_preparing(claim)
             issuance_execution._project(command, claim)
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, "failed")
-        restore_every_migration()
         with use_operator():
             with self.assertRaisesMessage(IssuanceExecutionConflict, "An imported register"):
-                admit(self.request, self.actor)
+                issuance_execution.admit(
+                    self.request, self.actor, confirmed=issuance_execution.confirmation(self.request, self.actor)
+                )
             with self.assertRaisesMessage(DatabaseError, "Imported registers"), atomic():
                 ShareIssuanceExecution.objects.filter(pk=command.pk).update(status="queued", retry_of=claim.claim_id)
             self.assertEqual(ShareIssuanceExecution.objects.get(pk=command.pk).status, "failed")
@@ -262,7 +307,7 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
                 claim,
                 outgoing.prepare_operation(claim, self.node.client),
                 KEY,
-                on_signed=lambda signed: issuance_execution._record_signed(command.pk, signed),
+                on_signed=lambda signed: self.retain_signed(command, signed),
             )
             self.assertEqual(OutgoingOperation.objects.get(pk=claim.operation_id).status, "signed")
             original = SignedAttempt.objects.values().get(pk=attempt.pk)

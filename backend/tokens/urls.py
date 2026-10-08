@@ -7,6 +7,7 @@ from tokens.views.register_evidence import RegisterEvidenceViewSet
 from tokens.views.register_grant import RegisterGrantViewSet
 from tokens.views.register_import import RegisterImportViewSet
 from tokens.views.register_instruction import RegisterInstructionViewSet
+from tokens.views.register_issue import RegisterIssueViewSet
 from tokens.views.register_opening import (
     RegisterOpeningViewSet,
     RegisterWalletLinkViewSet,
@@ -19,6 +20,7 @@ app_name = "tokens"
 
 router = DefaultRouter()
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")
+router.register(r"register-issues", RegisterIssueViewSet, basename="register-issues")
 router.register(r"register-corrections", RegisterCorrectionViewSet, basename="register-corrections")
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")

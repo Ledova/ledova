@@ -29,5 +29,3 @@ export type CapitalIncreaseSubmission = ApiResponse<'api_v1_tokens_capital_incre
 export type ShareIssuanceRequest = ApiSchema<'ShareIssuanceRequest'>;
 
 export type ShareIssuanceRequestQueryParams = ApiQuery<'api_v1_tokens_issuance_requests_list'>;
-
-export type ShareIssuanceSubmission = ApiResponse<'api_v1_tokens_issue_create'>;

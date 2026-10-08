@@ -69,11 +69,15 @@ class ReviewableRequestModelTest(TestCase):
 
     def test_new_request_requires_admission_before_claiming_execution(self):
         request = issuance_request(self.token)
-        request.approve(make_tenant("staff", staff=True).user)
-        with self.assertRaises(DatabaseError), atomic():
+        staff = make_tenant("staff", staff=True).user
+        with self.assertRaisesMessage(DatabaseError, "genuine company source"), atomic():
+            request.approve(staff)
+        with self.assertRaises(ValueError):
             request.mark_executing()
+        with self.assertRaises(DatabaseError), atomic():
+            ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTING)
         request.refresh_from_db()
-        self.assertEqual(request.status, RequestStatus.APPROVED)
+        self.assertEqual((request.status, request.reviewed_by_id), (RequestStatus.SUBMITTED, None))
 
     def test_issuance_request_starts_submitted_and_can_be_rejected(self):
         request = issuance_request(self.token)
@@ -140,3 +144,29 @@ class TheGraceIsJustifiedByTheWindowItCoversTest(TestCase):
 
     def test_the_operator_control_opens_before_the_sweep_can_act(self):
         self.assertLess(UNNAMED_MINT_GRACE, STALE_EXECUTION_AGE)
+
+
+class CompanyReviewRequestAdmissionTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.issuance_fixtures import install_issuance
+
+        install_issuance(self)
+
+    def test_the_exact_company_decision_and_retained_admission_are_required_before_execution(self):
+        from tokens.services import issuance_execution
+        from tokens.tests.issuance_fixtures import admit
+
+        with self.assertRaises(ValueError):
+            self.request.mark_executing()
+        with self.assertRaises(DatabaseError), atomic():
+            ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(status=RequestStatus.APPROVED)
+        command = admit(self.request, self.actor)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, RequestStatus.APPROVED)
+        with self.assertRaises(DatabaseError), atomic():
+            self.request.mark_executing()
+        self.assertEqual(issuance_execution._start(command).status, "executing")
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, RequestStatus.EXECUTING)
+        self.assertFalse(self.attempts.exists())
+        self.assertFalse(self.node.broadcasts)

@@ -339,6 +339,12 @@ class IssuanceExecutionConflict(APIException):
     default_code = "issuance_execution_conflict"
 
 
+class IssuanceSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned issue requires its exact current company source.")
+
+
 class IssuanceExecutionUnresolved(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The original share issuance requires recovery before its outcome is known."

@@ -7,15 +7,12 @@ import {
   createCapitalIncrease,
   formatShareCount,
   getErrorMessage,
-  issueCompanyShares,
   raisedSupply,
   requestShares,
   type CompanyShareToken,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { FIELD_CLASS } from '@components/fieldClass';
-
-const LIMIT_COPY = `Each request supports up to ${formatShareCount(MAX_REQUEST_SHARES.toString())} shares.`;
 
 interface RequestProps {
   token: CompanyShareToken;
@@ -52,99 +49,6 @@ function ClassReadState({ query }: { query: RequestProps['classRead'] }) {
       <p>The class state could not be refreshed. Your draft is kept; retry before submitting.</p>
       <PageAction label="Retry class state" onClick={() => void query.refetch()} disabled={query.isFetching} />
     </div>
-  );
-}
-
-export function IssueSharesForm({ token, classRead, guard, epoch, onClose, onSuccess }: RequestProps) {
-  const guardRequest = useRequestGuard(guard);
-  const config = { ledovaSubmissionGuard: guardRequest, ledovaSessionEpoch: epoch };
-  const [recipient, setRecipient] = useState('');
-  const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('');
-  const quantity = requestShares(amount);
-  const valid =
-    token.isOwner &&
-    !classRead.isError &&
-    !classRead.isFetching &&
-    token.status === 'deployed' &&
-    recipient.trim() !== '' &&
-    quantity !== null;
-  const request = useMutation({
-    mutationFn: async () => {
-      guardRequest();
-      const response = await issueCompanyShares(
-        apiClient,
-        token.uuid,
-        {
-          recipient: recipient.trim(),
-          amount: quantity!,
-          reason: reason.trim() || undefined,
-        },
-        config,
-      );
-      guardRequest();
-      return response;
-    },
-    onSuccess: async () => {
-      guardRequest();
-      await onSuccess();
-      guardRequest();
-      onClose();
-    },
-  });
-  return (
-    <Modal
-      isOpen
-      onClose={() => {
-        if (!request.isPending) onClose();
-      }}
-      title={`Request ${token.symbol} issuance`}
-      showFooter
-      confirmLabel="Submit issuance request"
-      onConfirm={() => {
-        if (valid && !request.isPending) request.mutate();
-      }}
-      confirmDisabled={!valid || request.isPending}
-      confirmLoading={request.isPending}
-    >
-      <fieldset disabled={request.isPending} className="space-y-4">
-        <ClassReadState query={classRead} />
-        <p className="text-sm text-text-muted">Staff review this request before any shares are issued.</p>
-        {request.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            {getErrorMessage(request.error, 'The issuance request was refused. Try again.')}
-          </p>
-        )}
-        <label className="block text-sm">
-          Recipient address
-          <input className={FIELD_CLASS} value={recipient} onChange={(event) => setRecipient(event.target.value)} />
-        </label>
-        <label className="block text-sm">
-          Shares to issue
-          <input
-            className={FIELD_CLASS}
-            inputMode="numeric"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-        </label>
-        <p className="text-xs text-text-muted">{LIMIT_COPY} Enter a positive whole number.</p>
-        {amount !== '' && quantity === null && (
-          <p role="alert" className="text-sm text-error-light">
-            The quantity must be a whole number from 1 to {formatShareCount(MAX_REQUEST_SHARES.toString())}.
-          </p>
-        )}
-        <label className="block text-sm">
-          Reason (optional)
-          <input className={FIELD_CLASS} value={reason} onChange={(event) => setReason(event.target.value)} />
-        </label>
-        {token.status !== 'deployed' && (
-          <p role="alert" className="text-sm text-error-light">
-            The class must be deployed and unpaused before you request issuance.
-          </p>
-        )}
-      </fieldset>
-    </Modal>
   );
 }
 

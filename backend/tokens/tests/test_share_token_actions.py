@@ -8,7 +8,6 @@ from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceStatus,
     ShareIssuance,
-    ShareIssuanceRequest,
     ShareTokenStatus,
 )
 
@@ -61,14 +60,10 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.json(), {"nonFieldErrors": ["The fields company, symbol must make a unique set."]})
 
     @patch("tokens.views.share_token.stored_register")
-    @patch("tokens.views.share_token.share_token_service")
-    def test_issue_and_holders_shapes(self, service_class, register):
+    @patch("tokens.services.share_token_service.create_issuance_request")
+    def test_holders_shapes_and_retired_free_address_issue(self, create_request, register):
         token = self.tenant.deployed_token
         recorded_at = datetime(2026, 9, 20, tzinfo=timezone.utc)
-        issuance_request = ShareIssuanceRequest.objects.create(
-            token=token, recipient_address=RECIPIENT, amount=7, reason="Owner request", submitted_by=self.tenant.user
-        )
-        service_class.create_issuance_request.return_value = issuance_request
         register.return_value = {
             "rows": HOLDERS,
             "sequence": 1,
@@ -85,16 +80,8 @@ class ShareTokenActionTest(APITestCase):
             {"recipient": RECIPIENT, "amount": 7, "reason": "Owner request", "issuanceType": "additional"},
             format="json",
         )
-        self.assertEqual(issue.status_code, 201)
-        self.assertEqual(issue.json()["issuanceRequest"]["uuid"], str(issuance_request.uuid))
-        service_class.create_issuance_request.assert_called_once_with(
-            token=token,
-            recipient=RECIPIENT,
-            amount=7,
-            user=self.tenant.user,
-            reason="Owner request",
-            issuance_type="additional",
-        )
+        self.assertEqual(issue.status_code, 404)
+        create_request.assert_not_called()
 
         holders = self.client.get(f"/api/v1/tokens/{token.uuid}/holders/")
         self.assertEqual(holders.status_code, 200)
@@ -143,31 +130,7 @@ class ShareTokenActionTest(APITestCase):
         )
         register.assert_called_once_with(ledger_token)
 
-    @patch("tokens.views.share_token.share_token_service")
-    def test_issue_rejects_a_bad_amount_with_a_field_error(self, service_class):
-        token = self.tenant.deployed_token
-
-        for amount in (None, "seven", 0):
-            with self.subTest(amount=amount):
-                response = self.client.post(
-                    f"/api/v1/tokens/{token.uuid}/issue/",
-                    {"recipient": RECIPIENT, "amount": amount, "reason": "", "issuanceType": "additional"},
-                    format="json",
-                )
-                self.assertEqual(response.status_code, 400, response.content)
-                self.assertIn("amount", response.json())
-
-        bad_type = self.client.post(
-            f"/api/v1/tokens/{token.uuid}/issue/",
-            {"recipient": RECIPIENT, "amount": 1, "issuanceType": "airdrop"},
-            format="json",
-        )
-        self.assertEqual(bad_type.status_code, 400)
-        self.assertIn("issuanceType", bad_type.json())
-        service_class.create_issuance_request.assert_not_called()
-
-    @patch("tokens.views.share_token.share_token_service")
-    def test_detail_actions_keep_filter_params_off_the_token_lookup(self, service_class):
+    def test_detail_actions_keep_filter_params_off_the_token_lookup(self):
         token = self.tenant.deployed_token
         completed = ShareIssuance.objects.create(
             token=token, recipient_address=RECIPIENT, amount="5", status=IssuanceStatus.COMPLETED

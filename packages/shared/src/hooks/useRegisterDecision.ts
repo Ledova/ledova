@@ -1,3 +1,8 @@
+import { isRegisterLinkDecisionReceipt } from '../utils/register-links';
+import { REGISTER_ISSUE_COPY, REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
+import { previewRegisterIssueDecision, decideRegisterIssue } from '../services/register-issues';
+import { isRegisterIssueDecisionReceipt } from '../utils/register-issues';
+import type { RegisterIssue, RegisterIssueDecisionPreview } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
@@ -71,6 +76,14 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
 };
 
+export const REGISTER_ISSUE_DECISIONS: RegisterDecisionFamily<RegisterIssue, RegisterIssueDecisionPreview> = {
+  preview: previewRegisterIssueDecision,
+  decide: decideRegisterIssue,
+  isReceipt: isRegisterIssueDecisionReceipt,
+  unmet: REGISTER_ISSUE_UNMET_COPY,
+  copy: REGISTER_ISSUE_COPY,
+};
+
 export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, RegisterImportDecisionPreview> = {
   preview: previewRegisterImportDecision,
   decide: decideRegisterImport,
@@ -129,7 +142,7 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
 export const REGISTER_LINK_DECISIONS: RegisterDecisionFamily<RegisterLink, RegisterLinkDecisionPreview> = {
   preview: previewRegisterLinkDecision,
   decide: decideRegisterLink,
-  isReceipt: isRegisterDecisionReceipt,
+  isReceipt: isRegisterLinkDecisionReceipt,
   unmet: REGISTER_LINK_UNMET_COPY,
   copy: REGISTER_LINK_COPY,
 };

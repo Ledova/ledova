@@ -15,7 +15,6 @@ import type {
   PaginatedResponse,
   ShareIssuanceRequest,
   ShareIssuanceRequestQueryParams,
-  ShareIssuanceSubmission,
 } from '../types';
 
 export const getCompanyTokens = (
@@ -73,16 +72,6 @@ export const getCompanyTokenIssuances = (
   params?: { page?: number; page_size?: number; status?: string },
   config: AxiosRequestConfig = {},
 ) => apiClient.get<PaginatedResponse<TokenIssuance>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCES(uuid), { ...config, params });
-
-export const issueCompanyShares = (
-  apiClient: AxiosInstance,
-  tokenUuid: string,
-  data: { recipient: string; amount: number; reason?: string },
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data)
-    : apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data, config);
 
 export const getCapitalIncreases = (
   apiClient: AxiosInstance,

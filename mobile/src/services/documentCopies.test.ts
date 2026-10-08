@@ -25,6 +25,46 @@ beforeEach(() => {
   jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
+it('refuses company document storage when current private access lapses during the download and permits a healthy copy', async () => {
+  let active = true;
+  let complete!: (value: { name: string; type: string; bytes: Uint8Array }) => void;
+  const share = jest.fn(async () => {});
+  const guard = () => {
+    if (!active) throw new Error('Current company access required');
+  };
+  const pending = shareDocumentCopy(
+    getSessionEpoch(),
+    () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+    share,
+    guard,
+  );
+  active = false;
+  complete({ name: 'private-company.pdf', type: 'application/pdf', bytes: Uint8Array.from([1, 2]) });
+  await expect(pending).rejects.toThrow('Current company access required');
+  expect(share).not.toHaveBeenCalled();
+  expect([...files.keys()].some((uri) => uri.includes('/ledova-document-views-v1/'))).toBe(false);
+  active = true;
+  await shareDocumentCopy(getSessionEpoch(), viewed('healthy-company.pdf'), share, guard);
+  expect(share).toHaveBeenCalledTimes(1);
+});
+
+it('rechecks current company access after storage before the final native share callback', async () => {
+  const share = jest.fn(async () => {});
+  let checks = 0;
+  const guard = () => {
+    if (++checks === 3) throw new Error('Current company access required');
+  };
+  await expect(shareDocumentCopy(getSessionEpoch(), viewed('private-company.pdf'), share, guard)).rejects.toThrow(
+    'Current company access required',
+  );
+  expect(share).not.toHaveBeenCalled();
+  await shareDocumentCopy(getSessionEpoch(), viewed('healthy-company.pdf'), share, () => {});
+  expect(share).toHaveBeenCalledTimes(1);
+});
+
 it.each([
   { mimeType: 'application/pdf', name: 'authority.pdf', extension: '.pdf' },
   { mimeType: 'image/png', name: 'evidence.png', extension: '.png' },

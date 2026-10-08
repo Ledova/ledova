@@ -301,8 +301,9 @@ POLICIES = {
     "tokens_registerreconciliation": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "tokens_registerimport": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerinstruction": (
-        _company("company_id", VISIBLE_COMPANIES),
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+        f"{_company('company_id', VISIBLE_COMPANIES)} AND preparing_appointment_id IS NULL",
+        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND preparing_appointment_id IS NULL "
+        f"AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
     "tokens_registergrant": (_company("company_id", VISIBLE_COMPANIES), "false"),
@@ -608,6 +609,8 @@ OPERATOR_ONLY = {
     "through the operator connection; new signatures require the original consumed company approval.",
     "tokens_registerdeploymentdecision": "Append-only company deployment decisions, bound to personal company "
     "appointments and served through their exact-company deployment review.",
+    "tokens_registerinstructiondecision": "Append-only company issue decisions bound to exact personal appointments "
+    "and retained original issue sources, served through the bounded exact-company issue projection.",
     "tokens_registertransferdecision": "Append-only company decisions of exact non-paid direct register transfers, "
     "bound to current company appointments and read through their company-scoped transfer.",
     "tokens_registergrantdecision": "Append-only company decisions of non-paid register grants, bound to current "

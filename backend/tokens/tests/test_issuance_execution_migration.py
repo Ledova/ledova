@@ -12,10 +12,14 @@ from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
 from tokens.services import issuance_execution
 from tokens.tests.issuance_fixtures import (
     CHAIN_ID,
+    FINALITY_POLICIES,
     KEY,
     admit,
-    install_issuance,
     issuance_request,
+)
+from tokens.tests.retained_issuance_fixtures import (
+    install_retained_issuance,
+    retain_signed_issuance,
 )
 
 
@@ -92,11 +96,20 @@ class IssuanceExecutionMigrationTest(TransactionTestCase):
         self.assertEqual(ShareIssuanceExecution.objects.get(pk=command.pk).intent, command.intent)
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class IssuanceFinalityEvidenceTest(TransactionTestCase):
     def setUp(self):
-        install_issuance(self)
-        self.command = admit(self.request, self.actor)
+        install_retained_issuance(self)
+        self.request, command_id = retain_signed_issuance(
+            token=self.token,
+            actor=self.actor,
+            recipient=self.tenant.wallet.address,
+            amount=10,
+            client=self.node.client,
+        )
+        self.command = ShareIssuanceExecution.objects.get(pk=command_id)
         self.enterContext(patch("tokens.services.share_token_service.seed_recipient_holding"))
 
     def evidence(self, **changes):
@@ -152,4 +165,5 @@ class IssuanceFinalityEvidenceTest(TransactionTestCase):
         self.addCleanup(restore_every_migration)
         with self.assertRaisesMessage(DatabaseError, "Cannot remove recorded issuance finality evidence"):
             migrate_to([("tokens", "0065_register_opening")])
+        restore_every_migration()
         self.assertEqual(ShareIssuanceExecution.objects.get(pk=self.command.pk).finalized_receipt, self.evidence())

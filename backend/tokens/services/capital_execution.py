@@ -1,4 +1,5 @@
 import logging
+from contextlib import contextmanager
 from uuid import UUID
 
 from django.conf import settings
@@ -127,9 +128,9 @@ def _intent(request, token):
 
 
 def _lock(execution_id, operation_id=None):
-    operation = OutgoingOperation.objects.select_for_update().get(pk=operation_id) if operation_id else None
     observed = CapitalIncreaseExecution.objects.get(pk=execution_id)
     token = ShareToken.objects.select_for_update().get(pk=observed.token_id)
+    operation = OutgoingOperation.objects.select_for_update().get(pk=operation_id) if operation_id else None
     request = CapitalIncreaseRequest.objects.select_for_update().get(pk=observed.request_id)
     execution = CapitalIncreaseExecution.objects.select_for_update().get(pk=execution_id)
     if execution.operation_id != operation_id:
@@ -285,8 +286,8 @@ def _claim(execution):
         restart_of=execution.retry_of or UUID(int=0),
     )
     with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
         token = ShareToken.objects.select_for_update().get(pk=execution.token_id)
+        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
         request = CapitalIncreaseRequest.objects.select_for_update().get(pk=execution.request_id)
         current = CapitalIncreaseExecution.objects.select_for_update().get(pk=execution.pk)
         if current.operation_id == operation.pk and current.projected_at is not None:
@@ -377,6 +378,21 @@ def _check_preparation(execution, claim, client):
                 )
         raise CapitalIncreaseConflict(ATTRIBUTION_REQUIRED)
     return True
+
+
+@contextmanager
+def _signing_token(execution, claim):
+    operation = OutgoingOperation.objects.get(pk=claim.operation_id)
+    if operation.claim_id == claim.claim_id and operation.status in (OutgoingStatus.SIGNED, OutgoingStatus.CONFIRMED):
+        yield None
+        return
+    token = ShareToken.objects.select_for_update().get(pk=execution.token_id)
+
+    def validate(operation):
+        if _current_identity(token) != _expected_identity(execution):
+            raise CapitalIncreaseConflict("The original capital identity changed before signing.")
+
+    yield validate
 
 
 def _record_signed(execution_id, attempt):
@@ -560,6 +576,7 @@ def recover(execution_id):
                         claim,
                         prepared,
                         settings.BLOCKCHAIN_OPERATOR_KEY,
+                        signing_context=lambda: _signing_token(execution, claim),
                         on_signed=lambda attempt: _record_signed(execution.pk, attempt),
                     )
         except Exception:
