@@ -10,7 +10,7 @@ from django.test import TransactionTestCase
 
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareIssuanceRequest
+from tokens.models import RequestStatus, ShareIssuanceRequest
 from tokens.tests.retained_issuance_fixtures import approve_retained_request
 
 _MIGRATION = import_module("tokens.migrations.0029_execution_notes")
