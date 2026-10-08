@@ -125,7 +125,7 @@ class CapitalRecoveryDiagnosticTest(TransactionTestCase):
         command = admit(self.request, self.actor)
         self.assertEqual(capital_execution.recover(command.pk)["status"], "executing")
         self.request.refresh_from_db()
-        recorded = BlockchainTransaction.objects.get()
+        recorded = self.transactions.get()
         shown = CapitalIncreaseAdmin(CapitalIncreaseRequest, admin.site).last_execution_error(self.request)
         self.assertIn(recorded.tx_hash, shown)
         self.assertIn("ConnectionError", shown)
