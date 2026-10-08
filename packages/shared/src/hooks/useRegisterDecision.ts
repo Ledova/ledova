@@ -1,3 +1,29 @@
+import { REGISTER_PAID_ISSUE_COPY, REGISTER_PAID_ISSUE_UNMET_COPY } from '../constants/business/register-paid-issues';
+import { previewRegisterPaidIssueDecision, decideRegisterPaidIssue } from '../services/register-paid-issues';
+import { isRegisterPaidIssueDecisionReceipt } from '../utils/register-paid-issues';
+import type { RegisterPaidIssue, RegisterPaidIssueDecisionPreview } from '../types';
+import {
+  REGISTER_PAUSE_CHANGE_COPY,
+  REGISTER_PAUSE_CHANGE_UNMET_COPY,
+} from '../constants/business/register-pause-changes';
+import { previewRegisterPauseChangeDecision, decideRegisterPauseChange } from '../services/register-pause-changes';
+import { isRegisterPauseChangeDecisionReceipt } from '../utils/register-pause-changes';
+import type { RegisterPauseChange, RegisterPauseChangeDecisionPreview } from '../types';
+import {
+  REGISTER_CAPITAL_INCREASE_COPY,
+  REGISTER_CAPITAL_INCREASE_UNMET_COPY,
+} from '../constants/business/register-capital-increases';
+import {
+  previewRegisterCapitalIncreaseDecision,
+  decideRegisterCapitalIncrease,
+} from '../services/register-capital-increases';
+import { isRegisterCapitalIncreaseDecisionReceipt } from '../utils/register-capital-increases';
+import type { RegisterCapitalIncrease, RegisterCapitalIncreaseDecisionPreview } from '../types';
+import { isRegisterLinkDecisionReceipt } from '../utils/register-links';
+import { REGISTER_ISSUE_COPY, REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
+import { previewRegisterIssueDecision, decideRegisterIssue } from '../services/register-issues';
+import { isRegisterIssueDecisionReceipt } from '../utils/register-issues';
+import type { RegisterIssue, RegisterIssueDecisionPreview } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
@@ -71,6 +97,47 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
 };
 
+export const REGISTER_PAID_ISSUE_DECISIONS: RegisterDecisionFamily<
+  RegisterPaidIssue,
+  RegisterPaidIssueDecisionPreview
+> = {
+  preview: previewRegisterPaidIssueDecision,
+  decide: decideRegisterPaidIssue,
+  isReceipt: isRegisterPaidIssueDecisionReceipt,
+  copy: REGISTER_PAID_ISSUE_COPY,
+  unmet: REGISTER_PAID_ISSUE_UNMET_COPY,
+};
+
+export const REGISTER_PAUSE_CHANGE_DECISIONS: RegisterDecisionFamily<
+  RegisterPauseChange,
+  RegisterPauseChangeDecisionPreview
+> = {
+  preview: previewRegisterPauseChangeDecision,
+  decide: decideRegisterPauseChange,
+  isReceipt: isRegisterPauseChangeDecisionReceipt,
+  unmet: REGISTER_PAUSE_CHANGE_UNMET_COPY,
+  copy: REGISTER_PAUSE_CHANGE_COPY,
+};
+
+export const REGISTER_CAPITAL_INCREASE_DECISIONS: RegisterDecisionFamily<
+  RegisterCapitalIncrease,
+  RegisterCapitalIncreaseDecisionPreview
+> = {
+  preview: previewRegisterCapitalIncreaseDecision,
+  decide: decideRegisterCapitalIncrease,
+  isReceipt: isRegisterCapitalIncreaseDecisionReceipt,
+  unmet: REGISTER_CAPITAL_INCREASE_UNMET_COPY,
+  copy: REGISTER_CAPITAL_INCREASE_COPY,
+};
+
+export const REGISTER_ISSUE_DECISIONS: RegisterDecisionFamily<RegisterIssue, RegisterIssueDecisionPreview> = {
+  preview: previewRegisterIssueDecision,
+  decide: decideRegisterIssue,
+  isReceipt: isRegisterIssueDecisionReceipt,
+  unmet: REGISTER_ISSUE_UNMET_COPY,
+  copy: REGISTER_ISSUE_COPY,
+};
+
 export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, RegisterImportDecisionPreview> = {
   preview: previewRegisterImportDecision,
   decide: decideRegisterImport,
@@ -129,7 +196,7 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
 export const REGISTER_LINK_DECISIONS: RegisterDecisionFamily<RegisterLink, RegisterLinkDecisionPreview> = {
   preview: previewRegisterLinkDecision,
   decide: decideRegisterLink,
-  isReceipt: isRegisterDecisionReceipt,
+  isReceipt: isRegisterLinkDecisionReceipt,
   unmet: REGISTER_LINK_UNMET_COPY,
   copy: REGISTER_LINK_COPY,
 };

@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from web3 import Web3
 
 from companies.models import Company, CompanyDocument
-from offerings.models import Subscription, SubscriptionStatus
+from offerings.models import Subscription
 from shared.db import atomic, use_operator
 from tokens.constants import REGISTER_INSTRUCTION_REVIEW_MAX_AGE
 from tokens.models import (
@@ -60,7 +60,6 @@ ITEMS = {
 AWAITING = (RequestStatus.SUBMITTED, RequestStatus.UNDER_REVIEW)
 APPROVED = (RequestStatus.APPROVED, RequestStatus.EXECUTING, RequestStatus.EXECUTED, RequestStatus.FAILED)
 APPROVE = "Awaiting approval: applying approves it"
-ALLOT = "Awaiting allotment: applying lets staff allot it"
 COVER = "Approved before register instructions: applying records it once complete"
 SETTLED = "Settled and waiting: applying lets the register record its transfer"
 
@@ -188,23 +187,21 @@ def _check_items(kind, items, token, director, *, lock=False):
                     f"Issuance request {reference} is not a direct issue of this share class. List an allotment by "
                     "its subscription."
                 )
+            if request.status in AWAITING:
+                raise ValidationError(
+                    "New non-paid grants require the company's retained appointment and grant decision."
+                )
             names = [request.recipient_name]
         else:
             subscription = Subscription.objects.filter(pk=reference, offering__token=token).first()
             if subscription is None:
                 raise ValidationError(f"Subscription {reference} is not in an offering of this share class.")
             request = requests.filter(pk=subscription.issuance_request_id).first()
-            if request is None and (
-                subscription.status != SubscriptionStatus.PAID or subscription.allotment_quantity < 1
-            ):
-                raise ValidationError(f"Subscription {reference} is not paid and awaiting allotment.")
+            if request is None:
+                raise ValidationError("New paid issues require the company’s retained appointment and issue decision.")
             names = []
-        state = ALLOT if request is None else _state(request, source, reference)
-        recipient, amount = (
-            (subscription.wallet.address, subscription.allotment_quantity)
-            if request is None
-            else (request.recipient_address, request.amount)
-        )
+        state = _state(request, source, reference)
+        recipient, amount = request.recipient_address, request.amount
         if (Web3.to_checksum_address(recipient), str(amount)) != (item["recipient"], item["amount"]):
             raise ValidationError(
                 f"The recipient or number of shares of {source} {reference} differs from the instruction. Submit a "
@@ -244,6 +241,14 @@ def submit_instruction(
     values = _authority_values("director_resolution", approving_director, authority_reference, reason)
     del values["authority"]
     normalized = _items(kind, items)
+    if kind == RegisterInstructionKind.ISSUE and any(
+        "subscription" in item
+        or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
+        for item in normalized
+    ):
+        raise PermissionDenied(
+            "New paid ISSUE instructions require the company’s retained appointment and issue decision."
+        )
     with atomic():
         token = ShareToken.objects.filter(pk=token_id, company__owner=actor).first()
         if token is None:
@@ -281,6 +286,8 @@ def _preview(proposal, reviewer):
 def prepare_instruction_review(*, proposal_id, reviewer):
     reviewer = _reviewer(reviewer, RegisterInstruction)
     proposal = RegisterInstruction.objects.select_related("company", "token").get(pk=proposal_id)
+    if proposal.preparing_appointment_id is not None:
+        raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if proposal.status != "submitted":
         raise ValidationError("This register instruction already has a decision.")
     _check_evidence(proposal, proposal.company, CompanyDocument.objects.filter(pk=proposal.source_document).first())
@@ -293,8 +300,22 @@ def decide_instruction(*, proposal_id, reviewer, confirmation, decision, rejecti
     reviewer = _reviewer(reviewer, RegisterInstruction)
     _check_decision(decision, rejection_reason)
     initial = RegisterInstruction.objects.get(pk=proposal_id)
+    if initial.preparing_appointment_id is not None:
+        raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if initial.status != "submitted":
         return _completed_decision(initial, reviewer, decision, rejection_reason)
+    if (
+        initial.kind == RegisterInstructionKind.ISSUE
+        and decision == "apply"
+        and any(
+            "subscription" in item
+            or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
+            for item in initial.items
+        )
+    ):
+        raise PermissionDenied(
+            "New paid ISSUE decisions require the company’s retained appointment and issue decision."
+        )
     with atomic():
         company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
         token = ShareToken.objects.select_for_update().get(pk=initial.token_id)

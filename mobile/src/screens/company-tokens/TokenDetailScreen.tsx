@@ -1,22 +1,19 @@
+import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Text, View, RefreshControl, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import {
-  formatDate,
-  formatShareCount,
-  getBlockExplorerAddressUrl,
-  getBlockExplorerTxUrl,
-  getErrorMessage,
-} from '@ledova/shared';
+import { formatDate, formatShareCount, getBlockExplorerAddressUrl, getBlockExplorerTxUrl } from '@ledova/shared';
 import { Section, Row, Rows, Action } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { ClassRegister } from '../company-register/ClassRegister';
 import { RegisterDownload } from '../company-register/RegisterDownload';
 import { useCompanyStyles } from '../company-register/styles';
 import { useTokenDetail } from './useTokenDetail';
-import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
 import { TokenPauseControls } from './TokenPauseControls';
 import { DeploymentFlow } from './DeploymentFlow';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
+import { CompanyCapitalFlow } from './CompanyCapitalFlow';
+import { CompanyPauseFlow } from './CompanyPauseFlow';
 
 type Props = { route: { params: { uuid: string; name?: string } }; navigation?: unknown };
 
@@ -50,46 +47,13 @@ export function TokenDetailScreen({ route }: Props) {
 function ShareClass({ uuid }: { uuid: string }) {
   const styles = useCompanyStyles();
   const data = useTokenDetail(uuid);
-  const [form, setForm] = useState<{ kind: 'issue' | 'raise'; scope: string; owner: typeof data.owner } | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   useEffect(() => {
-    setForm(null);
     setHistory([]);
     setLinkError(null);
   }, [data.epoch, data.owner]);
-  useEffect(() => {
-    if (data.token.data?.isOwner === false) setForm(null);
-  }, [data.token.data?.isOwner]);
   const token = data.token.data;
-  const formScope = `${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}/${token?.companyUuid}/${token?.isOwner === true}`;
-  const activeForm = form?.scope === formScope && form.owner === data.owner ? form.kind : null;
-  const forms = data.owner && token?.isOwner && (
-    <>
-      {activeForm === 'issue' && (
-        <IssueSharesForm
-          key={formScope}
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          epoch={data.epoch}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
-      {activeForm === 'raise' && (
-        <RaiseSharesForm
-          key={formScope}
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          epoch={data.epoch}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
-    </>
-  );
   const openLink = async (url: string) => {
     setLinkError(null);
     try {
@@ -171,18 +135,6 @@ function ShareClass({ uuid }: { uuid: string }) {
                   {linkError}
                 </Text>
               )}
-              {data.isOwner && !data.token.isFetching && token.status === 'deployed' && (
-                <>
-                  <Action
-                    label="Request issuance"
-                    onPress={() => setForm({ kind: 'issue', scope: formScope, owner: data.owner })}
-                  />
-                  <Action
-                    label="Raise authorised shares"
-                    onPress={() => setForm({ kind: 'raise', scope: formScope, owner: data.owner })}
-                  />
-                </>
-              )}
             </Section>
             {data.isOwner && (token.status === 'deployed' || token.status === 'paused') && (
               <TokenPauseControls token={token} refreshing={data.token.isFetching} />
@@ -238,13 +190,8 @@ function ShareClass({ uuid }: { uuid: string }) {
                 </Section>
                 <Section title="Authorised share requests">
                   <Text style={styles.muted}>
-                    Raising the cap requires staff review and execution. It does not issue shares.
+                    Retained original capital request history. New increases use the company workflow below.
                   </Text>
-                  {data.submitCapital.isError && (
-                    <Text accessibilityRole="alert" style={styles.error}>
-                      {getErrorMessage(data.submitCapital.error, 'The request could not be submitted. Try again.')}
-                    </Text>
-                  )}
                   <ReadResult query={data.capital} label="authorised share requests">
                     {data.capital.data?.length === 0 ? (
                       <Text style={styles.muted}>No authorised share requests yet.</Text>
@@ -258,16 +205,6 @@ function ShareClass({ uuid }: { uuid: string }) {
                           </Text>
                           <Text style={styles.text}>{request.statusDisplay}</Text>
                           <Text style={styles.muted}>{formatDate(request.createdAt)}</Text>
-                          {request.status === 'draft' && (
-                            <Action
-                              label="Submit for review"
-                              accessibilityLabel={`Submit ${request.purpose} for review`}
-                              disabled={
-                                data.capital.isFetching || data.token.isFetching || data.submitCapital.isPending
-                              }
-                              onPress={() => data.submitCapital.mutate(request.uuid)}
-                            />
-                          )}
                         </View>
                       ))
                     )}
@@ -303,8 +240,27 @@ function ShareClass({ uuid }: { uuid: string }) {
           uuid={uuid}
           data={data}
         />
+        <CompanyIssueFlow
+          key={`company-issues/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyCapitalFlow
+          key={`company-capital/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyPaidIssueFlow
+          key={`company-paid-issue/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyPauseFlow
+          key={`company-pause/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
       </Page>
-      {forms}
     </>
   );
 }

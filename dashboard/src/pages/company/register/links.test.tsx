@@ -640,6 +640,15 @@ it('labels two unnamed members crossed between two wallets alike on the link pag
 
 it('offers a staff-era link only rejection, with a reason of at most 1,000 characters, and records that reason', async () => {
   linkPages = [page([STAFF_ERA])];
+  previewed = {
+    ...preview(),
+    links: STAFF_ERA.mappingSummary.map((row) => ({
+      ...row,
+      walletProof: null,
+      holderType: null,
+      holderName: null,
+    })),
+  };
   decideFor = async (body) => ({ data: decided(body, STAFF_ERA) });
   show();
   const list = await section();

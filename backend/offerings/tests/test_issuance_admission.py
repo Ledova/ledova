@@ -2,23 +2,14 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.db import DatabaseError
-from django.test import TransactionTestCase, override_settings
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APITransactionTestCase
 
 from blockchain.models import OutgoingOperation, SignedAttempt
 from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Subscription
-from offerings.services.subscription import allot, record_refund
+from offerings.services.subscription import record_refund
 from offerings.tasks import allot_subscription_task
-from offerings.tests.factories import (
-    allottable_subscription,
-    configure_operator,
-    eligible_subscriber,
-    open_offering,
-)
 from shared.db import atomic
-from shared.tests.tenants import make_tenant
-from tokens.exceptions import IssuanceExecutionConflict
 from tokens.models import (
     RequestStatus,
     ShareIssuance,
@@ -26,23 +17,24 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
+from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 
 
-@override_settings(BLOCKCHAIN_CHAIN_ID=31337, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-class QueuedIssuanceTermsTest(TransactionTestCase):
+class QueuedIssuanceTermsTest(CompanyPaidIssueCases, APITransactionTestCase):
+    def genuine_paid_subscription(self, *, quantity=10, received=None, final=False):
+        return super().genuine_paid_subscription(quantity=quantity, received=received, final=final)
+
     def setUp(self):
-        self.tenant = make_tenant("queued-issuance")
-        configure_operator()
-        open_offering(self.tenant, target_shares=200, cap_shares=500)
-        eligible_subscriber(self.tenant)
-        self.operator = make_tenant("queued-operator", staff=True).user
-        self.operator.is_superuser = True
-        self.operator.save(update_fields=["is_superuser"])
-        self.subscription = allottable_subscription(self.tenant, quantity=10)
-        self.enterContext(patch("offerings.tasks.subscription.allot_subscription_task.defer"))
-        self.request = allot(self.subscription, self.operator, headroom=(1000, 1000))
+        super().setUp()
+        self.proposal = self.applied_paid_issue()
+        self.operator = self.owner
+        self.request = ShareIssuanceRequest.objects.get(pk=self.proposal.request_id)
         self.assertEqual(self.request.status, RequestStatus.APPROVED)
         self.assertEqual(self.request.amount, 10)
+        self.operations = OutgoingOperation.objects.filter(
+            operation_key=f"share-issuance:{self.request.pk}:{self.request.dispatch_id}"
+        )
+        self.attempts = SignedAttempt.objects.filter(operation__in=self.operations)
 
     def test_queued_amount_cannot_be_changed_after_allotment(self):
         with self.assertRaises(DatabaseError), atomic():
@@ -75,8 +67,8 @@ class QueuedIssuanceTermsTest(TransactionTestCase):
         client.assert_not_called()
         self.assertFalse(result["success"])
         self.assertEqual(result["status"], RequestStatus.REJECTED)
-        self.assertFalse(OutgoingOperation.objects.exists())
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertFalse(self.operations.exists())
+        self.assertFalse(self.attempts.exists())
         self.assertFalse(ShareIssuance.objects.exists())
         command.refresh_from_db()
         self.assertEqual(command.status, "cancelled")
@@ -94,7 +86,7 @@ class QueuedIssuanceTermsTest(TransactionTestCase):
     def test_execution_claim_prevents_refund_before_an_operation_exists(self):
         command = issuance_execution._start(ShareIssuanceExecution.objects.get())
         self.assertEqual(command.status, "executing")
-        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertFalse(self.operations.exists())
         with self.assertRaises(SubscriptionRefusedException):
             record_refund(self.subscription, Decimal("1.00"))
         self.subscription.refresh_from_db()
@@ -119,11 +111,3 @@ class QueuedIssuanceTermsTest(TransactionTestCase):
         record_refund(self.subscription, Decimal("1.00"))
         self.subscription.refresh_from_db()
         self.assertEqual(self.subscription.refunded_total, Decimal("6.00"))
-
-    def test_allotment_checks_authority_and_commit_boundary_before_rpc(self):
-        with patch("offerings.services.subscription.chain_snapshot") as rpc:
-            with self.assertRaises(PermissionDenied):
-                allot(self.subscription, self.tenant.user)
-            with atomic(), self.assertRaises(IssuanceExecutionConflict):
-                allot(self.subscription, self.operator)
-        rpc.assert_not_called()

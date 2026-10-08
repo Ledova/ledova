@@ -129,7 +129,7 @@ it('shows the ledger with recorded bounds, AUD amounts and read-only operator al
   expect(screen.getByRole('heading', { name: 'Applications' })).toBeTruthy();
   expect(
     screen.getByText(
-      'Read-only. Payment confirmation and allotment are done by Example Operator; this is where you watch them happen.',
+      'Read-only. Payment recording is done by Example Operator. Company paid issue authority is managed on the share class; this ledger shows the recorded financial outcome.',
     ),
   ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Confirm payment|Allot/ })).toBeNull();

@@ -38,6 +38,14 @@ OWNER_SUBMITTED = (
 )
 
 PRE_COMPANY_DECISION_POLICIES = {
+    "tokens_capitalincreaserequest": (
+        "tokens_registercapitalincrease",
+        (f"company_id IN (SELECT {VISIBLE_COMPANIES}())", f"company_id IN (SELECT {MANAGEABLE_COMPANIES}())"),
+    ),
+    "tokens_registerinstruction": (
+        "tokens_registerinstructiondecision",
+        (f"company_id IN (SELECT {VISIBLE_COMPANIES}())", OWNER_SUBMITTED[1]),
+    ),
     "tokens_registerimport": ("tokens_registerimportdecision", OWNER_SUBMITTED),
     "tokens_registercorrection": ("tokens_registercorrectiondecision", OWNER_SUBMITTED),
     "tokens_registeropening": ("tokens_registeropeningdecision", OWNER_SUBMITTED),
@@ -75,6 +83,8 @@ TABLE_CREATION_AFTER_INITIAL_GRANTS = (
         "tokens_registermemberparticulars": ("tokens", "0072_register_import"),
         "tokens_importedformermember": ("tokens", "0072_register_import"),
         "tokens_registerinstruction": ("tokens", "0073_register_instructions"),
+        "tokens_registerpausechange": ("tokens", "0104_company_register_pause_changes"),
+        "tokens_registerpausechangedecision": ("tokens", "0104_company_register_pause_changes"),
         "tokens_registergrant": ("tokens", "0094_company_register_grants"),
         "tokens_registertransfer": ("tokens", "0096_company_register_transfers"),
         "tokens_registermembercessation": ("tokens", "0096_company_register_transfers"),

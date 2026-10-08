@@ -5,6 +5,8 @@ import type {
   RegisterLink,
   RegisterLinkPreparation,
   RegisterLinkRecord,
+  RegisterLinkDecisionPreview,
+  RegisterDecideRequest,
   RegisterOpeningLink,
   TokenHoldersResponse,
 } from '../types';
@@ -81,4 +83,29 @@ export function registerLinkMemberLabels(mapping: readonly LinkedMember[], holde
       REGISTER_OPENING_COPY.NEW_MEMBER_NUMBERED(index + 1),
     ]),
   ]);
+}
+
+export function isRegisterLinkDecisionReceipt(
+  link: RegisterLink,
+  uuid: string,
+  request: RegisterDecideRequest,
+  preview?: RegisterLinkDecisionPreview,
+) {
+  const decision = link.decisions.find((row) => row.idempotencyKey === request.idempotencyKey);
+  if (
+    link.uuid !== uuid ||
+    !decision ||
+    decision.kind !== request.kind ||
+    decision.appointment !== request.appointment ||
+    decision.digest !== request.previewDigest ||
+    decision.reason !== (request.reason ?? '') ||
+    (preview && !sameMapping(link.mapping, preview.links))
+  )
+    return false;
+  if (request.kind === 'apply') return link.status === 'applied' && link.reviewedAt === decision.decidedAt;
+  if (request.kind === 'reject')
+    return (
+      link.status === 'rejected' && link.reviewedAt === decision.decidedAt && link.rejectionReason === decision.reason
+    );
+  return ['submitted', 'applied', 'rejected'].includes(link.status);
 }

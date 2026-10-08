@@ -42,8 +42,17 @@ implements [company-authorised empty deployments](company-deployments.md), with
 retained approval and original execution recovery. The second increment implements
 [wallet nominations and company instructions](company-wallet-approvals.md),
 retaining genuine possession proof, exact company approval and original journal
-execution. Company issuance, capital and pause conversion remain later #867
-increments.
+execution. The third increment implements
+[non-paid on-chain grants](company-register-issues.md), with exact company
+instructions and a first-member LINK bootstrap. The fourth increment's
+[capital guide](company-capital-increases.md) records its implementation contract
+for exact company decisions and original cap-only execution. The fifth increment's
+[pause/unpause guide](company-pause-changes.md) records its implementation contract
+for company decisions, genuine observations and original transaction recovery.
+The sixth increment's [paid-issue guide](company-paid-issues.md) records the
+implementation contract for company decisions over existing recorded PAID
+subscriptions, original execution and distinct allotment/register outcomes.
+New payment mechanics remain #868 work.
 The first #866 [Profile increment](member-profile.md) exposes own full-name,
 residential-address and phone edits through the existing Profile API in both
 clients. Own register access, confirmations, certificate requests and walletless

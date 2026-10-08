@@ -14,7 +14,6 @@ from offerings.models import SettlementRail, Subscription, SubscriptionStatus
 from offerings.services.payments import normalize_reference
 from offerings.services.subscription import (
     accept,
-    allot_batch,
     confirm_payment,
     issue_instruction,
     payment_warnings,
@@ -265,7 +264,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     search_fields = ["reference", "payment_reference_seen", "payment_tx_hash", "wallet__address"]
     list_select_related = ["offering", "offering__token", "user_account", "wallet"]
     ordering = ["-created_at"]
-    actions = ["allot_selected", "scale_back_selected"]
+    actions = ["scale_back_selected"]
     readonly_fields = [
         "uuid",
         "status",
@@ -451,18 +450,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
         }
         return render(request, "admin/offerings/subscription/action_form.html", context)
 
-    @admin.action(description="Allot selected subscriptions", permissions=["change"])
-    def allot_selected(self, request, queryset):
-        rows = list(queryset.with_relations())
-        result = allot_batch(rows, request.user)
-        if result["allotted"]:
-            self._log_allotted(request, rows)
-            self.message_user(request, f"Allotted {result['allotted']} subscription(s).", messages.SUCCESS)
-        for refusal in result["refusals"]:
-            self.message_user(request, refusal, messages.ERROR)
-        if not result["allotted"] and not result["refusals"]:
-            self.message_user(request, "Nothing to allot in that selection.", messages.WARNING)
-
     @admin.action(description="Scale back the offerings of the selected subscriptions")
     def scale_back_selected(self, request, queryset):
         offerings = {row.offering_id: row.offering for row in queryset.select_related("offering", "offering__token")}
@@ -476,17 +463,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 f"{offering.token.symbol}: {result['scaled']} subscription(s) scaled; "
                 f"{result['requested']} shares requested against {result['room']} available.",
                 messages.SUCCESS if result["scaled"] else messages.INFO,
-            )
-
-    def _log_allotted(self, request, rows):
-        for row in rows:
-            row.refresh_from_db()
-            if row.issuance_request_id is None:
-                continue
-            self.log_change(
-                request,
-                row,
-                f"Allotted {row.allotment_quantity} share(s) through issuance request {row.issuance_request_id}.",
             )
 
     def _log_scaled(self, request, offering, before, result):

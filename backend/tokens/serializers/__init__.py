@@ -1,12 +1,10 @@
 from .capital_increase import (
-    CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
 )
 from .former_holder import FormerMemberSerializer
 from .share_issuance import ShareIssuanceListSerializer
 from .share_issuance_request import (
-    ShareIssuanceCreateSerializer,
     ShareIssuanceRequestSerializer,
 )
 from .share_token import (
@@ -29,10 +27,8 @@ from .transfer_order import (
 
 __all__ = [
     "FormerMemberSerializer",
-    "CapitalIncreaseCreateSerializer",
     "CapitalIncreaseDetailSerializer",
     "CapitalIncreaseListSerializer",
-    "ShareIssuanceCreateSerializer",
     "ShareIssuanceListSerializer",
     "ShareIssuanceRequestSerializer",
     "ShareTokenCreateSerializer",

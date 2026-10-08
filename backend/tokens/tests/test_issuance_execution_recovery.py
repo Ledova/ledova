@@ -28,10 +28,19 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
     def test_success_and_replay_retain_original_receipt_bytes_and_supply(self):
         result = self.execute()
         self.assertEqual(result["status"], "executed")
-        self.assertEqual(result["tx_hash"], SignedAttempt.objects.get().tx_hash)
-        self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
+        self.assertEqual(result["tx_hash"], self.attempts.get().tx_hash)
+        self.assertEqual(self.transactions.get().status, "confirmed")
         self.assertEqual(ShareIssuance.objects.get().amount, str(self.request.amount))
         self.assertEqual(self.execute(), result)
+        from tokens.models import RegisterEntry, RegisterPosition, ShareRegister
+
+        issuance = ShareIssuance.objects.get()
+        self.assertEqual(RegisterEntry.objects.filter(operation_id=issuance.pk, kind="issue").count(), 1)
+        self.assertEqual(ShareRegister.objects.get(token=self.token).issued_supply, self.request.amount)
+        self.assertEqual(
+            RegisterPosition.objects.get(register__token=self.token, member_id=self.company_issue.member).shares,
+            self.request.amount,
+        )
         self.assertEqual(len(self.node.broadcasts), 1)
         self.node.client.send_transaction.assert_not_called()
 
@@ -39,10 +48,10 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         self.node.confirmed = False
         self.node.lose_acknowledgement = True
         self.assertEqual(self.execute()["status"], "executing")
-        attempt = SignedAttempt.objects.get()
+        attempt = self.attempts.get()
         self.assertEqual(self.execute()["status"], "executing")
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)] * 2)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
 
     def test_lost_send_acknowledgement_recovers_original_receipt(self):
@@ -56,7 +65,7 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
             self.execute()
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
-        self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
+        self.assertEqual(self.transactions.get().status, "confirmed")
         self.assertEqual(ShareIssuanceExecution.objects.get().status, "executing")
         self.node.events_missing = False
         self.assertEqual(self.execute()["status"], "executed")
@@ -70,49 +79,39 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         self.assertFalse(ShareIssuance.objects.unconfirmed_request_uuids().exists())
         failed = issuance_execution.confirmation(self.request, self.actor)
         self.assertEqual(self.execute(confirmed=before)["status"], "failed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(self.execute(confirmed=failed)["status"], "failed")
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.attempts.count(), 2)
         self.assertEqual(self.execute(confirmed=failed)["status"], "failed")
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(self.attempts.count(), 2)
         latest = issuance_execution.confirmation(self.request, self.actor)
         self.node.receipt_status = 1
         self.assertEqual(self.execute(confirmed=latest)["status"], "executed")
         self.assertEqual(
-            list(BlockchainTransaction.objects.order_by("created_at").values_list("status", flat=True)),
+            list(self.transactions.order_by("created_at").values_list("status", flat=True)),
             ["reverted", "reverted", "confirmed"],
         )
 
-    def test_preflight_refusal_is_unsigned_failed_and_requires_explicit_retry(self):
+    def test_paused_company_preflight_holds_original_unsigned_claim_until_ready(self):
         self.node.contract.functions.paused.return_value.call.return_value = True
-        self.assertEqual(self.execute()["status"], "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
-        self.assertEqual(OutgoingOperation.objects.get().status, "failed")
-        confirmation = issuance_execution.confirmation(self.request, self.actor)
+        self.assertEqual(self.execute()["status"], "executing")
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
+        operation = self.operations.get()
+        self.assertEqual(operation.status, "preparing")
         self.node.contract.functions.paused.return_value.call.return_value = False
-        self.assertEqual(self.execute(confirmed=confirmation)["status"], "executed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
-
-    def test_recovery_continues_admitted_work_after_actor_deletion(self):
-        command = admit(self.request, self.actor)
-        original_actor = self.actor.pk
-        self.actor.delete()
-        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
-        command.refresh_from_db()
-        self.assertEqual(command.executed_by_id, original_actor)
-        self.assertIsNone(ShareIssuance.objects.get().initiated_by_id)
+        self.assertEqual(self.execute()["status"], "executed")
+        self.assertEqual(self.operations.get().claim_id, operation.claim_id)
+        self.assertEqual(self.attempts.count(), 1)
 
     def test_admission_and_queue_rollback_together(self):
-        with patch("tokens.tasks.execute_review_request_task.defer", side_effect=RuntimeError("queue failed")):
+        with patch.object(issuance_execution, "_enqueue", side_effect=RuntimeError("queue failed")):
             with self.assertRaises(RuntimeError):
-                issuance_execution.admit(
-                    self.request, self.actor, confirmed=issuance_execution.confirmation(self.request, self.actor)
-                )
+                admit(self.request, self.actor)
         self.assertFalse(ShareIssuanceExecution.objects.exists())
         self.assertFalse(ShareIssuance.objects.exists())
         self.request.refresh_from_db()
-        self.assertEqual(self.request.status, "approved")
+        self.assertEqual(self.request.status, "under_review")
 
     def test_admitted_request_cannot_be_retargeted_or_deleted(self):
         command = admit(self.request, self.actor)
@@ -128,7 +127,7 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         with atomic(), self.assertRaises(IssuanceExecutionConflict):
             issuance_execution.recover(command.pk)
         self.node.client.assert_expected_chain.assert_not_called()
-        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertFalse(self.operations.exists())
 
     def test_lost_signed_commit_acknowledgement_recovers_original_attempt(self):
         from blockchain.services import outgoing
@@ -140,8 +139,12 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
             raise ConnectionError("Synthetic commit acknowledgement loss")
 
         with patch.object(outgoing, "sign_operation", side_effect=committed_then_lost):
-            self.assertEqual(self.execute()["status"], "executed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertEqual(self.execute()["status"], "executing")
+        attempt = self.attempts.get()
+        self.assertEqual(self.execute()["status"], "executed")
+        self.assertEqual(self.attempts.get().pk, attempt.pk)
+        self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
+        self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_signed_callback_rollback_cannot_consume_nonce_or_broadcast(self):
@@ -152,10 +155,10 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
             raise RuntimeError("Synthetic callback rollback")
 
         with patch.object(issuance_execution, "_record_signed", side_effect=rolled_back):
-            self.assertEqual(self.execute()["status"], "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
-        self.assertFalse(BlockchainTransaction.objects.exists())
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
+            self.assertEqual(self.execute()["status"], "executing")
+        self.assertFalse(self.attempts.exists())
+        self.assertFalse(self.transactions.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
         self.assertFalse(self.node.broadcasts)
 
     def test_private_and_historical_journals_are_never_served_or_editable_in_admin(self):
@@ -208,25 +211,19 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
             self.assertEqual(self.execute()["status"], "executed")
         seed.assert_called_once_with(contract.lower(), self.request.recipient_address.lower())
 
-    def test_whitelist_and_headroom_refusals_keep_actionable_safe_reasons(self):
-        from tokens.services.share_token_service import (
-            EXCEEDS_AUTHORIZED,
-            NOT_WHITELISTED,
-        )
-
+    def test_whitelist_and_headroom_holds_keep_original_unsigned_claim(self):
+        command = admit(self.request, self.actor)
         with patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=False):
-            self.assertEqual(self.execute()["status"], "failed")
-        self.request.refresh_from_db()
-        self.assertIn(NOT_WHITELISTED, self.request.execution_notes)
+            self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
+        operation = self.operations.get()
+        self.assertEqual(operation.status, "preparing")
         self.node.contract.functions.authorizedShares.return_value.call.return_value = self.request.amount - 1
-        confirmed = issuance_execution.confirmation(self.request, self.actor)
-        self.assertEqual(self.execute(confirmed=confirmed)["status"], "failed")
-        self.request.refresh_from_db()
-        self.assertIn(EXCEEDS_AUTHORIZED, self.request.execution_notes)
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertEqual(self.execute()["status"], "executing")
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
         self.node.contract.functions.authorizedShares.return_value.call.return_value = self.request.amount
-        confirmed = issuance_execution.confirmation(self.request, self.actor)
-        self.assertEqual(self.execute(confirmed=confirmed)["status"], "executed")
+        self.assertEqual(self.execute()["status"], "executed")
+        self.assertEqual(self.operations.get().claim_id, operation.claim_id)
 
     def test_provider_error_cannot_publish_the_private_signed_payload(self):
         from web3 import Web3
@@ -240,8 +237,8 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
 
         self.node.client.send_raw_transaction.side_effect = failed_send
         self.assertEqual(self.execute()["status"], "executing")
-        self.assertEqual(OutgoingOperation.objects.get().last_error, "ConnectionError")
-        raw = Web3.to_hex(SignedAttempt.objects.get().raw_transaction)
+        self.assertEqual(self.operations.get().last_error, "ConnectionError")
+        raw = Web3.to_hex(self.attempts.get().raw_transaction)
         self.request.refresh_from_db()
         self.assertNotIn(raw, str(ShareIssuanceRequestSerializer(self.request).data))
         self.assertIsNone(ShareIssuance.objects.get().mint_journal)
@@ -253,7 +250,7 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
 
         self.node.confirmed = False
         self.assertEqual(self.execute()["status"], "executing")
-        current = BlockchainTransaction.objects.get()
+        current = self.transactions.get()
         before = BlockchainTransaction.objects.values().get(pk=current.pk)
         historical = BlockchainTransaction.objects.create(
             tx_hash="0x" + "71" * 32,
@@ -366,9 +363,10 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         from tokens.tests.capital_fixtures import admit as admit_capital
         from tokens.tests.capital_fixtures import capital_request
 
-        capital_tenant, capital_actor = capital_request("concurrent-capital")
+        capital_tenant, capital_actor = capital_request(self)
         capital_node = CapitalNode()
         capital = admit_capital(capital_tenant.capital_increase, capital_actor)
+        initial_nonce = SigningAccount.objects.get().next_nonce
         issuance = admit(self.request, self.actor)
         ready = threading.Barrier(2)
         outcomes = {}
@@ -399,8 +397,17 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
                 thread.join(30)
         self.assertFalse(any(thread.is_alive() for thread in threads), outcomes)
         self.assertEqual(outcomes, {"issuance": "executed", "capital": "executed"})
-        self.assertEqual(list(SignedAttempt.objects.order_by("nonce").values_list("nonce", flat=True)), [7, 8])
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+        issuance.refresh_from_db()
+        capital.refresh_from_db()
+        self.assertEqual(
+            list(
+                SignedAttempt.objects.filter(operation_id__in=[issuance.operation_id, capital.operation_id])
+                .order_by("nonce")
+                .values_list("nonce", flat=True)
+            ),
+            [initial_nonce, initial_nonce + 1],
+        )
+        self.assertEqual(SigningAccount.objects.get().next_nonce, initial_nonce + 2)
         self.assertEqual(len(self.node.broadcasts), 1)
         self.assertEqual(len(capital_node.broadcasts), 1)
 
@@ -416,3 +423,46 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         self.assertNotEqual(winner["tx_hash"], failed_hash)
         self.assertEqual(issuance_execution._result(stale), winner)
         self.assertEqual(BlockchainTransaction.objects.get(tx_hash=winner["tx_hash"]).status, "confirmed")
+
+
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class RetainedIssuanceExecutionRecoveryTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.issuance_fixtures import (
+            FINALITY_POLICIES,
+            IssuanceNode,
+            issuance_request,
+        )
+
+        self.enterContext(override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES))
+        self.tenant, self.actor = issuance_request("retained-issuance", signed=True)
+        self.request = self.tenant.issuance_request
+        self.command = ShareIssuanceExecution.objects.get(request_id=self.request.pk)
+        self.node = IssuanceNode()
+        self.enterContext(
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client)
+        )
+        self.enterContext(patch("tokens.services.share_token_service.seed_recipient_holding"))
+
+    def test_null_company_source_recovers_original_signed_bytes_without_new_admission(self):
+        self.assertIsNone(self.command.source_instruction_id)
+        attempt = SignedAttempt.objects.get(operation_id=self.command.operation_id)
+        original = (attempt.pk, attempt.tx_hash, bytes(attempt.raw_transaction), attempt.nonce, attempt.claim_id)
+        self.assertEqual(issuance_execution.recover(self.command.pk)["status"], "executed")
+        current = SignedAttempt.objects.get(operation_id=self.command.operation_id)
+        self.assertEqual(
+            (current.pk, current.tx_hash, bytes(current.raw_transaction), current.nonce, current.claim_id), original
+        )
+        self.assertEqual(self.node.broadcasts, [original[2]])
+        self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
+
+    def test_recovery_continues_original_signed_work_after_staff_actor_deletion(self):
+        original_actor = self.actor.pk
+        attempt = SignedAttempt.objects.get(operation_id=self.command.operation_id)
+        self.actor.delete()
+        self.assertEqual(issuance_execution.recover(self.command.pk)["status"], "executed")
+        self.command.refresh_from_db()
+        self.assertEqual(self.command.executed_by_id, original_actor)
+        self.assertIsNone(ShareIssuance.objects.get().initiated_by_id)
+        self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
+        self.assertEqual(SignedAttempt.objects.count(), 1)

@@ -1,32 +1,33 @@
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 
+from django.db import connections
+from rest_framework.exceptions import ValidationError
+
 from offerings.models import Subscription, SubscriptionStatus
-from offerings.services.subscription import allot, allot_batch
-from offerings.tests import test_allotment as fixtures
-from offerings.tests.factories import allottable_subscription
-from shared.db import use_operator
-from shared.tests.row_contention import RealRowContention
+from offerings.services.subscription import scale_back
+from offerings.tests.test_allotment import CompanyAllotmentTestCase
+from shared.db import atomic, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RequestStatus, ShareIssuanceRequest
 from users.models import UserAccount
 
 
-class AllotmentLockOrderTest(RealRowContention, fixtures.AllotmentTestCase):
+class AllotmentLockOrderTest(CompanyAllotmentTestCase):
     def setUp(self):
+        super().setUp()
         with use_operator():
-            super().setUp()
-            self.subscription = allottable_subscription(self.tenant, quantity=10, allotted=4)
-            self.company = self.offering.token.company
-            self.token = self.offering.token
+            self._cap(self.offering, 4)
+            scale_back(self.offering)
+        self.proposal = self.prepare_paid_issue()
+        self.paid_decide(self.proposal, "approve")
 
-    def issue(self, *, batch=False):
-        current = Subscription.objects.get(pk=self.subscription.pk)
-        if batch:
-            return allot_batch([current], self.operator_user)
-        return allot(current, self.operator_user).pk
+    def issue(self):
+        proposal, _ = self.paid_decide(self.proposal, "apply")
+        return proposal.request_id
 
-    def check_prefix(self, row, *, free=(), held=(), batch=False):
-        result = self.while_row_is_held(lambda: self.issue(batch=batch), row, free=free, held=held)
+    def check_prefix(self, row, *, free=(), held=()):
+        result = self.while_row_is_held(self.issue, row, free=free, held=held)
         with use_operator():
             current = Subscription.objects.get(pk=self.subscription.pk)
             request = ShareIssuanceRequest.objects.get(pk=current.issuance_request_id)
@@ -36,38 +37,46 @@ class AllotmentLockOrderTest(RealRowContention, fixtures.AllotmentTestCase):
             (SubscriptionStatus.PAID, Decimal("25.00"), Decimal("25.00")),
         )
         self.assertEqual(
-            (request.amount, request.status, request.reviewed_by_id), (4, RequestStatus.APPROVED, self.operator_user.pk)
+            (request.amount, request.status, request.reviewed_by_id), (4, RequestStatus.APPROVED, self.owner.pk)
         )
-        self.assertEqual(request.recipient_address, self.tenant.wallet.address)
-        self.assertEqual(self.defer.call_count, 1)
-        if batch:
-            self.assertEqual(result, {"allotted": 1, "refusals": []})
-        else:
-            self.assertEqual(result, request.pk)
+        self.assertEqual(request.recipient_address, self.wallet.address.lower())
+        self.assertEqual(result, request.pk)
 
     def test_single_allotment_waits_on_company_before_token_and_offering(self):
         self.check_prefix(self.company, free=(self.token, self.offering, self.subscription))
 
-    def test_single_allotment_holds_company_before_token(self):
-        self.check_prefix(self.token, free=(self.offering, self.subscription), held=(self.company,))
+    def test_busy_class_refuses_admission_without_an_effect_and_recovers_after_release(self):
+        def attempt():
+            connections.close_all()
+            try:
+                with use_operator(), self.assertRaises(ValidationError) as refused:
+                    self.issue()
+                return refused.exception.detail
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with use_migrate(), atomic():
+                type(self.token).objects.select_for_update().get(pk=self.token.pk)
+                result = pool.submit(attempt).result(timeout=5)
+                self.assertEqual(result["unmet_requirements"], ["source_lock_busy"])
+                self.assertFalse(ShareIssuanceRequest.objects.filter(token=self.token).exists())
+                self.subscription.refresh_from_db()
+                self.assertIsNone(self.subscription.issuance_request_id)
+            request = self.issue()
+        with use_operator():
+            self.subscription.refresh_from_db()
+            self.assertEqual(self.subscription.issuance_request_id, request)
+            self.assertEqual(ShareIssuanceRequest.objects.filter(token=self.token).count(), 1)
 
     def test_single_allotment_holds_company_and_token_before_offering(self):
         self.check_prefix(self.offering, free=(self.subscription,), held=(self.company, self.token))
 
-    def test_batch_allotment_waits_on_company_before_token_and_offering(self):
-        self.check_prefix(self.company, free=(self.token, self.offering, self.subscription), batch=True)
-
-    def test_batch_allotment_holds_company_before_token(self):
-        self.check_prefix(self.token, free=(self.offering, self.subscription), held=(self.company,), batch=True)
-
-    def test_batch_allotment_holds_company_and_token_before_offering(self):
-        self.check_prefix(self.offering, free=(self.subscription,), held=(self.company, self.token), batch=True)
-
     def test_paid_instructed_allotment_preserves_its_admission_after_account_standing_changes(self):
         def reject():
-            UserAccount.objects.filter(pk=self.tenant.account.pk).update(account_status="rejected")
+            UserAccount.objects.filter(pk=self.account.pk).update(account_status="rejected")
 
-        result = self.while_row_is_held(lambda: self.issue(), self.company, after_wait=reject)
+        result = self.while_row_is_held(self.issue, self.company, after_wait=reject)
         with use_operator():
             current = Subscription.objects.get(pk=self.subscription.pk)
             request = ShareIssuanceRequest.objects.get(pk=result)

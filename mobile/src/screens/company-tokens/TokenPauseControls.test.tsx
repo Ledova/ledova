@@ -38,9 +38,15 @@ async function firstRecord() {
   expect(records).toHaveLength(1);
   return records[0];
 }
-beforeEach(() => {
+beforeEach(async () => {
   resetPauseStorage();
   uuidIndex = 0;
+  await pauseSubmissionStore.retain({
+    ...owner,
+    tokenUuid,
+    paused: true,
+    submissionId: '44444444-4444-4444-8444-000000000001',
+  });
   completed = false;
   jest
     .mocked(Crypto.randomUUID)
@@ -68,14 +74,18 @@ beforeEach(() => {
   });
 });
 afterEach(async () => {
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
   await cleanup();
   client.clear();
 });
 
-it('persists before posting, carries session guards and keeps pending distinct from current class state', async () => {
+it('retains existing terms before replay, carries session guards and keeps pending distinct from current class state', async () => {
   const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByText('Pause')).toBeEnabled());
-  await fireEvent.press(view.getByText('Pause'));
+  await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+  await fireEvent.press(view.getByText('Retry same request'));
   expect(await view.findByText(/Pause request retained/)).toBeTruthy();
   const record = await firstRecord();
   expect(post).toHaveBeenCalledWith(
@@ -86,7 +96,7 @@ it('persists before posting, carries session guards and keeps pending distinct f
       ledovaSubmissionGuard: expect.any(Function),
     },
   );
-  expect(view.getByText('Pause')).toBeDisabled();
+  expect(view.queryByText('Pause')).toBeNull();
   expect(view.queryByText('Dismiss outcome')).toBeNull();
   expect(view.queryByText('Transfers are paused.')).toBeNull();
 });
@@ -94,8 +104,8 @@ it('persists before posting, carries session guards and keeps pending distinct f
 it('recovers a lost response after remount with exactly the same submission and terms', async () => {
   post.mockRejectedValueOnce(new Error('Lost response'));
   const first = await render(screen(), { wrapper });
-  await waitFor(() => expect(first.getByText('Pause')).toBeEnabled());
-  await fireEvent.press(first.getByText('Pause'));
+  await waitFor(() => expect(first.getByText('Retry same request')).toBeEnabled());
+  await fireEvent.press(first.getByText('Retry same request'));
   await first.findByText('Lost response');
   const original = await firstRecord();
   await first.unmount();
@@ -108,7 +118,7 @@ it('recovers a lost response after remount with exactly the same submission and 
   expect(await firstRecord()).toEqual(original);
 });
 
-it('blocks a new write during class refresh and duplicates while the original POST is held', async () => {
+it('offers no fresh owner button during class refresh and prevents duplicate original replays', async () => {
   let release!: (value: ReturnType<typeof pauseResponse>) => void;
   post.mockImplementation(
     () =>
@@ -117,26 +127,34 @@ it('blocks a new write during class refresh and duplicates while the original PO
       }),
   );
   const view = await render(screen('deployed', true), { wrapper });
-  expect(await view.findByText('Refreshing the share class before a new request…')).toBeTruthy();
-  await fireEvent.press(view.getByText('Pause'));
+  expect(await view.findByText('Refreshing the current share class…')).toBeTruthy();
+  expect(view.queryByText('Pause')).toBeNull();
   expect(post).not.toHaveBeenCalled();
   await view.rerender(screen());
-  await waitFor(() => expect(view.getByText('Pause')).toBeEnabled());
-  await fireEvent.press(view.getByText('Pause'));
+  await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+  await fireEvent.press(view.getByText('Retry same request'));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-  await fireEvent.press(view.getByText('Saving request…'));
   await fireEvent.press(view.getByText('Retry same request'));
   expect(post).toHaveBeenCalledTimes(1);
   await act(async () => release(pauseResponse(await firstRecord())));
 });
 
 it('keeps a completed original outcome separate from a later class state and removes only its reminder', async () => {
-  const original = await pauseSubmissionStore.save(owner, tokenUuid, true);
+  const original = await firstRecord();
   completed = true;
+  const first = await render(screen('deployed'), { wrapper });
+  await first.findByText(/original pause transaction was confirmed/);
+  expect(first.queryByText('Pause')).toBeNull();
+  await first.unmount();
+  const newer = { ...original, submissionId: '55555555-5555-4555-8555-555555555555' };
+  await pauseSubmissionStore.retain(newer);
+  get.mockImplementation(async (url) =>
+    pauseResponse(url.includes(original.submissionId) ? original : newer, url.includes(original.submissionId)),
+  );
   const view = await render(screen('deployed'), { wrapper });
-  await view.findByText(/original pause transaction was confirmed/);
-  expect(view.getByText('Pause')).toBeEnabled();
-  await fireEvent.press(view.getByText('Pause'));
+  await view.findByText(`Pause request ${newer.submissionId}`);
+  await waitFor(() => expect(view.getAllByText('Retry same request')).toHaveLength(1));
+  await fireEvent.press(view.getByText('Retry same request'));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
   expect(await pauseSubmissionStore.list(owner, tokenUuid)).toHaveLength(2);
   expect(post.mock.calls[0][1]).not.toEqual({ submissionId: original.submissionId });
@@ -155,39 +173,45 @@ it('recovers an unpause refusal without changing its requested direction', async
       submission: { ...pauseResponse(original, true).data.submission, status: 'failed' },
     },
   });
-  get.mockImplementation(async () => refusal(await firstRecord()));
+  const saved = await firstRecord();
+  await pauseSubmissionStore.remove(saved);
+  await pauseSubmissionStore.retain({ ...saved, paused: false });
+  let refused = false;
+  get.mockImplementation(async () => (refused ? refusal(await firstRecord()) : pauseResponse(await firstRecord())));
   post.mockImplementation(async (_url, body) => {
     const original = await firstRecord();
     expect((body as { submissionId: string }).submissionId).toBe(original.submissionId);
     expect(original.paused).toBe(false);
+    refused = true;
     return refusal(original);
   });
   const view = await render(screen('paused'), { wrapper });
-  await waitFor(() => expect(view.getByText('Unpause')).toBeEnabled());
-  await fireEvent.press(view.getByText('Unpause'));
+  await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+  await fireEvent.press(view.getByText('Retry same request'));
   await view.findByText('The original unpause request was refused before signing.');
   expect(post.mock.calls[0][0]).toBe(URLS.UNPAUSE(tokenUuid));
   expect(view.getByText('Dismiss outcome')).toBeTruthy();
 });
 
 it('does not post when storage loses the write, then permits a deliberate retry after recovery', async () => {
-  jest.mocked(AsyncStorage.setItem).mockResolvedValueOnce();
   const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByText('Pause')).toBeEnabled());
-  await fireEvent.press(view.getByText('Pause'));
+  await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+  items.clear();
+  jest.mocked(AsyncStorage.setItem).mockResolvedValueOnce();
+  await fireEvent.press(view.getByText('Retry same request'));
   await view.findByText('The pause request could not be saved on this device.');
   expect(post).not.toHaveBeenCalled();
-  await fireEvent.press(view.getByText('Pause'));
+  await fireEvent.press(view.getByText('Retry same request'));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
 });
 
 it('blocks new writes on corrupt saved records, then reloads repaired storage', async () => {
-  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
+  const record = await firstRecord();
   const name = [...items.keys()][0];
   items.set(name, '{}');
   const view = await render(screen(), { wrapper });
   await view.findByText('Saved pause requests could not be read.');
-  expect(view.getByText('Pause')).toBeDisabled();
+  expect(view.queryByText('Pause')).toBeNull();
   expect(post).not.toHaveBeenCalled();
   items.set(name, JSON.stringify(record));
   await fireEvent.press(view.getByText('Reload saved requests'));
@@ -197,7 +221,7 @@ it('blocks new writes on corrupt saved records, then reloads repaired storage', 
 });
 
 it('restores a removed displayed request and refuses conflicting stored terms', async () => {
-  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
+  const record = await firstRecord();
   const view = await render(screen(), { wrapper });
   await view.findByText(`Pause request ${record.submissionId}`);
   items.clear();
@@ -214,14 +238,14 @@ it('restores a removed displayed request and refuses conflicting stored terms', 
 });
 
 it('retains recovery and blocks completion when the response describes a different submission', async () => {
-  const record = await pauseSubmissionStore.save(owner, tokenUuid, true);
+  const record = await firstRecord();
   const wrong = { ...record, submissionId: '99999999-9999-4999-8999-999999999999' };
   get.mockResolvedValue(pauseResponse(wrong, true));
   post.mockResolvedValue(pauseResponse(wrong, true));
   const view = await render(screen(), { wrapper });
   await view.findByText('The server returned a different pause submission. The original request remains saved.');
   expect(view.queryByText('Dismiss outcome')).toBeNull();
-  expect(view.getByText('Pause')).toBeDisabled();
+  expect(view.queryByText('Pause')).toBeNull();
   await fireEvent.press(view.getByText('Retry same request'));
   await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
   expect(await firstRecord()).toEqual(record);
@@ -238,8 +262,8 @@ it.each(['account', 'epoch'] as const)(
         }),
     );
     const view = await render(screen(), { wrapper });
-    await waitFor(() => expect(view.getByText('Pause')).toBeEnabled());
-    await fireEvent.press(view.getByText('Pause'));
+    await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+    await fireEvent.press(view.getByText('Retry same request'));
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     const record = await firstRecord();
     await act(async () => {
@@ -272,8 +296,8 @@ it('refuses a POST if the session changes while durable storage is awaited', asy
       }),
   );
   const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByText('Pause')).toBeEnabled());
-  await fireEvent.press(view.getByText('Pause'));
+  await waitFor(() => expect(view.getByText('Retry same request')).toBeEnabled());
+  await fireEvent.press(view.getByText('Retry same request'));
   await waitFor(() => expect(release).toBeDefined());
   await act(async () => {
     invalidateSessionScope();
@@ -286,7 +310,19 @@ it('refuses a POST if the session changes while durable storage is awaited', asy
 it('refuses pause actions without an authenticated issuer session', async () => {
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
   const view = await render(screen(), { wrapper });
-  expect(view.getByText('Verify your issuer session before requesting a pause or unpause.')).toBeTruthy();
+  expect(view.getByText('Verify your issuer session before reading retained pause requests.')).toBeTruthy();
   expect(view.queryByText('Pause')).toBeNull();
   expect(post).not.toHaveBeenCalled();
+});
+
+it('keeps a never-admitted v1 reminder after explicit retirement refusal with no completion or regenerated UUID', async () => {
+  const original = await firstRecord();
+  post.mockRejectedValueOnce(new Error('New issuer pause requests are retired. Prepare a company pause instruction.'));
+  const view = await render(screen(), { wrapper });
+  await fireEvent.press(await view.findByText('Retry same request'));
+  await view.findByText('New issuer pause requests are retired. Prepare a company pause instruction.');
+  expect(await firstRecord()).toEqual(original);
+  expect(post.mock.calls[0][1]).toEqual({ submissionId: original.submissionId });
+  expect(view.queryByText('Dismiss outcome')).toBeNull();
+  expect(Crypto.randomUUID).not.toHaveBeenCalled();
 });

@@ -1,9 +1,8 @@
-import threading
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
 from companies.models import Company, CompanyStatus
@@ -13,10 +12,9 @@ from tokens.tests.deployment_fixtures import FACTORY, admit_deployment
 
 User = get_user_model()
 
-SLOW_READ_BLOCKS_FOR = 30
-
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "private": {"BACKEND": "shared.storage.PrivateMediaStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
@@ -83,112 +81,56 @@ class ShareTokenAdminDeployTest(TransactionTestCase):
 @override_settings(STORAGES=TEST_STORAGES, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class ShareTokenAdminPauseTest(TransactionTestCase):
     def setUp(self):
-        self.client.force_login(User.objects.create_superuser(email="admin@example.test", password="pw-12345678"))
-        self.chain = patch("tokens.services.share_token_service.get_base_chain_client").start().return_value
-        self.addCleanup(patch.stopall)
-        self.chain.send_transaction.return_value = ("0xtx", {"blockNumber": 1, "gasUsed": 1})
+        self.administrator = User.objects.create_superuser(email="admin@example.test", password="pw-12345678")
+        self.client.force_login(self.administrator)
         self.tenant = make_tenant("owner")
         self.token = self.tenant.deployed_token
         self.change_url = reverse("admin:tokens_sharetoken_change", args=[self.token.pk])
-        self.unpause_url = reverse("admin:tokens_sharetoken_unpause", args=[self.token.uuid])
-        self.pause_url = reverse("admin:tokens_sharetoken_pause", args=[self.token.uuid])
 
-    def _contract(self):
-        return self.chain.load_contract.return_value
-
-    def _chain_paused(self, value):
-        self._contract().functions.paused.return_value.call.return_value = value
-
-    def test_deployed_token_the_chain_reports_paused_retains_an_unpause_submission(self):
-        self._chain_paused(True)
-        change_page = self.client.get(self.change_url)
-        self.assertContains(change_page, self.unpause_url)
-        self.assertNotContains(change_page, self.pause_url)
-
-        confirm = self.client.get(self.unpause_url)
-        self.assertEqual(confirm.status_code, 200)
-        self.assertTemplateUsed(confirm, "admin/tokens/sharetoken/pause_confirm.html")
-        self.assertContains(confirm, 'method="post"')
-        self.assertContains(confirm, "Unpause Token")
-        self.chain.send_transaction.assert_not_called()
-
-        response = self.client.post(self.unpause_url, {"confirmation": confirm.context["confirmation"]})
-        self.assertRedirects(response, self.change_url, fetch_redirect_response=False)
-        self.assertContains(self.client.get(self.change_url), "Unpause request retained")
-        self.chain.send_transaction.assert_not_called()
-        self.assertFalse(PauseChange.objects.get().paused)
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
-
-    def test_deployed_token_offers_the_button_the_chain_calls_for_and_both_when_it_cannot_be_read(self):
-        self._chain_paused(False)
-        change_page = self.client.get(self.change_url)
-        self.assertContains(change_page, self.pause_url)
-        self.assertNotContains(change_page, self.unpause_url)
-
-        self._contract().functions.paused.return_value.call.side_effect = RuntimeError("rpc down")
-        change_page = self.client.get(self.change_url)
-        self.assertContains(change_page, self.pause_url)
-        self.assertContains(change_page, self.unpause_url)
-
-        with patch(
-            "tokens.admin.share_token.share_token_service.read_paused",
-            side_effect=KeyError("SHARE_TOKEN_FACTORY_ADDRESS"),
-        ):
-            with self.assertLogs("tokens.admin._helpers", "WARNING") as logs:
-                change_page = self.client.get(self.change_url)
-        self.assertEqual(change_page.status_code, 200)
-        self.assertContains(change_page, self.pause_url)
-        self.assertContains(change_page, self.unpause_url)
-        self.assertIn("could not be read", logs.output[0])
-
-    def test_a_slow_paused_read_is_abandoned_and_both_buttons_offered(self):
-        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
-        self.addCleanup(release.set)
-
-        def slow(*args, **kwargs):
-            entered.set()
-            release.wait(SLOW_READ_BLOCKS_FOR)
-            finished.set()
-            return False
-
-        self._contract().functions.paused.return_value.call.side_effect = slow
-        with patch("tokens.admin._helpers.CHAIN_READ_TIMEOUT", 0.05):
-            with self.assertLogs("tokens.admin._helpers", "WARNING") as logs:
-                change_page = self.client.get(self.change_url)
-        self.assertTrue(entered.wait(SLOW_READ_BLOCKS_FOR))
-        self.assertFalse(finished.is_set(), "the change page waited for the chain read instead of abandoning it")
-        self.assertContains(change_page, self.pause_url)
-        self.assertContains(change_page, self.unpause_url)
-        self.assertIn("not answered within 0.05s", logs.output[0])
-
-    def test_pause_confirmation_retains_the_same_submission_on_repeated_post(self):
-        self._chain_paused(False)
-
-        confirm = self.client.get(self.pause_url)
-        self.assertEqual(confirm.status_code, 200)
-        self.assertContains(confirm, "Pause Token")
-        self.assertContains(confirm, self.token.contract_address)
-        self.chain.send_transaction.assert_not_called()
-
-        response = self.client.post(self.pause_url, {"confirmation": confirm.context["confirmation"]})
-        self.assertRedirects(response, self.change_url, fetch_redirect_response=False)
-        self.assertContains(self.client.get(self.change_url), "Pause request retained")
-        self.chain.send_transaction.assert_not_called()
-        self.client.post(self.pause_url, {"confirmation": confirm.context["confirmation"]})
-        self.assertEqual(PauseChange.objects.count(), 1)
-        self.assertTrue(PauseChange.objects.get().paused)
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
-
-    def test_missing_or_wrong_confirmation_never_admits_and_draft_has_no_confirmation(self):
-        confirm = self.client.get(self.pause_url)
-        for value in (None, "invalid", confirm.context["confirmation"]):
-            data = {} if value is None else {"confirmation": value}
-            self.client.post(self.unpause_url, data)
-            self.assertContains(self.client.get(self.change_url), "Reload the pause confirmation")
-        draft_pause_url = reverse("admin:tokens_sharetoken_pause", args=[self.tenant.token.uuid])
-        refused = self.client.get(draft_pause_url)
-        self.assertEqual(refused.status_code, 302)
+    def test_routine_staff_pause_and_unpause_admission_routes_are_retired(self):
+        for name in ("tokens_sharetoken_pause", "tokens_sharetoken_unpause"):
+            with self.assertRaises(NoReverseMatch):
+                reverse(f"admin:{name}", args=[self.token.pk])
         self.assertFalse(PauseChange.objects.exists())
-        self.chain.send_transaction.assert_not_called()
+
+    def test_class_metadata_no_longer_reads_pause_rpc_or_offers_fresh_staff_buttons(self):
+        with patch(
+            "tokens.services.share_token_service.get_base_chain_client",
+            side_effect=AssertionError("No routine pause RPC"),
+        ):
+            response = self.client.get(self.change_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Pause Token")
+        self.assertNotContains(response, "Unpause Token")
+        self.assertContains(response, "No pause submission recorded")
+
+    def test_removed_staff_post_does_not_create_a_command_or_confirm_unsigned_history(self):
+        for direction in ("pause", "unpause"):
+            response = self.client.post(
+                f"/admin/tokens/sharetoken/{self.token.pk}/{direction}/", {"confirmation": "obsolete"}
+            )
+            self.assertIn(response.status_code, (302, 404))
+        self.assertFalse(PauseChange.objects.exists())
+
+    def test_private_administration_preserves_actual_staff_signed_original_without_admitting_new_work(self):
+        from blockchain.tests.outgoing_fixtures import admitted_signer
+        from tokens.services import pause_recovery
+        from tokens.tests.pause_fixtures import PauseNode
+        from tokens.tests.retained_pause_fixtures import retain_pause_change
+
+        admitted_signer()
+        change = retain_pause_change(self.token, self.administrator, signed=True, authority="staff")
+        node = PauseNode(self.token.contract_address)
+        with patch("tokens.services.pause_recovery.get_base_chain_client", return_value=node.client):
+            self.assertEqual(pause_recovery.recover(change.pk).status, "confirmed")
+        response = self.client.get(self.change_url)
+        self.assertContains(response, str(change.pk))
+        self.assertContains(response, "original pause transaction was confirmed")
+        self.assertEqual(PauseChange.objects.count(), 1)
+
+    def test_draft_metadata_has_no_pause_confirmation_or_fresh_admission(self):
+        path = reverse("admin:tokens_sharetoken_change", args=[self.tenant.token.pk])
+        response = self.client.get(path)
+        self.assertNotContains(response, "Pause Token")
+        self.assertNotContains(response, "Unpause Token")
+        self.assertFalse(PauseChange.objects.exists())

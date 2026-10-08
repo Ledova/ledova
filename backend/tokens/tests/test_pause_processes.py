@@ -6,10 +6,9 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from uuid import uuid4
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 
@@ -17,9 +16,8 @@ from blockchain.models import SignedAttempt, SigningAccount
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
 from blockchain.tests.test_outgoing_processes import finish
 from companies.models import Company
+from companies.services.team import revoke_company_appointment
 from shared.db import atomic, current_alias
-from tokens.models import ShareToken
-from tokens.services import pause_changes
 from tokens.tests.pause_fixtures import install_pause
 
 
@@ -33,6 +31,8 @@ class PauseProcessTest(TransactionTestCase):
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
         env["PAUSE_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["PAUSE_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
+        env["PAUSE_TEST_STORAGES"] = json.dumps(settings.STORAGES)
         return subprocess.Popen(
             [
                 sys.executable,
@@ -76,7 +76,7 @@ class PauseProcessTest(TransactionTestCase):
             ledger = json.loads((directory / "node.json").read_text())
             self.assertEqual(ledger["hashes"], [attempt.tx_hash])
             self.assertEqual(len(ledger["broadcasts"]), 1)
-            self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
 
     def test_kill_after_signing_decision_recovers_admitted_pause(self):
         self.recover_killed("decided", False)
@@ -112,7 +112,7 @@ class PauseProcessTest(TransactionTestCase):
     def test_independent_workers_share_one_attempt_and_nonce(self):
         self.race()
         self.assertEqual(self.attempts().count(), 1)
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
 
     def race(self, phase="race", *extra):
         with tempfile.TemporaryDirectory(prefix="pause-race-") as temporary:
@@ -166,7 +166,7 @@ class PauseProcessTest(TransactionTestCase):
     def test_kill_after_completion_replays_without_touching_token_or_signer(self):
         self.recover_killed("completed", True)
 
-    def revoke_during_target_wait(self, revoke):
+    def revoke_during_target_wait(self, revoke, *, expected=None):
         with tempfile.TemporaryDirectory(prefix="pause-authority-") as temporary:
             directory = Path(temporary)
             process = self.worker(directory, "sign_wait")
@@ -196,7 +196,7 @@ class PauseProcessTest(TransactionTestCase):
                     revoke()
                 code, out, err = finish(process)
                 self.assertEqual(code, 0, out + err)
-                self.assertEqual(json.loads(out), {"status": "failed", "completed": True})
+                self.assertEqual(json.loads(out), expected or {"status": "failed", "completed": True})
                 self.assertFalse(self.attempts().exists())
                 self.assertFalse((directory / "node.json").exists())
             finally:
@@ -206,21 +206,11 @@ class PauseProcessTest(TransactionTestCase):
 
     def test_actor_deactivated_while_signing_waits_cannot_use_the_earlier_authority_read(self):
         self.revoke_during_target_wait(
-            lambda: get_user_model().objects.filter(pk=self.tenant.user.pk).update(is_active=False)
+            lambda: get_user_model().objects.filter(pk=self.tenant.user.pk).update(is_active=False),
+            expected={"status": "executing", "completed": False},
         )
 
-    def test_staff_permission_revoked_while_signing_waits_is_rechecked_after_the_lock(self):
-        actor = get_user_model().objects.create_user(email="pause-staff@example.test", is_staff=True, is_active=True)
-        permission = Permission.objects.get(codename="change_sharetoken")
-        actor.user_permissions.add(permission)
-        token = ShareToken.objects.create(
-            company=self.token.company,
-            name="Second token",
-            symbol="TWO",
-            total_supply="100",
-            status="deployed",
-            chain="base",
-            contract_address="0x" + "e" * 40,
+    def test_consumed_company_appointment_revoked_while_signing_waits_is_rechecked_after_the_lock(self):
+        self.revoke_during_target_wait(
+            lambda: revoke_company_appointment(requester=self.tenant.user, appointment_id=self.company_pause.initial.pk)
         )
-        self.change = pause_changes.submit(token, actor, uuid4(), True, authority="staff")
-        self.revoke_during_target_wait(lambda: actor.user_permissions.remove(permission))

@@ -4,8 +4,9 @@ SYSTEM_WIDE = {
     "recorded company actors and cannot admit new intent or replace an original signed outcome.",
     "tokens.tasks.nav.recover_nav_update": "Recovers one durably admitted staff NAV update using its original journal.",
     "tokens.tasks.nav.check_pending_nav_updates": "Recovers admitted staff NAV work without inferring new intent.",
-    "tokens.tasks.pause.recover_pause_change": "Recovers one durably authorized issuer or staff pause command "
-    "through its original outgoing operation. Public issuer projection re-enters the admitted principal's scope.",
+    "tokens.tasks.pause.recover_pause_change": "Recovers durably admitted company pauses or retained issuer/staff "
+    "originals using their original journal and actor. Company sources and retained staff originals use operator "
+    "projection; retained issuer originals re-enter their admitted principal's APP scope. It opens no new intent.",
     "tokens.tasks.pause.check_pending_pause_changes": "Recovers admitted pause commands across issuers; it cannot "
     "admit new intent, reopen terminal submissions or substitute current state for a signed outcome.",
     "tokens.tasks.deployment.recover_swap_approval": "Recovers one deployment's durably admitted swap approval "
@@ -26,14 +27,14 @@ SYSTEM_WIDE = {
     "tokens.tasks.mint_request.recover_mint_requests": "Recovers durably admitted mint requests across the deployment, "
     "using operator authority and the original signed operation. It never admits a new request "
     "or restarts a reverted attempt.",
-    "tokens.tasks.review_request.execute_review_request_task": "Executes approved issuance and capital increases "
-    "only enqueued by the staff admin with change permission. The explicit operator context writes the "
-    "issuer ledger and recipient holdings; executed_by is the staff audit actor, not a tenant principal. "
-    "The owner confirmed this operator classification on 2026-09-13 in #520.",
-    "offerings.tasks.subscription.allot_subscription_task": "Executes allotment and retries enqueued only by "
-    "staff admin actions with change permission. It explicitly uses the operator role across issuer and "
-    "investor writes, retaining executed_by for audit. The owner confirmed this classification on "
-    "2026-09-13 in #520; there is no customer execution caller.",
+    "tokens.tasks.review_request.execute_review_request_task": "Recovers an exact admitted non-paid issuance or "
+    "capital execution using its original request, execution and audit actor. New work requires company "
+    "authority; retained staff history keeps its original provenance. The operator role supplies bounded "
+    "technical execution across issuer and recipient records without granting a new company mandate.",
+    "offerings.tasks.subscription.allot_subscription_task": "Recovers one admitted paid issuance using the exact "
+    "subscription, execution and original audit actor. Company application commits new authority and its job "
+    "together; retained staff instructions recover their original history. The operator role supplies bounded "
+    "technical execution across issuer and investor records without approving an issue or payment.",
     "assets.sync_all_assets": "Refreshes the global asset catalogue, which belongs to no tenant.",
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "

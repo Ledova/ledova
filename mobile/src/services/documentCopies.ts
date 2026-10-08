@@ -65,9 +65,11 @@ subscribeSession(() => {
 async function writeViewCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
+  guard?: () => void,
 ): Promise<{ uri: string; type: string }> {
   const { name, type, bytes } = await download();
   assertSessionEpoch(sessionEpoch);
+  guard?.();
   sweepViewCopies();
   const copy = new File(viewDirectory(), name);
   copy.create({ intermediates: true, overwrite: true });
@@ -91,13 +93,17 @@ export async function shareDocumentCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
   share: (uri: string, type: string) => Promise<void>,
+  guard?: () => void,
 ): Promise<void> {
   assertSessionEpoch(sessionEpoch);
+  guard?.();
   if (viewing === sessionEpoch) return;
   viewing = sessionEpoch;
-  const copy = await writeViewCopy(sessionEpoch, download).finally(() => {
+  const copy = await writeViewCopy(sessionEpoch, download, guard).finally(() => {
     if (viewing === sessionEpoch) viewing = undefined;
   });
+  assertSessionEpoch(sessionEpoch);
+  guard?.();
   await share(copy.uri, copy.type);
 }
 

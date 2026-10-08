@@ -14,19 +14,19 @@ and approval procedures below remain implementation references until replaced.
 
 ## Blockchain
 
-| Variable | Default | Required |
-| --- | --- | --- |
-| `BLOCKCHAIN_RPC_URL` | `ALCHEMY_BASE_URL` if set, else `http://localhost:8545` | Yes for any chain call |
-| `BLOCKCHAIN_CHAIN_ID` | `84532` | No; must be one of 1337, 31337, 84532, 11155111 or startup fails |
-| `ETHEREUM_CHAIN_ID` | `11155111` | No; same allowed set |
-| `BITCOIN_NETWORK` | `test` | No; `test` or `regtest` only |
-| `EVM_ASSET_TRANSFER_HISTORY_ENABLED` | `false` | No; enables provider-backed EVM asset transfer history |
-| `BLOCKCHAIN_OPERATOR_KEY` | empty | Yes to deploy, mint, whitelist, pause |
-| `SHARE_TOKEN_FACTORY_ADDRESS` | empty | Yes for issuance |
-| `ATOMIC_SWAP_ADDRESS` | empty | Only for settlement |
-| `STABLECOIN_CONTRACT_ADDRESS` | empty | Only for stablecoin payment; seeds the `AUDY` deployment on `base` |
-| `SWAP_ORDER_EXPIRY_HOURS` | `0.25` (15 minutes) | No; finite fractional hours are accepted |
-| `LOCAL_CHAIN_FINALITY_DEPTH` | empty | No; a positive block depth at which an issuance, swap or register opening on a local chain (1337, 31337) is final. The local stack sets `1`. Refused for any other chain id |
+| Variable                             | Default                                                 | Required                                                                                                                                                                    |
+| ------------------------------------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BLOCKCHAIN_RPC_URL`                 | `ALCHEMY_BASE_URL` if set, else `http://localhost:8545` | Yes for any chain call                                                                                                                                                      |
+| `BLOCKCHAIN_CHAIN_ID`                | `84532`                                                 | No; must be one of 1337, 31337, 84532, 11155111 or startup fails                                                                                                            |
+| `ETHEREUM_CHAIN_ID`                  | `11155111`                                              | No; same allowed set                                                                                                                                                        |
+| `BITCOIN_NETWORK`                    | `test`                                                  | No; `test` or `regtest` only                                                                                                                                                |
+| `EVM_ASSET_TRANSFER_HISTORY_ENABLED` | `false`                                                 | No; enables provider-backed EVM asset transfer history                                                                                                                      |
+| `BLOCKCHAIN_OPERATOR_KEY`            | empty                                                   | Yes to deploy, mint, whitelist, pause                                                                                                                                       |
+| `SHARE_TOKEN_FACTORY_ADDRESS`        | empty                                                   | Yes for issuance                                                                                                                                                            |
+| `ATOMIC_SWAP_ADDRESS`                | empty                                                   | Only for settlement                                                                                                                                                         |
+| `STABLECOIN_CONTRACT_ADDRESS`        | empty                                                   | Only for stablecoin payment; seeds the `AUDY` deployment on `base`                                                                                                          |
+| `SWAP_ORDER_EXPIRY_HOURS`            | `0.25` (15 minutes)                                     | No; finite fractional hours are accepted                                                                                                                                    |
+| `LOCAL_CHAIN_FINALITY_DEPTH`         | empty                                                   | No; a positive block depth at which an issuance, swap or register opening on a local chain (1337, 31337) is final. The local stack sets `1`. Refused for any other chain id |
 
 Malformed and non-finite values are refused at settings import. This default
 applies when issuing a new swap without an explicit signing window.
@@ -97,11 +97,11 @@ anything that signs. On a new chain it deploys the core contracts with
 `npm run deploy:local:core`, from development account #0 at its nonces 0 to 4,
 which puts them at the same three addresses every time:
 
-| Contract | Address |
-| --- | --- |
+| Contract            | Address                                      |
+| ------------------- | -------------------------------------------- |
 | `ShareTokenFactory` | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| `AUDY` | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
-| `AtomicSwap` | `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9` |
+| `AUDY`              | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| `AtomicSwap`        | `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9` |
 
 On every start it then checks them: the code at each address must be the
 current build of the contract (outside its immutable values), account #0 must
@@ -215,12 +215,18 @@ existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
 
 `make chain-test` does the local sequence unattended: it compiles, starts a
 node, waits for `eth_chainId`, deploys the core contracts, sources
-`.deployed-contracts.env` and runs the five real-chain modules,
+`.deployed-contracts.env` and runs the real-chain modules,
 `tokens.tests.test_chain_integration`, `offerings.tests.test_chain_allotment`,
 `wallets.tests.test_submission_chain`, `tokens.tests.test_chain_journey`
 (the [demonstration journey](demonstration-journey.md)) and
-`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data)),
-then stops the node.
+`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data))
+and `tokens.tests.test_company_paid_issue_chain` for genuine paid company issue
+authority, original execution and separate Mint/register outcomes,
+plus `tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest`
+and `tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest` for
+the genuine company capital and pause seed commands and their captured original
+jobs. It then stops the node. The capital class verifies cap-only execution
+without relying on the currently unsupported no-key treasury seed path.
 `CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
 deploy connects to (through `LOCALHOST_RPC_URL`, which
 `contracts/hardhat.config.ts` reads) and the backend's `BLOCKCHAIN_RPC_URL` — so
@@ -298,6 +304,7 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    retain it and investigate; do not rerun deployment or erase history to make
    this fresh-only verifier accept the signer. Without fresh metadata, ordinary
    deployment behavior is unchanged and does not produce admission evidence.
+
 3. Configure a separate, newly created empty database. From `backend/`, run
    `python manage.py migrate`, `python manage.py check_rls_roles` and
    `python manage.py check_rls_catalogue` against it. Do not carry old rows into
@@ -330,6 +337,7 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    lists the strict transaction, finality, history and replay checks. This
    command must run before companies, legacy source rows or outgoing operations
    exist. An inventory report does not authorize admission or clear legacy holds.
+
 5. After successful admission, start the backend and workers and recreate
    companies and users through the browser. `createsuperuser` and admin wallet
    verification are the other steps outside it.

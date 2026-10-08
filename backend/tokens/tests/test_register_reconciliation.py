@@ -38,7 +38,7 @@ from tokens.services.register_reconciliation import (
 from tokens.services.register_snapshot import ZERO_ADDRESS
 from tokens.tasks.register_reconciliation import reconcile_every_register
 from tokens.tests import test_swap_finality
-from tokens.tests.issuance_fixtures import admit
+from tokens.tests.retained_issuance_fixtures import prepare_retained_execution
 from tokens.tests.test_register_corrections import (
     apply_correction,
     correction_payload,
@@ -180,8 +180,10 @@ class RegisterReconciliationTest(InclusionFixtures, TransactionTestCase):
         self.mint_node.receipt_status = 0
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "failed")
         superseded = ShareIssuanceExecution.objects.get(pk=command.pk).operation.current_attempt
-        admit(ShareIssuanceRequest.objects.get(pk=command.request_id), self.actor)
         self.mint_node.receipt_status = 1
+        prepare_retained_execution(
+            ShareIssuanceRequest.objects.get(pk=command.request_id), self.actor, self.mint_node.client
+        )
         self.mint_node.finalized = LATER - 1
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
         current = ShareIssuanceExecution.objects.get(pk=command.pk).operation.current_attempt

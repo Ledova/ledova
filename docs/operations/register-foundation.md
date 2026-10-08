@@ -70,12 +70,12 @@ identity is a treasury label. It never merges members by matching names.
 A register belongs to one share class. Its first entry records the opening state,
 including an explicitly empty state. Subsequent event kinds are:
 
-| Kind | Effect |
-| --- | --- |
-| Issue | Add a positive whole-share quantity to one member |
-| Transfer | Subtract from one member and add the same quantity to another |
-| Cessation | Remove a member's entire holding in this class |
-| Correction | Compensate every quantity in one earlier entry exactly |
+| Kind       | Effect                                                        |
+| ---------- | ------------------------------------------------------------- |
+| Issue      | Add a positive whole-share quantity to one member             |
+| Transfer   | Subtract from one member and add the same quantity to another |
+| Cessation  | Remove a member's entire holding in this class                |
+| Correction | Compensate every quantity in one earlier entry exactly        |
 
 A transfer that empties a holding leaves a zero position. Cessation here describes
 the class holding, not a conclusion about membership across the company's other
@@ -125,9 +125,7 @@ Create `opening.json` with synthetic UUIDs and whole-share amounts:
 {
   "operation_id": "78e39ef6-4c7c-4b38-8311-268ac67086b5",
   "effective_on": "2026-09-20",
-  "holdings": [
-    {"member": "b0169d39-35b2-4f97-aa0a-fb027c1b167f", "shares": "100"}
-  ]
+  "holdings": [{ "member": "b0169d39-35b2-4f97-aa0a-fb027c1b167f", "shares": "100" }]
 }
 ```
 
@@ -248,6 +246,7 @@ reconciliation remain #647 work.
 Since 5 October 2026 the company runs its corrections itself, as it runs its
 [imports](#importing-an-existing-register), under the owner's
 [company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+
 - the evidence is company-provided. The company uploads the director resolution
   or court order that authorises the correction as an `authority` upload. Ledova
   staff do not verify it, and the correction's copy is shown as provided by the
@@ -265,16 +264,16 @@ Staff permissions, company ownership alone and shareholding grant none of these
 steps. The Register screen in both clients lists each class's entries and
 corrections and runs these steps, through the API below.
 
-| Method and route | Result |
-| --- | --- |
-| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
-| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-corrections/` | Prepare the correction; return the retained request |
-| `GET /api/v1/tokens/register-corrections/` | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register`, `token` (the share class) and `status` |
-| `GET /api/v1/tokens/register-corrections/{uuid}/` | Request, bound revision and evidence, stage and decisions |
-| `GET /api/v1/tokens/register-corrections/{uuid}/file/` | Authenticated attachment of the correction's copy of the authority document |
-| `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest |
-| `POST /api/v1/tokens/register-corrections/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+| Method and route                                                    | Result                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/{uuid}/register/entries/`                       | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
+| `POST /api/v1/tokens/register-evidence/`                            | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                                                                     |
+| `POST /api/v1/tokens/register-corrections/`                         | Prepare the correction; return the retained request                                                                                                                                                                                                                                                                                                                                          |
+| `GET /api/v1/tokens/register-corrections/`                          | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register`, `token` (the share class) and `status`                                                                                                                            |
+| `GET /api/v1/tokens/register-corrections/{uuid}/`                   | Request, bound revision and evidence, stage and decisions                                                                                                                                                                                                                                                                                                                                    |
+| `GET /api/v1/tokens/register-corrections/{uuid}/file/`              | Authenticated attachment of the correction's copy of the authority document                                                                                                                                                                                                                                                                                                                  |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest                                                                                                                                                                                                                          |
+| `POST /api/v1/tokens/register-corrections/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                                                          |
 
 For a synthetic exercise, use the register foundation command to create an
 opening and identify the entry to compensate, and upload a synthetic signed
@@ -306,6 +305,7 @@ until that date. A director resolution names the approving director;
 An owner account is not proof of director authority.
 
 Preparation refuses, with a message naming the problem:
+
 - an entry of a company in which the caller holds no current appointment;
 - evidence that is not the preparer's own `authority` upload for this company,
   or whose stored bytes no longer match its fingerprint;
@@ -320,18 +320,18 @@ with any change conflicts.
 Each decision starts with a preview, which shows the original entry's changes
 beside their inverse and lists what the decision still lacks:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `correction_decided` | The correction is already applied or rejected |
-| `company_provided_evidence_required` | A retained staff-era correction, which can only be rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
-| `register_changed` | The register has a newer entry than the revision preparation captured |
-| `entry_already_corrected` | Another correction of the same entry was applied |
-| `position_would_go_negative` | Applying the inverse would take a stored holding below zero |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+| Requirement                             | Meaning                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs   |
+| `correction_decided`                    | The correction is already applied or rejected                                 |
+| `company_provided_evidence_required`    | A retained staff-era correction, which can only be rejected                   |
+| `already_approved`                      | A current approval exists                                                     |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                       |
+| `register_changed`                      | The register has a newer entry than the revision preparation captured         |
+| `entry_already_corrected`               | Another correction of the same entry was applied                              |
+| `position_would_go_negative`            | Applying the inverse would take a stored holding below zero                   |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                  |
 
 The preview digest binds the correction, the decision, the person, the
 appointment, the reason and, for application, the register's sequence and head
@@ -351,6 +351,7 @@ unavailable. An already compensated entry cannot be compensated a second time.
 **Admin → Tokens → Register corrections** shows corrections and their copies as
 read-only history. The database keeps corrections, uploads and decisions
 immutable and refuses:
+
 - a preparation not made through the company command by a person whose current
   appointment holds `admin` or `prepare`;
 - a preparation whose evidence, fingerprint, snapshot or copy path differ from
@@ -391,6 +392,7 @@ canonical chain boundary. The company opens it itself, as it runs its
 [imports](#importing-an-existing-register) and
 [corrections](#compensating-corrections), under the owner's
 [company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+
 - the evidence is company-provided. The company uploads the director resolution
   or court order that authorises the opening as an `authority` upload. Ledova
   staff do not verify it, and the opening's copy is shown as provided by the
@@ -420,16 +422,16 @@ mapping may not repeat an address. An opening stores no personal particulars; a
 later [import](#importing-an-existing-register) records names and residential
 addresses.
 
-| Method and route | Result |
-| --- | --- |
-| `GET /api/v1/tokens/{uuid}/register/opening-holders/` | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
-| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-openings/` | Prepare the opening, capturing its boundary; return the retained request |
-| `GET /api/v1/tokens/register-openings/` | Paginated openings for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
-| `GET /api/v1/tokens/register-openings/{uuid}/` | Request, captured boundary and its summary, mapping, evidence, stage and decisions |
-| `GET /api/v1/tokens/register-openings/{uuid}/file/` | Authenticated attachment of the opening's copy of the authority document |
-| `POST /api/v1/tokens/register-openings/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the opening entry's share changes and effective date, and the preview digest |
-| `POST /api/v1/tokens/register-openings/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+| Method and route                                                 | Result                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/{uuid}/register/opening-holders/`            | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
+| `POST /api/v1/tokens/register-evidence/`                         | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                                   |
+| `POST /api/v1/tokens/register-openings/`                         | Prepare the opening, capturing its boundary; return the retained request                                                                                                                                                                                                                                                                                   |
+| `GET /api/v1/tokens/register-openings/`                          | Paginated openings for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status`                                                                                                                           |
+| `GET /api/v1/tokens/register-openings/{uuid}/`                   | Request, captured boundary and its summary, mapping, evidence, stage and decisions                                                                                                                                                                                                                                                                         |
+| `GET /api/v1/tokens/register-openings/{uuid}/file/`              | Authenticated attachment of the opening's copy of the authority document                                                                                                                                                                                                                                                                                   |
+| `POST /api/v1/tokens/register-openings/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the opening entry's share changes and effective date, and the preview digest                                                                                                                                                                                  |
+| `POST /api/v1/tokens/register-openings/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                        |
 
 The opening holders read shows a preparer which addresses to map before
 preparing. It captures a canonical snapshot as preparation does, takes no lock
@@ -461,7 +463,7 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
   "token_id": "10000000-0000-4000-8000-000000000012",
   "authority_evidence": "10000000-0000-4000-8000-000000000013",
   "mapping": [
-    {"address": "0x1111111111111111111111111111111111111111", "member": "10000000-0000-4000-8000-000000000014"}
+    { "address": "0x1111111111111111111111111111111111111111", "member": "10000000-0000-4000-8000-000000000014" }
   ],
   "authority": "director_resolution",
   "approving_director": "Synthetic Director",
@@ -477,6 +479,7 @@ canonical transfer history that later classification needs. It reads the chain
 before it takes the company lock, then checks everything else against that
 boundary under the lock, the appointment included. It refuses, with a message
 naming the problem:
+
 - a share class of a company in which the caller holds no current appointment,
   or an appointment that holds neither `admin` nor `prepare`, before reading the
   chain;
@@ -506,19 +509,19 @@ Each decision starts with a preview, which shows the share changes the opening
 entry would record and its effective date, and lists what the decision still
 lacks:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `opening_decided` | The opening is already applied or rejected |
-| `company_provided_evidence_required` | A retained staff-era opening, which can only be rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
-| `boundary_changed` | Reading the chain again found the boundary block no longer canonical or no longer covered by the approved finality policy, or the policy or chain changed |
-| `register_initialized` | The class's register already has an entry |
-| `completions_not_represented` | A completed issue or transfer is not represented by the boundary |
-| `wallet_linked_elsewhere` | A mapped address was linked to another member after preparation |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+| Requirement                             | Meaning                                                                                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                                               |
+| `opening_decided`                       | The opening is already applied or rejected                                                                                                                |
+| `company_provided_evidence_required`    | A retained staff-era opening, which can only be rejected                                                                                                  |
+| `already_approved`                      | A current approval exists                                                                                                                                 |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                                                             |
+| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                                                                                                   |
+| `boundary_changed`                      | Reading the chain again found the boundary block no longer canonical or no longer covered by the approved finality policy, or the policy or chain changed |
+| `register_initialized`                  | The class's register already has an entry                                                                                                                 |
+| `completions_not_represented`           | A completed issue or transfer is not represented by the boundary                                                                                          |
+| `wallet_linked_elsewhere`               | A mapped address was linked to another member after preparation                                                                                           |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                                                                                              |
 
 Approval and application read the chain again before they take the company lock,
 and check only stored facts under it. They read it only for a caller whose
@@ -546,6 +549,7 @@ unavailable.
 **Admin → Tokens → Register openings** shows openings and their copies as
 read-only history. The database keeps openings, uploads, decisions and wallet
 links immutable and refuses:
+
 - a preparation not made through the company command by a person whose current
   appointment holds `admin` or `prepare`;
 - a preparation whose evidence, fingerprint, snapshot or copy path differ from
@@ -589,6 +593,7 @@ The company links wallets itself, under the owner's
 [company-run register decisions](../decisions.md#company-run-register-authority-and-evidence)
 of 5 October 2026, which reached links once [#863](https://github.com/Ledova/ledova/issues/863)
 closed:
+
 - the authority is documentary, as decided on 21 September 2026: a director
   resolution that names the approving director, or a court order. The company
   uploads it as an `authority` upload. Ledova staff do not verify it, and the
@@ -616,21 +621,20 @@ applied before an opening shows its member in the
 resolves to one member per company, matched regardless of letter case, and an
 address linked once is never linked again.
 
-| Method and route | Result |
-| --- | --- |
+| Method and route                                              | Result                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/tokens/register-links/waiting-wallets/?company=` | `wallets`: each wallet that a completed issue or transfer of the company's opened classes waits for, as the [waiting list](#the-issuers-waiting-list) names it in `unlinkedWallets`, with `waiting`, the number of waiting effects naming it, and its statuses below, ordered by address. Only for a current appointment holding `admin` or `prepare` |
-| `POST /api/v1/tokens/register-evidence/` | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-links/` | Prepare the link; return the retained link |
-| `GET /api/v1/tokens/register-links/` | Paginated links for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `status` |
-| `GET /api/v1/tokens/register-links/{uuid}/` | The link, its mapping and `mappingSummary`, evidence, stage and decisions |
-| `GET /api/v1/tokens/register-links/{uuid}/file/` | Authenticated attachment of the link's copy of the authority document |
-| `POST /api/v1/tokens/register-links/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, each address with its member and statuses, and the preview digest |
-| `POST /api/v1/tokens/register-links/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+| `POST /api/v1/tokens/register-evidence/`                      | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                              |
+| `POST /api/v1/tokens/register-links/`                         | Prepare the link; return the retained link                                                                                                                                                                                                                                                                                                            |
+| `GET /api/v1/tokens/register-links/`                          | Paginated links for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `status`                                                                                                                                  |
+| `GET /api/v1/tokens/register-links/{uuid}/`                   | The link, its mapping and `mappingSummary`, evidence, stage and decisions                                                                                                                                                                                                                                                                             |
+| `GET /api/v1/tokens/register-links/{uuid}/file/`              | Authenticated attachment of the link's copy of the authority document                                                                                                                                                                                                                                                                                 |
+| `POST /api/v1/tokens/register-links/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, each address with its member and statuses, and the preview digest                                                                                                                                                                                        |
+| `POST /api/v1/tokens/register-links/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                   |
 
 The waiting-wallets read reads only the database, never the chain, and takes no
 lock. Anyone else, platform staff and the owner alone included, gets the same
-404 as an unknown company, and a `company` that is not a UUID is refused with
-400.
+404 as an unknown company, and a `company` that is not a UUID is refused with 400.
 
 Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
@@ -641,7 +645,7 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
   "company_id": "10000000-0000-4000-8000-000000000022",
   "authority_evidence": "10000000-0000-4000-8000-000000000023",
   "mapping": [
-    {"address": "0x3333333333333333333333333333333333333333", "member": "10000000-0000-4000-8000-000000000024"}
+    { "address": "0x3333333333333333333333333333333333333333", "member": "10000000-0000-4000-8000-000000000024" }
   ],
   "authority": "director_resolution",
   "approving_director": "Synthetic Director",
@@ -652,6 +656,7 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
 Preparation stores each address checksummed, in address order, and refuses,
 with a message naming the problem:
+
 - a company in which the caller holds no current appointment, as not found, or
   an appointment that holds neither `admin` nor `prepare`, also as not found;
 - an empty mapping, one that is not a list of addresses and member UUIDs, or one
@@ -683,16 +688,16 @@ bound into the digest, and they never choose a member.
 
 Each decision starts with a preview, which lists what the decision still lacks:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `link_decided` | The link is already applied or rejected |
-| `company_provided_evidence_required` | A retained staff-era link, which can only be rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
-| `wallet_linked_elsewhere` | A mapped address was linked to another member after preparation |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+| Requirement                             | Meaning                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs   |
+| `link_decided`                          | The link is already applied or rejected                                       |
+| `company_provided_evidence_required`    | A retained staff-era link, which can only be rejected                         |
+| `already_approved`                      | A current approval exists                                                     |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended |
+| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                       |
+| `wallet_linked_elsewhere`               | A mapped address was linked to another member after preparation               |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                  |
 
 The preview digest binds the link, the decision, the person, the appointment,
 the reason and, for application, the current links of the mapped addresses. The
@@ -706,6 +711,7 @@ nothing.
 
 Application takes the company lock and then every share class of the company,
 in order, and records in one transaction:
+
 - the new members and the links, skipping an address an opening or another link
   has since linked to the same member;
 - then, for each share class in order, whatever issue or transfer was
@@ -744,6 +750,7 @@ behaviour, unchanged by company-run links.
 **Admin → Tokens → Register wallet links** shows links and their copies as
 read-only history; the review page is gone. The database keeps links, uploads,
 decisions and the member wallets they record immutable and refuses:
+
 - a preparation not made through the company command by a person whose current
   appointment holds `admin` or `prepare`;
 - a preparation whose evidence, fingerprint, snapshot or copy path differ from
@@ -770,22 +777,42 @@ own decision before real data.
 
 ## Register instructions for issues
 
-An issue is the directors' act, so the platform approves one only once staff have
-verified a named director's approval (owner decision 2, 22 September 2026). The
-company owner submits a register instruction listing the exact issues
-it approves, each with its recipient wallet and whole number of shares: a direct
-issue by its issuance request, and an offering allotment by its subscription. It
+Company-authorised [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
+use `/api/v1/tokens/register-issues/` and the company prepare/approve/apply/reject
+family in both clients. Exact member, nomination, finite company wallet approval
+and company-provided authority/terms/required acceptance are retained. The company
+can first run a genuine LINK for one selected nominated wallet and a new member,
+before any mint. Application admits the original issuance; its finalised genuine
+Mint supplies the original member's ISSUE once, without a paid subscription or
+receipt. Imported classes retain their separate walletless grant workflow and
+cannot use this chain path merely because a contract has been deployed.
+
+The [paid-issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. It uses the company's exact approval over a genuine
+recorded PAID subscription, then admits its original request and execution only
+on application. Payment, approval, finalised Mint, ALLOTTED and register recording
+remain separate. Its original wallet-to-member LINK supplies attribution, or the
+effect waits for that link. Fresh staff paid ISSUE approval and allotment are
+retired; financial receipt/refund producers remain separate pending #868.
+
+Retained already-approved direct issues awaiting register cover use the earlier
+instruction workflow below. Historical paid instructions retain their genuine
+staff decisions and original source; they supply no fresh paid admission route.
+Under the retained workflow, staff verify a named director's approval (owner
+decision 2, 22 September 2026). The company owner submits a register instruction
+listing each retained direct issue by its issuance request, recipient wallet and
+whole number of shares. It
 names the approving director and carries a verified company document, and it
 retains a private copy of the authority file. Its kind is
 `issue`; a [transfer instruction](#register-instructions-for-transfers) has its
 own kind.
 
-| Method and route | Result |
-| --- | --- |
-| `POST /api/v1/tokens/register-instructions/` | Submit the owner's instruction; return the retained instruction |
-| `GET /api/v1/tokens/register-instructions/` | Paginated instructions for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
-| `GET /api/v1/tokens/register-instructions/{uuid}/` | Instruction, items and decision |
-| `GET /api/v1/tokens/register-instructions/{uuid}/file/` | Authenticated attachment of the retained authority file |
+| Method and route                                        | Result                                                                                                                                                                                    |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/tokens/register-instructions/`            | Submit the owner's instruction; return the retained instruction                                                                                                                           |
+| `GET /api/v1/tokens/register-instructions/`             | Paginated instructions for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply` |
+| `GET /api/v1/tokens/register-instructions/{uuid}/`      | Instruction, items and decision                                                                                                                                                           |
+| `GET /api/v1/tokens/register-instructions/{uuid}/file/` | Authenticated attachment of the retained authority file                                                                                                                                   |
 
 ```json
 {
@@ -794,22 +821,25 @@ own kind.
   "document_id": "10000000-0000-4000-8000-000000000013",
   "kind": "issue",
   "items": [
-    {"request": "10000000-0000-4000-8000-000000000042", "recipient": "0x3333333333333333333333333333333333333333", "amount": "100"},
-    {"subscription": "10000000-0000-4000-8000-000000000043", "recipient": "0x4444444444444444444444444444444444444444", "amount": "40"}
+    {
+      "request": "10000000-0000-4000-8000-000000000042",
+      "recipient": "0x3333333333333333333333333333333333333333",
+      "amount": "100"
+    }
   ],
   "approving_director": "Synthetic Director",
   "authority_reference": "SYNTHETIC-RESOLUTION-ISSUE-1",
-  "reason": "Allot the shares the board resolved to issue"
+  "reason": "Record the retained non-paid issue the board approved"
 }
 ```
 
-Each item must belong to the share class and match the request's or
-subscription's recipient and shares as they stand. It must also still await
-approval: a request submitted or under review, or a paid subscription not yet
-allotted. The one exception is an issue approved before `tokens/0073`, by the old
-Approve action or an allotment, whose issue entry is not yet recorded. Listing it
-adds the cover its entry waits for, without approving it again. An allotment is
-always listed by its subscription, never by its request.
+Each new item must belong to the share class and match the retained non-paid
+request's recipient and shares as they stand. A standalone request must already be approved and await that cover;
+submitted and under-review standalone requests are refused. Listing a retained
+approval adds the cover its entry waits for, without approving it again. An
+original paid instruction keeps its subscription references and financial terms
+as history. New subscription items and requests linked to a paid subscription
+require the company paid family, including when they seek register cover.
 
 In **Admin → Tokens → Register instructions**, open the instruction's review
 link. An active staff user with change permission inspects the retained file, the
@@ -821,8 +851,8 @@ application all refuse:
 
 - an item whose recipient or shares differ from its request's or subscription's
   current terms, as when they change after submission;
-- an item no longer awaiting approval, such as a request staff rejected or one
-  another instruction approved;
+- an item that does not name a retained non-paid approval awaiting cover, or
+  an item another applied instruction already covers;
 - a director who is the recipient an item identifies, by the request's
   recipient name or the profile name of the account holding the recipient
   wallet;
@@ -833,29 +863,25 @@ Rejection with a reason stays available. Application rechecks the reviewer-bound
 expiring confirmation, the retained evidence and every item under the company and
 share-class locks, then in one transaction:
 
-- approves each listed request still awaiting approval, with the applying staff
-  member as its reviewer, who is therefore the recorder of its issue entry;
-- lets staff allot each listed subscription on exactly its listed terms;
-- records any listed issue approved before `tokens/0073` that completed and was
+- records any listed retained already-approved issue that completed and was
   [waiting for cover](#recording-issues-and-transfers-after-the-opening).
 
-Applying an instruction is now the only way to approve a direct issuance
-request: the staff **Approve** action is gone, and a submitted request shows
-"Awaiting a register instruction". **Reject** stays. Allotment refuses a
-subscription that no applied instruction lists with its current recipient and
-shares, so a scale-back or a partial payment after the instruction needs a fresh
-one.
+Fresh non-paid grants use the company preparation and decision family described
+above. The direct owner issue POST and staff approval/admission of fresh non-paid
+requests are retired. Staff **Reject** remains for retained review requests.
+Fresh paid issues use the company paid family above. Changed payment or scale-back
+facts invalidate its captured source and confirmation; an admitted original
+subscription/request binding cannot be renewed by preparing a duplicate.
 
 Repeated identical submissions and decisions are idempotent, and conflicting UUID
 reuse is refused. The database keeps instructions immutable and undeletable,
 refuses an item outside the instruction's company and share class, and refuses
-customer-role or forged decisions. It also refuses an application that leaves a
-listed request unapproved and, since `tokens/0077`, any application for a class
-an import opened. `tokens/0073` also guards issuance requests: the
-company's own connection can no longer approve, reject or start review of one, or
-change its reviewer, review time, notes or rejection reason, and no connection
-can approve one without an active staff reviewer. Retention follows openings and
-corrections.
+customer-role or forged legacy decisions. It also refuses an application that
+leaves a listed request unapproved and, since `tokens/0077`, any application for a
+class an import opened. Legacy request review retains its active staff reviewer
+and database guards. New company grants instead require their exact current
+company appointment and matching retained decision; a company connection alone
+supplies no review authority. Retention follows openings and corrections.
 
 ## Register instructions for transfers
 
@@ -876,7 +902,12 @@ is the class of every settlement it lists.
   "document_id": "10000000-0000-4000-8000-000000000013",
   "kind": "transfer",
   "items": [
-    {"settlement": "10000000-0000-4000-8000-000000000052", "seller": "0x3333333333333333333333333333333333333333", "buyer": "0x4444444444444444444444444444444444444444", "amount": "25"}
+    {
+      "settlement": "10000000-0000-4000-8000-000000000052",
+      "seller": "0x3333333333333333333333333333333333333333",
+      "buyer": "0x4444444444444444444444444444444444444444",
+      "amount": "25"
+    }
   ],
   "approving_director": "Synthetic Director",
   "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
@@ -923,12 +954,12 @@ gas and the approved finality policy — and the captured boundary carries the
 canonical transfer history it folded. Classification asks whether the
 completion's transaction is in that history:
 
-| Classification | Meaning |
-| --- | --- |
-| `unopened` | The share class has no applied opening, so nothing represents the effect yet |
-| `opening` | The completion's transaction is in the boundary's canonical history, at the same block and hash, so the opening's holdings already contain it |
-| `after_opening` | The completion is in a later block than the boundary and absent from its history |
-| `attribution` | The boundary's own evidence cannot place the completion, so an operator must resolve it |
+| Classification  | Meaning                                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unopened`      | The share class has no applied opening, so nothing represents the effect yet                                                                  |
+| `opening`       | The completion's transaction is in the boundary's canonical history, at the same block and hash, so the opening's holdings already contain it |
+| `after_opening` | The completion is in a later block than the boundary and absent from its history                                                              |
+| `attribution`   | The boundary's own evidence cannot place the completion, so an operator must resolve it                                                       |
 
 A lower block number is not ancestry. A completion at an earlier height whose
 transaction is missing from the captured history was orphaned, or belongs to
@@ -977,10 +1008,10 @@ python manage.py register_inclusions --token TOKEN_UUID
 so a boundary captured before it has none. What that means depends on whether
 the opening was applied:
 
-| Opening | Behaviour | Remedy |
-| --- | --- | --- |
-| Pending | It was submitted for the retired staff review, so it can only be rejected | Reject it with a reason, then prepare a fresh opening, whose preparation captures a boundary with history |
-| Applied | It remains the register's opening, and every completion classifies as `attribution` against it | None implemented |
+| Opening | Behaviour                                                                                      | Remedy                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Pending | It was submitted for the retired staff review, so it can only be rejected                      | Reject it with a reason, then prepare a fresh opening, whose preparation captures a boundary with history |
+| Applied | It remains the register's opening, and every completion classifies as `attribution` against it | None implemented                                                                                          |
 
 An applied opening cannot be recaptured. The register is initialised, so a fresh
 opening is refused at preparation and at application, and the applied opening's
@@ -992,36 +1023,38 @@ procedure, and none exists yet.
 ## Recording issues and transfers after the opening
 
 Once a share class has an applied opening, each completed issuance and settlement
-that classifies `after_opening` is recorded as a register event: in the
-transaction that completes it when nothing holds it back, otherwise in the one that
-resolves what it waited for. A settlement's transfer waits for its
+that classifies `after_opening` is recorded as a register event. Company grant
+recording follows the outcome transaction with the original instruction/member
+and retains reservations until its entry exists. A waiting effect is recorded
+when its actual prerequisite is resolved. A settlement's transfer waits for its
 [transfer instruction](#register-instructions-for-transfers), because directors
 decide on it after it completes.
 
-| Effect | Entry | Recorded by | Effective date |
-| --- | --- | --- | --- |
-| Issuance | `issue` of the minted shares to the recipient's linked member | The staff member who approved the issuance request: who applied the [register instruction](#register-instructions-for-issues) listing it, allotted the subscription one lists, or approved it before `tokens/0073` | The date the entry is made (UTC) |
-| Settlement | `transfer` from the seller's linked member to the buyer's | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement | The date the entry is made (UTC) |
+| Effect     | Entry                                                      | Recorded by                                                                                                                                                                                           | Effective date                   |
+| ---------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Issuance   | `issue` of the minted shares to the original linked member | The company appointee who applied the exact non-paid grant or paid issue; historical work retains its original staff reviewer/allotter under the [register instruction](#register-instructions-for-issues) | The date the entry is made (UTC) |
+| Settlement | `transfer` from the seller's linked member to the buyer's  | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement                                               | The date the entry is made (UTC) |
 
-An entry recorded as its effect completes is made in the completion's own
-transaction, so it carries the completion date. One recorded after its effect
-waited carries the later date on which it is made, whatever it waited for, a
-wallet link included (owner decision, 22 September 2026). Entries recorded
-before this rule keep their completion dates.
+An entry uses the date it is actually made. Issuance recording follows the
+completion transaction, and recovery can retry a finalised original whose ISSUE
+has not yet been entered. One recorded after its effect waited carries the later
+date on which it is made, whatever it waited for, a wallet link included
+(owner decision, 22 September 2026). Entries recorded before this rule keep their
+completion dates.
 
 The entry's operation ID is the completed issuance or settlement, so recording is
 idempotent. Only an issue or transfer entry counts: a correction or opening that
 reuses a completion's ID does not mark it recorded. The completion then waits,
 with the register's refusal logged. An effect the opening already represents records nothing, and so does
 a settlement between two wallets of the same member, since no holding changes.
-An issue is recorded only once an applied register instruction covers its request
-or, for an allotment, its subscription. Every issue approved since `tokens/0073`
-is covered, because applying an instruction is its approval and allotment needs
-one; an issue approved before it waits until an instruction lists it. The
-recorder is the request's reviewer, which the company's own connection cannot
-change since `tokens/0073`. A request with no recorded reviewer waits rather than
-recording someone else. Entries recorded before `tokens/0073` stay as they are, and no
-approval is invented for them. A transfer is recorded only once an applied
+An issue is recorded only once its exact applied company instruction covers its
+original request/member or a retained paid instruction covers its request or
+subscription. Paid issues approved since `tokens/0073` are covered because
+allotment needs an applied instruction; an earlier issue waits until an instruction
+lists it. The recorder remains the original company applier or paid/historical
+reviewer. A request with no recorded reviewer waits rather than recording someone
+else. Entries recorded before `tokens/0073` stay as they are, and no approval is
+invented for them. A transfer is recorded only once an applied
 transfer instruction lists its settlement. Transfer entries recorded before
 `tokens/0076` stay as they are; a settlement completed but not yet recorded before
 it waits for an instruction like any later one.
@@ -1060,8 +1093,8 @@ holding `admin`, `read_register`, `prepare`, `approve` or `apply`) can list the
 completed effects of a share class that are not yet in the register, in the
 order recording will take them:
 
-| Method and route | Result |
-| --- | --- |
+| Method and route                              | Result                                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/tokens/{uuid}/register/waiting/` | `effects`: each completed effect after the opening not yet recorded, in chain order, or `null` where `waitingEffects` is `null` |
 
 Each effect carries its `kind` (`issue` or `transfer`), its `source` (the
@@ -1070,14 +1103,14 @@ that finally included it, its `wallets` (the recipient's for an issue, the
 seller's then the buyer's for a transfer), its `shares`, its `reason` and
 `unlinkedWallets`:
 
-| Reason | Why it waits | What resolves it |
-| --- | --- | --- |
-| `attribution` | The opening's captured boundary cannot place its completion | The attribution procedure, not yet specified |
-| `unlinked` | A wallet it names is linked to no member; `unlinkedWallets` lists which | A [wallet link](#linking-wallets-after-the-opening) |
-| `unreviewed` | The issue's request records no approving reviewer, as when the reviewer's account was deleted | Nothing yet: recording does not invent a recorder |
-| `uninstructed` | No applied register instruction covers the issue or transfer | A register instruction that lists it: [for an issue](#register-instructions-for-issues) or [for a transfer](#register-instructions-for-transfers) |
-| `refused` | Nothing of its own: recording last tried it and the register refused the entry | The logged refusal's cause, such as a seller's stored holding that does not cover the transfer or a latest entry dated after today; recording tries again at its next run |
-| `behind` | Nothing of its own: an earlier effect in the class waits | Resolving the earlier effect |
+| Reason         | Why it waits                                                                                  | What resolves it                                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `attribution`  | The opening's captured boundary cannot place its completion                                   | The attribution procedure, not yet specified                                                                                                                              |
+| `unlinked`     | A wallet it names is linked to no member; `unlinkedWallets` lists which                       | A [wallet link](#linking-wallets-after-the-opening)                                                                                                                       |
+| `unreviewed`   | The issue's request records no approving reviewer, as when the reviewer's account was deleted | Nothing yet: recording does not invent a recorder                                                                                                                         |
+| `uninstructed` | No applied register instruction covers the issue or transfer                                  | A register instruction that lists it: [for an issue](#register-instructions-for-issues) or [for a transfer](#register-instructions-for-transfers)                         |
+| `refused`      | Nothing of its own: recording last tried it and the register refused the entry                | The logged refusal's cause, such as a seller's stored holding that does not cover the transfer or a latest entry dated after today; recording tries again at its next run |
+| `behind`       | Nothing of its own: an earlier effect in the class waits                                      | Resolving the earlier effect                                                                                                                                              |
 
 A waiting transfer's row carries what a transfer instruction names: its `source`,
 its two `wallets` and its `shares`.
@@ -1180,6 +1213,7 @@ use. The share class needs an applied opening.
    A chain issue's operation is its share issuance and a chain transfer's is its
    swap order. A direct ledger issue or transfer instead names its retained grant
    or transfer command. A correction's last value is the number of the entry it reverses.
+
 3. In **Admin → Tokens → Register outputs**, open the share class and choose
    **Prepare a certificate**.
 4. Enter the entry's number and the instruction's reference, then choose
@@ -1385,11 +1419,13 @@ only each attempt's hash, nonce, signer and chain id.
 A company that arrives with a register keeps its members' particulars and its
 pre-platform former members. Imports follow the owner decisions of
 21 September 2026:
+
 - for a class already opened from the chain, the import adds particulars and
   former members and leaves holdings to the stored register;
 - for a class not yet on chain, the import is the opening.
 
 The owner decided on 22 September 2026 that:
+
 - the applied import's copies of its evidence are kept like opening and
   correction evidence;
 - a member's live verified identity wins over imported particulars;
@@ -1405,6 +1441,7 @@ The owner decided on 22 September 2026 that:
 
 Since 5 October 2026 the company runs its imports itself, under the owner's
 [company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+
 - the evidence is company-provided. The company uploads its current share
   register and its ASIC extract, and states the extract's issued total and
   member count for the class when it prepares the import. Ledova staff verify
@@ -1426,16 +1463,16 @@ Register in both clients are delivered.
 A share class takes one applied import. Preparation and application each
 refuse another once one is applied, and a partial unique index backs them.
 
-| Method and route | Result |
-| --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain), a [correction](#compensating-corrections) or a [wallet link](#linking-wallets-after-the-opening), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-imports/` | Prepare the import; return the retained request |
-| `GET /api/v1/tokens/register-imports/` | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status` |
-| `GET /api/v1/tokens/register-imports/{uuid}/` | Request, rows, stated figures, stage and decisions |
-| `GET /api/v1/tokens/register-imports/{uuid}/file/` | Authenticated attachment of the import's copy of the register document |
-| `GET /api/v1/tokens/register-imports/{uuid}/asic-file/` | Authenticated attachment of the import's copy of the ASIC extract |
-| `POST /api/v1/tokens/register-imports/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the comparison with the stored register and the preview digest |
-| `POST /api/v1/tokens/register-imports/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+| Method and route                                                | Result                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/tokens/register-evidence/`                        | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain), a [correction](#compensating-corrections) or a [wallet link](#linking-wallets-after-the-opening), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
+| `POST /api/v1/tokens/register-imports/`                         | Prepare the import; return the retained request                                                                                                                                                                                                                                                                                                                                                                                               |
+| `GET /api/v1/tokens/register-imports/`                          | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status`                                                                                                                                                                                                               |
+| `GET /api/v1/tokens/register-imports/{uuid}/`                   | Request, rows, stated figures, stage and decisions                                                                                                                                                                                                                                                                                                                                                                                            |
+| `GET /api/v1/tokens/register-imports/{uuid}/file/`              | Authenticated attachment of the import's copy of the register document                                                                                                                                                                                                                                                                                                                                                                        |
+| `GET /api/v1/tokens/register-imports/{uuid}/asic-file/`         | Authenticated attachment of the import's copy of the ASIC extract                                                                                                                                                                                                                                                                                                                                                                             |
+| `POST /api/v1/tokens/register-imports/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the comparison with the stored register and the preview digest                                                                                                                                                                                                                                                                                   |
+| `POST /api/v1/tokens/register-imports/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                                                                                                           |
 
 ```json
 {
@@ -1448,13 +1485,22 @@ refuse another once one is applied, and a partial unique index backs them.
   "asic_member_count": 1,
   "as_at": "2026-09-20",
   "members": [
-    {"member": "10000000-0000-4000-8000-000000000024", "name": "Synthetic Member",
-     "residential_address": "1 Synthetic Street, Sydney NSW 2000", "shares": "100",
-     "entered_on": "2019-05-01", "amount_paid": "250.00"}
+    {
+      "member": "10000000-0000-4000-8000-000000000024",
+      "name": "Synthetic Member",
+      "residential_address": "1 Synthetic Street, Sydney NSW 2000",
+      "shares": "100",
+      "entered_on": "2019-05-01",
+      "amount_paid": "250.00"
+    }
   ],
   "former_members": [
-    {"name": "Synthetic Former", "residential_address": "2 Synthetic Road, Hobart TAS 7000",
-     "shares": "40", "ceased_on": "2022-03-01"}
+    {
+      "name": "Synthetic Former",
+      "residential_address": "2 Synthetic Road, Hobart TAS 7000",
+      "shares": "40",
+      "ceased_on": "2022-03-01"
+    }
   ],
   "authority": "director_resolution",
   "approving_director": "Synthetic Director",
@@ -1478,6 +1524,7 @@ issue has been approved or an instruction applied for it: open it from the chain
 instead, then import its particulars.
 
 Preparation refuses, with a message naming the problem:
+
 - evidence that is not the preparer's own uploads for this company, of the right
   kinds, or whose stored bytes no longer match their fingerprints;
 - stated figures that differ from the rows' total shares and member count;
@@ -1507,17 +1554,17 @@ chain has nothing stored or on chain to compare, so the stated figures and the
 names beside the holdings are the only check. The preview lists what the
 decision still lacks:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `import_decided` | The import is already applied or rejected |
-| `company_provided_evidence_required` | A retained staff-era import, which can only be rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | A retained copy no longer matches its fingerprint |
+| Requirement                                                         | Meaning                                                                                                                                                                                               |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appointment_capability_required`                                   | The appointment holds neither `admin` nor the capability the decision needs                                                                                                                           |
+| `import_decided`                                                    | The import is already applied or rejected                                                                                                                                                             |
+| `company_provided_evidence_required`                                | A retained staff-era import, which can only be rejected                                                                                                                                               |
+| `already_approved`                                                  | A current approval exists                                                                                                                                                                             |
+| `approval_required`, `approval_lapsed`                              | Application needs a current approval; an earlier approver's appointment ended                                                                                                                         |
+| `evidence_unavailable`                                              | A retained copy no longer matches its fingerprint                                                                                                                                                     |
 | `class_has_applied_import`, `class_not_openable`, `holdings_differ` | The class already took an import; a class not yet on chain had an issue approved or an instruction applied; an opened class's holdings differ from the rows, including a member the import leaves out |
-| `former_member_after_opening`, `former_member_before_retention` | A former member's date ceased fails the rules above |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+| `former_member_after_opening`, `former_member_before_retention`     | A former member's date ceased fails the rules above                                                                                                                                                   |
+| `reason_required`, `reason_not_allowed`                             | Rejection needs a reason; approval and application take none                                                                                                                                          |
 
 The preview digest binds the import, the decision, the person, the appointment,
 the reason and, for application, the register's sequence and head hash. The
@@ -1542,6 +1589,7 @@ Rejection with a reason stays available until a decision applies or rejects the
 import. **Admin → Tokens → Register imports** shows imports and both copies as
 read-only history. The database keeps imports, uploads and decisions immutable
 and refuses:
+
 - an upload or preparation not made through the company command by a person
   whose current appointment holds `admin` or `prepare`;
 - a preparation whose evidence, fingerprints, snapshots or stated figures differ
@@ -1604,6 +1652,7 @@ synthetic experiment, and production retention is decided before any real data
 
 A company keeps its members' names and residential addresses up to date itself,
 under the owner's [decisions of 5 October 2026](../decisions.md#company-run-register-authority-and-evidence):
+
 - a change needs a reason and one supporting document the company provides,
   such as a deed poll or a member's notice of a new address, uploaded as a
   `supporting` upload. Ledova staff do not verify it, and the change's copy is
@@ -1624,15 +1673,15 @@ changes, prepares a change from a current member's row and runs these steps,
 through the API below. Shareholders changing their own particulars is planned
 work in [#866](https://github.com/Ledova/ledova/issues/866).
 
-| Method and route | Result |
-| --- | --- |
-| `POST /api/v1/tokens/register-evidence/` | Upload the supporting document (multipart: `company_id`, `appointment`, `kind` of `supporting`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-particulars-changes/` | Prepare the change; return the retained request |
-| `GET /api/v1/tokens/register-particulars-changes/` | Paginated changes for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `member` and `status` |
-| `GET /api/v1/tokens/register-particulars-changes/{uuid}/` | Request, evidence, stage and decisions |
-| `GET /api/v1/tokens/register-particulars-changes/{uuid}/file/` | Authenticated attachment of the change's copy of the supporting document |
-| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the change beside the member's current particulars, and the preview digest |
-| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decide/` | Record the previewed decision with its digest, a retry key and `confirmation: true` |
+| Method and route                                                            | Result                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/tokens/register-evidence/`                                    | Upload the supporting document (multipart: `company_id`, `appointment`, `kind` of `supporting`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                       |
+| `POST /api/v1/tokens/register-particulars-changes/`                         | Prepare the change; return the retained request                                                                                                                                                                                  |
+| `GET /api/v1/tokens/register-particulars-changes/`                          | Paginated changes for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `member` and `status` |
+| `GET /api/v1/tokens/register-particulars-changes/{uuid}/`                   | Request, evidence, stage and decisions                                                                                                                                                                                           |
+| `GET /api/v1/tokens/register-particulars-changes/{uuid}/file/`              | Authenticated attachment of the change's copy of the supporting document                                                                                                                                                         |
+| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the change beside the member's current particulars, and the preview digest                                                          |
+| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                              |
 
 ```json
 {
@@ -1651,6 +1700,7 @@ work in [#866](https://github.com/Ledova/ledova/issues/866).
 earlier. A change dated on or after the date of the member's current particulars
 replaces them when it is applied. Preparation trims the name, address and
 reason, and refuses, with a message naming the problem:
+
 - a member of a company in which the caller holds no current appointment;
 - evidence that is not the preparer's own `supporting` upload for this company,
   or whose stored bytes no longer match its fingerprint;
@@ -1670,16 +1720,16 @@ Each decision starts with a preview, which shows the change beside the member's
 current particulars, their date and the import or change that recorded them, and
 lists what the decision still lacks:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `change_decided` | The change is already applied or rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | The retained copy no longer matches its size or SHA-256 |
-| `member_left_retention` | The member has held no shares since the retention cutoff, so the register no longer keeps their particulars |
-| `newer_particulars_exist` | The member's particulars are now dated after the change, from a later import or change |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none |
+| Requirement                             | Meaning                                                                                                     |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                 |
+| `change_decided`                        | The change is already applied or rejected                                                                   |
+| `already_approved`                      | A current approval exists                                                                                   |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                               |
+| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                                                     |
+| `member_left_retention`                 | The member has held no shares since the retention cutoff, so the register no longer keeps their particulars |
+| `newer_particulars_exist`               | The member's particulars are now dated after the change, from a later import or change                      |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                                                |
 
 The preview digest binds the change, the decision, the person, the appointment,
 the reason and, for application, the member's current particulars: their name,
@@ -1695,6 +1745,7 @@ failure rolls them both back. Rejection with a reason stays available until a
 decision applies or rejects the change, including when the retained copy is
 unavailable. There is no admin page for changes. The database keeps changes,
 uploads and decisions immutable and refuses:
+
 - an upload or preparation not made through the company command by a person
   whose current appointment holds `admin` or `prepare`;
 - a preparation for a member of another company, with a blank name, address or
@@ -1771,12 +1822,12 @@ latest result. The job tries every share class, then fails if any could not be
 reconciled. A class whose run raised rather than recording `failed` keeps its
 previous result in the CSV, so the failed job is the signal to look at.
 
-| Discrepancy | Meaning and next step |
-| --- | --- |
-| `unrecognised_transfer` | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the holders |
-| `missing_transfer` | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged |
-| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood |
-| `attribution` | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions). It cannot be acknowledged |
+| Discrepancy                    | Meaning and next step                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unrecognised_transfer`        | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the holders |
+| `missing_transfer`             | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged                                                                                                                                                                                    |
+| `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood                                                                                 |
+| `attribution`                  | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions). It cannot be acknowledged                                                                                                                                                                                                                                         |
 
 To reconcile one share class on demand, from `backend/`:
 
@@ -1806,11 +1857,11 @@ and the operator's `register_reconcile` run them. The Register screen in both
 clients shows each class's latest reconciliation and takes acknowledgements,
 through the API below.
 
-| Method and route | Result |
-| --- | --- |
-| `GET /api/v1/tokens/register-reconciliations/` | Paginated reconciliations, newest first, of share classes whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `token` |
-| `GET /api/v1/tokens/register-reconciliations/{uuid}/` | The record: status, block, register sequence, any failure, whether it is the class's `latest`, and each discrepancy as stored with `acknowledgeable` and its `acknowledgement` |
-| `POST /api/v1/tokens/register-reconciliations/{uuid}/acknowledge/` | Acknowledge one discrepancy; return the reconciliation |
+| Method and route                                                   | Result                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/register-reconciliations/`                     | Paginated reconciliations, newest first, of share classes whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `token` |
+| `GET /api/v1/tokens/register-reconciliations/{uuid}/`              | The record: status, block, register sequence, any failure, whether it is the class's `latest`, and each discrepancy as stored with `acknowledgeable` and its `acknowledgement`                                                                  |
+| `POST /api/v1/tokens/register-reconciliations/{uuid}/acknowledge/` | Acknowledge one discrepancy; return the reconciliation                                                                                                                                                                                          |
 
 ```json
 {
@@ -1833,6 +1884,7 @@ A new acknowledgement answers `201`. An identical retry with the same
 `idempotency_key` answers `200` with the same acknowledgement, even after a later
 reconciliation; the same key with any change answers `409`. The request records
 nothing and refuses:
+
 - a reconciliation of a class whose register the caller cannot read, as not
   found;
 - an appointment that is not the caller's current appointment holding `admin` or
@@ -1868,6 +1920,7 @@ reason, the person, their appointment and the time. The company register
 command rechecks the appointment after taking the company lock, and takes the
 share-class lock a run holds, so a revocation that commits first refuses it and
 no divergence is counted twice. The database keeps acknowledgements immutable and refuses:
+
 - an acknowledgement not made through the company command for the class's
   company, by the person it names;
 - an appointment that is not that person's current appointment holding `admin`

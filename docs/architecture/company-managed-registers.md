@@ -71,8 +71,19 @@ retaining exact human approval separately from the technical signer and original
 receipt/projection recovery. It issues no shares and mirrors no populated
 register. The second [wallet increment](../plans/company-managed-registers/company-wallet-approvals.md)
 retains genuine possession proof and explicit participant nomination separately
-from company approval and original journal execution. Company issuance, capital
-and pause conversion remain later #867 increments. #866 and #868–#873 remain planned.
+from company approval and original journal execution. The third
+[non-paid on-chain grant increment](../plans/company-managed-registers/company-register-issues.md)
+implements exact company instructions and a first-member LINK consumer.
+The fourth [capital increment](../plans/company-managed-registers/company-capital-increases.md)
+is under implementation, with exact company decisions and the existing cap-only
+execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
+is under implementation with exact company decisions and original observation or
+transaction recovery. The sixth
+[paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation, separating existing recorded payment from exact company
+issue approval, original execution and allotment. New payment mechanics remain
+#868 work.
+#866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.

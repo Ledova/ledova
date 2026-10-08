@@ -346,6 +346,117 @@ tables and nullable association. Preserve database and private storage together;
 do not delete company history to force a downgrade. Historical NULL-source
 deployment/signature recovery remains separate from fresh signing authority.
 
+### Company non-paid chain grants
+
+The third #867 increment is in progress; its
+[workflow guide](../plans/company-managed-registers/company-register-issues.md)
+and eventual pull request distinguish implemented source from completed release
+verification. `tokens/0100_company_register_issue_instructions` extends the
+existing ISSUE instruction with company preparation, append-only decisions,
+member/nomination/wallet approval and retained evidence. It adds a nullable
+original source to the existing issuance execution journal. Historical requests,
+instructions, actors, transactions and signed bytes receive no invented company
+source or paid subscription.
+
+`tokens/0101_company_register_issue_guards` binds current preparation,
+approval/application/rejection and fresh signing to that exact source. Prepared
+requests are frozen under `UNDER_REVIEW`; application reserves and admits once.
+Finalised outcome and register recording remain distinct, with original
+executed-but-unentered recovery and reservations. Genuine paid admission and
+retained ISSUE/TRANSFER instructions keep their applicable guards and attribution;
+import-origin registers still cannot acquire fresh chain issue authority.
+
+Deploy the backend, workers and both clients together. The new clients use
+`/api/v1/tokens/register-issues/` and the existing LINK family for an exact nominated
+wallet before a first mint. An older backend cannot serve this family; an older
+client's direct owner issue POST is retired by the new backend. Paid issuance,
+capital and pause have their own coordinated upgrades below.
+
+Reversal of `0101` refuses retained company preparations, decisions or nonnull
+execution sources, including rejected or merely prepared work. Empty reversal
+restores the preceding instruction/request/execution guards before `0100`
+removes its empty new records and nullable associations. Preserve database and
+private storage together, including original signed and paid history. Final
+fresh migration/role/catalogue, reversal and recovery evidence belongs in the
+increment's pull request; these release notes authorise no live migration.
+
+### Company paid issues
+
+The sixth #867 increment is under implementation; its
+[paid-issue guide](../plans/company-managed-registers/company-paid-issues.md)
+distinguishes its source contract from completed release verification.
+`tokens/0106_company_register_paid_issues` adds nullable immutable PROTECT
+subscription provenance to the existing register instruction. Historical
+instructions, requests, payments, execution journals and actors receive no
+invented company source or approval.
+
+`tokens/0107_company_register_paid_issue_guards` extends the actual paid/request
+and company-source guards. It binds exact company preparation, consumed approval,
+late application, original subscription/request/execution pairing and fresh
+signing while preserving original financial cancellation, finality and retained
+register outcomes. Preparation and approval create no request, paid link, journal
+or issuance job. Existing original paid request bindings and unique executions
+remain immutable after permanent never-signed authority loss. No duplicate
+request, renewed source or automatic refund is an upgrade fallback.
+
+Coordinate backend, workers and both clients for
+`/api/v1/tokens/register-paid-issues/`. Fresh legacy staff paid ISSUE review,
+admission and allotment controls are retired together. Original technical
+recovery, retained ISSUE history, TRANSFER pending #869 and existing financial
+receipt/refund producers pending #868 remain. Reversal must refuse retained
+company-paid preparations or decisions rather than discard their evidence or
+restore fresh staff authority over them. No live migration or financial payment
+policy is selected by this implementation contract.
+
+### Company capital increases
+
+`tokens/0102_company_register_capital_increases` adds immutable company capital
+proposals, decisions and a nullable association on the existing private execution.
+It backfills no company approval; old actors, terms, signatures and receipts remain
+original. `tokens/0103_company_register_capital_guards` binds new preparation,
+decisions, application and fresh signatures to exact current company authority,
+retained evidence and coherent before-cap plus delta equals target. Capital mints
+zero shares and records no payment, holding or issue.
+
+Release backend, workers and both clients together. New clients use the six-operation
+`/api/v1/tokens/register-capital-increases/` family. The fresh owner create and submit
+POSTs are retired; their private history GET remains. The technical original retry
+and recovery journal stays separate from the company's human approval/application.
+An older backend cannot serve the family, and an older client cannot use its retired
+fresh submission path on the new backend. Paid issuance retains its existing
+guards until its own increment; pause has its coordinated upgrade below.
+
+Both `0103` and `0102` reversal refuse any retained company preparation, decision
+or nonnull original execution source, including rejected and never-applied work.
+Only an empty reversal restores the genuine predecessor guards/policies before
+dropping empty new records and their association. Preserve database and private
+storage together; do not delete records to make reversal succeed. Actual migration,
+role/catalogue, source/deferred, reversal, original recovery and finality checks
+belong to the pull request. These instructions authorise no live migration.
+
+### Company pause and unpause
+
+`tokens/0104_company_register_pause_changes` adds immutable company proposals,
+decisions and nullable original sources to the retained pause journal. It
+backfills no approval, actor, evidence or signed transaction. `0105` binds fresh
+admission, application, new signatures and default-deferred effects to the exact
+company source. Both guards refuse reversal with any retained company proposal,
+decision or source, including rejected or never-applied records. Only empty
+reversal restores the original predecessor definitions before dropping empty
+new records and their association; preserve database and private storage together.
+
+Release backend, workers and both clients together. New clients use
+`/api/v1/tokens/register-pause-changes/`; old clients cannot create fresh issuer
+work on the new backend. Exact retained issuer-row replay/GET and five-field
+reminders keep their original identity and direction. Company reads use current
+appointments, independently of owner-only legacy history. Original signed
+recovery and scoped issuer projection remain, with no fallback or invented
+company authority. The [pause guide](../plans/company-managed-registers/company-pause-changes.md)
+records observation, receipt, temporary hold and unsigned retirement boundaries.
+Final source review, fresh migration/roles/catalogue, authority/deferred, history,
+process and isolated real-chain evidence belongs in the pull request. These
+instructions authorise no live migration.
+
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not
 authorise staff to manufacture company appointments or approvals while the
@@ -421,20 +532,20 @@ that sign-up never used, and the cancel-message `GET` that only refused old
 clients. A path that keeps another method answers 405 to a retired one; a path
 left with none answers 404. No database migration is needed.
 
-| Answers 405 | Keeps |
-| --- | --- |
-| `GET` and `PUT /api/financial-profiles/{uuid}/` | `PATCH` |
+| Answers 405                                                            | Keeps                                                |
+| ---------------------------------------------------------------------- | ---------------------------------------------------- |
+| `GET` and `PUT /api/financial-profiles/{uuid}/`                        | `PATCH`                                              |
 | `GET` and `PUT /api/user-profiles/{uuid}/`, `POST /api/user-profiles/` | `PATCH`, the list, `delete-account/`, `export-data/` |
-| `GET /api/user-accounts/{uuid}/` | `PATCH` |
-| `GET /api/notifications/{uuid}/` | `PATCH` |
-| `GET /api/investor-classifications/{uuid}/` | `DELETE` |
-| `GET` and `PUT /api/wallets/{uuid}/` | `PATCH`, `DELETE` and the wallet actions |
-| `PUT` and `DELETE /api/v1/companies/{uuid}/` | `GET`, `PATCH` and the application actions |
-| `GET /api/v1/companies/{uuid}/documents/` | `POST`; the company detail lists the documents |
-| `GET /api/v1/companies/{uuid}/documents/{uuid}/` | `DELETE` and `file/` |
-| `PUT /api/v1/offerings/{uuid}/` | `GET`, `PATCH`, `DELETE` |
-| `PUT`, `PATCH` and `DELETE /api/v1/tokens/{uuid}/` | `GET` and the class actions |
-| `GET /api/v1/trading/orders/{uuid}/cancel/message/` | `POST`, which issues the cancel challenge |
+| `GET /api/user-accounts/{uuid}/`                                       | `PATCH`                                              |
+| `GET /api/notifications/{uuid}/`                                       | `PATCH`                                              |
+| `GET /api/investor-classifications/{uuid}/`                            | `DELETE`                                             |
+| `GET` and `PUT /api/wallets/{uuid}/`                                   | `PATCH`, `DELETE` and the wallet actions             |
+| `PUT` and `DELETE /api/v1/companies/{uuid}/`                           | `GET`, `PATCH` and the application actions           |
+| `GET /api/v1/companies/{uuid}/documents/`                              | `POST`; the company detail lists the documents       |
+| `GET /api/v1/companies/{uuid}/documents/{uuid}/`                       | `DELETE` and `file/`                                 |
+| `PUT /api/v1/offerings/{uuid}/`                                        | `GET`, `PATCH`, `DELETE`                             |
+| `PUT`, `PATCH` and `DELETE /api/v1/tokens/{uuid}/`                     | `GET` and the class actions                          |
+| `GET /api/v1/trading/orders/{uuid}/cancel/message/`                    | `POST`, which issues the cancel challenge            |
 
 `GET /api/feature-flags/{uuid}/`, `/api/transactions/{uuid}/`,
 `/api/v1/tokens/issuance-requests/{uuid}/` and `/api/v1/trading/orders/{uuid}/`

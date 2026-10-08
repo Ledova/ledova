@@ -18,16 +18,8 @@ export type FormerMember = ApiSchema<'FormerMember'>;
 
 export type TokenIssuance = ApiResponse<'api_v1_tokens_issuances_list'>['results'][number];
 
-export type CapitalIncreaseRequest = ApiSchema<'CapitalIncreaseDetail'>;
-
-export type CapitalIncreaseCreate = ApiRequest<'api_v1_tokens_capital_increases_create'>;
-
 export type CapitalIncreaseListItem = ApiResponse<'api_v1_tokens_capital_increases_list'>['results'][number];
-
-export type CapitalIncreaseSubmission = ApiResponse<'api_v1_tokens_capital_increases_submit_create'>;
 
 export type ShareIssuanceRequest = ApiSchema<'ShareIssuanceRequest'>;
 
 export type ShareIssuanceRequestQueryParams = ApiQuery<'api_v1_tokens_issuance_requests_list'>;
-
-export type ShareIssuanceSubmission = ApiResponse<'api_v1_tokens_issue_create'>;

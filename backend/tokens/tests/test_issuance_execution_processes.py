@@ -8,6 +8,7 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
+from django.conf import settings
 from django.db import connections
 from django.test import TransactionTestCase, override_settings
 
@@ -17,27 +18,25 @@ from blockchain.models import (
     SignedAttempt,
     SigningAccount,
 )
-from blockchain.tests.outgoing_fixtures import admitted_signer
 from blockchain.tests.test_outgoing_processes import finish
 from shared.db import current_alias
 from tokens.models import ShareIssuanceExecution
 from tokens.services import issuance_execution
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, issuance_request
+from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class IssuanceExecutionProcessTest(TransactionTestCase):
     def setUp(self):
-        self.tenant, self.actor = issuance_request("issuance-process")
-        self.request = self.tenant.issuance_request
+        install_issuance(self)
         self.form = issuance_execution.confirmation(self.request, self.actor)
-        admitted_signer()
 
     def worker(self, directory, phase, form=None):
         database = connections[current_alias()].settings_dict
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
         env["ISSUANCE_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["ISSUANCE_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
         args = [
             sys.executable,
             "-m",
@@ -77,15 +76,15 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, "approved" if phase == "admitted" else "executing")
             self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
-            self.assertEqual(SignedAttempt.objects.count(), int(signed))
+            self.assertEqual(self.attempts.count(), int(signed))
             if phase == "opened":
                 self.assertIsNone(ShareIssuanceExecution.objects.get().operation_id)
-                self.assertEqual(OutgoingOperation.objects.get().status, "preparing")
-            original = SignedAttempt.objects.values("tx_hash", "raw_transaction", "nonce").first()
+                self.assertEqual(self.operations.get().status, "preparing")
+            original = self.attempts.values("tx_hash", "raw_transaction", "nonce").first()
             if not signed:
-                self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
+                self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
-            attempt = SignedAttempt.objects.get()
+            attempt = self.attempts.get()
             if original:
                 self.assertEqual(
                     (attempt.tx_hash, bytes(attempt.raw_transaction), attempt.nonce),
@@ -94,8 +93,8 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             ledger = json.loads((directory / "node.json").read_text())
             self.assertEqual(ledger["hashes"], [attempt.tx_hash])
             self.assertEqual(len(ledger["broadcasts"]), 1)
-            self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
-            self.assertEqual(BlockchainTransaction.objects.get().status, "confirmed")
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
+            self.assertEqual(self.transactions.get().status, "confirmed")
 
     def test_kill_after_admission_preserves_request_and_recovers(self):
         self.recover_killed("admitted", False)
@@ -105,7 +104,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
 
     def test_kill_after_opening_before_binding_recovers_the_same_operation(self):
         self.recover_killed("opened", False)
-        self.assertEqual(OutgoingOperation.objects.count(), 1)
+        self.assertEqual(self.operations.count(), 1)
 
     def test_kill_before_signed_commit_rolls_back_nonce_and_recovers(self):
         self.recover_killed("before_commit", False)
@@ -125,27 +124,27 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
-        self.assertEqual(SignedAttempt.objects.count(), 1)
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
+        self.assertEqual(self.attempts.count(), 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
 
     def test_kill_before_revert_projection_retains_receipt_and_needs_new_retry_confirmation(self):
         with tempfile.TemporaryDirectory(prefix="issuance-revert-") as temporary:
             directory = Path(temporary)
             code, out, err = finish(self.worker(directory, "before_revert_projection"))
             self.assertEqual(code, -signal.SIGKILL, out + err)
-            previous = BlockchainTransaction.objects.get()
+            previous = self.transactions.get()
             self.assertEqual(previous.status, "reverted")
             self.assertEqual(ShareIssuanceExecution.objects.get().status, "executing")
-            claim = OutgoingOperation.objects.get().claim_id
+            claim = self.operations.get().claim_id
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "failed")
             previous.refresh_from_db()
             self.assertEqual(previous.status, "reverted")
             self.assertEqual(self.successful(self.worker(directory, "execute"))["status"], "failed")
             retry = issuance_execution.confirmation(self.request, self.actor)
             self.assertEqual(self.successful(self.worker(directory, "execute", retry))["status"], "executed")
-            self.assertNotEqual(OutgoingOperation.objects.get().claim_id, claim)
-            self.assertEqual(SignedAttempt.objects.count(), 2)
-            self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
+            self.assertNotEqual(self.operations.get().claim_id, claim)
+            self.assertEqual(self.attempts.count(), 2)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 2)
             previous.refresh_from_db()
             self.assertEqual(previous.status, "reverted")
 
@@ -153,7 +152,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         code, out, err = finish(self.worker(directory, "before_revert_projection"))
         self.assertEqual(code, -signal.SIGKILL, out + err)
         self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "failed")
-        return OutgoingOperation.objects.get().claim_id, issuance_execution.confirmation(self.request, self.actor)
+        return self.operations.get().claim_id, issuance_execution.confirmation(self.request, self.actor)
 
     def test_kill_after_explicit_retry_admission_recovers_the_authorized_claim(self):
         with tempfile.TemporaryDirectory(prefix="issuance-admitted-retry-") as temporary:
@@ -167,12 +166,12 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             self.assertEqual(command.operation.claim_id, previous_claim)
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, "approved")
-            self.assertEqual(SignedAttempt.objects.count(), 1)
+            self.assertEqual(self.attempts.count(), 1)
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
-            self.assertNotEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
-            self.assertEqual(SignedAttempt.objects.count(), 2)
-            self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
-            self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)
+            self.assertNotEqual(self.operations.get().claim_id, previous_claim)
+            self.assertEqual(self.attempts.count(), 2)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 2)
+            self.assertEqual(self.transactions.filter(status="reverted").count(), 1)
 
     def test_independent_explicit_retry_workers_share_one_new_claim_and_nonce(self):
         with tempfile.TemporaryDirectory(prefix="issuance-retry-race-") as temporary:
@@ -188,12 +187,12 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             ledger = json.loads((directory / "node.json").read_text())
             self.assertEqual(len(ledger["hashes"]), 2)
             self.assertEqual(len(set(ledger["broadcasts"])), 2)
-        self.assertNotEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
-        self.assertEqual(OutgoingOperation.objects.count(), 1)
-        self.assertEqual(SignedAttempt.objects.count(), 2)
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 9)
-        self.assertEqual(BlockchainTransaction.objects.filter(status="reverted").count(), 1)
-        self.assertEqual(BlockchainTransaction.objects.filter(status="confirmed").count(), 1)
+        self.assertNotEqual(self.operations.get().claim_id, previous_claim)
+        self.assertEqual(self.operations.count(), 1)
+        self.assertEqual(self.attempts.count(), 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 2)
+        self.assertEqual(self.transactions.filter(status="reverted").count(), 1)
+        self.assertEqual(self.transactions.filter(status="confirmed").count(), 1)
 
     def test_worker_loaded_before_binding_cannot_reopen_a_peer_revert_without_retry_authority(self):
         admit(self.request, self.actor, confirmed=self.form)
@@ -204,30 +203,35 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             previous_claim, _ = self.reverted(directory)
             (directory / "open").touch()
             self.assertEqual(self.successful(delayed)["status"], "failed")
-        self.assertEqual(OutgoingOperation.objects.get().claim_id, previous_claim)
-        self.assertEqual(OutgoingOperation.objects.get().status, "reverted")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
-        self.assertEqual(BlockchainTransaction.objects.get().status, "reverted")
+        self.assertEqual(self.operations.get().claim_id, previous_claim)
+        self.assertEqual(self.operations.get().status, "reverted")
+        self.assertEqual(self.attempts.count(), 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
+        self.assertEqual(self.transactions.get().status, "reverted")
 
     def allotted_subscription(self):
-        from unittest.mock import patch
+        from django.contrib.auth.models import Permission
 
-        from offerings.services.subscription import allot
-        from offerings.tests.factories import (
-            allottable_subscription,
-            configure_operator,
-            eligible_subscriber,
-            open_offering,
-        )
+        from shared.db import use_migrate
+        from tokens.tests.company_paid_issue_fixtures import admit_paid_for_company_case
 
-        configure_operator()
-        open_offering(self.tenant, target_shares=200, cap_shares=500)
-        eligible_subscriber(self.tenant)
-        subscription = allottable_subscription(self.tenant, quantity=10)
-        with patch("offerings.tasks.allot_subscription_task.defer"):
-            self.request = allot(subscription, self.actor, headroom=(1000, 1000))
+        subscription, proposal = admit_paid_for_company_case(self.company_issue, quantity=10)
+        self.actor = self.company_issue.owner
+        with use_migrate():
+            self.actor.user_permissions.add(
+                Permission.objects.get(content_type__app_label="offerings", codename="change_subscription")
+            )
+        self.request = proposal.request
         self.form = issuance_execution.confirmation(self.request, self.actor, subscription=subscription)
+        self.attempts = SignedAttempt.objects.filter(
+            operation__operation_key=f"share-issuance:{self.request.pk}:{self.request.dispatch_id}"
+        )
+        self.operations = OutgoingOperation.objects.filter(
+            operation_key=f"share-issuance:{self.request.pk}:{self.request.dispatch_id}"
+        )
+        self.transactions = BlockchainTransaction.objects.filter(
+            related_model="tokens.ShareIssuanceRequest", related_uuid=self.request.pk
+        )
         return subscription
 
     def test_refund_wins_during_independent_worker_preflight_without_creating_a_mint(self):
@@ -243,10 +247,10 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             (directory / "continue").touch()
             self.assertEqual(self.successful(worker)["status"], "rejected")
         self.assertEqual(ShareIssuanceExecution.objects.get().status, "cancelled")
-        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertFalse(self.operations.exists())
         self.assertFalse(ShareIssuance.objects.exists())
-        self.assertFalse(SignedAttempt.objects.exists())
-        self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
 
     def test_independent_worker_claim_survives_death_and_refuses_refund_without_an_operation(self):
         from offerings.exceptions import SubscriptionRefusedException
@@ -257,11 +261,11 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             directory = Path(temporary)
             code, out, err = finish(self.worker(directory, "claimed"))
             self.assertEqual(code, -signal.SIGKILL, out + err)
-            self.assertFalse(OutgoingOperation.objects.exists())
+            self.assertFalse(self.operations.exists())
             with self.assertRaises(SubscriptionRefusedException):
                 record_refund(subscription, Decimal("1.00"))
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, "allotted")
         self.assertIsNone(subscription.refunded_at)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)

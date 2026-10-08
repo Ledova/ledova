@@ -1,4 +1,5 @@
 import logging
+from datetime import timezone as utc_zone
 from uuid import UUID
 
 from django.db import DatabaseError
@@ -278,16 +279,35 @@ def _effect(inclusion, company_id, classification):
     }
     if classification != AFTER_OPENING:
         return {**effect, "reason": ATTRIBUTION}, None
-    members = _members(company_id, wallets)
-    unlinked = [wallet for wallet in wallets if wallet.lower() not in members]
-    if unlinked:
-        return {**effect, "reason": UNLINKED, "unlinked_wallets": unlinked}, None
     if inclusion["kind"] == ISSUE:
         request = ShareIssuanceRequest.objects.filter(executed_issuance=issuance).select_related("reviewed_by").first()
         if request is None or request.reviewed_by is None:
             return {**effect, "reason": UNREVIEWED}, None
         if not issue_covered(request):
             return {**effect, "reason": UNINSTRUCTED}, None
+        execution = (
+            ShareIssuanceExecution.objects.filter(
+                request_id=request.pk, status="executed", source_instruction__isnull=False
+            )
+            .select_related("source_instruction")
+            .first()
+        )
+        if execution is not None and execution.subscription_id is None:
+            source = execution.source_instruction
+            if (
+                source.request_id != request.pk
+                or source.company_id != company_id
+                or source.status != "applied"
+                or source.intent != execution.intent
+            ):
+                return {**effect, "reason": UNINSTRUCTED}, None
+            changes = [{"member": str(source.member_id), "shares": str(shares)}]
+            return effect, {"kind": RegisterEntryKind.ISSUE, "changes": changes, "recorded_by": source.reviewed_by}
+    members = _members(company_id, wallets)
+    unlinked = [wallet for wallet in wallets if wallet.lower() not in members]
+    if unlinked:
+        return {**effect, "reason": UNLINKED, "unlinked_wallets": unlinked}, None
+    if inclusion["kind"] == ISSUE:
         changes = [{"member": members[issuance.recipient_address.lower()], "shares": str(shares)}]
         return effect, {"kind": RegisterEntryKind.ISSUE, "changes": changes, "recorded_by": request.reviewed_by}
     seller, buyer = members[swap.seller_address.lower()], members[swap.buyer_address.lower()]
@@ -349,7 +369,7 @@ def record_completed_effects(token_id):
                     record_entry(
                         register_id=register.pk,
                         operation_id=UUID(effect["source"]),
-                        effective_on=timezone.now().date(),
+                        effective_on=timezone.now().astimezone(utc_zone.utc).date(),
                         **entry,
                     )
                 )

@@ -90,7 +90,7 @@ const capital = {
 const page = (rows: unknown[], next: string | null = null) => ({ data: { results: rows, count: rows.length, next } });
 let client: QueryClient;
 let read: (url: string, number: number) => Promise<unknown>;
-let classRecord: typeof token;
+let classRecord: typeof token & { chain?: string; contractAddress?: string };
 let deployments: RegisterDeployment[];
 let appointmentRows: OwnCompanyAppointment[];
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -105,6 +105,20 @@ function screen() {
 }
 function defaultRead(url: string, number: number): Promise<unknown> {
   if (url === URLS.REGISTER_DEPLOYMENTS) return Promise.resolve(page(deployments));
+  if (
+    url === URLS.REGISTER_PAID_ISSUES ||
+    url === URLS.REGISTER_PAUSE_CHANGES ||
+    url === URLS.REGISTER_CAPITAL_INCREASES ||
+    url === URLS.REGISTER_ISSUES ||
+    url === URLS.REGISTER_LINKS
+  )
+    return Promise.resolve(page([]));
+  if (url === URLS.REGISTER_MEMBERS(uuid)) return Promise.resolve({ data: { members: [] } });
+  if (
+    url === '/api/v1/whitelist/company-wallet-nominations/' ||
+    url === '/api/v1/whitelist/company-wallet-instructions/'
+  )
+    return Promise.resolve(page([]));
   if (url === APPOINTMENTS) return Promise.resolve(page(appointmentRows));
   if (url === URLS.DETAIL(uuid)) return Promise.resolve({ data: classRecord });
   if (url.includes('/companies/')) return Promise.resolve({ data: { uuid: 'company', status: 'active' } });
@@ -113,6 +127,7 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([issuance]));
   if (url === URLS.ISSUANCE_REQUESTS)
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([request]));
+  if (url === URLS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS) return Promise.resolve({ data: [] });
   if (url === URLS.CAPITAL_INCREASES)
     return Promise.resolve(number === 1 ? page([], 'https://api.example.test/?page=2') : page([capital]));
   if (url === URLS.REGISTER_EXPORT(uuid))
@@ -196,133 +211,6 @@ it.each([
   await waitFor(() => expect(view.queryByText(`We couldn’t load ${label}.`)).toBeNull());
 });
 
-it('preserves an issuance draft after failed class refresh and prevents stale submission', async () => {
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Request issuance' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Request issuance' }));
-  await fireEvent.changeText(view.getByLabelText('Recipient address'), '0xmember');
-  await fireEvent.changeText(view.getByLabelText('Shares to issue'), '25');
-  read = async (url, number) =>
-    url === URLS.DETAIL(uuid) ? Promise.reject(new Error('Unavailable')) : defaultRead(url, number);
-  await act(() => client.invalidateQueries({ queryKey: ['company-token', uuid] }));
-  await waitFor(() =>
-    expect(
-      view.getByText('The class state could not be refreshed. Your draft is kept; retry before submitting.'),
-    ).toBeTruthy(),
-  );
-  expect(view.getByLabelText('Shares to issue').props.value).toBe('25');
-  expect(view.getByRole('button', { name: 'Submit issuance request' })).toBeDisabled();
-  expect(post).not.toHaveBeenCalled();
-  read = defaultRead;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry class state' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Submit issuance request' })).toBeEnabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Submit issuance request' }));
-  await waitFor(() => expect(view.queryByLabelText('Shares to issue')).toBeNull());
-  expect(post).toHaveBeenCalledWith(
-    URLS.ISSUE(uuid),
-    { recipient: '0xmember', amount: 25, reason: undefined },
-    expect.objectContaining({ ledovaSessionEpoch: expect.any(Number), ledovaSubmissionGuard: expect.any(Function) }),
-  );
-});
-
-it.each(['1.5', '1e3', '-1', '0', '2147483648', '9007199254740993'])(
-  'rejects invalid issuance quantity %s before the request',
-  async (amount) => {
-    const view = await render(screen(), { wrapper });
-    await waitFor(() => expect(view.getByRole('button', { name: 'Request issuance' })).toBeTruthy());
-    await fireEvent.press(view.getByRole('button', { name: 'Request issuance' }));
-    await fireEvent.changeText(view.getByLabelText('Recipient address'), '0xmember');
-    await fireEvent.changeText(view.getByLabelText('Shares to issue'), amount);
-    expect(view.getByRole('button', { name: 'Submit issuance request' })).toBeDisabled();
-    expect(post).not.toHaveBeenCalled();
-  },
-);
-
-it('keeps pending issuance inputs locked and the modal mounted; a refusal preserves the draft', async () => {
-  let refuse!: (error: Error) => void;
-  post.mockImplementation(
-    () =>
-      new Promise((_, reject) => {
-        refuse = reject;
-      }),
-  );
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Request issuance' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Request issuance' }));
-  await fireEvent.changeText(view.getByLabelText('Recipient address'), '0xmember');
-  await fireEvent.changeText(view.getByLabelText('Shares to issue'), '1');
-  await fireEvent.press(view.getByRole('button', { name: 'Submit issuance request' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled());
-  expect(view.getByLabelText('Shares to issue').props.editable).toBe(false);
-  await fireEvent(view.getByLabelText('Shares to issue'), 'requestClose');
-  expect(view.getByLabelText('Shares to issue')).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: 'Submit issuance request' }));
-  expect(post).toHaveBeenCalledTimes(1);
-  await act(() => refuse(new Error('Refused')));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeEnabled());
-  expect(view.getByLabelText('Shares to issue').props.value).toBe('1');
-  expect(view.getByText('Refused')).toBeTruthy();
-});
-
-it('raises only the exact authorised cap and separately submits a draft for review', async () => {
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Raise authorised shares' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Raise authorised shares' }));
-  await fireEvent.changeText(view.getByLabelText('Additional shares'), '25');
-  await fireEvent.changeText(view.getByLabelText('Purpose'), ' New members ');
-  await fireEvent.changeText(view.getByLabelText('Board resolution reference'), ' BR-1 ');
-  expect(view.getByText('New authorised total: 1,025')).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: 'Create request' }));
-  await waitFor(() => expect(view.queryByLabelText('Additional shares')).toBeNull());
-  expect(post).toHaveBeenCalledWith(
-    URLS.CAPITAL_INCREASES,
-    {
-      token: uuid,
-      additionalShares: 25,
-      newAuthorizedTotal: 1025,
-      purpose: 'New members',
-      boardResolutionReference: 'BR-1',
-      shareholderApprovalReference: undefined,
-    },
-    expect.objectContaining({ ledovaSessionEpoch: expect.any(Number), ledovaSubmissionGuard: expect.any(Function) }),
-  );
-  await fireEvent.press(view.getByRole('button', { name: 'Submit Additional capital for review' }));
-  await waitFor(() =>
-    expect(post).toHaveBeenCalledWith(
-      URLS.CAPITAL_INCREASE_SUBMIT('capital'),
-      undefined,
-      expect.objectContaining({ ledovaSessionEpoch: expect.any(Number), ledovaSubmissionGuard: expect.any(Function) }),
-    ),
-  );
-});
-
-it('retains exact large cap arithmetic but refuses a raise beyond the current request contract', async () => {
-  classRecord.totalSupply = '9007199254740993';
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Raise authorised shares' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Raise authorised shares' }));
-  await fireEvent.changeText(view.getByLabelText('Additional shares'), '1');
-  await fireEvent.changeText(view.getByLabelText('Purpose'), 'New members');
-  await fireEvent.changeText(view.getByLabelText('Board resolution reference'), 'BR-1');
-  expect(view.getByText('New authorised total: 9,007,199,254,740,994')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Create request' })).toBeDisabled();
-  expect(post).not.toHaveBeenCalled();
-});
-
-it('blocks an open request when the refreshed class is paused and keeps its inputs', async () => {
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Raise authorised shares' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Raise authorised shares' }));
-  await fireEvent.changeText(view.getByLabelText('Additional shares'), '1');
-  classRecord = { ...token, status: 'paused', statusDisplay: 'Paused' };
-  await act(() => client.invalidateQueries({ queryKey: ['company-token', uuid] }));
-  await waitFor(() =>
-    expect(view.getByText('The class must be deployed and unpaused before you request a raise.')).toBeTruthy(),
-  );
-  expect(view.getByLabelText('Additional shares').props.value).toBe('1');
-  expect(view.getByRole('button', { name: 'Create request' })).toBeDisabled();
-});
-
 it('shares an authenticated register copy and rejects a download from a retired session', async () => {
   const view = await render(screen(), { wrapper });
   await waitFor(() => expect(view.getByRole('button', { name: REGISTER_COPY.DOWNLOAD })).toBeEnabled());
@@ -349,45 +237,6 @@ it('shares an authenticated register copy and rejects a download from a retired 
   await act(async () => {});
   expect(files.size).toBe(0);
   expect(Sharing.shareAsync).toHaveBeenCalledTimes(1);
-});
-
-it('retains the raise draft across a failed read, locks it while sending, and allows correction after refusal', async () => {
-  let refuse!: (error: Error) => void;
-  post.mockImplementation(
-    () =>
-      new Promise((_, reject) => {
-        refuse = reject;
-      }),
-  );
-  const view = await render(screen(), { wrapper });
-  await waitFor(() => expect(view.getByRole('button', { name: 'Raise authorised shares' })).toBeTruthy());
-  await fireEvent.press(view.getByRole('button', { name: 'Raise authorised shares' }));
-  await fireEvent.changeText(view.getByLabelText('Additional shares'), '25');
-  await fireEvent.changeText(view.getByLabelText('Purpose'), 'New members');
-  await fireEvent.changeText(view.getByLabelText('Board resolution reference'), 'BR-1');
-  read = async (url, number) =>
-    url === URLS.DETAIL(uuid) ? Promise.reject(new Error('Unavailable')) : defaultRead(url, number);
-  await act(() => client.invalidateQueries({ queryKey: ['company-token', uuid] }));
-  await waitFor(() =>
-    expect(
-      view.getByText('The class state could not be refreshed. Your draft is kept; retry before submitting.'),
-    ).toBeTruthy(),
-  );
-  expect(view.getByRole('button', { name: 'Create request' })).toBeDisabled();
-  expect(view.getByLabelText('Board resolution reference').props.value).toBe('BR-1');
-  read = defaultRead;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry class state' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Create request' })).toBeEnabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Create request' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled());
-  expect(view.getByLabelText('Board resolution reference').props.editable).toBe(false);
-  await fireEvent.press(view.getByRole('button', { name: 'Dismiss request', includeHiddenElements: true }));
-  expect(view.getByLabelText('Additional shares')).toBeTruthy();
-  expect(post).toHaveBeenCalledTimes(1);
-  await act(() => refuse(new Error('Refused')));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Create request' })).toBeEnabled());
-  expect(view.getByLabelText('Additional shares').props.value).toBe('25');
-  expect(view.getByText('Refused')).toBeTruthy();
 });
 
 const appointment: OwnCompanyAppointment = {
@@ -814,126 +663,35 @@ it.each([
   expect(view.queryByText('Confirmed and projected')).toBeNull();
   expect(post).not.toHaveBeenCalled();
 });
-
-async function ownerDraft(kind: 'issue' | 'raise') {
+it('mounts company pause preparation for an appointed nonowner on a deployed whole-share class without issuer histories', async () => {
+  mockCompanyRole = 'investor';
+  classRecord = {
+    ...token,
+    status: 'deployed',
+    statusDisplay: 'Deployed',
+    isOwner: false,
+    chain: 'base',
+    decimals: 0,
+    contractAddress: `0x${'2'.repeat(40)}`,
+  };
+  appointmentRows = [appointment];
   const view = await render(screen(), { wrapper });
-  await view.findByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' });
-  await fireEvent.press(
-    view.getByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' }),
-  );
-  if (kind === 'issue') {
-    await fireEvent.changeText(view.getByLabelText('Recipient address'), '0xmember');
-    await fireEvent.changeText(view.getByLabelText('Shares to issue'), '2');
-    await fireEvent.changeText(view.getByLabelText('Reason (optional)'), 'Private owner draft');
-  } else {
-    await fireEvent.changeText(view.getByLabelText('Additional shares'), '2');
-    await fireEvent.changeText(view.getByLabelText('Purpose'), 'Private owner draft');
-    await fireEvent.changeText(view.getByLabelText('Board resolution reference'), 'OWNER-1');
-  }
-  return view;
-}
+  await view.findByRole('button', { name: 'Prepare pause change' });
+  for (const url of [URLS.ISSUANCES(uuid), URLS.ISSUANCE_REQUESTS, URLS.CAPITAL_INCREASES])
+    expect(get.mock.calls.map(([path]) => path)).not.toContain(url);
+  expect(view.queryByText('Retained issuer pause requests')).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
 
-it.each([
-  ['issue', 'owner'],
-  ['raise', 'owner'],
-  ['issue', 'account'],
-  ['raise', 'account'],
-  ['issue', 'epoch'],
-  ['raise', 'epoch'],
-  ['issue', 'session'],
-  ['raise', 'session'],
-] as const)(
-  'isolates the pending %s owner draft after its %s boundary changes and refuses transport/callback reuse',
-  async (kind, boundary) => {
-    let reply!: (value: unknown) => void;
-    post.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          reply = resolve;
-        }) as ReturnType<typeof apiClient.post>,
-    );
-    const view = await ownerDraft(kind);
-    await fireEvent.press(
-      view.getByRole('button', { name: kind === 'issue' ? 'Submit issuance request' : 'Create request' }),
-    );
-    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-    const config = post.mock.calls[0]![2]!;
-    if (boundary === 'owner') {
-      classRecord = { ...classRecord, isOwner: false };
-      await act(async () => client.invalidateQueries({ queryKey: ['company-token', uuid] }));
-    } else if (boundary === 'account') {
-      await act(() =>
-        client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-          data: { userProfile: 'native-user', userAccount: { uuid: 'native-account-two', role: 'company' } },
-        }),
-      );
-    } else if (boundary === 'session') {
-      await act(() => {
-        client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-        client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-      });
-    } else await act(() => invalidateSessionScope());
-    const label = kind === 'issue' ? 'Reason (optional)' : 'Purpose';
-    await waitFor(() => expect(view.queryByLabelText(label)).toBeNull());
-    expect(() => config.ledovaSubmissionGuard!()).toThrow();
-    classRecord = { ...classRecord, isOwner: true };
-    await act(async () => client.invalidateQueries({ queryKey: ['company-token', uuid] }));
-    await view.findByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' });
-    await fireEvent.press(
-      view.getByRole('button', { name: kind === 'issue' ? 'Request issuance' : 'Raise authorised shares' }),
-    );
-    expect(view.getByLabelText(label).props.value).toBe('');
-    await fireEvent.changeText(view.getByLabelText(label), 'New current draft');
-    await act(async () => reply({ data: {} }));
-    expect(view.getByLabelText(label).props.value).toBe('New current draft');
-    expect(post).toHaveBeenCalledTimes(1);
-  },
-);
-
-it.each(['issue', 'raise'] as const)(
-  'blocks %s auth retry during same-owner refresh and accepts the healthy original response',
-  async (kind) => {
-    let reply!: (value: unknown) => void;
-    post.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          reply = resolve;
-        }) as ReturnType<typeof apiClient.post>,
-    );
-    const view = await ownerDraft(kind);
-    await fireEvent.press(
-      view.getByRole('button', { name: kind === 'issue' ? 'Submit issuance request' : 'Create request' }),
-    );
-    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
-    const config = post.mock.calls[0]![2]!;
-    let finish!: (value: unknown) => void;
-    const originalRead = read;
-    read = (url, number) =>
-      url === URLS.DETAIL(uuid)
-        ? new Promise((resolve) => {
-            finish = resolve;
-          })
-        : originalRead(url, number);
-    let refreshed!: Promise<unknown>;
-    await act(() => {
-      refreshed = client.invalidateQueries({
-        queryKey: ['company-token', uuid],
-        predicate: (query) => query.queryKey.length === 5,
-      });
-    });
-    await view.findByText('Refreshing class state before continuing.');
-    expect(() => config.ledovaSubmissionGuard!()).toThrow('Refresh the owner share class');
-    expect(view.getByLabelText(kind === 'issue' ? 'Reason (optional)' : 'Purpose').props.value).toBe(
-      'Private owner draft',
-    );
-    read = originalRead;
-    await act(async () => {
-      finish({ data: { ...classRecord } });
-      await refreshed;
-    });
-    expect(() => config.ledovaSubmissionGuard!()).not.toThrow();
-    await act(async () => reply({ data: {} }));
-    await waitFor(() => expect(view.queryByLabelText(kind === 'issue' ? 'Reason (optional)' : 'Purpose')).toBeNull());
-    expect(post).toHaveBeenCalledTimes(1);
-  },
-);
+it('mounts company paid issue authority for an appointed nonowner without loading owner financial history', async () => {
+  mockCompanyRole = 'investor';
+  classRecord = { ...token, isOwner: false };
+  appointmentRows = [appointment];
+  const view = await render(screen(), { wrapper });
+  await view.findByRole('button', { name: 'Prepare paid issue' });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(get.mock.calls.map(([url]) => url)).toContain(URLS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS);
+  for (const url of [URLS.ISSUANCES(uuid), URLS.ISSUANCE_REQUESTS, URLS.CAPITAL_INCREASES])
+    expect(get.mock.calls.map(([path]) => path)).not.toContain(url);
+  expect(post).not.toHaveBeenCalled();
+});

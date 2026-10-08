@@ -1,8 +1,6 @@
 from datetime import timedelta
 from unittest.mock import patch
-from uuid import uuid4
 
-from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
@@ -10,7 +8,7 @@ from django.utils import timezone
 from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH, CHAIN_ID, KEY
-from companies.models import Company
+from companies.services.team import revoke_company_appointment
 from tokens.exceptions import PauseChangeConflict
 from tokens.models import PauseChange, ShareToken
 from tokens.services import pause_changes, pause_recovery
@@ -26,9 +24,10 @@ class PauseRecoveryTest(TransactionTestCase):
     def recover(self, change=None):
         return pause_recovery.recover((change or self.change).pk)
 
-    def submit(self, paused):
+    def submit(self, paused, token=None):
         self.token.refresh_from_db()
-        return pause_changes.submit(self.token, self.tenant.user, uuid4(), paused)
+        proposal = self.company_pause.applied_pause(paused=paused, token=(token or self.token).pk)
+        return PauseChange.objects.get(pk=proposal.pk)
 
     def test_pause_unpause_pause_cycles_use_distinct_intent_and_terminal_replay_cannot_undo_them(self):
         first = self.recover()
@@ -44,8 +43,8 @@ class PauseRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 2)
         third = self.submit(True)
         self.assertEqual(self.recover(third).status, "confirmed")
-        self.assertEqual(SignedAttempt.objects.count(), 3)
-        self.assertEqual(OutgoingOperation.objects.count(), 3)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 3)
+        self.assertEqual(OutgoingOperation.objects.filter(operation_key__startswith="token-pause:").count(), 3)
         self.node.client.send_transaction.assert_not_called()
 
     def test_observed_state_has_block_evidence_but_no_transaction_and_never_reprojects(self):
@@ -56,7 +55,7 @@ class PauseRecoveryTest(TransactionTestCase):
         self.assertIsNone(change.operation_id)
         self.assertEqual(change.observation["block_hash"], BLOCK_HASH)
         self.node.contract.functions.paused.return_value.call.assert_called_once_with(block_identifier=BLOCK_HASH)
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertFalse(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").exists())
         self.recover(self.submit(False))
         self.recover()
         self.token.refresh_from_db()
@@ -65,17 +64,13 @@ class PauseRecoveryTest(TransactionTestCase):
     def test_signed_uncertainty_refuses_both_new_intents_and_never_adopts_current_state(self):
         self.node.confirmed = False
         self.assertIsNone(self.recover().completed_at)
-        attempt = SignedAttempt.objects.get()
+        attempt = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").get()
         self.node.paused = True
         self.assertEqual(self.recover().status, "executing")
-        refusals = []
         for paused in (True, False):
-            refused = self.submit(paused)
-            refusals.append(refused)
-            self.assertEqual(refused.status, "failed")
-            self.assertIsNotNone(refused.completed_at)
-            self.assertIsNone(refused.operation_id)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+            with self.assertRaises(PauseChangeConflict):
+                self.submit(paused)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 1)
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)] * 2)
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
         self.node.receipts[attempt.tx_hash] = self.node.receipt(attempt)
@@ -83,17 +78,15 @@ class PauseRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 2)
         self.node.confirmed = True
         self.assertEqual(self.recover(self.submit(False)).status, "confirmed")
-        for refused in refusals:
-            replay = pause_changes.submit(self.token, self.tenant.user, refused.pk, refused.paused)
-            self.assertEqual((replay.status, replay.completed_at), (refused.status, refused.completed_at))
-            self.recover(replay)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, "deployed")
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 2)
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 2)
 
     def test_bounded_sweep_moves_past_an_old_failure_and_excludes_fresh_and_completed_requests(self):
-        completed = self.submit(False)
+        completed = self.recover()
+        self.change = self.submit(False)
+        original_attempts = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count()
         later = []
         for digit in ("d", "e"):
             token = ShareToken.objects.create(
@@ -105,7 +98,7 @@ class PauseRecoveryTest(TransactionTestCase):
                 chain="base",
                 contract_address="0x" + digit * 40,
             )
-            later.append(pause_changes.submit(token, self.tenant.user, uuid4(), True))
+            later.append(self.submit(True, token))
         old = timezone.now() - timedelta(hours=1)
         PauseChange.objects.filter(pk=self.change.pk).update(updated_at=old)
         PauseChange.objects.filter(pk=later[0].pk).update(updated_at=old + timedelta(minutes=1))
@@ -125,12 +118,14 @@ class PauseRecoveryTest(TransactionTestCase):
         self.assertEqual(later[0].status, "observed")
         self.assertIsNotNone(later[0].completed_at)
         self.assertEqual((later[1].status, later[1].completed_at), ("pending", None))
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertEqual(
+            SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), original_attempts
+        )
 
     def test_lost_send_response_retains_original_transaction(self):
         self.node.lose_acknowledgement = True
         self.assertEqual(self.recover().status, "confirmed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 1)
 
     def test_decided_execution_cannot_later_become_an_observation(self):
         with patch.object(pause_recovery, "_claim", side_effect=SystemExit):
@@ -138,7 +133,7 @@ class PauseRecoveryTest(TransactionTestCase):
                 self.recover()
         self.node.paused = True
         self.assertEqual(self.recover().status, "confirmed")
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 1)
         self.change.refresh_from_db()
         self.assertIsNone(self.change.observation)
 
@@ -152,11 +147,11 @@ class PauseRecoveryTest(TransactionTestCase):
         with patch.object(outgoing, "open_operation", side_effect=committed_then_stop):
             with self.assertRaises(SystemExit):
                 self.recover()
-        operation = OutgoingOperation.objects.get()
+        operation = OutgoingOperation.objects.filter(operation_key__startswith="token-pause:").get()
         self.change.refresh_from_db()
         self.assertIsNone(self.change.operation_id)
         self.assertEqual(self.recover().operation_id, operation.pk)
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 1)
 
     def test_signed_commit_loss_recovers_without_a_second_nonce(self):
         original = outgoing.sign_operation
@@ -168,7 +163,7 @@ class PauseRecoveryTest(TransactionTestCase):
         with patch.object(outgoing, "sign_operation", side_effect=committed_then_stop):
             with self.assertRaises(SystemExit):
                 self.recover()
-        attempt = SignedAttempt.objects.get()
+        attempt = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").get()
         self.assertEqual(self.node.broadcasts, [])
         self.assertEqual(self.recover().status, "confirmed")
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
@@ -177,7 +172,7 @@ class PauseRecoveryTest(TransactionTestCase):
         before = SigningAccount.objects.get().next_nonce
         with patch.object(pause_recovery, "_record_signed", side_effect=DatabaseError("Synthetic guard failure")):
             self.assertEqual(self.recover().status, "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertFalse(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").exists())
         self.assertEqual(SigningAccount.objects.get().next_nonce, before)
         self.assertEqual(self.node.broadcasts, [])
 
@@ -190,18 +185,18 @@ class PauseRecoveryTest(TransactionTestCase):
 
         with patch.object(outgoing, "sign_operation", side_effect=committed_then_disconnect):
             self.assertEqual(self.recover().status, "confirmed")
-        attempt = SignedAttempt.objects.get()
+        attempt = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").get()
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
 
     def test_revert_is_permanent_and_deliberate_retry_gets_a_new_submission(self):
         self.node.receipt_status = 0
         self.assertEqual(self.recover().status, "failed")
-        original = SignedAttempt.objects.get()
+        original = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").get()
         self.assertEqual(self.recover().status, "failed")
         self.node.receipt_status = 1
         self.assertEqual(self.recover(self.submit(True)).status, "confirmed")
-        self.assertEqual(SignedAttempt.objects.count(), 2)
+        self.assertEqual(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").count(), 2)
         original.operation.refresh_from_db()
         self.assertEqual((original.operation.status, original.operation.block_hash), ("reverted", BLOCK_HASH))
 
@@ -220,9 +215,8 @@ class PauseRecoveryTest(TransactionTestCase):
         self.change.refresh_from_db()
         self.assertEqual(self.change.status, "confirmed")
         self.assertIsNone(self.change.completed_at)
-        refused = self.submit(False)
-        self.assertEqual(refused.status, "failed")
-        self.assertIsNotNone(refused.completed_at)
+        with self.assertRaises(PauseChangeConflict):
+            self.submit(False)
         with patch.object(pause_recovery, "get_base_chain_client", side_effect=AssertionError("Retained outcome")):
             self.assertIsNotNone(self.recover().completed_at)
 
@@ -254,22 +248,20 @@ class PauseRecoveryTest(TransactionTestCase):
         self.node.event_count = 1
         self.assertEqual(self.recover().status, "confirmed")
 
-    def test_fresh_owner_check_prevents_signing_after_admission(self):
-        replacement = get_user_model().objects.create_user(email="replacement@example.test", is_active=True)
-        Company.objects.filter(pk=self.token.company_id).update(owner=replacement)
+    def test_consumed_company_appointment_loss_prevents_unsigned_signing_and_releases_only_that_original(self):
+        source = self.company_pause.initial
+        revoke_company_appointment(requester=self.tenant.user, appointment_id=source.pk)
         self.assertEqual(self.recover().status, "failed")
-        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertFalse(SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").exists())
         self.assertEqual(self.node.broadcasts, [])
         self.assertIsNotNone(PauseChange.objects.get(pk=self.change.pk).completed_at)
-        replacement_change = pause_changes.submit(self.token, replacement, uuid4(), True)
-        self.assertEqual(self.recover(replacement_change).status, "confirmed")
 
-    def test_unsigned_wrong_chain_is_refused_and_cannot_hold_later_authorized_work(self):
+    def test_unsigned_wrong_chain_holds_the_original_until_configuration_returns(self):
         self.node.client.assert_expected_chain.return_value = CHAIN_ID + 1
-        self.assertEqual(self.recover().status, "failed")
-        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertEqual(self.recover().status, "pending")
+        self.assertFalse(OutgoingOperation.objects.filter(operation_key__startswith="token-pause:").exists())
         self.node.client.assert_expected_chain.return_value = CHAIN_ID
-        self.assertEqual(self.recover(self.submit(True)).status, "confirmed")
+        self.assertEqual(self.recover().status, "confirmed")
 
     def test_transient_provider_failure_keeps_the_unsigned_submission_recoverable(self):
         with patch.object(
@@ -284,8 +276,9 @@ class PauseRecoveryTest(TransactionTestCase):
         with patch.object(pause_recovery, "_claim", side_effect=SystemExit):
             with self.assertRaises(SystemExit):
                 self.recover()
-        current = pause_changes.refuse_unsigned(self.change)
-        self.assertEqual((current.status, current.completed_at), ("executing", None))
+        self.assertFalse(pause_changes.retire_lapsed_source(self.change))
+        self.change.refresh_from_db()
+        self.assertEqual((self.change.status, self.change.completed_at), ("executing", None))
         self.assertEqual(self.recover().status, "confirmed")
 
     def test_wrong_chain_or_untyped_state_never_admits_signing(self):
@@ -293,12 +286,12 @@ class PauseRecoveryTest(TransactionTestCase):
             self.node.paused = value
             with self.assertRaises(PauseChangeConflict):
                 self.recover()
-        self.assertFalse(OutgoingOperation.objects.exists())
+        self.assertFalse(OutgoingOperation.objects.filter(operation_key__startswith="token-pause:").exists())
 
     def test_changed_signer_cannot_sign_but_original_signed_receipt_still_recovers(self):
         self.node.confirmed = False
         self.recover()
-        attempt = SignedAttempt.objects.get()
+        attempt = SignedAttempt.objects.filter(operation__operation_key__startswith="token-pause:").get()
         self.node.receipts[attempt.tx_hash] = self.node.receipt(attempt)
         with override_settings(BLOCKCHAIN_OPERATOR_KEY=""):
             self.assertEqual(self.recover().status, "confirmed")

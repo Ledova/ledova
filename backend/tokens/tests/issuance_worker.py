@@ -22,6 +22,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
     settings.DATABASES = {"default": database}
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
+    settings.PRIVATE_MEDIA_ROOT = os.environ["ISSUANCE_TEST_PRIVATE_MEDIA_ROOT"]
     django.setup()
 
     from django.contrib.auth import get_user_model
@@ -32,13 +33,28 @@ def run(directory, phase, request_id, actor_id, confirmation):
     from blockchain.tests.outgoing_fixtures import receipt
     from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
     from tokens.services import issuance_execution
-    from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode
+    from tokens.tests.issuance_fixtures import FINALITY_POLICIES, IssuanceNode, admit
 
     settings.WALLET_CHAIN_FINALITY_POLICIES = FINALITY_POLICIES
 
     request = ShareIssuanceRequest.objects.get(pk=request_id)
     actor = get_user_model().objects.get(pk=actor_id)
     node = IssuanceNode()
+    from tokens.models import RegisterInstruction, RegisterOpening
+    from tokens.tests.test_register_snapshot import block_hash
+
+    source = RegisterInstruction.objects.filter(
+        request_id=request.pk, kind="issue", preparing_appointment__isnull=False
+    ).first()
+    if source is not None:
+        if source.paid_subscription_id is None:
+            node.contract.functions.whitelist.return_value.call.return_value = source.snapshot["wallet"][
+                "registry_address"
+            ]
+        opening = RegisterOpening.objects.get(token_id=source.token_id, status="applied")
+        node.receipt_height = int(opening.boundary["block"]["number"]) + 1
+        node.head = node.finalized = node.receipt_height
+        node.block_hashes[node.receipt_height] = block_hash(node.receipt_height)
 
     def ledger():
         path = directory / "node.json"
@@ -79,6 +95,8 @@ def run(directory, phase, request_id, actor_id, confirmation):
         return receipt(attempt, int(tx_hash not in current.get("reverted", []))) | {
             "to": command.intent["to"],
             "from": command.intent["sender"],
+            "blockNumber": node.receipt_height,
+            "blockHash": node.block_hashes[node.receipt_height],
         }
 
     def preflight(*args, **kwargs):
@@ -146,7 +164,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
             stack.enter_context(patch.object(issuance_execution, "_project", projected))
         existing = ShareIssuanceExecution.objects.filter(request_id=request.pk).first()
         if phase != "recover" and (existing is None or existing.subscription_id is None):
-            issuance_execution.admit(request, actor, confirmed=confirmation)
+            admit(request, actor, confirmed=confirmation)
         if phase == "admitted":
             os.kill(os.getpid(), signal.SIGKILL)
         if phase == "race":

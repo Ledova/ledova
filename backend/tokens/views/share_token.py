@@ -10,15 +10,12 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from companies.models import Company
-from companies.services.administration import company_owner_operation
 from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import ShareTokenFilter
 from tokens.models import ShareIssuance, ShareToken
 from tokens.serializers import (
     FormerMemberSerializer,
-    ShareIssuanceCreateSerializer,
     ShareIssuanceListSerializer,
-    ShareIssuanceRequestSerializer,
     ShareRegisterEntrySerializer,
     ShareRegisterHolderSerializer,
     ShareRegisterWaitingEffectSerializer,
@@ -32,7 +29,7 @@ from tokens.serializers.pause_change import (
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
-from tokens.services import pause_changes, share_token_service
+from tokens.services import pause_changes
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -63,7 +60,6 @@ class ShareTokenViewSet(
             "pause",
             "unpause",
             "pause_submission",
-            "issue",
             "issuances",
             "holders",
             "register",
@@ -174,38 +170,6 @@ class ShareTokenViewSet(
         token = self.get_object()
         change = pause_changes.retrieve(token, request.user, submission_id)
         return self._pause_response(token, change)
-
-    @extend_schema(
-        request=ShareIssuanceCreateSerializer,
-        responses={
-            201: inline_serializer(
-                name="ShareIssuanceRequested",
-                fields={
-                    "message": serializers.CharField(),
-                    "token": ShareTokenDetailSerializer(),
-                    "issuance_request": ShareIssuanceRequestSerializer(),
-                },
-            )
-        },
-    )
-    @action(detail=True, methods=["post"])
-    def issue(self, request, uuid=None):
-        token = self.get_object()
-        serializer = ShareIssuanceCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        with company_owner_operation(request.user, token.company_id):
-            token.refresh_from_db()
-            issuance_request = share_token_service.create_issuance_request(
-                token=token, user=request.user, **serializer.validated_data
-            )
-        return Response(
-            {
-                "message": "Share issuance request submitted for approval.",
-                "token": ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data,
-                "issuance_request": ShareIssuanceRequestSerializer(issuance_request).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
     @extend_schema(
         responses=ShareIssuanceListSerializer(many=True),

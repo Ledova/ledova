@@ -93,10 +93,10 @@ class CapitalIncreaseUnresolved(APIException):
     default_code = "capital_increase_unresolved"
 
 
-class TokenPauseFailedException(APIException):
-    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    default_detail = "Token pause or unpause failed on chain."
-    default_code = "token_pause_failed"
+class CapitalIncreaseSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned capital increase waits for its company source.")
 
 
 class IssuanceRefusedException(APIException):
@@ -339,6 +339,12 @@ class IssuanceExecutionConflict(APIException):
     default_code = "issuance_execution_conflict"
 
 
+class IssuanceSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned issue requires its exact current company source.")
+
+
 class IssuanceExecutionUnresolved(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     default_detail = "The original share issuance requires recovery before its outcome is known."
@@ -403,3 +409,9 @@ class SettlementApprovalUncertain(Exception):
         super().__init__(f"Approval recorded; attempt outcome {outcome}.")
         self.tx_hash = tx_hash
         self.outcome = outcome
+
+
+class PauseSigningHold(OutgoingTransactionError):
+    def __init__(self, unmet_requirements):
+        self.unmet_requirements = unmet_requirements
+        super().__init__("The original unsigned pause requires its exact current company source.")

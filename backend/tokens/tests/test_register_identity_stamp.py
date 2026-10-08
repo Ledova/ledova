@@ -4,13 +4,14 @@ from uuid import uuid4
 
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
+from rest_framework.test import APITransactionTestCase
 
+from shared.db import use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     RegisterMemberWallet,
     RequestStatus,
     ShareIssuance,
-    ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
 from tokens.services.holder_identity import identity_at_allotment
@@ -25,7 +26,12 @@ from tokens.services.register import (
     stored_register,
 )
 from tokens.services.register_events import create_member, open_register
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
+from tokens.tests.company_issue_fixtures import CompanyIssueCases
+from tokens.tests.issuance_fixtures import CHAIN_ID, FINALITY_POLICIES, KEY
+from tokens.tests.retained_issuance_fixtures import (
+    install_retained_issuance,
+    retain_signed_issuance,
+)
 from tokens.tests.test_register_events import DAY
 from wallets.models import Wallet
 from whitelist.models import HolderType, WhitelistEntry
@@ -168,10 +174,12 @@ class IdentitySurvivesAWalletDeletionTest(TestCase):
         )
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+@override_settings(
+    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
+)
 class TheIssuancePathStampsWhatItAllotsTest(TransactionTestCase):
     def setUp(self):
-        install_issuance(self)
+        install_retained_issuance(self)
         profile = self.tenant.profile
         profile.full_name = "Grace Hopper"
         profile.residential_address = "3 Compiler Court"
@@ -179,18 +187,17 @@ class TheIssuancePathStampsWhatItAllotsTest(TransactionTestCase):
         Wallet.objects.create(user_account=self.tenant.account, address=HOLDER, chain="base")
 
     def _execute(self, recipient=HOLDER, label=""):
-        request = ShareIssuanceRequest.objects.create(
+        request, execution_id = retain_signed_issuance(
             token=self.token,
-            recipient_address=recipient,
+            actor=self.actor,
+            recipient=recipient,
             recipient_name=label,
             amount=5,
-            submitted_by=self.tenant.user,
+            client=self.node.client,
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.APPROVED, reviewed_by=self.actor)
-        request.refresh_from_db()
-        result = issuance_execution.recover(admit(request, self.actor).pk)
+        result = issuance_execution.recover(execution_id)
         self.assertEqual(result["status"], "executed")
-        return ShareIssuance.objects.filter(token=self.token).order_by("-created_at").first()
+        return ShareIssuance.objects.get(idempotency_key=f"issuance-request:{request.pk}")
 
     def test_the_row_is_stamped_before_the_chain_is_asked_to_mint(self):
         original_send = self.node.send
@@ -235,3 +242,26 @@ class TheIssuancePathStampsWhatItAllotsTest(TransactionTestCase):
         self.assertEqual(issuance.recipient_name, "")
         self.assertEqual(issuance.recipient_residential_address, "")
         self.assertIsNone(issuance.identity_stamped_at)
+
+
+class CompanyIssuanceStampsItsOriginalMemberTest(CompanyIssueCases, APITransactionTestCase):
+    def test_the_company_member_snapshot_is_stamped_before_the_original_mint_is_broadcast(self):
+        proposal = self.applied_issue(shares=5)
+        expected = proposal.snapshot["member"]
+        original_send = self.issuance_node.client.send_raw_transaction.side_effect
+
+        def observed_send(raw):
+            with use_operator():
+                recorded = ShareIssuance.objects.get(idempotency_key=f"issuance-request:{proposal.request_id}")
+                self.assertEqual(
+                    (recorded.recipient_name, recorded.recipient_residential_address),
+                    (expected["name"], expected["residential_address"]),
+                )
+                self.assertIsNotNone(recorded.identity_stamped_at)
+            return original_send(raw)
+
+        self.issuance_node.client.send_raw_transaction.side_effect = observed_send
+        self.assertEqual(self.execute_issue(proposal)["status"], "executed")
+        with use_operator():
+            proposal.request.refresh_from_db()
+            self.assertEqual(proposal.request.status, RequestStatus.EXECUTED)

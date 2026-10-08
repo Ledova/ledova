@@ -91,6 +91,11 @@ class ShareIssuanceRequestAdmin(ReviewWorkflowAdmin):
         ]
 
     def execute_view(self, request, obj):
+        if not ShareIssuanceExecution.objects.filter(request_id=obj.pk).exists():
+            messages.error(
+                request, "New non-paid grants require their current company decision through the register API."
+            )
+            return HttpResponseRedirect(self._change_url(obj))
         if not obj.can_be_executed and obj.status != RequestStatus.EXECUTING:
             return self._refuse(request, obj, "execute")
         try:

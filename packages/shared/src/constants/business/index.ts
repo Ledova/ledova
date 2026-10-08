@@ -22,3 +22,7 @@ export * from './company-documents';
 export * from './company-authority';
 export * from './signup';
 export * from './company-activation';
+export * from './register-issues';
+export * from './register-capital-increases';
+export * from './register-pause-changes';
+export * from './register-paid-issues';

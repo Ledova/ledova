@@ -82,17 +82,29 @@ covers.
 An issue or transfer entry is dated the day it is made, so one that waited
 carries the later date; the register refuses one dated before its latest entry.
 
-An issue is approved only under a
-[register instruction](../operations/register-foundation.md#register-instructions-for-issues):
-the company owner lists the exact issuance requests, and offering subscriptions
-for allotments, that a named director approved, with staff-verified documentary
-authority, and staff review it. Applying it approves each listed request with the
-reviewer, who becomes the issue entry's recorder, and allotment refuses a
-subscription no applied instruction lists on its current terms. PostgreSQL keeps
-instructions immutable, and keeps an issuance request's review decision and
-reviewer out of the company's own connection. A class an import opened takes no
-instruction until it is on chain, because nothing would record its issue or
-transfer.
+A company-authorised [non-paid chain grant](../plans/company-managed-registers/company-register-issues.md)
+uses an exact member, nomination and finite company wallet approval on a genuinely
+CHAIN-opened class. It retains company-provided authority, terms and any required
+acceptance through personal appointment decisions. Application admits the existing
+mint journal; only its finalised genuine outcome supplies the original member's
+once-only ISSUE entry. The first-member LINK can precede a first mint. Imported
+books retain their separate walletless grant workflow and cannot obtain chain
+issue authority by deploying a contract, including when imported supply is zero.
+
+The [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. It binds the company's exact preparation, approval and
+application to an existing recorded PAID subscription. Application admits its
+original request and execution; a genuine finalised Mint supplies the original
+member's ISSUE once its wallet link exists. The entry records the company
+appointee who applied the issue. Payment, approval, Mint, ALLOTTED and register
+recording remain separate. Financial decisions remain pending #868.
+Retained paid instructions keep their original staff decisions and financial
+source. Fresh legacy paid admission is retired; retained non-paid requests may
+still obtain their earlier guarded register cover. PostgreSQL keeps those
+instructions immutable and rejects fabricated company or legacy authority.
+An import-origin class takes no
+chain issue or transfer instruction; later tokenisation needs a genuine mirror
+that preserves its recorded holdings.
 
 A settled transfer is entered only under a
 [transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers).
@@ -123,12 +135,12 @@ A row lists every wallet linked to the member in the company, and a member can
 have none. Identity follows each wallet's whitelist entry through wallet,
 account and profile, in bounded address chunks. Holder types are:
 
-| Type | Meaning |
-| --- | --- |
-| `member` | The wallets resolve to one profile, or through resolved identity stamps from allotment to one person |
-| `treasury` | The wallets resolve to one bare whitelisted treasury address with a label |
-| `ambiguous` | The wallets resolve to different people, live or through their stamps, or one of them to more than one wallet or entry |
-| `unidentified` | No wallet resolves to an identity |
+| Type           | Meaning                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `member`       | The wallets resolve to one profile, or through resolved identity stamps from allotment to one person                   |
+| `treasury`     | The wallets resolve to one bare whitelisted treasury address with a label                                              |
+| `ambiguous`    | The wallets resolve to different people, live or through their stamps, or one of them to more than one wallet or entry |
+| `unidentified` | No wallet resolves to an identity                                                                                      |
 
 Live identity is preferred when it is present and unambiguous. A member with no
 live identity can fall back to the latest resolved identity stamp among its

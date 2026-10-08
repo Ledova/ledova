@@ -939,8 +939,10 @@ every subscription to the selected offering, followed by directory visibility an
 what happens next. Class and
 offering lists follow every page before presenting issuer actions; subscriptions
 show requested and allotted shares separately, including zero allotments. AUD
-amounts stay exact decimal strings. Payment confirmation and allotment remain
-read-only operator records. The existing draft/rejected edit, submission,
+amounts stay exact decimal strings. The application ledger shows recorded payment
+and allotment facts without editing them. Payment recording remains an operator
+workflow pending #868; the separate company paid-issue panel prepares, approves
+and applies the original issue under company authority. The existing draft/rejected edit, submission,
 withdrawal and draft deletion rules are unchanged. Create and edit forms retain
 their drafts through failed or refreshing prerequisite reads and pending writes;
 an unavailable edit never becomes a new offering. Quantities are whole integers

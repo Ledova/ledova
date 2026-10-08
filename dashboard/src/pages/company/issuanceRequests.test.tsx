@@ -197,33 +197,6 @@ describe('the issuer request history through real query and service hooks', () =
     expect(screen.queryByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeNull();
   });
 
-  it('refreshes the history after a submitted request receives 201', async () => {
-    api.post.mockImplementation(async (url: string, data: { recipient: string; amount: number; reason: string }) => {
-      expect(url).toBe(COMPANY_TOKEN_ENDPOINTS.ISSUE('token-1'));
-      requests = [{ ...REQUEST, recipientAddress: data.recipient, amount: data.amount, reason: data.reason }];
-      return { status: 201, data: { message: 'Submitted', token: TOKEN, issuanceRequest: requests[0] } };
-    });
-    showHistory();
-    await screen.findByText('No issuance requests yet.');
-    fireEvent.click(screen.getByRole('button', { name: 'Request issuance' }));
-    fireEvent.change(screen.getByLabelText('Recipient address'), { target: { value: REQUEST.recipientAddress } });
-    fireEvent.change(screen.getByLabelText('Shares to issue'), { target: { value: '10000' } });
-    fireEvent.change(screen.getByLabelText('Reason (optional)'), { target: { value: 'Founder allocation' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Submit issuance request' }));
-
-    await screen.findByText('Submitted');
-    expect(screen.getByText(/10,000 QAT to/)).toBeDefined();
-    expect(api.post).toHaveBeenCalledExactlyOnceWith(
-      COMPANY_TOKEN_ENDPOINTS.ISSUE('token-1'),
-      {
-        recipient: REQUEST.recipientAddress,
-        amount: 10000,
-        reason: 'Founder allocation',
-      },
-      expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-    );
-  });
-
   it('reads every page before displaying the full history', async () => {
     requests = Array.from({ length: 26 }, (_, index) => ({
       ...REQUEST,

@@ -41,5 +41,5 @@ export const REGISTER_COPY = {
   APPLICATIONS_TITLE: 'Applications',
   APPLICATIONS_EMPTY: 'No one has applied to this offering yet.',
   APPLICATIONS_NOTE: (operator: string) =>
-    `Read-only. Payment confirmation and allotment are done by ${operator}; this is where you watch them happen.`,
+    `Read-only. Payment recording is done by ${operator}. Company paid issue authority is managed on the share class; this ledger shows the recorded financial outcome.`,
 } as const;

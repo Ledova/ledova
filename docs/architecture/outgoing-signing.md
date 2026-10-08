@@ -113,7 +113,6 @@ database exception text.
 
 For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
 
-
 ## Fresh Base Sepolia admission
 
 `bootstrap_fresh_signer --manifest PATH` is an operator command for the owner's
@@ -397,7 +396,6 @@ also require a live investor classification for the share class's company, from
 the same predicate the offering paths use; order creation records the refusal as
 `investor_not_eligible` and signing answers 403.
 
-
 ## Refreshing an approval
 
 `whitelist.services.refresh` retains technical eligibility invalidation. It can
@@ -438,12 +436,12 @@ a removal during a provider outage or unresolved chain outcome.
 
 What a reader may conclude from an approval's status:
 
-| Status | What it says |
-| --- | --- |
-| `pending` | A change for this wallet and company is admitted and unresolved. What the registry holds is unknown, and every platform read treats the wallet as not approved |
-| `active` | The last observation found the registry listing the wallet with this expiry. `is_listed` and the `live` queryset still apply the clock to it |
-| `removed` | The last observation found the registry holding zero for it. A removed row is not re-observed by `sync_all_entries` |
-| `failed` | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
+| Status    | What it says                                                                                                                                                                                                                                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pending` | A change for this wallet and company is admitted and unresolved. What the registry holds is unknown, and every platform read treats the wallet as not approved                                                                                                                                                                                    |
+| `active`  | The last observation found the registry listing the wallet with this expiry. `is_listed` and the `live` queryset still apply the clock to it                                                                                                                                                                                                      |
+| `removed` | The last observation found the registry holding zero for it. A removed row is not re-observed by `sync_all_entries`                                                                                                                                                                                                                               |
+| `failed`  | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
 
 That is what failing closed means here, and its limits are worth stating. The
 platform refuses at once, both on the registry read and on the classification
@@ -453,21 +451,34 @@ call can still move shares, and pausing the token is the operator's lever.
 
 ## Capital increases
 
-`tokens.services.capital_execution` admits staff-admin execution with current
-`change_capitalincreaserequest` permission. Its signed confirmation binds the
-request, dispatch identity, actor and exact failed claim when retrying. Admission
-commits the private `CapitalIncreaseExecution`, public `executing` state and job
-together before RPC. Recovery is operator-owned after admission; it does not
-need renewed customer or staff permission. The issuer's ordinary draft, edit,
-submit and delete paths never read the private journal.
+The [company capital family](../plans/company-managed-registers/company-capital-increases.md)
+prepares exact before-cap, delta and target with retained company authority.
+Human approval admits no journal or job. Application consumes the exact personal
+approval and commits the original `CapitalIncreaseExecution`, public `executing`
+state and durable job together before signing or broadcast. Read-only chain and
+captured-cap preflight precedes the decision transaction outside its locks.
+Fresh owner/staff creation, submission,
+review and admission are retired. Original private histories remain readable.
+Technical retry retains `change_capitalincreaserequest` permission and a signed
+confirmation binding request, dispatch, actor and exact failed claim; it supplies
+no new company decision. Already signed recovery needs no renewed human authority.
 
 The immutable intent retains the original token, company, actor, chain, signer,
 contract, approved target and prior recorded cap. PostgreSQL guards freeze public
 identity and non-draft terms, and prevent token cap/identity edits while the
 request is executing. Pause/unpause remains available. The existing per-token
 in-flight constraint is the hold; network reads, signing preparation and broadcast
-do not hold that token lock. Operation locks precede token, request and command
-locks whenever an operation exists.
+do not hold that token lock. Source and class locks precede outgoing operation
+and signer locks, consistently with the other class writers.
+
+Fresh preparation and signing recheck the immutable source, consumed approval,
+current personal appointments, evidence, class and configuration; default-deferred
+guards recheck each effect. Temporary source/configuration/provider or row-lock
+unavailability holds the same original unsigned claim without a nonce. Explicit
+revocation or database-clock expiry of a consumed approval/application appointment
+can atomically fail that same PREPARING operation and request only when no signed
+attempt ever existed. This releases the class slot while retaining the intent and
+journal. It does not recategorise a definite gas/preparation failure or signed work.
 
 All signed attempts use the common nonce journal. Recovery retains the exact
 original terminal receipt before verifying the cap event. Only a matching
@@ -481,9 +492,10 @@ The generic transaction monitor excludes these projections.
 Unsigned failure and confirmed revert permit a deliberate retry of the exact
 failed claim. Retry admission reacquires the public slot and records that claim
 before enqueueing. Replaying a stale form cannot reopen a newer failed attempt,
-and the previous reverted transaction survives. A new, provably unsigned request
-whose target no longer raises the recorded cap can retire as `superseded` without
-an operation. A known failed request overtaken by a later cap can also retire;
+and the previous reverted transaction survives. New company preparation refuses
+non-increasing or incoherent terms before admission. Genuine predecessor
+superseded records retain their original figures and attribution. A known failed
+request overtaken by a later cap can also retire;
 an unresolved signed request cannot.
 
 Migrations `tokens/0045` and `0046` preserve historical requests and transactions
@@ -495,16 +507,30 @@ This conservative fence cannot establish absent historical authority or drain an
 external same-key writer; complete cutover and receipt finality remain separate
 programme acceptance. See [operator recovery](../operations/recovery.md#capital-increases).
 
-
 ## Share issuances
 
-`tokens.services.issuance_execution` admits approved share requests with current
-active staff authority and the originating admin model permission. A standalone
-execution confirmation binds the request, dispatch UUID, actor and failed claim.
-Subscription allotment commits its approved request, subscription association,
-private `ShareIssuanceExecution` and exact job together. App connections cannot
-read or write private commands; public issuer reads retain their existing shape.
-Accepted recovery remains operator-owned after the initiating actor loses access.
+`tokens.services.issuance_execution` admits a company-authorised
+[non-paid chain grant](../plans/company-managed-registers/company-register-issues.md)
+from its exact applied RegisterInstruction ISSUE and original consumed approval.
+The personal company mandates, member/nomination/finite wallet approval, evidence
+and intent are rechecked before a fresh signature. The source prefix precedes
+outgoing/signer locks; RPC runs outside those locks. Original signed recovery
+retains its bytes and attribution after company source loss. Finalised completion
+and original-member register recording are distinct bounded transactions;
+executed but unentered allocations remain reserved until the once-only ISSUE.
+
+The [paid-issue company conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. Its exact applied instruction consumes current company
+approval and binds the original PAID subscription, request, private
+`ShareIssuanceExecution` and exact job together. Preparation and approval admit
+none of these execution effects. Current source and headroom checks precede new
+signing; paid fulfilment does not reapply unrelated participant eligibility,
+nomination or grant requirements. Original financial receipt/refund producers
+remain separate until #868 changes them. Fresh staff paid ISSUE admission is
+retired; historical accepted commands keep their original actor and source.
+App connections cannot read or write private commands; public issuer reads
+retain their existing shape. Accepted recovery remains operator-owned after the
+initiating actor loses access.
 
 Initial admission leaves the public request approved and the private command
 queued. A refund that wins before the worker claim rejects the request and retains
@@ -517,9 +543,11 @@ that exact failed claim. Reverts retain the original transaction and signed byte
 
 PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage,
 payment and share quantities. Recorded refunds cannot be reduced or undone.
-Token identity stays fixed while new work can execute. Lock order is outgoing
-operation, token, subscription, request and private command; chain reads and sends
-run outside those transactions. Common-journal signing commits original bytes,
+Token identity stays fixed while new work can execute. Company paid sources lock
+their company, class, offering, subscription and original source associations
+before the outgoing operation and signer. Retained NULL-source paid commands
+keep their applicable outgoing, token, subscription, request and private-command
+suffix. Chain reads and sends run outside those transactions. Common-journal signing commits original bytes,
 nonce, hash, public transaction and issuance association before broadcast.
 
 Recovery retains the first receipt before checking finality. A transaction marked
@@ -545,6 +573,14 @@ recovers bounded batches of accepted work. Completion calls
 [register recording rules](register.md) may retain the effect as waiting for
 its opening, wallet link, attribution or applied instruction.
 
+An admitted paid subscription retains its unique execution and immutable request
+binding. Permanent consumed-appointment loss before any signature retains that
+history and paid money; it does not renew authority, bind a second request or
+automatically refund funds. Original signed/confirmed work can project its
+original receipt after authority loss without a replacement approval. An actual
+financial cancellation still requires its existing refund/cancellation facts;
+further paid fund resolution policy belongs to #868.
+
 Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
 its fields and mint journal without adoption. New private metadata has no
 customer-facing foreign-key dependency. Guard reversal refuses existing commands,
@@ -557,51 +593,49 @@ hash. See [issuance recovery](../operations/recovery.md#deployment-and-issuance)
 
 ## Pause and unpause
 
-Each intentional pause/unpause submission has its own UUID and private `PauseChange`.
-The issuer API accepts `submissionId`; staff confirmations bind that UUID to the
-actor, token and desired state. Bounded operator admission locks the company and
-token, checks the fresh actor, freezes the chain, contract and calldata, and
-commits the exact recovery job with the command. Public token state stays unchanged
-until an outcome can be projected. Current issuer ownership is required on API
-submission and retrieval; staff privileges never widen the issuer API.
-
-An authorized new submission blocked by an incomplete command is retained as a
-completed unsigned `failed` refusal, with no job or outgoing operation. Its UUID
-can never turn into a delayed action after the blocker clears. This lets clients
-retrieve and dismiss a definite refusal without treating an ambiguous missing
-response or 404 as cancellation. Invalid identity or authority is not admitted.
+New pause/unpause work uses the six-operation company family described in the
+[company instruction guide](../plans/company-managed-registers/company-pause-changes.md).
+A current personal company appointment prepares an exact state, reason, authority
+reference and private evidence. Approval records the human decision without a
+journal, job, signature or state change. Application consumes that exact approval
+and current applier authority, admitting one source-bound private `PauseChange`
+and its durable recovery job atomically under the original proposal UUID.
+Ownership and staff permissions provide no company mandate. The replaced fresh
+issuer POST and staff admin admission are retired; exact existing issuer-row
+POST replay and private GET recovery retain their original identity and direction.
 
 A verified initial boolean at a recorded block may produce `observed`, with no
-outgoing operation. The decision is serialized against an executing peer. Known
-unsigned authority, lifecycle or configuration refusals can finish as `failed`
-only while no outgoing operation exists; temporary provider failures retain the
-pending command. Once executing, recovery uses the original outgoing key, signed
-bytes, nonce and receipt. A unique original `Paused` or `Unpaused` event from the
-admitted contract and sender is required for confirmation. Current chain state
-cannot stand in for a signed transaction's outcome. A new attempt after a terminal
-failure needs a new submission UUID; the foundation cannot reopen a pause command.
+outgoing operation, signature or nonce. The decision is serialized against an
+executing peer. Temporary provider, configuration, readiness and row contention
+retain the same unsigned work. Only explicit revocation or actual database-clock
+expiry of a consumed approval/application appointment retires a genuinely
+never-signed original and releases its target slot. Definite preparation failures
+retain their technical meaning. Once executing, recovery uses the original
+outgoing key, signed bytes, nonce and receipt after current human authority loss.
+A unique original `Paused` or `Unpaused` event from the admitted contract and
+sender, canonical successful receipt and configured finality are required for
+confirmation. Current chain state cannot replace that transaction's outcome.
 
 The incomplete command reserves its chain and contract, including a confirmed or
-observed outcome awaiting public projection. Projection holds the target advisory
-lock and private command lock, then updates the token on the admitted issuer's
-scoped connection. It commits that update before completing the private command.
-If either commit response is lost, the retained barrier permits an idempotent
-repeat and prevents a newer opposite command overtaking the old projection. A
-completed replay returns before updating the token. If ownership or original
-identity no longer permits projection, recovery keeps the outcome and barrier;
-there is no operator fallback for an issuer's public write.
+observed outcome awaiting public projection. Company projection locks target,
+company, class, source and journal on one operator alias before updating the
+public state. Fresh opening/signing contexts acquire source/class authority
+before outgoing and signer locks and recheck default-deferred effects using
+actual time. Network operations run outside database transactions.
 
-Signing locks operation, signer, command, company, token and the freshly read
-actor. Projection holds no outgoing/account lock or operator company/token lock
-while its scoped connection updates the token. Actor flags are protected through
-signing; permission grants are checked fresh after target waits. This does not
-establish a global fence against all later concurrent group/permission changes.
-Network operations run outside database transactions.
+Retained NULL-source issuer projection preserves its original path: target and
+private journal locks on the operator alias, then original issuer company/class
+writes on the scoped app connection. It holds no operator company/class lock
+while that separate connection projects. That write commits before completing
+the private command. A lost commit response retains the barrier for idempotent
+original recovery, preventing a newer opposite command from overtaking it.
+Completed replay returns before updating the token. Missing original issuer
+ownership keeps the outcome and barrier; no operator fallback supplies that write.
 
-Migrations `tokens/0051` and `0052` preserve historical token states without
-admitting pause history, restrict private-role access and refuse reversal with
-commands present. API responses expose the original submission outcome separately
-from current token status. The dashboard verifies identifier retention before every POST, guards
-issuer-session changes, recovers after reload and dismisses only resolved outcomes.
-The old direct sender and unconditional status helpers are removed. Historical
-attribution, all-writer cutover and finality remain separate requirements.
+Historical `0051`/`0052` retain their definitions and original states. New
+`0104`/`0105` add company sources without backfilling approvals, reject fresh
+NULL-source admission and refuse reversal with retained company history. API and
+clients expose requested state, genuine observation or original receipt separately
+from current class state. The v1 five-field issuer reminder remains, with original
+UUID/direction, same-account reload/replay/polling and completed-only dismissal.
+A saved UUID never admitted to the server gets an explicit fresh-admission refusal.

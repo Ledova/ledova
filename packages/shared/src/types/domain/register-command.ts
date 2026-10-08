@@ -1,3 +1,19 @@
+import type {
+  RegisterPaidIssue,
+  RegisterPaidIssueDecisionRequest,
+  RegisterPaidIssueDecideRequest,
+} from './register-paid-issue';
+import type {
+  RegisterPauseChange,
+  RegisterPauseChangeDecisionRequest,
+  RegisterPauseChangeDecideRequest,
+} from './register-pause-change';
+import type {
+  RegisterCapitalIncrease,
+  RegisterCapitalIncreaseDecisionRequest,
+  RegisterCapitalIncreaseDecideRequest,
+} from './register-capital-increase';
+import type { RegisterIssue, RegisterIssueDecisionRequest, RegisterIssueDecideRequest } from './register-issue';
 import type { ApiRequest, ApiSchema } from '../contracts';
 import type {
   CompanyWalletInstruction,
@@ -34,7 +50,11 @@ export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
+  | RegisterPaidIssue
+  | RegisterPauseChange
+  | RegisterCapitalIncrease
   | RegisterImport
+  | RegisterIssue
   | RegisterCorrection
   | RegisterOpening
   | RegisterParticularsChange
@@ -44,7 +64,11 @@ export type RegisterProposal =
   | RegisterDeployment
   | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
+  | RegisterPaidIssueDecisionRequest
+  | RegisterPauseChangeDecisionRequest
+  | RegisterCapitalIncreaseDecisionRequest
   | RegisterImportDecisionRequest
+  | RegisterIssueDecisionRequest
   | RegisterDeploymentDecisionRequest
   | RegisterGrantDecisionRequest
   | RegisterTransferDecisionRequest
@@ -54,7 +78,11 @@ export type RegisterDecisionRequest =
   | RegisterLinkDecisionRequest
   | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
+  | RegisterPaidIssueDecideRequest
+  | RegisterPauseChangeDecideRequest
+  | RegisterCapitalIncreaseDecideRequest
   | RegisterImportDecideRequest
+  | RegisterIssueDecideRequest
   | RegisterDeploymentDecideRequest
   | RegisterGrantDecideRequest
   | RegisterTransferDecideRequest

@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -5,12 +6,12 @@ from django import forms
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.db import connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from web3 import Web3
+from rest_framework.test import APITransactionTestCase
 
-from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.admin.subscription import ACTIONS
 from offerings.models import (
     Offering,
@@ -19,22 +20,19 @@ from offerings.models import (
     SubscriptionStatus,
 )
 from offerings.services.subscription import (
-    BATCH_ABOVE_HEADROOM,
     REFUND_NOT_POSITIVE,
     TX_HASH_ALREADY_USED,
     submit,
 )
 from offerings.tests.factories import (
-    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
-    instruct,
     open_offering,
     paid_subscription,
 )
-from shared.db import acting_for
+from shared.db import acting_for, current_alias, use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceExecutionStatus,
@@ -43,54 +41,17 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
-from tokens.tests.issuance_fixtures import (
-    CHAIN_ID,
-    FINALITY_POLICIES,
-    KEY,
-    IssuanceNode,
-)
+from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 from users.models import InvestorClassification
 
 User = get_user_model()
-CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
-SUPPLY = "tokens.services.share_token_service.share_supply"
-SIGNER = "0x" + "e" * 40
 TEST_STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
 
-@override_settings(
-    STORAGES=TEST_STORAGES,
-    BLOCKCHAIN_OPERATOR_KEY=KEY,
-    BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
-    WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES,
-)
-class SubscriptionAdminTestCase(TransactionTestCase):
-    def setUp(self):
-        chain = patch(CHAIN_CLIENT).start().return_value
-        chain.is_valid_address.return_value = True
-        chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        chain.get_address_from_private_key.return_value = SIGNER
-        self.defer = patch(DEFER).start()
-        self.addCleanup(patch.stopall)
-
-        self.tenant = make_tenant("adminsub")
-        self.stablecoin = self.tenant.refs.stablecoin
-        configure_operator(stablecoin=self.stablecoin)
-        self.offering = open_offering(self.tenant, stablecoin=self.stablecoin, target_shares=200, cap_shares=500)
-        eligible_subscriber(self.tenant)
-        self.operator = User.objects.create_superuser(email="ops@example.test", password="pw-12345678")
-        self.client.force_login(self.operator)
-        self.node = IssuanceNode()
-        self.enterContext(
-            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client)
-        )
-        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
-        admitted_signer()
-
+class SubscriptionAdminActions:
     def _url(self, subscription, action):
         return reverse("admin:offerings_subscription_action", args=[subscription.uuid, action])
 
@@ -108,6 +69,27 @@ class SubscriptionAdminTestCase(TransactionTestCase):
     def _messages(self, response):
         return [str(message) for message in response.wsgi_request._messages]
 
+    def _jobs(self, subscription):
+        with use_operator(), connections[current_alias()].cursor() as cursor:
+            cursor.execute(
+                "SELECT args FROM procrastinate_jobs WHERE args->>'subscription_uuid'=%s ORDER BY id",
+                [str(subscription.pk)],
+            )
+            return [json.loads(row[0]) for row in cursor.fetchall()]
+
+
+@override_settings(STORAGES=TEST_STORAGES)
+class SubscriptionAdminTestCase(SubscriptionAdminActions, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.tenant = make_tenant("adminsub")
+        self.stablecoin = self.tenant.refs.stablecoin
+        configure_operator(stablecoin=self.stablecoin)
+        self.offering = open_offering(self.tenant, stablecoin=self.stablecoin, target_shares=200, cap_shares=500)
+        eligible_subscriber(self.tenant)
+        self.operator = User.objects.create_superuser(email="ops@example.test", password="pw-12345678")
+        self.client.force_login(self.operator)
+
     def _submitted(self, quantity=10, wallet=None):
         subscription = draft_subscription(self.tenant, quantity=quantity, wallet=wallet)
         with acting_for(self.tenant.user.pk):
@@ -115,60 +97,18 @@ class SubscriptionAdminTestCase(TransactionTestCase):
         subscription.refresh_from_db()
         return subscription
 
-    def _allot(self, subscriptions):
-        return self.client.post(
-            reverse("admin:offerings_subscription_changelist"),
-            {
-                "action": "allot_selected",
-                "_selected_action": [str(row.pk) for row in subscriptions],
-            },
-            follow=True,
-        )
-
 
 class SubscriptionAdminTest(SubscriptionAdminTestCase):
-    def test_allotment_and_retry_require_staff_with_change_permission(self):
-        subscription = allottable_subscription(self.tenant)
-        staff = User.objects.create_user(email="allot-staff@example.test", password="pw", is_staff=True, is_active=True)
-        staff.user_permissions.add(Permission.objects.get(codename="view_subscription"))
+    def test_fresh_allotment_action_is_absent_and_cannot_admit_a_paid_issue(self):
+        subscription = paid_subscription(self.tenant)
         changelist = reverse("admin:offerings_subscription_changelist")
-        payload = {"action": "allot_selected", "_selected_action": [str(subscription.pk)]}
-        with patch(SUPPLY, return_value=(1000, 0)):
-            for user in (None, self.tenant.user, staff):
-                self.client.logout()
-                if user is not None:
-                    self.client.force_login(user)
-                response = self.client.post(changelist, payload)
-                self.defer.assert_not_called()
-                self.assertEqual(response.status_code, 302)
-                if user != staff:
-                    self.assertIn(reverse("admin:login"), response.url)
-                else:
-                    self.assertEqual(self.client.get(changelist).status_code, 200)
-                subscription.refresh_from_db()
-                self.assertIsNone(subscription.issuance_request_id)
-            staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
-            self.assertEqual(self.client.post(changelist, payload).status_code, 302)
-            execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
-            self.defer.assert_called_once_with(
-                subscription_uuid=str(subscription.uuid), executed_by=staff.pk, execution_id=str(execution.pk)
-            )
-        self.defer.reset_mock()
-        staff.user_permissions.remove(Permission.objects.get(codename="change_subscription"))
-        for user, status in ((None, 302), (self.tenant.user, 302), (staff, 403)):
-            self.client.logout()
-            if user is not None:
-                self.client.force_login(user)
-            response = self.client.post(self._url(subscription, "retry"))
-            self.assertEqual(response.status_code, status)
-            if status == 302:
-                self.assertIn(reverse("admin:login"), response.url)
-            self.defer.assert_not_called()
-        staff.user_permissions.add(Permission.objects.get(codename="change_subscription"))
-        self.assertEqual(self._retry(subscription).status_code, 302)
-        self.defer.assert_called_once_with(
-            subscription_uuid=str(subscription.uuid), executed_by=staff.pk, execution_id=str(execution.pk)
-        )
+        self.assertNotContains(self.client.get(changelist), 'value="allot_selected"')
+        self.client.post(changelist, {"action": "allot_selected", "_selected_action": [str(subscription.pk)]})
+        subscription.refresh_from_db()
+        self.assertIsNone(subscription.issuance_request_id)
+        self.assertFalse(ShareIssuanceRequest.objects.exists())
+        self.assertFalse(ShareIssuanceExecution.objects.exists())
+        self.assertEqual(self._jobs(subscription), [])
 
     def test_acceptance_uses_the_authenticated_staff_change_permission_and_its_revocation(self):
         subscription = self._submitted()
@@ -290,72 +230,6 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.REJECTED)
 
-    def test_retry_defers_the_task_again(self):
-        subscription = allottable_subscription(self.tenant)
-        with patch(SUPPLY, return_value=(1000, 0)):
-            self._allot([subscription])
-        subscription.refresh_from_db()
-        self.defer.reset_mock()
-
-        response = self._retry(subscription, follow=True)
-        self.assertEqual(self.defer.call_count, 1)
-        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
-
-    def test_a_retry_form_retained_before_refund_reports_the_cancelled_outcome_without_another_job(self):
-        subscription = allottable_subscription(self.tenant)
-        with patch(SUPPLY, return_value=(1000, 0)):
-            self._allot([subscription])
-        self.defer.assert_called_once()
-        url = self._url(subscription, "retry")
-        form = self.client.get(url).context["form"]
-        confirmation = form["confirmation"].value()
-        self.client.post(
-            self._url(subscription, "refund"),
-            {"refund_amount": "25.00", "refund_reference": "SYNTHETIC-REFUND"},
-        )
-        self.defer.reset_mock()
-
-        response = self.client.post(url, {"confirmation": confirmation}, follow=True)
-
-        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
-        self.assertNotIn("running in the background", response.content.decode())
-        subscription.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
-        self.assertEqual(subscription.money_held, Decimal("0.00"))
-        self.assertEqual(
-            ShareIssuanceExecution.objects.get(subscription_id=subscription.pk).status,
-            IssuanceExecutionStatus.CANCELLED,
-        )
-        self.defer.assert_not_called()
-        log = LogEntry.objects.order_by("action_time").last().change_message
-        self.assertIn("Checked recovery of issuance request", log)
-        self.assertIn("subscription status is Refunded", log)
-
-    def test_the_bulk_action_allots_a_batch_inside_the_headroom(self):
-        rows = [allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "12"]
-        with patch(SUPPLY, return_value=(1000, 0)):
-            response = self._allot(rows)
-
-        self.assertIn("Allotted 2 subscription(s).", self._messages(response))
-        self.assertEqual(ShareIssuanceRequest.objects.count(), 2)
-        self.assertEqual(self.defer.call_count, 2)
-
-    def test_the_bulk_action_refuses_the_whole_batch_over_the_cap_and_allots_nothing(self):
-        rows = [allottable_subscription(self.tenant, quantity=40, wallet=extra_wallet(self.tenant, n)) for n in "123"]
-        Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=100, cap_shares=100)
-
-        with patch(SUPPLY, return_value=(1000, 0)):
-            response = self._allot(rows)
-
-        self.assertIn(
-            BATCH_ABOVE_HEADROOM.format(
-                total=120, symbol=self.offering.token.symbol, room=100, cap_room=100, chain_room=1000
-            ),
-            self._messages(response),
-        )
-        self.assertFalse(ShareIssuanceRequest.objects.exists())
-        self.assertEqual(self.defer.call_count, 0)
-
     def test_the_bulk_scale_back_action_cuts_the_offering_pro_rata(self):
         rows = [paid_subscription(self.tenant, quantity=60, wallet=extra_wallet(self.tenant, n)) for n in "12"]
         Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=60, cap_shares=60)
@@ -402,20 +276,22 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(self._url(subscription, "reject"), response.content.decode())
 
-    def test_the_allot_action_refuses_a_row_that_already_has_a_request(self):
-        subscription = allottable_subscription(self.tenant)
-        with patch(SUPPLY, return_value=(1000, 0)):
-            self._allot([subscription])
-            subscription.refresh_from_db()
-            self.assertEqual(subscription.issuance_request.status, RequestStatus.APPROVED)
-            response = self._allot([subscription])
-
-        self.assertEqual(ShareIssuanceRequest.objects.count(), 1)
-        self.assertIn("cannot be allotted twice", self._messages(response)[0])
-
 
 @override_settings(STORAGES=TEST_STORAGES)
 class SubscriptionAdminMoneyTest(SubscriptionAdminTestCase):
+    def test_bulk_scale_back_records_each_financial_change_in_admin_history(self):
+        rows = [paid_subscription(self.tenant, quantity=60, wallet=extra_wallet(self.tenant, n)) for n in "12"]
+        Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=60, cap_shares=60)
+        self.client.post(
+            reverse("admin:offerings_subscription_changelist"),
+            {"action": "scale_back_selected", "_selected_action": [str(row.pk) for row in rows]},
+            follow=True,
+        )
+        entries = [entry.change_message for entry in LogEntry.objects.order_by("action_time")]
+        self.assertEqual(len([entry for entry in entries if entry.startswith("Scaled back to 30 share(s)")]), 2)
+        self.assertFalse(any(entry.startswith("Allotted") for entry in entries))
+        self.assertFalse(any(self._jobs(row) for row in rows))
+
     def _awaiting(self, quantity=10, wallet=None):
         subscription = self._submitted(quantity=quantity, wallet=wallet)
         self.client.post(self._url(subscription, "accept"), {"settlement_rail": SettlementRail.BANK_TRANSFER})
@@ -533,33 +409,122 @@ class SubscriptionAdminMoneyTest(SubscriptionAdminTestCase):
         self.assertEqual(second.status, SubscriptionStatus.PAID)
         self.assertIn(f"already recorded against {first.reference}", warned[0])
 
-    def test_a_bulk_allotment_and_a_scale_back_both_reach_the_admin_history(self):
-        rows = [paid_subscription(self.tenant, quantity=60, wallet=extra_wallet(self.tenant, n)) for n in "12"]
-        Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=60, cap_shares=60)
-        self.client.post(
-            reverse("admin:offerings_subscription_changelist"),
-            {"action": "scale_back_selected", "_selected_action": [str(row.pk) for row in rows]},
-            follow=True,
-        )
-        instruct(*rows)
-        with patch(SUPPLY, return_value=(1000, 0)):
-            self._allot(rows)
 
-        entries = [entry.change_message for entry in LogEntry.objects.order_by("action_time")]
-        self.assertEqual(len([entry for entry in entries if entry.startswith("Scaled back to 30 share(s)")]), 2)
-        self.assertEqual(len([entry for entry in entries if entry.startswith("Allotted 30 share(s)")]), 2)
+class CompanySubscriptionAdminTest(CompanyPaidIssueCases, SubscriptionAdminActions, APITransactionTestCase):
+    def genuine_paid_subscription(self, *, quantity=10, received=None, final=False):
+        return super().genuine_paid_subscription(quantity=quantity, received=received, final=final)
+
+    def setUp(self):
+        enqueue = issuance_execution._enqueue
+        super().setUp()
+        self.operator = self.technical
+        self.client.force_authenticate(user=None)
+        self.client.force_login(self.operator)
+        self.enterContext(patch("tokens.services.issuance_execution._enqueue", new=enqueue))
+
+    def _allotted(self):
+        self.applied_paid_issue()
+        self.subscription.refresh_from_db()
+        return self.subscription
+
+    def test_technical_retry_requires_current_staff_change_permission_and_retains_original_applier(self):
+        subscription = self._allotted()
+        execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
+        original_jobs = self._jobs(subscription)
+        self.assertEqual(len(original_jobs), 1)
+        staff = User.objects.create_user(email="retry-staff@example.test", password="pw", is_staff=True, is_active=True)
+        permission = Permission.objects.get(content_type__app_label="offerings", codename="change_subscription")
+        staff.user_permissions.add(
+            Permission.objects.get(content_type__app_label="offerings", codename="view_subscription")
+        )
+        for user, status in ((None, 302), (self.participant, 302), (staff, 403)):
+            self.client.logout()
+            if user is not None:
+                self.client.force_login(user)
+            response = self.client.post(self._url(subscription, "retry"))
+            self.assertEqual(response.status_code, status)
+            if status == 302:
+                self.assertIn(reverse("admin:login"), response.url)
+            self.assertEqual(self._jobs(subscription), original_jobs)
+        staff.user_permissions.add(permission)
+        self.client.force_login(staff)
+        self.assertEqual(self._retry(subscription).status_code, 302)
+        self.assertEqual(
+            self._jobs(subscription),
+            [
+                {
+                    "subscription_uuid": str(subscription.pk),
+                    "executed_by": self.owner.pk,
+                    "execution_id": str(execution.pk),
+                }
+            ]
+            * 2,
+        )
+        execution.refresh_from_db()
+        self.assertEqual(execution.executed_by_id, self.owner.pk)
+        self.assertEqual(ShareIssuanceExecution.objects.filter(subscription_id=subscription.pk).count(), 1)
+
+    def test_retry_enqueues_the_original_company_execution(self):
+        subscription = self._allotted()
+        subscription.refresh_from_db()
+        original_jobs = self._jobs(subscription)
+        self.assertEqual(len(original_jobs), 1)
+
+        response = self._retry(subscription, follow=True)
+        self.assertEqual(self._jobs(subscription), original_jobs * 2)
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+
+        execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
+        self.assertEqual(execution.executed_by_id, self.owner.pk)
+        self.assertEqual(
+            self._jobs(subscription),
+            [
+                {
+                    "subscription_uuid": str(subscription.pk),
+                    "executed_by": self.owner.pk,
+                    "execution_id": str(execution.pk),
+                }
+            ]
+            * 2,
+        )
+
+    def test_a_retry_form_retained_before_refund_reports_the_cancelled_outcome_without_another_job(self):
+        subscription = self._allotted()
+        original_jobs = self._jobs(subscription)
+        self.assertEqual(len(original_jobs), 1)
+        url = self._url(subscription, "retry")
+        form = self.client.get(url).context["form"]
+        confirmation = form["confirmation"].value()
+        self.client.post(
+            self._url(subscription, "refund"),
+            {"refund_amount": "25.00", "refund_reference": "SYNTHETIC-REFUND"},
+        )
+
+        response = self.client.post(url, {"confirmation": confirmation}, follow=True)
+
+        self.assertIn("Allotment recovery checked; the recorded status is shown below.", self._messages(response))
+        self.assertNotIn("running in the background", response.content.decode())
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
+        self.assertEqual(subscription.money_held, Decimal("0.00"))
+        self.assertEqual(
+            ShareIssuanceExecution.objects.get(subscription_id=subscription.pk).status,
+            IssuanceExecutionStatus.CANCELLED,
+        )
+        self.assertEqual(self._jobs(subscription), original_jobs)
+        log = LogEntry.objects.order_by("action_time").last().change_message
+        self.assertIn("Checked recovery of issuance request", log)
+        self.assertIn("subscription status is Refunded", log)
 
     def test_an_allotted_row_can_still_return_the_residual_a_scale_back_stranded(self):
-        subscription = paid_subscription(self.tenant, quantity=10)
-        Offering.objects.filter(pk=self.offering.pk).update(minimum_shares=1, target_shares=5, cap_shares=5)
+        subscription = self.subscription
+        Offering.objects.filter(pk=self.offer.pk).update(minimum_shares=1, target_shares=5, cap_shares=5)
         self.client.post(
             reverse("admin:offerings_subscription_changelist"),
             {"action": "scale_back_selected", "_selected_action": [str(subscription.pk)]},
             follow=True,
         )
-        instruct(subscription)
-        with patch(SUPPLY, return_value=(1000, 0)):
-            self._allot([subscription])
+        self.applied_paid_issue()
         subscription.refresh_from_db()
         execution = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
         self.assertEqual(issuance_execution.recover(execution.pk)["status"], RequestStatus.EXECUTED)

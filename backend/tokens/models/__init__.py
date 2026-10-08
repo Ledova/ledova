@@ -31,6 +31,10 @@ from .register import (
     RegisterReconciliationStatus,
     ShareRegister,
 )
+from .register_capital_increase import (
+    RegisterCapitalIncrease,
+    RegisterCapitalIncreaseDecision,
+)
 from .register_correction import (
     RegisterCorrection,
     RegisterCorrectionAuthority,
@@ -47,7 +51,11 @@ from .register_import import (
     RegisterImportDecision,
     RegisterMemberParticulars,
 )
-from .register_instruction import RegisterInstruction, RegisterInstructionKind
+from .register_instruction import (
+    RegisterInstruction,
+    RegisterInstructionDecision,
+    RegisterInstructionKind,
+)
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
@@ -59,6 +67,7 @@ from .register_particulars import (
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
 )
+from .register_pause_change import RegisterPauseChange, RegisterPauseChangeDecision
 from .register_transfer import (
     RegisterMemberCessation,
     RegisterTransfer,
@@ -97,6 +106,10 @@ __all__ = [
     "OrderSubmissionStatus",
     "RequestStatus",
     "RegisterAcknowledgement",
+    "RegisterPauseChange",
+    "RegisterPauseChangeDecision",
+    "RegisterCapitalIncrease",
+    "RegisterCapitalIncreaseDecision",
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
     "RegisterCorrectionDecision",
@@ -117,6 +130,7 @@ __all__ = [
     "RegisterImport",
     "RegisterImportDecision",
     "RegisterInstruction",
+    "RegisterInstructionDecision",
     "RegisterInstructionKind",
     "RegisterMemberParticulars",
     "RegisterExport",
@@ -129,6 +143,8 @@ __all__ = [
     "RegisterParticularsChange",
     "RegisterParticularsChangeDecision",
     "RegisterPosition",
+    "RegisterPauseChange",
+    "RegisterPauseChangeDecision",
     "RegisterReconciliation",
     "RegisterReconciliationStatus",
     "RegisterWalletLink",

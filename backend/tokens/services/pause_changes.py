@@ -1,25 +1,25 @@
 import hashlib
-from contextlib import contextmanager
-from uuid import UUID, uuid4
+from contextlib import contextmanager, nullcontext
+from uuid import UUID
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core import signing
-from django.db import IntegrityError, connections
+from django.db import connections
 from django.utils import timezone
 from eth_account import Account
+from procrastinate import App
+from procrastinate.contrib.django.django_connector import DjangoConnector
 from rest_framework.exceptions import NotFound, PermissionDenied
 from web3 import Web3
 
-from blockchain.models import OutgoingOperation
+from blockchain.models import OutgoingOperation, OutgoingStatus, SignedAttempt
 from blockchain.services import outgoing
 from companies.models import Company
+from companies.services.administration import company_operation
 from shared.db import (
-    APP_ALIAS,
     acting_for,
     atomic,
     current_alias,
-    principal_of,
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
@@ -28,12 +28,12 @@ from tokens.models import (
     PauseAuthority,
     PauseChange,
     PauseChangeStatus,
+    RegisterPauseChange,
     ShareToken,
     ShareTokenStatus,
 )
 
 TERMINAL = (PauseChangeStatus.OBSERVED, PauseChangeStatus.CONFIRMED, PauseChangeStatus.FAILED)
-CONFIRMATION_SALT = "tokens.pause.submission"
 
 
 def require_autocommit():
@@ -83,13 +83,17 @@ def transaction_intent(token, paused):
     return intent
 
 
-@contextmanager
-def target_transaction(chain_id, contract_address):
+def lock_target(chain_id, contract_address):
     key = f"pause:{chain_id}:{contract_address.lower()}"
     lock_id = int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], "big", signed=True)
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_id])
+
+
+@contextmanager
+def target_transaction(chain_id, contract_address):
     with atomic(durable=True):
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_id])
+        lock_target(chain_id, contract_address)
         yield
 
 
@@ -109,58 +113,55 @@ def _same_submission(change, token, paused, actor_id, authority):
 
 
 def submit(token, user, submission_id, paused, *, authority=PauseAuthority.ISSUER):
-    from tokens.tasks.pause import recover_pause_change
-
     require_autocommit()
-    if current_alias() == APP_ALIAS and (authority != PauseAuthority.ISSUER or principal_of() != str(user.pk)):
-        raise PermissionDenied("The pause caller does not match the current issuer principal.")
     try:
         submission_id = UUID(str(submission_id))
     except (ValueError, TypeError):
         raise PauseChangeConflict("A pause submission requires a valid UUID.") from None
     if type(paused) is not bool:
         raise PauseChangeConflict("The requested pause state must be a boolean.")
-    with use_operator():
-        actor = _actor(user.pk, authority)
+    with use_operator(), atomic(durable=True):
         previous = PauseChange.objects.filter(pk=submission_id).first()
-        if previous:
-            _same_submission(previous, token, paused, actor.pk, authority)
-            with atomic(durable=True):
-                lock_token(token.pk, token.company_id, actor.pk, authority)
-            return previous
-        intent = transaction_intent(token, paused)
-        try:
-            with target_transaction(intent["chain_id"], intent["to"]):
-                previous = PauseChange.objects.select_for_update().filter(pk=submission_id).first()
-                current = lock_token(token.pk, token.company_id, actor.pk, authority)
-                if previous:
-                    _same_submission(previous, current, paused, actor.pk, authority)
-                    return previous
-                if transaction_intent(current, paused) != intent:
-                    raise PauseChangeConflict("The token identity changed while admitting the pause request.")
-                refused = (
-                    PauseChange.objects.unresolved()
-                    .filter(chain_id=intent["chain_id"], contract_address=intent["to"])
-                    .exists()
-                )
-                change = PauseChange.objects.create(
-                    pk=submission_id,
-                    token_id=current.pk,
-                    company_id=current.company_id,
-                    initiated_by_id=actor.pk,
-                    authority=authority,
-                    paused=paused,
-                    chain_id=intent["chain_id"],
-                    contract_address=intent["to"],
-                    intent=intent,
-                    status=PauseChangeStatus.FAILED if refused else PauseChangeStatus.PENDING,
-                    completed_at=timezone.now() if refused else None,
-                )
-                if not refused:
-                    recover_pause_change.defer(submission_id=str(change.pk))
-        except IntegrityError:
-            raise PauseChangeConflict("A competing pause submission already owns this identity or contract.") from None
-        return change
+        if previous is None or authority != PauseAuthority.ISSUER:
+            raise PauseChangeConflict("New pause requests require the company's retained instruction.")
+        _same_submission(previous, token, paused, user.pk, authority)
+        lock_token(token.pk, token.company_id, user.pk, authority)
+        return previous
+
+
+def admit_company(proposal, actor):
+    from tokens.tasks.pause import recover_pause_change
+
+    if (
+        PauseChange.objects.unresolved()
+        .filter(chain_id=proposal.intent["chain_id"], contract_address=proposal.intent["to"])
+        .exists()
+    ):
+        raise PauseChangeConflict()
+    change = PauseChange.objects.create(
+        pk=proposal.pk,
+        source_pause=proposal,
+        token_id=proposal.token_id,
+        company_id=proposal.company_id,
+        initiated_by=actor,
+        authority=PauseAuthority.COMPANY,
+        paused=proposal.paused,
+        chain_id=proposal.intent["chain_id"],
+        contract_address=proposal.intent["to"],
+        intent=proposal.intent,
+    )
+    bounded_app = App(connector=DjangoConnector(alias=current_alias()))
+    bounded_app.configure_task(name=recover_pause_change.name).defer(submission_id=str(change.pk))
+    return change
+
+
+def lock_original(change_id):
+    initial = PauseChange.objects.get(pk=change_id)
+    Company.objects.select_for_update().filter(pk=initial.company_id).first()
+    ShareToken.objects.select_for_update().filter(pk=initial.token_id, company_id=initial.company_id).first()
+    if initial.source_pause_id is not None:
+        RegisterPauseChange.objects.select_for_update().get(pk=initial.source_pause_id)
+    return PauseChange.objects.select_for_update().get(pk=change_id)
 
 
 def retrieve(token, user, submission_id, *, authority=PauseAuthority.ISSUER):
@@ -183,14 +184,19 @@ def retrieve(token, user, submission_id, *, authority=PauseAuthority.ISSUER):
 
 
 def check_authority(change):
-    current = lock_token(change.token_id, change.company_id, change.initiated_by_id, change.authority)
-    if transaction_intent(current, change.paused) != change.intent:
-        raise PauseChangeConflict("The pause target or signing identity changed after admission.")
+    from tokens.exceptions import PauseSigningHold
+    from tokens.services.register_pause_changes import execution_requirements
+
+    if change.source_pause_id is None:
+        raise PauseSigningHold(["legacy_source_unavailable"])
+    unmet = execution_requirements(change.source_pause)
+    if unmet:
+        raise PauseSigningHold(unmet)
 
 
 def record_decision(change, paused, observation):
-    with atomic(durable=True):
-        current = PauseChange.objects.select_for_update().get(pk=change.pk)
+    with target_transaction(change.chain_id, change.contract_address):
+        current = lock_original(change.pk)
         if current.status != PauseChangeStatus.PENDING:
             return current
         check_authority(current)
@@ -202,16 +208,33 @@ def record_decision(change, paused, observation):
         return current
 
 
-def refuse_unsigned(change):
-    with atomic(durable=True):
-        current = PauseChange.objects.select_for_update().get(pk=change.pk)
-        if current.status != PauseChangeStatus.PENDING:
-            return current
-        if current.operation_id or OutgoingOperation.objects.filter(operation_key=operation_key(current)).exists():
-            raise PauseChangeConflict("An outgoing operation owns the unresolved pause request.")
+def retire_lapsed_source(change):
+    from tokens.services.register_pause_changes import permanent_source_loss
+
+    if change.source_pause_id is None or not permanent_source_loss(change.source_pause):
+        return False
+    with target_transaction(change.chain_id, change.contract_address):
+        current = lock_original(change.pk)
+        operation = OutgoingOperation.objects.select_for_update().filter(operation_key=operation_key(current)).first()
+        if (
+            current.completed_at is not None
+            or current.status not in (PauseChangeStatus.PENDING, PauseChangeStatus.EXECUTING)
+            or not permanent_source_loss(current.source_pause)
+        ):
+            return False
+        if operation is not None:
+            if (
+                operation.status != OutgoingStatus.PREPARING
+                or SignedAttempt.objects.filter(operation=operation).exists()
+            ):
+                return False
+            operation.status = OutgoingStatus.FAILED
+            operation.save(update_fields=["status", "updated_at"])
+            current.operation = operation
         current.status = PauseChangeStatus.FAILED
-        current.save(update_fields=["status", "updated_at"])
-        return current
+        current.completed_at = timezone.now()
+        current.save(update_fields=["status", "operation", "completed_at", "updated_at"])
+        return True
 
 
 @contextmanager
@@ -228,13 +251,23 @@ def _projection_role(principal):
 
 def project(change_id):
     change = PauseChange.objects.get(pk=change_id)
-    with target_transaction(change.chain_id, change.contract_address):
-        current = PauseChange.objects.select_for_update().get(pk=change_id)
+    projection = (
+        company_operation(change.initiated_by, change.company_id, "register_pause_project")
+        if change.source_pause_id
+        else nullcontext()
+    )
+    with projection, target_transaction(change.chain_id, change.contract_address):
+        current = (
+            lock_original(change_id)
+            if change.source_pause_id
+            else PauseChange.objects.select_for_update().get(pk=change_id)
+        )
         if current.completed_at is not None or current.status not in TERMINAL:
             return current
         if current.status != PauseChangeStatus.FAILED:
             principal = current.initiated_by_id if current.authority == PauseAuthority.ISSUER else None
-            with _projection_role(principal), atomic():
+            role = nullcontext() if current.source_pause_id else _projection_role(principal)
+            with role, atomic():
                 company = Company.objects.select_for_update().filter(pk=current.company_id).first()
                 token = (
                     ShareToken.objects.select_for_update()
@@ -283,24 +316,3 @@ def message(change):
     if change.status == PauseChangeStatus.OBSERVED:
         return f"The token was already in the requested state when this {action.lower()} request was checked."
     return f"The original {action.lower()} transaction was confirmed. The token may have changed since then."
-
-
-def confirmation(token, user, paused):
-    with use_operator(), atomic():
-        current = lock_token(token.pk, token.company_id, user.pk, PauseAuthority.STAFF)
-        require_pausable(current)
-    return signing.dumps(
-        {"token": str(token.pk), "actor": user.pk, "paused": paused, "submission": str(uuid4())},
-        salt=CONFIRMATION_SALT,
-    )
-
-
-def submit_confirmation(token, user, paused, value):
-    try:
-        confirmed = signing.loads(value, salt=CONFIRMATION_SALT)
-        if confirmed["token"] != str(token.pk) or confirmed["actor"] != user.pk or confirmed["paused"] is not paused:
-            raise ValueError
-        submission_id = confirmed["submission"]
-    except (signing.BadSignature, TypeError, ValueError, KeyError):
-        raise PauseChangeConflict("Reload the pause confirmation for this token and action.") from None
-    return submit(token, user, submission_id, paused, authority=PauseAuthority.STAFF)

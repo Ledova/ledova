@@ -81,6 +81,12 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  REGISTER_PAID_ISSUES: '/api/v1/tokens/register-paid-issues/',
+  REGISTER_PAID_ISSUE_SUBSCRIPTIONS: '/api/v1/tokens/register-paid-issues/ready-subscriptions/',
+  REGISTER_PAID_ISSUE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/`,
+  REGISTER_PAID_ISSUE_FILE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/file/`,
+  REGISTER_PAID_ISSUE_PREVIEW: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decision-preview/`,
+  REGISTER_PAID_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decide/`,
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
   PAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/pause/` as const,
@@ -140,10 +146,27 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_RECONCILIATIONS: '/api/v1/tokens/register-reconciliations/',
   REGISTER_RECONCILIATION_ACKNOWLEDGE: (uuid: string) =>
     `/api/v1/tokens/register-reconciliations/${uuid}/acknowledge/` as const,
+  REGISTER_ISSUES: '/api/v1/tokens/register-issues/',
+  REGISTER_ISSUE_PREVIEW: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/decision-preview/` as const,
+  REGISTER_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/decide/` as const,
+  REGISTER_ISSUE_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/file/` as const,
+  REGISTER_ISSUE_TERMS_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/terms-file/` as const,
+  REGISTER_ISSUE_ACCEPTANCE_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/acceptance-file/` as const,
   ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,
-  ISSUE: (uuid: string) => `/api/v1/tokens/${uuid}/issue/` as const,
+  REGISTER_CAPITAL_INCREASES: '/api/v1/tokens/register-capital-increases/',
+  REGISTER_CAPITAL_INCREASE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/` as const,
+  REGISTER_CAPITAL_INCREASE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-capital-increases/${uuid}/decision-preview/` as const,
+  REGISTER_CAPITAL_INCREASE_DECIDE: (uuid: string) =>
+    `/api/v1/tokens/register-capital-increases/${uuid}/decide/` as const,
+  REGISTER_CAPITAL_INCREASE_FILE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/file/` as const,
+  REGISTER_PAUSE_CHANGES: '/api/v1/tokens/register-pause-changes/',
+  REGISTER_PAUSE_CHANGE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/` as const,
+  REGISTER_PAUSE_CHANGE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-pause-changes/${uuid}/decision-preview/` as const,
+  REGISTER_PAUSE_CHANGE_DECIDE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/decide/` as const,
+  REGISTER_PAUSE_CHANGE_FILE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/file/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
-  CAPITAL_INCREASE_SUBMIT: (uuid: string) => `/api/v1/tokens/capital-increases/${uuid}/submit/` as const,
   ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
 } as const;
 

@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 from django.contrib import admin
 from django.test import TransactionTestCase, override_settings
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from blockchain.models import BlockchainTransaction
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from tokens.admin.capital_increase import CapitalIncreaseAdmin
 from tokens.admin.share_issuance_request import ShareIssuanceRequestAdmin
 from tokens.models import (
@@ -15,8 +18,9 @@ from tokens.services import capital_execution, issuance_execution
 from tokens.tests.capital_fixtures import CHAIN_ID
 from tokens.tests.capital_fixtures import KEY as CAPITAL_KEY
 from tokens.tests.capital_fixtures import admit, install_capital
+from tokens.tests.issuance_fixtures import IssuanceNode
 from tokens.tests.issuance_fixtures import admit as admit_issuance
-from tokens.tests.issuance_fixtures import install_issuance
+from tokens.tests.issuance_fixtures import issuance_request
 
 KEY = "pR3t3nd1ngT0B3aReAlK3y"
 RPC_URL = f"https://base-sepolia.g.alchemy.com/v2/{KEY}"
@@ -26,9 +30,16 @@ PROVIDER_TEXT = f"Max retries exceeded with url: {RPC_URL}"
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=CAPITAL_KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class WhatTheIssuerReadsAfterAFailedExecutionTest(TransactionTestCase):
     def setUp(self):
-        install_issuance(self)
+        self.tenant, self.actor = issuance_request("issuer-diagnostics")
+        self.request = self.tenant.issuance_request
+        self.node = IssuanceNode()
+        self.enterContext(
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client)
+        )
+        self.enterContext(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
 
     def a_failed_issuance(self):
+        admitted_signer()
         self.node.client.estimate_gas.side_effect = RequestsConnectionError(PROVIDER_TEXT)
         command = admit_issuance(self.request, self.actor)
         with self.assertLogs("tokens.services.issuance_execution", "WARNING") as logged:
@@ -55,12 +66,17 @@ class WhatTheIssuerReadsAfterAFailedExecutionTest(TransactionTestCase):
         )
 
     def test_the_admin_reports_original_hash_and_safe_error_category_for_unknown_delivery(self):
+        self.tenant, self.actor = issuance_request("issuer-diagnostics-signed", signed=True)
+        self.request = self.tenant.issuance_request
         self.node.client.send_raw_transaction.side_effect = RequestsConnectionError(PROVIDER_TEXT)
         command = admit_issuance(self.request, self.actor)
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
         self.request.refresh_from_db()
         shown = ShareIssuanceRequestAdmin(ShareIssuanceRequest, admin.site).last_execution_error(self.request)
-        self.assertIn(BlockchainTransaction.objects.get().tx_hash, shown)
+        recorded = BlockchainTransaction.objects.get(
+            related_model=ShareIssuanceRequest._meta.label, related_uuid=self.request.pk
+        )
+        self.assertIn(recorded.tx_hash, shown)
         self.assertIn("ConnectionError", shown)
         self.assertNotIn(KEY, shown)
         self.assertFalse(self.request.can_be_executed)
@@ -109,7 +125,7 @@ class CapitalRecoveryDiagnosticTest(TransactionTestCase):
         command = admit(self.request, self.actor)
         self.assertEqual(capital_execution.recover(command.pk)["status"], "executing")
         self.request.refresh_from_db()
-        recorded = BlockchainTransaction.objects.get()
+        recorded = self.transactions.get()
         shown = CapitalIncreaseAdmin(CapitalIncreaseRequest, admin.site).last_execution_error(self.request)
         self.assertIn(recorded.tx_hash, shown)
         self.assertIn("ConnectionError", shown)

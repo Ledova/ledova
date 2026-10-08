@@ -34,11 +34,11 @@ page does; any other staff member gets the admin's refusal, and nothing is creat
 Adding the row by hand also needs the add permission. In the demo data the
 operations officer and the superuser can open the console.
 
-| Admin section | Fields |
-| --- | --- |
-| Identity | `name`, `legal_name`, `abn`, `contact_email`, `website` |
-| Payments | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Eligibility | `investor_kyc_required` (default on), `issuer_kyc_required` (default off) |
+| Admin section | Fields                                                                                                                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                                                                                                                                      |
+| Payments      | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
+| Eligibility   | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)                                                                                                                    |
 
 The model normalizes ABN, BSB and the EVM receiving address. The payment-reference
 prefix is **2–10 letters or digits**, uppercased, leaving room for an eight-character
@@ -252,7 +252,8 @@ balance the node would not set included, says to start over. It adds:
   every health check above passes.
 - Share classes: Demo Robotics' ordinary and seed preference shares, Wattlefield's
   and Coralgum's ordinary shares and Coralgum's convertible preference shares,
-  deployed with their share assets, the last paused afterwards by its issuer; and
+  deployed with their share assets, the last paused through an evidenced company
+  instruction and its original captured recovery job; and
   two drafts, Demo Robotics' Series A preference shares and Saltbush's ordinary
   shares.
 - Approvals: each Base wallet that holds shares, or whose application reached a
@@ -264,7 +265,9 @@ balance the node would not set included, says to start over. It adds:
 - Registers: each company's existing register (founders, directors, an employee
   share trust held at a custodian address with no key behind it, and investors
   from earlier rounds) is issued on chain through issuance requests that one
-  applied register instruction approves, and each closed offering is allotted.
+  applied register instruction approves. Closed offering allotments use the
+  company's retained authority, exact paid ISSUE approval/application and the
+  original captured task, preserving recorded payment/refund quantities and dates.
   Each class's register is then opened from the chain by a company-run opening,
   its particulars are imported with names, dates entered back to the founding,
   amounts paid and a few pre-platform former members, and it is reconciled with
@@ -284,7 +287,10 @@ balance the node would not set included, says to start over. It adds:
 - Issuance requests submitted, under review, approved, rejected and executed (a
   top-up of Demo Robotics' employee share trust after its register opened, which
   the register records under its instruction), and capital increases executed
-  (raising Demo Robotics' authorised shares), submitted, rejected and draft.
+  (raising Demo Robotics' authorised shares), under review, rejected and draft.
+  New capital histories use company-provided authority, personal company approval
+  and application; retained drafts remain history. Staff capital review/admission
+  is retired, while original technical recovery remains.
 
 Database-only steps (offerings, applications up to payment, reviews) are dated
 over the six months. Everything a chain transaction completes, from deployments

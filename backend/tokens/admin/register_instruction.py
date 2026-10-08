@@ -80,8 +80,12 @@ class RegisterInstructionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Review")
     def review_link(self, obj):
+        if obj.preparing_appointment_id is not None:
+            return "Company decision through the register API"
         if obj.status != "submitted":
             return "Decision recorded"
+        if obj.kind == "issue" and any("subscription" in item for item in obj.items):
+            return "Paid ISSUE decisions use the company register API"
         return format_html(
             '<a href="{}">Review instruction</a>', reverse("admin:tokens_registerinstruction_review", args=[obj.pk])
         )

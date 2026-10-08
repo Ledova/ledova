@@ -1,24 +1,32 @@
 from rest_framework.routers import DefaultRouter
 
 from tokens import views
+from tokens.views.register_capital_increase import RegisterCapitalIncreaseViewSet
 from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_deployment import RegisterDeploymentViewSet
 from tokens.views.register_evidence import RegisterEvidenceViewSet
 from tokens.views.register_grant import RegisterGrantViewSet
 from tokens.views.register_import import RegisterImportViewSet
 from tokens.views.register_instruction import RegisterInstructionViewSet
+from tokens.views.register_issue import RegisterIssueViewSet
 from tokens.views.register_opening import (
     RegisterOpeningViewSet,
     RegisterWalletLinkViewSet,
 )
+from tokens.views.register_paid_issue import RegisterPaidIssueViewSet
 from tokens.views.register_particulars import RegisterParticularsChangeViewSet
+from tokens.views.register_pause_change import RegisterPauseChangeViewSet
 from tokens.views.register_reconciliation import RegisterReconciliationViewSet
 from tokens.views.register_transfer import RegisterTransferViewSet
 
 app_name = "tokens"
 
 router = DefaultRouter()
+router.register(r"register-paid-issues", RegisterPaidIssueViewSet, basename="register-paid-issues")
+router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")
+router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")
+router.register(r"register-issues", RegisterIssueViewSet, basename="register-issues")
 router.register(r"register-corrections", RegisterCorrectionViewSet, basename="register-corrections")
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")

@@ -319,7 +319,7 @@ jobs:
       - name: Install contract dependencies
         working-directory: contracts
         run: npm ci
-      - name: Real-chain tests (Hardhat node, deploy core contracts, the five modules make chain-test runs)
+      - name: Real-chain tests (Hardhat node, core contracts, five modules and company capital/pause seeds)
         working-directory: .
         env:
           REDIS_URL: redis://127.0.0.1:6379/0

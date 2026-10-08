@@ -14,6 +14,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
+from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
 from companies.models import CompanyDocument
 from companies.tests.test_document_file_access import (
     ADMIN_STORAGES,
@@ -25,6 +26,7 @@ from offerings.tests.factories import (
     eligible_subscriber,
     open_offering,
     paid_subscription,
+    retained_paid_execution,
 )
 from shared.db import atomic, current_alias, use_operator
 from shared.db.principal import PRINCIPAL_SETTING
@@ -51,6 +53,9 @@ from tokens.tests.instruction_fixtures import (
     instruction_item,
     instruction_payload,
     instruction_reviewer,
+    retained_approved_request,
+    retained_instruction,
+    retained_paid_instruction,
     verified_authority,
 )
 from tokens.tests.test_register_workflow_events import (
@@ -64,8 +69,9 @@ def instruction_fixture(label="instruction"):
     open_offering(tenant)
     reviewer = instruction_reviewer()
     document = verified_authority(tenant.company, reviewer)
-    request = issuance_request(tenant)
-    return tenant, reviewer, document, request
+    eligible_subscriber(tenant)
+    subscription = paid_subscription(tenant, quantity=10)
+    return tenant, reviewer, document, subscription
 
 
 def forged(proposal, model=RegisterInstruction, **changes):
@@ -106,9 +112,10 @@ def issuance_request(tenant, **fields):
 
 class RegisterInstructionTest(TransactionTestCase):
     def setUp(self):
-        self.tenant, self.reviewer, self.document, self.request = instruction_fixture()
+        self.tenant, self.reviewer, self.document, self.subscription = instruction_fixture()
         self.token = self.tenant.deployed_token
-        self.payload = instruction_payload(self.token, self.document, [self.request])
+        self.cover = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer)
+        self.payload = instruction_payload(self.token, self.document, [self.cover])
 
     def submit(self, **changes):
         return submit_instruction(actor=self.tenant.user, **{**self.payload, **changes})
@@ -127,20 +134,27 @@ class RegisterInstructionTest(TransactionTestCase):
 
     def test_submission_binds_the_exact_items_verified_evidence_and_a_retained_copy(self):
         eligible_subscriber(self.tenant)
-        subscription = paid_subscription(self.tenant, quantity=12)
+        request = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer, amount=12)
         proposal = self.submit(
             items=[
-                {**instruction_item(subscription), "recipient": subscription.wallet.address.lower()},
-                {**instruction_item(self.request), "recipient": self.request.recipient_address.lower()},
+                {**instruction_item(request), "recipient": request.recipient_address.lower()},
+                {**instruction_item(self.cover), "recipient": self.subscription.wallet.address.lower()},
             ]
         )
         self.assertEqual((proposal.status, proposal.kind, proposal.token_id), ("submitted", "issue", self.token.pk))
         self.assertEqual(
             proposal.items,
-            [
-                {"request": str(self.request.pk), "recipient": self.tenant.wallet.address, "amount": "10"},
-                {"subscription": str(subscription.pk), "recipient": self.tenant.wallet.address, "amount": "12"},
-            ],
+            sorted(
+                [
+                    {
+                        "request": str(self.cover.pk),
+                        "recipient": self.tenant.wallet.address,
+                        "amount": "10",
+                    },
+                    {"request": str(request.pk), "recipient": self.tenant.wallet.address, "amount": "12"},
+                ],
+                key=lambda item: item["request"],
+            ),
         )
         document = CompanyDocument.objects.get(pk=self.document.pk)
         self.assertEqual(proposal.evidence_fingerprint, document.verified_fingerprint)
@@ -155,7 +169,7 @@ class RegisterInstructionTest(TransactionTestCase):
         with self.assertRaises(RegisterChangeConflict):
             self.submit(operation_id=proposal.pk)
         self.assertEqual(RegisterInstruction.objects.count(), 1)
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.SUBMITTED)
+        self.assertEqual(Subscription.objects.get(pk=self.subscription.pk).status, SubscriptionStatus.PAID)
 
     def test_submission_refuses_strangers_unverified_evidence_and_unusable_items(self):
         stranger = make_tenant("instruction-stranger")
@@ -167,8 +181,10 @@ class RegisterInstructionTest(TransactionTestCase):
         for changes in ({"approving_director": " "}, {"kind": "transfer"}, {"reason": ""}):
             with self.subTest(changes=changes), self.assertRaises(ValidationError):
                 self.submit(operation_id=uuid4(), **changes)
-        item = instruction_item(self.request)
-        foreign = issuance_request(stranger)
+        item = instruction_item(self.cover)
+        open_offering(stranger)
+        eligible_subscriber(stranger)
+        foreign = retained_approved_request(stranger.deployed_token, stranger.wallet.address, reviewer=self.reviewer)
         for items in (
             [],
             [item, {**item, "recipient": item["recipient"].lower()}],
@@ -176,7 +192,7 @@ class RegisterInstructionTest(TransactionTestCase):
             [{**item, "amount": "0"}],
             [{**item, "amount": 10}],
             [{"request": item["request"], "amount": "10"}],
-            [{**item, "subscription": str(uuid4())}],
+            [{**item, "request": str(uuid4())}],
             [instruction_item(foreign)],
             [{**item, "amount": "11"}],
             [{**item, "recipient": Web3.to_checksum_address("0x" + "4d" * 20)}],
@@ -185,73 +201,79 @@ class RegisterInstructionTest(TransactionTestCase):
                 self.submit(operation_id=uuid4(), items=items)
         self.assertFalse(RegisterInstruction.objects.exists())
 
-    def test_submission_lists_only_items_awaiting_approval_or_earlier_approvals(self):
-        eligible_subscriber(self.tenant)
-        unpaid = paid_subscription(self.tenant, quantity=12)
-        Subscription.objects.filter(pk=unpaid.pk).update(status=SubscriptionStatus.SUBMITTED)
-        unpaid.refresh_from_db()
+    def test_nonpaid_cover_refuses_new_grants_and_invalid_states_but_retains_original_approvals(self):
+        pending = issuance_request(self.tenant)
         rejected = issuance_request(self.tenant)
         rejected.reject(self.reviewer, "Not approved")
         draft = issuance_request(self.tenant, status=RequestStatus.DRAFT)
         for row, refusal in (
+            (pending, "New non-paid grants"),
             (rejected, "neither awaiting approval"),
             (draft, "neither awaiting approval"),
-            (unpaid, "is not paid and awaiting allotment"),
         ):
             with self.subTest(row=row), self.assertRaisesMessage(ValidationError, refusal):
                 self.submit(operation_id=uuid4(), items=[instruction_item(row)])
-        earlier = issuance_request(self.tenant)
-        earlier.approve(self.reviewer)
-        proposal = self.submit(operation_id=uuid4(), items=[instruction_item(earlier), instruction_item(self.request)])
+        earlier = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer)
+        proposal = self.submit(operation_id=uuid4(), items=[instruction_item(earlier), instruction_item(self.cover)])
         self.assertEqual(len(proposal.items), 2)
 
     def test_the_approving_director_cannot_be_a_recipient_the_item_identifies(self):
-        named = issuance_request(self.tenant, recipient_name=f" {DIRECTOR.lower()} ")
-        with self.assertRaisesMessage(ValidationError, "is the recipient"):
-            self.submit(operation_id=uuid4(), items=[instruction_item(named)])
         with self.assertRaisesMessage(ValidationError, "is the recipient"):
             self.submit(operation_id=uuid4(), approving_director=self.tenant.profile.full_name.upper())
-        unnamed = issuance_request(
-            self.tenant, recipient_name="", recipient_address=Web3.to_checksum_address("0x" + "5e" * 20)
+        named = retained_approved_request(
+            self.token, self.tenant.wallet.address, reviewer=self.reviewer, recipient_name=f" {DIRECTOR.lower()} "
+        )
+        with self.assertRaisesMessage(ValidationError, "is the recipient"):
+            self.submit(operation_id=uuid4(), items=[instruction_item(named)])
+        unnamed = retained_approved_request(
+            self.token, Web3.to_checksum_address("0x" + "5e" * 20), reviewer=self.reviewer, recipient_name=""
         )
         self.assertEqual(
             self.submit(operation_id=uuid4(), items=[instruction_item(unnamed)]).approving_director, DIRECTOR
         )
 
-    def test_application_approves_each_listed_request_with_the_reviewer_exactly_once(self):
-        other = issuance_request(self.tenant, amount=7)
-        proposal = self.submit(items=[instruction_item(self.request), instruction_item(other)])
+    def test_nonpaid_cover_retains_each_original_approval_with_the_covering_reviewer_exactly_once(self):
+        other = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer, amount=17)
+        proposal = self.submit(items=[instruction_item(self.cover), instruction_item(other)])
+        original = list(
+            ShareIssuanceRequest.objects.filter(token=self.token).values_list(
+                "pk", "status", "reviewed_by_id", "reviewed_at", "review_notes"
+            )
+        )
         confirmation = self.review(proposal)
         applied = self.decide(proposal, confirmation=confirmation)
         self.assertEqual((applied.status, applied.reviewed_by_id), ("applied", self.reviewer.pk))
-        for request in (self.request, other):
-            request.refresh_from_db()
-            self.assertEqual(
-                (request.status, request.reviewed_by_id, request.review_notes),
-                (RequestStatus.APPROVED, self.reviewer.pk, f"Approved by register instruction {proposal.pk}."),
-            )
-            self.assertIsNotNone(request.reviewed_at)
+        self.assertEqual(
+            list(
+                ShareIssuanceRequest.objects.filter(token=self.token).values_list(
+                    "pk", "status", "reviewed_by_id", "reviewed_at", "review_notes"
+                )
+            ),
+            original,
+        )
+        self.subscription.refresh_from_db()
+        self.assertEqual(
+            (self.subscription.status, self.subscription.issuance_request_id), (SubscriptionStatus.PAID, None)
+        )
         with patch("django.core.signing.time.time", return_value=timezone.now().timestamp() + 901):
             self.assertEqual(self.decide(proposal, confirmation=confirmation).status, "applied")
         with self.assertRaises(RegisterChangeConflict):
             self.decide(proposal, "reject", rejection_reason="Too late")
         with self.assertRaisesMessage(ValidationError, "already has a decision"):
             self.review(proposal)
-        with self.assertRaisesMessage(ValidationError, "neither awaiting approval"):
-            self.submit(operation_id=uuid4())
+        self.assertEqual(ShareIssuanceRequest.objects.filter(token=self.token).count(), 2)
 
-    def test_an_item_that_changed_after_submission_refuses_review_and_application_but_not_rejection(self):
+    def test_nonpaid_cover_preserves_immutable_terms_and_refuses_changed_recipient_identity_but_allows_rejection(self):
+        from users.models import UserProfile
+
         proposal = self.submit()
         confirmation = self.review(proposal)
-        ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(amount=1000)
-        with self.assertRaisesMessage(ValidationError, "differs from the instruction"):
+        with self.assertRaises(DatabaseError), atomic():
+            ShareIssuanceRequest.objects.filter(pk=self.cover.pk).update(amount=9)
+        UserProfile.objects.filter(pk=self.tenant.profile.pk).update(full_name=DIRECTOR)
+        with self.assertRaisesMessage(ValidationError, "is the recipient"):
             self.review(proposal)
-        with self.assertRaisesMessage(ValidationError, "differs from the instruction"):
-            self.decide(proposal, confirmation=confirmation)
-        ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(amount=10)
-        self.request.refresh_from_db()
-        self.request.reject(self.reviewer, "Withdrawn by the company")
-        with self.assertRaisesMessage(ValidationError, "neither awaiting approval"):
+        with self.assertRaisesMessage(ValidationError, "is the recipient"):
             self.decide(proposal, confirmation=confirmation)
         self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "submitted")
         for _ in range(2):
@@ -267,7 +289,7 @@ class RegisterInstructionTest(TransactionTestCase):
         with self.assertRaisesMessage(ValidationError, "Submit a fresh register instruction"):
             self.decide(proposal, confirmation=confirmation)
         self.assertTrue(proposal.file.storage.exists(proposal.file.name))
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.SUBMITTED)
+        self.assertEqual(Subscription.objects.get(pk=self.subscription.pk).status, SubscriptionStatus.PAID)
 
     def test_decisions_need_a_permitted_reviewer_a_reason_and_this_reviewers_confirmation(self):
         proposal = self.submit()
@@ -293,7 +315,7 @@ class RegisterInstructionTest(TransactionTestCase):
         with self.assertRaises(PermissionDenied):
             self.decide(proposal, confirmation=confirmation)
         self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "submitted")
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.SUBMITTED)
+        self.assertEqual(Subscription.objects.get(pk=self.subscription.pk).status, SubscriptionStatus.PAID)
 
     def test_a_failed_decision_write_rolls_back_every_approval(self):
         proposal = self.submit()
@@ -302,11 +324,14 @@ class RegisterInstructionTest(TransactionTestCase):
             with self.assertRaises(RuntimeError):
                 self.decide(proposal, confirmation=confirmation)
         self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "submitted")
-        request = ShareIssuanceRequest.objects.get(pk=self.request.pk)
-        self.assertEqual((request.status, request.reviewed_by_id), (RequestStatus.SUBMITTED, None))
+        request = Subscription.objects.get(pk=self.subscription.pk)
+        self.assertEqual((request.status, request.issuance_request_id), (SubscriptionStatus.PAID, None))
 
     def test_database_refuses_rewrites_deletion_forged_decisions_and_foreign_items(self):
-        proposal = self.submit()
+        pending = issuance_request(self.tenant)
+        proposal = retained_instruction(
+            actor=self.tenant.user, **{**self.payload, "items": [instruction_item(pending)]}
+        )
         decided = {"reviewed_at": timezone.now(), "reviewed_by": self.reviewer}
         for changes in (
             {"reason": "Rewritten"},
@@ -326,7 +351,7 @@ class RegisterInstructionTest(TransactionTestCase):
         item = proposal.items[0]
         for items in (
             [],
-            [instruction_item(issuance_request(stranger))],
+            [instruction_item(paid_subscription(stranger))],
             [instruction_item(subscription)],
             [{**item, "amount": "010"}],
             [{**item, "recipient": None}],
@@ -337,41 +362,58 @@ class RegisterInstructionTest(TransactionTestCase):
                 forged(proposal, items=items)
         with self.assertRaises(DatabaseError), atomic():
             forged(proposal, approving_director=" ")
-        with self.assertRaises(RuntimeError), atomic():
+        with self.assertRaisesMessage(DatabaseError, "retained company decision"), atomic():
             forged(proposal)
+        earlier = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer)
+        with self.assertRaises(RuntimeError), atomic():
+            forged(proposal, items=[instruction_item(earlier)])
             raise RuntimeError("rollback")
-        self.decide(proposal)
+        self.decide(proposal, "reject", rejection_reason="Retired pending grant")
         with self.assertRaises(DatabaseError), atomic():
             RegisterInstruction.objects.filter(pk=proposal.pk).update(reviewed_at=timezone.now())
         self.assertEqual(RegisterInstruction.objects.count(), 1)
 
-    def test_the_database_refuses_an_application_that_leaves_a_listed_request_unapproved(self):
-        proposal = self.submit()
+    def test_the_database_refuses_an_application_that_leaves_a_retained_request_unapproved(self):
+        pending = issuance_request(self.tenant)
+        proposal = retained_instruction(
+            actor=self.tenant.user, **{**self.payload, "items": [instruction_item(pending)]}
+        )
         with self.assertRaisesMessage(DatabaseError, "approve every listed issuance request"), atomic():
             RegisterInstruction.objects.filter(pk=proposal.pk).update(
                 status="applied", reviewed_at=timezone.now(), reviewed_by=self.reviewer
             )
         with self.assertRaisesMessage(DatabaseError, "approve every listed issuance request"), atomic():
-            ShareIssuanceRequest.objects.filter(pk=self.request.pk).delete()
+            ShareIssuanceRequest.objects.filter(pk=pending.pk).delete()
             RegisterInstruction.objects.filter(pk=proposal.pk).update(
                 status="applied", reviewed_at=timezone.now(), reviewed_by=self.reviewer
             )
+        with self.assertRaisesMessage(
+            DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
+        ), atomic():
+            pending.approve(self.reviewer)
+        approved = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer)
+        historical = self.submit(operation_id=uuid4(), items=[instruction_item(approved)])
         with self.assertRaises(RuntimeError), atomic():
-            self.request.approve(self.reviewer)
-            RegisterInstruction.objects.filter(pk=proposal.pk).update(
-                status="applied", reviewed_at=timezone.now(), reviewed_by=self.reviewer
-            )
+            self.decide(historical)
             raise RuntimeError("rollback")
         self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "submitted")
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.SUBMITTED)
+        self.assertEqual(RegisterInstruction.objects.get(pk=historical.pk).status, "submitted")
+        self.assertEqual(ShareIssuanceRequest.objects.get(pk=pending.pk).status, RequestStatus.SUBMITTED)
+        self.assertEqual(ShareIssuanceRequest.objects.get(pk=approved.pk).status, RequestStatus.APPROVED)
 
-    @override_settings(STORAGES=ADMIN_STORAGES)
+    @override_settings(STORAGES={**settings.STORAGES, **ADMIN_STORAGES})
     def test_admin_reviews_the_file_the_director_and_each_items_exact_terms_before_applying(self):
         proposal = self.submit()
         self.client.force_login(self.reviewer)
         url = reverse("admin:tokens_registerinstruction_review", args=[proposal.pk])
         response = self.client.get(url)
-        for shown in (DIRECTOR, str(self.request.pk), self.tenant.wallet.address, "Rita Recipient", self.token.symbol):
+        for shown in (
+            DIRECTOR,
+            str(self.cover.pk),
+            self.tenant.wallet.address,
+            self.tenant.profile.full_name,
+            self.token.symbol,
+        ):
             self.assertContains(response, shown)
         self.assertContains(response, reverse("admin:tokens_registerinstruction_evidence", args=[proposal.pk]))
         self.assertContains(response, "<td>10</td>", html=True)
@@ -382,16 +424,18 @@ class RegisterInstructionTest(TransactionTestCase):
         response = self.client.post(url, {"confirmation": token, "decision": "apply", "reviewed": True})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(RegisterInstruction.objects.get(pk=proposal.pk).status, "applied")
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).reviewed_by_id, self.reviewer.pk)
+        self.assertIsNone(Subscription.objects.get(pk=self.subscription.pk).issuance_request_id)
         self.assertEqual(
             self.client.post(
                 reverse("admin:tokens_registerinstruction_change", args=[proposal.pk]), {"reason": "rewrite"}
             ).status_code,
             405,
         )
-        named = issuance_request(self.tenant, recipient_name="Another Name")
+        named = retained_approved_request(self.token, self.tenant.wallet.address, reviewer=self.reviewer)
         pending = self.submit(operation_id=uuid4(), items=[instruction_item(named)])
-        ShareIssuanceRequest.objects.filter(pk=named.pk).update(recipient_name=DIRECTOR)
+        from users.models import UserProfile
+
+        UserProfile.objects.filter(pk=self.tenant.profile.pk).update(full_name=DIRECTOR)
         response = self.client.get(reverse("admin:tokens_registerinstruction_review", args=[pending.pk]))
         self.assertContains(response, "is the recipient")
         self.assertContains(response, str(named.pk))
@@ -401,6 +445,82 @@ class RegisterInstructionTest(TransactionTestCase):
         self.assertTrue(
             set(field.name for field in RegisterInstruction._meta.fields) - {"file"} <= set(model_admin.readonly_fields)
         )
+
+    @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+    def test_paid_legacy_history_keeps_evidence_and_financial_state_but_cannot_create_or_apply_fresh_authority(self):
+        pending = retained_paid_instruction(
+            actor=self.tenant.user, **instruction_payload(self.token, self.document, [self.subscription])
+        )
+        with pending.file.open("rb") as retained, self.document.file.open("rb") as source:
+            self.assertEqual(retained.read(), source.read())
+        self.assertEqual((pending.preparing_appointment_id, pending.paid_subscription_id), (None, None))
+        financial_fields = (
+            "status",
+            "quantity",
+            "allotted_quantity",
+            "price_per_share",
+            "currency",
+            "amount_due",
+            "settlement_rail",
+            "settlement_asset_id",
+            "settlement_amount",
+            "reference",
+            "amount_received",
+            "payment_received_on",
+            "payment_reference_seen",
+            "payment_tx_hash",
+            "payment_confirmed_by_id",
+            "payment_confirmed_at",
+            "payment_notes",
+            "refund_amount",
+            "refunded_at",
+            "refund_reference",
+            "allotted_at",
+        )
+        before = Subscription.objects.filter(pk=self.subscription.pk).values(*financial_fields).get()
+        with self.assertRaises(PermissionDenied):
+            submit_instruction(
+                actor=self.tenant.user, **instruction_payload(self.token, self.document, [self.subscription])
+            )
+        with self.assertRaises(PermissionDenied):
+            self.decide(pending, confirmation="retired")
+        with self.assertRaises(DatabaseError), atomic():
+            forged(pending)
+        rejected = self.decide(pending, "reject", rejection_reason="Retired pending paid proposal")
+        self.assertEqual(rejected.status, "rejected")
+        request, execution = retained_paid_execution(self.subscription, self.reviewer)
+        self.assertIsNotNone(execution)
+        for row in (self.subscription, request):
+            with self.subTest(source=type(row).__name__), self.assertRaises(PermissionDenied):
+                self.submit(operation_id=uuid4(), items=[instruction_item(row)])
+        applied = RegisterInstruction.objects.get(
+            items__contains=[{"subscription": str(self.subscription.pk)}], status="applied"
+        )
+        self.assertEqual(
+            (applied.preparing_appointment_id, applied.paid_subscription_id, applied.submitted_by_id),
+            (None, None, self.tenant.user.pk),
+        )
+        self.assertIsNotNone(applied.reviewed_by_id)
+        self.assertEqual(
+            (request.reviewed_by_id, execution.executed_by_id, execution.source_instruction_id),
+            (self.reviewer.pk, self.reviewer.pk, None),
+        )
+        original_document = CompanyDocument.objects.get(pk=applied.source_document)
+        with applied.file.open("rb") as retained, original_document.file.open("rb") as source:
+            self.assertEqual(retained.read(), source.read())
+        with self.assertRaises(RegisterChangeConflict):
+            self.decide(applied, confirmation="another reviewer's receipt")
+        receipt = decide_instruction(
+            proposal_id=applied.pk,
+            reviewer=applied.reviewed_by,
+            confirmation="original applied receipt",
+            decision="apply",
+        )
+        self.assertEqual(receipt.pk, applied.pk)
+        self.subscription.refresh_from_db()
+        self.assertEqual(Subscription.objects.filter(pk=self.subscription.pk).values(*financial_fields).get(), before)
+        self.assertEqual(self.subscription.issuance_request_id, request.pk)
+        self.assertEqual(RegisterEntry.objects.count(), 0)
 
 
 class IssuanceReviewGuardTest(TransactionTestCase):
@@ -421,8 +541,9 @@ class IssuanceReviewGuardTest(TransactionTestCase):
             cursor.execute("SELECT set_config(%s, NULL, false)", [PRINCIPAL_SETTING])
 
     def test_the_app_role_cannot_decide_or_rewrite_the_review_of_its_own_request(self):
-        approved = issuance_request(self.tenant)
-        approved.approve(self.staff, "Operator notes")
+        approved = retained_approved_request(
+            self.tenant.deployed_token, self.tenant.wallet.address, reviewer=self.staff, notes="Earlier approval"
+        )
         self.as_the_app_role()
         now = timezone.now()
         for target, changes in (
@@ -436,9 +557,12 @@ class IssuanceReviewGuardTest(TransactionTestCase):
             (approved, {"reviewed_by_id": self.tenant.user.pk}),
             (approved, {"review_notes": ""}),
         ):
-            with self.subTest(changes=changes), self.assertRaisesMessage(
-                DatabaseError, "Only operator review may decide an issuance request"
-            ), atomic():
+            refusal = (
+                "Fresh paid and nonpaid approval requires its retained company decision"
+                if changes.get("status") == RequestStatus.APPROVED
+                else "Only operator review may decide an issuance request"
+            )
+            with self.subTest(changes=changes), self.assertRaisesMessage(DatabaseError, refusal), atomic():
                 ShareIssuanceRequest.objects.filter(pk=target.pk).update(**changes)
         for fields in (
             {"status": RequestStatus.APPROVED, "reviewed_by_id": self.staff.pk, "reviewed_at": now},
@@ -454,30 +578,42 @@ class IssuanceReviewGuardTest(TransactionTestCase):
             (RequestStatus.SUBMITTED, None, "", "Edited reason"),
         )
 
-    def test_an_approval_needs_an_active_staff_reviewer_whoever_writes_it(self):
+    def test_no_platform_reviewer_can_approve_a_fresh_unbound_nonpaid_request(self):
         inactive = make_tenant("review-guard-inactive", staff=True).user
         inactive.is_active = False
         inactive.save(update_fields=["is_active"])
-        for reviewer in (None, self.tenant.user, inactive):
+        for reviewer in (None, self.tenant.user, inactive, self.staff):
             with self.subTest(reviewer=reviewer), self.assertRaisesMessage(
-                DatabaseError, "requires an active staff reviewer"
+                DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
             ), atomic():
                 ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(
                     status=RequestStatus.APPROVED, reviewed_by=reviewer, reviewed_at=timezone.now()
                 )
-        with self.assertRaisesMessage(DatabaseError, "requires an active staff reviewer"), atomic():
-            issuance_request(self.tenant, status=RequestStatus.APPROVED, reviewed_by=self.tenant.user)
+        with self.assertRaisesMessage(
+            DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
+        ), atomic():
+            issuance_request(self.tenant, status=RequestStatus.APPROVED, reviewed_by=self.staff)
         self.request.start_review(self.tenant.user)
-        self.request.approve(self.staff)
+        with self.assertRaisesMessage(
+            DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
+        ), atomic():
+            self.request.approve(self.staff)
         self.request.refresh_from_db()
-        self.assertEqual((self.request.status, self.request.reviewed_by_id), (RequestStatus.APPROVED, self.staff.pk))
+        self.assertEqual(
+            (self.request.status, self.request.reviewed_by_id), (RequestStatus.UNDER_REVIEW, self.tenant.user.pk)
+        )
+        historical = retained_approved_request(
+            self.tenant.deployed_token, self.tenant.wallet.address, reviewer=self.staff
+        )
         self.staff.is_active = False
         self.staff.save(update_fields=["is_active"])
-        self.assertEqual(ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(updated_at=timezone.now()), 1)
+        self.assertEqual(ShareIssuanceRequest.objects.filter(pk=historical.pk).update(updated_at=timezone.now()), 1)
 
-    def test_a_disabled_guard_lets_the_app_role_approve_its_own_request(self):
+    def test_a_disabled_review_guard_cannot_commit_a_fresh_unbound_nonpaid_approval(self):
         self.as_the_app_role()
-        with self.assertRaises(RuntimeError), atomic():
+        with self.assertRaisesMessage(
+            DatabaseError, "permission denied for table tokens_registerinstructiondecision"
+        ), atomic():
             with connections[current_alias()].cursor() as cursor:
                 cursor.execute("RESET ROLE")
                 cursor.execute(
@@ -488,16 +624,18 @@ class IssuanceReviewGuardTest(TransactionTestCase):
                 status=RequestStatus.APPROVED, reviewed_by_id=self.staff.pk, reviewed_at=timezone.now()
             )
             self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.APPROVED)
-            raise RuntimeError("rollback")
         self.restore_role()
         self.assertEqual(ShareIssuanceRequest.objects.get(pk=self.request.pk).status, RequestStatus.SUBMITTED)
 
 
 class RegisterInstructionApiTest(APITransactionTestCase):
     def setUp(self):
-        self.tenant, self.reviewer, self.document, self.request = instruction_fixture("instruction-api")
+        self.tenant, self.reviewer, self.document, self.subscription = instruction_fixture("instruction-api")
         self.client.force_authenticate(self.tenant.user)
-        self.payload = instruction_payload(self.tenant.deployed_token, self.document, [self.request])
+        self.cover = retained_approved_request(
+            self.tenant.deployed_token, self.tenant.wallet.address, reviewer=self.reviewer
+        )
+        self.payload = instruction_payload(self.tenant.deployed_token, self.document, [self.cover])
         self.url = reverse("tokens:register-instructions-list")
 
     def test_external_issuer_submission_and_private_read_contract(self):
@@ -540,12 +678,16 @@ class RegisterInstructionApiTest(APITransactionTestCase):
 class ScopedRegisterInstructionTest(RunsOnTheScopedConnection, APITransactionTestCase):
     def setUp(self):
         with use_operator():
-            self.tenant, self.reviewer, self.document, self.request = instruction_fixture("scoped-instruction")
+            self.tenant, self.reviewer, self.document, self.subscription = instruction_fixture("scoped-instruction")
             self.staff = make_tenant("scoped-instruction-staff", staff=True).user
             self.stranger = make_tenant("scoped-instruction-stranger")
+            self.cover = retained_approved_request(
+                self.tenant.deployed_token, self.tenant.wallet.address, reviewer=self.reviewer
+            )
         self.the_principal_the_middleware_would_set(self.tenant.user)
         self.proposal = submit_instruction(
-            actor=self.tenant.user, **instruction_payload(self.tenant.deployed_token, self.document, [self.request])
+            actor=self.tenant.user,
+            **instruction_payload(self.tenant.deployed_token, self.document, [self.cover]),
         )
 
     def test_app_submits_and_reads_but_only_the_operator_reviews_and_approves(self):
@@ -559,13 +701,15 @@ class ScopedRegisterInstructionTest(RunsOnTheScopedConnection, APITransactionTes
                 RegisterInstruction.objects.filter(pk=self.proposal.pk).update(**change)
         with self.assertRaises(DatabaseError), atomic():
             self.proposal.delete()
+        with use_operator():
+            raw = issuance_request(self.tenant)
         for changes in (
             {"status": RequestStatus.APPROVED, "reviewed_by_id": self.staff.pk, "reviewed_at": timezone.now()},
             {"reviewed_by_id": self.staff.pk},
             {"review_notes": "Forged notes"},
         ):
             with self.subTest(changes=changes), self.assertRaises(DatabaseError), atomic():
-                ShareIssuanceRequest.objects.filter(pk=self.request.pk).update(**changes)
+                ShareIssuanceRequest.objects.filter(pk=raw.pk).update(**changes)
         self.the_principal_the_middleware_would_set(self.stranger.user)
         self.assertEqual(RegisterInstruction.objects.count(), 0)
         self.no_principal_is_set()
@@ -577,8 +721,8 @@ class ScopedRegisterInstructionTest(RunsOnTheScopedConnection, APITransactionTes
                 proposal_id=self.proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
             )
         self.assertEqual(applied.status, "applied")
-        request = ShareIssuanceRequest.objects.get(pk=self.request.pk)
-        self.assertEqual((request.status, request.reviewed_by_id), (RequestStatus.APPROVED, self.reviewer.pk))
+        subscription = Subscription.objects.get(pk=self.subscription.pk)
+        self.assertEqual((subscription.status, subscription.issuance_request_id), (SubscriptionStatus.PAID, None))
 
 
 @override_settings(**SETTLEMENT)
@@ -766,9 +910,7 @@ class TransferInstructionTest(SettledTransferFixtures, TransactionTestCase):
         self.assertEqual(RegisterInstruction.objects.get(pk=unseen.pk).status, "submitted")
 
     def test_the_database_applies_only_completed_settlements_of_the_class_on_their_terms_once(self):
-        request = ShareIssuanceRequest.objects.create(
-            token=self.token, recipient_address=self.swap.buyer_address, amount=1, reason="Allotment"
-        )
+        request = retained_approved_request(self.token, self.swap.buyer_address, reviewer=self.reviewer, amount=1)
         evidence = submit_instruction(actor=self.owner, **instruction_payload(self.token, self.document, [request]))
         item = instruction_item(self.swap)
         settling = forged(evidence, kind="transfer", items=[item])
@@ -950,7 +1092,10 @@ class RegisterInstructionMigrationTest(TransactionTestCase):
 
     def test_transfer_instructions_are_refused_before_their_migration_and_kept_through_a_refused_downgrade(self):
         self.addCleanup(restore_every_migration)
-        tenant, _, document, request = instruction_fixture("transfer-migration")
+        tenant = make_tenant("transfer-migration")
+        reviewer = instruction_reviewer()
+        document = verified_authority(tenant.company, reviewer)
+        request = retained_approved_request(tenant.deployed_token, tenant.wallet.address, reviewer=reviewer)
         issue = submit_instruction(actor=tenant.user, **instruction_payload(tenant.deployed_token, document, [request]))
         settlement = {
             "settlement": str(uuid4()),
@@ -980,3 +1125,57 @@ class RegisterInstructionMigrationTest(TransactionTestCase):
             with connections[current_alias()].schema_editor() as editor:
                 migration.remove_guards(None, editor)
         self.assertTrue(RegisterInstruction.objects.filter(company=tenant.company).exists())
+
+
+class CompanyInstructionBoundaryTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.issuance_fixtures import install_issuance
+
+        install_issuance(self)
+
+    def test_platform_instructions_and_staff_reviews_cannot_replace_the_exact_company_grant(self):
+        document = verified_authority(self.token.company, instruction_reviewer())
+        fresh = ShareIssuanceRequest.objects.create(
+            token=self.token,
+            recipient_address=self.request.recipient_address,
+            amount=10,
+            reason="Unbound grant",
+            submitted_by=self.owner,
+        )
+        for candidate in (fresh, self.request):
+            with self.subTest(request=candidate.pk), self.assertRaisesMessage(
+                ValidationError, "company's retained appointment"
+            ):
+                submit_instruction(actor=self.owner, **instruction_payload(self.token, document, [candidate]))
+        with self.assertRaisesMessage(DatabaseError, "genuine company source"), atomic():
+            fresh.approve(instruction_reviewer())
+        fresh.refresh_from_db()
+        self.assertEqual((fresh.status, fresh.reviewed_by_id), (RequestStatus.SUBMITTED, None))
+        with self.assertRaisesMessage(ValidationError, "current company appointee"):
+            prepare_instruction_review(proposal_id=self.proposal.pk, reviewer=instruction_reviewer())
+        applied, _ = self.company_issue.issue_decide(self.proposal, "apply")
+        self.request.refresh_from_db()
+        self.assertEqual(
+            (applied.reviewed_by_id, self.request.status, self.request.reviewed_by_id),
+            (self.owner.pk, RequestStatus.APPROVED, self.owner.pk),
+        )
+        self.assertEqual(self.request.reviewed_at, applied.reviewed_at)
+
+    def test_a_failed_company_apply_rolls_back_the_request_decision_and_private_admission(self):
+        from tokens.models import ShareIssuanceExecution
+        from tokens.services import issuance_execution
+
+        with patch.object(issuance_execution, "_enqueue", side_effect=RuntimeError("write failed")):
+            with self.assertRaises(RuntimeError):
+                self.company_issue.issue_decide(self.proposal, "apply")
+        self.request.refresh_from_db()
+        self.proposal.refresh_from_db()
+        self.assertEqual((self.request.status, self.proposal.status), (RequestStatus.UNDER_REVIEW, "submitted"))
+        self.assertIsNone(self.request.reviewed_by_id)
+        self.assertFalse(ShareIssuanceExecution.objects.filter(request_id=self.request.pk).exists())
+        rejected, _ = self.company_issue.issue_decide(self.proposal, "reject", reason="Company declined")
+        self.request.refresh_from_db()
+        self.assertEqual(
+            (rejected.status, self.request.status, self.request.rejection_reason),
+            ("rejected", RequestStatus.REJECTED, "Company declined"),
+        )

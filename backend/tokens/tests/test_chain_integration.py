@@ -56,10 +56,12 @@ from feature_flags.models import FeatureFlag
 from integrations.base_chain.client import BaseChainClient, get_base_chain_client
 from integrations.base_chain.exceptions import BaseChainTransactionError
 from integrations.blockchain import BlockchainClientFactory
+from offerings.models import Subscription
 from offerings.tests.factories import eligible_subscriber
 from operators.models import Operator
 from shared.db import acting_for, current_alias, use_migrate, use_operator
 from shared.seeds.synthetic.eligibility import accept_source, company_approver
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.tests.upload_fixtures import pdf_bytes
 from shared.utils.typed_data import signable_message
@@ -73,6 +75,7 @@ from tokens.models import (
     CapitalIncreaseRequest,
     FormerHolder,
     IssuanceStatus,
+    PauseChange,
     RegisterEntry,
     RegisterEvidenceKind,
     RegisterMemberWallet,
@@ -82,6 +85,7 @@ from tokens.models import (
     ShareIssuance,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
+    ShareRegister,
     ShareToken,
     ShareTokenStatus,
     SwapApprovalSubmission,
@@ -99,7 +103,6 @@ from tokens.services import (
     issuance_execution,
     nav,
     nav_recovery,
-    pause_changes,
     pause_recovery,
     register_snapshot,
     share_token_service,
@@ -112,6 +115,16 @@ from tokens.services.register import (
     REGISTER_HEADERS,
     SOURCE_LABELS,
     SOURCE_STORED,
+)
+from tokens.services.register_capital_increases import (
+    decide_capital_increase,
+)
+from tokens.services.register_capital_increases import (
+    execution_receipt as capital_receipt,
+)
+from tokens.services.register_capital_increases import (
+    prepare_capital_increase,
+    preview_capital_increase_decision,
 )
 from tokens.services.register_events import verify_register
 from tokens.services.register_inclusions import (
@@ -129,6 +142,22 @@ from tokens.services.register_instructions import (
     prepare_instruction_review,
     submit_instruction,
 )
+from tokens.services.register_issues import (
+    decide_issue,
+    execution_receipt,
+    prepare_issue,
+    preview_issue_decision,
+)
+from tokens.services.register_openings import (
+    decide_opening,
+    prepare_opening,
+    preview_opening_decision,
+)
+from tokens.services.register_pause_changes import (
+    decide_pause_change,
+    prepare_pause_change,
+    preview_pause_change_decision,
+)
 from tokens.services.register_reconciliation import reconcile_register
 from tokens.services.share_token_service import (
     EXCEEDS_AUTHORIZED,
@@ -142,17 +171,23 @@ from tokens.tasks import (
     execute_review_request_task,
     recover_swap_approval_submissions,
 )
-from tokens.tests.company_wallet_chain_fixtures import CompanyWalletChainCases
+from tokens.tests.capital_fixtures import admit as admit_capital
+from tokens.tests.company_wallet_chain_fixtures import (
+    CompanyWalletChainCases,
+    install_company_wallet_chain,
+)
 from tokens.tests.deployment_fixtures import admit_deployment, delete_approval_jobs
 from tokens.tests.evidence_fixtures import upload_evidence
+from tokens.tests.retained_issuance_fixtures import prepare_retained_execution
 from tokens.tests.test_register_imports import owner_appointment
+from tokens.tests.test_register_links import linked
 from tokens.tests.test_register_openings import (
     apply_opening,
     decide,
     opening_payload,
     prepared,
 )
-from users.models import CompanyEligibilityDecision
+from users.models import CompanyEligibilityDecision, UserProfile
 from users.serializers.investor_classification import InvestorClassificationSerializer
 from users.services.investor_classification import create_classification
 from users.tests.factories import make_investor
@@ -161,6 +196,7 @@ from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
 from wallets.services.transfers import prepare_erc20_transaction
 from whitelist.services import changes, whitelist
+from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
 from whitelist.tests.historical_whitelist_fixtures import (
     retained_signed_add,
     retained_signed_remove,
@@ -366,9 +402,46 @@ class ChainTestMixin:
         self.token.refresh_from_db()
         return result
 
-    def _pause(self, paused):
+    def _prepared_pause(self, paused):
         self.token.refresh_from_db()
-        change = pause_changes.submit(self.token, self.tenant.user, uuid4(), paused)
+        appointment = owner_appointment(self.token.company)
+        with patch("shared.uploads.scan_upload"):
+            evidence = upload_evidence(self.tenant.user, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_pause_change(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            token=self.token.pk,
+            paused=paused,
+            reason="Synthetic company pause instruction",
+            authority_reference=f"BOARD-PAUSED-{paused}",
+            authority_evidence=evidence.pk,
+        )
+        self.assertFalse(PauseChange.objects.filter(pk=proposal.pk).exists())
+        for kind in ("approve", "apply"):
+            _, preview = preview_pause_change_decision(
+                actor=self.tenant.user, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
+            )
+            proposal = decide_pause_change(
+                actor=self.tenant.user,
+                pause_change_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+            if kind == "approve":
+                self.assertFalse(PauseChange.objects.filter(pk=proposal.pk).exists())
+        change = PauseChange.objects.get(pk=proposal.pk)
+        self.assertEqual(
+            (change.source_pause_id, change.initiated_by_id, change.paused), (proposal.pk, self.tenant.user.pk, paused)
+        )
+        self.assertFalse(self.tenant.user.is_staff)
+        return change
+
+    def _pause(self, paused):
+        change = self._prepared_pause(paused)
         result = pause_recovery.recover(change.pk)
         self.assertIsNotNone(result.completed_at)
         self.assertIn(result.status, ("confirmed", "observed"))
@@ -397,30 +470,53 @@ class ChainTestMixin:
         self._historical_whitelist(self.investor)
         return self._issuance_request(amount)
 
-    def _issuance_request(self, amount):
-        return ShareIssuanceRequest.objects.create(
-            token=self.token,
-            recipient_address=self.investor,
-            recipient_name="Investor",
-            amount=amount,
-            reason="Allotment",
-            status=RequestStatus.APPROVED,
-            submitted_by=self.tenant.user,
-            reviewed_by=self.staff,
-        )
+    def _issuance_request(self, amount, *, recipient=None, name="Investor"):
+        try:
+            migrate_to([("tokens", "0100_company_register_issue_instructions")])
+            return ShareIssuanceRequest.objects.create(
+                token=self.token,
+                recipient_address=recipient or self.investor,
+                recipient_name=name,
+                amount=amount,
+                reason="Allotment",
+                status=RequestStatus.APPROVED,
+                submitted_by=self.tenant.user,
+                reviewed_by=self.staff,
+            )
+        finally:
+            restore_every_migration()
 
     def _execute(self, request):
+        if isinstance(request, ShareIssuanceRequest):
+            execution = ShareIssuanceExecution.objects.filter(request_id=request.pk).select_related("operation").first()
+            if execution is None or execution.status == "failed":
+                command_id = prepare_retained_execution(request, self.staff, self.chain)
+                command = ShareIssuanceExecution.objects.get(pk=command_id)
+            else:
+                command = execution
+            return execute_review_request_task(
+                model_label=request._meta.label,
+                request_uuid=str(request.pk),
+                executed_by=self.staff.pk,
+                execution_id=str(command.pk),
+            )
         service = capital_execution if isinstance(request, CapitalIncreaseRequest) else issuance_execution
         try:
-            confirmed = service.confirmation(request, self.staff)
-            with patch("tokens.tasks.execute_review_request_task.defer"):
-                command = service.admit(request, self.staff, confirmed=confirmed)
+            if (
+                isinstance(request, CapitalIncreaseRequest)
+                and not CapitalIncreaseExecution.objects.filter(request_id=request.pk).exists()
+            ):
+                command = admit_capital(request, self.tenant.user)
+            else:
+                confirmed = service.confirmation(request, self.staff)
+                with patch("tokens.tasks.execute_review_request_task.defer"):
+                    command = service.admit(request, self.staff, confirmed=confirmed)
         except (CapitalIncreaseConflict, IssuanceExecutionConflict) as exc:
             return {"success": False, "error": str(exc.detail)}
         return execute_review_request_task(
             model_label=request._meta.label,
             request_uuid=str(request.uuid),
-            executed_by=self.staff.pk,
+            executed_by=command.executed_by_id,
             execution_id=str(command.pk),
         )
 
@@ -429,14 +525,36 @@ class ChainTestMixin:
         return patch.object(BaseChainClient, "get_transaction_receipt", return_value=None)
 
     def _increase(self, additional):
-        return CapitalIncreaseRequest.objects.create(
-            token=self.token,
-            additional_shares=additional,
+        self.token.refresh_from_db()
+        appointment = owner_appointment(self.token.company)
+        with patch("shared.uploads.scan_upload"):
+            evidence = upload_evidence(self.tenant.user, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_capital_increase(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            token=self.token.pk,
+            additional_shares=CAP + additional - int(self.token.total_supply),
             new_authorized_total=CAP + additional,
             purpose="Growth",
             board_resolution_reference=f"BOARD-{additional}",
-            status=RequestStatus.APPROVED,
+            authority_evidence=evidence.pk,
         )
+        _, preview = preview_capital_increase_decision(
+            actor=self.tenant.user, capital_increase_id=proposal.pk, appointment=appointment.pk, kind="approve"
+        )
+        proposal = decide_capital_increase(
+            actor=self.tenant.user,
+            capital_increase_id=proposal.pk,
+            appointment=appointment.pk,
+            kind="approve",
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+        self.assertFalse(CapitalIncreaseExecution.objects.filter(request_id=proposal.request_id).exists())
+        self.assertFalse(self.tenant.user.is_staff)
+        return proposal.request
 
 
 class SettlementChainMixin(ChainTestMixin):
@@ -828,16 +946,7 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
 
     @override_settings(WALLET_CHAIN_FINALITY_POLICIES={"evm:31337": {"mode": "depth", "depth": 2}})
     def test_a_real_settlement_is_entered_only_once_its_transfer_instruction_applies(self):
-        bought = ShareIssuanceRequest.objects.create(
-            token=self.token,
-            recipient_address=self.buyer.address,
-            recipient_name="Buyer",
-            amount=5,
-            reason="Allotment",
-            status=RequestStatus.APPROVED,
-            submitted_by=self.tenant.user,
-            reviewed_by=self.staff,
-        )
+        bought = self._issuance_request(5, recipient=self.buyer.address, name="Buyer")
         self.assertEqual(self._execute(bought)["status"], "executing")
         self.w3.provider.make_request("evm_mine", [])
         self.assertTrue(self._execute(bought)["success"])
@@ -1558,14 +1667,35 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         register = self.client.get(f"/api/v1/tokens/{self.token.uuid}/register/export/")
         self.assertEqual((register.status_code, register.json()["code"]), (409, "register_not_initialized"))
 
-        increase = CapitalIncreaseRequest.objects.create(
-            token=self.token,
-            additional_shares=500,
-            new_authorized_total=CAP + 500,
-            purpose="Growth",
-            board_resolution_reference="BOARD-1",
-            status=RequestStatus.APPROVED,
-        )
+        while_paused = self._issuance_request(amount=1)
+        self.chain.send_transaction(self._contract().functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertTrue(self._contract().functions.paused().call())
+        blocks_before = self.w3.eth.block_number
+        self.assertEqual(self._execute(while_paused)["status"], "failed")
+        self.assertEqual(self.w3.eth.block_number, blocks_before)
+        while_paused.refresh_from_db()
+        self.assertEqual(while_paused.status, RequestStatus.FAILED)
+        self.assertIn(TOKEN_PAUSED, while_paused.execution_notes)
+        self.assertNotIn("Refused", while_paused.review_notes)
+        self.assertEqual(ShareIssuance.objects.filter(token=self.token, status="completed").count(), 1)
+        self.chain.send_transaction(self._contract().functions.unpause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertFalse(self._contract().functions.paused().call())
+        self.assertTrue(self._execute(while_paused)["success"])
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 11)
+        while_paused.refresh_from_db()
+        self.assertIsNone(ShareIssuanceExecution.objects.get(request_id=while_paused.pk).source_instruction_id)
+        self.assertEqual(while_paused.executed_issuance.initiated_by, self.staff)
+        self._pause(True)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
+        self.assertTrue(self._contract().functions.paused().call())
+        self._pause(False)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
+        self.assertFalse(self._contract().functions.paused().call())
+        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 11)
+
+        increase = self._increase(500)
         increased = self._execute(increase)
         self.assertTrue(increased["success"], increased)
         self.assertEqual(increased["new_authorized_total"], CAP + 500)
@@ -1575,49 +1705,19 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIsNone(increase.executed_issuance)
         self.assertEqual(self.token.total_supply, str(CAP + 500))
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
-        self.assertEqual(self._contract().functions.totalSupply().call(), 10)
+        self.assertEqual(self._contract().functions.totalSupply().call(), 11)
 
-        stale = CapitalIncreaseRequest.objects.create(
-            token=self.token,
-            additional_shares=10,
-            new_authorized_total=CAP + 10,
-            purpose="Approved against the old cap",
-            board_resolution_reference="BOARD-0",
-            status=RequestStatus.APPROVED,
-        )
         blocks_before = self.w3.eth.block_number
-        refusal = self._execute(stale)
-        self.assertFalse(refusal["success"])
-        self.assertEqual(refusal["status"], "superseded")
-        self.assertIsNone(refusal["tx_hash"])
+        requests_before = CapitalIncreaseRequest.objects.count()
+        attempts_before = SignedAttempt.objects.count()
+        with self.assertRaises(ValidationError):
+            self._increase(10)
         self.assertEqual(self.w3.eth.block_number, blocks_before)
-        stale.refresh_from_db()
+        self.assertEqual(CapitalIncreaseRequest.objects.count(), requests_before)
+        self.assertEqual(SignedAttempt.objects.count(), attempts_before)
         self.token.refresh_from_db()
-        self.assertEqual((stale.status, stale.review_notes), (RequestStatus.SUPERSEDED, ""))
-        for cap in (CAP + 10, CAP + 500):
-            self.assertIn(str(cap), stale.rejection_reason)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 500)
         self.assertEqual(self.token.total_supply, str(CAP + 500))
-
-        self._pause(True)
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.PAUSED)
-        self.assertTrue(self._contract().functions.paused().call())
-        while_paused = self._issuance_request(amount=1)
-        blocks_before = self.w3.eth.block_number
-        self.assertEqual(self._execute(while_paused)["status"], "failed")
-        self.assertEqual(self.w3.eth.block_number, blocks_before)
-        while_paused.refresh_from_db()
-        self.assertEqual(while_paused.status, RequestStatus.FAILED)
-        self.assertIn(TOKEN_PAUSED, while_paused.execution_notes)
-        self.assertNotIn("Refused", while_paused.review_notes)
-        self.assertEqual(ShareIssuance.objects.filter(token=self.token, status="completed").count(), 1)
-        self._pause(False)
-        self.token.refresh_from_db()
-        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
-        self.assertFalse(self._contract().functions.paused().call())
-        self.assertTrue(self._execute(while_paused)["success"])
-        self.assertEqual(self._contract().functions.balanceOf(self.investor).call(), 11)
 
         blocks_before = self.w3.eth.block_number
         self.assertEqual(deployment.recover(self.token.deployment_id), contract_address)
@@ -1845,6 +1945,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self._deployed()
         request = self._whitelisted_request(10)
         nonce = self._signer_nonce()
+        prepare_retained_execution(request, self.staff, self.chain)
         database = connections[current_alias()].settings_dict
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
@@ -1858,7 +1959,6 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
                     "tokens.tests.issuance_chain_worker",
                     phase,
                     str(request.pk),
-                    str(self.staff.pk),
                 ],
                 env=env,
                 stdout=subprocess.PIPE,
@@ -1925,6 +2025,8 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         fields = ("ENGINE", "NAME", "USER", "PASSWORD", "HOST", "PORT", "OPTIONS")
         env = os.environ.copy()
         env["CAPITAL_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
+        env["CAPITAL_TEST_PRIVATE_MEDIA_ROOT"] = settings.PRIVATE_MEDIA_ROOT
+        env["CAPITAL_TEST_STORAGES"] = json.dumps(settings.STORAGES)
 
         def worker(phase):
             process = subprocess.Popen(
@@ -1934,7 +2036,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
                     "tokens.tests.capital_chain_worker",
                     phase,
                     str(increase.pk),
-                    str(self.staff.pk),
+                    str(self.tenant.user.pk),
                 ],
                 env=env,
                 stdout=subprocess.PIPE,
@@ -2016,6 +2118,23 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
     def test_real_pause_observation_and_unpause_preserve_issuance_guards(self):
         self._deployed()
         contract = self._contract()
+        request = self._whitelisted_request(amount=5)
+        self.chain.send_transaction(contract.functions.pause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertTrue(contract.functions.paused().call())
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
+        blocks_before = self.w3.eth.block_number
+        self.assertEqual(self._execute(request)["status"], "failed")
+        request.refresh_from_db()
+        self.assertIn(TOKEN_PAUSED, request.execution_notes)
+        self.assertEqual(self.w3.eth.block_number, blocks_before)
+        self.chain.send_transaction(contract.functions.unpause(), settings.BLOCKCHAIN_OPERATOR_KEY)
+        self.assertFalse(contract.functions.paused().call())
+        self.assertTrue(self._execute(request)["success"])
+        self.assertEqual(contract.functions.balanceOf(self.investor).call(), 5)
+        request.refresh_from_db()
+        self.assertIsNone(ShareIssuanceExecution.objects.get(request_id=request.pk).source_instruction_id)
+        self.assertEqual(request.executed_issuance.initiated_by, self.staff)
 
         self._pause(True)
         self.token.refresh_from_db()
@@ -2033,21 +2152,10 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self._pause(True)
         self.token.refresh_from_db()
         self.assertEqual((self.token.status, self._signer_nonce()), (ShareTokenStatus.PAUSED, nonce_before))
-
-        ShareToken.objects.filter(pk=self.token.pk).update(status=ShareTokenStatus.DEPLOYED)
-        self.token.refresh_from_db()
-        request = self._whitelisted_request(amount=5)
-        blocks_before = self.w3.eth.block_number
-        self.assertEqual(self._execute(request)["status"], "failed")
-        request.refresh_from_db()
-        self.assertIn(TOKEN_PAUSED, request.execution_notes)
-        self.assertEqual(self.w3.eth.block_number, blocks_before)
         self._pause(False)
         self.token.refresh_from_db()
         self.assertEqual(self.token.status, ShareTokenStatus.DEPLOYED)
         self.assertFalse(contract.functions.paused().call())
-
-        self.assertTrue(self._execute(request)["success"])
         self.assertEqual(contract.functions.balanceOf(self.investor).call(), 5)
 
     def test_worker_killed_after_the_mint_is_finished_by_the_executing_sweep(self):
@@ -2098,6 +2206,7 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
     def test_two_workers_on_one_increase_send_one_transaction(self):
         self._deployed()
         increase = self._increase(1000)
+        admit_capital(increase, self.tenant.user)
         nonce_before = self._signer_nonce()
         results = {}
 
@@ -2127,23 +2236,21 @@ class ShareTokenChainConcurrencyTest(ChainTestMixin, APITransactionTestCase):
         self.token.refresh_from_db()
         self.assertEqual((increase.status, self.token.total_supply), (RequestStatus.EXECUTED, str(CAP + 1000)))
 
-    def test_a_later_increase_that_would_not_raise_the_cap_is_refused(self):
+    def test_a_later_company_increase_that_would_not_raise_the_cap_is_refused_before_admission(self):
         self._deployed()
         big = self._increase(1000)
 
         self.assertTrue(self._execute(big)["success"])
 
-        small = self._increase(50)
-        result = self._execute(small)
-
-        self.assertFalse(result["success"])
-        self.assertEqual(result["status"], "superseded")
-        self.assertIsNone(result["tx_hash"])
-        small.refresh_from_db()
+        nonce = self._signer_nonce()
+        requests = CapitalIncreaseRequest.objects.count()
+        attempts = SignedAttempt.objects.count()
+        with self.assertRaises(ValidationError):
+            self._increase(50)
         self.token.refresh_from_db()
-        self.assertEqual(small.status, RequestStatus.SUPERSEDED)
-        self.assertIn("do not raise the recorded cap", small.rejection_reason)
-        self.assertEqual(small.review_notes, "")
+        self.assertEqual(CapitalIncreaseRequest.objects.count(), requests)
+        self.assertEqual(SignedAttempt.objects.count(), attempts)
+        self.assertEqual(self._signer_nonce(), nonce)
         self.assertEqual(self._contract().functions.authorizedShares().call(), CAP + 1000)
         self.assertEqual(self.token.total_supply, str(CAP + 1000))
 
@@ -2452,10 +2559,7 @@ class SwapApprovalChainTest(ChainTestMixin, APITransactionTestCase):
         from blockchain.services import outgoing
 
         request = self._increase(100)
-        with patch("tokens.tasks.execute_review_request_task.defer"):
-            command = capital_execution.admit(
-                request, self.staff, confirmed=capital_execution.confirmation(request, self.staff)
-            )
+        command = admit_capital(request, self.tenant.user)
         barrier = threading.Barrier(2)
         prepare = outgoing.prepare_operation
 
@@ -2514,7 +2618,7 @@ class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
     def setUp(self):
         super().setUp()
         self._deployed()
-        self.change = pause_changes.submit(self.token, self.tenant.user, uuid4(), True)
+        self.change = self._prepared_pause(True)
 
     def test_worker_killed_after_real_pause_acceptance_recovers_the_original_receipt(self):
         database = connections[current_alias()].settings_dict
@@ -2522,6 +2626,8 @@ class PauseChangeChainTest(ChainTestMixin, APITransactionTestCase):
         env = os.environ.copy()
         env["PAUSE_TEST_DATABASE"] = json.dumps({key: database[key] for key in fields})
         env["PAUSE_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
+        env["PAUSE_TEST_PRIVATE_MEDIA_ROOT"] = str(settings.PRIVATE_MEDIA_ROOT)
+        env["PAUSE_TEST_STORAGES"] = json.dumps(settings.STORAGES)
         nonce = self._signer_nonce()
         process = subprocess.Popen(
             [sys.executable, "-m", "tokens.tests.pause_chain_worker", str(self.change.pk)],
@@ -2890,3 +2996,245 @@ class CompanyWalletInstructionChainTest(CompanyWalletChainCases, APITransactionT
         self.chain = get_base_chain_client()
         isolate_chain(self, self.chain.w3)
         super().setUp()
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class CompanyCapitalChainTest(CompanyWalletCases, APITransactionTestCase):
+    def setUp(self):
+        reset_chain_client()
+        self.chain = get_base_chain_client()
+        isolate_chain(self, self.chain.w3)
+        super().setUp()
+        install_company_wallet_chain(self)
+        self.enterContext(patch("tokens.services.capital_execution._enqueue"))
+
+    def test_company_approval_and_application_increase_only_the_cap_with_one_original_finalised_event(self):
+        from tokens.models import RegisterCapitalIncreaseDecision
+        from whitelist.models import CompanyWalletNomination
+
+        self.assertFalse(self.owner.is_staff or self.owner.is_superuser)
+        self.assertFalse(CompanyWalletNomination.objects.exists())
+        self.assertFalse(ShareRegister.objects.filter(token=self.token).exists())
+        before_holdings = list(Holding.objects.order_by("pk").values())
+        before_entries = list(RegisterEntry.objects.order_by("pk").values())
+        nonce = self.chain.w3.eth.get_transaction_count(self.signer, "pending")
+        evidence = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_capital_increase(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=self.initial.pk,
+            token=self.token.pk,
+            additional_shares=250,
+            new_authorized_total=1250,
+            purpose="Increase the company's authorised cap",
+            board_resolution_reference="ACTUAL-CAP-ONLY",
+            authority_evidence=evidence.pk,
+        )
+        self.assertEqual(proposal.request.status, RequestStatus.UNDER_REVIEW)
+        for kind in ("approve", "apply"):
+            _, preview = preview_capital_increase_decision(
+                actor=self.owner, capital_increase_id=proposal.pk, appointment=self.initial.pk, kind=kind
+            )
+            self.assertEqual(preview["unmet_requirements"], [])
+            proposal = decide_capital_increase(
+                actor=self.owner,
+                capital_increase_id=proposal.pk,
+                appointment=self.initial.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+            self.assertEqual(self.contract.functions.authorizedShares().call(), 1000)
+            self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce)
+            if kind == "approve":
+                self.assertFalse(CapitalIncreaseExecution.objects.filter(request_id=proposal.request_id).exists())
+        with use_operator():
+            execution = CapitalIncreaseExecution.objects.get(source_increase=proposal)
+            self.assertIsNone(execution.operation_id)
+            self.assertIsNone(execution.transaction_id)
+            self.assertEqual(capital_execution.recover(execution.pk)["status"], "executed")
+            execution.refresh_from_db()
+            self.token.refresh_from_db()
+            attempt = SignedAttempt.objects.get(operation_id=execution.operation_id)
+            observed = self.chain.w3.eth.get_transaction(attempt.tx_hash)
+            mined = self.chain.w3.eth.get_transaction_receipt(attempt.tx_hash)
+            events = self.contract.events.AuthorizedSharesUpdated().process_receipt(mined)
+            receipt = capital_receipt(proposal)
+            self.assertEqual(
+                [(event["args"]["oldAmount"], event["args"]["newAmount"]) for event in events], [(1000, 1250)]
+            )
+            self.assertEqual(execution.executed_by_id, self.owner.pk)
+            self.assertEqual(execution.intent, proposal.intent)
+            self.assertEqual(execution.operation.status, "confirmed")
+            self.assertEqual(execution.transaction.status, "confirmed")
+            self.assertEqual(attempt.nonce, nonce)
+            self.assertEqual(Account.recover_transaction(bytes(attempt.raw_transaction)), self.signer)
+            self.assertEqual(Web3.to_hex(Web3.keccak(bytes(attempt.raw_transaction))), attempt.tx_hash)
+            self.assertEqual(Web3.to_hex(observed["input"]), proposal.intent["data"])
+            self.assertEqual(observed["to"].lower(), self.token.contract_address.lower())
+            self.assertEqual((mined["status"], mined["blockNumber"]), (1, execution.operation.block_number))
+            self.assertEqual(execution.transaction.tx_hash, attempt.tx_hash)
+            self.assertEqual(receipt["tx_hash"], attempt.tx_hash)
+            self.assertEqual(receipt["block_number"], mined["blockNumber"])
+            self.assertEqual(self.token.total_supply, "1250")
+            request = CapitalIncreaseRequest.objects.get(pk=execution.request_id)
+            self.assertEqual(request.status, RequestStatus.EXECUTED)
+            self.assertIsNone(request.executed_issuance_id)
+            decisions = RegisterCapitalIncreaseDecision.objects.filter(capital_increase=proposal)
+            self.assertEqual(set(decisions.values_list("kind", flat=True)), {"approve", "apply"})
+            self.assertEqual(set(decisions.values_list("decided_by_id", flat=True)), {self.owner.pk})
+            self.assertEqual(list(Holding.objects.order_by("pk").values()), before_holdings)
+            self.assertEqual(list(RegisterEntry.objects.order_by("pk").values()), before_entries)
+            self.assertFalse(ShareIssuance.objects.filter(token=self.token).exists())
+            self.assertFalse(Subscription.objects.filter(offering__token=self.token).exists())
+            raw = bytes(attempt.raw_transaction)
+            with patch.object(BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Already confirmed")):
+                self.assertEqual(capital_execution.recover(execution.pk)["tx_hash"], attempt.tx_hash)
+            self.assertEqual(bytes(SignedAttempt.objects.get(pk=attempt.pk).raw_transaction), raw)
+            self.assertEqual(SignedAttempt.objects.filter(operation_id=execution.operation_id).count(), 1)
+        self.assertEqual(self.contract.functions.authorizedShares().call(), 1250)
+        self.assertEqual(self.contract.functions.totalSupply().call(), 0)
+        self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce + 1)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class CompanyIssueChainTest(CompanyWalletCases, APITransactionTestCase):
+    def setUp(self):
+        reset_chain_client()
+        self.chain = get_base_chain_client()
+        isolate_chain(self, self.chain.w3)
+        super().setUp()
+        install_company_wallet_chain(self)
+
+    def test_current_company_bootstrap_zero_opening_proof_finite_add_link_and_nonpaid_mint_record_one_original_issue(
+        self,
+    ):
+        self.assertFalse(self.owner.is_staff)
+        self.assertFalse(self.owner.is_superuser)
+        self.assertEqual(self.deployment.operation.status, "confirmed")
+        self.assertEqual(self.deployment.source_deployment_id, self.deployment_proposal.pk)
+        self.assertEqual(self.contract.functions.totalSupply().call(), 0)
+        authority = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.AUTHORITY)
+        opening, _ = prepare_opening(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=self.initial.pk,
+            token_id=self.token.pk,
+            authority_evidence=authority.pk,
+            mapping=[],
+            authority="director_resolution",
+            approving_director="Synthetic Director",
+            authority_reference="ACTUAL-ZERO-CHAIN",
+            reason="Open the actual empty deployed class",
+            client=self.chain,
+        )
+        for kind in ("approve", "apply"):
+            _, preview = preview_opening_decision(
+                actor=self.owner, opening_id=opening.pk, appointment=self.initial.pk, kind=kind
+            )
+            opening = decide_opening(
+                actor=self.owner,
+                opening_id=opening.pk,
+                appointment=self.initial.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+        with use_operator():
+            self.assertEqual(ShareRegister.objects.get(token=self.token).issued_supply, 0)
+            self.assertFalse(ShareIssuance.objects.filter(token=self.token).exists())
+        nomination = self.nominate()
+        wallet_instruction = self.prepare_wallet(nomination)
+        self.wallet_decide(wallet_instruction, "approve")
+        wallet_instruction, _ = self.wallet_decide(wallet_instruction, "apply")
+        change = self.execute(wallet_instruction)
+        self.assertEqual(change.status, "confirmed")
+        self.assertIsNotNone(change.expires_at)
+        self.assertEqual(
+            self.registry.functions.expiresAt(Web3.to_checksum_address(self.wallet.address)).call(),
+            int(change.expires_at.timestamp()),
+        )
+        member = uuid4()
+        linked(self.owner, self.initial, [{"address": self.wallet.address, "member": str(member)}])
+        with use_operator():
+            profile = UserProfile.objects.get(user=self.participant)
+            profile.residential_address = "1 Synthetic Employee Street"
+            profile.save(update_fields=["residential_address"])
+        terms = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.SUPPORTING)
+        acceptance = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.SUPPORTING)
+        proposal = prepare_issue(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=self.initial.pk,
+            token=self.token.pk,
+            member=member,
+            nomination=nomination.pk,
+            wallet_approval=change.pk,
+            shares=25,
+            approving_director="Synthetic Independent Director",
+            authority_reference="ACTUAL-NON-PAID-GRANT",
+            reason="Outright employee grant",
+            terms_on=(timezone.now() - timedelta(days=5)).date(),
+            terms="Outright non-paid company grant under retained terms",
+            authority_evidence=authority.pk,
+            terms_evidence=terms.pk,
+            acceptance_required=True,
+            acceptance_evidence=acceptance.pk,
+        )
+        for kind in ("approve", "apply"):
+            _, preview = preview_issue_decision(
+                actor=self.owner, issue_id=proposal.pk, appointment=self.initial.pk, kind=kind
+            )
+            self.assertEqual(preview["unmet_requirements"], [])
+            proposal = decide_issue(
+                actor=self.owner,
+                issue_id=proposal.pk,
+                appointment=self.initial.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+        with use_operator():
+            execution = ShareIssuanceExecution.objects.get(source_instruction=proposal)
+            self.assertIsNone(execution.operation_id)
+            self.assertFalse(Subscription.objects.filter(issuance_request_id=proposal.request_id).exists())
+            self.assertEqual(ShareRegister.objects.get(token=self.token).issued_supply, 0)
+        nonce = self.chain.w3.eth.get_transaction_count(self.signer, "pending")
+        with use_operator():
+            self.assertEqual(issuance_execution.recover(execution.pk)["status"], "executed")
+            execution.refresh_from_db()
+            attempt = SignedAttempt.objects.get(operation_id=execution.operation_id)
+            entry = RegisterEntry.objects.get(operation_id=execution.issuance_id)
+            receipt = execution_receipt(proposal)
+            self.assertEqual(execution.authority, "company")
+            self.assertEqual(execution.executed_by_id, self.owner.pk)
+            self.assertEqual(attempt.nonce, nonce)
+            self.assertEqual(attempt.claim_id, execution.operation.claim_id)
+            self.assertEqual(Account.recover_transaction(bytes(attempt.raw_transaction)), self.signer)
+            self.assertEqual(Web3.to_hex(Web3.keccak(bytes(attempt.raw_transaction))), attempt.tx_hash)
+            self.assertEqual(entry.kind, "issue")
+            self.assertEqual(entry.changes, [{"member": str(member), "shares": "25"}])
+            self.assertEqual(entry.recorded_by_id, self.owner.pk)
+            self.assertEqual(entry.effective_on, timezone.now().date())
+            self.assertEqual(RegisterPosition.objects.get(register__token=self.token, member_id=member).shares, 25)
+            self.assertEqual(verify_register(entry.register_id)["issued_supply"], "25")
+            self.assertEqual(receipt["register_entry"], entry.pk)
+            self.assertEqual(receipt["tx_hash"], attempt.tx_hash)
+            self.assertEqual(receipt["effective_on"], entry.effective_on)
+        transaction = self.chain.w3.eth.get_transaction(attempt.tx_hash)
+        mined = self.chain.w3.eth.get_transaction_receipt(attempt.tx_hash)
+        self.assertEqual(transaction["nonce"], nonce)
+        self.assertEqual(Web3.to_hex(transaction["input"]), proposal.intent["data"])
+        self.assertEqual(mined["status"], 1)
+        self.assertEqual(self.contract.functions.balanceOf(Web3.to_checksum_address(self.wallet.address)).call(), 25)
+        self.assertEqual(self.contract.functions.totalSupply().call(), 25)
+        with use_operator():
+            self.assertEqual(issuance_execution.recover(execution.pk)["status"], "executed")
+            self.assertEqual(RegisterEntry.objects.filter(operation_id=execution.issuance_id).count(), 1)
+            self.assertEqual(SignedAttempt.objects.filter(operation_id=execution.operation_id).count(), 1)
+        self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce + 1)

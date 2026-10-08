@@ -8,14 +8,10 @@ import type {
   TokenCreate,
   TokenHoldersResponse,
   TokenIssuance,
-  CapitalIncreaseCreate,
-  CapitalIncreaseRequest,
   CapitalIncreaseListItem,
-  CapitalIncreaseSubmission,
   PaginatedResponse,
   ShareIssuanceRequest,
   ShareIssuanceRequestQueryParams,
-  ShareIssuanceSubmission,
 } from '../types';
 
 export const getCompanyTokens = (
@@ -74,16 +70,6 @@ export const getCompanyTokenIssuances = (
   config: AxiosRequestConfig = {},
 ) => apiClient.get<PaginatedResponse<TokenIssuance>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCES(uuid), { ...config, params });
 
-export const issueCompanyShares = (
-  apiClient: AxiosInstance,
-  tokenUuid: string,
-  data: { recipient: string; amount: number; reason?: string },
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data)
-    : apiClient.post<ShareIssuanceSubmission>(COMPANY_TOKEN_ENDPOINTS.ISSUE(tokenUuid), data, config);
-
 export const getCapitalIncreases = (
   apiClient: AxiosInstance,
   params?: { token?: string; status?: string; page?: number; page_size?: number },
@@ -93,24 +79,6 @@ export const getCapitalIncreases = (
     ...config,
     params,
   });
-
-export const createCapitalIncrease = (
-  apiClient: AxiosInstance,
-  data: CapitalIncreaseCreate,
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data)
-    : apiClient.post<CapitalIncreaseRequest>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, data, config);
-
-export const submitCapitalIncrease = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
-  config === undefined
-    ? apiClient.post<CapitalIncreaseSubmission>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid))
-    : apiClient.post<CapitalIncreaseSubmission>(
-        COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASE_SUBMIT(uuid),
-        undefined,
-        config,
-      );
 
 export const getShareIssuanceRequests = (
   apiClient: AxiosInstance,

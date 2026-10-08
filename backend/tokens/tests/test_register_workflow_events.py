@@ -1,4 +1,3 @@
-import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from datetime import timezone as utc_zone
@@ -25,6 +24,7 @@ from tokens.models import (
     RegisterEntryKind,
     RegisterEvidenceKind,
     RegisterMemberWallet,
+    ShareIssuanceExecution,
     ShareIssuanceRequest,
     ShareToken,
     SwapOrderStatus,
@@ -55,9 +55,11 @@ from tokens.tests.instruction_fixtures import (
     apply_instruction,
     instruction_payload,
     instruction_reviewer,
+    retained_nonpaid_cover,
     verified_authority,
 )
-from tokens.tests.issuance_fixtures import IssuanceNode, admit
+from tokens.tests.issuance_fixtures import IssuanceNode
+from tokens.tests.retained_issuance_fixtures import retain_signed_issuance
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_inclusions import MINT_BLOCK, InclusionFixtures
 from tokens.tests.test_register_links import (
@@ -160,7 +162,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual(verify_register(RegisterEntry.objects.first().register_id)["members"], 2)
         self.assertEqual(waiting_effects(self.tenant.token.pk), 0)
 
-    def test_a_link_applied_during_a_completion_waits_for_it_and_records_its_issue_once(self):
+    def test_a_link_after_committed_completion_records_the_issue_once_without_outgoing_locks(self):
         command = self.admitted(block=MINT_BLOCK + 4, recipient=NEWCOMER)
         link = prepared(
             self.owner,
@@ -177,6 +179,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         recorder = issuance_execution.record_completed_effects
 
         def paused(token_id):
+            self.assertFalse(connections["default"].in_atomic_block)
             with connections["default"].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
                 pids.put(("complete", cursor.fetchone()[0]))
@@ -218,15 +221,15 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             completed, applied = pool.submit(complete), pool.submit(apply)
             workers = dict(pids.get(timeout=10) for _ in range(2))
-            deadline, blocked = time.monotonic() + 8, False
-            while time.monotonic() < deadline and not blocked:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
-                    blocked = workers["complete"] in (cursor.fetchone()[0] or [])
-                time.sleep(0.02)
-            release.set()
-            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
-        self.assertTrue(blocked, "The link application never waited for the completion's share-class lock")
+            try:
+                applied_outcome = applied.result(timeout=5)
+                self.assertEqual(applied_outcome, "applied")
+                self.assertNotEqual(workers["apply"], workers["complete"])
+                command.refresh_from_db()
+                self.assertEqual(command.status, "executed")
+            finally:
+                release.set()
+            outcomes = (completed.result(timeout=20), applied_outcome)
         self.assertFalse(errors, errors)
         self.assertEqual(outcomes, ("executed", "applied"))
         command.refresh_from_db()
@@ -385,7 +388,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual((recorded.operation_id, recorded.effective_on), (refused.pk, ahead.date()))
         self.assertEqual(waiting_list(self.tenant.token.pk), [])
 
-    def test_an_instruction_applied_during_a_later_completion_waits_for_it_and_records_both_in_order(self):
+    def test_an_instruction_after_committed_completion_records_both_issues_without_outgoing_locks(self):
         legacy = self.mint(block=MINT_BLOCK + 4, instructed=False)
         request = ShareIssuanceRequest.objects.get(executed_issuance=legacy)
         command = self.admitted(block=MINT_BLOCK + 6)
@@ -397,6 +400,7 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         recorder = issuance_execution.record_completed_effects
 
         def paused(token_id):
+            self.assertFalse(connections["default"].in_atomic_block)
             recorded = recorder(token_id)
             with connections["default"].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
@@ -433,15 +437,15 @@ class RecordedIssueTest(InclusionFixtures, TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             completed, applied = pool.submit(complete), pool.submit(apply)
             workers = dict(pids.get(timeout=10) for _ in range(2))
-            deadline, blocked = time.monotonic() + 8, False
-            while time.monotonic() < deadline and not blocked:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
-                    blocked = workers["complete"] in (cursor.fetchone()[0] or [])
-                time.sleep(0.02)
-            release.set()
-            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
-        self.assertTrue(blocked, "The instruction never waited for the completion's share-class lock")
+            try:
+                applied_outcome = applied.result(timeout=5)
+                self.assertEqual(applied_outcome, "applied")
+                self.assertNotEqual(workers["apply"], workers["complete"])
+                command.refresh_from_db()
+                self.assertEqual(command.status, "executed")
+            finally:
+                release.set()
+            outcomes = (completed.result(timeout=20), applied_outcome)
         self.assertFalse(errors, errors)
         self.assertEqual(outcomes, ("executed", "applied"))
         command.refresh_from_db()
@@ -534,14 +538,21 @@ class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
         self.enterContext(override_settings(WALLET_CHAIN_FINALITY_POLICIES=test_swap_finality.FINALIZED))
         with use_operator():
             token = ShareToken.objects.get(pk=self.swap.share_token_id)
-            request = ShareIssuanceRequest.objects.create(
-                token=token, recipient_address=self.swap.buyer_address, amount=5, reason="Allotment"
-            )
-            apply_instruction(token, request, reviewer=self.reviewer, document=self.document)
             actor = get_user_model().objects.create_superuser(
                 email=f"settled-operator-{uuid4()}@example.test", password="synthetic"
             )
-            return admit(ShareIssuanceRequest.objects.get(pk=request.pk), actor)
+            _, command_id = retain_signed_issuance(
+                token=token,
+                actor=actor,
+                recipient=self.swap.buyer_address,
+                amount=5,
+                client=node.client,
+                reviewed_by=self.reviewer,
+                instructed=lambda request: retained_nonpaid_cover(
+                    token, request, reviewer=self.reviewer, document=self.document
+                ),
+            )
+            return ShareIssuanceExecution.objects.get(pk=command_id)
 
     def transfers(self):
         with use_operator():
@@ -694,7 +705,7 @@ class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
         with self.assertRaisesMessage(ValidationError, "entered in the register"):
             self.instruct()
 
-    def test_an_instruction_applied_during_a_later_completion_waits_for_it_and_records_both_in_order(self):
+    def test_a_transfer_instruction_after_committed_mint_completion_records_both_without_outgoing_locks(self):
         self.open_register()
         self.complete()
         command = self.admitted()
@@ -706,6 +717,8 @@ class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
         recorder = issuance_execution.record_completed_effects
 
         def paused(token_id):
+            self.assertFalse(connections["default"].in_atomic_block)
+            self.assertEqual(ShareIssuanceExecution.objects.get(pk=command.pk).status, "executed")
             recorded = recorder(token_id)
             with connections["default"].cursor() as cursor:
                 cursor.execute("SELECT pg_backend_pid()")
@@ -742,15 +755,12 @@ class RecordedTransferTest(SettledTransferFixtures, TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             completed, applied = pool.submit(complete), pool.submit(apply)
             workers = dict(pids.get(timeout=10) for _ in range(2))
-            deadline, blocked = time.monotonic() + 8, False
-            while time.monotonic() < deadline and not blocked:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SELECT pg_blocking_pids(%s)", [workers["apply"]])
-                    blocked = workers["complete"] in (cursor.fetchone()[0] or [])
-                time.sleep(0.02)
-            release.set()
-            outcomes = (completed.result(timeout=20), applied.result(timeout=20))
-        self.assertTrue(blocked, "The instruction never waited for the completion's share-class lock")
+            try:
+                applied_result = applied.result(timeout=5)
+            finally:
+                release.set()
+            outcomes = (completed.result(timeout=20), applied_result)
+        self.assertNotEqual(workers["complete"], workers["apply"])
         self.assertFalse(errors, errors)
         self.assertEqual(outcomes, ("executed", "applied"))
         command.refresh_from_db()

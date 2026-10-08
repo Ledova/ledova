@@ -2,6 +2,8 @@ from django import forms
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 
+from shared.utils.admin_actions import admin_action_path
+from shared.utils.admin_display import action_buttons
 from tokens.exceptions import CapitalIncreaseConflict
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -21,6 +23,7 @@ class CapitalExecutionForm(forms.Form):
 class CapitalIncreaseAdmin(ReviewWorkflowAdmin):
     label = "Capital increase"
     deletable_status = RequestStatus.DRAFT
+    approved_by_instruction = True
     list_display = [
         "token_symbol",
         "additional_shares",
@@ -50,6 +53,22 @@ class CapitalIncreaseAdmin(ReviewWorkflowAdmin):
     def describe(self, obj):
         return f"+{obj.additional_shares} shares"
 
+    def get_urls(self):
+        return [
+            admin_action_path(self, "<uuid:uuid>/execute/", self._url_name("execute"), self.execute_view)
+        ] + admin.ModelAdmin.get_urls(self)
+
+    @admin.display(description="Quick Actions")
+    def status_actions(self, obj):
+        if obj.status in (
+            RequestStatus.DRAFT,
+            RequestStatus.SUBMITTED,
+            RequestStatus.UNDER_REVIEW,
+            RequestStatus.APPROVED,
+        ):
+            return action_buttons([("Company capital instruction required", None, "#e9ecef", "#6c757d")])
+        return super().status_actions(obj)
+
     def detail_rows(self, obj):
         return [
             ("Additional Shares", f"+{obj.additional_shares} shares"),
@@ -76,6 +95,11 @@ class CapitalIncreaseAdmin(ReviewWorkflowAdmin):
         return super().recorded_execution_error(obj)
 
     def execute_view(self, request, obj):
+        if not CapitalIncreaseExecution.objects.filter(request_id=obj.pk).exists():
+            messages.error(
+                request, "New capital increases require their current company decision through the register API."
+            )
+            return HttpResponseRedirect(self._change_url(obj))
         if not obj.can_be_executed and obj.status != RequestStatus.EXECUTING:
             return self._refuse(request, obj, "execute")
         try:

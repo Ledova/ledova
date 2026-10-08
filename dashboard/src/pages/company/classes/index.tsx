@@ -1,3 +1,4 @@
+import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -7,16 +8,17 @@ import {
   formatShareCount,
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
-  getErrorMessage,
   type CapitalIncreaseStatus,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { TokenPauseControls } from '../components/TokenPauseControls';
 import { ClassRegister } from '../register/ClassRegister';
-import { IssueSharesForm, RaiseSharesForm } from './ShareRequestForms';
 import { useShareClass } from './useShareClass';
 import { DeploymentFlow } from './DeploymentFlow';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
+import { CompanyCapitalFlow } from './CompanyCapitalFlow';
+import { CompanyPauseFlow } from './CompanyPauseFlow';
 
 function requestTone(status: CapitalIncreaseStatus): Tone {
   if (status === 'executed') return 'done';
@@ -64,45 +66,33 @@ export function ShareClass({ uuid }: { uuid: string }) {
         data={data}
       />
       <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
+      <CompanyIssueFlow
+        key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
+      <CompanyCapitalFlow
+        key={`capital/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
+      <CompanyPaidIssueFlow
+        key={`paid-issue/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
+      <CompanyPauseFlow
+        key={`pause/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
     </Page>
   );
 }
 
 function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
-  const [form, setForm] = useState<{
-    kind: 'issue' | 'raise';
-    owner: typeof data.owner;
-    token: string;
-    company: string;
-  } | null>(null);
   const [copyError, setCopyError] = useState(false);
   const token = data.token.data;
-  const activeForm =
-    form?.owner === data.owner && form?.token === token?.uuid && form?.company === token?.companyUuid
-      ? form?.kind
-      : null;
-  const requestForms = data.owner && token?.isOwner && (
-    <>
-      {activeForm === 'issue' && (
-        <IssueSharesForm
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
-      {activeForm === 'raise' && (
-        <RaiseSharesForm
-          token={token}
-          classRead={data.token}
-          guard={() => data.guardOwner('deployed')}
-          onClose={() => setForm(null)}
-          onSuccess={data.refresh}
-        />
-      )}
-    </>
-  );
   const content = () => {
     if (data.token.isPending) return <p role="status">Loading share class…</p>;
     if (data.token.isError || !token)
@@ -197,22 +187,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             </a>
           )}
           {data.isOwner && (deployed || paused) && <TokenPauseControls token={token} />}
-          {data.isOwner && deployed && (
-            <div className="flex flex-wrap gap-2">
-              <PageAction
-                label="Request issuance"
-                onClick={() =>
-                  setForm({ kind: 'issue', owner: data.owner, token: token.uuid, company: token.companyUuid })
-                }
-              />
-              <PageAction
-                label="Raise authorised shares"
-                onClick={() =>
-                  setForm({ kind: 'raise', owner: data.owner, token: token.uuid, company: token.companyUuid })
-                }
-              />
-            </div>
-          )}
         </Section>
         <Section title="Register of members">
           <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
@@ -269,13 +243,8 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
         {data.isOwner && (
           <Section title="Authorised share requests">
             <p className="text-sm text-text-muted">
-              Raising the cap requires staff review and execution. It does not issue shares.
+              Retained original capital request history. New increases use the company workflow below.
             </p>
-            {data.submitCapital.isError && (
-              <p role="alert" className="text-sm text-error-light">
-                {getErrorMessage(data.submitCapital.error, 'The request could not be submitted. Try again.')}
-              </p>
-            )}
             <ReadResult query={data.capital} label="authorised share requests">
               {capital.length === 0 ? (
                 <p className="py-3 text-sm text-text-muted">No authorised share requests yet.</p>
@@ -292,13 +261,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                         <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
                       </p>
                       <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
-                      {request.status === 'draft' && (
-                        <PageAction
-                          label="Submit for review"
-                          onClick={() => data.submitCapital.mutate(request.uuid)}
-                          disabled={data.submitCapital.isPending}
-                        />
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -334,10 +296,5 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
       </>
     );
   };
-  return (
-    <>
-      {content()}
-      {requestForms}
-    </>
-  );
+  return content();
 }

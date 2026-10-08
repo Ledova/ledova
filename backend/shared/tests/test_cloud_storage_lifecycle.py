@@ -18,11 +18,13 @@ from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
 from companies.services.authority_requests import submit_authority_request
 from companies.tests.test_authority_requests import authority_fixture, evidence
 from documents.models import Document, DocumentType
+from shared.db import atomic, use_migrate
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
 from tokens.models import (
+    RegisterCapitalIncrease,
     RegisterCorrection,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -31,13 +33,13 @@ from tokens.models import (
     RegisterInstruction,
     RegisterOpening,
     RegisterParticularsChange,
+    RegisterPauseChange,
     RegisterTransfer,
     RegisterWalletLink,
     ShareIssuanceRequest,
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register_instructions import submit_instruction
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.instruction_fixtures import instruction_company, instruction_payload
 from tokens.tests.test_register_corrections import (
@@ -172,10 +174,14 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                         (RegisterImport, "file"),
                         (RegisterImport, "asic_file"),
                         (RegisterEvidence, "file"),
+                        (RegisterPauseChange, "file"),
+                        (RegisterCapitalIncrease, "file"),
                         (RegisterGrant, "file"),
                         (RegisterGrant, "terms_file"),
                         (RegisterGrant, "acceptance_file"),
                         (RegisterInstruction, "file"),
+                        (RegisterInstruction, "terms_file"),
+                        (RegisterInstruction, "acceptance_file"),
                         (RegisterParticularsChange, "file"),
                         (RegisterTransfer, "file"),
                         (RegisterTransfer, "instrument_file"),
@@ -193,6 +199,8 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     RegisterWalletLink,
                     RegisterImport,
                     RegisterEvidence,
+                    RegisterPauseChange,
+                    RegisterCapitalIncrease,
                     RegisterGrant,
                     RegisterInstruction,
                     RegisterParticularsChange,
@@ -203,6 +211,8 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 self.assertIn("shared.storage.sweep:tokens.RegisterImport.asic_file", connected)
                 self.assertIn("shared.storage.sweep:tokens.RegisterGrant.terms_file", connected)
                 self.assertIn("shared.storage.sweep:tokens.RegisterGrant.acceptance_file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterInstruction.terms_file", connected)
+                self.assertIn("shared.storage.sweep:tokens.RegisterInstruction.acceptance_file", connected)
                 self.assertIn("shared.storage.sweep:tokens.RegisterTransfer.instrument_file", connected)
                 self.assertIn("shared.storage.sweep:shareholders.PublicationEvent.evidence", connected)
                 self.assertNotIn("shared.storage.sweep:users.InvestorClassification.evidence_file", connected)
@@ -256,7 +266,25 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 request = ShareIssuanceRequest.objects.create(
                     token=token, recipient_address="0x" + "3c" * 20, amount=5, reason="Allotment"
                 )
-                proposal = submit_instruction(actor=owner, **instruction_payload(token, document, [request]))
+                from shared.tests.schema import migrate_to, restore_every_migration
+                from tokens.services.register_instructions import _items
+                from tokens.services.register_openings import _retain
+
+                migrate_to([("tokens", "0100_company_register_issue_instructions")])
+                try:
+                    values = instruction_payload(token, document, [request])
+                    values.pop("operation_id")
+                    values.pop("token_id")
+                    values.pop("document_id")
+                    values["items"] = _items(values["kind"], values["items"])
+                    with use_migrate(), atomic():
+                        proposal = _retain(
+                            RegisterInstruction(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
+                            document.pk,
+                            owner,
+                        )
+                finally:
+                    restore_every_migration()
                 original = objects.files[proposal.file.name]
                 document.delete()
                 orphan = storage.save("companies/interrupted-instruction.bin", ContentFile(PDF))

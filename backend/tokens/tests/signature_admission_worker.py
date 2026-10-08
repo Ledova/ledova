@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from contextlib import ExitStack, contextmanager
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
@@ -60,8 +61,13 @@ def run():
     from rest_framework.test import APIClient
 
     from shared.db import current_alias, set_principal, use_operator
-    from tokens.models import ShareToken, SwapOrder
-    from tokens.services import atomic_swap_service, pause_changes, swap_execution
+    from tokens.models import PauseChange, ShareToken, SwapOrder
+    from tokens.services import (
+        atomic_swap_service,
+        pause_changes,
+        register_pause_changes,
+        swap_execution,
+    )
 
     set_principal(incoming["user_id"])
     for alias in ("app", "operator"):
@@ -134,17 +140,33 @@ def run():
                 change = pause_changes.project(incoming["change_id"])
                 report("done", completed=change.completed_at is not None)
         elif phase == "pause-authority":
-            lock_actor = pause_changes._actor
+            _, preview = register_pause_changes.preview_pause_change_decision(
+                actor=actor,
+                pause_change_id=incoming["proposal_id"],
+                appointment=incoming["appointment_id"],
+                kind="apply",
+            )
+            lock_proposal = register_pause_changes.PAUSE_CHANGES.lock
 
             def holding_class(*args, **kwargs):
-                if kwargs.get("lock"):
-                    report("pause-class-locked")
-                    released()
-                return lock_actor(*args, **kwargs)
+                result = lock_proposal(*args, **kwargs)
+                report("pause-class-locked")
+                released()
+                return result
 
-            stack.enter_context(patch.object(pause_changes, "_actor", holding_class))
-            token = ShareToken.objects.get(pk=incoming["token_id"])
-            change = pause_changes.submit(token, actor, uuid4(), True)
+            family = replace(register_pause_changes.PAUSE_CHANGES, lock=holding_class)
+            stack.enter_context(patch.object(register_pause_changes, "PAUSE_CHANGES", family))
+            proposal = register_pause_changes.decide_pause_change(
+                actor=actor,
+                pause_change_id=incoming["proposal_id"],
+                appointment=incoming["appointment_id"],
+                kind="apply",
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+            with use_operator():
+                change = PauseChange.objects.get(pk=proposal.pk)
             report("done", status=change.status)
         else:
             raise AssertionError(phase)
