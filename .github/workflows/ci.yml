@@ -175,6 +175,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -c schema/requirements.txt
       - name: Each ordinary test id is unique and in exactly one shard
+        if: strategy.job-index == 0
         run: python ../scripts/check-ordinary-shards.py
       - name: Suite
         run: python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}
