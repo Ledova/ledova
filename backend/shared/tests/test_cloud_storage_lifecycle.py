@@ -272,8 +272,11 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                     values.pop("document_id")
                     values["items"] = _items(values["kind"], values["items"])
                     with use_migrate(), atomic():
-                        proposal = _retain(RegisterInstruction(
-                            uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values), document.pk, owner)
+                        proposal = _retain(
+                            RegisterInstruction(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
+                            document.pk,
+                            owner,
+                        )
                 finally:
                     restore_every_migration()
                 original = objects.files[proposal.file.name]
