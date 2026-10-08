@@ -340,11 +340,7 @@ function refuse(config: InternalAxiosRequestConfig, status: number, data: unknow
 function Subject() {
   const data = useShareClass(TOKEN);
   return (
-    <CompanyIssueFlow
-      key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
-      uuid={TOKEN}
-      data={data}
-    />
+    <CompanyIssueFlow key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={TOKEN} data={data} />
   );
 }
 function show() {
