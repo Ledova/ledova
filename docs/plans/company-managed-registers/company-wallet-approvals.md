@@ -2,8 +2,8 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** Second #867 increment in progress, dependent on the empty-deployment
-increment. The owning pull request records the final source, independent review,
+**Status:** Second #867 increment implemented, following company-authorised empty
+deployment. The owning pull request records the source, independent review,
 executed checks and limits. Full company issuance, capital and pause conversion
 remain later increments.
 

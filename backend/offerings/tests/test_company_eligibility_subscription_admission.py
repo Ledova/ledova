@@ -7,7 +7,6 @@ from datetime import timedelta
 from decimal import Decimal
 from threading import Event
 from time import monotonic, sleep
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
@@ -33,7 +32,7 @@ from offerings.services.subscription import (
     submit,
     withdraw,
 )
-from offerings.tests.factories import configure_operator
+from offerings.tests.factories import allotment_queue, configure_operator
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
@@ -997,7 +996,7 @@ class CompanyEligibilitySubscriptionRecoveryTest(
         self.assertEqual(instruction.status, "applied")
         self.revoke(request)
         with use_operator(), _requester_principal(self.technical.pk):
-            with patch("offerings.tasks.subscription.allot_subscription_task.defer") as deferred:
+            with allotment_queue() as deferred:
                 issuance = allot(subscription, self.technical, headroom=(10, 10))
             subscription.refresh_from_db()
             command = ShareIssuanceExecution.objects.get(request_id=issuance.pk)
@@ -1030,7 +1029,7 @@ class CompanyEligibilitySubscriptionRecoveryTest(
         self.assertEqual(instruction.status, "applied")
         self.revoke(request)
         with use_operator(), _requester_principal(self.technical.pk):
-            with patch("offerings.tasks.subscription.allot_subscription_task.defer") as deferred:
+            with allotment_queue() as deferred:
                 issuance = allot(legacy, self.technical, headroom=(10, 10))
             legacy.refresh_from_db()
             command = ShareIssuanceExecution.objects.get(request_id=issuance.pk)

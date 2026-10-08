@@ -2,8 +2,8 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** Third #867 increment in progress, dependent on the empty-deployment
-and company-wallet increments. Its pull request records the implemented source,
+**Status:** Third #867 increment implemented, following the empty-deployment
+and company-wallet increments. Its pull request records the source,
 independent review, executed checks and limits. Paid issuance, capital and pause
 conversion remain later increments.
 
