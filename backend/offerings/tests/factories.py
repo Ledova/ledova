@@ -1,5 +1,8 @@
+from contextlib import contextmanager
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth.models import Permission
@@ -9,7 +12,7 @@ from companies.services.editing import update_company
 from offerings.models import Offering, OfferingStatus, Subscription, SubscriptionStatus
 from offerings.services.subscription import create_draft
 from operators.models import Operator
-from shared.db import acting_for, use_migrate, use_operator
+from shared.db import acting_for, current_alias, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible
 from tokens.tests.instruction_fixtures import apply_instruction
@@ -26,6 +29,27 @@ BANK = {
     "payment_reference_prefix": "PAY",
     "receiving_wallet_address": "0x" + "d" * 40,
 }
+
+
+@contextmanager
+def allotment_queue():
+    from offerings.tasks import allot_subscription_task
+
+    def configured_task(name):
+        if name != allot_subscription_task.name:
+            raise AssertionError("Queue the original subscription allotment task.")
+        return allot_subscription_task
+
+    def application(*, connector):
+        if connector.alias != current_alias():
+            raise AssertionError("Queue on the current transaction's database alias.")
+        return SimpleNamespace(configure_task=configured_task)
+
+    with (
+        patch.object(allot_subscription_task, "defer") as deferred,
+        patch("tokens.services.issuance_execution.App", side_effect=application),
+    ):
+        yield deferred
 
 
 def forget_fixture_subscriptions():

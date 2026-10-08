@@ -32,6 +32,7 @@ from offerings.services.subscription import (
 )
 from offerings.tasks.subscription import allot_subscription_task
 from offerings.tests.factories import (
+    allotment_queue,
     allottable_subscription,
     configure_operator,
     draft_subscription,
@@ -41,6 +42,7 @@ from offerings.tests.factories import (
     open_offering,
     paid_subscription,
 )
+from shared.db import atomic
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import IssuanceExecutionConflict
 from tokens.models import (
@@ -56,6 +58,7 @@ from tokens.tasks import check_executing_issuance_requests
 from tokens.tests.instruction_fixtures import (
     instruction_payload,
     instruction_reviewer,
+    retained_approved_request,
     verified_authority,
 )
 from tokens.tests.issuance_fixtures import (
@@ -66,7 +69,6 @@ from tokens.tests.issuance_fixtures import (
 )
 
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 SUPPLY = "tokens.services.share_token_service.share_supply"
 SIGNER = "0x" + "e" * 40
 ROOMY = (1000000, 0)
@@ -81,7 +83,7 @@ class AllotmentTestCase(TransactionTestCase):
         chain.is_valid_address.return_value = True
         chain.to_checksum_address.side_effect = Web3.to_checksum_address
         chain.get_address_from_private_key.return_value = SIGNER
-        self.defer = patch(DEFER).start()
+        self.defer = self.enterContext(allotment_queue())
         self.supply = patch(SUPPLY, return_value=ROOMY).start()
         self.addCleanup(patch.stopall)
 
@@ -111,16 +113,17 @@ class AllotmentTestCase(TransactionTestCase):
 
     def _historical(self, **kwargs):
         subscription = paid_subscription(self.tenant, quantity=10, **kwargs)
-        request = ShareIssuanceRequest.objects.create(
-            token=self.offering.token,
-            recipient_address=subscription.wallet.address,
-            amount=10,
-            dispatch_id=None,
-            status="approved",
-            reviewed_by=self.operator_user,
-        )
-        subscription.issuance_request = request
-        subscription.save(update_fields=["issuance_request"])
+        with atomic():
+            request = ShareIssuanceRequest.objects.create(
+                token=self.offering.token,
+                recipient_address=subscription.wallet.address,
+                amount=10,
+                dispatch_id=None,
+                status="approved",
+                reviewed_by=self.operator_user,
+            )
+            subscription.issuance_request = request
+            subscription.save(update_fields=["issuance_request"])
         return subscription, request
 
     def _cap(self, offering, shares):
@@ -759,17 +762,13 @@ class SingleAllotmentHeadroomTest(AllotmentTestCase):
 
 class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
     def _pending_mint(self, amount):
-        request = ShareIssuanceRequest.objects.create(
-            token=self.offering.token,
-            recipient_address="0x" + "a" * 40,
+        return retained_approved_request(
+            self.offering.token,
+            "0x" + "a" * 40,
+            reviewer=self.operator_user,
             amount=amount,
-            submitted_by=self.operator_user,
             dispatch_id=None,
         )
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(
-            status=RequestStatus.APPROVED, reviewed_by=self.operator_user
-        )
-        return request
 
     def test_a_mint_confirming_after_the_supply_snapshot_cannot_inflate_the_chain_room(self):
         subscription = allottable_subscription(self.tenant, quantity=10)
@@ -798,13 +797,14 @@ class HeadroomSnapshotConsistencyTest(AllotmentTestCase):
     def test_a_request_created_after_the_snapshot_is_still_counted_against_the_chain_room(self):
         subscription = allottable_subscription(self.tenant, quantity=10)
         self.supply.return_value = (1000, 0)
-        read_the_row = subscription_service._locked
+        read_the_supply = subscription_service.chain_snapshot
 
-        def create_a_competing_request(row):
+        def create_a_competing_request(offering):
+            supply = read_the_supply(offering)
             self._pending_mint(995)
-            return read_the_row(row)
+            return supply
 
-        with patch.object(subscription_service, "_locked", create_a_competing_request):
+        with patch.object(subscription_service, "chain_snapshot", create_a_competing_request):
             with self.assertRaises(SubscriptionRefusedException) as raised:
                 allot(subscription, self.operator_user)
 

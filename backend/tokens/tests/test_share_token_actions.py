@@ -60,8 +60,8 @@ class ShareTokenActionTest(APITestCase):
         self.assertEqual(response.json(), {"nonFieldErrors": ["The fields company, symbol must make a unique set."]})
 
     @patch("tokens.views.share_token.stored_register")
-    @patch("tokens.views.share_token.share_token_service")
-    def test_holders_shapes_and_retired_free_address_issue(self, service_class, register):
+    @patch("tokens.services.share_token_service.create_issuance_request")
+    def test_holders_shapes_and_retired_free_address_issue(self, create_request, register):
         token = self.tenant.deployed_token
         recorded_at = datetime(2026, 9, 20, tzinfo=timezone.utc)
         register.return_value = {
@@ -81,7 +81,7 @@ class ShareTokenActionTest(APITestCase):
             format="json",
         )
         self.assertEqual(issue.status_code, 404)
-        service_class.create_issuance_request.assert_not_called()
+        create_request.assert_not_called()
 
         holders = self.client.get(f"/api/v1/tokens/{token.uuid}/holders/")
         self.assertEqual(holders.status_code, 200)
@@ -130,8 +130,7 @@ class ShareTokenActionTest(APITestCase):
         )
         register.assert_called_once_with(ledger_token)
 
-    @patch("tokens.views.share_token.share_token_service")
-    def test_detail_actions_keep_filter_params_off_the_token_lookup(self, service_class):
+    def test_detail_actions_keep_filter_params_off_the_token_lookup(self):
         token = self.tenant.deployed_token
         completed = ShareIssuance.objects.create(
             token=token, recipient_address=RECIPIENT, amount="5", status=IssuanceStatus.COMPLETED
