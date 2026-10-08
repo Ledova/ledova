@@ -45,8 +45,8 @@ retaining genuine possession proof, exact company approval and original journal
 execution. The third increment implements
 [non-paid on-chain grants](company-register-issues.md), with exact company
 instructions and a first-member LINK bootstrap. The fourth increment's
-[capital guide](company-capital-increases.md) records its implementation contract
-for exact company decisions and original cap-only execution. Paid issuance and
+[capital guide](company-capital-increases.md) describes implemented company decisions
+and original cap-only execution. Paid issuance and
 pause conversion remain later #867 increments.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.

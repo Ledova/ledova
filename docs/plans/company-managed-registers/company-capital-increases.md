@@ -2,10 +2,10 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** Fourth #867 increment under implementation, dependent on the empty
-deployment, company-wallet and non-paid grant increments. The behaviour below
-is the bounded implementation contract; its pull request must record the final
-source, independent review, actual checks and remaining limits before delivery.
+**Status:** Fourth #867 increment implements bounded company-authorised capital
+increases after the empty deployment, company-wallet and non-paid grant increments.
+[PR #948](https://github.com/Ledova/ledova/pull/948) records independent source
+review, actual checks and remaining limits.
 Paid issuance and company pause/unpause conversion remain later increments.
 
 ## Exact capital decision
