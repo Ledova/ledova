@@ -75,7 +75,7 @@ from company approval and original journal execution. The third
 [non-paid on-chain grant increment](../plans/company-managed-registers/company-register-issues.md)
 implements exact company instructions and a first-member LINK consumer.
 The fourth [capital increment](../plans/company-managed-registers/company-capital-increases.md)
-is under implementation, with exact company decisions and the existing cap-only
+implements exact company decisions through the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
 is under implementation with exact company decisions and original observation or
 transaction recovery. The sixth

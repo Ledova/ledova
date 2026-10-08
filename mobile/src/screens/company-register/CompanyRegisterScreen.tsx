@@ -145,10 +145,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
         <Text style={styles.muted}>
           Company appointees run the supported register commands above, including non-paid grants and direct transfers
           for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
-          this creates no shares and does not mirror existing holdings. Paid settlement, tokenisation of existing
-          holdings and corporate actions remain planned. Other tokenised register instructions are submitted by the
-          company owner. Staff verify and apply them. Certificates, inspection copies, publications and the company pack
-          are prepared by staff on written instruction.
+          this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
+          holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
+          increases and pause changes use separate company workflows with exact company approval. Certificates,
+          inspection copies, publications and the company pack are prepared by staff on written instruction.
         </Text>
       </Section>
     </Page>

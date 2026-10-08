@@ -7,7 +7,7 @@ import type {
 
 const digest = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const hash = (value: unknown): value is string => typeof value === 'string' && /^0x[0-9a-f]{64}$/i.test(value);
-const dated = (value: string | null | undefined) => !!value && Number.isFinite(Date.parse(value));
+const dated = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value));
 
 function coherent(record: RegisterPauseChange) {
   return (

@@ -150,7 +150,7 @@ body and connection/concurrency limits for both entrypoints, since unauthenticat
 clients and many users can each consume a bounded request. Keep the proxy cap at
 least the configured request limit if clients should receive the API error body.
 Changing file limits also requires aligning `StreamMaxLength`/`MaxFileSize` and
-the other scan limits in `backend/clamav/clamd.conf`; the stricter bound wins.
+the other scan limits in `backend/.deployment/clamd.conf`; the stricter bound wins.
 
 CI runs synthetic clean formats and EICAR through a real daemon and tests Redis
 expiry, unavailable connections, fresh processes and concurrent reservations.

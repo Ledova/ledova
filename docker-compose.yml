@@ -79,7 +79,7 @@ services:
     cpus: 2
     pids_limit: 128
     volumes:
-      - ./backend/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./backend/.deployment/clamd.conf:/etc/clamav/clamd.conf:ro
       - clamav_data:/var/lib/clamav
     healthcheck:
       test: ["CMD", "clamdscan", "--ping=1", "--config-file=/etc/clamav/clamd.conf"]

@@ -548,6 +548,13 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
                 status="deployed",
                 contract_address="0x" + "2" * 40,
             )
+            retained = CapitalIncreaseRequest.objects.create(
+                token=token,
+                additional_shares=100,
+                new_authorized_total=1100,
+                purpose="Owner",
+                board_resolution_reference="OWNER",
+            )
             foreign = CapitalIncreaseRequest.objects.create(
                 token=foreign_token,
                 additional_shares=100,
@@ -555,6 +562,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
                 purpose="Foreign",
                 board_resolution_reference="FOREIGN",
             )
+            retained_values = list(CapitalIncreaseRequest.objects.order_by("pk").values())
         revoke_company_appointment(requester=self.owner, appointment_id=initial.pk)
         endpoint = "/api/v1/tokens/capital-increases/"
         payload = {
@@ -565,13 +573,13 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             "boardResolutionReference": "OWNER",
         }
         created = self.client.post(endpoint, payload, format="json")
-        self.assertEqual(created.status_code, 201, created.content)
-        request_id = created.json()["uuid"]
+        self.assertEqual(created.status_code, 405, created.content)
+        request_id = str(retained.pk)
         with use_migrate():
             ShareToken.objects.filter(pk=token.pk).update(status="paused")
         self.assertEqual([row["uuid"] for row in self.client.get(endpoint).json()["results"]], [request_id])
         self.assertEqual(self.client.post(f"{endpoint}{foreign.pk}/submit/").status_code, 404)
-        self.assertEqual(self.client.post(f"{endpoint}{request_id}/submit/").status_code, 200)
+        self.assertEqual(self.client.post(f"{endpoint}{request_id}/submit/").status_code, 404)
         with self.role(self.owner, "app"):
             self.assertEqual(
                 [str(value) for value in CapitalIncreaseRequest.objects.values_list("pk", flat=True)], [request_id]
@@ -581,7 +589,10 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             self.assertFalse(CapitalIncreaseRequest.objects.exists())
         self.client.force_authenticate(self.other)
         self.assertEqual(self.client.post(f"{endpoint}{request_id}/submit/").status_code, 404)
-        self.assertEqual(self.client.post(endpoint, payload, format="json").status_code, 404)
+        self.assertEqual(self.client.post(endpoint, payload, format="json").status_code, 405)
+        self.assertEqual([row["uuid"] for row in self.client.get(endpoint).json()["results"]], [str(foreign.pk)])
+        with use_migrate():
+            self.assertEqual(list(CapitalIncreaseRequest.objects.order_by("pk").values()), retained_values)
 
     def test_share_class_creation_rechecks_current_owner_and_actor_after_company_lock_wait(self):
         for change in ("owner", "active"):
@@ -657,7 +668,7 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
         self.assertEqual(self.client.get(f"{endpoint}{proposal.pk}/").status_code, 404)
         self.assertEqual(self.client.get(f"{endpoint}{proposal.pk}/file/").status_code, 404)
 
-    def test_owner_domain_effects_recheck_owner_and_actor_after_waiting_for_company(self):
+    def test_offering_edits_recheck_owner_and_actor_after_waiting_for_company(self):
         self.admit()
         document = self.upload()
         offering = self.retained_offering(document, status="draft")
@@ -665,60 +676,47 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             ShareToken.objects.filter(pk=offering.token_id).update(
                 status="deployed", contract_address="0x" + "8" * 40, total_supply="1000"
             )
-        for operation in ("offering", "capital"):
-            for change in ("owner", "active"):
-                with self.subTest(operation=operation, change=change):
-                    with use_migrate():
-                        Company.objects.filter(pk=self.company.pk).update(owner=self.owner)
-                        get_user_model().objects.filter(pk=self.owner.pk).update(is_active=True)
-                    started, worker_pid = Event(), []
+        for change in ("owner", "active"):
+            with self.subTest(change=change):
+                with use_migrate():
+                    Company.objects.filter(pk=self.company.pk).update(owner=self.owner)
+                    get_user_model().objects.filter(pk=self.owner.pk).update(is_active=True)
+                started, worker_pid = Event(), []
 
-                    def act():
+                def act():
+                    connections.close_all()
+                    client = APIClient()
+                    client.force_authenticate(self.owner)
+                    try:
+                        with use_operator(), connections[current_alias()].cursor() as cursor:
+                            cursor.execute("SELECT pg_backend_pid()")
+                            worker_pid.append(cursor.fetchone()[0])
+                        started.set()
+                        return client.patch(
+                            f"/api/v1/offerings/{offering.pk}/",
+                            {"summary": "Forbidden stale owner"},
+                            format="json",
+                        ).status_code
+                    finally:
                         connections.close_all()
-                        client = APIClient()
-                        client.force_authenticate(self.owner)
-                        try:
-                            with use_operator(), connections[current_alias()].cursor() as cursor:
-                                cursor.execute("SELECT pg_backend_pid()")
-                                worker_pid.append(cursor.fetchone()[0])
-                            started.set()
-                            if operation == "offering":
-                                return client.patch(
-                                    f"/api/v1/offerings/{offering.pk}/",
-                                    {"summary": "Forbidden stale owner"},
-                                    format="json",
-                                ).status_code
-                            return client.post(
-                                "/api/v1/tokens/capital-increases/",
-                                {
-                                    "token": str(offering.token_id),
-                                    "additionalShares": 100,
-                                    "newAuthorizedTotal": 1100,
-                                    "purpose": "Stale owner",
-                                    "boardResolutionReference": "STALE",
-                                },
-                                format="json",
-                            ).status_code
-                        finally:
-                            connections.close_all()
 
-                    with ThreadPoolExecutor(max_workers=1) as pool:
-                        with use_migrate(), atomic():
-                            Company.objects.select_for_update().get(pk=self.company.pk)
-                            with connections[current_alias()].cursor() as cursor:
-                                cursor.execute("SELECT pg_backend_pid()")
-                                blocker = cursor.fetchone()[0]
-                            future = pool.submit(act)
-                            self.assertTrue(started.wait(5))
-                            self.wait_for_database_lock(worker_pid[0], blocker)
-                            if change == "owner":
-                                Company.objects.filter(pk=self.company.pk).update(owner=self.other)
-                            else:
-                                get_user_model().objects.filter(pk=self.owner.pk).update(is_active=False)
-                        self.assertEqual(future.result(timeout=10), 404)
-                    with use_operator():
-                        self.assertEqual(Offering.objects.get(pk=offering.pk).summary, "")
-                        self.assertFalse(CapitalIncreaseRequest.objects.exists())
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    with use_migrate(), atomic():
+                        Company.objects.select_for_update().get(pk=self.company.pk)
+                        with connections[current_alias()].cursor() as cursor:
+                            cursor.execute("SELECT pg_backend_pid()")
+                            blocker = cursor.fetchone()[0]
+                        future = pool.submit(act)
+                        self.assertTrue(started.wait(5))
+                        self.wait_for_database_lock(worker_pid[0], blocker)
+                        if change == "owner":
+                            Company.objects.filter(pk=self.company.pk).update(owner=self.other)
+                        else:
+                            get_user_model().objects.filter(pk=self.owner.pk).update(is_active=False)
+                    self.assertEqual(future.result(timeout=10), 404)
+                with use_operator():
+                    self.assertEqual(Offering.objects.get(pk=offering.pk).summary, "")
+                    self.assertFalse(CapitalIncreaseRequest.objects.exists())
 
     def test_personal_administrator_reads_class_metadata_without_owner_action_authority(self):
         self.invite(["admin"])

@@ -10,7 +10,7 @@ import { requestShares, wholeShares } from './share-quantities';
 
 const digest = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 const hash = (value: unknown): value is string => typeof value === 'string' && /^0x[0-9a-f]{64}$/i.test(value);
-const dated = (value: string | null | undefined) => !!value && Number.isFinite(Date.parse(value));
+const dated = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value));
 const decimal = (value: unknown) => typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value);
 
 export function isRegisterPaidIssueSource(source: RegisterPaidIssueSource, company: string, token: string) {
