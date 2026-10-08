@@ -118,8 +118,10 @@ The six shards are `tokens-1`, `tokens-2`, `tokens-3`, `shared-wallets`,
 `companies-users` and `others`. The `companies-users` shard selects `companies.*`
 and `users.*`; `others` covers the remaining apps.
 Each job has its own PostgreSQL 16, and runs the ordinary command above with
-`-k` and each of that shard's test name patterns appended. Before the suite, each
-runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate). It refuses a
+`-k` and each of that shard's test name patterns appended. Before its suite, the
+first matrix job runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate)
+once for the whole matrix. A gate failure fails that job and the Django verdict.
+All six shard suites keep their existing selections. The gate refuses a
 test id defined by more than one test class, and holds the shards' test ids to a
 partition of the unlabelled suite's, so on the same commit their `Ran N tests`
 counts add up to the unsharded run's. Locally, run the unsharded command. To

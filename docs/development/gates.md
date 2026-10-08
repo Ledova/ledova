@@ -214,9 +214,11 @@ CI splits the ordinary suite across parallel jobs, one per shard named in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each shard lists test name patterns, and its job passes each to `manage.py test`
 after `-k`, so it runs the tests whose ids match one of them.
-`scripts/check-ordinary-shards.py` runs in every shard before the suite. Through the same
-settings and test runner, it discovers the suite once with no patterns and once
-with each shard's patterns, each in a fresh interpreter as each CI job is. It
+`scripts/check-ordinary-shards.py` runs once in the first matrix job before its
+suite. A gate failure fails that job and the Django verdict; all shard suites
+keep their existing selections. Through the same settings and test runner, the
+gate discovers the suite once with no patterns and once with each shard's
+patterns, each in a fresh interpreter. It
 counts each test id in every discovery, and refuses: a shard that does not list
 its patterns, each a string with no whitespace; a pattern that selects no test,
 such as one misspelt or left for a deleted app; a test id the unlabelled suite

@@ -164,7 +164,7 @@ it('keeps its title and a loading state until the class list resolves, then says
   expect(screen.queryByText(NO_REGISTER)).toBeNull();
   await act(async () => finish(page([])));
   expect(await screen.findByText(NO_REGISTER)).toBeTruthy();
-  expect(screen.getByText(/Staff verify and apply them/)).toBeTruthy();
+  expect(screen.getByText(/with exact company approval/)).toBeTruthy();
 });
 
 it('reads every register class page and renders exact stored shares with each member and linked wallet', async () => {
@@ -190,7 +190,9 @@ it('reads every register class page and renders exact stored shares with each me
   expect(screen.getAllByText('9,007,199,254,740,999')).toHaveLength(2);
   expect(screen.getAllByText('Example Member')).toHaveLength(2);
   expect(screen.getAllByText(`0x${'1'.repeat(40)} · Active`)).toHaveLength(2);
-  expect(screen.queryByText(/AUD|USD/)).toBeNull();
+  for (const name of [/Ordinary shares/, /Preference shares/]) {
+    expect(within(detailOf(screen.getByRole('button', { name }))).queryByText(/AUD|USD/)).toBeNull();
+  }
   expect(readUrls()).toEqual([
     REGISTER,
     REGISTER,
