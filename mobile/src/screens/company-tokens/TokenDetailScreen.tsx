@@ -12,6 +12,7 @@ import { TokenPauseControls } from './TokenPauseControls';
 import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
+import { CompanyPauseFlow } from './CompanyPauseFlow';
 
 type Props = { route: { params: { uuid: string; name?: string } }; navigation?: unknown };
 
@@ -245,6 +246,11 @@ function ShareClass({ uuid }: { uuid: string }) {
         />
         <CompanyCapitalFlow
           key={`company-capital/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyPauseFlow
+          key={`company-pause/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
           uuid={uuid}
           data={data}
         />

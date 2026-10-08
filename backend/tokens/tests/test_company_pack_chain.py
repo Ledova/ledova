@@ -37,7 +37,6 @@ from tokens.services import (
     capital_execution,
     deployment,
     issuance_execution,
-    pause_changes,
     pause_recovery,
 )
 from tokens.services.company_pack import _json, produce_company_pack
@@ -47,6 +46,11 @@ from tokens.services.register_capital_increases import (
     preview_capital_increase_decision,
 )
 from tokens.services.register_evidence import retain_register_evidence
+from tokens.services.register_pause_changes import (
+    decide_pause_change,
+    prepare_pause_change,
+    preview_pause_change_decision,
+)
 from tokens.tests import capital_fixtures
 from tokens.tests.company_wallet_chain_fixtures import install_company_wallet_chain
 from tokens.tests.deployment_fixtures import (
@@ -211,12 +215,45 @@ def listed(operation, purpose, record):
     }
 
 
-def paused(token, owner, value, *, confirmed=True):
+def paused(token, owner, appointment, value, *, confirmed=True):
     node = PauseNode(token.contract_address)
     node.paused, node.confirmed = not value, confirmed
     with patch("tokens.services.pause_recovery.get_base_chain_client", return_value=node.client), use_operator():
-        change = pause_changes.submit(ShareToken.objects.get(pk=token.pk), owner, uuid4(), value)
-        return pause_recovery.recover(change.pk)
+        current = ShareToken.objects.select_related("company").get(pk=token.pk)
+        evidence, _ = retain_register_evidence(
+            actor=owner,
+            company_id=current.company_id,
+            appointment=appointment.pk,
+            kind=RegisterEvidenceKind.AUTHORITY,
+            idempotency_key=uuid4(),
+            name="company-pause-instruction.pdf",
+            raw=pdf("Company-provided pause instruction", [current.company.name, str(value)]),
+            mime_type="application/pdf",
+        )
+        proposal = prepare_pause_change(
+            actor=owner,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            token=current.pk,
+            paused=value,
+            reason="Synthetic company transfer restriction",
+            authority_reference="PACK-COMPANY-PAUSE",
+            authority_evidence=evidence.pk,
+        )
+        for kind in ("approve", "apply"):
+            _, preview = preview_pause_change_decision(
+                actor=owner, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
+            )
+            proposal = decide_pause_change(
+                actor=owner,
+                pause_change_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+        return pause_recovery.recover(proposal.pk)
 
 
 def raised(request, owner, appointment, *, reverted_first):
@@ -300,8 +337,8 @@ class ChainFixtures(SettledTransferFixtures):
             self.company = Company.objects.get(pk=self.token.company_id)
         self.capital = raised(self.fixture.seller.capital_increase, self.owner, self.administrator, reverted_first=True)
         self.second = self.deployed(self.fixture.seller.token)
-        self.pause = paused(self.token, self.owner, True)
-        self.unpause = paused(self.token, self.owner, False, confirmed=False)
+        self.pause = paused(self.token, self.owner, self.administrator, True)
+        self.unpause = paused(self.token, self.owner, self.administrator, False, confirmed=False)
         with use_operator():
             self.executed = ShareIssuanceExecution.objects.select_related("operation", "transaction").get(
                 pk=executed.pk
@@ -665,7 +702,7 @@ class CompanyPackChainTest(ChainFixtures, TransactionTestCase):
             other.company_capital.capital_decide(
                 other.capital_increase.company_instruction, "reject", reason="Use the pack request"
             )
-        other_pause = paused(other.deployed_token, other.user, True)
+        other_pause = paused(other.deployed_token, actor, other.company_capital.initial, True)
         other_capital = raised(other.capital_increase, actor, other.company_capital.initial, reverted_first=False)
         ours = chain_records(
             self.operations(),
@@ -960,5 +997,138 @@ class SyntheticCompanyCapitalChainTest(CompanyWalletCases, APITransactionTestCas
             self.assertEqual(SignedAttempt.objects.filter(operation=execution.operation).count(), 1)
             self.assertEqual(bytes(SignedAttempt.objects.get(pk=attempt.pk).raw_transaction), raw)
         self.assertEqual(self.contract.functions.authorizedShares().call(), 1250)
+        self.assertEqual(self.contract.functions.totalSupply().call(), 0)
+        self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce + 1)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class SyntheticCompanyPauseChainTest(CompanyWalletCases, APITransactionTestCase):
+    def setUp(self):
+        reset_chain_client()
+        self.chain = get_base_chain_client()
+        isolate_chain(self, self.chain.w3)
+        super().setUp()
+        install_company_wallet_chain(self)
+
+    def test_pause_uses_company_evidence_and_original_captured_job_for_one_real_pause_event(self):
+        from types import SimpleNamespace
+
+        from shared.seeds.synthetic.chain.classes import pause
+        from shared.seeds.synthetic.chain.deferred import captured
+        from tokens.models import RegisterPauseChange, RegisterPauseChangeDecision
+        from tokens.tasks import recover_pause_change
+        from wallets.models import Holding
+
+        self.assertFalse(self.owner.is_staff or self.owner.is_superuser)
+        item = SimpleNamespace(key="company/ORD", company="company", symbol=self.token.symbol)
+        records = SimpleNamespace(classes={item.key: self.token}, owner=lambda key: self.owner)
+        with use_operator():
+            before_holdings = list(Holding.objects.order_by("pk").values())
+            before_entries = list(RegisterEntry.objects.order_by("pk").values())
+        nonce = self.chain.w3.eth.get_transaction_count(self.signer, "pending")
+        with captured() as deferrals:
+            records.run = lambda: deferrals.run({recover_pause_change.name: recover_pause_change})
+            token = pause(item, records)
+        with use_operator():
+            proposal = RegisterPauseChange.objects.get(token=token)
+            change = PauseChange.objects.select_related("operation__current_attempt").get(source_pause=proposal)
+            attempt = change.operation.current_attempt
+            mined = self.chain.w3.eth.get_transaction_receipt(attempt.tx_hash)
+            events = self.contract.events.Paused().process_receipt(mined)
+            self.assertEqual([event["args"]["account"].lower() for event in events], [self.signer.lower()])
+            self.assertEqual(
+                (token.status, proposal.status, change.status, change.operation.status),
+                ("paused", "applied", "confirmed", "confirmed"),
+            )
+            self.assertEqual((change.authority, change.initiated_by_id), ("company", self.owner.pk))
+            self.assertEqual(proposal.authority_evidence.uploaded_by_id, self.owner.pk)
+            self.assertEqual(proposal.intent, change.intent)
+            decisions = RegisterPauseChangeDecision.objects.filter(pause_change=proposal)
+            self.assertEqual(set(decisions.values_list("kind", flat=True)), {"approve", "apply"})
+            self.assertEqual(set(decisions.values_list("decided_by_id", flat=True)), {self.owner.pk})
+            self.assertEqual((mined["status"], mined["blockNumber"]), (1, change.operation.block_number))
+            self.assertEqual(attempt.nonce, nonce)
+            self.assertIsNotNone(change.completed_at)
+            self.assertEqual(list(Holding.objects.order_by("pk").values()), before_holdings)
+            self.assertEqual(list(RegisterEntry.objects.order_by("pk").values()), before_entries)
+            self.assertFalse(ShareIssuance.objects.filter(token=token).exists())
+            raw = bytes(attempt.raw_transaction)
+            with patch.object(BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Original receipt")):
+                self.assertEqual(pause_recovery.recover(change.pk).operation_id, change.operation_id)
+            self.assertEqual(SignedAttempt.objects.filter(operation=change.operation).count(), 1)
+            self.assertEqual(bytes(SignedAttempt.objects.get(pk=attempt.pk).raw_transaction), raw)
+        self.assertTrue(self.contract.functions.paused().call())
+        self.assertEqual(self.contract.functions.authorizedShares().call(), 1000)
+        self.assertEqual(self.contract.functions.totalSupply().call(), 0)
+        self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce + 1)
+
+    def test_original_real_receipt_projects_after_consumed_company_appointments_are_revoked(self):
+        from companies.services.team import revoke_company_appointment
+
+        approver, _, approving = self.appointee("real-pause-approver", ["approve"])
+        applier, _, applying = self.appointee("real-pause-applier", ["apply"])
+        evidence, _ = retain_register_evidence(
+            actor=self.owner,
+            company_id=self.company.pk,
+            appointment=self.initial.pk,
+            kind=RegisterEvidenceKind.AUTHORITY,
+            idempotency_key=uuid4(),
+            name="original-real-pause-authority.pdf",
+            raw=pdf("Company-provided pause instruction", [self.company.name, "REAL-PAUSE-RECOVERY"]),
+            mime_type="application/pdf",
+        )
+        proposal = prepare_pause_change(
+            actor=self.owner,
+            operation_id=uuid4(),
+            appointment=self.initial.pk,
+            token=self.token.pk,
+            paused=True,
+            reason="Retain the company's original pause receipt through authority loss",
+            authority_reference="REAL-PAUSE-RECOVERY",
+            authority_evidence=evidence.pk,
+        )
+        for actor, appointment, kind in ((approver, approving, "approve"), (applier, applying, "apply")):
+            _, preview = preview_pause_change_decision(
+                actor=actor, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
+            )
+            proposal = decide_pause_change(
+                actor=actor,
+                pause_change_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
+        nonce = self.chain.w3.eth.get_transaction_count(self.signer, "pending")
+        with use_operator(), patch(
+            "tokens.services.pause_changes.project", side_effect=RuntimeError("Projection lost")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Projection lost"):
+                pause_recovery.recover(proposal.pk)
+        with use_operator():
+            change = PauseChange.objects.select_related("operation__current_attempt").get(pk=proposal.pk)
+            attempt = change.operation.current_attempt
+            original = bytes(attempt.raw_transaction), attempt.tx_hash, attempt.nonce
+            self.assertEqual((change.status, change.completed_at), ("confirmed", None))
+            self.assertEqual((change.initiated_by_id, attempt.nonce), (applier.pk, nonce))
+            mined = self.chain.w3.eth.get_transaction_receipt(attempt.tx_hash)
+            self.assertEqual(mined["status"], 1)
+        revoke_company_appointment(requester=self.owner, appointment_id=approving.pk)
+        revoke_company_appointment(requester=self.owner, appointment_id=applying.pk)
+        with use_operator(), patch.object(
+            BaseChainClient, "send_raw_transaction", side_effect=AssertionError("Original receipt requires no resend")
+        ):
+            recovered = pause_recovery.recover(proposal.pk)
+            self.assertEqual(recovered.status, "confirmed")
+            self.assertIsNotNone(recovered.completed_at)
+            again = SignedAttempt.objects.get(pk=attempt.pk)
+            self.assertEqual((bytes(again.raw_transaction), again.tx_hash, again.nonce), original)
+            self.assertEqual(SignedAttempt.objects.filter(operation=change.operation).count(), 1)
+            self.token.refresh_from_db()
+            self.assertEqual(self.token.status, "paused")
+        self.assertTrue(self.contract.functions.paused().call())
+        self.assertEqual(self.contract.functions.authorizedShares().call(), 1000)
         self.assertEqual(self.contract.functions.totalSupply().call(), 0)
         self.assertEqual(self.chain.w3.eth.get_transaction_count(self.signer, "pending"), nonce + 1)

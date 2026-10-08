@@ -90,7 +90,7 @@ const capital = {
 const page = (rows: unknown[], next: string | null = null) => ({ data: { results: rows, count: rows.length, next } });
 let client: QueryClient;
 let read: (url: string, number: number) => Promise<unknown>;
-let classRecord: typeof token;
+let classRecord: typeof token & { chain?: string; contractAddress?: string };
 let deployments: RegisterDeployment[];
 let appointmentRows: OwnCompanyAppointment[];
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -105,7 +105,12 @@ function screen() {
 }
 function defaultRead(url: string, number: number): Promise<unknown> {
   if (url === URLS.REGISTER_DEPLOYMENTS) return Promise.resolve(page(deployments));
-  if (url === URLS.REGISTER_CAPITAL_INCREASES || url === URLS.REGISTER_ISSUES || url === URLS.REGISTER_LINKS)
+  if (
+    url === URLS.REGISTER_PAUSE_CHANGES ||
+    url === URLS.REGISTER_CAPITAL_INCREASES ||
+    url === URLS.REGISTER_ISSUES ||
+    url === URLS.REGISTER_LINKS
+  )
     return Promise.resolve(page([]));
   if (url === URLS.REGISTER_MEMBERS(uuid)) return Promise.resolve({ data: { members: [] } });
   if (
@@ -654,5 +659,24 @@ it.each([
   await view.findByText(label);
   expect(view.queryByText('Execution held')).toBeNull();
   expect(view.queryByText('Confirmed and projected')).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+});
+it('mounts company pause preparation for an appointed nonowner on a deployed whole-share class without issuer histories', async () => {
+  mockCompanyRole = 'investor';
+  classRecord = {
+    ...token,
+    status: 'deployed',
+    statusDisplay: 'Deployed',
+    isOwner: false,
+    chain: 'base',
+    decimals: 0,
+    contractAddress: `0x${'2'.repeat(40)}`,
+  };
+  appointmentRows = [appointment];
+  const view = await render(screen(), { wrapper });
+  await view.findByRole('button', { name: 'Prepare pause change' });
+  for (const url of [URLS.ISSUANCES(uuid), URLS.ISSUANCE_REQUESTS, URLS.CAPITAL_INCREASES])
+    expect(get.mock.calls.map(([path]) => path)).not.toContain(url);
+  expect(view.queryByText('Retained issuer pause requests')).toBeNull();
   expect(post).not.toHaveBeenCalled();
 });

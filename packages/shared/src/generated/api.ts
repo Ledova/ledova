@@ -2479,6 +2479,86 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-pause-changes/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_pause_changes_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_pause_changes_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-pause-changes/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_pause_changes_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-pause-changes/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_pause_changes_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-pause-changes/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_pause_changes_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-pause-changes/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_pause_changes_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-reconciliations/': {
     parameters: {
       query?: never;
@@ -5011,6 +5091,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterParticularsChange'][];
     };
+    PaginatedRegisterPauseChangeList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterPauseChange'][];
+    };
     PaginatedRegisterReconciliationList: {
       count: number;
       next?: string | null;
@@ -6301,6 +6387,102 @@ export interface ApiComponents {
       sourceGrant: string | null;
       sourceImport: string | null;
       sourceTransfer: string | null;
+    };
+    RegisterPauseChange: {
+      approvalDecision: string | null;
+      authorityEvidence: string;
+      authorityReference: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterPauseChangeDecision'][];
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      execution: ApiComponents['schemas']['RegisterPauseChangeExecution'] | null;
+      executionUnmetRequirements: string[];
+      intentDigest: string;
+      operationId: string;
+      paused: boolean;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      reason: string;
+      rejectionReason: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      snapshot: ApiComponents['schemas']['RegisterPauseChangeSnapshot'];
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterPauseChangeCreateRequest: {
+      appointment: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      operationId: string;
+      paused: boolean;
+      reason: string;
+      token: string;
+    };
+    RegisterPauseChangeDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterPauseChangeDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterPauseChangeDecisionPreview: {
+      approvalDecision: string | null;
+      authorityReference: string;
+      canDecide: boolean;
+      intentDigest: string;
+      paused: boolean;
+      previewDigest: string;
+      reason: string;
+      snapshot: ApiComponents['schemas']['RegisterPauseChangeSnapshot'];
+      unmetRequirements: string[];
+    };
+    RegisterPauseChangeDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterPauseChangeExecution: {
+      blockHash: string | null;
+      blockNumber: number | null;
+      claimId: string | null;
+      completedAt: string | null;
+      gasUsed: number | null;
+      observation: ApiComponents['schemas']['RegisterPauseObservation'] | null;
+      operationId: string | null;
+      operationStatus: string | null;
+      paused: boolean;
+      status: string;
+      submissionId: string;
+      txHash: string | null;
+    };
+    RegisterPauseChangeSnapshot: {
+      company: ApiComponents['schemas']['RegisterDeploymentCompanySnapshot'];
+      token: ApiComponents['schemas']['RegisterCapitalIncreaseTokenSnapshot'];
+      transaction: ApiComponents['schemas']['RegisterDeploymentTransactionSnapshot'];
+    };
+    RegisterPauseObservation: {
+      blockHash: string;
+      blockNumber: number;
+      observedAt: string;
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -11854,6 +12036,152 @@ export interface ApiOperations {
     };
   };
   api_v1_tokens_register_particulars_changes_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterPauseChangeList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterPauseChangeCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPauseChangeCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterPauseChangeCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPauseChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPauseChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterPauseChangeDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPauseChangeDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterPauseChangeDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPauseChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterPauseChangeDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPauseChangeDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterPauseChangeDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPauseChangeDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_pause_changes_file_retrieve: {
     parameters: {
       query?: never;
       header?: never;

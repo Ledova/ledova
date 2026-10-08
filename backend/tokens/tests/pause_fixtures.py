@@ -1,5 +1,4 @@
 from unittest.mock import Mock, patch
-from uuid import uuid4
 
 from web3 import Web3
 
@@ -12,7 +11,7 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from shared.tests.tenants import make_tenant
-from tokens.services import pause_changes
+from tokens.models import PauseChange
 
 
 class PauseNode:
@@ -59,12 +58,49 @@ class PauseNode:
         return tx_hash
 
 
-def install_pause(test):
-    test.tenant = make_tenant("pause-owner")
-    test.token = test.tenant.deployed_token
-    admitted_signer()
-    test.node = PauseNode(test.token.contract_address)
-    patcher = patch("tokens.services.pause_recovery.get_base_chain_client", return_value=test.node.client)
-    patcher.start()
-    test.addCleanup(patcher.stop)
-    test.change = pause_changes.submit(test.token, test.tenant.user, uuid4(), True)
+def install_pause(test, *, legacy=False, signed=False, observed=False):
+    from types import SimpleNamespace
+
+    from blockchain.models import SigningAccount
+    from shared.db import use_operator
+
+    if legacy:
+        from tokens.tests.retained_pause_fixtures import retain_pause_change
+
+        test.tenant = make_tenant("pause-owner")
+        test.token = test.tenant.deployed_token
+        admitted_signer()
+        test.change = retain_pause_change(test.token, test.tenant.user, signed=signed, observed=observed)
+        test.node = PauseNode(test.token.contract_address)
+        patcher = patch("tokens.services.pause_recovery.get_base_chain_client", return_value=test.node.client)
+        patcher.start()
+        test.addCleanup(patcher.stop)
+    else:
+        from rest_framework.test import APIClient, APITransactionTestCase
+
+        from tokens.tests.company_pause_fixtures import CompanyPauseCases
+
+        class Fixture(CompanyPauseCases, APITransactionTestCase):
+            pass
+
+        fixture = Fixture()
+        fixture.client = APIClient()
+        test.addCleanup(fixture.doCleanups)
+        for target in (
+            "shared.uploads.scan_upload",
+            "documents.services.extraction.scan_upload",
+            "shared.upload_limits.reserve_request",
+            "shared.upload_limits.reserve_bytes",
+        ):
+            patcher = patch(target)
+            patcher.start()
+            fixture.addCleanup(patcher.stop)
+        fixture.setUp()
+        test.company_pause = fixture
+        test.token, test.node = fixture.token, fixture.node
+        test.tenant = SimpleNamespace(user=fixture.owner, company=fixture.company, deployed_token=fixture.token)
+        proposal = fixture.applied_pause()
+        with use_operator():
+            test.change = PauseChange.objects.get(pk=proposal.pk)
+    with use_operator():
+        test.initial_nonce = SigningAccount.objects.get().next_nonce

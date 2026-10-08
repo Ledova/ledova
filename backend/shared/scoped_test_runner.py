@@ -74,6 +74,8 @@ SCOPED_TEST_LABELS = (
     "tokens.tests.test_register_deployments.ScopedRegisterDeploymentsTest",
     "tokens.tests.test_register_issues.ScopedRegisterIssuesTest",
     "tokens.tests.test_issuer_sees_its_issuance_requests.ScopedCompanyIssueRequestHistoryTest",
+    "tokens.tests.test_register_pause_changes.ScopedRegisterPauseChangesTest",
+    "shared.tests.test_cross_tenant_routes.ScopedCompanyPauseRouteMatrixTest",
     "tokens.tests.test_register_capital_increases.ScopedRegisterCapitalIncreasesTest",
     "tokens.tests.test_register_deployment_migration.ScopedRegisterDeploymentMigrationTest",
     "tokens.tests.test_register_deployment_issuance_guards.ScopedRegisterDeploymentIssuanceGuardTest",

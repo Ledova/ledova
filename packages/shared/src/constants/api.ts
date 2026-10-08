@@ -154,6 +154,12 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_CAPITAL_INCREASE_DECIDE: (uuid: string) =>
     `/api/v1/tokens/register-capital-increases/${uuid}/decide/` as const,
   REGISTER_CAPITAL_INCREASE_FILE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/file/` as const,
+  REGISTER_PAUSE_CHANGES: '/api/v1/tokens/register-pause-changes/',
+  REGISTER_PAUSE_CHANGE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/` as const,
+  REGISTER_PAUSE_CHANGE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/register-pause-changes/${uuid}/decision-preview/` as const,
+  REGISTER_PAUSE_CHANGE_DECIDE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/decide/` as const,
+  REGISTER_PAUSE_CHANGE_FILE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/file/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
   ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
 } as const;

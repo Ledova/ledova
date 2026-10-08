@@ -46,8 +46,10 @@ execution. The third increment implements
 [non-paid on-chain grants](company-register-issues.md), with exact company
 instructions and a first-member LINK bootstrap. The fourth increment's
 [capital guide](company-capital-increases.md) describes implemented company decisions
-and original cap-only execution. Paid issuance and
-pause conversion remain later #867 increments.
+and original cap-only execution. The fifth increment's
+[pause/unpause guide](company-pause-changes.md) describes implemented company decisions,
+genuine observations and original transaction recovery.
+Paid issuance remains a later #867 increment.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and

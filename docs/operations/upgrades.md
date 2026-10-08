@@ -369,8 +369,9 @@ import-origin registers still cannot acquire fresh chain issue authority.
 Deploy the backend, workers and both clients together. The new clients use
 `/api/v1/tokens/register-issues/` and the existing LINK family for an exact nominated
 wallet before a first mint. An older backend cannot serve this family; an older
-client's direct owner issue POST is retired by the new backend. Paid issuance and
-pause remain separate later conversions; capital has its own coordinated upgrade below.
+client's direct owner issue POST is retired by the new backend. Paid issuance
+remains a later conversion; capital and pause have their own coordinated upgrades
+below.
 
 Reversal of `0101` refuses retained company preparations, decisions or nonnull
 execution sources, including rejected or merely prepared work. Empty reversal
@@ -395,8 +396,8 @@ Release backend, workers and both clients together. New clients use the six-oper
 POSTs are retired; their private history GET remains. The technical original retry
 and recovery journal stays separate from the company's human approval/application.
 An older backend cannot serve the family, and an older client cannot use its retired
-fresh submission path on the new backend. Paid and pause workflows retain their
-existing guards until their own increments.
+fresh submission path on the new backend. Paid issuance retains its existing
+guards until its own increment; pause has its coordinated upgrade below.
 
 Both `0103` and `0102` reversal refuse any retained company preparation, decision
 or nonnull original execution source, including rejected and never-applied work.
@@ -405,6 +406,29 @@ dropping empty new records and their association. Preserve database and private
 storage together; do not delete records to make reversal succeed. Actual migration,
 role/catalogue, source/deferred, reversal, original recovery and finality checks
 belong to the pull request. These instructions authorise no live migration.
+
+### Company pause and unpause
+
+`tokens/0104_company_register_pause_changes` adds immutable company proposals,
+decisions and nullable original sources to the retained pause journal. It
+backfills no approval, actor, evidence or signed transaction. `0105` binds fresh
+admission, application, new signatures and default-deferred effects to the exact
+company source. Both guards refuse reversal with any retained company proposal,
+decision or source, including rejected or never-applied records. Only empty
+reversal restores the original predecessor definitions before dropping empty
+new records and their association; preserve database and private storage together.
+
+Release backend, workers and both clients together. New clients use
+`/api/v1/tokens/register-pause-changes/`; old clients cannot create fresh issuer
+work on the new backend. Exact retained issuer-row replay/GET and five-field
+reminders keep their original identity and direction. Company reads use current
+appointments, independently of owner-only legacy history. Original signed
+recovery and scoped issuer projection remain, with no fallback or invented
+company authority. The [pause guide](../plans/company-managed-registers/company-pause-changes.md)
+records observation, receipt, temporary hold and unsigned retirement boundaries.
+Final source review, fresh migration/roles/catalogue, authority/deferred, history,
+process and isolated real-chain evidence belongs in the pull request. These
+instructions authorise no live migration.
 
 As each remaining phase lands, add its actual migration identifiers, coordinated
 release order, rollback limits and verification commands here. These notes do not

@@ -252,7 +252,8 @@ balance the node would not set included, says to start over. It adds:
   every health check above passes.
 - Share classes: Demo Robotics' ordinary and seed preference shares, Wattlefield's
   and Coralgum's ordinary shares and Coralgum's convertible preference shares,
-  deployed with their share assets, the last paused afterwards by its issuer; and
+  deployed with their share assets, the last paused through an evidenced company
+  instruction and its original captured recovery job; and
   two drafts, Demo Robotics' Series A preference shares and Saltbush's ordinary
   shares.
 - Approvals: each Base wallet that holds shares, or whose application reached a

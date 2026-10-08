@@ -17,6 +17,7 @@ import { useShareClass } from './useShareClass';
 import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
+import { CompanyPauseFlow } from './CompanyPauseFlow';
 
 function requestTone(status: CapitalIncreaseStatus): Tone {
   if (status === 'executed') return 'done';
@@ -71,6 +72,11 @@ export function ShareClass({ uuid }: { uuid: string }) {
       />
       <CompanyCapitalFlow
         key={`capital/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
+      <CompanyPauseFlow
+        key={`pause/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
       />

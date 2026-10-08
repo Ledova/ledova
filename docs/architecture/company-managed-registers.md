@@ -76,7 +76,9 @@ from company approval and original journal execution. The third
 implements exact company instructions and a first-member LINK consumer.
 The fourth [capital increment](../plans/company-managed-registers/company-capital-increases.md)
 implements exact company decisions through the existing cap-only
-execution journal. Paid issuance and pause conversion remain later #867 increments.
+execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
+implements exact company decisions and original observation or
+transaction recovery. Paid issuance remains a later #867 increment.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.

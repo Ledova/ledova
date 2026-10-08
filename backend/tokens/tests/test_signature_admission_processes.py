@@ -15,13 +15,19 @@ from blockchain.tests.outgoing_fixtures import KEY
 from shared.db import current_alias, use_operator
 from shared.tests.row_contention import RealRowContention
 from shared.tests.scoped import RunsOnTheScopedConnection
-from tokens.models import PauseChange, ShareToken, SwapOrder, TransferOrder
-from tokens.services import pause_changes, pause_recovery
+from tokens.models import RegisterEvidenceKind, ShareToken, SwapOrder, TransferOrder
+from tokens.services.register_pause_changes import (
+    decide_pause_change,
+    prepare_pause_change,
+    preview_pause_change_decision,
+)
+from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
 from tokens.tests.order_submission_fixtures import SubmissionFixtures
-from tokens.tests.pause_fixtures import PauseNode
+from tokens.tests.retained_pause_fixtures import retain_pause_change
 from tokens.tests.swap_execution_fixtures import make_execution
 from tokens.tests.swap_state_fixtures import BUYER, SELLER
+from tokens.tests.test_register_imports import owner_appointment
 
 
 @skipUnless(connection.vendor == "postgresql", "Requires independent PostgreSQL row locks")
@@ -89,20 +95,44 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
 
     def prepare_projection(self):
         with use_operator():
-            node = PauseNode(self.tenant.deployed_token.contract_address)
-            node.paused = True
-            node.client.assert_expected_chain.return_value = settings.BLOCKCHAIN_CHAIN_ID
-            change = pause_changes.submit(self.tenant.deployed_token, self.tenant.user, uuid4(), True)
-            with (
-                patch.object(pause_recovery, "get_base_chain_client", return_value=node.client),
-                patch.object(pause_changes, "project", side_effect=lambda pk: PauseChange.objects.get(pk=pk)),
-            ):
-                result = pause_recovery.recover(change.pk)
-            self.assertEqual(result.status, "observed")
-            self.assertIsNone(result.completed_at)
+            before = OutgoingOperation.objects.count(), SignedAttempt.objects.count()
+            change = retain_pause_change(self.tenant.deployed_token, self.tenant.user, observed=True)
+            self.assertEqual(change.status, "observed")
+            self.assertIsNone(change.operation_id)
+            self.assertIsNone(change.completed_at)
+            self.assertEqual((OutgoingOperation.objects.count(), SignedAttempt.objects.count()), before)
             self.assertEqual(ShareToken.objects.get(pk=self.swap.share_token_id).status, "deployed")
-        self.assertEqual(node.broadcasts, [])
         return str(change.pk)
+
+    def approved_pause(self):
+        with use_operator():
+            token = ShareToken.objects.get(pk=self.swap.share_token_id)
+            appointment = owner_appointment(token.company)
+        with patch("shared.uploads.scan_upload"):
+            evidence = upload_evidence(self.tenant.user, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_pause_change(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            token=token.pk,
+            paused=True,
+            reason="Synthetic shared actor instruction",
+            authority_reference="BOARD-SHARED-ACTOR",
+            authority_evidence=evidence.pk,
+        )
+        _, preview = preview_pause_change_decision(
+            actor=self.tenant.user, pause_change_id=proposal.pk, appointment=appointment.pk, kind="approve"
+        )
+        decide_pause_change(
+            actor=self.tenant.user,
+            pause_change_id=proposal.pk,
+            appointment=appointment.pk,
+            kind="approve",
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+        return proposal, appointment
 
     def state(self):
         with use_operator(), connections[current_alias()].cursor() as cursor:
@@ -218,8 +248,9 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
             self.fixture = make_execution("shared-issuer")
         self.swap = self.fixture.swap
         self.tenant = self.fixture.seller
+        proposal, appointment = self.approved_pause()
         signer = self.signer()
-        pause = self.child("pause-authority", token_id=str(self.swap.share_token_id))
+        pause = self.child("pause-authority", proposal_id=str(proposal.pk), appointment_id=str(appointment.pk))
         held = self.stage(pause, "pause-class-locked")
         signer.release()
         locking = self.stage(signer, "locking")

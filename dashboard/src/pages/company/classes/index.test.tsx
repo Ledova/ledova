@@ -554,3 +554,22 @@ it.each(['session', 'account'])(
     expect(api.post).toHaveBeenCalledTimes(1);
   },
 );
+it('mounts company pause preparation for a nonowner appointee on a deployed whole-share class without issuer histories', async () => {
+  prepareCompanyClient(client, 'investor');
+  token = {
+    ...token,
+    status: 'deployed',
+    statusDisplay: 'Deployed',
+    isOwner: false,
+    chain: 'base',
+    decimals: 0,
+    contractAddress: `0x${'2'.repeat(40)}`,
+  };
+  appointments = [APPOINTMENT];
+  show();
+  await screen.findByRole('button', { name: 'Prepare pause change' });
+  for (const path of [ISSUANCES, REQUESTS, CAPITAL, '/api/v1/companies/company-one/'])
+    expect(api.get.mock.calls.map(([url]) => url)).not.toContain(path);
+  expect(screen.queryByText('Existing pause controls')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});

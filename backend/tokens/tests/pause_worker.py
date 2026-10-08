@@ -20,6 +20,8 @@ def run(directory, phase, submission_id):
     if database["ENGINE"] != "django.db.backends.postgresql":
         raise RuntimeError("Pause crash evidence requires real PostgreSQL")
     settings.DATABASES = {"default": database}
+    settings.PRIVATE_MEDIA_ROOT = os.environ["PAUSE_TEST_PRIVATE_MEDIA_ROOT"]
+    settings.STORAGES = json.loads(os.environ["PAUSE_TEST_STORAGES"])
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     django.setup()

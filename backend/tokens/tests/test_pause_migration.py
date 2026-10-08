@@ -1,18 +1,25 @@
 from uuid import uuid4
 
-from django.db import DatabaseError
+from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
-from blockchain.models import OutgoingOperation
+from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
 from blockchain.services import outgoing
-from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
-from shared.db import atomic
+from blockchain.tests.outgoing_fixtures import (
+    CHAIN_ID,
+    KEY,
+    admitted_signer,
+    chain_client,
+)
+from companies.services.team import revoke_company_appointment
+from shared.db import atomic, current_alias, use_migrate
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import PauseChange, ShareToken
-from tokens.services import pause_changes, pause_recovery
+from tokens.services import pause_recovery
 from tokens.tests.pause_fixtures import install_pause
+from tokens.tests.retained_pause_fixtures import retain_pause_change
 
 
 class PauseHistoricalMigrationTest(TransactionTestCase):
@@ -74,10 +81,11 @@ class PauseGuardTest(TransactionTestCase):
             PauseChange.objects.filter(pk=self.change.pk).update(completed_at=timezone.now())
 
     def test_unsigned_refusal_cannot_reopen_release_its_identity_or_admit_an_operation(self):
-        refused = pause_changes.submit(self.token, self.tenant.user, uuid4(), False)
+        revoke_company_appointment(requester=self.tenant.user, appointment_id=self.company_pause.initial.pk)
+        refused = pause_recovery.recover(self.change.pk)
         self.assertEqual(refused.status, "failed")
         self.assertIsNotNone(refused.completed_at)
-        for changes in ({"status": "pending"}, {"completed_at": None}, {"paused": True}):
+        for changes in ({"status": "pending"}, {"completed_at": None}, {"paused": not refused.paused}):
             with self.assertRaises(DatabaseError), atomic():
                 PauseChange.objects.filter(pk=refused.pk).update(**changes)
         with self.assertRaisesMessage(DatabaseError, "Only an executing pause"):
@@ -86,14 +94,70 @@ class PauseGuardTest(TransactionTestCase):
     def test_foundation_cannot_restart_a_terminal_pause_submission(self):
         self.node.receipt_status = 0
         pause_recovery.recover(self.change.pk)
-        operation = OutgoingOperation.objects.get()
+        operation = OutgoingOperation.objects.get(operation_key=f"token-pause:{self.change.pk}")
         with self.assertRaisesMessage(DatabaseError, "new pause attempt"):
             outgoing.open_operation(operation.operation_key, **(operation.intent | {"value": 0}))
         self.assertEqual(PauseChange.objects.get(pk=self.change.pk).status, "failed")
 
     def test_reverse_cannot_remove_pause_recovery_history(self):
         self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove pause submission"):
+        with self.assertRaisesMessage(DatabaseError, "Retain company pause sources"):
             migrate_to([("tokens", "0050_swap_approval_guards")])
         restore_every_migration()
         self.assertTrue(PauseChange.objects.filter(pk=self.change.pk).exists())
+
+
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
+class CompanyPauseMigrationTest(TransactionTestCase):
+    def test_empty_company_pause_round_trip_preserves_original_guard_definitions(self):
+        self.addCleanup(restore_every_migration)
+        with use_migrate():
+            migrate_to([("tokens", "0103_company_register_capital_guards")])
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute(
+                    "SELECT proname, pg_get_functiondef(oid) FROM pg_proc "
+                    "WHERE proname IN ('protect_pause_change','protect_pause_operation') ORDER BY proname"
+                )
+                original = cursor.fetchall()
+            self.assertTrue(original)
+            restore_every_migration()
+            self.assertFalse(PauseChange.objects.exists())
+            migrate_to([("tokens", "0103_company_register_capital_guards")])
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute(
+                    "SELECT proname, pg_get_functiondef(oid) FROM pg_proc "
+                    "WHERE proname IN ('protect_pause_change','protect_pause_operation') ORDER BY proname"
+                )
+                self.assertEqual(cursor.fetchall(), original)
+            restore_every_migration()
+
+    def test_genuine_predecessor_signed_null_source_retains_bytes_and_original_reverse_refusal(self):
+        tenant = make_tenant("legacy-pause-migration")
+        admitted_signer()
+        change = retain_pause_change(tenant.deployed_token, tenant.user, signed=True)
+        attempt = change.operation.current_attempt
+        original = bytes(attempt.raw_transaction), attempt.tx_hash, attempt.nonce
+        self.assertIsNone(change.source_pause_id)
+        self.addCleanup(restore_every_migration)
+        with self.assertRaisesMessage(DatabaseError, "Cannot remove pause submission"):
+            migrate_to([("tokens", "0050_swap_approval_guards")])
+        restore_every_migration()
+        attempt.refresh_from_db()
+        self.assertEqual((bytes(attempt.raw_transaction), attempt.tx_hash, attempt.nonce), original)
+        self.assertTrue(PauseChange.objects.filter(pk=change.pk).exists())
+
+    def test_raw_predecessor_unsigned_execution_cannot_gain_a_fresh_signature_under_current_guards(self):
+        tenant = make_tenant("legacy-pause-unsigned")
+        admitted_signer()
+        change = retain_pause_change(tenant.deployed_token, tenant.user, executing=True)
+        operation = change.operation
+        claim = outgoing.open_operation(operation.operation_key, **(operation.intent | {"value": 0}))
+        prepared = outgoing.prepare_operation(claim, chain_client())
+        nonce = SigningAccount.objects.get().next_nonce
+        with self.assertRaises(outgoing.OutgoingTransactionError) as refusal:
+            outgoing.sign_operation(claim, prepared, KEY)
+        self.assertEqual(refusal.exception.__context__.__cause__.sqlstate, "23514")
+        self.assertFalse(SignedAttempt.objects.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, nonce)
+        operation.refresh_from_db()
+        self.assertEqual(operation.status, "preparing")

@@ -8335,6 +8335,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterPauseChangeList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterPauseChange"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterReconciliationList": {
         "properties": {
           "count": {
@@ -14759,6 +14790,501 @@
           "sourceGrant",
           "sourceImport",
           "sourceTransfer"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChange": {
+        "properties": {
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterPauseChangeDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterPauseChangeExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "intentDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "paused": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterPauseChangeSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "authorityEvidence",
+          "authorityReference",
+          "company",
+          "createdAt",
+          "decisions",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "execution",
+          "executionUnmetRequirements",
+          "intentDigest",
+          "operationId",
+          "paused",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "rejectionReason",
+          "reviewedAt",
+          "reviewedBy",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "authorityEvidence",
+          "authorityReference",
+          "operationId",
+          "paused",
+          "reason",
+          "token"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeDecisionPreview": {
+        "properties": {
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "authorityReference": {
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RegisterPauseChangeSnapshot"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "approvalDecision",
+          "authorityReference",
+          "canDecide",
+          "intentDigest",
+          "paused",
+          "previewDigest",
+          "reason",
+          "snapshot",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeExecution": {
+        "properties": {
+          "blockHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "claimId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "gasUsed": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "observation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterPauseObservation"
+              }
+            ],
+            "nullable": true
+          },
+          "operationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationStatus": {
+            "nullable": true,
+            "type": "string"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "submissionId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "claimId",
+          "completedAt",
+          "gasUsed",
+          "observation",
+          "operationId",
+          "operationStatus",
+          "paused",
+          "status",
+          "submissionId",
+          "txHash"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseChangeSnapshot": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/RegisterDeploymentCompanySnapshot"
+          },
+          "token": {
+            "$ref": "#/components/schemas/RegisterCapitalIncreaseTokenSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RegisterDeploymentTransactionSnapshot"
+          }
+        },
+        "required": [
+          "company",
+          "token",
+          "transaction"
+        ],
+        "type": "object"
+      },
+      "RegisterPauseObservation": {
+        "properties": {
+          "blockHash": {
+            "type": "string"
+          },
+          "blockNumber": {
+            "type": "integer"
+          },
+          "observedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "observedAt"
         ],
         "type": "object"
       },
@@ -29491,6 +30017,335 @@
     "/api/v1/tokens/register-particulars-changes/{uuid}/file/": {
       "get": {
         "operationId": "api_v1_tokens_register_particulars_changes_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-pause-changes/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_pause_changes_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterPauseChangeList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_pause_changes_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPauseChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-pause-changes/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_pause_changes_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPauseChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-pause-changes/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_pause_changes_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPauseChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-pause-changes/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_pause_changes_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPauseChangeDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPauseChangeDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-pause-changes/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_pause_changes_file_retrieve",
         "parameters": [
           {
             "in": "path",

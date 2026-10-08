@@ -19,6 +19,7 @@ from tokens.tests.deployment_fixtures import (
     install_deployment,
 )
 from tokens.tests.pause_fixtures import PauseNode
+from tokens.tests.retained_pause_fixtures import retain_pause_change
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
@@ -71,7 +72,9 @@ class CompanyDeploymentPauseProjectionTest(TransactionTestCase):
                 stack.enter_context(connections[alias].execute_wrapper(record))
             for paused, status in ((True, "paused"), (False, "deployed")):
                 with use_operator():
-                    change = pause_changes.submit(self.token, self.tenant.user, uuid4(), paused)
+                    change = retain_pause_change(
+                        self.token, self.tenant.user, paused, signed=True, submission_id=uuid4()
+                    )
                 self.assertTrue(recover_pause_change.func(str(change.pk))["completed"])
                 with use_operator():
                     self.token.refresh_from_db()

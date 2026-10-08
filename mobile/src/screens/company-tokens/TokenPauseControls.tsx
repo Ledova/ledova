@@ -111,17 +111,15 @@ function PauseRequests({
         query.state.data?.submission.completedAt ? (false as const) : 5000,
     })),
   });
-  const blocked = !ready || sending || refreshing || queries.some((query) => !query.data?.submission.completedAt);
-  const send = async (paused: boolean, previous?: SavedPause) => {
-    if (inFlight.current || (!previous && blocked)) return;
+  const send = async (previous: SavedPause) => {
+    const paused = previous.paused;
+    if (inFlight.current) return;
     inFlight.current = true;
     setSending(true);
     setError(null);
     try {
       guard();
-      const record = previous
-        ? await pauseSubmissionStore.retain(previous)
-        : await pauseSubmissionStore.save(owner, token.uuid, paused);
+      const record = await pauseSubmissionStore.retain(previous);
       guard();
       await load();
       guard();
@@ -161,12 +159,8 @@ function PauseRequests({
         A saved request records its original outcome. Check the class state above for its current status.
       </Text>
       {!ready && !storageError && <Text style={styles.muted}>Loading saved pause requests…</Text>}
-      {refreshing && <Text style={styles.muted}>Refreshing the share class before a new request…</Text>}
-      <Action
-        label={sending ? 'Saving request…' : token.status === 'paused' ? 'Unpause' : 'Pause'}
-        disabled={blocked}
-        onPress={() => void send(token.status !== 'paused')}
-      />
+      {refreshing && <Text style={styles.muted}>Refreshing the current share class…</Text>}
+      <Text style={styles.muted}>Retained issuer requests. Prepare new pause decisions in the company panel.</Text>
       {storageError && (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
@@ -201,11 +195,7 @@ function PauseRequests({
             ) : (
               <>
                 <Action label="Check outcome" disabled={query.isFetching} onPress={() => void query.refetch()} />
-                <Action
-                  label="Retry same request"
-                  disabled={sending}
-                  onPress={() => void send(record.paused, record)}
-                />
+                <Action label="Retry same request" disabled={sending} onPress={() => void send(record)} />
               </>
             )}
           </View>
@@ -219,7 +209,7 @@ export function TokenPauseControls(props: Props) {
   const styles = useCompanyStyles();
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   return (
-    <Section title="Pause and recovery">
+    <Section title="Retained issuer pause requests">
       {owner ? (
         <PauseRequests
           key={`${owner.userUuid}/${owner.ownerAccountUuid}/${props.token.uuid}/${getSessionEpoch()}`}
@@ -228,7 +218,7 @@ export function TokenPauseControls(props: Props) {
           currentOwner={boundary.get}
         />
       ) : (
-        <Text style={styles.muted}>Verify your issuer session before requesting a pause or unpause.</Text>
+        <Text style={styles.muted}>Verify your issuer session before reading retained pause requests.</Text>
       )}
     </Section>
   );

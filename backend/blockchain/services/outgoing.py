@@ -109,12 +109,12 @@ def transaction_intent(*, chain_id, sender, to, value=0, data="0x"):
     }
 
 
-def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x", restart_of=None):
+def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x", restart_of=None, opening_context=None):
     _boundary()
     if not isinstance(operation_key, str) or not operation_key.strip() or len(operation_key) > 200:
         raise OutgoingTransactionError("An outgoing operation requires a stable key of at most 200 characters.")
     intent = transaction_intent(chain_id=chain_id, sender=sender, to=to, value=value, data=data)
-    with atomic(durable=True):
+    with atomic(durable=True), opening_context() if opening_context else nullcontext():
         operation, _ = OutgoingOperation.objects.get_or_create(
             operation_key=operation_key, defaults={"intent": intent, "claim_id": uuid4()}
         )

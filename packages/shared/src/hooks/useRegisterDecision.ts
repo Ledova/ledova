@@ -1,4 +1,11 @@
 import {
+  REGISTER_PAUSE_CHANGE_COPY,
+  REGISTER_PAUSE_CHANGE_UNMET_COPY,
+} from '../constants/business/register-pause-changes';
+import { previewRegisterPauseChangeDecision, decideRegisterPauseChange } from '../services/register-pause-changes';
+import { isRegisterPauseChangeDecisionReceipt } from '../utils/register-pause-changes';
+import type { RegisterPauseChange, RegisterPauseChangeDecisionPreview } from '../types';
+import {
   REGISTER_CAPITAL_INCREASE_COPY,
   REGISTER_CAPITAL_INCREASE_UNMET_COPY,
 } from '../constants/business/register-capital-increases';
@@ -84,6 +91,17 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
+};
+
+export const REGISTER_PAUSE_CHANGE_DECISIONS: RegisterDecisionFamily<
+  RegisterPauseChange,
+  RegisterPauseChangeDecisionPreview
+> = {
+  preview: previewRegisterPauseChangeDecision,
+  decide: decideRegisterPauseChange,
+  isReceipt: isRegisterPauseChangeDecisionReceipt,
+  unmet: REGISTER_PAUSE_CHANGE_UNMET_COPY,
+  copy: REGISTER_PAUSE_CHANGE_COPY,
 };
 
 export const REGISTER_CAPITAL_INCREASE_DECISIONS: RegisterDecisionFamily<

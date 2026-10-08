@@ -69,3 +69,5 @@ export { useCompanyIssueInstructions } from './useCompanyIssueInstructions';
 export { REGISTER_ISSUE_DECISIONS } from './useRegisterDecision';
 export { REGISTER_CAPITAL_INCREASE_DECISIONS } from './useRegisterDecision';
 export { useCompanyCapitalIncreases } from './useCompanyCapitalIncreases';
+export { useCompanyPauseChanges } from './useCompanyPauseChanges';
+export { REGISTER_PAUSE_CHANGE_DECISIONS } from './useRegisterDecision';

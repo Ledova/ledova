@@ -14,7 +14,6 @@ from assets.services.identity import free_symbol, verified_contract_asset
 from assets.services.sync import SUPPORTED_ASSETS
 from integrations.base_chain import get_base_chain_client
 from integrations.base_chain.exceptions import (
-    BaseChainConnectionError,
     BaseChainContractError,
 )
 from operators.settlement import settlement_deployments
@@ -28,7 +27,6 @@ from tokens.exceptions import (
     InvalidTokenStateException,
     TokenBalanceRetrievalException,
     TokenFactoryNotConfiguredException,
-    TokenPauseFailedException,
     WalletBalancesUnavailableException,
 )
 from tokens.models import (
@@ -260,16 +258,6 @@ def seed_recipient_holding(contract_address: str, recipient_address: str) -> Non
         logger.error(
             "Could not record the holding for contract %s and recipient %s", contract_address, recipient_address
         )
-
-
-def read_paused(token: ShareToken) -> bool:
-    try:
-        return load_share_token(token.contract_address).functions.paused().call()
-    except BaseChainConnectionError:
-        raise TokenPauseFailedException("The chain is unreachable.") from None
-    except Exception as exc:
-        logger.error(f"paused() could not be read for {token.symbol} ({failure_summary(exc)})")
-        raise TokenPauseFailedException("The token's paused state could not be read.") from None
 
 
 def get_token_balance(contract_address: str, holder: str) -> int:
