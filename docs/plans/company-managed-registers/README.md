@@ -39,11 +39,12 @@ retained evidence and a genuine ISSUE entry. The second adds [direct non-paid
 transfers](register-transfers.md), returning/new recipients and attributable
 cessation history with genuine roll/certificate inputs. The first #867 increment
 implements [company-authorised empty deployments](company-deployments.md), with
-retained approval and original execution recovery. The second increment's
-[wallet nomination and company instruction guide](company-wallet-approvals.md)
-records its in-progress scope and retained boundaries. The third increment's
-[non-paid on-chain grant guide](company-register-issues.md) records its supported
-scope and first-member LINK bootstrap. The fourth increment's
+retained approval and original execution recovery. The second increment implements
+[wallet nominations and company instructions](company-wallet-approvals.md),
+retaining genuine possession proof, exact company approval and original journal
+execution. The third increment implements
+[non-paid on-chain grants](company-register-issues.md), with exact company
+instructions and a first-member LINK bootstrap. The fourth increment's
 [capital guide](company-capital-increases.md) records its implementation contract
 for exact company decisions and original cap-only execution. Paid issuance and
 pause conversion remain later #867 increments.

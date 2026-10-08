@@ -2280,6 +2280,7 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
     @override_settings(
         STORAGES={
             "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+            "private": {"BACKEND": "shared.storage.PrivateMediaStorage"},
             "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
         }
     )
@@ -2288,14 +2289,14 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
         from tokens.tests.instruction_fixtures import (
             instruction_company,
             instruction_payload,
+            retained_approved_request,
         )
 
         with self.as_an_operator_would():
             owner, company, document = instruction_company()
             token = ShareToken.objects.get(company=company)
-            request = ShareIssuanceRequest.objects.create(
-                token=token, recipient_address="0x" + "3c" * 20, amount=5, reason="Allotment"
-            )
+            request = retained_approved_request(token, "0x" + "3c" * 20, amount=5)
+            original_review = (request.reviewed_by_id, request.reviewed_at, request.review_notes)
         self.client.force_authenticate(owner)
         payload = instruction_payload(token, document, [request])
         response = self.client.post(REGISTER_INSTRUCTION_ROUTES["create"][1], payload, format="json")
@@ -2339,7 +2340,11 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 )
                 self.assertEqual(
                     ShareIssuanceRequest.objects.get(pk=request.pk).status,
-                    RequestStatus.APPROVED if expected == 200 else RequestStatus.SUBMITTED,
+                    RequestStatus.APPROVED,
+                )
+                retained = ShareIssuanceRequest.objects.get(pk=request.pk)
+                self.assertEqual(
+                    (retained.reviewed_by_id, retained.reviewed_at, retained.review_notes), original_review
                 )
             self.client.logout()
 

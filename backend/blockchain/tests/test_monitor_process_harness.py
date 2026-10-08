@@ -54,11 +54,11 @@ class MonitorLockObserverTest(SimpleTestCase):
 
     def test_a_blocked_update_does_not_prove_the_required_select_lock(self):
         with self.assertRaises(AssertionError):
-            self.observe([('UPDATE "blockchain_blockchaintransaction" SET "status" = %s', True, "Lock")], [0, 0])
+            self.observe([('UPDATE "blockchain_blockchaintransaction" SET "status" = %s', True, "Lock")], [0, 0, 10])
 
     def test_a_blocked_select_on_another_table_does_not_release_the_parent(self):
         with self.assertRaises(AssertionError):
-            self.observe([('SELECT "blockchain_chain"."id" FROM "blockchain_chain"', True, "Lock")], [0, 0])
+            self.observe([('SELECT "blockchain_chain"."id" FROM "blockchain_chain"', True, "Lock")], [0, 0, 10])
 
     def test_an_intended_blocker_without_a_lock_event_expires_at_the_existing_deadline(self):
         with self.assertRaisesRegex(AssertionError, "Monitor never waited for the current transaction row"):

@@ -30,6 +30,7 @@ from offerings.services.subscription import (
 )
 from offerings.tasks import allot_subscription_task, reconcile_subscriptions
 from offerings.tests.factories import (
+    allotment_queue,
     configure_operator,
     forget_fixture_subscriptions,
     instruct,
@@ -52,15 +53,13 @@ from tokens.tests.test_chain_integration import (
 )
 from wallets.models import Holding, Wallet
 
-DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 PRICE = Decimal("2.50")
 
 
 class AllotmentChainMixin(ChainTestMixin):
     def setUp(self):
         super().setUp(company_activation=True)
-        self.defer = patch(DEFER).start()
-        self.addCleanup(patch.stopall)
+        self.defer = self.enterContext(allotment_queue())
         forget_fixture_subscriptions()
         configure_operator()
         self.admit_current_participant(self.tenant)
