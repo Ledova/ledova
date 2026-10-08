@@ -47,8 +47,8 @@ execution. The third increment implements
 instructions and a first-member LINK bootstrap. The fourth increment's
 [capital guide](company-capital-increases.md) describes implemented company decisions
 and original cap-only execution. The fifth increment's
-[pause/unpause guide](company-pause-changes.md) records its implementation contract
-for company decisions, genuine observations and original transaction recovery.
+[pause/unpause guide](company-pause-changes.md) describes implemented company decisions,
+genuine observations and original transaction recovery.
 Paid issuance remains a later #867 increment.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.

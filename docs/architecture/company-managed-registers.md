@@ -77,7 +77,7 @@ implements exact company instructions and a first-member LINK consumer.
 The fourth [capital increment](../plans/company-managed-registers/company-capital-increases.md)
 implements exact company decisions through the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
-is under implementation with exact company decisions and original observation or
+implements exact company decisions and original observation or
 transaction recovery. Paid issuance remains a later #867 increment.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
