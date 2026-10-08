@@ -1,3 +1,13 @@
+import {
+  REGISTER_CAPITAL_INCREASE_COPY,
+  REGISTER_CAPITAL_INCREASE_UNMET_COPY,
+} from '../constants/business/register-capital-increases';
+import {
+  previewRegisterCapitalIncreaseDecision,
+  decideRegisterCapitalIncrease,
+} from '../services/register-capital-increases';
+import { isRegisterCapitalIncreaseDecisionReceipt } from '../utils/register-capital-increases';
+import type { RegisterCapitalIncrease, RegisterCapitalIncreaseDecisionPreview } from '../types';
 import { isRegisterLinkDecisionReceipt } from '../utils/register-links';
 import { REGISTER_ISSUE_COPY, REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
 import { previewRegisterIssueDecision, decideRegisterIssue } from '../services/register-issues';
@@ -74,6 +84,17 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
+};
+
+export const REGISTER_CAPITAL_INCREASE_DECISIONS: RegisterDecisionFamily<
+  RegisterCapitalIncrease,
+  RegisterCapitalIncreaseDecisionPreview
+> = {
+  preview: previewRegisterCapitalIncreaseDecision,
+  decide: decideRegisterCapitalIncrease,
+  isReceipt: isRegisterCapitalIncreaseDecisionReceipt,
+  unmet: REGISTER_CAPITAL_INCREASE_UNMET_COPY,
+  copy: REGISTER_CAPITAL_INCREASE_COPY,
 };
 
 export const REGISTER_ISSUE_DECISIONS: RegisterDecisionFamily<RegisterIssue, RegisterIssueDecisionPreview> = {

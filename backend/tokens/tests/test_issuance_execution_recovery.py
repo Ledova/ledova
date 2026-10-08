@@ -363,9 +363,10 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         from tokens.tests.capital_fixtures import admit as admit_capital
         from tokens.tests.capital_fixtures import capital_request
 
-        capital_tenant, capital_actor = capital_request("concurrent-capital")
+        capital_tenant, capital_actor = capital_request(self)
         capital_node = CapitalNode()
         capital = admit_capital(capital_tenant.capital_increase, capital_actor)
+        initial_nonce = SigningAccount.objects.get().next_nonce
         issuance = admit(self.request, self.actor)
         ready = threading.Barrier(2)
         outcomes = {}
@@ -404,9 +405,9 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
                 .order_by("nonce")
                 .values_list("nonce", flat=True)
             ),
-            [self.initial_nonce, self.initial_nonce + 1],
+            [initial_nonce, initial_nonce + 1],
         )
-        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 2)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, initial_nonce + 2)
         self.assertEqual(len(self.node.broadcasts), 1)
         self.assertEqual(len(capital_node.broadcasts), 1)
 

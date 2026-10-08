@@ -837,223 +837,6 @@
         ],
         "type": "string"
       },
-      "CapitalIncreaseCreateRequestRequest": {
-        "properties": {
-          "additionalShares": {
-            "description": "Number of additional shares to authorize; execution does not mint shares",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "boardResolutionReference": {
-            "description": "Reference to board resolution authorizing this increase",
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "newAuthorizedTotal": {
-            "description": "New total authorized shares after increase",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "purpose": {
-            "description": "Purpose or justification for this capital increase",
-            "minLength": 1,
-            "type": "string"
-          },
-          "shareholderApprovalReference": {
-            "description": "Reference to shareholder approval (if required)",
-            "maxLength": 255,
-            "type": "string"
-          },
-          "token": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "additionalShares",
-          "boardResolutionReference",
-          "newAuthorizedTotal",
-          "purpose",
-          "token"
-        ],
-        "type": "object"
-      },
-      "CapitalIncreaseDetail": {
-        "properties": {
-          "additionalShares": {
-            "description": "Number of additional shares to authorize; execution does not mint shares",
-            "readOnly": true,
-            "type": "integer"
-          },
-          "boardResolutionReference": {
-            "description": "Reference to board resolution authorizing this increase",
-            "readOnly": true,
-            "type": "string"
-          },
-          "canBeSubmitted": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "dilutionPercentage": {
-            "description": "Percentage dilution this request would cause to existing holders",
-            "format": "decimal",
-            "nullable": true,
-            "pattern": "^-?\\d{0,3}(?:\\.\\d{0,2})?$",
-            "readOnly": true,
-            "type": "string"
-          },
-          "executedAt": {
-            "description": "When the request was executed on-chain",
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "executedIssuance": {
-            "description": "The executed ShareIssuance record for the minted shares",
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "executionNotes": {
-            "description": "What each execution attempt did, in order. Written by the system; review_notes is the person's",
-            "readOnly": true,
-            "type": "string"
-          },
-          "newAuthorizedTotal": {
-            "description": "New total authorized shares after increase",
-            "readOnly": true,
-            "type": "integer"
-          },
-          "purpose": {
-            "description": "Purpose or justification for this capital increase",
-            "readOnly": true,
-            "type": "string"
-          },
-          "rejectionReason": {
-            "description": "Reason for rejection (if rejected)",
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewedAt": {
-            "description": "When the request was reviewed",
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewedBy": {
-            "description": "Staff member who reviewed the request",
-            "nullable": true,
-            "readOnly": true,
-            "type": "integer"
-          },
-          "reviewedByEmail": {
-            "format": "email",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "shareholderApprovalReference": {
-            "description": "Reference to shareholder approval (if required)",
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CapitalRequestStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "statusDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedAt": {
-            "description": "When the request was submitted",
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedBy": {
-            "description": "User who submitted the request",
-            "nullable": true,
-            "readOnly": true,
-            "type": "integer"
-          },
-          "submittedByEmail": {
-            "format": "email",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "token": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "tokenName": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "tokenSymbol": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "additionalShares",
-          "boardResolutionReference",
-          "canBeSubmitted",
-          "createdAt",
-          "dilutionPercentage",
-          "executedAt",
-          "executedIssuance",
-          "executionNotes",
-          "newAuthorizedTotal",
-          "purpose",
-          "rejectionReason",
-          "reviewedAt",
-          "reviewedBy",
-          "reviewedByEmail",
-          "shareholderApprovalReference",
-          "status",
-          "statusDisplay",
-          "submittedAt",
-          "submittedBy",
-          "submittedByEmail",
-          "token",
-          "tokenName",
-          "tokenSymbol",
-          "updatedAt",
-          "uuid"
-        ],
-        "type": "object"
-      },
       "CapitalIncreaseList": {
         "properties": {
           "additionalShares": {
@@ -1151,21 +934,6 @@
           "tokenName",
           "tokenSymbol",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "CapitalIncreaseSubmitted": {
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "request": {
-            "$ref": "#/components/schemas/CapitalIncreaseDetail"
-          }
-        },
-        "required": [
-          "message",
-          "request"
         ],
         "type": "object"
       },
@@ -8288,6 +8056,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterCapitalIncreaseList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterCapitalIncrease"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterCorrectionList": {
         "properties": {
           "count": {
@@ -10172,6 +9971,588 @@
           "appointment",
           "providedBy",
           "reason"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncrease": {
+        "properties": {
+          "additionalShares": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvalDecision": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "boardResolutionReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterCapitalIncreaseDecision"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "execution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseExecution"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
+          "executionUnmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "intentDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "newAuthorizedTotal": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparedByName": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "purpose": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "rejectionReason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "request": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reviewedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "shareholderApprovalReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "snapshot": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseSnapshot"
+              }
+            ],
+            "readOnly": true
+          },
+          "stage": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "additionalShares",
+          "approvalDecision",
+          "authorityEvidence",
+          "boardResolutionReference",
+          "company",
+          "createdAt",
+          "decisions",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "execution",
+          "executionUnmetRequirements",
+          "intentDigest",
+          "newAuthorizedTotal",
+          "operationId",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "purpose",
+          "rejectionReason",
+          "request",
+          "reviewedAt",
+          "reviewedBy",
+          "shareholderApprovalReference",
+          "snapshot",
+          "stage",
+          "status",
+          "submittedBy",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseCreateRequest": {
+        "properties": {
+          "additionalShares": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "boardResolutionReference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "newAuthorizedTotal": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "purpose": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "shareholderApprovalReference": {
+            "default": "",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "additionalShares",
+          "appointment",
+          "authorityEvidence",
+          "boardResolutionReference",
+          "newAuthorizedTotal",
+          "operationId",
+          "purpose",
+          "token"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseDecideRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "previewDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "confirmation",
+          "idempotencyKey",
+          "kind",
+          "previewDigest"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseDecision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "decidedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "decidedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "decidedAt",
+          "decidedBy",
+          "decidedByName",
+          "digest",
+          "idempotencyKey",
+          "kind",
+          "reason",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseDecisionPreview": {
+        "properties": {
+          "additionalShares": {
+            "type": "string"
+          },
+          "approvalDecision": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "intentDigest": {
+            "type": "string"
+          },
+          "newAuthorizedTotal": {
+            "type": "string"
+          },
+          "previewDigest": {
+            "type": "string"
+          },
+          "priorAuthorizedTotal": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RegisterCapitalIncreaseSnapshot"
+          },
+          "unmetRequirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "additionalShares",
+          "approvalDecision",
+          "canDecide",
+          "intentDigest",
+          "newAuthorizedTotal",
+          "previewDigest",
+          "priorAuthorizedTotal",
+          "snapshot",
+          "unmetRequirements"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseDecisionRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseExecution": {
+        "properties": {
+          "attributionRequired": {
+            "type": "boolean"
+          },
+          "blockHash": {
+            "nullable": true,
+            "type": "string"
+          },
+          "blockNumber": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "claimId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "dispatchId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "execution": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "gasUsed": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "operationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "operationStatus": {
+            "nullable": true,
+            "type": "string"
+          },
+          "projectedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "request": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transaction": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "txHash": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributionRequired",
+          "blockHash",
+          "blockNumber",
+          "claimId",
+          "dispatchId",
+          "execution",
+          "gasUsed",
+          "operationId",
+          "operationStatus",
+          "projectedAt",
+          "request",
+          "status",
+          "transaction",
+          "txHash"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseSnapshot": {
+        "properties": {
+          "capital": {
+            "$ref": "#/components/schemas/RegisterCapitalIncreaseTermsSnapshot"
+          },
+          "company": {
+            "$ref": "#/components/schemas/RegisterDeploymentCompanySnapshot"
+          },
+          "token": {
+            "$ref": "#/components/schemas/RegisterCapitalIncreaseTokenSnapshot"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/RegisterDeploymentTransactionSnapshot"
+          }
+        },
+        "required": [
+          "capital",
+          "company",
+          "token",
+          "transaction"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseTermsSnapshot": {
+        "properties": {
+          "additionalShares": {
+            "type": "string"
+          },
+          "boardResolutionReference": {
+            "type": "string"
+          },
+          "newAuthorizedTotal": {
+            "type": "string"
+          },
+          "priorAuthorizedTotal": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "shareholderApprovalReference": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "additionalShares",
+          "boardResolutionReference",
+          "newAuthorizedTotal",
+          "priorAuthorizedTotal",
+          "purpose",
+          "shareholderApprovalReference"
+        ],
+        "type": "object"
+      },
+      "RegisterCapitalIncreaseTokenSnapshot": {
+        "properties": {
+          "authorisedShares": {
+            "type": "string"
+          },
+          "chain": {
+            "type": "string"
+          },
+          "contractAddress": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorisedShares",
+          "chain",
+          "contractAddress",
+          "decimals",
+          "name",
+          "symbol",
+          "uuid"
         ],
         "type": "object"
       },
@@ -25616,96 +25997,6 @@
         "tags": [
           "api"
         ]
-      },
-      "post": {
-        "operationId": "api_v1_tokens_capital_increases_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseCreateRequestRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseCreateRequestRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CapitalIncreaseCreateRequestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapitalIncreaseDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/capital-increases/{uuid}/submit/": {
-      "post": {
-        "operationId": "api_v1_tokens_capital_increases_submit_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CapitalIncreaseSubmitted"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
       }
     },
     "/api/v1/tokens/issuance-requests/": {
@@ -25760,6 +26051,335 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedShareIssuanceRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-capital-increases/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_capital_increases_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "applied",
+                "rejected",
+                "submitted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterCapitalIncreaseList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_capital_increases_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCapitalIncrease"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-capital-increases/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_capital_increases_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCapitalIncrease"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-capital-increases/{uuid}/decide/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_capital_increases_decide_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecideRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecideRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCapitalIncrease"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-capital-increases/{uuid}/decision-preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_register_capital_increases_decision_preview_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecisionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecisionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCapitalIncreaseDecisionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCapitalIncreaseDecisionPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-capital-increases/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_capital_increases_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },

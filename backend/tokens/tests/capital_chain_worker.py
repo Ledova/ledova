@@ -17,6 +17,8 @@ def run(phase, request_id, actor_id):
     settings.DATABASES = {"default": database}
     settings.BLOCKCHAIN_RPC_URL = os.environ["CHAIN_TEST_RPC_URL"]
     settings.BLOCKCHAIN_CHAIN_ID = 31337
+    settings.PRIVATE_MEDIA_ROOT = os.environ["CAPITAL_TEST_PRIVATE_MEDIA_ROOT"]
+    settings.STORAGES = json.loads(os.environ["CAPITAL_TEST_STORAGES"])
     django.setup()
 
     from django.contrib.auth import get_user_model
@@ -24,6 +26,7 @@ def run(phase, request_id, actor_id):
     from integrations.base_chain.client import BaseChainClient
     from tokens.models import CapitalIncreaseRequest
     from tokens.services import capital_execution
+    from tokens.tests.capital_fixtures import admit
 
     request = CapitalIncreaseRequest.objects.get(pk=request_id)
     original = BaseChainClient.send_raw_transaction
@@ -37,8 +40,7 @@ def run(phase, request_id, actor_id):
     with patch.object(BaseChainClient, "send_raw_transaction", accepted):
         if phase == "accepted":
             actor = get_user_model().objects.get(pk=actor_id)
-            with patch("tokens.tasks.execute_review_request_task.defer"):
-                capital_execution.admit(request, actor, confirmed=capital_execution.confirmation(request, actor))
+            admit(request, actor)
         result = capital_execution.recover(request.dispatch_id)
     print(json.dumps(result))
 

@@ -1592,23 +1592,7 @@ export interface ApiPaths {
     };
     get: ApiOperations['api_v1_tokens_capital_increases_list'];
     put?: never;
-    post: ApiOperations['api_v1_tokens_capital_increases_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/capital-increases/{uuid}/submit/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_capital_increases_submit_create'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1623,6 +1607,86 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_issuance_requests_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-capital-increases/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_capital_increases_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_capital_increases_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-capital-increases/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_capital_increases_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-capital-increases/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_capital_increases_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-capital-increases/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_capital_increases_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-capital-increases/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_capital_increases_file_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -3506,41 +3570,6 @@ export interface ApiComponents {
       txHash: string;
     };
     BroadcastTransferResponseStatusEnum: 'pending' | 'confirmed' | 'failed' | 'reorged' | 'replaced';
-    CapitalIncreaseCreateRequestRequest: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      shareholderApprovalReference?: string;
-      token: string;
-    };
-    CapitalIncreaseDetail: {
-      additionalShares: number;
-      boardResolutionReference: string;
-      canBeSubmitted: boolean;
-      createdAt: string;
-      dilutionPercentage: string | null;
-      executedAt: string | null;
-      executedIssuance: string | null;
-      executionNotes: string;
-      newAuthorizedTotal: number;
-      purpose: string;
-      rejectionReason: string;
-      reviewedAt: string | null;
-      reviewedBy: number | null;
-      reviewedByEmail: string | null;
-      shareholderApprovalReference: string;
-      status: ApiComponents['schemas']['CapitalRequestStatusEnum'];
-      statusDisplay: string;
-      submittedAt: string | null;
-      submittedBy: number | null;
-      submittedByEmail: string | null;
-      token: string;
-      tokenName: string;
-      tokenSymbol: string;
-      updatedAt: string;
-      uuid: string;
-    };
     CapitalIncreaseList: {
       additionalShares: number;
       createdAt: string;
@@ -3556,10 +3585,6 @@ export interface ApiComponents {
       tokenName: string;
       tokenSymbol: string;
       uuid: string;
-    };
-    CapitalIncreaseSubmitted: {
-      message: string;
-      request: ApiComponents['schemas']['CapitalIncreaseDetail'];
     };
     CapitalRequestStatusEnum:
       | 'draft'
@@ -4932,6 +4957,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Publication'][];
     };
+    PaginatedRegisterCapitalIncreaseList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterCapitalIncrease'][];
+    };
     PaginatedRegisterCorrectionList: {
       count: number;
       next?: string | null;
@@ -5329,6 +5360,122 @@ export interface ApiComponents {
       discrepancy: number;
       idempotencyKey: string;
       reason: string;
+    };
+    RegisterCapitalIncrease: {
+      additionalShares: string;
+      approvalDecision: string | null;
+      authorityEvidence: string;
+      boardResolutionReference: string;
+      company: string;
+      createdAt: string;
+      decisions: ApiComponents['schemas']['RegisterCapitalIncreaseDecision'][];
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      execution: ApiComponents['schemas']['RegisterCapitalIncreaseExecution'] | null;
+      executionUnmetRequirements: string[];
+      intentDigest: string;
+      newAuthorizedTotal: string;
+      operationId: string;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      purpose: string;
+      rejectionReason: string;
+      request: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      shareholderApprovalReference: string;
+      snapshot: ApiComponents['schemas']['RegisterCapitalIncreaseSnapshot'];
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterCapitalIncreaseCreateRequest: {
+      additionalShares: number;
+      appointment: string;
+      authorityEvidence: string;
+      boardResolutionReference: string;
+      newAuthorizedTotal: number;
+      operationId: string;
+      purpose: string;
+      shareholderApprovalReference?: string;
+      token: string;
+    };
+    RegisterCapitalIncreaseDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterCapitalIncreaseDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterCapitalIncreaseDecisionPreview: {
+      additionalShares: string;
+      approvalDecision: string | null;
+      canDecide: boolean;
+      intentDigest: string;
+      newAuthorizedTotal: string;
+      previewDigest: string;
+      priorAuthorizedTotal: string;
+      snapshot: ApiComponents['schemas']['RegisterCapitalIncreaseSnapshot'];
+      unmetRequirements: string[];
+    };
+    RegisterCapitalIncreaseDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
+    RegisterCapitalIncreaseExecution: {
+      attributionRequired: boolean;
+      blockHash: string | null;
+      blockNumber: number | null;
+      claimId: string | null;
+      dispatchId: string;
+      execution: string;
+      gasUsed: number | null;
+      operationId: string | null;
+      operationStatus: string | null;
+      projectedAt: string | null;
+      request: string;
+      status: string;
+      transaction: string | null;
+      txHash: string | null;
+    };
+    RegisterCapitalIncreaseSnapshot: {
+      capital: ApiComponents['schemas']['RegisterCapitalIncreaseTermsSnapshot'];
+      company: ApiComponents['schemas']['RegisterDeploymentCompanySnapshot'];
+      token: ApiComponents['schemas']['RegisterCapitalIncreaseTokenSnapshot'];
+      transaction: ApiComponents['schemas']['RegisterDeploymentTransactionSnapshot'];
+    };
+    RegisterCapitalIncreaseTermsSnapshot: {
+      additionalShares: string;
+      boardResolutionReference: string;
+      newAuthorizedTotal: string;
+      priorAuthorizedTotal: string;
+      purpose: string;
+      shareholderApprovalReference: string;
+    };
+    RegisterCapitalIncreaseTokenSnapshot: {
+      authorisedShares: string;
+      chain: string;
+      contractAddress: string;
+      decimals: number;
+      name: string;
+      symbol: string;
+      uuid: string;
     };
     RegisterCorrection: {
       appliedEntry: string | null;
@@ -10114,52 +10261,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_capital_increases_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CapitalIncreaseCreateRequestRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CapitalIncreaseCreateRequestRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CapitalIncreaseCreateRequestRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_capital_increases_submit_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CapitalIncreaseSubmitted'];
-        };
-      };
-    };
-  };
   api_v1_tokens_issuance_requests_list: {
     parameters: {
       query?: {
@@ -10181,6 +10282,152 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareIssuanceRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterCapitalIncreaseList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCapitalIncreaseCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCapitalIncreaseCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCapitalIncreaseCreateRequest'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCapitalIncrease'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCapitalIncrease'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCapitalIncreaseDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCapitalIncreaseDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCapitalIncreaseDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCapitalIncrease'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCapitalIncreaseDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCapitalIncreaseDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCapitalIncreaseDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCapitalIncreaseDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_capital_increases_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

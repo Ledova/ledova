@@ -7,7 +7,6 @@ from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework.exceptions import PermissionDenied
 
-from blockchain.models import BlockchainTransaction, SignedAttempt
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
@@ -20,7 +19,6 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest, ShareToken
 from tokens.services import capital_execution
-from tokens.services.capital_increase import submit_capital_increase
 from tokens.tasks import execute_review_request_task
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit, install_capital
 from tokens.tests.test_review_request_admin import TEST_STORAGES
@@ -63,7 +61,7 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
                     CapitalIncreaseExecution.objects.filter(pk=command.pk).exists()
         self.node.client.send_raw_transaction.assert_not_called()
 
-    def test_issuer_draft_edits_submission_and_deletion_never_query_the_private_journal(self):
+    def test_retired_customer_draft_writes_and_current_request_edits_never_query_the_private_journal(self):
         statements = []
 
         def observe(execute, sql, params, many, context):
@@ -71,32 +69,26 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
             return execute(sql, params, many, context)
 
         with acting_for(self.tenant.user.pk), connections[APP_ALIAS].execute_wrapper(observe):
-            draft = CapitalIncreaseRequest.objects.create(
-                token=self.token,
-                additional_shares=50,
-                new_authorized_total=1050,
-                purpose="Issuer draft",
-                board_resolution_reference="ISSUER-BOARD",
-            )
-            draft.purpose = "Updated issuer draft"
-            draft.save(update_fields=["purpose"])
-            draft.delete()
-            request = CapitalIncreaseRequest.objects.get(pk=self.request.pk)
             with self.assertRaises(DatabaseError), atomic():
-                request.delete()
+                CapitalIncreaseRequest.objects.create(
+                    token=self.token,
+                    additional_shares=50,
+                    new_authorized_total=1050,
+                    purpose="Retired owner draft",
+                    board_resolution_reference="ISSUER-BOARD",
+                )
+            request = CapitalIncreaseRequest.objects.get(pk=self.request.pk)
+            before = request.purpose
+            with self.assertRaises(DatabaseError), atomic():
+                CapitalIncreaseRequest.objects.filter(pk=request.pk).update(purpose="Raw owner edit")
+            with connections[APP_ALIAS].cursor() as cursor:
+                cursor.execute("DELETE FROM tokens_capitalincreaserequest WHERE uuid=%s", [request.pk])
+                self.assertEqual(cursor.rowcount, 0)
+            request.refresh_from_db()
+            self.assertEqual(request.purpose, before)
         self.assertFalse(any("tokens_capitalincreaseexecution" in sql.lower() for sql in statements))
         with use_operator():
             self.assertEqual(capital_execution.recover(admit(self.request, self.actor).pk)["status"], "executed")
-        with acting_for(self.tenant.user.pk):
-            draft = CapitalIncreaseRequest.objects.create(
-                token=self.token,
-                additional_shares=50,
-                new_authorized_total=1050,
-                purpose="Issuer submission",
-                board_resolution_reference="SUBMIT-BOARD",
-            )
-            submit_capital_increase(draft, self.tenant.user)
-            self.assertEqual(draft.status, "submitted")
 
     def test_public_cap_guard_refuses_issuer_mutation_and_preserves_pause_without_private_access(self):
         with use_operator():
@@ -109,16 +101,12 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
         with use_operator():
             self.assertEqual(capital_execution.recover(self.request.dispatch_id)["status"], "executed")
 
-    def test_admin_commits_command_request_and_exact_job_before_any_provider_call(self):
+    def test_company_apply_commits_original_request_and_exact_active_alias_job_before_signing(self):
+        with patch("tokens.services.capital_execution._enqueue", self.company_capital.enqueue):
+            self.company_capital.capital_decide(self.proposal, "apply")
         with use_operator():
             self.client.force_login(self.actor)
-        url = reverse("admin:tokens_capitalincreaserequest_execute", args=[self.request.pk])
-        page = self.client.get(url)
-        self.assertEqual(page.status_code, 200)
-        payload = {"confirmation": page.context["form"]["confirmation"].value()}
-        self.assertEqual(self.client.post(url, payload).status_code, 302)
-        with use_operator():
-            command = CapitalIncreaseExecution.objects.get()
+            command = CapitalIncreaseExecution.objects.get(request_id=self.request.pk)
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, "executing")
             self.assertEqual(command.executed_by_id, self.actor.pk)
@@ -134,7 +122,12 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
                     execution_id=str(command.pk),
                 ),
             )
-        self.node.client.assert_expected_chain.assert_not_called()
+        self.node.client.send_raw_transaction.assert_not_called()
+        url = reverse("admin:tokens_capitalincreaserequest_execute", args=[self.request.pk])
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        payload = {"confirmation": page.context["form"]["confirmation"].value()}
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
         self.assertEqual(self.client.post(url, payload).status_code, 302)
         self.assertEqual(len(set(self.queued()) - self.initial_jobs), 1)
         seen = []
@@ -145,7 +138,7 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
             with connection.cursor() as cursor:
                 cursor.execute("SELECT current_user")
                 seen.append((current_alias(), cursor.fetchone()[0], connection.get_autocommit()))
-            self.assertEqual(BlockchainTransaction.objects.get().tx_hash, SignedAttempt.objects.get().tx_hash)
+            self.assertEqual(self.transactions.get().tx_hash, self.attempts.get().tx_hash)
             return send(raw)
 
         self.node.client.send_raw_transaction.side_effect = observed
@@ -155,15 +148,15 @@ class ScopedCapitalExecutionTest(RunsOnTheScopedConnection, TransactionTestCase)
             self.assertEqual(principal_of(APP_ALIAS), str(self.tenant.user.pk))
         self.assertEqual(seen, [(OPERATOR_ALIAS, settings.RLS_ROLES[OPERATOR_ALIAS], True)])
 
-    def test_admission_job_failure_rolls_back_public_hold_and_private_command_together(self):
+    def test_admission_job_failure_rolls_back_the_exact_company_outcome_and_original_hold(self):
+        with patch("tokens.services.capital_execution._enqueue", side_effect=DatabaseError("Synthetic queue error")):
+            with self.assertRaises(DatabaseError):
+                self.company_capital.capital_decide(self.proposal, "apply")
         with use_operator():
-            form = capital_execution.confirmation(self.request, self.actor)
-            with patch(
-                "tokens.tasks.execute_review_request_task.defer", side_effect=DatabaseError("Synthetic queue error")
-            ):
-                with self.assertRaises(DatabaseError):
-                    capital_execution.admit(self.request, self.actor, confirmed=form)
             self.request.refresh_from_db()
-            self.assertEqual(self.request.status, "approved")
+            self.proposal.refresh_from_db()
+            self.assertEqual(self.request.status, "under_review")
+            self.assertEqual(self.proposal.status, "submitted")
+            self.assertEqual(list(self.proposal.decisions.values_list("kind", flat=True)), ["approve"])
             self.assertFalse(CapitalIncreaseExecution.objects.exists())
         self.assertEqual(set(self.queued()), self.initial_jobs)

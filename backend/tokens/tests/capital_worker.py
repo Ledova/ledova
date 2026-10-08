@@ -20,6 +20,8 @@ def run(directory, phase, request_id, actor_id, confirmation):
     if database["ENGINE"] != "django.db.backends.postgresql":
         raise RuntimeError("Capital crash controls require real PostgreSQL")
     settings.DATABASES = {"default": database}
+    settings.PRIVATE_MEDIA_ROOT = os.environ["CAPITAL_TEST_PRIVATE_MEDIA_ROOT"]
+    settings.STORAGES = json.loads(os.environ["CAPITAL_TEST_STORAGES"])
     settings.BLOCKCHAIN_OPERATOR_KEY = "0x" + "11" * 32
     settings.BLOCKCHAIN_CHAIN_ID = 31337
     django.setup()
@@ -33,7 +35,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
     from tokens.exceptions import CapitalIncreaseConflict
     from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest
     from tokens.services import capital_execution
-    from tokens.tests.capital_fixtures import CapitalNode
+    from tokens.tests.capital_fixtures import CapitalNode, admit
 
     request = CapitalIncreaseRequest.objects.get(pk=request_id)
     actor = get_user_model().objects.get(pk=actor_id)
@@ -139,7 +141,10 @@ def run(directory, phase, request_id, actor_id, confirmation):
     node.contract.functions.authorizedShares.return_value.call.side_effect = cap
     with ExitStack() as stack:
         stack.enter_context(patch("tokens.services.capital_execution.get_base_chain_client", return_value=node.client))
-        stack.enter_context(patch("tokens.tasks.execute_review_request_task.defer"))
+        stack.enter_context(
+            patch("tokens.services.register_capital_increases.get_base_chain_client", return_value=node.client)
+        )
+        stack.enter_context(patch("tokens.services.capital_execution._enqueue"))
         stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(outgoing, "open_operation", opened))
         if phase == "attributed":
@@ -149,7 +154,17 @@ def run(directory, phase, request_id, actor_id, confirmation):
         if phase in ("before_revert_projection", "mined_before_projection"):
             stack.enter_context(patch.object(capital_execution, "_project", projected))
         if phase != "recover":
-            capital_execution.admit(request, actor, confirmed=confirmation)
+            saved_confirmation = directory / "admission-confirmation"
+            prior = CapitalIncreaseExecution.objects.filter(request_id=request.pk).first()
+            if confirmation == "current-company-application" and prior is not None:
+                confirmation = (
+                    saved_confirmation.read_text()
+                    if saved_confirmation.exists()
+                    else capital_execution.confirmation(request, actor)
+                )
+            admit(request, actor, confirmed=confirmation)
+            if not saved_confirmation.exists():
+                saved_confirmation.write_text(capital_execution.confirmation(request, actor))
         if phase == "admitted":
             os.kill(os.getpid(), signal.SIGKILL)
         if phase == "race":

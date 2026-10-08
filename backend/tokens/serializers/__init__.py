@@ -1,5 +1,4 @@
 from .capital_increase import (
-    CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
 )
@@ -28,7 +27,6 @@ from .transfer_order import (
 
 __all__ = [
     "FormerMemberSerializer",
-    "CapitalIncreaseCreateSerializer",
     "CapitalIncreaseDetailSerializer",
     "CapitalIncreaseListSerializer",
     "ShareIssuanceListSerializer",

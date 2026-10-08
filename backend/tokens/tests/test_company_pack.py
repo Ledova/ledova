@@ -571,8 +571,9 @@ def pack_company(label):
     ).register
     entered(second, "issue", (members["buyer"], 4))
     increase = CapitalIncreaseRequest.objects.get(pk=tenant.capital_increase.pk)
-    increase.submit(company.owner, Decimal("9.09"))
-    increase.approve(reviewer, "Synthetic approval")
+    from tokens.tests.retained_capital_fixtures import approve_retained_capital_request
+
+    approve_retained_capital_request(increase, company.owner, reviewer, Decimal("9.09"), "Synthetic approval")
     return SimpleNamespace(
         label=label,
         tenant=tenant,

@@ -4,7 +4,11 @@ from django.test import TransactionTestCase, override_settings
 from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest
-from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit, capital_request
+from tokens.tests.capital_fixtures import CHAIN_ID, KEY
+from tokens.tests.retained_capital_fixtures import (
+    install_retained_capital,
+    retain_capital_execution,
+)
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
@@ -64,8 +68,11 @@ class CapitalExecutionMigrationTest(TransactionTestCase):
 
     def test_reverse_refuses_to_erase_committed_capital_admission(self):
         self.addCleanup(restore_every_migration)
-        tenant, actor = capital_request("capital-reverse")
-        command = admit(tenant.capital_increase, actor)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted capital execution history"):
-            migrate_to([("tokens", "0044_token_deployment_guards")])
+        install_retained_capital(self)
+        _, command = retain_capital_execution(token=self.token, actor=self.actor, client=self.node.client)
+        try:
+            with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted capital execution history"):
+                migrate_to([("tokens", "0044_token_deployment_guards")])
+        finally:
+            restore_every_migration()
         self.assertEqual(CapitalIncreaseExecution.objects.get(pk=command.pk).intent, command.intent)

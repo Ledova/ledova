@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCompanyToken,
   getCompanyTokenHolders,
@@ -7,10 +7,8 @@ import {
   getCapitalIncreases,
   getShareIssuanceRequests,
   readEveryPage,
-  submitCapitalIncrease,
   useSubmissionOwner,
   wholeShares,
-  type CompanyShareToken,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -54,20 +52,6 @@ export function useTokenDetail(uuid: string) {
   const enabled = !!owner && token.isSuccess && !!token.data && !token.isError;
   const isOwner = enabled && token.data!.isOwner === true;
   const ownerReads = isOwner && !token.isFetching;
-  const guardOwner = (status?: 'deployed') => {
-    guard();
-    const current = queryClient.getQueryState<CompanyShareToken>(tokenKey);
-    if (
-      current?.status !== 'success' ||
-      current.fetchStatus !== 'idle' ||
-      current.isInvalidated ||
-      current.data?.uuid !== uuid ||
-      current.data.companyUuid !== token.data?.companyUuid ||
-      !current.data.isOwner ||
-      (status && current.data.status !== status)
-    )
-      throw new Error('Refresh the owner share class before submitting this request.');
-  };
   const register = useQuery({
     queryKey: [...tokenKey, 'holders'],
     enabled,
@@ -108,28 +92,11 @@ export function useTokenDetail(uuid: string) {
         queryKey: ['register-deployment-appointments', epoch, owner?.userUuid, owner?.ownerAccountUuid, uuid],
       }),
     ]);
-  const submitCapital = useMutation({
-    mutationFn: async (requestUuid: string) => {
-      guardOwner();
-      const response = await submitCapitalIncrease(apiClient, requestUuid, {
-        ledovaSessionEpoch: epoch,
-        ledovaSubmissionGuard: () => guardOwner(),
-      });
-      guardOwner();
-      return response;
-    },
-    onSuccess: async () => {
-      guardOwner();
-      await refresh();
-      guardOwner();
-    },
-  });
   return {
     owner,
     boundary,
     epoch,
     guard,
-    guardOwner,
     tokenKey,
     token,
     isOwner,
@@ -137,7 +104,6 @@ export function useTokenDetail(uuid: string) {
     issuances,
     capital,
     requests,
-    submitCapital,
     refresh,
   };
 }

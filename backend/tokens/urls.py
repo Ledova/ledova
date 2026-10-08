@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
 from tokens import views
+from tokens.views.register_capital_increase import RegisterCapitalIncreaseViewSet
 from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_deployment import RegisterDeploymentViewSet
 from tokens.views.register_evidence import RegisterEvidenceViewSet
@@ -19,6 +20,7 @@ from tokens.views.register_transfer import RegisterTransferViewSet
 app_name = "tokens"
 
 router = DefaultRouter()
+router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")
 router.register(r"register-issues", RegisterIssueViewSet, basename="register-issues")
 router.register(r"register-corrections", RegisterCorrectionViewSet, basename="register-corrections")

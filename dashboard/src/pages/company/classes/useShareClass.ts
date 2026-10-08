@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCompanyToken,
   getCompanyTokenHolders,
@@ -7,11 +7,9 @@ import {
   getCapitalIncreases,
   getShareIssuanceRequests,
   readEveryPage,
-  submitCapitalIncrease,
   wholeShares,
   useSubmissionOwner,
   createUserFriendlyError,
-  type CompanyShareToken,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useRegisterDownload } from '../register/useCompanyRegister';
@@ -51,20 +49,6 @@ export function useShareClass(uuid: string) {
   });
   const enabled = !!owner && token.isSuccess;
   const isOwner = enabled && !token.isFetching && token.data.isOwner === true;
-  const guardOwner = (status?: 'deployed') => {
-    guard();
-    const current = queryClient.getQueryState<CompanyShareToken>(tokenKey);
-    if (
-      current?.status !== 'success' ||
-      current.fetchStatus !== 'idle' ||
-      current.isInvalidated ||
-      current.data?.uuid !== uuid ||
-      current.data.companyUuid !== token.data?.companyUuid ||
-      !current.data.isOwner ||
-      (status && current.data.status !== status)
-    )
-      throw createUserFriendlyError('Refresh the owner share class before submitting this request.');
-  };
   const register = useQuery({
     queryKey: [...tokenKey, 'holders'],
     enabled,
@@ -118,27 +102,11 @@ export function useShareClass(uuid: string) {
       queryClient.invalidateQueries({ queryKey: ['token', uuid] }),
       queryClient.invalidateQueries({ queryKey: ['tokens'] }),
     ]);
-  const submitCapital = useMutation({
-    mutationFn: async (requestUuid: string) => {
-      guardOwner();
-      const response = await submitCapitalIncrease(apiClient, requestUuid, {
-        ledovaSubmissionGuard: () => guardOwner(),
-      });
-      guardOwner();
-      return response;
-    },
-    onSuccess: async () => {
-      guardOwner();
-      await refresh();
-      guardOwner();
-    },
-  });
   const download = useRegisterDownload(uuid, token.data?.symbol);
   return {
     owner,
     boundary,
     guard,
-    guardOwner,
     tokenKey,
     isOwner,
     token,
@@ -146,7 +114,6 @@ export function useShareClass(uuid: string) {
     issuances,
     capital,
     requests,
-    submitCapital,
     download,
     refresh,
   };

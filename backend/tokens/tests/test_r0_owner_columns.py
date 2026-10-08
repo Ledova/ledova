@@ -16,9 +16,11 @@ from tokens.models import (
     SwapOrder,
 )
 from tokens.serializers.capital_increase import (
-    CapitalIncreaseCreateSerializer,
     CapitalIncreaseDetailSerializer,
     CapitalIncreaseListSerializer,
+)
+from tokens.serializers.register_capital_increase import (
+    RegisterCapitalIncreaseCreateSerializer,
 )
 from tokens.serializers.share_issuance_request import ShareIssuanceRequestSerializer
 from tokens.serializers.swap_order import (
@@ -106,7 +108,7 @@ class TheOwnerColumnsAreNotWritableThroughAnySerializerTest(TestCase):
             (SwapOrderDetailSerializer, "buyer_wallet"),
             (CapitalIncreaseListSerializer, "company"),
             (CapitalIncreaseDetailSerializer, "company"),
-            (CapitalIncreaseCreateSerializer, "company"),
+            (RegisterCapitalIncreaseCreateSerializer, "company"),
             (ShareIssuanceRequestSerializer, "company"),
         ):
             with self.subTest(serializer=serializer.__name__):

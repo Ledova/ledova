@@ -31,6 +31,10 @@ from .register import (
     RegisterReconciliationStatus,
     ShareRegister,
 )
+from .register_capital_increase import (
+    RegisterCapitalIncrease,
+    RegisterCapitalIncreaseDecision,
+)
 from .register_correction import (
     RegisterCorrection,
     RegisterCorrectionAuthority,
@@ -101,6 +105,8 @@ __all__ = [
     "OrderSubmissionStatus",
     "RequestStatus",
     "RegisterAcknowledgement",
+    "RegisterCapitalIncrease",
+    "RegisterCapitalIncreaseDecision",
     "RegisterCorrection",
     "RegisterCorrectionAuthority",
     "RegisterCorrectionDecision",

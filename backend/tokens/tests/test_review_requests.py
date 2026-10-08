@@ -11,8 +11,9 @@ from integrations.base_chain.client import (
     HTTP_TIMEOUT_SECONDS,
     BaseChainClient,
 )
-from shared.db import atomic
+from shared.db import atomic, use_operator
 from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     RequestStatus,
@@ -20,7 +21,6 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.serializers import CapitalIncreaseDetailSerializer
-from tokens.services.capital_increase import submit_capital_increase
 from tokens.services.dilution import dilution_for
 from tokens.services.legacy_issuance import UNNAMED_MINT_GRACE
 from tokens.tasks.review_request import STALE_EXECUTION_AGE
@@ -47,25 +47,6 @@ class ReviewableRequestModelTest(TestCase):
         self.assertEqual(ShareIssuance.objects.completed_supply(self.token), 900)
         self.assertEqual(dilution_for(self.tenant.capital_increase), 10.0)
         self.assertEqual(dilution_for(issuance_request(self.token, amount=100)), 10.0)
-
-    def test_capital_increase_walks_submit_review_and_approval(self):
-        request = self.tenant.capital_increase
-        self.assertTrue(request.can_be_submitted)
-        self.assertFalse(request.can_be_approved)
-        with self.assertRaises(ValueError):
-            request.approve(self.tenant.user)
-
-        submit_capital_increase(request, self.tenant.user)
-        self.assertEqual(
-            (request.status, request.submitted_by, request.dilution_percentage), ("submitted", self.tenant.user, 0.0)
-        )
-        self.assertFalse(request.can_be_submitted)
-
-        request.start_review(self.tenant.user)
-        request.approve(self.tenant.user, notes="ok")
-        self.assertEqual((request.status, request.review_notes), (RequestStatus.APPROVED, "ok"))
-        self.assertIsNotNone(request.reviewed_at)
-        self.assertTrue(request.can_be_executed)
 
     def test_new_request_requires_admission_before_claiming_execution(self):
         request = issuance_request(self.token)
@@ -100,9 +81,11 @@ class StatusDataMigrationTest(TransactionTestCase):
     def test_pending_approval_maps_to_submitted_and_back(self):
         migration = importlib.import_module("tokens.migrations.0012_reviewable_request")
         tenant = make_tenant("owner")
-        submit_capital_increase(tenant.capital_increase, tenant.user)
         self.addCleanup(restore_every_migration)
         historical = migrate_to([("tokens", "0046_capital_execution_guards")])
+        historical.get_model("tokens", "CapitalIncreaseRequest").objects.filter(pk=tenant.capital_increase.pk).update(
+            status="submitted"
+        )
         request = historical.get_model("tokens", "ShareIssuanceRequest").objects.create(
             token_id=tenant.deployed_token.pk,
             company_id=tenant.company.pk,
@@ -170,3 +153,129 @@ class CompanyReviewRequestAdmissionTest(TransactionTestCase):
         self.assertEqual(self.request.status, RequestStatus.EXECUTING)
         self.assertFalse(self.attempts.exists())
         self.assertFalse(self.node.broadcasts)
+
+
+class CompanyCapitalRequestAdmissionTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.capital_fixtures import install_capital
+
+        install_capital(self)
+
+    def test_human_approval_retains_the_request_and_only_the_exact_apply_admits_execution(self):
+        from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest
+        from tokens.tests.capital_fixtures import admit
+
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, RequestStatus.UNDER_REVIEW)
+        self.assertIsNone(self.request.reviewed_by_id)
+        self.assertFalse(self.request.can_be_submitted)
+        self.assertFalse(CapitalIncreaseExecution.objects.filter(request_id=self.request.pk).exists())
+        with self.assertRaises(DatabaseError), atomic():
+            self.request.approve(self.actor, notes="Staff approval cannot replace the company decision")
+        with self.assertRaises(DatabaseError), atomic():
+            CapitalIncreaseRequest.objects.filter(pk=self.request.pk).update(status=RequestStatus.APPROVED)
+        command = admit(self.request, self.actor)
+        self.request.refresh_from_db()
+        self.proposal.refresh_from_db()
+        self.assertEqual((self.request.status, self.request.reviewed_by_id), (RequestStatus.EXECUTING, self.actor.pk))
+        self.assertEqual(command.source_increase_id, self.proposal.pk)
+        self.assertEqual(self.proposal.status, "applied")
+        self.assertIsNotNone(self.proposal.approval_decision_id)
+        self.assertTrue(self.request.reviewed_at)
+        self.assertFalse(self.attempts.exists())
+        self.assertFalse(self.node.broadcasts)
+
+
+class SyntheticCompanyCapitalSeedTest(TransactionTestCase):
+    def setUp(self):
+        from tokens.tests.capital_fixtures import install_capital
+
+        install_capital(self)
+        self.company_capital.capital_decide(self.proposal, "reject", reason="Use the seed's exact proposal")
+
+    def item(self, status):
+        from types import SimpleNamespace
+
+        from django.utils import timezone
+
+        prior = timezone.now() - timedelta(days=30)
+        return SimpleNamespace(
+            key="demo-capital",
+            share_class="demo/ORD",
+            status=status,
+            additional=100,
+            new_total=1100,
+            purpose="Synthetic company cap-only raise",
+            board_reference="SYNTHETIC-BOARD",
+            created_at=prior,
+            submitted_at=None if status == "draft" else prior + timedelta(hours=1),
+            decided_at=prior + timedelta(days=1),
+            decision="A smaller replacement is needed",
+        )
+
+    def records(self):
+        from types import SimpleNamespace
+
+        return SimpleNamespace(classes={"demo/ORD": self.token}, owner=lambda key: self.owner, run=lambda: None)
+
+    def test_a_retained_synthetic_draft_has_no_company_decision_or_execution(self):
+        from shared.seeds.synthetic.chain.classes import apply_raise
+        from tokens.models import CapitalIncreaseExecution, RegisterCapitalIncrease
+
+        item = self.item("draft")
+        request = apply_raise(item, self.records())
+        self.assertEqual((request.status, request.created_at), ("draft", item.created_at))
+        self.assertFalse(RegisterCapitalIncrease.objects.filter(request=request).exists())
+        self.assertFalse(CapitalIncreaseExecution.objects.filter(request_id=request.pk).exists())
+
+    def test_a_synthetic_rejection_is_the_companys_evidenced_decision(self):
+        from shared.seeds.synthetic.chain.classes import apply_raise
+        from tokens.models import CapitalIncreaseExecution, RegisterCapitalIncrease
+
+        records = self.records()
+        request = apply_raise(self.item("rejected"), records)
+        proposal = RegisterCapitalIncrease.objects.get(request=request)
+        self.assertEqual((request.status, request.rejection_reason), ("rejected", "A smaller replacement is needed"))
+        self.assertEqual(proposal.reviewed_by_id, self.owner.pk)
+        self.assertEqual(proposal.authority_evidence.uploaded_by_id, self.owner.pk)
+        self.assertTrue(proposal.file.read())
+        self.assertFalse(CapitalIncreaseExecution.objects.filter(request_id=request.pk).exists())
+
+    def test_a_synthetic_raise_runs_the_original_company_job_without_staff_capital_approval(self):
+        from blockchain.models import SignedAttempt
+        from shared.seeds.synthetic.chain.classes import apply_raise
+        from shared.seeds.synthetic.chain.deferred import captured
+        from tokens.models import CapitalIncreaseExecution, RegisterCapitalIncrease
+        from tokens.tasks import execute_review_request_task
+
+        records = self.records()
+        with captured() as deferrals, patch("tokens.services.capital_execution._enqueue", self.company_capital.enqueue):
+            records.run = lambda: deferrals.run({execute_review_request_task.name: execute_review_request_task})
+            request = apply_raise(self.item("executed"), records)
+        proposal = RegisterCapitalIncrease.objects.get(request=request)
+        execution = CapitalIncreaseExecution.objects.get(request_id=request.pk)
+        self.token.refresh_from_db()
+        self.assertEqual((request.status, self.token.total_supply), ("executed", "1100"))
+        self.assertEqual((request.reviewed_by_id, execution.executed_by_id), (self.owner.pk, self.owner.pk))
+        self.assertEqual(execution.source_increase_id, proposal.pk)
+        self.assertIsNotNone(proposal.approval_decision_id)
+        self.assertEqual(SignedAttempt.objects.filter(operation=execution.operation).count(), 1)
+        self.assertFalse(ShareIssuance.objects.filter(token=self.token).exists())
+
+
+class ScopedSyntheticCompanyCapitalSeedTest(RunsOnTheScopedConnection, SyntheticCompanyCapitalSeedTest):
+    def setUp(self):
+        with use_operator():
+            super().setUp()
+
+    def test_a_retained_synthetic_draft_has_no_company_decision_or_execution(self):
+        with use_operator():
+            super().test_a_retained_synthetic_draft_has_no_company_decision_or_execution()
+
+    def test_a_synthetic_rejection_is_the_companys_evidenced_decision(self):
+        with use_operator():
+            super().test_a_synthetic_rejection_is_the_companys_evidenced_decision()
+
+    def test_a_synthetic_raise_runs_the_original_company_job_without_staff_capital_approval(self):
+        with use_operator():
+            super().test_a_synthetic_raise_runs_the_original_company_job_without_staff_capital_approval()

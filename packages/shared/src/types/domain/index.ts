@@ -38,3 +38,4 @@ export * from './publication';
 export * from './order-action';
 export * from './swap-settlement';
 export * from './register-issue';
+export * from './register-capital-increase';

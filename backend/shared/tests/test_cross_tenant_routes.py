@@ -328,6 +328,15 @@ REGISTER_ISSUE_ROUTES = {
     "decide": ("post", "/api/v1/tokens/register-issues/{uuid}/decide/"),
 }
 
+REGISTER_CAPITAL_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-capital-increases/"),
+    "list": ("get", "/api/v1/tokens/register-capital-increases/"),
+    "detail": ("get", "/api/v1/tokens/register-capital-increases/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-capital-increases/{uuid}/file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-capital-increases/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-capital-increases/{uuid}/decide/"),
+}
+
 REGISTER_GRANT_ROUTES = {
     "create": ("post", "/api/v1/tokens/register-grants/"),
     "list": ("get", "/api/v1/tokens/register-grants/"),
@@ -472,8 +481,6 @@ ROUTES = (
         {"company": "{company}", "name": "New shares", "symbol": "NEW", "totalSupply": "1000"},
         foreign=400,
     ),
-    Route("post", "/api/v1/tokens/capital-increases/{capital_increase}/submit/", {}),
-    Route("post", "/api/v1/tokens/capital-increases/", {"token": "{deployed_token}", **CAPITAL_INCREASE}),
     Route("get", "/api/v1/offerings/{offering}/"),
     Route("patch", "/api/v1/offerings/{offering}/", {"summary": "Changed"}),
     Route("delete", "/api/v1/offerings/{offering}/", prepare=_clear_subscriptions),
@@ -1514,6 +1521,86 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             )
         self.assertEqual(response.json()["status"], "applied")
         self.assertEqual(response.json()["execution"]["status"], "queued")
+
+    def test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence(self):
+        from rest_framework.test import APIClient
+
+        from tokens.models import CapitalIncreaseExecution
+        from tokens.tests.company_capital_fixtures import CompanyCapitalCases
+
+        class Fixture(CompanyCapitalCases, APITransactionTestCase):
+            pass
+
+        fixture = Fixture(methodName="setUp")
+        fixture.client = APIClient()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        payload = fixture.capital_payload()
+        payload.pop("actor")
+        payload = {key: str(value) if hasattr(value, "hex") else value for key, value in payload.items()}
+        self.client.force_authenticate(fixture.owner)
+        created = self.client.post(REGISTER_CAPITAL_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        identifier = created.json()["uuid"]
+        self.assertNotIn("submittedByEmail", created.json())
+        self.assertNotIn("file", created.json())
+        self.assertNotIn("intent", created.json())
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            self.assertEqual(
+                self.client.post(REGISTER_CAPITAL_ROUTES["create"][1], payload, format="json").status_code, 404
+            )
+            self.assertEqual(self.rows(self.client.get(REGISTER_CAPITAL_ROUTES["list"][1])), [])
+            for name in ("detail", "file", "decision_preview", "decide"):
+                method, template = REGISTER_CAPITAL_ROUTES[name]
+                body = {
+                    "appointment": str(fixture.initial.pk),
+                    "kind": "approve",
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": "0" * 64,
+                    "confirmation": True,
+                }
+                denied = getattr(self.client, method)(template.format(uuid=identifier), body, format="json")
+                absent = getattr(self.client, method)(template.format(uuid=uuid4()), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content), name)
+                self.assertEqual(denied.status_code, 404, denied.content)
+        self.client.force_authenticate(None)
+        for name, (method, path) in REGISTER_CAPITAL_ROUTES.items():
+            self.assertEqual(
+                getattr(self.client, method)(path.format(uuid=identifier), payload, format="json").status_code,
+                401,
+                name,
+            )
+        self.client.force_authenticate(fixture.owner)
+        self.assertEqual(
+            [row["uuid"] for row in self.rows(self.client.get(REGISTER_CAPITAL_ROUTES["list"][1]))], [identifier]
+        )
+        response = self.client.get(REGISTER_CAPITAL_ROUTES["file"][1].format(uuid=identifier))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        for kind in ("approve", "apply"):
+            body = {"appointment": str(fixture.initial.pk), "kind": kind}
+            preview = self.client.post(
+                REGISTER_CAPITAL_ROUTES["decision_preview"][1].format(uuid=identifier), body, format="json"
+            )
+            self.assertEqual(preview.status_code, 200, preview.content)
+            self.assertTrue(preview.json()["canDecide"], preview.content)
+            response = self.client.post(
+                REGISTER_CAPITAL_ROUTES["decide"][1].format(uuid=identifier),
+                {
+                    **body,
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": preview.json()["previewDigest"],
+                    "confirmation": True,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+        with self.as_an_operator_would():
+            self.assertEqual(
+                CapitalIncreaseExecution.objects.get(source_increase_id=identifier).executed_by_id, fixture.owner.pk
+            )
+        self.assertEqual((response.json()["status"], response.json()["execution"]["status"]), ("applied", "executing"))
 
     def test_register_deployments_scope_all_five_routes_to_current_company_read_and_steps(self):
         from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
@@ -2719,3 +2806,20 @@ class CompanyWalletRouteMatrixTest(CompanyWalletCases, APITransactionTestCase):
 
 class ScopedCompanyWalletRouteMatrixTest(RunsOnTheScopedConnection, CompanyWalletRouteMatrixTest):
     pass
+
+
+class ScopedCompanyCapitalRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
+    rows = staticmethod(CrossTenantRouteMatrixTest.rows)
+    test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence = getattr(
+        CrossTenantRouteMatrixTest,
+        "test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence",
+    )
+
+    def setUp(self):
+        super().setUp()
+        with use_operator():
+            self.actors = (
+                make_tenant("capital-foreign"),
+                make_tenant("capital-foreign-staff", staff=True),
+                make_tenant("capital-foreign-root", superuser=True),
+            )

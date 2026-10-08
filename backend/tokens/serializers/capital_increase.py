@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from tokens.exceptions import InvalidTokenStateException
-from tokens.models import CapitalIncreaseRequest, ShareTokenStatus
+from tokens.models import CapitalIncreaseRequest
 
 
 class CapitalIncreaseListSerializer(serializers.ModelSerializer):
@@ -72,52 +71,3 @@ class CapitalIncreaseDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = fields
-
-
-class CapitalIncreaseCreateSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = CapitalIncreaseRequest
-        fields = [
-            "additional_shares",
-            "new_authorized_total",
-            "purpose",
-            "board_resolution_reference",
-            "shareholder_approval_reference",
-        ]
-
-    def validate_additional_shares(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Additional shares must be greater than zero")
-        return value
-
-    def validate_new_authorized_total(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("New authorized total must be greater than zero")
-        return value
-
-    def validate(self, attrs):
-        token = self.context["token"]
-        if token.status != ShareTokenStatus.DEPLOYED:
-            raise InvalidTokenStateException("Capital increase requests can only be created for deployed tokens.")
-
-        additional = attrs["additional_shares"]
-        current_supply = int(token.total_supply) if token.total_supply else 0
-        expected_new_total = current_supply + additional
-        if attrs["new_authorized_total"] < expected_new_total:
-            raise serializers.ValidationError(
-                {
-                    "new_authorized_total": (
-                        f"Must be at least current supply ({current_supply}) + "
-                        f"additional shares ({additional}) = {expected_new_total}"
-                    )
-                }
-            )
-        return attrs
-
-
-class CapitalIncreaseCreateRequestSerializer(CapitalIncreaseCreateSerializer):
-    token = serializers.UUIDField()
-
-    class Meta(CapitalIncreaseCreateSerializer.Meta):
-        fields = ["token", *CapitalIncreaseCreateSerializer.Meta.fields]
