@@ -18,8 +18,8 @@ from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
 from companies.services.authority_requests import submit_authority_request
 from companies.tests.test_authority_requests import authority_fixture, evidence
 from documents.models import Document, DocumentType
-from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.db import atomic, use_migrate
+from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
 from shareholders.models import Publication, PublicationEvent
