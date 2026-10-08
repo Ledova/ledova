@@ -44,6 +44,10 @@ retained approval and original execution recovery. The second increment implemen
 retaining genuine possession proof, exact company approval and original journal
 execution. Company issuance, capital and pause conversion remain later #867
 increments.
+The first #866 [Profile increment](member-profile.md) exposes own full-name,
+residential-address and phone edits through the existing Profile API in both
+clients. Own register access, confirmations, certificate requests and walletless
+attribution remain separate increments.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,
 offering and register workflows.
 The #862 lifecycle provides [authority requests, self-declaration admission and

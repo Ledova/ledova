@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { clearTokens } from '../../services/tokenStorage';
+import { invalidateSessionScope } from '../../services/sessionScope';
 import { resetFiles } from '../../testSupport/documentFiles';
 import { UserProfileScreen } from '../user-profile';
 import { SettingsScreen } from '../settings';
@@ -98,6 +99,10 @@ afterEach(async () => {
 });
 
 async function screen(element: React.ReactElement) {
+  if (element.type === UserProfileScreen)
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: profile.uuid, userAccount: { uuid: 'account-one', role: 'investor' } },
+    });
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>{element}</ApiClientProvider>
@@ -113,7 +118,7 @@ async function settingsScreen() {
 
 async function editPhone() {
   const view = await screen(<UserProfileScreen />);
-  await fireEvent.press(await view.findByText('Edit phone'));
+  await fireEvent.press(await view.findByText('Edit personal details'));
   await fireEvent.changeText(view.getByLabelText('Country code'), '+64');
   await fireEvent.changeText(view.getByLabelText('Phone number'), '200000002');
   return view;
@@ -133,14 +138,21 @@ it('reads the profile without the old portfolio and notification requests', asyn
   expect(await view.findByText('Synthetic Member')).toBeTruthy();
   expect(view.getByText('+61 400000001')).toBeTruthy();
   expect(apiClient.get).toHaveBeenCalledTimes(1);
-  expect(apiClient.get).toHaveBeenCalledWith(PROFILE);
+  expect(apiClient.get).toHaveBeenCalledWith(
+    PROFILE,
+    expect.objectContaining({
+      signal: expect.anything(),
+      ledovaSubmissionGuard: expect.any(Function),
+      ledovaSessionEpoch: expect.any(Number),
+    }),
+  );
 });
 
 it('reports an initial profile refusal and retries the current profile', async () => {
   profileFailure = true;
   const view = await screen(<UserProfileScreen />);
   expect(await view.findByText('Your profile could not be loaded.')).toBeTruthy();
-  expect(view.queryByText('Edit phone')).toBeNull();
+  expect(view.queryByText('Edit personal details')).toBeNull();
   profileFailure = false;
   await fireEvent.press(view.getByText('Try again'));
   expect(await view.findByText('Synthetic Member')).toBeTruthy();
@@ -153,37 +165,47 @@ it('retains phone edits through a failed refresh and permits save only after rec
   expect(await view.findByText('Your profile could not be loaded.')).toBeTruthy();
   expect(view.queryByText('Synthetic Member')).toBeNull();
   expect(view.getByLabelText('Phone number').props.value).toBe('200000002');
-  await fireEvent.press(view.getByText('Save phone'));
+  await fireEvent.press(view.getByText('Save personal details'));
   expect(apiClient.patch).not.toHaveBeenCalled();
   profileFailure = false;
   await fireEvent.press(view.getByText('Try again'));
   await view.findByText('Synthetic Member');
-  await waitFor(() => expect(view.getByRole('button', { name: 'Save phone' })).toBeEnabled());
-  await fireEvent.press(view.getByText('Save phone'));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Save personal details' })).toBeEnabled());
+  await fireEvent.press(view.getByText('Save personal details'));
   await waitFor(() =>
-    expect(apiClient.patch).toHaveBeenCalledWith('/api/user-profiles/synthetic-member/', {
-      phoneCountryCode: '+64',
-      phoneNumber: '200000002',
-    }),
+    expect(apiClient.patch).toHaveBeenCalledWith(
+      '/api/user-profiles/synthetic-member/',
+      {
+        fullName: profile.fullName,
+        residentialAddress: '',
+        phoneCountryCode: '+64',
+        phoneNumber: '200000002',
+      },
+      expect.objectContaining({
+        signal: expect.anything(),
+        ledovaSubmissionGuard: expect.any(Function),
+        ledovaSessionEpoch: expect.any(Number),
+      }),
+    ),
   );
-  expect(await view.findByText('Edit phone')).toBeTruthy();
+  expect(await view.findByText('Edit personal details')).toBeTruthy();
 });
 
 it('retains a refused phone draft and guards cancellation and duplicate submission while saving', async () => {
   const view = await editPhone();
   const pending = deferred<{ data: typeof profile }>();
   jest.mocked(apiClient.patch).mockReturnValueOnce(pending.promise);
-  await fireEvent.press(view.getByText('Save phone'));
+  await fireEvent.press(view.getByText('Save personal details'));
   await view.findByText('Saving…');
   await fireEvent.press(view.getByText('Cancel'));
   await fireEvent.press(view.getByText('Saving…'));
   expect(view.getByLabelText('Phone number').props.editable).toBe(false);
   expect(apiClient.patch).toHaveBeenCalledTimes(1);
   await act(() => pending.reject(new Error('Synthetic save refusal')));
-  expect(await view.findByText('Your phone number could not be saved. Try again.')).toBeTruthy();
+  expect(await view.findByText('Your personal details could not be saved. Try again.')).toBeTruthy();
   expect(view.getByLabelText('Phone number').props.value).toBe('200000002');
-  await fireEvent.press(view.getByText('Save phone'));
-  expect(await view.findByText('Edit phone')).toBeTruthy();
+  await fireEvent.press(view.getByText('Save personal details'));
+  expect(await view.findByText('Edit personal details')).toBeTruthy();
   expect(apiClient.patch).toHaveBeenCalledTimes(2);
 });
 
@@ -349,4 +371,81 @@ it('reports a refused biometric action and allows another attempt', async () => 
   await fireEvent(view.getByLabelText('Touch ID sign in'), 'valueChange', true);
   await waitFor(() => expect(view.queryByText('Authentication could not be completed. Try again.')).toBeNull());
   expect(mockLock.enableBiometricLogin).toHaveBeenCalledTimes(2);
+});
+
+it('saves self-reported profile name and address alongside phone without verification fields', async () => {
+  let currentProfile = { ...profile };
+  const originalRead = jest.mocked(apiClient.get).getMockImplementation()!;
+  jest
+    .mocked(apiClient.get)
+    .mockImplementation((url, config) =>
+      url === PROFILE
+        ? Promise.resolve({ data: { results: [currentProfile], count: 1, next: null, previous: null } })
+        : originalRead(url, config),
+    );
+  jest.mocked(apiClient.patch).mockImplementationOnce(async (_url, body) => {
+    currentProfile = { ...profile, ...(body as Record<string, unknown>) };
+    return { data: currentProfile };
+  });
+  const view = await editPhone();
+  await fireEvent.changeText(view.getByLabelText('Full name'), 'Synthetic Updated');
+  await fireEvent.changeText(view.getByLabelText('Residential address'), '24 Example Road\nSydney');
+  await fireEvent.press(view.getByText('Save personal details'));
+  await waitFor(() => expect(apiClient.patch).toHaveBeenCalledTimes(1));
+  expect(jest.mocked(apiClient.patch).mock.calls[0]![1]).toEqual({
+    fullName: 'Synthetic Updated',
+    residentialAddress: '24 Example Road\nSydney',
+    phoneCountryCode: '+64',
+    phoneNumber: '200000002',
+  });
+  expect(jest.mocked(apiClient.patch).mock.calls[0]![0]).toBe(PROFILE + profile.uuid + '/');
+  expect(await view.findByText('Synthetic Updated')).toBeTruthy();
+  expect(view.getByText('24 Example Road\nSydney')).toBeTruthy();
+});
+
+it.each(['logout', 'account', 'epoch'])(
+  'rejects a pending profile save and retires its personal editor after %s',
+  async (change) => {
+    const view = await editPhone();
+    const pending = deferred<{ data: typeof profile }>();
+    jest.mocked(apiClient.patch).mockReturnValueOnce(pending.promise);
+    await fireEvent.press(view.getByText('Save personal details'));
+    await waitFor(() => expect(apiClient.patch).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      if (change === 'logout') client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+      else if (change === 'account')
+        client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+          data: { userProfile: 'profile-other', userAccount: { uuid: 'account-other', role: 'investor' } },
+        });
+      else invalidateSessionScope();
+      pending.resolve({ data: profile });
+    });
+    expect(view.queryByLabelText('Residential address')).toBeNull();
+    expect(apiClient.patch).toHaveBeenCalledTimes(1);
+  },
+);
+
+it('rejects a foreign profile response without exposing its personal details', async () => {
+  jest
+    .mocked(apiClient.get)
+    .mockResolvedValue({ data: { results: [{ ...profile, uuid: 'profile-other' }], next: null } });
+  const view = await screen(<UserProfileScreen />);
+  expect(await view.findByText('Your profile could not be loaded.')).toBeTruthy();
+  expect(view.queryByText(profile.fullName)).toBeNull();
+  expect(view.queryByText('Edit personal details')).toBeNull();
+  expect(apiClient.patch).not.toHaveBeenCalled();
+});
+
+it('rejects a late profile read after a same-account epoch change without caching its personal fields', async () => {
+  const pending = deferred<{ data: { results: Array<typeof profile>; next: null } }>();
+  jest.mocked(apiClient.get).mockReturnValueOnce(pending.promise);
+  const view = await screen(<UserProfileScreen />);
+  await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    invalidateSessionScope();
+    pending.resolve({ data: { results: [{ ...profile, fullName: 'Obsolete private name' }], next: null } });
+  });
+  expect(view.queryByText('Obsolete private name')).toBeNull();
+  expect(JSON.stringify(client.getQueriesData({ queryKey: ['userProfiles'] }))).not.toContain('Obsolete private name');
+  expect(apiClient.patch).not.toHaveBeenCalled();
 });
