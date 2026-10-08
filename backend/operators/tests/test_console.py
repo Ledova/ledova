@@ -25,7 +25,6 @@ from operators.models import Operator
 from operators.services import configuration_health, worklist
 from shared.tests.test_admin_row_actions import grant, staff_user
 from tokens.models import (
-    CapitalIncreaseRequest,
     IssuanceStatus,
     RegisterMemberWallet,
     RequestStatus,
@@ -39,6 +38,7 @@ from tokens.models import (
 from tokens.services.register import stored_register
 from tokens.services.register_events import create_member, open_register
 from tokens.tasks.deployment import PENDING_DEPLOYMENT_AGE
+from tokens.tests.capital_fixtures import capital_request
 from tokens.tests.test_register_events import DAY
 from users.models import (
     InvestorCategory,
@@ -198,14 +198,7 @@ class WorklistTest(TestCase):
             status="active",
         )
         self._request(under_review, RequestStatus.SUBMITTED)
-        CapitalIncreaseRequest.objects.create(
-            token=under_review,
-            additional_shares=10,
-            new_authorized_total=10010,
-            purpose="Growth",
-            board_resolution_reference="BOARD-CONSOLE",
-            status=RequestStatus.SUBMITTED,
-        )
+        capital_request(self)
         stuck = self._token("STK", status=ShareTokenStatus.DEPLOYING)
         ShareToken.objects.filter(pk=stuck.pk).update(updated_at=timezone.now() - PENDING_DEPLOYMENT_AGE * 2)
         ShareIssuance.objects.create(
