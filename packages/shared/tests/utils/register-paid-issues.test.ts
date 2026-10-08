@@ -363,3 +363,35 @@ it('keeps never-signed source loss, cancellation, failure, signed and reverted o
   ] as const)
     expect(registerPaidIssueExecutionState({ ...record, execution: { ...original, ...changed } })).toBe(label);
 });
+
+it.each(
+  [false, true].flatMap((recorded) =>
+    [
+      ['date array', ['2026-10-08T00:02:00Z']],
+      ['number', 1],
+    ].map(([valueName, value]) => [recorded, valueName, value] as const),
+  ),
+)(
+  'refuses a finalised paid mint label with register recorded=%s and a coercible %s timestamp',
+  (recorded, _name, value) => {
+    const record = admitted();
+    record.execution = {
+      ...record.execution!,
+      status: 'executed',
+      issuance: ID(150),
+      operationId: ID(151),
+      claimId: ID(152),
+      transaction: ID(153),
+      operationStatus: 'confirmed',
+      txHash: `0x${'3'.repeat(64)}`,
+      blockNumber: 7,
+      blockHash: `0x${'4'.repeat(64)}`,
+      completedAt: value as unknown as string,
+      registerEntry: recorded ? ID(154) : null,
+      effectiveOn: recorded ? '2026-10-08' : null,
+    };
+    expect(registerPaidIssueExecutionState(record)).toBe(
+      'Original marked executed; complete original mint receipt unavailable',
+    );
+  },
+);
