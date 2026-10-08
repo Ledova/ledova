@@ -23,7 +23,8 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { invalidateSessionScope } from '../../services/sessionScope';
 import { pickedFile, resetFiles, files, nativeFileSystem } from '../../testSupport/documentFiles';
-import { TokenDetailScreen } from './TokenDetailScreen';
+import { CompanyIssueFlow } from './CompanyIssueFlow';
+import { useTokenDetail } from './useTokenDetail';
 
 jest.mock('../../services/apiClient', () => ({
   apiClient: { get: jest.fn(), post: jest.fn(), defaults: { transformRequest: [] } },
@@ -354,7 +355,17 @@ function wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 function screen() {
-  return <TokenDetailScreen route={{ params: { uuid: TOKEN } }} />;
+  return <Subject />;
+}
+function Subject() {
+  const data = useTokenDetail(TOKEN);
+  return (
+    <CompanyIssueFlow
+      key={`company-issues/${TOKEN}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+      uuid={TOKEN}
+      data={data}
+    />
+  );
 }
 async function open() {
   const view = await render(screen(), { wrapper });
