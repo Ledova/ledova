@@ -11,13 +11,14 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 
 from assets.models import Asset
-from blockchain.models import SigningAccount
+from blockchain.models import SignedAttempt, SigningAccount
 from ledova_backend.procrastinate_app import app
 from offerings.models import OfferingStatus, SubscriptionStatus
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_ETHEREUM
 from shared.seeds.demo import DEMO_INVESTOR_EMAIL, DEMO_ISSUER_ADDRESS, DEMO_OWNER_EMAIL
 from shared.seeds.synthetic.chain import population
+from shared.seeds.synthetic.chain.approvals import TREASURY_UNSUPPORTED
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.deferred import UnexpectedJob, captured
 from shared.seeds.synthetic.chain.guard import (
@@ -64,7 +65,7 @@ from users.models import Notification
 from users.tasks.notifications import send_push_notification
 from wallets.models import Holding
 from wallets.tasks import sync_wallet
-from whitelist.models import WhitelistApproval
+from whitelist.models import WhitelistApproval, WhitelistEntry
 
 PASSWORD = "pw-12345678"
 LIVE = ("submitted", "under_review", "approved")
@@ -341,6 +342,41 @@ class IssuanceRunOnceTest(TestCase):
         self.assertIn("Chain layer already present; nothing added.", output)
         self.assertFalse(rpc.called)
 
+    def test_a_no_key_treasury_plan_is_explicitly_skipped_before_any_chain_layer_writes(self):
+        treasury = self.plan().treasuries[0]
+        retained = WhitelistEntry.objects.create(
+            wallet=None,
+            address=treasury.address,
+            label=treasury.label,
+            notes="Retained synthetic no-key treasury history",
+        )
+        before = (ShareToken.objects.count(), WhitelistEntry.objects.count(), SignedAttempt.objects.count())
+        with (
+            patch("shared.seeds.synthetic.chain.layer.chain_refusal", return_value=None),
+            patch("shared.seeds.synthetic.chain.layer.settlement_refusal", return_value=None),
+            patch("shared.seeds.synthetic.chain.layer._apply") as apply,
+            patch("shared.seeds.synthetic.chain.layer.captured") as capture,
+        ):
+            outcome = seed_issuance(timezone.now())
+            output = seed(investors=MINIMUM_INVESTORS)
+        self.assertTrue(self.plan().treasuries)
+        self.assertEqual(
+            (outcome.state, outcome.plan, outcome.reason, outcome.counts), (SKIPPED, None, TREASURY_UNSUPPORTED, {})
+        )
+        self.assertIn(f"Chain layer skipped: {TREASURY_UNSUPPORTED}\n", output)
+        self.assertNotIn("Chain layer seeded", output)
+        apply.assert_not_called()
+        capture.assert_not_called()
+        self.assertEqual(
+            (ShareToken.objects.count(), WhitelistEntry.objects.count(), SignedAttempt.objects.count()), before
+        )
+        self.assertEqual(issuance_state(self.found), ABSENT)
+        retained.refresh_from_db()
+        self.assertEqual(
+            (retained.address, retained.label, retained.notes, retained.wallet_id),
+            (treasury.address, treasury.label, "Retained synthetic no-key treasury history", None),
+        )
+
     def test_an_operator_settling_otherwise_is_left_alone_before_the_chain_is_touched(self):
         assets = {asset.symbol: asset for asset in Asset.objects.filter(symbol__in=("AUDY", "AUSG", "USDC"))}
         operator = Operator.get()
@@ -387,8 +423,9 @@ class IssuanceRunOnceTest(TestCase):
         ).select_related("wallet")
         seeded = {holding.wallet.address.lower(): holding.quantity for holding in ether}
 
-        with override_settings(**{**CHAIN, "BLOCKCHAIN_OPERATOR_KEY": key}), patch(
-            "shared.seeds.synthetic.chain.settlement.get_base_chain_client", return_value=client
+        with (
+            override_settings(**{**CHAIN, "BLOCKCHAIN_OPERATOR_KEY": key}),
+            patch("shared.seeds.synthetic.chain.settlement.get_base_chain_client", return_value=client),
         ):
             self.assertEqual(operator_address(), DEMO_ISSUER_ADDRESS)
             funded = fund_wallets()

@@ -335,9 +335,14 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    verification are the other steps outside it.
 6. Deploy each share class. A company's first class creates its registry; its
    later classes share it.
-7. Approve wallets for each company in the whitelist admin or through the
-   operator API, choosing the company and, for a wallet with no investor
-   classification, the expiry to set. A blank expiry means none.
+7. Use the [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md):
+   the participant completes ordinary possession proof and explicitly nominates
+   one own Base wallet under the exact company's current GENERAL eligibility;
+   a current company appointee prepares, approves and applies its finite-expiry
+   ADD. Verify the original execution outcome separately from human applied
+   status. Staff APIs/admin override and a blank expiry do not substitute for
+   that source. Unsupported treasury/broader eligibility has no new admission
+   exception. This guide does not direct a live deployment or real-funds use.
 8. Verify, from `backend/`. Each command prints its own answer; the expected
    answer follows it. The chain and database probes are read-only; the refresh
    sweep below can sign and broadcast changes.

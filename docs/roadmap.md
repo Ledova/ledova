@@ -45,7 +45,9 @@ records alignment of the complete baseline document set.
   journeys proven end to end
   ([#5](https://github.com/Ledova/ledova/issues/5)), and trading enabled by
   default.
-- Company-scoped on-chain approvals with expiry
+- Company-scoped on-chain approvals with expiry and the bounded
+  [participant nomination/company instruction workflow](plans/company-managed-registers/company-wallet-approvals.md),
+  preserving original signed recovery and technical removal causes
   ([#648](https://github.com/Ledova/ledova/issues/648),
   [product §5](product.md#5-verification-and-transaction-controls)).
 - Shareholder administration ([#649](https://github.com/Ledova/ledova/issues/649)):

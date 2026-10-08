@@ -14,11 +14,14 @@ import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 interface WalletVerificationModalProps {
   isOpen: boolean;
   wallet: Wallet | null;
+  guard?: () => void;
   onClose: () => void;
 }
 
-export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerificationModalProps) {
+export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: WalletVerificationModalProps) {
   const {
+    owner,
+    available,
     verificationStep,
     challengeQrData,
     verificationError,
@@ -32,9 +35,12 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
     signWithSeedPhrase,
     goBack,
     reset,
-  } = useWalletVerification();
+  } = useWalletVerification(wallet, guard);
 
-  const [seedPhrase, setSeedPhrase] = useState('');
+  const walletKey = `${wallet?.uuid}/${wallet?.userAccount}/${wallet?.address}/${wallet?.chain}`;
+  const [phrase, setPhrase] = useState({ owner, walletKey, value: '' });
+  const seedPhrase = phrase.owner === owner && phrase.walletKey === walletKey ? phrase.value : '';
+  const setSeedPhrase = useCallback((value: string) => setPhrase({ owner, walletKey, value }), [owner, walletKey]);
 
   const { error: scannerError, stopScanner } = useQRScanner({
     scannerId: 'qr-scanner',
@@ -52,7 +58,7 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
     setSeedPhrase('');
     reset();
     onClose();
-  }, [onClose, reset, stopScanner]);
+  }, [onClose, reset, stopScanner, setSeedPhrase]);
 
   useEffect(() => {
     if (verificationSuccess) {
@@ -87,7 +93,7 @@ export function WalletVerificationModal({ isOpen, wallet, onClose }: WalletVerif
     void signWithSeedPhrase(phrase);
   };
 
-  if (!wallet) return null;
+  if (!wallet || !available) return null;
 
   const supportsSeedPhraseSigning = getWalletVerificationEvmChainId(wallet.chain) !== null;
 

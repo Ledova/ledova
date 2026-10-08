@@ -181,3 +181,4 @@ export {
 } from './publications';
 export { getShareHoldings } from './share-holdings';
 export * from './company-eligibility';
+export * from './company-wallets';

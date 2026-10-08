@@ -2,6 +2,8 @@
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
+import { AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, ApiClientProvider } from '@ledova/shared';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { PageTitle } from '@components/PageTitle';
 
@@ -43,11 +45,13 @@ let client: QueryClient;
 
 function show() {
   render(
-    <QueryClientProvider client={client}>
-      <PageTitle.Provider value="Wallets">
-        <WalletsPage />
-      </PageTitle.Provider>
-    </QueryClientProvider>,
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={client}>
+        <PageTitle.Provider value="Wallets">
+          <WalletsPage />
+        </PageTitle.Provider>
+      </QueryClientProvider>
+    </ApiClientProvider>,
   );
 }
 
@@ -61,6 +65,10 @@ const rows = (title: string) =>
 beforeEach(() => {
   vi.resetAllMocks();
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   api.get.mockResolvedValue({ data: { results: WALLETS, count: WALLETS.length, next: null, previous: null } });
 });
 

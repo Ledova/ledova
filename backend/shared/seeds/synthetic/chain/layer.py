@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from blockchain.models import SignedAttempt
 from offerings.models import Offering, Subscription
 from shared.seeds.synthetic.chain import population
-from shared.seeds.synthetic.chain.approvals import approve_company, treasury_entries
+from shared.seeds.synthetic.chain.approvals import TREASURY_UNSUPPORTED, approve_company
 from shared.seeds.synthetic.chain.classes import (
     apply_raise,
     create_class,
@@ -79,6 +79,8 @@ def seed_issuance(now):
     if refusal:
         return Outcome(SKIPPED, reason=refusal)
     plan = build_issuance(now, population.firms(found), population.candidates(found))
+    if plan.treasuries:
+        return Outcome(SKIPPED, reason=TREASURY_UNSUPPORTED)
     signed = SignedAttempt.objects.count()
     with captured() as deferrals:
         records = Records(plan, found, deferrals)
@@ -97,7 +99,6 @@ def _apply(plan, records):
     for share_class in plan.classes:
         if share_class.key != SEALING_CLASS:
             create_class(share_class, records)
-    records.entries.update(treasury_entries(plan))
     deployed = [share_class for share_class in plan.classes if share_class.deployed]
     companies = {share_class.company for share_class in deployed}
     for company in sorted(companies, key=lambda key: (records.companies[key].activated_at, key)):

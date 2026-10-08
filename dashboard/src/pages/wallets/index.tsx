@@ -100,7 +100,8 @@ export function WalletsPage() {
       <WalletItem wallet={wallet}>
         <WalletActions
           label={wallet.name || wallet.address}
-          canVerify={wallet.verificationStatus !== WALLET_VERIFICATION_STATUS.VERIFIED}
+          canVerify
+          refreshProof={wallet.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED}
           canDerive={canDeriveAddress(wallet)}
           syncing={isSyncing && syncWalletUuid === wallet.uuid}
           syncDisabled={isSyncing}

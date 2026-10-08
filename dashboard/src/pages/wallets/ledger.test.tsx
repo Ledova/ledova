@@ -2,9 +2,17 @@
 
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { WALLET_ENDPOINTS, type DerivedAddress, type HardwareWalletImport } from '@ledova/shared';
+import {
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  ApiClientProvider,
+  WALLET_ENDPOINTS,
+  type DerivedAddress,
+  type HardwareWalletImport,
+} from '@ledova/shared';
 import { WalletsPage } from './index';
 import { useWallets } from './hooks/useWallets';
 
@@ -17,6 +25,7 @@ vi.mock('@ledova/shared', async (importOriginal) => ({
 vi.mock('./components/CryptoActions', () => ({ CryptoActions: () => null }));
 const wallet = {
   uuid: 'one',
+  userAccount: 'owner',
   name: 'Primary wallet',
   address: `0x${'1'.repeat(40)}`,
   chain: 'base',
@@ -31,7 +40,11 @@ const page = (results: unknown[], next: string | null = null) => ({
 });
 let client: QueryClient;
 function wrapper({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </ApiClientProvider>
+  );
 }
 function show() {
   return render(<WalletsPage />, { wrapper });
@@ -43,6 +56,10 @@ function actOn(wallet: string, action: string) {
 beforeEach(() => {
   vi.resetAllMocks();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   api.get.mockResolvedValue(page([wallet]));
   api.post.mockResolvedValue({ data: wallet });
   api.patch.mockResolvedValue({ data: wallet });

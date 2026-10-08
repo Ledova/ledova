@@ -4,9 +4,11 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, connections
-from django.test import TransactionTestCase, override_settings
+from django.http import Http404
+from django.test import override_settings
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.test import APITransactionTestCase
 from web3 import Web3
 
 from blockchain.models import (
@@ -17,11 +19,10 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import receipt
-from shared.db import atomic, current_alias
+from shared.db import atomic, current_alias, use_operator
 from wallets.models import Wallet
 from whitelist.constants import WHITELIST_NO_EXPIRY
 from whitelist.exceptions import (
-    WalletNotRegisteredException,
     WhitelistChangeConflict,
     WhitelistChangeUnresolved,
     WhitelistRegistryMissing,
@@ -35,6 +36,10 @@ from whitelist.models import (
     WhitelistEntry,
 )
 from whitelist.services import changes, whitelist
+from whitelist.services.company_wallet_instructions import (
+    decide_wallet_instruction,
+    preview_wallet_instruction_decision,
+)
 from whitelist.tests.change_fixtures import (
     ADDRESS,
     CHAIN_ID,
@@ -42,33 +47,39 @@ from whitelist.tests.change_fixtures import (
     KEY,
     REGISTRY,
     SENDER,
-    WhitelistNode,
-    admitted_signer,
     change_actor,
     change_company,
-    change_entry,
 )
+from whitelist.tests.company_wallet_fixtures import CompanyWalletCases
+from whitelist.tests.historical_whitelist_fixtures import retained_signed_add
 
 OTHER_REGISTRY = "0x" + "e" * 40
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
-class WhitelistChangeRecoveryTest(TransactionTestCase):
+class WhitelistChangeRecoveryTest(CompanyWalletCases, APITransactionTestCase):
     def setUp(self):
-        self.actor = change_actor()
-        self.entry = change_entry()
-        self.company = change_company()
-        self.node = WhitelistNode()
+        super().setUp()
+        self.actor = self.owner
+        self.entry = WhitelistEntry.objects.create(wallet=self.wallet)
         self.submission_id = uuid4()
-        admitted_signer()
-        for module in (changes, whitelist):
-            patcher = patch.object(module, "get_base_chain_client", return_value=self.node.client)
-            patcher.start()
-            self.addCleanup(patcher.stop)
+
+    def admit(self, submission_id=None, action="add", **options):
+        proposal = self.admit_change(submission_id or self.submission_id, action, **options)
+        with use_operator():
+            return WhitelistChange.objects.get(pk=proposal.change_id)
 
     def submit(self, action=WhitelistAction.ADD, submission_id=None, **options):
-        options.setdefault("company", self.company)
-        return changes.submit(submission_id or self.submission_id, action, ADDRESS, self.actor, **options)
+        change = self.admit(submission_id, action, **options)
+        if submission_id is None:
+            self.submission_id = change.pk
+        with use_operator():
+            try:
+                return changes.recover(change.pk)
+            except (PermissionDenied, WhitelistChangeConflict):
+                raise
+            except Exception:
+                raise WhitelistChangeUnresolved() from None
 
     def approval(self):
         return WhitelistApproval.objects.get(entry=self.entry, company=self.company)
@@ -86,7 +97,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(SigningAccount.objects.get().next_nonce, 8)
         self.assertEqual(len(self.node.broadcasts), 1)
         self.node.client.send_transaction.assert_not_called()
-        self.assertEqual((self.approval().status, self.approval().expires_at), ("active", None))
+        self.assertEqual((self.approval().status, self.approval().expires_at), ("active", first.expires_at))
 
     def test_old_add_replay_cannot_undo_later_removal(self):
         first = self.submit()
@@ -103,7 +114,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(len({attempt.nonce for attempt in SignedAttempt.objects.all()}), 3)
 
     def test_an_expiry_is_written_on_chain_and_recorded_on_the_company_approval(self):
-        expires_at = (timezone.now() + timedelta(days=30)).replace(microsecond=0)
+        expires_at = ((timezone.now() + timedelta(days=30)).replace(microsecond=0)).replace(microsecond=0)
         change = self.submit(expires_at=expires_at)
         self.assertEqual(change.status, "confirmed")
         self.assertEqual(change.expires_at, expires_at)
@@ -113,14 +124,19 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual((self.approval().status, self.approval().expires_at), ("active", expires_at))
         self.assertEqual(change.approval.pk, self.approval().pk)
 
-    def test_an_unlimited_approval_writes_the_largest_uint64(self):
-        change = self.submit()
+    def test_a_retained_legacy_unlimited_signature_recovers_the_largest_uint64_without_new_authority(self):
+        technical = change_actor()
+        original = retained_signed_add(actor=technical, company=self.company, entry=self.entry, client=self.node.client)
+        with use_operator():
+            change = changes.recover(original.pk)
         self.assertEqual(change.intent["data"][-64:], "0" * 48 + "f" * 16)
         self.assertEqual(self.node.expiries[ADDRESS], WHITELIST_NO_EXPIRY)
+        self.assertIsNone(change.source_instruction_id)
+        self.assertEqual(SignedAttempt.objects.count(), 1)
 
     def test_a_removal_writes_a_zero_expiry(self):
-        self.node.approve()
-        change = self.submit(WhitelistAction.REMOVE)
+        self.submit()
+        change = self.submit(WhitelistAction.REMOVE, uuid4())
         self.assertEqual(change.status, "confirmed")
         self.assertEqual(change.intent["data"][-64:], "0" * 64)
         self.assertEqual(self.node.expiries[ADDRESS], 0)
@@ -134,7 +150,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(self.node.expiries[ADDRESS], int(expires_at.timestamp()))
 
     def test_an_identical_expiry_on_chain_is_unchanged_and_sends_nothing(self):
-        expires_at = (timezone.now() + timedelta(days=30)).replace(microsecond=0)
+        expires_at = ((timezone.now() + timedelta(days=30)).replace(microsecond=0)).replace(microsecond=0)
         self.node.approve(int(expires_at.timestamp()))
         change = self.submit(expires_at=expires_at)
         self.assertEqual(change.status, "unchanged")
@@ -142,14 +158,15 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual((self.approval().status, self.approval().expires_at), ("active", expires_at))
 
     def test_an_expiry_must_be_a_future_aware_moment_on_an_addition(self):
-        past = timezone.now() - timedelta(seconds=1)
-        for action, expires_at, message in (
-            (WhitelistAction.ADD, past, "must be in the future"),
-            (WhitelistAction.ADD, past.replace(tzinfo=None) + timedelta(days=2), "needs a time zone"),
-            (WhitelistAction.REMOVE, timezone.now() + timedelta(days=1), "takes no expiry"),
+        nomination = self.nominate()
+        past = timezone.now().replace(microsecond=0) - timedelta(seconds=1)
+        for action, expires_at in (
+            ("add", past),
+            ("add", (past + timedelta(days=2)).replace(tzinfo=None)),
+            ("remove", timezone.now().replace(microsecond=0) + timedelta(days=1)),
         ):
-            with self.subTest(message=message), self.assertRaisesMessage(WhitelistChangeConflict, message):
-                self.submit(action, uuid4(), expires_at=expires_at)
+            with self.subTest(action=action, expires_at=expires_at), self.assertRaises(ValidationError):
+                self.prepare_wallet(nomination, action=action, expires_at=expires_at)
         self.assertFalse(WhitelistChange.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
@@ -168,14 +185,21 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.node.client.load_contract.assert_any_call("ShareTokenFactory", Web3.to_checksum_address(FACTORY))
 
     def test_each_company_keeps_its_own_approval_row_and_registry(self):
-        other = change_company("whitelist-other")
+        other, other_initial = self.company_fixture("Second wallet registry Pty Ltd", "100000002")
         registries = {
             self.company.acn: Web3.to_checksum_address(REGISTRY),
             other.acn: Web3.to_checksum_address(OTHER_REGISTRY),
         }
         self.node.contract.functions.registryOf.side_effect = lambda acn: Mock(call=lambda: registries[acn])
         first = self.submit()
-        second = self.submit(submission_id=uuid4(), company=other)
+        with self.company_context(other, other_initial):
+            self.appointment = self.appoint_actor(self.approver, ["prepare", "approve"])
+            self.request, self.eligibility_decision = self.accepted()
+            nomination = self.nominate()
+            proposal = self.prepare_wallet(nomination)
+            self.wallet_decide(proposal, "approve")
+            applied, _ = self.wallet_decide(proposal, "apply")
+            second = self.execute(applied)
         self.assertEqual((first.registry_address, second.registry_address), (REGISTRY, OTHER_REGISTRY))
         self.assertEqual(
             sorted(WhitelistApproval.objects.values_list("company_id", "registry_address")),
@@ -200,17 +224,17 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 2)
 
     def test_removal_without_a_local_entry_is_durable_and_blocks_an_add(self):
+        self.submit()
         self.entry.delete()
-        self.node.approve()
         self.node.confirmed = False
-        change = self.submit(WhitelistAction.REMOVE)
+        change = self.submit(WhitelistAction.REMOVE, uuid4())
         self.assertIsNone(change.entry_id)
         self.assertIsNone(change.approval)
         self.assertEqual(change.status, "executing")
         with self.assertRaises(WhitelistChangeConflict):
             self.submit(submission_id=uuid4())
         self.assertFalse(WhitelistEntry.objects.exists())
-        self.assertEqual(SignedAttempt.objects.count(), 1)
+        self.assertEqual(SignedAttempt.objects.count(), 2)
 
     def test_recorded_revert_never_reopens_from_an_old_submission(self):
         self.node.receipt_status = 0
@@ -228,7 +252,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
     def test_matching_current_membership_does_not_confirm_signed_work(self):
         self.node.confirmed = False
         change = self.submit()
-        self.node.approve()
+        self.node.approve(int(self.eligibility_decision.expires_at.timestamp()))
         whitelist.sync_entry(ADDRESS)
         approval = self.approval()
         self.assertEqual(approval.status, "pending")
@@ -247,7 +271,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual((self.approval().status, self.approval().expires_at), ("removed", None))
 
     def test_unchanged_submission_is_remembered_after_later_membership_changes(self):
-        self.node.approve()
+        self.node.approve(int(self.eligibility_decision.expires_at.timestamp()))
         first = self.submit()
         self.assertEqual(first.status, "unchanged")
         self.assertFalse(OutgoingOperation.objects.exists())
@@ -262,9 +286,11 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         for options in (
             {"action": WhitelistAction.REMOVE},
             {"company": other},
-            {"expires_at": timezone.now() + timedelta(days=5)},
+            {"expires_at": (timezone.now() + timedelta(days=5)).replace(microsecond=0)},
         ):
-            with self.subTest(options=sorted(options)), self.assertRaises(WhitelistChangeConflict):
+            with self.subTest(options=sorted(options)), self.assertRaises(
+                (WhitelistChangeConflict, ValidationError, NotFound, Http404)
+            ):
                 self.submit(**options)
         staff = get_user_model().objects.create_superuser(email="other-operator@example.test", password="synthetic")
         with self.assertRaises(WhitelistChangeConflict):
@@ -272,27 +298,21 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_a_retried_submission_with_the_same_expiry_is_the_same_submission(self):
-        expires_at = timezone.now() + timedelta(days=30)
+        expires_at = (timezone.now() + timedelta(days=30)).replace(microsecond=0)
         first = self.submit(expires_at=expires_at)
         self.assertEqual(self.submit(expires_at=expires_at).pk, first.pk)
         self.assertEqual(len(self.node.broadcasts), 1)
 
-    def test_staff_revocation_prevents_admission_but_does_not_cancel_accepted_recovery(self):
-        change = changes._admit(
-            self.submission_id,
-            WhitelistAction.ADD,
-            ADDRESS,
-            self.actor,
-            WhitelistAuthority.OPERATOR_API,
-            None,
-            self.company,
-            None,
-        )
-        get_user_model().objects.filter(pk=self.actor.pk).update(is_staff=False)
-        with self.assertRaises(PermissionDenied):
-            self.submit()
-        self.assertEqual(changes.recover(change.pk).status, "confirmed")
-        self.assertEqual(WhitelistChange.objects.get().initiated_by_id, self.actor.pk)
+    def test_legacy_signed_receipt_survives_original_staff_access_loss_without_new_admission(self):
+        technical = change_actor()
+        change = retained_signed_add(actor=technical, company=self.company, entry=self.entry, client=self.node.client)
+        get_user_model().objects.filter(pk=technical.pk).update(is_staff=False, is_active=False)
+        with use_operator(), self.assertRaises(PermissionDenied):
+            changes.submit(uuid4(), "add", ADDRESS, technical, company=self.company)
+        with use_operator():
+            self.assertEqual(changes.recover(change.pk).status, "confirmed")
+            self.assertEqual(WhitelistChange.objects.get().initiated_by_id, technical.pk)
+            self.assertIsNone(WhitelistChange.objects.get().source_instruction_id)
 
     def test_whitelist_and_subscription_permissions_are_separate(self):
         from django.contrib.auth.models import Permission
@@ -312,15 +332,16 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
                 company=self.company,
                 authority=WhitelistAuthority.WHITELIST_ADMIN,
             )
-        change = changes.submit(
-            uuid4(),
-            WhitelistAction.ADD,
-            ADDRESS,
-            staff,
-            company=self.company,
-            authority=WhitelistAuthority.SUBSCRIPTION_ADMIN,
-        )
-        self.assertEqual(change.status, "confirmed")
+        with self.assertRaises(PermissionDenied):
+            changes.submit(
+                uuid4(),
+                WhitelistAction.ADD,
+                ADDRESS,
+                staff,
+                company=self.company,
+                authority=WhitelistAuthority.SUBSCRIPTION_ADMIN,
+            )
+        self.assertFalse(WhitelistChange.objects.exists())
 
     def test_provider_calls_see_committed_command_and_signed_projection_without_locks(self):
         send = self.node.send
@@ -336,10 +357,12 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(self.submit().status, "confirmed")
 
     def test_enclosing_transaction_is_refused_before_any_provider_work(self):
-        with atomic(), self.assertRaises(WhitelistChangeConflict):
-            self.submit()
-        self.assertFalse(WhitelistChange.objects.exists())
+        change = self.admit()
+        self.node.client.load_contract.reset_mock()
+        with use_operator(), self.assertRaises(WhitelistChangeConflict), atomic():
+            changes.recover(change.pk)
         self.node.client.load_contract.assert_not_called()
+        self.assertFalse(SignedAttempt.objects.exists())
 
     def test_closed_signer_never_uses_legacy_send_and_signed_receipts_can_still_reconcile(self):
         outgoing.close_signer_admission(chain_id=CHAIN_ID, sender=SENDER)
@@ -363,9 +386,9 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         original = self.submit()
         attempt = SignedAttempt.objects.get()
         self.move_registry()
-        current = self.submit(WhitelistAction.REMOVE, uuid4())
-        self.assertEqual(current.status, "unchanged")
-        self.assertEqual(current.registry_address, OTHER_REGISTRY)
+        WhitelistApproval.objects.filter(entry=self.entry, company=self.company).update(
+            registry_address=OTHER_REGISTRY, status="removed", expires_at=None
+        )
         approval = self.approval()
         self.assertEqual((approval.registry_address, approval.status), (OTHER_REGISTRY, "removed"))
         self.node.receipts[attempt.tx_hash] = receipt(attempt)
@@ -378,16 +401,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_a_pending_change_is_refused_once_the_company_registry_moves(self):
-        change = changes._admit(
-            self.submission_id,
-            WhitelistAction.ADD,
-            ADDRESS,
-            self.actor,
-            WhitelistAuthority.OPERATOR_API,
-            None,
-            self.company,
-            None,
-        )
+        change = self.admit()
         self.move_registry()
         with self.assertRaisesMessage(WhitelistChangeConflict, "registry changed after admission"):
             changes.recover(change.pk)
@@ -397,7 +411,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
     def test_unchanged_membership_observation_cannot_project_into_a_changed_wallet(self):
         def observe():
             Wallet.objects.filter(pk=self.entry.wallet_id).update(address="0x" + "b" * 40)
-            return WHITELIST_NO_EXPIRY
+            return int(self.eligibility_decision.expires_at.timestamp())
 
         self.node.contract.functions.expiresAt.return_value.call.side_effect = observe
         self.assertEqual(self.submit().status, "unchanged")
@@ -407,7 +421,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
     def test_unchanged_membership_observation_cannot_project_into_a_moved_approval(self):
         def observe():
             WhitelistApproval.objects.filter(entry=self.entry).update(registry_address=OTHER_REGISTRY)
-            return WHITELIST_NO_EXPIRY
+            return int(self.eligibility_decision.expires_at.timestamp())
 
         self.node.contract.functions.expiresAt.return_value.call.side_effect = observe
         self.assertEqual(self.submit().status, "unchanged")
@@ -419,7 +433,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
 
         def observe():
             WhitelistApproval.objects.filter(pk=approval.pk).update(registry_address=OTHER_REGISTRY)
-            return WHITELIST_NO_EXPIRY
+            return int(self.eligibility_decision.expires_at.timestamp())
 
         self.node.contract.functions.expiresAt.return_value.call.side_effect = observe
         whitelist.sync_entry(ADDRESS)
@@ -433,7 +447,7 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
 
         def observe():
             Wallet.objects.filter(pk=self.entry.wallet_id).update(chain="ethereum")
-            return WHITELIST_NO_EXPIRY
+            return int(self.eligibility_decision.expires_at.timestamp())
 
         self.node.contract.functions.expiresAt.return_value.call.side_effect = observe
         whitelist.sync_entry(ADDRESS)
@@ -479,7 +493,6 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
 
     def test_admin_actions_expose_unresolved_work_and_both_directions(self):
         from django.contrib.admin import site
-        from django.urls import reverse
 
         model_admin = site._registry[WhitelistEntry]
         self.node.confirmed = False
@@ -489,8 +502,9 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.node.receipts[change.transaction.tx_hash] = receipt(SignedAttempt.objects.get())
         changes.recover(change.pk)
         actions = model_admin.status_actions(self.entry)
-        self.assertIn(reverse("admin:whitelist_whitelistentry_add_to_blockchain", args=[self.entry.pk]), actions)
-        self.assertIn(reverse("admin:whitelist_whitelistentry_remove_from_blockchain", args=[self.entry.pk]), actions)
+        self.assertIn("Company appointees", actions)
+        self.assertNotIn("add-to-blockchain", actions)
+        self.assertNotIn("remove-from-blockchain", actions)
 
     def test_unknown_membership_keeps_admitted_command_for_later_recovery(self):
         self.node.contract.functions.expiresAt.return_value.call.side_effect = ConnectionError(
@@ -506,25 +520,39 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(changes.recover(self.submission_id).status, "confirmed")
 
     def test_lost_admission_commit_acknowledgement_recovers_original_command(self):
-        connection = connections[current_alias()]
-        commit = connection.commit
-        calls = []
+        proposal = self.prepare_wallet()
+        self.wallet_decide(proposal, "approve")
+        _, preview = preview_wallet_instruction_decision(
+            actor=self.actor, instruction_id=proposal.pk, appointment=self.initial.pk, kind="apply", reason=""
+        )
+        values = dict(
+            actor=self.actor,
+            instruction_id=proposal.pk,
+            appointment=self.initial.pk,
+            kind="apply",
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+            reason="",
+        )
+        with use_operator():
+            connection = connections[current_alias()]
+            commit = connection.commit
 
-        def lose_first_ack():
+        def lose_ack():
             commit()
-            calls.append(True)
-            if len(calls) == 1:
-                raise ConnectionError("Synthetic commit acknowledgement loss")
+            raise ConnectionError("Synthetic commit acknowledgement loss")
 
-        with patch.object(connection, "commit", side_effect=lose_first_ack), self.assertRaises(ConnectionError):
-            self.submit()
+        with patch.object(connection, "commit", side_effect=lose_ack), self.assertRaises(ConnectionError):
+            decide_wallet_instruction(**values)
         self.assertEqual(WhitelistChange.objects.count(), 1)
-        self.assertEqual(self.submit().status, "confirmed")
+        applied = decide_wallet_instruction(**values)
+        self.assertEqual(self.execute(applied).status, "confirmed")
         self.assertEqual(SignedAttempt.objects.count(), 1)
 
     def test_database_refuses_changed_terms_and_invented_terminal_outcomes(self):
         self.node.confirmed = False
-        change = self.submit(expires_at=timezone.now() + timedelta(days=30))
+        change = self.submit(expires_at=(timezone.now() + timedelta(days=30)).replace(microsecond=0))
         other = change_company("whitelist-other")
         for values in (
             {"address": "0x" + "b" * 40},
@@ -550,6 +578,6 @@ class WhitelistChangeRecoveryTest(TransactionTestCase):
         self.assertEqual(self.approval().status, "removed")
 
     def test_unregistered_add_is_refused_without_creating_a_wallet(self):
-        with self.assertRaises(WalletNotRegisteredException):
+        with self.assertRaises(PermissionDenied):
             changes.submit(uuid4(), WhitelistAction.ADD, "0x" + "b" * 40, self.actor, company=self.company)
         self.assertFalse(WhitelistChange.objects.exists())

@@ -15,6 +15,7 @@ class WhitelistAuthority(models.TextChoices):
     WHITELIST_ADMIN = "whitelist_admin", "Whitelist administration"
     SUBSCRIPTION_ADMIN = "subscription_admin", "Subscription administration"
     CLASSIFICATION_REFRESH = "refresh", "Eligibility invalidation"
+    COMPANY = "company", "Company instruction"
 
 
 class WhitelistInvalidationCause(models.TextChoices):
@@ -65,6 +66,9 @@ class WhitelistChangeStatus(models.TextChoices):
 
 
 class WhitelistChange(BaseModel):
+    source_instruction = models.ForeignKey(
+        "whitelist.CompanyWalletInstruction", on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
     action = models.CharField(max_length=6, choices=WhitelistAction.choices, editable=False)
     address = models.CharField(max_length=42, editable=False)
     chain_id = models.PositiveBigIntegerField(editable=False)

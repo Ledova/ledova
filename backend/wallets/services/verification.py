@@ -4,8 +4,11 @@ from datetime import timedelta
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from procrastinate import App
+from procrastinate.contrib.django.django_connector import DjangoConnector
 
-from shared.db import atomic
+from companies.services.authority_requests import _requester_principal
+from shared.db import atomic, current_alias, use_operator
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import (
     InvalidSignatureException,
@@ -14,6 +17,7 @@ from wallets.exceptions import (
     VerificationChallengeNotFoundException,
 )
 from wallets.models import Wallet
+from wallets.services.possession_proof import proof_producer, retain_possession_proof
 from wallets.services.wallets import (
     generate_verification_challenge,
     verify_wallet_signature,
@@ -40,8 +44,12 @@ def start_wallet_verification(user, uuid):
     return wallet
 
 
-@atomic()
 def complete_wallet_verification(user, uuid, signature):
+    with use_operator(), _requester_principal(user.pk), proof_producer(), atomic():
+        return _complete_wallet_verification(user, uuid, signature)
+
+
+def _complete_wallet_verification(user, uuid, signature):
     wallet = _locked_wallet(user, uuid)
 
     if not signature:
@@ -59,9 +67,10 @@ def complete_wallet_verification(user, uuid, signature):
     if not verify_wallet_signature(wallet.address, wallet.verification_challenge, signature, wallet.chain.upper()):
         raise InvalidSignatureException()
 
+    proof = retain_possession_proof(wallet, user, signature, now)
     wallet.verification_status = WALLET_VERIFICATION_STATUS_VERIFIED
     wallet.verification_signature = signature
-    wallet.verified_at = now
+    wallet.verified_at = proof.completed_at
     wallet.verification_challenge = None
     wallet.verification_challenge_issued_at = None
     wallet.save(
@@ -82,6 +91,7 @@ def _queue_sync(wallet, *, principal_id):
     from wallets.tasks import sync_wallet
 
     try:
-        sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=principal_id)
+        queue = App(connector=DjangoConnector(alias=current_alias()))
+        queue.configure_task(sync_wallet.name).defer(wallet_uuid=str(wallet.uuid), principal_id=principal_id)
     except Exception:
         logger.error(f"Failed to queue a sync for wallet {wallet.uuid} after verification", exc_info=True)

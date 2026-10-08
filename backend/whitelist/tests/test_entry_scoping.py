@@ -17,8 +17,6 @@ from whitelist.tests.change_fixtures import (
     FACTORY,
     KEY,
     REGISTRY,
-    WhitelistNode,
-    admitted_signer,
     change_company,
 )
 
@@ -141,72 +139,6 @@ class WhitelistEntryScopingTest(APITransactionTestCase):
 
         self.assertEqual([entry["uuid"] for entry in response.json()["results"]], [str(self.foreign_entry.uuid)])
 
-    def test_staff_can_use_all_operator_custom_actions(self):
-        node = WhitelistNode()
-        admitted_signer()
-        self.client.force_authenticate(self.staff)
-        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client), patch.object(
-            whitelist, "get_base_chain_client", return_value=node.client
-        ):
-            add_response = self.client.post(
-                self.add_url, self.terms(submissionId=str(uuid4()), expiresAt="2099-01-01T00:00:00Z"), format="json"
-            )
-            remove_response = self.client.post(self.remove_url, self.terms(submissionId=str(uuid4())), format="json")
-            batch_response = self.client.post(
-                self.batch_add_url, {"entries": [self.terms(submissionId=str(uuid4()))]}, format="json"
-            )
-            sync_response = self.client.post(self.sync_url)
-        self.assertEqual(add_response.status_code, 201, add_response.data)
-        self.assertEqual(add_response.json()["expiresAt"], "2099-01-01T00:00:00Z")
-        self.assertEqual(add_response.json()["approval"]["expiresAt"], "2099-01-01T00:00:00Z")
-        self.assertEqual(add_response.json()["company"], str(self.company.pk))
-        self.assertEqual(remove_response.status_code, 200, remove_response.data)
-        self.assertEqual(batch_response.status_code, 200, batch_response.data)
-        self.assertEqual(batch_response.json()["successful"], 1)
-        self.assertEqual(sync_response.status_code, 200)
-        self.assertEqual(len(node.broadcasts), 3)
-
-    def test_operator_submission_identity_is_required_before_admission(self):
-        self.client.force_authenticate(self.staff)
-        for url in (self.add_url, self.remove_url):
-            for data in (self.terms(), {"walletAddress": self.wallet.address, "submissionId": str(uuid4())}):
-                response = self.client.post(url, data, format="json")
-                self.assertEqual(response.status_code, 400)
-        self.assertFalse(WhitelistChange.objects.exists())
-
-    def test_operator_pending_retry_preserves_identity_and_refuses_opposite_command(self):
-        node = WhitelistNode(confirmed=False)
-        admitted_signer()
-        self.client.force_authenticate(self.staff)
-        data = self.terms(submissionId=str(uuid4()))
-        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client):
-            first = self.client.post(self.add_url, data, format="json")
-            replay = self.client.post(self.add_url, data, format="json")
-            opposite = self.client.post(self.remove_url, data | {"submissionId": str(uuid4())}, format="json")
-        self.assertEqual((first.status_code, replay.status_code, opposite.status_code), (202, 202, 409))
-        self.assertEqual(first.json()["submissionId"], replay.json()["submissionId"])
-        self.assertEqual(first.json()["txHash"], replay.json()["txHash"])
-        self.assertFalse(replay.json()["success"])
-        self.assertEqual(SignedAttempt.objects.count(), 1)
-        self.assertEqual(node.broadcasts[0], node.broadcasts[1])
-
-    def test_batch_unknown_membership_stays_pending_and_repeated_batch_recovers(self):
-        node = WhitelistNode()
-        admitted_signer()
-        self.client.force_authenticate(self.staff)
-        data = {"entries": [self.terms(submissionId=str(uuid4()))]}
-        node.contract.functions.expiresAt.return_value.call.side_effect = ConnectionError("Synthetic unavailable")
-        with patch("whitelist.services.changes.get_base_chain_client", return_value=node.client):
-            pending = self.client.post(self.batch_add_url, data, format="json")
-            node.contract.functions.expiresAt.return_value.call.side_effect = lambda: 0
-            recovered = self.client.post(self.batch_add_url, data, format="json")
-            replay = self.client.post(self.batch_add_url, data, format="json")
-        self.assertEqual(pending.status_code, 200)
-        self.assertEqual((pending.json()["pending"], pending.json()["failed"]), (1, 0))
-        self.assertEqual(recovered.json()["successful"], 1)
-        self.assertEqual(replay.json()["results"][0]["txHash"], recovered.json()["results"][0]["txHash"])
-        self.assertEqual(len(node.broadcasts), 1)
-
     @patch("whitelist.views.entry.whitelist")
     def test_staff_standard_write_routes_are_absent_and_preserve_rows(self, whitelist_service):
         self.entry.notes = "preserve me"
@@ -327,3 +259,16 @@ class WhitelistEntryScopingTest(APITransactionTestCase):
             whitelist.resolve_entry(self.wallet.address)
 
         self.assertFalse(BlockchainTransaction.objects.exists())
+
+    def test_all_replaced_staff_admission_routes_refuse_writes_and_preserve_private_entries(self):
+        self.client.force_authenticate(self.staff)
+        before = list(WhitelistEntry.objects.order_by("pk").values())
+        with patch("whitelist.services.changes.get_base_chain_client") as rpc:
+            for url in (self.add_url, self.remove_url, self.batch_add_url):
+                with self.subTest(url=url):
+                    response = self.client.post(url, self.terms(submissionId=str(uuid4())), format="json")
+                    self.assertEqual(response.status_code, 405, response.content)
+        rpc.assert_not_called()
+        self.assertEqual(list(WhitelistEntry.objects.order_by("pk").values()), before)
+        self.assertFalse(WhitelistChange.objects.exists())
+        self.assertFalse(SignedAttempt.objects.exists())

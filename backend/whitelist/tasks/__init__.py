@@ -10,4 +10,6 @@ __all__ = [
     "recover_whitelist_changes",
     "refresh_whitelist_approvals",
     "refresh_whitelist_targets",
+    "execute_company_wallet_change",
 ]
+from whitelist.tasks.company_wallet import execute_company_wallet_change

@@ -1,5 +1,13 @@
 import axios from 'axios';
-import { getWallets, createWallet, updateWallet, deleteWallet, syncWallet } from '../../src';
+import {
+  getWallets,
+  createWallet,
+  updateWallet,
+  deleteWallet,
+  syncWallet,
+  requestVerificationChallenge,
+  verifyWalletSignature,
+} from '../../src';
 
 it('preserves existing wallet calls and forwards optional transport guards on every ledger request', async () => {
   const api = axios.create();
@@ -21,6 +29,10 @@ it('preserves existing wallet calls and forwards optional transport guards on ev
   await deleteWallet(api, 'wallet-a', config);
   await syncWallet(api, 'wallet-a');
   await syncWallet(api, 'wallet-a', config);
+  await requestVerificationChallenge(api, 'wallet-a');
+  await requestVerificationChallenge(api, 'wallet-a', config);
+  await verifyWalletSignature(api, 'wallet-a', { signature: 'synthetic-proof' });
+  await verifyWalletSignature(api, 'wallet-a', { signature: 'synthetic-proof' }, config);
   expect(get.mock.calls).toEqual([
     ['/api/wallets/', { params: undefined }],
     ['/api/wallets/', { ...config, params: { page: 2 } }],
@@ -30,6 +42,10 @@ it('preserves existing wallet calls and forwards optional transport guards on ev
     ['/api/wallets/', input, config],
     ['/api/wallets/wallet-a/sync/', {}],
     ['/api/wallets/wallet-a/sync/', {}, config],
+    ['/api/wallets/wallet-a/request-verification/', {}],
+    ['/api/wallets/wallet-a/request-verification/', {}, config],
+    ['/api/wallets/wallet-a/verify-signature/', { signature: 'synthetic-proof' }],
+    ['/api/wallets/wallet-a/verify-signature/', { signature: 'synthetic-proof' }, config],
   ]);
   expect(patch.mock.calls).toEqual([
     ['/api/wallets/wallet-a/', { name: 'Fictional name' }],

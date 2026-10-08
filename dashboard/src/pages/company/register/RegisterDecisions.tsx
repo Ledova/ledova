@@ -30,6 +30,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   onRefused,
   note,
   children,
+  visible = true,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -43,6 +44,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   onRefused: () => Promise<unknown>;
   note?: (kind: RegisterDecisionKind, preview: Previewed) => ReactNode;
   children: (preview: Previewed) => ReactNode;
+  visible?: boolean;
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
@@ -88,6 +90,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     decision?.cancel();
     setActive(null);
   };
+  if (!visible) return null;
   return (
     <>
       {available.length > 0 && (

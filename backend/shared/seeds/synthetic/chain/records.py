@@ -34,7 +34,6 @@ class Records:
         self.classes = {}
         self.offerings = {}
         self.subscriptions = {}
-        self.entries = {}
         self.audy = None
         self.holders = {}
         for share_class in plan.classes:

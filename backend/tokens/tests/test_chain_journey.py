@@ -121,7 +121,7 @@ class DemonstrationJourneyChainTest(StubUploadDependencies, SettlementChainMixin
         self._deployed()
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
         for party in (self.seller, self.buyer):
-            self._whitelist(
+            self._historical_whitelist(
                 party.address,
                 expires_at=self.party_decisions[party.address].expires_at,
                 authority=WhitelistAuthority.WHITELIST_ADMIN,

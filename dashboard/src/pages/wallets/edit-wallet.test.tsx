@@ -2,6 +2,8 @@
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
+import { AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, ApiClientProvider } from '@ledova/shared';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
@@ -29,6 +31,10 @@ let queryClient: QueryClient;
 
 beforeEach(() => {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  queryClient.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   api.get.mockResolvedValue({ data: { results: [wallet, other], count: 2, next: null, previous: null } });
 });
 
@@ -48,9 +54,11 @@ function edit(wallet: string) {
 
 it('opens each wallet with its saved name and discards an edit that was not saved', async () => {
   render(
-    <QueryClientProvider client={queryClient}>
-      <WalletsPage />
-    </QueryClientProvider>,
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={queryClient}>
+        <WalletsPage />
+      </QueryClientProvider>
+    </ApiClientProvider>,
   );
   await screen.findByText('Saved wallet');
   edit('Saved wallet');

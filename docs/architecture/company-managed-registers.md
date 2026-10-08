@@ -69,8 +69,10 @@ inputs. The first #867 increment implements
 [company-authorised empty deployments](../plans/company-managed-registers/company-deployments.md),
 retaining exact human approval separately from the technical signer and original
 receipt/projection recovery. It issues no shares and mirrors no populated
-register. Wallet nomination/approval, company issuance, capital and pause
-conversion remain later #867 increments. #866 and #868–#873 remain planned.
+register. The second [wallet increment](../plans/company-managed-registers/company-wallet-approvals.md)
+retains genuine possession proof and explicit participant nomination separately
+from company approval and original journal execution. Company issuance, capital
+and pause conversion remain later #867 increments. #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.

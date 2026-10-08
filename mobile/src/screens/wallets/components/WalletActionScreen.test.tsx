@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import type { Wallet } from '@ledova/shared';
 
 const mockWallet: Wallet = {
@@ -18,8 +18,10 @@ const mockWallet: Wallet = {
   updatedAt: '2026-09-09T00:00:00Z',
 };
 
+const mockNavigate = jest.fn();
+
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), canGoBack: () => false }),
+  useNavigation: () => ({ navigate: mockNavigate, canGoBack: () => false }),
   useRoute: () => ({ params: { wallet: mockWallet } }),
 }));
 jest.mock('../useWalletsCrud', () => ({
@@ -35,6 +37,12 @@ jest.mock('./DeriveAddressModal', () => ({ DeriveAddressModal: () => null }));
 import { WalletActionScreen } from './WalletActionScreen';
 
 describe('wallet signing preferences on mobile', () => {
+  it('opens genuine proof refresh even when the address is already VERIFIED', async () => {
+    const view = await render(<WalletActionScreen />);
+    await fireEvent.press(view.getByText('Refresh possession proof'));
+    expect(mockNavigate).toHaveBeenCalledWith('WalletVerification', { wallet: mockWallet });
+  });
+
   it.each(['hardware', 'software'] as const)(
     'shows the %s preference as self-declared beside address verification',
     async (preference) => {

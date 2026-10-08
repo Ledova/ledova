@@ -28,6 +28,7 @@ export type WalletsStackParamList = {
   };
   WalletVerification: {
     wallet: Wallet;
+    nomination?: { request: string; company: string };
   };
   SeedPhraseBackup: {
     seedIdentifier: string;

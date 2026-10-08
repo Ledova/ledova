@@ -142,6 +142,7 @@ from tokens.tasks import (
     execute_review_request_task,
     recover_swap_approval_submissions,
 )
+from tokens.tests.company_wallet_chain_fixtures import CompanyWalletChainCases
 from tokens.tests.deployment_fixtures import admit_deployment, delete_approval_jobs
 from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.test_register_imports import owner_appointment
@@ -160,6 +161,10 @@ from wallets.exceptions import BlockchainAPIError
 from wallets.models import Holding, Wallet
 from wallets.services.transfers import prepare_erc20_transaction
 from whitelist.services import changes, whitelist
+from whitelist.tests.historical_whitelist_fixtures import (
+    retained_signed_add,
+    retained_signed_remove,
+)
 
 CHAIN_ENV = (
     "CHAIN_TEST_RPC_URL",
@@ -369,13 +374,19 @@ class ChainTestMixin:
         self.assertIn(result.status, ("confirmed", "observed"))
         return result
 
-    def _whitelist(self, address, **options):
+    def _historical_whitelist(self, address, **options):
         sender = Account.from_key(settings.BLOCKCHAIN_OPERATOR_KEY).address.lower()
         SigningAccount.objects.get_or_create(
             chain_id=31337, address=sender, defaults={"admission_state": "admitted", "admission_generation": 1}
         )
-        change = changes.submit(uuid4(), "add", address, self.staff, company=self.token.company, **options)
+        entry = whitelist.resolve_entry(address, wallet_uuid=options.get("wallet_uuid"))
+        original = retained_signed_add(
+            actor=self.staff, company=self.token.company, entry=entry, client=self.chain, **options
+        )
+        with use_operator():
+            change = changes.recover(original.pk)
         self.assertEqual(change.status, "confirmed")
+        self.assertIsNone(change.source_instruction_id)
         return change
 
     def _listed(self, address):
@@ -383,7 +394,7 @@ class ChainTestMixin:
         return whitelist.is_whitelisted(self.token.contract_address, address)
 
     def _whitelisted_request(self, amount):
-        self._whitelist(self.investor)
+        self._historical_whitelist(self.investor)
         return self._issuance_request(amount)
 
     def _issuance_request(self, amount):
@@ -604,7 +615,7 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
         self.assertEqual(swap_approval.recover(self.token.deployment_id), "confirmed")
         request = self._whitelisted_request(20)
         self.assertTrue(self._execute(request)["success"])
-        self._whitelist(self.buyer.address)
+        self._historical_whitelist(self.buyer.address)
         self.settlement_payment()
         _hash, receipt = self.chain.send_transaction(
             self.payment.functions.mint(self.buyer.address, 50000), private_key=settings.BLOCKCHAIN_OPERATOR_KEY
@@ -1054,7 +1065,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         Wallet.objects.filter(pk=recipient_tenant.wallet.pk).update(
             address=recipient, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
         )
-        self._whitelist(recipient)
+        self._historical_whitelist(recipient)
         self.w3.eth.wait_for_transaction_receipt(
             self.w3.eth.send_transaction(
                 {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
@@ -1285,7 +1296,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         Wallet.objects.filter(pk=outsider_tenant.wallet.pk).update(
             address=outsider, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
         )
-        self._whitelist(outsider)
+        self._historical_whitelist(outsider)
         self.w3.eth.wait_for_transaction_receipt(
             self.w3.eth.send_transaction(
                 {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
@@ -1399,7 +1410,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
             chain="base",
             verification_status=WALLET_VERIFICATION_STATUS_VERIFIED,
         )
-        self._whitelist(recipient)
+        self._historical_whitelist(recipient)
         self._pause(True)
         with self.assertRaises(BlockchainAPIError) as refusal:
             prepare()
@@ -1418,7 +1429,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         Wallet.objects.filter(pk=recipient_tenant.wallet.pk).update(
             address=recipient, verification_status=WALLET_VERIFICATION_STATUS_VERIFIED
         )
-        self._whitelist(recipient)
+        self._historical_whitelist(recipient)
         self.w3.eth.wait_for_transaction_receipt(
             self.w3.eth.send_transaction(
                 {"from": self.w3.eth.accounts[0], "to": investor.address, "value": self.w3.to_wei(1, "ether")}
@@ -1500,7 +1511,7 @@ class ShareTokenChainTest(ChainTestMixin, APITransactionTestCase):
         self.assertIn(NOT_WHITELISTED, not_whitelisted.execution_notes)
         self.assertNotIn("Refused", not_whitelisted.review_notes)
 
-        change = self._whitelist(self.investor)
+        change = self._historical_whitelist(self.investor)
         tx_hash, approval = change.transaction.tx_hash, change.approval
         self.assertTrue(tx_hash)
         self.assertTrue(self._listed(self.investor))
@@ -2277,22 +2288,26 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
 
     def test_old_submission_replay_preserves_later_chain_membership(self):
         company = self.token.company
-        original = self._whitelist(self.investor)
-        removed = changes.submit(uuid4(), "remove", self.investor, self.staff, company=company)
+        original = self._historical_whitelist(self.investor)
+        entry = whitelist.resolve_entry(self.investor)
+        retained = retained_signed_remove(actor=self.staff, company=company, entry=entry, client=self.chain)
+        with use_operator():
+            removed = changes.recover(retained.pk)
         self.assertEqual(removed.status, "confirmed")
         nonce = self._signer_nonce()
-        repeated = changes.submit(original.pk, "add", self.investor, self.staff, company=company)
+        with use_operator():
+            repeated = changes.recover(original.pk)
         self.assertEqual(repeated.transaction_id, original.transaction_id)
         self.assertFalse(self._listed(self.investor))
         self.assertEqual(self._signer_nonce(), nonce)
-        self._whitelist(self.investor)
+        self._historical_whitelist(self.investor)
         self.assertTrue(self._listed(self.investor))
         self.assertEqual(self._signer_nonce(), nonce + 1)
 
     def test_a_real_expiry_is_written_to_the_company_registry_and_lapses_on_chain(self):
         head = self.w3.eth.get_block("latest")["timestamp"]
         expires_at = datetime.fromtimestamp(head, tz=dt_timezone.utc) + timedelta(hours=1)
-        change = self._whitelist(self.investor, expires_at=expires_at)
+        change = self._historical_whitelist(self.investor, expires_at=expires_at)
         registry = self.chain.load_contract("WhitelistRegistry", Web3.to_checksum_address(change.registry_address))
         self.assertEqual(registry.functions.expiresAt(self.investor).call(), int(change.expires_at.timestamp()))
         self.assertEqual(change.approval.expires_at, change.expires_at)
@@ -2323,6 +2338,10 @@ class WhitelistChangeChainTest(ChainTestMixin, APITransactionTestCase):
         env["WHITELIST_TEST_CHAIN"] = json.dumps(CHAIN_SETTINGS)
         submission_id = uuid4()
         nonce = self._signer_nonce()
+        entry = whitelist.resolve_entry(self.investor)
+        retained_signed_add(
+            actor=self.staff, company=self.token.company, entry=entry, client=self.chain, submission_id=submission_id
+        )
         process = subprocess.Popen(
             [
                 sys.executable,
@@ -2861,3 +2880,13 @@ class ChainClockTest(SimpleTestCase):
         isolate_chain(self, self.w3)
 
         self.assertLess(abs(chain_clock_lead(self.w3)), CLOCK_SLACK)
+
+
+@chain_available
+@override_settings(**CHAIN_SETTINGS)
+class CompanyWalletInstructionChainTest(CompanyWalletChainCases, APITransactionTestCase):
+    def setUp(self):
+        reset_chain_client()
+        self.chain = get_base_chain_client()
+        isolate_chain(self, self.chain.w3)
+        super().setUp()

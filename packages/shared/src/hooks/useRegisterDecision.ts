@@ -46,6 +46,10 @@ import { isRegisterCorrectionDecisionReceipt } from '../utils/register-correctio
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
 import { isRegisterDeploymentDecisionReceipt } from '../utils/register-deployments';
+import { COMPANY_WALLET_COPY, COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
+import { decideCompanyWalletInstruction, previewCompanyWalletDecision } from '../services/company-wallets';
+import { isCompanyWalletDecisionReceipt } from '../utils/company-wallets';
+import type { CompanyWalletInstruction, CompanyWalletDecisionPreview } from '../types';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
@@ -93,6 +97,15 @@ export const REGISTER_DEPLOYMENT_DECISIONS: RegisterDecisionFamily<
   unmet: REGISTER_DEPLOYMENT_UNMET_COPY,
   copy: REGISTER_DEPLOYMENT_COPY,
 };
+
+export const COMPANY_WALLET_DECISIONS: RegisterDecisionFamily<CompanyWalletInstruction, CompanyWalletDecisionPreview> =
+  {
+    preview: previewCompanyWalletDecision,
+    decide: decideCompanyWalletInstruction,
+    isReceipt: isCompanyWalletDecisionReceipt,
+    unmet: COMPANY_WALLET_UNMET_COPY,
+    copy: COMPANY_WALLET_COPY,
+  };
 
 export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfer, RegisterTransferDecisionPreview> = {
   preview: previewRegisterTransferDecision,

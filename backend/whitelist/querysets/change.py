@@ -2,6 +2,15 @@ from django.db.models import QuerySet
 
 
 class WhitelistChangeQuerySet(QuerySet):
+    def company_targets(self, user):
+        from companies.models import Company
+
+        return self.filter(
+            company_id__in=Company.objects.register_readable_by(user).values("uuid"),
+            action="add",
+            status__in=["confirmed", "unchanged"],
+        )
+
     def unresolved(self):
         from whitelist.models.change import WhitelistChangeStatus
 

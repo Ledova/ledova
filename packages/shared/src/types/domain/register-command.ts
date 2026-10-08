@@ -1,5 +1,10 @@
 import type { ApiRequest, ApiSchema } from '../contracts';
 import type {
+  CompanyWalletInstruction,
+  CompanyWalletDecisionRequest,
+  CompanyWalletDecideRequest,
+} from './company-wallet';
+import type {
   RegisterCorrection,
   RegisterCorrectionDecideRequest,
   RegisterCorrectionDecisionRequest,
@@ -36,7 +41,8 @@ export type RegisterProposal =
   | RegisterLink
   | RegisterGrant
   | RegisterTransfer
-  | RegisterDeployment;
+  | RegisterDeployment
+  | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
   | RegisterImportDecisionRequest
   | RegisterDeploymentDecisionRequest
@@ -45,7 +51,8 @@ export type RegisterDecisionRequest =
   | RegisterCorrectionDecisionRequest
   | RegisterOpeningDecisionRequest
   | RegisterParticularsChangeDecisionRequest
-  | RegisterLinkDecisionRequest;
+  | RegisterLinkDecisionRequest
+  | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterImportDecideRequest
   | RegisterDeploymentDecideRequest
@@ -54,4 +61,5 @@ export type RegisterDecideRequest =
   | RegisterCorrectionDecideRequest
   | RegisterOpeningDecideRequest
   | RegisterParticularsChangeDecideRequest
-  | RegisterLinkDecideRequest;
+  | RegisterLinkDecideRequest
+  | CompanyWalletDecideRequest;

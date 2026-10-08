@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { View, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef, useSyncExternalStore } from 'react';
+import { View, ScrollView, Text } from 'react-native';
 import { Action } from '../../../components/Ledger';
 import { useNavigation, useRoute, useIsFocused, RouteProp } from '@react-navigation/native';
 import { useCameraScanner } from '../../../components/qr/useCameraScanner';
@@ -14,16 +14,53 @@ import {
   isBitcoinChain,
   getWalletVerificationEvmChainId,
   WALLET_SIGNING_PREFERENCE,
+  useSubmissionOwner,
+  type Wallet,
 } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
 import { useWalletVerification } from '../useWalletVerification';
 import { VerificationInstructions } from './VerificationInstructions';
 import { ChallengeQRStep } from './ChallengeQRStep';
 import { SignatureScanStep } from './SignatureScanStep';
+import { orderSubmissionSession } from '../../../services/orderSubmissions';
+import { getSessionEpoch, subscribeSession } from '../../../services/sessionScope';
 
 type WalletVerificationRouteProp = RouteProp<WalletsStackParamList, 'WalletVerification'>;
 
 export function WalletVerificationScreen() {
+  const route = useRoute<WalletVerificationRouteProp>();
+  const { owner } = useSubmissionOwner(orderSubmissionSession);
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch, getSessionEpoch);
+  const wallet = route.params.wallet;
+  const nomination = route.params.nomination;
+  const walletKey = JSON.stringify([
+    wallet.uuid,
+    wallet.userAccount,
+    wallet.address,
+    wallet.chain,
+    wallet.signingPreference,
+    wallet.derivationPath,
+    wallet.masterFingerprint,
+    nomination?.request,
+    nomination?.company,
+  ]);
+  const [scope, setScope] = useState({ owner, epoch, walletKey, generation: 0 });
+  if (scope.owner !== owner || scope.epoch !== epoch || scope.walletKey !== walletKey) {
+    setScope({ owner, epoch, walletKey, generation: scope.generation + 1 });
+    return null;
+  }
+  if (!owner || wallet.userAccount !== owner.ownerAccountUuid)
+    return <Text>Your signed-in account must be checked before verifying this own wallet.</Text>;
+  return <WalletVerification key={scope.generation} wallet={wallet} nomination={nomination} />;
+}
+
+function WalletVerification({
+  wallet,
+  nomination,
+}: {
+  wallet: Wallet;
+  nomination?: WalletsStackParamList['WalletVerification']['nomination'];
+}) {
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
@@ -36,15 +73,15 @@ export function WalletVerificationScreen() {
     },
   }));
   const navigation = useNavigation();
-  const route = useRoute<WalletVerificationRouteProp>();
   const isFocused = useIsFocused();
   const [scanError, setScanError] = useState<string | null>(null);
-
-  const { wallet } = route.params;
 
   const isSoftwareWallet = wallet.signingPreference === WALLET_SIGNING_PREFERENCE.SOFTWARE;
 
   const {
+    ready,
+    refresh,
+    guard,
     verificationChallenge,
     verificationStep,
     isRequestingChallenge,
@@ -57,15 +94,15 @@ export function WalletVerificationScreen() {
     verifySignature,
     autoVerify,
     reset,
-  } = useWalletVerification({ wallet });
+  } = useWalletVerification({ wallet, nomination });
 
   const hasAutoVerified = useRef(false);
   useEffect(() => {
-    if (isSoftwareWallet && !hasAutoVerified.current) {
+    if (isSoftwareWallet && ready && !hasAutoVerified.current) {
       hasAutoVerified.current = true;
       autoVerify();
     }
-  }, [isSoftwareWallet]);
+  }, [isSoftwareWallet, ready]);
 
   useEffect(() => {
     setScanError(null);
@@ -80,7 +117,13 @@ export function WalletVerificationScreen() {
   useEffect(() => {
     if (verificationSuccess) {
       const timer = setTimeout(() => {
-        navigation.goBack();
+        try {
+          guard();
+          if (nomination) {
+            if (navigation.canGoBack()) navigation.goBack();
+            navigation.getParent()?.navigate('Home', { screen: 'ParticipantEligibility' });
+          } else navigation.goBack();
+        } catch {}
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -146,7 +189,7 @@ export function WalletVerificationScreen() {
           <Action
             label={busy ? 'Loading...' : verificationError ? 'Retry' : 'Cancel'}
             primary={Boolean(verificationError)}
-            disabled={busy}
+            disabled={busy || !ready}
             onPress={verificationError ? autoVerify : () => navigation.goBack()}
           />
         );
@@ -156,7 +199,7 @@ export function WalletVerificationScreen() {
         <Action
           label={isRequestingChallenge ? 'Loading...' : 'Start'}
           primary
-          disabled={isRequestingChallenge}
+          disabled={isRequestingChallenge || !ready}
           onPress={requestChallenge}
         />
       );
@@ -190,6 +233,7 @@ export function WalletVerificationScreen() {
     <GradientBackground>
       <View style={styles.container}>
         <Panel title="Verify Wallet" actions={renderActions()}>
+          {!ready && <Action label="Refresh own wallet" onPress={() => void refresh()} />}
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {verificationStep === 'instructions' && (
               <VerificationInstructions

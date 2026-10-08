@@ -50,7 +50,6 @@ from tokens.tests.issuance_fixtures import (
     IssuanceNode,
 )
 from users.models import InvestorClassification
-from whitelist.models import WhitelistEntry
 
 User = get_user_model()
 CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
@@ -372,56 +371,18 @@ class SubscriptionAdminTest(SubscriptionAdminTestCase):
         self.assertEqual([row.allotted_quantity for row in rows], [30, 30])
         self.assertIn("2 subscription(s) scaled", self._messages(response)[0])
 
-    def test_the_bulk_whitelist_action_requires_confirmation_with_stable_identity(self):
+    def test_subscription_admin_cannot_admit_wallet_changes_and_preserves_the_exact_wallet_source(self):
         subscription = paid_subscription(self.tenant)
-        entry = WhitelistEntry.objects.create(wallet=self.tenant.wallet)
-        url = reverse("admin:offerings_subscription_changelist")
-        data = {"action": "whitelist_wallets", "_selected_action": [str(subscription.pk)]}
-        with patch("whitelist.admin_actions.submit") as submit:
-            response = self.client.post(url, data)
-            self.assertEqual(response.status_code, 200)
-            self.assertNotContains(response, 'name="whitelist_company"')
-            self.assertContains(response, str(subscription.offering.company))
-            submit.assert_not_called()
-            token = response.context["whitelist_confirmation"]
-            submit.return_value.status = "confirmed"
-            confirmed = data | {"confirm_whitelist": "1", "whitelist_confirmation": token}
-            self.client.post(url, confirmed)
-            self.client.post(url, confirmed)
-        self.assertEqual(submit.call_count, 2)
-        self.assertEqual(submit.call_args_list[0], submit.call_args_list[1])
-        self.assertEqual(submit.call_args.args[2], entry.wallet_address)
-        self.assertEqual(submit.call_args.kwargs["authority"], "subscription_admin")
-        self.assertEqual(submit.call_args.kwargs["company"], subscription.offering.company)
-        self.assertIsNone(submit.call_args.kwargs["expires_at"])
-
-    def test_the_bulk_whitelist_action_refuses_subscriptions_to_two_companies(self):
-        mine = paid_subscription(self.tenant)
-        other = make_tenant("subscription-admin-other")
-        open_offering(other, stablecoin=self.stablecoin, target_shares=200, cap_shares=500)
-        eligible_subscriber(other)
-        theirs = paid_subscription(other)
-        WhitelistEntry.objects.create(wallet=self.tenant.wallet)
-        with patch("whitelist.admin_actions.submit") as submit:
-            response = self.client.post(
-                reverse("admin:offerings_subscription_changelist"),
-                {"action": "whitelist_wallets", "_selected_action": [str(mine.pk), str(theirs.pk)]},
-                follow=True,
-            )
-        self.assertIn(
-            "Select subscriptions to one company's offerings; each company has its own whitelist.",
-            self._messages(response),
-        )
-        submit.assert_not_called()
-
-    def test_the_bulk_whitelist_action_names_the_wallets_with_no_entry(self):
-        subscription = paid_subscription(self.tenant)
-        response = self.client.post(
+        original = Subscription.objects.filter(pk=subscription.pk).values().get()
+        response = self.client.get(reverse("admin:offerings_subscription_changelist"))
+        self.assertNotContains(response, 'value="whitelist_wallets"')
+        self.client.post(
             reverse("admin:offerings_subscription_changelist"),
             {"action": "whitelist_wallets", "_selected_action": [str(subscription.pk)]},
             follow=True,
         )
-        self.assertIn("1 wallet(s) have no whitelist entry; add them first.", self._messages(response))
+        self.assertEqual(Subscription.objects.filter(pk=subscription.pk).values().get(), original)
+        self.assertEqual(subscription.wallet_id, self.tenant.wallet.pk)
 
     def test_the_changelist_finds_a_row_by_a_mangled_bank_narrative(self):
         subscription = self._submitted()

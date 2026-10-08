@@ -1,26 +1,19 @@
 from collections import Counter
 from dataclasses import dataclass, field
 from decimal import Decimal
-from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
 from web3 import HTTPProvider, Web3
 
 from blockchain.models import SignedAttempt
-from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from operators.models import Operator
 from operators.settlement import single_settlement_asset
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import use_operator
 from shared.seeds.synthetic.chain import layer as chain_layer
 from shared.seeds.synthetic.chain import population as chain_population
-from shared.seeds.synthetic.chain.approvals import (
-    ENTRY_NOTE,
-    NOT_CONFIRMED,
-)
-from shared.seeds.synthetic.chain.classes import ChainStepFailed
+from shared.seeds.synthetic.chain.approvals import approve_participant_wallet
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import (
     GET_THE_CHAIN,
@@ -45,13 +38,6 @@ from tokens.models import (
     TransferOrderStatus,
 )
 from tokens.services.market_data_service import market_summaries
-from whitelist.models import (
-    WhitelistAction,
-    WhitelistAuthority,
-    WhitelistChangeStatus,
-    WhitelistEntry,
-)
-from whitelist.services import changes
 
 ABSENT = "absent"
 PRESENT = "present"
@@ -132,23 +118,7 @@ def _grant(market):
 def _approve(approval, market):
     company = market.companies[approval.company]
     wallet = market.wallet(approval.investor, approval.address)
-    entry, _ = WhitelistEntry.objects.get_or_create(wallet=wallet, defaults={"notes": ENTRY_NOTE})
-    with use_operator(), _requester_principal(market.operations.pk):
-        change = changes.submit(
-            uuid4(),
-            WhitelistAction.ADD,
-            entry.wallet_address,
-            market.operations,
-            company=company,
-            expires_at=None,
-            authority=WhitelistAuthority.WHITELIST_ADMIN,
-            wallet_uuid=wallet.pk,
-        )
-    if change.status != WhitelistChangeStatus.CONFIRMED:
-        raise ChainStepFailed(
-            NOT_CONFIRMED.format(address=approval.address, company=company.name, status=change.status)
-        )
-    return change
+    return approve_participant_wallet(company, wallet, market.keyring)
 
 
 def _history(plan):

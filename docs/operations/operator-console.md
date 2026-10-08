@@ -224,7 +224,17 @@ come from a namespaced hash, except the testers' development accounts of the
 public test mnemonic. The seed sends nothing and queues no job: no email, push
 notification, identity check or ABR lookup.
 
-When the local chain is configured, the first run on a database then adds a
+The chain and market fixture description below is **historical staff-assisted
+journey evidence**. Fresh [company wallet admission](../plans/company-managed-registers/company-wallet-approvals.md)
+requires a genuine successful proof and explicit nomination. The historical
+no-key employee-trust address cannot provide either, and its fresh admission
+refuses explicitly. Normal owned synthetic participants can use their actual
+signing keys and company commands; that does not complete the unsupported
+historical treasury layer. Do not override proof, fabricate a participant or
+reset retained records to reproduce its earlier completion. Preserve earlier
+screenshots, chain controls and data as history.
+
+At the recorded historical baseline, a configured local chain added a
 chain layer: chain id 31337 answering at `BLOCKCHAIN_RPC_URL` with the core
 contracts deployed and the operator signer admitted, as in the stack
 `make dev-up` starts ([its chain](chains.md#the-local-stacks-chain)). The layer

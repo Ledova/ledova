@@ -19,6 +19,11 @@ import { clearTokens, storeTokens } from '../../services/tokenStorage';
 import { ParticipantEligibilityScreen } from './ParticipantEligibilityScreen';
 import { CompanyEligibilityScreen } from './CompanyEligibilityScreen';
 
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ getParent: () => ({ navigate: jest.fn() }) }),
+}));
+
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
 jest.mock('expo-secure-store', () => ({
@@ -219,6 +224,8 @@ beforeEach(async () => {
   apiClient.defaults.adapter = async (config) => {
     sent.push(config);
     if (config.method === 'get') {
+      if (config.url === '/api/wallets/' || config.url === '/api/v1/whitelist/wallet-nominations/')
+        return response(config, { results: [], count: 0, next: null });
       if (config.url === sourceUrl) return response(config, { results: sources, count: sources.length, next: null });
       if (config.url === appointmentUrl)
         return response(config, { results: appointments, count: appointments.length, next: null });

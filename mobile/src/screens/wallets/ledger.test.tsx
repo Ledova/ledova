@@ -590,7 +590,10 @@ it('uses current verification for name and verify actions', async () => {
   expect(mockNavigate).toHaveBeenCalledWith('WalletVerification', { wallet: pages[1].results[0] });
   pages[1].results[0].verificationStatus = 'VERIFIED';
   await refresh();
-  await waitFor(() => expect(view.getByRole('button', { name: 'Verify address' })).toBeDisabled());
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh possession proof' })).not.toBeDisabled());
+  expect(view.queryByRole('button', { name: 'Verify address' })).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh possession proof' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('WalletVerification', { wallet: pages[1].results[0] });
 });
 
 it('prevents deriving an address already recorded on a later wallet page', async () => {

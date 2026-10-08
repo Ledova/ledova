@@ -150,14 +150,17 @@ def candidates(account_id, company_id):
     ).select_related("request__source")
 
 
-def has_live_general_decision(account_id, company_id):
+def has_live_general_decision(account_id, company_id, *, decision_id=None):
     _configuration()
     require_evidence_retention_policy()
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SELECT users_company_eligibility_certificate_time_zone()")
         if cursor.fetchone()[0] != settings.TIME_ZONE:
             raise WhitelistChangeConflict("Certificate configuration changed; install its guard migration.")
-    for decision in candidates(account_id, company_id).order_by("request__source_id", "request_id", "uuid"):
+    selected = candidates(account_id, company_id)
+    if decision_id is not None:
+        selected = selected.filter(pk=decision_id)
+    for decision in selected.order_by("request__source_id", "request_id", "uuid"):
         try:
             evidence_hash = _evidence_hash(decision.request.source)
         except ValidationError:

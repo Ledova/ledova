@@ -8,6 +8,7 @@ import subprocess
 import sys
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import date, datetime
 from datetime import timezone as utc_zone
 from decimal import Decimal
@@ -41,6 +42,7 @@ from documents.models import Document
 from offerings.models import Subscription, SubscriptionStatus
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.models import Country
+from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
@@ -415,29 +417,47 @@ def paused(company, token):
     return PauseChange.objects.get(pk=change.pk)
 
 
-def approval_change(company, registry, holder, reviewer):
+@contextmanager
+def predecessor_wallet_guards():
+    nested = connections["default"].in_atomic_block
+    with use_migrate():
+        if nested:
+            with connections["default"].cursor() as cursor:
+                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+        try:
+            migrate_to([("whitelist", "0010_company_wallet_instructions")])
+            yield
+        finally:
+            restore_every_migration()
+            if nested:
+                with connections["default"].cursor() as cursor:
+                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+
+
+def historical_approval_change(company, registry, holder, reviewer):
     address = holder.lower()
     expiry = int(RENEWED_UNTIL.timestamp())
-    change = WhitelistChange.objects.create(
-        action="add",
-        address=address,
-        chain_id=settings.BLOCKCHAIN_CHAIN_ID,
-        registry_address=registry,
-        company_id=company.pk,
-        expires_at=RENEWED_UNTIL,
-        intent={
-            "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
-            "sender": OPERATOR,
-            "to": registry,
-            "value": "0",
-            "data": "0xe0468dcd" + "0" * 24 + address[2:] + f"{expiry:064x}",
-        },
-        initiated_by=reviewer,
-        authority="whitelist_admin",
-        requested_wallet_id=Wallet.objects.get(address=holder).pk,
-        entry_id=WhitelistEntry.objects.get(wallet__address=holder).pk,
-    )
-    WhitelistChange.objects.filter(pk=change.pk).update(status="unchanged", completed_at=RECORDED_AT)
+    with predecessor_wallet_guards():
+        change = WhitelistChange.objects.create(
+            action="add",
+            address=address,
+            chain_id=settings.BLOCKCHAIN_CHAIN_ID,
+            registry_address=registry,
+            company_id=company.pk,
+            expires_at=RENEWED_UNTIL,
+            intent={
+                "chain_id": settings.BLOCKCHAIN_CHAIN_ID,
+                "sender": OPERATOR,
+                "to": registry,
+                "value": "0",
+                "data": "0xe0468dcd" + "0" * 24 + address[2:] + f"{expiry:064x}",
+            },
+            initiated_by=reviewer,
+            authority="whitelist_admin",
+            requested_wallet_id=Wallet.objects.get(address=holder).pk,
+            entry_id=WhitelistEntry.objects.get(wallet__address=holder).pk,
+        )
+        WhitelistChange.objects.filter(pk=change.pk).update(status="unchanged", completed_at=RECORDED_AT)
     return WhitelistChange.objects.get(pk=change.pk)
 
 
@@ -572,7 +592,7 @@ def pack_company(label):
         link=link,
         increase=CapitalIncreaseRequest.objects.get(pk=increase.pk),
         pause=paused(company, ordinary),
-        change=approval_change(company, registry, addresses["holder"], reviewer),
+        change=historical_approval_change(company, registry, addresses["holder"], reviewer),
         reconciliation=reconciled(company, ordinary, reviewer, label),
     )
 
@@ -843,6 +863,16 @@ class CompanyPackTest(ProducesPacks, TestCase):
         self.a = pack_company("pack-a")
         self.staff = pack_staff("pack-staff")
         self.client.force_login(self.staff)
+
+    def test_retained_whitelist_history_does_not_admit_a_new_staff_change(self):
+        original = WhitelistChange.objects.filter(pk=self.a.change.pk).values().get()
+        terms = original | {"uuid": uuid4(), "status": "pending", "completed_at": None}
+        with self.assertRaisesMessage(IntegrityError, "Fresh whitelist admission"), use_operator(), atomic():
+            WhitelistChange.objects.create(**terms)
+        self.assertEqual(WhitelistChange.objects.filter(pk=self.a.change.pk).values().get(), original)
+        self.assertIsNone(self.a.change.source_instruction_id)
+        self.assertEqual(self.a.change.status, "unchanged")
+        self.assertEqual(WhitelistChange.objects.count(), 1)
 
     def test_the_manifest_lists_every_other_file_and_names_the_company_request_and_register_heads(self):
         content = self.pack()

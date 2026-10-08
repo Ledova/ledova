@@ -2,6 +2,8 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { AxiosInstance } from 'axios';
+import { AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, ApiClientProvider } from '@ledova/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -32,14 +34,20 @@ const syncOf = (name: string) => within(screen.getByRole('group', { name })).get
 
 function show() {
   render(
-    <QueryClientProvider client={queryClient}>
-      <WalletsPage />
-    </QueryClientProvider>,
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <QueryClientProvider client={queryClient}>
+        <WalletsPage />
+      </QueryClientProvider>
+    </ApiClientProvider>,
   );
 }
 
 beforeEach(() => {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  queryClient.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   api.get.mockResolvedValue({ data: { results: [wallet], count: 1, next: null, previous: null } });
   api.post.mockReset();
 });

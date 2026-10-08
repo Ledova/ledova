@@ -178,9 +178,9 @@ function WalletDetails({ uuid }: { uuid: string }) {
             <Section title="Actions">
               <View style={styles.actions}>
                 <Action
-                  label="Verify address"
+                  label={isVerified ? 'Refresh possession proof' : 'Verify address'}
                   onPress={() => navigation.navigate('WalletVerification', { wallet })}
-                  disabled={blocked || pending || isVerified}
+                  disabled={blocked || pending}
                 />
                 <Action
                   label={crud.syncingWalletIds.has(wallet.uuid) ? 'Syncing…' : 'Sync balances'}

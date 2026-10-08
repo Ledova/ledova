@@ -8,6 +8,8 @@ import { WalletVerificationModal } from './WalletVerificationModal';
 const signWithSeedPhrase = vi.fn();
 
 const hookState = {
+  owner: { userUuid: 'profile', ownerAccountUuid: 'account' },
+  available: true,
   verificationStep: 'sign-software' as string,
   verificationChallenge: 'challenge',
   challengeQrData: null,

@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from eth_account import Account
 from web3 import Web3
 
 from blockchain.models import SignedAttempt
@@ -29,7 +30,8 @@ from wallets.models import Wallet
 from whitelist.constants import WHITELIST_NO_EXPIRY
 from whitelist.models import WhitelistEntry
 
-ADDRESS = "0x" + "a" * 40
+PARTICIPANT_KEY = "0x" + "22" * 32
+ADDRESS = Account.from_key(PARTICIPANT_KEY).address.lower()
 REGISTRY = "0x" + "d" * 40
 FACTORY = "0x" + "c" * 40
 SET_EXPIRY = "0xe0468dcd"

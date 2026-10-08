@@ -14,6 +14,7 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 import { EligibilityConfirmation } from './EligibilityConfirmation';
 import { EligibilityExpiry } from './EligibilityExpiry';
+import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { EligibilityRecord } from './EligibilityRecord';
 
 function RevocationForm({
@@ -75,6 +76,7 @@ export function CompanyEligibilityScreen() {
         <RefreshControl refreshing={records.refreshing && !records.loading} onRefresh={() => void records.refresh()} />
       }
     >
+      <CompanyWalletInstructions />
       {records.error && (
         <Text accessibilityRole="alert" style={styles.error}>
           {records.error}

@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from copy import deepcopy
 from unittest.mock import Mock, patch
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import admin
@@ -38,7 +37,6 @@ from wallets.constants import (
 )
 from wallets.models import Wallet
 from whitelist.models import (
-    WhitelistAction,
     WhitelistApproval,
     WhitelistChangeStatus,
     WhitelistEligibilityInvalidation,
@@ -55,6 +53,7 @@ from whitelist.tests.change_fixtures import (
     admitted_signer,
     change_actor,
 )
+from whitelist.tests.historical_whitelist_fixtures import retained_signed_add
 
 
 class EligibilityLossProducerCases(CompanyEligibilityConsumptionCases):
@@ -75,8 +74,11 @@ class EligibilityLossProducerCases(CompanyEligibilityConsumptionCases):
         self.node = WhitelistNode()
         for module in (changes, whitelist, eligibility_invalidation):
             self.enterContext(patch.object(module, "get_base_chain_client", return_value=self.node.client))
+        signed = retained_signed_add(
+            actor=self.technical, company=self.company, entry=self.entry, client=self.node.client
+        )
         with self.actual_operator():
-            change = changes.submit(uuid4(), WhitelistAction.ADD, ADDRESS, self.technical, company=self.company)
+            change = changes.recover(signed.pk)
         self.assertEqual(change.status, WhitelistChangeStatus.CONFIRMED)
         self.assertNotEqual(self.node.expiries[ADDRESS], 0)
         with use_operator():

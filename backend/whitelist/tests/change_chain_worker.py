@@ -22,11 +22,9 @@ def run(submission_id, actor_id, company_id, address):
         setattr(settings, key, value)
     django.setup()
 
-    from django.contrib.auth import get_user_model
-
-    from companies.models import Company
     from integrations.base_chain.client import BaseChainClient
-    from whitelist.services.changes import submit
+    from whitelist.models import WhitelistChange
+    from whitelist.services.changes import recover
 
     original_send = BaseChainClient.send_raw_transaction
 
@@ -34,9 +32,11 @@ def run(submission_id, actor_id, company_id, address):
         original_send(client, raw)
         os.kill(os.getpid(), signal.SIGKILL)
 
-    actor = get_user_model().objects.get(pk=actor_id)
+    original = WhitelistChange.objects.get(
+        pk=submission_id, initiated_by_id=actor_id, company_id=company_id, address=address.lower(), action="add"
+    )
     with patch.object(BaseChainClient, "send_raw_transaction", accept_then_die):
-        submit(submission_id, "add", address, actor, company=Company.objects.get(pk=company_id))
+        recover(original.pk)
 
 
 if __name__ == "__main__":

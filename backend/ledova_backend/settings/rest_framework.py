@@ -66,6 +66,8 @@ SPECTACULAR_SETTINGS = {
         "UserDocumentTypeEnum": "documents.models.document.DocumentType",
         "UserVerificationStatusEnum": "integrations.kyc.constants.VERIFICATION_STATUS_CHOICES",
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
+        "WhitelistActionEnum": "whitelist.models.change.WhitelistAction.choices",
+        "WhitelistChangeStatusEnum": "whitelist.models.change.WhitelistChangeStatus.choices",
         "RegisterCorrectionStatusEnum": "tokens.models.register_correction.RegisterCorrectionStatus",
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
         "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",

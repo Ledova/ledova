@@ -7,6 +7,8 @@ from django.conf import settings
 from django.db import connections
 from django.test import TransactionTestCase
 from django.utils import timezone
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 from assets.models import Asset, AssetChainDeployment
 from compliance.constants import RULE_TYPE_THRESHOLD
@@ -28,8 +30,11 @@ from wallets.constants import (
     WALLET_VERIFICATION_STATUS_PENDING,
     WALLET_VERIFICATION_STATUS_VERIFIED,
 )
-from wallets.models import Holding, Transaction, Wallet
-from wallets.services.verification import complete_wallet_verification
+from wallets.models import Holding, Transaction, Wallet, WalletPossessionProof
+from wallets.services.verification import (
+    complete_wallet_verification,
+    start_wallet_verification,
+)
 from wallets.tasks.sync import sync_all_wallets, sync_wallet
 from whitelist.models import WhitelistApproval, WhitelistEntry
 
@@ -238,11 +243,15 @@ class ScopedWalletSyncTest(RunsOnTheScopedConnection, TransactionTestCase):
 
     def test_verification_captures_the_user_and_lost_access_is_refused_when_the_job_runs(self):
         before = self.queued()
-        with use_operator(), patch("wallets.services.verification.verify_wallet_signature", return_value=True):
+        key = Account.from_key("0x" + "22" * 32)
+        with use_operator():
             Wallet.objects.filter(pk=self.owner.wallet.pk).update(
-                verification_status=WALLET_VERIFICATION_STATUS_PENDING
+                address=key.address, verification_status=WALLET_VERIFICATION_STATUS_PENDING
             )
-            complete_wallet_verification(self.owner.user, self.owner.wallet.pk, "0x01")
+            wallet = start_wallet_verification(self.owner.user, self.owner.wallet.pk)
+            signature = key.sign_message(encode_defunct(text=wallet.verification_challenge)).signature.to_0x_hex()
+            complete_wallet_verification(self.owner.user, self.owner.wallet.pk, signature)
+            self.assertEqual(WalletPossessionProof.objects.get(wallet_id=wallet.pk).signature, signature)
         jobs = {key: row for key, row in self.queued().items() if key not in before}
         self.assertEqual(len(jobs), 1)
         name, args = next(iter(jobs.values()))

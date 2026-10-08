@@ -17,11 +17,20 @@ const SAFE_SYNC_ERRORS = new Set([
   'Some wallet transaction history could not be read. Please try again later.',
 ]);
 
-export const requestVerificationChallenge = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.post<RequestVerificationChallengeResponse>(WALLET_ENDPOINTS.REQUEST_VERIFICATION(uuid), {});
+export const requestVerificationChallenge = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  config
+    ? apiClient.post<RequestVerificationChallengeResponse>(WALLET_ENDPOINTS.REQUEST_VERIFICATION(uuid), {}, config)
+    : apiClient.post<RequestVerificationChallengeResponse>(WALLET_ENDPOINTS.REQUEST_VERIFICATION(uuid), {});
 
-export const verifyWalletSignature = (apiClient: AxiosInstance, uuid: string, data: VerifyWalletRequest) =>
-  apiClient.post<VerifyWalletResponse>(WALLET_ENDPOINTS.VERIFY_SIGNATURE(uuid), data);
+export const verifyWalletSignature = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: VerifyWalletRequest,
+  config?: AxiosRequestConfig,
+) =>
+  config
+    ? apiClient.post<VerifyWalletResponse>(WALLET_ENDPOINTS.VERIFY_SIGNATURE(uuid), data, config)
+    : apiClient.post<VerifyWalletResponse>(WALLET_ENDPOINTS.VERIFY_SIGNATURE(uuid), data);
 
 export const syncWallet = async (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) => {
   const response = config

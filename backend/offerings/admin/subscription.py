@@ -265,7 +265,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     search_fields = ["reference", "payment_reference_seen", "payment_tx_hash", "wallet__address"]
     list_select_related = ["offering", "offering__token", "user_account", "wallet"]
     ordering = ["-created_at"]
-    actions = ["allot_selected", "scale_back_selected", "whitelist_wallets"]
+    actions = ["allot_selected", "scale_back_selected"]
     readonly_fields = [
         "uuid",
         "status",
@@ -499,39 +499,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
                 f"Scaled back to {row.allotment_quantity} share(s) of the {result['requested']} requested against "
                 f"{result['room']} available; {row.refund_amount or 0} is owed back.",
             )
-
-    @admin.action(description="Whitelist the wallets of the selected subscriptions", permissions=["change"])
-    def whitelist_wallets(self, request, queryset):
-        from whitelist.admin_actions import confirm_changes
-        from whitelist.models import WhitelistAction, WhitelistAuthority, WhitelistEntry
-
-        subscriptions = list(queryset.select_related("offering__company"))
-        companies = {subscription.offering.company for subscription in subscriptions}
-        if len(companies) != 1:
-            self.message_user(
-                request,
-                "Select subscriptions to one company's offerings; each company has its own whitelist.",
-                messages.ERROR,
-            )
-            return None
-        wallet_ids = {subscription.wallet_id for subscription in subscriptions}
-        entries = list(WhitelistEntry.objects.filter(wallet_id__in=wallet_ids))
-        missing = wallet_ids - {entry.wallet_id for entry in entries}
-        if missing:
-            self.message_user(
-                request, f"{len(missing)} wallet(s) have no whitelist entry; add them first.", messages.ERROR
-            )
-        if entries:
-            return confirm_changes(
-                self,
-                request,
-                queryset,
-                entries,
-                WhitelistAction.ADD,
-                WhitelistAuthority.SUBSCRIPTION_ADMIN,
-                company=companies.pop(),
-            )
-        return None
 
 
 def _run_accept(subscription, request, data):
