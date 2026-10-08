@@ -2,10 +2,11 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** Fifth #867 increment under implementation, following empty deployment,
-company wallet approvals, non-paid grants and capital increases. This is the
-bounded implementation contract. Delivery requires the final source, meaningful
-checks, independent review and current-main CI recorded in its pull request.
+**Status:** Fifth #867 increment implements company-authorised pause and unpause,
+following empty deployments, company wallet approvals, non-paid grants and capital
+increases. Exact company decisions and original observation/transaction recovery
+work through the API and both clients. The pull request records final independent
+review and current-main CI; no live migration or deployment is implied.
 Paid issuance remains a later increment; payment design remains with #868/#869.
 
 ## Exact company instruction

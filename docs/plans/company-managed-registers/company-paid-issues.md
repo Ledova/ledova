@@ -2,9 +2,10 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** Sixth #867 increment under implementation. It follows the deployment,
-wallet, non-paid issue, capital and pause increments. Its pull request must record
-the final source, independent review, executed checks and limits before delivery.
+**Status:** Sixth #867 increment implements company-authorised paid issues through
+the API and both clients. It follows the deployment, wallet, non-paid issue,
+capital and pause increments. Its pull request must record the final source,
+independent review, executed checks and limits before delivery.
 Offering publication, application decisions, payment collection, receipt
 verification and refund policy remain #868 work.
 

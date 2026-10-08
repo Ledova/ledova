@@ -47,10 +47,10 @@ execution. The third increment implements
 instructions and a first-member LINK bootstrap. The fourth increment's
 [capital guide](company-capital-increases.md) describes implemented company decisions
 and original cap-only execution. The fifth increment's
-[pause/unpause guide](company-pause-changes.md) records its implementation contract
-for company decisions, genuine observations and original transaction recovery.
-The sixth increment's [paid-issue guide](company-paid-issues.md) records the
-implementation contract for company decisions over existing recorded PAID
+[pause/unpause guide](company-pause-changes.md) describes implemented company decisions,
+genuine observations and original transaction recovery.
+The sixth increment's [paid-issue guide](company-paid-issues.md) describes
+implemented company decisions over existing recorded PAID
 subscriptions, original execution and distinct allotment/register outcomes.
 New payment mechanics remain #868 work.
 #866 and #868–#873 remain dependency-ordered and own the later company/member,

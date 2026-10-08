@@ -77,11 +77,11 @@ implements exact company instructions and a first-member LINK consumer.
 The fourth [capital increment](../plans/company-managed-registers/company-capital-increases.md)
 implements exact company decisions through the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
-is under implementation with exact company decisions and original observation or
+implements exact company decisions and original observation or
 transaction recovery. The sixth
 [paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation, separating existing recorded payment from exact company
-issue approval, original execution and allotment. New payment mechanics remain
+implements company decisions over existing recorded payment, retaining exact
+issue approval, original execution and distinct allotment/register outcomes. New payment mechanics remain
 #868 work.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
