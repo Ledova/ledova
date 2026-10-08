@@ -112,9 +112,10 @@ class CapitalExecutionProcessTest(TransactionTestCase):
 
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
         admit(self.request, self.actor, confirmed=self.form)
+        confirmation = capital_execution.confirmation(self.request, self.actor)
         with tempfile.TemporaryDirectory(prefix="capital-race-") as temporary:
             directory = Path(temporary)
-            processes = [self.worker(directory, "race") for _ in range(2)]
+            processes = [self.worker(directory, "race", confirmation) for _ in range(2)]
             for process in processes:
                 self.await_file(directory / f"ready-{process.pid}", process)
             (directory / "go").touch()
