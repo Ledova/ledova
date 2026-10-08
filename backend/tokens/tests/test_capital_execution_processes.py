@@ -52,9 +52,12 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             process.kill()
             process.communicate(timeout=10)
 
-    def await_file(self, path):
+    def await_file(self, path, process=None):
         until = time.monotonic() + 20
         while not path.exists() and time.monotonic() < until:
+            if process is not None and process.poll() is not None:
+                out, err = process.communicate(timeout=10)
+                self.fail(f"{path}: worker exited with {process.returncode}\n{out}{err}")
             time.sleep(0.01)
         self.assertTrue(path.exists(), str(path))
 
@@ -108,11 +111,13 @@ class CapitalExecutionProcessTest(TransactionTestCase):
         self.recover_killed("accepted", True)
 
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
+        admit(self.request, self.actor, confirmed=self.form)
+        confirmation = capital_execution.confirmation(self.request, self.actor)
         with tempfile.TemporaryDirectory(prefix="capital-race-") as temporary:
             directory = Path(temporary)
-            processes = [self.worker(directory, "race") for _ in range(2)]
+            processes = [self.worker(directory, "race", confirmation) for _ in range(2)]
             for process in processes:
-                self.await_file(directory / f"ready-{process.pid}")
+                self.await_file(directory / f"ready-{process.pid}", process)
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -125,9 +130,9 @@ class CapitalExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="capital-peer-receipt-") as temporary:
             directory = Path(temporary)
             delayed = self.worker(directory, "delayed_preflight")
-            self.await_file(directory / "preflight-ready")
+            self.await_file(directory / "preflight-ready", delayed)
             winner = self.worker(directory, "mined_before_projection")
-            self.await_file(directory / "mined")
+            self.await_file(directory / "mined", winner)
             try:
                 self.assertEqual(self.successful(delayed)["status"], "executed")
                 self.assertIsNone(CapitalIncreaseExecution.objects.get().attribution_evidence)
@@ -205,7 +210,7 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             previous_claim, retry = self.reverted(directory)
             processes = [self.worker(directory, "race", retry) for _ in range(2)]
             for process in processes:
-                self.await_file(directory / f"ready-{process.pid}")
+                self.await_file(directory / f"ready-{process.pid}", process)
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -225,7 +230,7 @@ class CapitalExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="capital-delayed-binding-") as temporary:
             directory = Path(temporary)
             delayed = self.worker(directory, "delayed_open")
-            self.await_file(directory / "open-ready")
+            self.await_file(directory / "open-ready", delayed)
             previous_claim, _ = self.reverted(directory)
             (directory / "open").touch()
             self.assertEqual(self.successful(delayed)["status"], "failed")
