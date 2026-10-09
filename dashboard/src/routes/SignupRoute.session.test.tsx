@@ -5,7 +5,13 @@ import { useState, type ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClientProvider, AUTH_ENDPOINTS, USER_PROFILE_ENDPOINTS, AUTH_QUERY_KEY } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_ENDPOINTS,
+  USER_PROFILE_ENDPOINTS,
+  USER_PREFERENCES_ENDPOINTS,
+  AUTH_QUERY_KEY,
+} from '@ledova/shared';
 
 import { SignupEmailConfirmation } from '@pages/signup/email-confirmation';
 import apiClient from '@services/apiClient';
@@ -49,6 +55,10 @@ describe('sign-up across the moment email verification signs the account in', ()
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     vi.mocked(apiClient.get).mockImplementation(((url: string) => {
       if (url === AUTH_ENDPOINTS.VERIFY) return Promise.resolve({ data: { valid: signedIn } });
+      if (url === USER_PREFERENCES_ENDPOINTS.BASE)
+        return Promise.resolve({
+          data: { userProfile: 'profile-1', userAccount: { uuid: 'account-1', role: 'investor' } },
+        });
       if (url === USER_PROFILE_ENDPOINTS.BASE) {
         return signedIn
           ? Promise.resolve({ data: { count: 1, results: [{ uuid: 'profile-1', isSignupCompleted: false }] } })
@@ -72,7 +82,7 @@ describe('sign-up across the moment email verification signs the account in', ()
 
     expect(await screen.findByLabelText('/signup/email-confirmation')).toBeTruthy();
     expect(apiClient.get).toHaveBeenCalledWith(AUTH_ENDPOINTS.VERIFY);
-    expect(apiClient.get).not.toHaveBeenCalledWith(USER_PROFILE_ENDPOINTS.BASE);
+    expect(vi.mocked(apiClient.get).mock.calls.filter(([url]) => url === USER_PROFILE_ENDPOINTS.BASE)).toHaveLength(0);
   });
 
   it('keeps the next step, and what was typed in it, when the session answer is refreshed', async () => {

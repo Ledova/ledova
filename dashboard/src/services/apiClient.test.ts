@@ -1,6 +1,7 @@
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import apiClient from './apiClient';
+import { updateUserProfile, USER_PROFILE_ENDPOINTS } from '@ledova/shared';
 
 const okResponse = (config: InternalAxiosRequestConfig, data: unknown = { valid: true }): AxiosResponse => ({
   status: 200,
@@ -219,3 +220,52 @@ describe('apiClient failure logging', () => {
     expect(line).not.toContain('email');
   });
 });
+
+it.each([false, true])(
+  'preserves own personal details on CSRF retry and refuses a replaced owner: %s',
+  async (replaceOwner) => {
+    const originalAdapter = apiClient.defaults.adapter;
+    const uuid = '3c6826a4-57af-43ad-8c54-bf6c4fa4e321';
+    const body = {
+      fullName: 'Synthetic Updated',
+      residentialAddress: '12 Example Road\nSydney',
+      phoneCountryCode: '+61',
+      phoneNumber: '400000000',
+    };
+    const controller = new AbortController();
+    let current = true;
+    let patches = 0;
+    const requests: InternalAxiosRequestConfig[] = [];
+    const guard = () => {
+      if (!current) throw new Error('Profile owner replaced');
+    };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      if (config.method === 'get') {
+        if (replaceOwner) current = false;
+        return okResponse(config);
+      }
+      if (++patches === 1) throw forbidden(config, 'CSRF Failed: CSRF token missing.');
+      return okResponse(config, { uuid, ...body, isIdVerified: false });
+    };
+    try {
+      const sending = updateUserProfile(apiClient, uuid, body, {
+        signal: controller.signal,
+        ledovaSubmissionGuard: guard,
+      });
+      if (replaceOwner) await expect(sending).rejects.toThrow('Profile owner replaced');
+      else await expect(sending).resolves.toMatchObject({ data: { uuid, ...body, isIdVerified: false } });
+      const writes = requests.filter((config) => config.method === 'patch');
+      expect(writes).toHaveLength(replaceOwner ? 1 : 2);
+      expect(JSON.parse(writes[0]!.data)).toEqual(body);
+      for (const row of writes) {
+        expect(row.url).toBe(USER_PROFILE_ENDPOINTS.DETAIL(uuid));
+        expect(row.data).toBe(writes[0]!.data);
+        expect(row.signal).toBe(controller.signal);
+        expect(row.ledovaSubmissionGuard).toBe(guard);
+      }
+    } finally {
+      apiClient.defaults.adapter = originalAdapter;
+    }
+  },
+);

@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import { apiClient, rotateRefreshToken } from './apiClient';
 import { clearTokens, enableBiometricLogin, getAccessToken, getRefreshToken, storeTokens } from './tokenStorage';
 import { getSessionEpoch } from './sessionScope';
-import { AUTH_ENDPOINTS } from '@ledova/shared';
+import { AUTH_ENDPOINTS, updateUserProfile, USER_PROFILE_ENDPOINTS } from '@ledova/shared';
 
 jest.mock('expo-secure-store', () => ({
   WHEN_UNLOCKED_THIS_DEVICE_ONLY: 7,
@@ -280,3 +280,63 @@ it('retires a scope immediately even if queued sign-out storage fails', async ()
   await expect(apiClient.post('/documents/', {}, { ledovaSessionEpoch: epoch })).rejects.toThrow('session changed');
   expect(adapter).not.toHaveBeenCalled();
 });
+
+it.each([false, true])(
+  'preserves personal details during bearer rotation and refuses a replaced profile session: %s',
+  async (replaceSession) => {
+    await storeTokens(pair);
+    const originalAdapter = apiClient.defaults.adapter;
+    const epoch = getSessionEpoch();
+    const uuid = '3c6826a4-57af-43ad-8c54-bf6c4fa4e321';
+    const body = {
+      fullName: 'Synthetic Updated',
+      residentialAddress: '24 Example Road\nSydney',
+      phoneCountryCode: '+61',
+      phoneNumber: '400000000',
+    };
+    const controller = new AbortController();
+    let current = true;
+    let patches = 0;
+    const requests: Parameters<AxiosAdapter>[0][] = [];
+    const guard = () => {
+      if (!current || getSessionEpoch() !== epoch) throw new Error('Profile session replaced');
+    };
+    apiClient.defaults.adapter = async (config) => {
+      requests.push(config);
+      if (config.url === AUTH_ENDPOINTS.TOKEN_REFRESH) {
+        if (replaceSession) current = false;
+        return {
+          data: { access: rotated.accessToken, refresh: rotated.refreshToken },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config,
+        };
+      }
+      if (++patches === 1) throw expired(config);
+      return { data: { uuid, ...body, isIdVerified: false }, status: 200, statusText: 'OK', headers: {}, config };
+    };
+    try {
+      const sending = updateUserProfile(apiClient, uuid, body, {
+        signal: controller.signal,
+        ledovaSessionEpoch: epoch,
+        ledovaSubmissionGuard: guard,
+      });
+      if (replaceSession) await expect(sending).rejects.toThrow();
+      else await expect(sending).resolves.toMatchObject({ data: { uuid, ...body, isIdVerified: false } });
+      const writes = requests.filter((config) => config.method === 'patch');
+      expect(writes).toHaveLength(replaceSession ? 1 : 2);
+      expect(JSON.parse(writes[0]!.data)).toEqual(body);
+      for (const row of writes) {
+        expect(row.url).toBe(USER_PROFILE_ENDPOINTS.DETAIL(uuid));
+        expect(row.data).toBe(writes[0]!.data);
+        expect(row.signal).toBe(controller.signal);
+        expect(row.ledovaSubmissionGuard).toBe(guard);
+        expect(row.ledovaSessionEpoch).toBe(epoch);
+      }
+      expect(getSessionEpoch()).toBe(epoch);
+    } finally {
+      apiClient.defaults.adapter = originalAdapter;
+    }
+  },
+);
