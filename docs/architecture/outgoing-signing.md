@@ -519,13 +519,18 @@ retains its bytes and attribution after company source loss. Finalised completio
 and original-member register recording are distinct bounded transactions;
 executed but unentered allocations remain reserved until the once-only ISSUE.
 
-Genuine paid allotments retain current active staff authority and the originating
-admin model permission until their company conversion lands. A standalone
-execution confirmation binds the request, dispatch UUID, actor and failed claim.
-Subscription allotment commits its approved request, subscription association,
-private `ShareIssuanceExecution` and exact job together. App connections cannot
-read or write private commands; public issuer reads retain their existing shape.
-Accepted recovery remains operator-owned after the initiating actor loses access.
+The [paid-issue company conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. Its exact applied instruction consumes current company
+approval and binds the original PAID subscription, request, private
+`ShareIssuanceExecution` and exact job together. Preparation and approval admit
+none of these execution effects. Current source and headroom checks precede new
+signing; paid fulfilment does not reapply unrelated participant eligibility,
+nomination or grant requirements. Original financial receipt/refund producers
+remain separate until #868 changes them. Fresh staff paid ISSUE admission is
+retired; historical accepted commands keep their original actor and source.
+App connections cannot read or write private commands; public issuer reads
+retain their existing shape. Accepted recovery remains operator-owned after the
+initiating actor loses access.
 
 Initial admission leaves the public request approved and the private command
 queued. A refund that wins before the worker claim rejects the request and retains
@@ -538,9 +543,11 @@ that exact failed claim. Reverts retain the original transaction and signed byte
 
 PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage,
 payment and share quantities. Recorded refunds cannot be reduced or undone.
-Token identity stays fixed while new work can execute. Lock order is outgoing
-operation, token, subscription, request and private command; chain reads and sends
-run outside those transactions. Common-journal signing commits original bytes,
+Token identity stays fixed while new work can execute. Company paid sources lock
+their company, class, offering, subscription and original source associations
+before the outgoing operation and signer. Retained NULL-source paid commands
+keep their applicable outgoing, token, subscription, request and private-command
+suffix. Chain reads and sends run outside those transactions. Common-journal signing commits original bytes,
 nonce, hash, public transaction and issuance association before broadcast.
 
 Recovery retains the first receipt before checking finality. A transaction marked
@@ -565,6 +572,14 @@ recovers bounded batches of accepted work. Completion calls
 `record_completed_effects` in the same transaction; the
 [register recording rules](register.md) may retain the effect as waiting for
 its opening, wallet link, attribution or applied instruction.
+
+An admitted paid subscription retains its unique execution and immutable request
+binding. Permanent consumed-appointment loss before any signature retains that
+history and paid money; it does not renew authority, bind a second request or
+automatically refund funds. Original signed/confirmed work can project its
+original receipt after authority loss without a replacement approval. An actual
+financial cancellation still requires its existing refund/cancellation facts;
+further paid fund resolution policy belongs to #868.
 
 Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
 its fields and mint journal without adoption. New private metadata has no

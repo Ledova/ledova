@@ -51,14 +51,6 @@ def request_item(request):
     return {"request": str(request.pk), "recipient": request.recipient_address, "amount": str(request.amount)}
 
 
-def subscription_item(subscription):
-    return {
-        "subscription": str(subscription.pk),
-        "recipient": subscription.wallet.address,
-        "amount": str(subscription.allotment_quantity),
-    }
-
-
 def instruct(token, items, document, records, *, reference, reason, at=None):
     company_key = records.company_key(token.company_id)
     with frozen(at) if at else nullcontext():

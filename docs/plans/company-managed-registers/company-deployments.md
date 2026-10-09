@@ -2,10 +2,11 @@
 
 [Accepted plan](../../architecture/company-managed-registers.md) · [Implementation index](README.md) · [#867](https://github.com/Ledova/ledova/issues/867)
 
-**Status:** First #867 increment implemented. This page describes empty deployment;
-the second [wallet increment](company-wallet-approvals.md) is separate; full
-company issuance, capital and pause conversion remain later increments. Each pull request on [#867](https://github.com/Ledova/ledova/issues/867)
-records its independent review and required checks before delivery.
+**Status:** First #867 increment implemented. This page describes empty deployment.
+Company wallet approvals, non-paid grants, capital increases, pause changes and
+paid issues have their own workflows in the [implementation index](README.md).
+Each pull request on [#867](https://github.com/Ledova/ledova/issues/867) records its
+independent review and required checks before delivery.
 
 A company appointment authorises deployment of an empty share class. The existing
 technical signer creates its contract; deployment issues no shares, receives no
@@ -74,7 +75,7 @@ The public review snapshot contains company/class/register/transaction facts and
 the selected address. Internal captured wallet/account/profile/user association
 identifiers remain private. Current register access controls proposal reads;
 class metadata access grants no access to existing private issuer histories or
-unconverted issue/capital/pause actions.
+company issue, capital or pause decisions.
 
 An uncertain preparation or decision retains its exact original body and key.
 Recovery checks that original receipt under current register access, including

@@ -84,6 +84,8 @@ class RegisterInstructionAdmin(admin.ModelAdmin):
             return "Company decision through the register API"
         if obj.status != "submitted":
             return "Decision recorded"
+        if obj.kind == "issue" and any("subscription" in item for item in obj.items):
+            return "Paid ISSUE decisions use the company register API"
         return format_html(
             '<a href="{}">Review instruction</a>', reverse("admin:tokens_registerinstruction_review", args=[obj.pk])
         )

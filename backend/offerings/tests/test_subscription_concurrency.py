@@ -3,11 +3,12 @@ from datetime import date
 from decimal import Decimal
 from unittest import skipUnless
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth.models import Permission
 from django.db import close_old_connections, connection
-from django.test import TransactionTestCase, override_settings
-from web3 import Web3
+from django.test import TransactionTestCase
+from rest_framework.exceptions import ValidationError
 
 from offerings.exceptions import (
     InvalidSubscriptionTransitionException,
@@ -19,7 +20,6 @@ from offerings.services.subscription import (
     MONEY_ALREADY_IN,
     TX_HASH_ALREADY_USED,
     accept,
-    allot,
     confirm_payment,
     issue_instruction,
     reject,
@@ -27,47 +27,29 @@ from offerings.services.subscription import (
     withdraw,
 )
 from offerings.tests.factories import (
-    allotment_queue,
-    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
     open_offering,
 )
-from shared.db import acting_for
+from offerings.tests.test_allotment import CompanyAllotmentTestCase
+from shared.db import acting_for, use_operator
 from shared.tests.tenants import make_tenant
-from tokens.models import ShareIssuanceRequest
-from tokens.tests.issuance_fixtures import CHAIN_ID, KEY
+from tokens.exceptions import RegisterChangeConflict
+from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
+from tokens.services.register_paid_issues import (
+    decide_paid_issue,
+    preview_paid_issue_decision,
+)
 
-CHAIN_CLIENT = "tokens.services.share_token_service.get_base_chain_client"
-SUPPLY = "tokens.services.share_token_service.share_supply"
-SIGNER = "0x" + "e" * 40
 RENDEZVOUS_TIMEOUT = 2.0
 JOIN_TIMEOUT = 30.0
 SMALL_CODE_POOL = ("AAAAAAAA", "BBBBBBBB", "CCCCCCCC", "DDDDDDDD", "EEEEEEEE", "FFFFFFFF")
 ONE_TRANSFER = "0x" + "9" * 64
 
 
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
-@skipUnless(connection.vendor == "postgresql", "select_for_update is a no-op on SQLite")
-class SubscriptionConcurrencyTest(TransactionTestCase):
-    def setUp(self):
-        chain = patch(CHAIN_CLIENT).start().return_value
-        chain.is_valid_address.return_value = True
-        chain.to_checksum_address.side_effect = Web3.to_checksum_address
-        chain.get_address_from_private_key.return_value = SIGNER
-        self.defer = self.enterContext(allotment_queue())
-        patch(SUPPLY, return_value=(1000000, 0)).start()
-        self.addCleanup(patch.stopall)
-
-        self.tenant = make_tenant("racer")
-        configure_operator()
-        self.offering = open_offering(self.tenant, target_shares=200, cap_shares=500)
-        eligible_subscriber(self.tenant)
-        self.operator_user = make_tenant("racer-staff", staff=True).user
-        self.operator_user.user_permissions.add(Permission.objects.get(codename="change_subscription"))
-
+class SubscriptionRace:
     def _run(self, targets):
         outcomes = {}
         threads = []
@@ -89,6 +71,18 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
             outcomes[name] = exc
         finally:
             connection.close()
+
+
+@skipUnless(connection.vendor == "postgresql", "select_for_update is a no-op on SQLite")
+class SubscriptionConcurrencyTest(SubscriptionRace, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.tenant = make_tenant("racer")
+        configure_operator()
+        self.offering = open_offering(self.tenant, target_shares=200, cap_shares=500)
+        eligible_subscriber(self.tenant)
+        self.operator_user = make_tenant("racer-staff", staff=True).user
+        self.operator_user.user_permissions.add(Permission.objects.get(codename="change_subscription"))
 
     def _awaiting(self, suffix, reference):
         subscription = draft_subscription(self.tenant, wallet=extra_wallet(self.tenant, suffix))
@@ -158,29 +152,6 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
                 str(outcomes["close"].detail),
                 MONEY_ALREADY_IN.format(amount=Decimal("25.00"), reference="PAYRACE02"),
             )
-
-    def test_two_concurrent_allotments_of_one_subscription_create_exactly_one_request(self):
-        subscription = allottable_subscription(self.tenant, quantity=10)
-        barrier = threading.Barrier(2)
-
-        def race():
-            try:
-                barrier.wait(timeout=RENDEZVOUS_TIMEOUT)
-            except threading.BrokenBarrierError:
-                pass
-            return allot(Subscription.objects.get(pk=subscription.pk), self.operator_user)
-
-        outcomes = self._run([("first", race), ("second", race)])
-
-        refusals = [value for value in outcomes.values() if isinstance(value, BaseException)]
-        self.assertEqual(len(refusals), 1, outcomes)
-        self.assertIsInstance(refusals[0], SubscriptionRefusedException)
-        self.assertIn("cannot be allotted twice", str(refusals[0].detail))
-        self.assertEqual(ShareIssuanceRequest.objects.count(), 1)
-        subscription.refresh_from_db()
-        self.assertEqual(subscription.issuance_request, ShareIssuanceRequest.objects.get())
-        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
-        self.assertEqual(self.defer.call_count, 1)
 
     def test_concurrent_instructions_never_share_a_reference(self):
         accepted = []
@@ -260,3 +231,51 @@ class SubscriptionConcurrencyTest(TransactionTestCase):
         self.assertIsInstance(refusals[0], SubscriptionRefusedException)
         self.assertEqual(str(refusals[0].detail), TX_HASH_ALREADY_USED.format(tx_hash=ONE_TRANSFER))
         self.assertEqual(Subscription.objects.filter(payment_tx_hash=ONE_TRANSFER).count(), 1)
+
+
+class CompanySubscriptionConcurrencyTest(SubscriptionRace, CompanyAllotmentTestCase):
+    def test_two_company_proposals_for_one_subscription_admit_exactly_one_original_request(self):
+        proposals = [self.prepare_paid_issue(), self.prepare_paid_issue()]
+        for proposal in proposals:
+            self.paid_decide(proposal, "approve")
+        previews = [
+            preview_paid_issue_decision(
+                actor=self.owner, paid_issue_id=proposal.pk, appointment=self.initial.pk, kind="apply"
+            )[1]
+            for proposal in proposals
+        ]
+        keys = [uuid4(), uuid4()]
+        barrier = threading.Barrier(2)
+        enqueue = self.enterContext(patch("tokens.services.issuance_execution._enqueue"))
+
+        def apply(index):
+            def work():
+                with use_operator():
+                    barrier.wait(timeout=RENDEZVOUS_TIMEOUT)
+                    return decide_paid_issue(
+                        actor=self.owner,
+                        paid_issue_id=proposals[index].pk,
+                        appointment=self.initial.pk,
+                        kind="apply",
+                        idempotency_key=keys[index],
+                        preview_digest=previews[index]["preview_digest"],
+                        confirmation=True,
+                    )
+
+            return work
+
+        outcomes = self._run([("first", apply(0)), ("second", apply(1))])
+        refusals = [value for value in outcomes.values() if isinstance(value, BaseException)]
+        self.assertEqual(len(refusals), 1, outcomes)
+        self.assertIsInstance(refusals[0], (RegisterChangeConflict, ValidationError))
+        with use_operator():
+            self.subscription.refresh_from_db()
+            self.assertEqual(self.subscription.status, SubscriptionStatus.PAID)
+            request = ShareIssuanceRequest.objects.get(token=self.token)
+            self.assertEqual(self.subscription.issuance_request_id, request.pk)
+            self.assertEqual(request.amount, 10)
+            self.assertEqual(request.reviewed_by_id, self.owner.pk)
+            execution = ShareIssuanceExecution.objects.get(subscription_id=self.subscription.pk)
+            self.assertEqual(execution.request_id, request.pk)
+            self.assertEqual(execution.executed_by_id, self.owner.pk)
+        enqueue.assert_called_once()

@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from web3 import Web3
 
 from companies.models import Company, CompanyDocument
-from offerings.models import Subscription, SubscriptionStatus
+from offerings.models import Subscription
 from shared.db import atomic, use_operator
 from tokens.constants import REGISTER_INSTRUCTION_REVIEW_MAX_AGE
 from tokens.models import (
@@ -60,7 +60,6 @@ ITEMS = {
 AWAITING = (RequestStatus.SUBMITTED, RequestStatus.UNDER_REVIEW)
 APPROVED = (RequestStatus.APPROVED, RequestStatus.EXECUTING, RequestStatus.EXECUTED, RequestStatus.FAILED)
 APPROVE = "Awaiting approval: applying approves it"
-ALLOT = "Awaiting allotment: applying lets staff allot it"
 COVER = "Approved before register instructions: applying records it once complete"
 SETTLED = "Settled and waiting: applying lets the register record its transfer"
 
@@ -198,17 +197,11 @@ def _check_items(kind, items, token, director, *, lock=False):
             if subscription is None:
                 raise ValidationError(f"Subscription {reference} is not in an offering of this share class.")
             request = requests.filter(pk=subscription.issuance_request_id).first()
-            if request is None and (
-                subscription.status != SubscriptionStatus.PAID or subscription.allotment_quantity < 1
-            ):
-                raise ValidationError(f"Subscription {reference} is not paid and awaiting allotment.")
+            if request is None:
+                raise ValidationError("New paid issues require the company’s retained appointment and issue decision.")
             names = []
-        state = ALLOT if request is None else _state(request, source, reference)
-        recipient, amount = (
-            (subscription.wallet.address, subscription.allotment_quantity)
-            if request is None
-            else (request.recipient_address, request.amount)
-        )
+        state = _state(request, source, reference)
+        recipient, amount = request.recipient_address, request.amount
         if (Web3.to_checksum_address(recipient), str(amount)) != (item["recipient"], item["amount"]):
             raise ValidationError(
                 f"The recipient or number of shares of {source} {reference} differs from the instruction. Submit a "
@@ -248,6 +241,14 @@ def submit_instruction(
     values = _authority_values("director_resolution", approving_director, authority_reference, reason)
     del values["authority"]
     normalized = _items(kind, items)
+    if kind == RegisterInstructionKind.ISSUE and any(
+        "subscription" in item
+        or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
+        for item in normalized
+    ):
+        raise PermissionDenied(
+            "New paid ISSUE instructions require the company’s retained appointment and issue decision."
+        )
     with atomic():
         token = ShareToken.objects.filter(pk=token_id, company__owner=actor).first()
         if token is None:
@@ -303,6 +304,18 @@ def decide_instruction(*, proposal_id, reviewer, confirmation, decision, rejecti
         raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if initial.status != "submitted":
         return _completed_decision(initial, reviewer, decision, rejection_reason)
+    if (
+        initial.kind == RegisterInstructionKind.ISSUE
+        and decision == "apply"
+        and any(
+            "subscription" in item
+            or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
+            for item in initial.items
+        )
+    ):
+        raise PermissionDenied(
+            "New paid ISSUE decisions require the company’s retained appointment and issue decision."
+        )
     with atomic():
         company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
         token = ShareToken.objects.select_for_update().get(pk=initial.token_id)

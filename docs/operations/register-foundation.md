@@ -787,13 +787,21 @@ Mint supplies the original member's ISSUE once, without a paid subscription or
 receipt. Imported classes retain their separate walletless grant workflow and
 cannot use this chain path merely because a contract has been deployed.
 
-Genuine paid allotments and retained already-approved issues awaiting register
-cover use the earlier staff-reviewed instruction workflow below. Paid allotments
-retain it until their company conversion lands. Under that workflow, staff verify
-a named director's approval (owner decision 2, 22 September 2026). The
-company owner submits a register instruction listing the exact issues
-it approves, each with its recipient wallet and whole number of shares: a direct
-retained issue by its issuance request, and an offering allotment by its subscription. It
+The [paid-issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. It uses the company's exact approval over a genuine
+recorded PAID subscription, then admits its original request and execution only
+on application. Payment, approval, finalised Mint, ALLOTTED and register recording
+remain separate. Its original wallet-to-member LINK supplies attribution, or the
+effect waits for that link. Fresh staff paid ISSUE approval and allotment are
+retired; financial receipt/refund producers remain separate pending #868.
+
+Retained already-approved direct issues awaiting register cover use the earlier
+instruction workflow below. Historical paid instructions retain their genuine
+staff decisions and original source; they supply no fresh paid admission route.
+Under the retained workflow, staff verify a named director's approval (owner
+decision 2, 22 September 2026). The company owner submits a register instruction
+listing each retained direct issue by its issuance request, recipient wallet and
+whole number of shares. It
 names the approving director and carries a verified company document, and it
 retains a private copy of the authority file. Its kind is
 `issue`; a [transfer instruction](#register-instructions-for-transfers) has its
@@ -817,26 +825,21 @@ own kind.
       "request": "10000000-0000-4000-8000-000000000042",
       "recipient": "0x3333333333333333333333333333333333333333",
       "amount": "100"
-    },
-    {
-      "subscription": "10000000-0000-4000-8000-000000000043",
-      "recipient": "0x4444444444444444444444444444444444444444",
-      "amount": "40"
     }
   ],
   "approving_director": "Synthetic Director",
   "authority_reference": "SYNTHETIC-RESOLUTION-ISSUE-1",
-  "reason": "Allot the shares the board resolved to issue"
+  "reason": "Record the retained non-paid issue the board approved"
 }
 ```
 
-Each item must belong to the share class and match the request's or
-subscription's recipient and shares as they stand. A paid subscription must
-await allotment, or its already-approved original issue must still await register
-cover. A standalone request must already be approved and await that cover;
+Each new item must belong to the share class and match the retained non-paid
+request's recipient and shares as they stand. A standalone request must already be approved and await that cover;
 submitted and under-review standalone requests are refused. Listing a retained
 approval adds the cover its entry waits for, without approving it again. An
-allotment is always listed by its subscription, never by its request.
+original paid instruction keeps its subscription references and financial terms
+as history. New subscription items and requests linked to a paid subscription
+require the company paid family, including when they seek register cover.
 
 In **Admin → Tokens → Register instructions**, open the instruction's review
 link. An active staff user with change permission inspects the retained file, the
@@ -848,8 +851,8 @@ application all refuse:
 
 - an item whose recipient or shares differ from its request's or subscription's
   current terms, as when they change after submission;
-- an item neither awaiting paid allotment nor an already-approved original
-  awaiting cover, or an item another applied instruction already covers;
+- an item that does not name a retained non-paid approval awaiting cover, or
+  an item another applied instruction already covers;
 - a director who is the recipient an item identifies, by the request's
   recipient name or the profile name of the account holding the recipient
   wallet;
@@ -860,16 +863,15 @@ Rejection with a reason stays available. Application rechecks the reviewer-bound
 expiring confirmation, the retained evidence and every item under the company and
 share-class locks, then in one transaction:
 
-- lets staff allot each listed subscription on exactly its listed terms;
 - records any listed retained already-approved issue that completed and was
   [waiting for cover](#recording-issues-and-transfers-after-the-opening).
 
 Fresh non-paid grants use the company preparation and decision family described
 above. The direct owner issue POST and staff approval/admission of fresh non-paid
 requests are retired. Staff **Reject** remains for retained review requests.
-Paid allotment refuses a subscription that no applied instruction lists with its
-current recipient and shares, so a scale-back or a partial payment after the
-instruction needs a fresh one.
+Fresh paid issues use the company paid family above. Changed payment or scale-back
+facts invalidate its captured source and confirmation; an admitted original
+subscription/request binding cannot be renewed by preparing a duplicate.
 
 Repeated identical submissions and decisions are idempotent, and conflicting UUID
 reuse is refused. The database keeps instructions immutable and undeletable,
@@ -1030,7 +1032,7 @@ decide on it after it completes.
 
 | Effect     | Entry                                                      | Recorded by                                                                                                                                                                                           | Effective date                   |
 | ---------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Issuance   | `issue` of the minted shares to the original linked member | The company appointee who applied the exact non-paid grant; paid and historical work retains its original staff reviewer/allotter under the [register instruction](#register-instructions-for-issues) | The date the entry is made (UTC) |
+| Issuance   | `issue` of the minted shares to the original linked member | The company appointee who applied the exact non-paid grant or paid issue; historical work retains its original staff reviewer/allotter under the [register instruction](#register-instructions-for-issues) | The date the entry is made (UTC) |
 | Settlement | `transfer` from the seller's linked member to the buyer's  | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement                                               | The date the entry is made (UTC) |
 
 An entry uses the date it is actually made. Issuance recording follows the

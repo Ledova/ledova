@@ -6,7 +6,8 @@
 increases after the empty deployment, company-wallet and non-paid grant increments.
 [PR #948](https://github.com/Ledova/ledova/pull/948) records independent source
 review, actual checks and remaining limits.
-Paid issuance and company pause/unpause conversion remain later increments.
+Paid issues and pause/unpause use their separate company workflows in the
+[implementation index](README.md).
 
 ## Exact capital decision
 
@@ -81,8 +82,9 @@ no replacement approval or transaction is inferred from a later current state.
 The coherent replacement retires fresh owner/staff capital creation, submission,
 review and admission when the company workflow works. Existing private owner
 histories, original technical recovery, migration history and retained evidence
-remain. Pause controls, genuine paid and transfer records and investor-only
-provider guards remain until their own increments replace them.
+remain. Pause and paid-issue authority use their respective company workflows.
+Genuine payment and transfer records and investor-only provider guards remain;
+new payment and transfer mechanics belong to #868/#869.
 
 Meaningful authority, isolation, evidence, quantity, deferred effect, atomic
 queue, contention, retained-history, original event/finality and both-client

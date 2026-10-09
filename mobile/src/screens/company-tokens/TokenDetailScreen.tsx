@@ -1,3 +1,4 @@
+import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Text, View, RefreshControl, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -246,6 +247,11 @@ function ShareClass({ uuid }: { uuid: string }) {
         />
         <CompanyCapitalFlow
           key={`company-capital/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+          uuid={uuid}
+          data={data}
+        />
+        <CompanyPaidIssueFlow
+          key={`company-paid-issue/${uuid}/${data.epoch}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
           uuid={uuid}
           data={data}
         />

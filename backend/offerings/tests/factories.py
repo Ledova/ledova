@@ -1,8 +1,5 @@
-from contextlib import contextmanager
 from datetime import timedelta
 from decimal import Decimal
-from types import SimpleNamespace
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth.models import Permission
@@ -12,10 +9,9 @@ from companies.services.editing import update_company
 from offerings.models import Offering, OfferingStatus, Subscription, SubscriptionStatus
 from offerings.services.subscription import create_draft
 from operators.models import Operator
-from shared.db import acting_for, current_alias, use_migrate, use_operator
+from shared.db import acting_for, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.tenants import make_eligible
-from tokens.tests.instruction_fixtures import apply_instruction
 from users.models import InvestorCategory
 from users.tests.factories import make_investor
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -29,27 +25,6 @@ BANK = {
     "payment_reference_prefix": "PAY",
     "receiving_wallet_address": "0x" + "d" * 40,
 }
-
-
-@contextmanager
-def allotment_queue():
-    from offerings.tasks import allot_subscription_task
-
-    def configured_task(name):
-        if name != allot_subscription_task.name:
-            raise AssertionError("Queue the original subscription allotment task.")
-        return allot_subscription_task
-
-    def application(*, connector):
-        if connector.alias != current_alias():
-            raise AssertionError("Queue on the current transaction's database alias.")
-        return SimpleNamespace(configure_task=configured_task)
-
-    with (
-        patch.object(allot_subscription_task, "defer") as deferred,
-        patch("tokens.services.issuance_execution.App", side_effect=application),
-    ):
-        yield deferred
 
 
 def forget_fixture_subscriptions():
@@ -131,18 +106,6 @@ def paid_subscription(tenant, quantity=10, allotted=None, wallet=None):
     return subscription
 
 
-def instruct(*subscriptions):
-    for subscription in subscriptions:
-        subscription.refresh_from_db()
-    return apply_instruction(subscriptions[0].offering.token, *subscriptions)
-
-
-def allottable_subscription(tenant, quantity=10, allotted=None, wallet=None):
-    subscription = paid_subscription(tenant, quantity=quantity, allotted=allotted, wallet=wallet)
-    instruct(subscription)
-    return subscription
-
-
 def extra_wallet(tenant, suffix):
     wallet = Wallet.objects.create(
         user_account=tenant.account,
@@ -153,3 +116,85 @@ def extra_wallet(tenant, suffix):
     )
     WhitelistEntry.objects.create(wallet=wallet)
     return wallet
+
+
+def retained_paid_execution(subscription, actor, *, signed_client=None, **request_fields):
+    from unittest.mock import patch
+
+    from blockchain.services import outgoing
+    from shared.db import atomic
+    from shared.tests.schema import migrate_to, restore_every_migration
+    from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
+    from tokens.services import issuance_execution
+    from tokens.services.register_openings import _retain
+    from tokens.tests.instruction_fixtures import (
+        instruction_payload,
+        instruction_reviewer,
+        verified_authority,
+    )
+    from tokens.tests.issuance_fixtures import KEY
+
+    try:
+        historical = migrate_to([("tokens", "0106_company_register_paid_issues")])
+        with use_operator(), atomic(durable=True):
+            subscription.refresh_from_db()
+            request = ShareIssuanceRequest.objects.create(
+                token=subscription.offering.token,
+                recipient_address=subscription.wallet.address,
+                amount=subscription.allotment_quantity,
+                submitted_by=actor,
+                reason="Retained paid subscription allotment",
+                **request_fields,
+            )
+            request.approve(actor)
+            subscription.issuance_request = request
+            subscription.save(update_fields=["issuance_request", "updated_at"])
+        with use_operator():
+            reviewer = instruction_reviewer()
+            document = verified_authority(subscription.company, reviewer)
+            payload = instruction_payload(subscription.offering.token, document, [subscription])
+            proposal = historical.get_model("tokens", "RegisterInstruction")(
+                uuid=payload["operation_id"],
+                company_id=subscription.company_id,
+                token_id=subscription.offering.token_id,
+                kind="issue",
+                items=payload["items"],
+                approving_director=payload["approving_director"],
+                authority_reference=payload["authority_reference"],
+                reason=payload["reason"],
+            )
+            owner = historical.get_model("authentication", "CustomUser").objects.get(pk=subscription.company.owner_id)
+            with atomic(), patch(
+                "tokens.services.register_openings.CompanyDocument",
+                historical.get_model("companies", "CompanyDocument"),
+            ):
+                _retain(proposal, document.pk, owner)
+                proposal.status = "applied"
+                proposal.reviewed_by_id = reviewer.pk
+                proposal.reviewed_at = timezone.now()
+                proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+            if request.dispatch_id is None:
+                return request, None
+            command = historical.get_model("tokens", "ShareIssuanceExecution").objects.create(
+                pk=request.dispatch_id,
+                request_id=request.pk,
+                subscription_id=subscription.pk,
+                token_id=request.token_id,
+                company_id=request.company_id,
+                executed_by_id=actor.pk,
+                authority=issuance_execution.SUBSCRIPTION_AUTHORITY,
+                intent=issuance_execution._intent(request, subscription.offering.token),
+            )
+            if signed_client is not None:
+                command = issuance_execution._start(ShareIssuanceExecution.objects.get(pk=command.pk))
+                claim = issuance_execution._claim(command)
+                prepared = outgoing.prepare_operation(claim, signed_client)
+                outgoing.sign_operation(
+                    claim,
+                    prepared,
+                    KEY,
+                    on_signed=lambda attempt: issuance_execution._record_signed(command.pk, attempt),
+                )
+    finally:
+        restore_every_migration()
+    return request, ShareIssuanceExecution.objects.get(pk=command.pk)

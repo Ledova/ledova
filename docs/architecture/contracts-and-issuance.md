@@ -117,10 +117,12 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    acceptance evidence and freezes one request under the existing `UNDER_REVIEW`
    state. Human approval remains separate; application makes the request approved
    and admits its original execution atomically. No paid subscription or receipt
-   is created. The old direct owner issue POST is retired. Genuine paid allotments
-   retain their current
-   [register instruction](../operations/register-foundation.md#register-instructions-for-issues)
-   that lists them, and execution admission is separate. Admission retains the
+   is created. The old direct owner issue POST is retired. The
+   [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+   is under implementation: company application over the recorded PAID source
+   admits its original request and execution. Historical paid instructions keep
+   their original staff decisions; fresh staff paid admission is retired.
+   Admission retains the
    approved terms and matching job in a private command. Before signing,
    execution checks whitelist membership, the cap and pause state. A known
    refusal in the paid or legacy path becomes a definite unsigned failure with a

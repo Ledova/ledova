@@ -4,8 +4,9 @@
 
 **Status:** Second #867 increment implemented, following company-authorised empty
 deployment. The owning pull request records the source, independent review,
-executed checks and limits. Full company issuance, capital and pause conversion
-remain later increments.
+executed checks and limits. Non-paid grants, capital increases, pause changes and
+paid issues use their separate company workflows in the
+[implementation index](README.md).
 
 Wallet possession, participant eligibility and company wallet approval are
 separate facts. A company appointment supplies the mandate to approve a wallet

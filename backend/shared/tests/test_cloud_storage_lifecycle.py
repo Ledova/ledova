@@ -270,18 +270,27 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 from tokens.services.register_instructions import _items
                 from tokens.services.register_openings import _retain
 
-                migrate_to([("tokens", "0100_company_register_issue_instructions")])
+                historical = migrate_to([("tokens", "0100_company_register_issue_instructions")])
                 try:
+                    instruction_model = historical.get_model("tokens", "RegisterInstruction")
+                    document_model = historical.get_model("companies", "CompanyDocument")
                     values = instruction_payload(token, document, [request])
                     values.pop("operation_id")
                     values.pop("token_id")
                     values.pop("document_id")
                     values["items"] = _items(values["kind"], values["items"])
-                    with use_migrate(), atomic():
+                    with (
+                        use_migrate(),
+                        atomic(),
+                        patch("tokens.services.register_openings.CompanyDocument", document_model),
+                        patch.object(instruction_model._meta.get_field("file"), "storage", storage),
+                        patch.object(document_model._meta.get_field("file"), "storage", storage),
+                    ):
+                        original_owner = historical.get_model("authentication", "CustomUser").objects.get(pk=owner.pk)
                         proposal = _retain(
-                            RegisterInstruction(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
+                            instruction_model(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
                             document.pk,
-                            owner,
+                            original_owner,
                         )
                 finally:
                     restore_every_migration()

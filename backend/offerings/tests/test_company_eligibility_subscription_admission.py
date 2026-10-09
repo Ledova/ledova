@@ -7,6 +7,7 @@ from datetime import timedelta
 from decimal import Decimal
 from threading import Event
 from time import monotonic, sleep
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
@@ -24,7 +25,6 @@ from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Offering, SettlementRail, Subscription, SubscriptionStatus
 from offerings.services.subscription import (
     accept,
-    allot,
     confirm_payment,
     create_draft,
     issue_instruction,
@@ -32,13 +32,13 @@ from offerings.services.subscription import (
     submit,
     withdraw,
 )
-from offerings.tests.factories import allotment_queue, configure_operator
+from offerings.tests.factories import configure_operator
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
+from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.models import RequestStatus, ShareIssuanceExecution, ShareToken
-from tokens.tests.instruction_fixtures import apply_instruction
 from users.exceptions import InvestorNotEligibleException
 from users.models import (
     InvestorCategory,
@@ -145,6 +145,42 @@ class CompanyEligibilitySubscriptionCases(CompanyEligibilityConsumptionCases, Re
         self.assertEqual(subscription.status, SubscriptionStatus.ACCEPTED)
         self.assertEqual(subscription.eligibility_decision_id, decision.pk)
         return subscription, request, decision
+
+    def company_paid_request(self, subscription):
+        from tokens.models import RegisterEvidenceKind
+        from tokens.services.register_paid_issues import (
+            decide_paid_issue,
+            prepare_paid_issue,
+            preview_paid_issue_decision,
+        )
+        from tokens.tests.evidence_fixtures import upload_evidence
+
+        evidence = upload_evidence(self.owner, self.initial, RegisterEvidenceKind.AUTHORITY)
+        with patch("tokens.services.register_paid_issues.chain_snapshot", return_value=(10, 0, 0)):
+            proposal = prepare_paid_issue(
+                actor=self.owner,
+                operation_id=uuid4(),
+                appointment=self.initial.pk,
+                subscription=subscription.pk,
+                approving_director="Synthetic Director",
+                authority_reference="PAID-AFTER-ELIGIBILITY-LOSS",
+                reason="Issue the actual retained paid subscription",
+                authority_evidence=evidence.pk,
+            )
+            for kind in ("approve", "apply"):
+                _, preview = preview_paid_issue_decision(
+                    actor=self.owner, paid_issue_id=proposal.pk, appointment=self.initial.pk, kind=kind
+                )
+                proposal = decide_paid_issue(
+                    actor=self.owner,
+                    paid_issue_id=proposal.pk,
+                    appointment=self.initial.pk,
+                    kind=kind,
+                    idempotency_key=uuid4(),
+                    preview_digest=preview["preview_digest"],
+                    confirmation=True,
+                )
+        return proposal.request
 
     def subscription_snapshot(self, subscription):
         with use_operator():
@@ -992,12 +1028,10 @@ class CompanyEligibilitySubscriptionRecoveryTest(
                 received_on=timezone.now().date(),
             )
             subscription.refresh_from_db()
-            instruction = apply_instruction(self.offer.token, subscription)
-        self.assertEqual(instruction.status, "applied")
         self.revoke(request)
         with use_operator(), _requester_principal(self.technical.pk):
-            with allotment_queue() as deferred:
-                issuance = allot(subscription, self.technical, headroom=(10, 10))
+            with patch("tokens.services.issuance_execution._enqueue") as deferred:
+                issuance = self.company_paid_request(subscription)
             subscription.refresh_from_db()
             command = ShareIssuanceExecution.objects.get(request_id=issuance.pk)
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
@@ -1005,8 +1039,8 @@ class CompanyEligibilitySubscriptionRecoveryTest(
         self.assertEqual(subscription.issuance_request_id, issuance.pk)
         self.assertEqual(issuance.status, RequestStatus.APPROVED)
         self.assertEqual(issuance.amount, 2)
-        self.assertEqual(issuance.reviewed_by_id, self.technical.pk)
-        self.assertEqual(command.executed_by_id, self.technical.pk)
+        self.assertEqual(issuance.reviewed_by_id, self.owner.pk)
+        self.assertEqual(command.executed_by_id, self.owner.pk)
         self.assertEqual(command.status, "queued")
         self.assertIsNone(command.operation_id)
         deferred.assert_called_once()
@@ -1025,12 +1059,10 @@ class CompanyEligibilitySubscriptionRecoveryTest(
                 received_on=timezone.now().date(),
             )
             legacy.refresh_from_db()
-            instruction = apply_instruction(self.offer.token, legacy)
-        self.assertEqual(instruction.status, "applied")
         self.revoke(request)
         with use_operator(), _requester_principal(self.technical.pk):
-            with allotment_queue() as deferred:
-                issuance = allot(legacy, self.technical, headroom=(10, 10))
+            with patch("tokens.services.issuance_execution._enqueue") as deferred:
+                issuance = self.company_paid_request(legacy)
             legacy.refresh_from_db()
             command = ShareIssuanceExecution.objects.get(request_id=issuance.pk)
         self.assertEqual(legacy.status, SubscriptionStatus.PAID)
@@ -1043,6 +1075,10 @@ class CompanyEligibilitySubscriptionRecoveryTest(
         self.assertEqual(command.status, "queued")
         self.assertIsNone(command.operation_id)
         deferred.assert_called_once()
+
+
+class ScopedCompanyPaidIssueStandingTest(RunsOnTheScopedConnection, CompanyEligibilitySubscriptionRecoveryTest):
+    pass
 
 
 class CompanyEligibilitySubscriptionGuardTest(

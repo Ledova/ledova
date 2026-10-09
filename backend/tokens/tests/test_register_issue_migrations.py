@@ -16,6 +16,7 @@ from tokens.tests.instruction_fixtures import (
 )
 
 NEW_INSTRUCTION_COLUMNS = (
+    "paid_subscription_id",
     "preparing_appointment_id",
     "member_id",
     "nomination_id",

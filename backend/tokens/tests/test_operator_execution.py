@@ -9,18 +9,19 @@ from django.test import TransactionTestCase, override_settings
 from assets.models import AssetChainDeployment
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.models import SubscriptionStatus
-from offerings.services.subscription import allot
 from offerings.tasks import allot_subscription_task
 from offerings.tests.factories import (
-    allottable_subscription,
     configure_operator,
     eligible_subscriber,
     open_offering,
+    paid_subscription,
+    retained_paid_execution,
 )
 from shared.db import (
     APP_ALIAS,
     OPERATOR_ALIAS,
     acting_for,
+    atomic,
     current_alias,
     principal_of,
     use_operator,
@@ -75,9 +76,12 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
             self.investor.offering = open_offering(self.issuer, target_shares=200, cap_shares=500)
             eligible_subscriber(self.investor, issuer_decision=self.issuer.eligibility_decision)
             WhitelistEntry.objects.create(wallet=self.investor.wallet)
-            self.subscription = allottable_subscription(self.investor)
-            allot(self.subscription, self.staff)
-            self.request = self.subscription.issuance_request
+            self.subscription = paid_subscription(self.investor)
+            self.request, retained = retained_paid_execution(
+                self.subscription, self.staff, signed_client=self.node.client
+            )
+            with atomic(durable=True):
+                issuance_execution._enqueue(retained)
             AssetChainDeployment.objects.create(
                 asset=self.issuer.refs.spare_asset,
                 chain="base",
@@ -159,7 +163,7 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
         self.assertTrue(result["success"], result)
         self.assert_issuance_completed(original_issuance=original_issuance)
 
-    def test_allotment_writes_both_parties_as_operator_and_retains_the_enqueued_audit_actor(self):
+    def test_retained_signed_allotment_updates_both_parties_as_operator_and_preserves_its_audit_actor(self):
         self.defer.assert_called_once_with(
             subscription_uuid=str(self.subscription.pk),
             executed_by=self.staff.pk,
@@ -167,10 +171,11 @@ class OperatorExecutionFromScopedContextTest(RunsOnTheScopedConnection, Transact
         )
         result = self.run_job(allot_subscription_task, self.defer.call_args.kwargs)
         self.assertTrue(result["success"], result)
-        self.assert_issuance_completed()
         with use_operator():
+            original = ShareIssuanceExecution.objects.get(request_id=self.request.pk).issuance_id
             self.subscription.refresh_from_db()
             self.assertEqual(self.subscription.status, SubscriptionStatus.ALLOTTED)
+        self.assert_issuance_completed(original_issuance=original)
 
     def test_execution_failure_restores_the_callers_role_and_principal_for_both_jobs(self):
         allotment_payload = self.defer.call_args.kwargs

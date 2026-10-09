@@ -440,18 +440,19 @@ class LegacyIssuanceRecoveryTest(TransactionTestCase):
         self.issuance.refresh_from_db()
         self.assertIsNone(self.issuance.tx_hash)
 
-    def test_legacy_completion_and_duplicate_allotment_share_token_first_lock_order(self):
+    def test_new_paid_coverage_refusal_cannot_block_original_legacy_completion(self):
         import threading
 
         from django.db import connections
+        from rest_framework.exceptions import PermissionDenied
 
-        from offerings.exceptions import SubscriptionRefusedException
-        from offerings.services import subscription as subscriptions
         from offerings.tests.factories import (
             eligible_subscriber,
             open_offering,
             paid_subscription,
         )
+        from shared.db import use_operator
+        from tokens.services.register_instructions import submit_instruction
 
         open_offering(self.tenant)
         eligible_subscriber(self.tenant)
@@ -462,27 +463,32 @@ class LegacyIssuanceRecoveryTest(TransactionTestCase):
         actor.is_superuser = True
         actor.save(update_fields=["is_superuser"])
         self.signed_history()
-        allot_holds_token = threading.Event()
-        legacy_wants_token = threading.Event()
+        barrier = threading.Barrier(2)
         outcomes = {}
-        original_lock = subscriptions._locked
-
-        def allotment_lock(row):
-            allot_holds_token.set()
-            if not legacy_wants_token.wait(10):
-                raise AssertionError("Legacy recovery never attempted its token lock")
-            return original_lock(row)
-
-        def record_legacy_lock(execute, sql, params, many, context):
-            if '"tokens_sharetoken"' in sql and "FOR UPDATE" in sql:
-                legacy_wants_token.set()
-            return execute(sql, params, many, context)
 
         def alloter():
             try:
-                subscriptions.allot(subscription, actor, headroom=(1000, 1000))
-            except SubscriptionRefusedException:
-                outcomes["allot"] = "already admitted"
+                barrier.wait(10)
+                with use_operator():
+                    submit_instruction(
+                        actor=actor,
+                        operation_id=uuid4(),
+                        token_id=self.request.token_id,
+                        document_id=uuid4(),
+                        kind="issue",
+                        items=[
+                            {
+                                "subscription": str(subscription.pk),
+                                "recipient": self.request.recipient_address,
+                                "amount": "10",
+                            }
+                        ],
+                        approving_director="Synthetic Director",
+                        authority_reference="No renewed paid cover",
+                        reason="The original legacy mint remains recoverable",
+                    )
+            except PermissionDenied:
+                outcomes["allot"] = "refused"
             except BaseException as exc:
                 outcomes["allot"] = exc
             finally:
@@ -490,25 +496,23 @@ class LegacyIssuanceRecoveryTest(TransactionTestCase):
 
         def recovery():
             try:
-                if not allot_holds_token.wait(10):
-                    raise AssertionError("Allotment never obtained its token lock")
-                with connections["default"].execute_wrapper(record_legacy_lock):
-                    outcomes["recovery"] = legacy_issuance.resolve_executing_issuance(self.request)
+                barrier.wait(10)
+                outcomes["recovery"] = legacy_issuance.resolve_executing_issuance(self.request)
             except BaseException as exc:
                 outcomes["recovery"] = exc
             finally:
                 connections.close_all()
 
-        with patch.object(subscriptions, "_locked", side_effect=allotment_lock):
-            threads = [threading.Thread(target=worker, daemon=True) for worker in (alloter, recovery)]
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join(20)
+        threads = [threading.Thread(target=worker, daemon=True) for worker in (alloter, recovery)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(20)
         self.assertFalse(any(thread.is_alive() for thread in threads), outcomes)
-        self.assertEqual(outcomes, {"allot": "already admitted", "recovery": "executed"})
+        self.assertEqual(outcomes, {"allot": "refused", "recovery": "executed"})
         self.issuance.refresh_from_db()
         self.assertEqual(self.issuance.status, "completed")
+        self.assert_no_new_signing()
 
     def test_legacy_holding_seed_retains_contract_observed_before_projection(self):
         original_resolve = legacy_issuance._resolve

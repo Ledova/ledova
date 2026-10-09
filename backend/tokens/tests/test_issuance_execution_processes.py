@@ -57,9 +57,12 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             process.kill()
             process.communicate(timeout=10)
 
-    def await_file(self, path):
+    def await_file(self, path, process):
         until = time.monotonic() + 20
         while not path.exists() and time.monotonic() < until:
+            if process.poll() is not None:
+                code, out, err = finish(process)
+                self.fail(f"{path}: worker exited {code}: {out}{err}")
             time.sleep(0.01)
         self.assertTrue(path.exists(), str(path))
 
@@ -116,11 +119,17 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         self.recover_killed("accepted", True)
 
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
+        admit(self.request, self.actor, confirmed=self.form)
+        self.assertEqual(ShareIssuanceExecution.objects.get().status, "queued")
+        self.assertFalse(self.operations.exists())
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
+        confirmation = issuance_execution.confirmation(self.request, self.actor)
         with tempfile.TemporaryDirectory(prefix="issuance-race-") as temporary:
             directory = Path(temporary)
-            processes = [self.worker(directory, "race") for _ in range(2)]
+            processes = [self.worker(directory, "race", confirmation) for _ in range(2)]
             for process in processes:
-                self.await_file(directory / f"ready-{process.pid}")
+                self.await_file(directory / f"ready-{process.pid}", process)
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -179,7 +188,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             previous_claim, retry = self.reverted(directory)
             processes = [self.worker(directory, "race", retry) for _ in range(2)]
             for process in processes:
-                self.await_file(directory / f"ready-{process.pid}")
+                self.await_file(directory / f"ready-{process.pid}", process)
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -199,7 +208,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="issuance-delayed-binding-") as temporary:
             directory = Path(temporary)
             delayed = self.worker(directory, "delayed_open")
-            self.await_file(directory / "open-ready")
+            self.await_file(directory / "open-ready", delayed)
             previous_claim, _ = self.reverted(directory)
             (directory / "open").touch()
             self.assertEqual(self.successful(delayed)["status"], "failed")
@@ -210,26 +219,18 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         self.assertEqual(self.transactions.get().status, "reverted")
 
     def allotted_subscription(self):
-        from unittest.mock import patch
+        from django.contrib.auth.models import Permission
 
-        from offerings.services.subscription import allot
-        from offerings.tests.factories import (
-            allottable_subscription,
-            configure_operator,
-            eligible_subscriber,
-            open_offering,
-            subscription_technical_actor,
-        )
-        from shared.tests.tenants import make_tenant
+        from shared.db import use_migrate
+        from tokens.tests.company_paid_issue_fixtures import admit_paid_for_company_case
 
-        paid_tenant = make_tenant("issuance-process-subscription")
-        self.actor = subscription_technical_actor()
-        configure_operator()
-        open_offering(paid_tenant, target_shares=200, cap_shares=500)
-        eligible_subscriber(paid_tenant)
-        subscription = allottable_subscription(paid_tenant, quantity=10)
-        with patch("offerings.tasks.allot_subscription_task.defer"):
-            self.request = allot(subscription, self.actor, headroom=(1000, 1000))
+        subscription, proposal = admit_paid_for_company_case(self.company_issue, quantity=10)
+        self.actor = self.company_issue.owner
+        with use_migrate():
+            self.actor.user_permissions.add(
+                Permission.objects.get(content_type__app_label="offerings", codename="change_subscription")
+            )
+        self.request = proposal.request
         self.form = issuance_execution.confirmation(self.request, self.actor, subscription=subscription)
         self.attempts = SignedAttempt.objects.filter(
             operation__operation_key=f"share-issuance:{self.request.pk}:{self.request.dispatch_id}"
@@ -250,7 +251,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="issuance-refund-wins-") as temporary:
             directory = Path(temporary)
             worker = self.worker(directory, "preflight_wait")
-            self.await_file(directory / "preflight-ready")
+            self.await_file(directory / "preflight-ready", worker)
             record_refund(subscription, Decimal("1.00"))
             (directory / "continue").touch()
             self.assertEqual(self.successful(worker)["status"], "rejected")

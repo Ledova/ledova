@@ -81,7 +81,14 @@ The fourth [capital increment](../plans/company-managed-registers/company-capita
 implements exact company decisions through the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
 implements exact company decisions and original observation or
-transaction recovery. Paid issuance remains a later #867 increment.
+transaction recovery. The sixth
+[paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
+implements company decisions over existing recorded payment, retaining exact
+issue approval, original execution and distinct allotment/register outcomes.
+It adds no new payment mechanics or off-chain investor allotment. #867 remains
+open for the undelivered employee award/vesting records. #868 owns external
+capital records and company-approved allotment under the revised scope; new
+integrated payment mechanics are deferred.
 #866 and #868–#873 remain planned within the revised core/deferred scope below.
 Their company/member, allotment and register authority is separate.
 **Date:** 3 October 2026; priority amendment 9 October 2026, Australia/Sydney.
@@ -314,12 +321,12 @@ flowchart LR
 Company appointments and most setup/register commands are already delivered.
 Remaining core work is narrower than the original staff-workflow conversion:
 
-| Current boundary                                   | Core work remaining                                                                        |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Outright non-paid grants with retained terms       | Record supported award/vesting arrangements separately from actual issued ownership        |
-| Staff-attested subscriptions and chain allotment   | Company-provided external capital records and exact company-authorised off-chain allotment |
-| No delivered walletless member account association | One #866 association and permitted own-record/particulars workflows                        |
-| Staff-prepared outputs                             | Capability-scoped company outputs and permitted member access under #871                   |
+| Current boundary                                                        | Core work remaining                                                                        |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Outright non-paid grants with retained terms                            | Record supported award/vesting arrangements separately from actual issued ownership        |
+| Staff-attested payment records and company-authorised paid chain issues | Company-provided external capital records and exact company-authorised off-chain allotment |
+| No delivered walletless member account association                      | One #866 association and permitted own-record/particulars workflows                        |
+| Staff-prepared outputs                                                  | Capability-scoped company outputs and permitted member access under #871                   |
 
 Other existing staff publication, settlement and filing workflows retain their
 controls; expanding them is deferred. Removing a staff check alone never

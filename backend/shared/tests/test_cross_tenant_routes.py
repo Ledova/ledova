@@ -28,7 +28,6 @@ from companies.services.editing import update_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_document_file_access import (
     attach_file,
-    legacy_company_administrators,
     make_document,
 )
 from feature_flags.models import FeatureFlag
@@ -53,6 +52,7 @@ from tokens.models import (
     TransferOrder,
 )
 from tokens.services.register_events import open_register
+from tokens.tests.evidence_fixtures import owner_appointment
 from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
 from tokens.tests.test_register_events import DAY
@@ -326,6 +326,16 @@ REGISTER_ISSUE_ROUTES = {
     "acceptance_file": ("get", "/api/v1/tokens/register-issues/{uuid}/acceptance-file/"),
     "decision_preview": ("post", "/api/v1/tokens/register-issues/{uuid}/decision-preview/"),
     "decide": ("post", "/api/v1/tokens/register-issues/{uuid}/decide/"),
+}
+
+REGISTER_PAID_ISSUE_ROUTES = {
+    "create": ("post", "/api/v1/tokens/register-paid-issues/"),
+    "list": ("get", "/api/v1/tokens/register-paid-issues/"),
+    "detail": ("get", "/api/v1/tokens/register-paid-issues/{uuid}/"),
+    "file": ("get", "/api/v1/tokens/register-paid-issues/{uuid}/file/"),
+    "decision_preview": ("post", "/api/v1/tokens/register-paid-issues/{uuid}/decision-preview/"),
+    "decide": ("post", "/api/v1/tokens/register-paid-issues/{uuid}/decide/"),
+    "ready_subscriptions": ("get", "/api/v1/tokens/register-paid-issues/ready-subscriptions/"),
 }
 
 REGISTER_PAUSE_ROUTES = {
@@ -802,7 +812,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     effective_on=DAY,
                     recorded_by=tenant.user,
                 )
-        legacy_company_administrators(*(tenant.company for tenant in (*self.actors, self.other)))
+        for tenant in (*self.actors, self.other):
+            owner_appointment(tenant.company)
 
     def _patch(self, target, **kwargs):
         patcher = patch(target, **kwargs)
@@ -1530,6 +1541,98 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             )
         self.assertEqual(response.json()["status"], "applied")
         self.assertEqual(response.json()["execution"]["status"], "queued")
+
+    def test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence(self):
+        from rest_framework.test import APIClient
+
+        from tokens.models import ShareIssuanceExecution
+        from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
+
+        class Fixture(CompanyPaidIssueCases, APITransactionTestCase):
+            pass
+
+        fixture = Fixture(methodName="setUp")
+        fixture.client = APIClient()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        payload = fixture.paid_payload()
+        payload.pop("actor")
+        payload = {key: str(value) if hasattr(value, "hex") else value for key, value in payload.items()}
+        self.client.force_authenticate(fixture.owner)
+        created = self.client.post(REGISTER_PAID_ISSUE_ROUTES["create"][1], payload, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        identifier = created.json()["uuid"]
+        self.assertNotIn("submittedByEmail", created.json())
+        self.assertNotIn("file", created.json())
+        self.assertNotIn("intent", created.json())
+        for actor in self.actors:
+            self.client.force_authenticate(actor.user)
+            self.assertEqual(
+                self.client.post(REGISTER_PAID_ISSUE_ROUTES["create"][1], payload, format="json").status_code, 404
+            )
+            self.assertEqual(self.rows(self.client.get(REGISTER_PAID_ISSUE_ROUTES["list"][1])), [])
+            for name in ("detail", "file", "decision_preview", "decide"):
+                method, template = REGISTER_PAID_ISSUE_ROUTES[name]
+                body = {
+                    "appointment": str(fixture.initial.pk),
+                    "kind": "approve",
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": "0" * 64,
+                    "confirmation": True,
+                }
+                denied = getattr(self.client, method)(template.format(uuid=identifier), body, format="json")
+                absent = getattr(self.client, method)(template.format(uuid=uuid4()), body, format="json")
+                self.assertEqual((denied.status_code, denied.content), (absent.status_code, absent.content), name)
+                self.assertEqual(denied.status_code, 404, denied.content)
+            denied_sources = self.client.get(
+                REGISTER_PAID_ISSUE_ROUTES["ready_subscriptions"][1],
+                {"company": str(fixture.company.pk), "token": str(fixture.token.pk)},
+            )
+            self.assertEqual(denied_sources.status_code, 404, denied_sources.content)
+        self.client.force_authenticate(fixture.owner)
+        sources = self.client.get(
+            REGISTER_PAID_ISSUE_ROUTES["ready_subscriptions"][1],
+            {"company": str(fixture.company.pk), "token": str(fixture.token.pk)},
+        )
+        self.assertEqual(sources.status_code, 200, sources.content)
+        self.assertEqual([row["subscription"] for row in sources.json()], [str(fixture.subscription.pk)])
+        self.client.force_authenticate(None)
+        for name, (method, path) in REGISTER_PAID_ISSUE_ROUTES.items():
+            self.assertEqual(
+                getattr(self.client, method)(path.format(uuid=identifier), payload, format="json").status_code,
+                401,
+                name,
+            )
+        self.client.force_authenticate(fixture.owner)
+        self.assertEqual(
+            [row["uuid"] for row in self.rows(self.client.get(REGISTER_PAID_ISSUE_ROUTES["list"][1]))], [identifier]
+        )
+        response = self.client.get(REGISTER_PAID_ISSUE_ROUTES["file"][1].format(uuid=identifier))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        for kind in ("approve", "apply"):
+            body = {"appointment": str(fixture.initial.pk), "kind": kind}
+            preview = self.client.post(
+                REGISTER_PAID_ISSUE_ROUTES["decision_preview"][1].format(uuid=identifier), body, format="json"
+            )
+            self.assertEqual(preview.status_code, 200, preview.content)
+            self.assertTrue(preview.json()["canDecide"], preview.content)
+            response = self.client.post(
+                REGISTER_PAID_ISSUE_ROUTES["decide"][1].format(uuid=identifier),
+                {
+                    **body,
+                    "idempotency_key": str(uuid4()),
+                    "preview_digest": preview.json()["previewDigest"],
+                    "confirmation": True,
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+        with self.as_an_operator_would():
+            self.assertEqual(
+                ShareIssuanceExecution.objects.get(source_instruction_id=identifier).executed_by_id, fixture.owner.pk
+            )
+        self.assertEqual((response.json()["status"], response.json()["execution"]["status"]), ("applied", "queued"))
 
     def test_register_pause_scope_all_six_routes_to_current_company_authority_and_private_evidence(self):
         from rest_framework.test import APIClient
@@ -2926,4 +3029,21 @@ class ScopedCompanyPauseRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDep
                 make_tenant("pause-foreign"),
                 make_tenant("pause-foreign-staff", staff=True),
                 make_tenant("pause-foreign-root", superuser=True),
+            )
+
+
+class ScopedCompanyPaidIssueRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
+    rows = staticmethod(CrossTenantRouteMatrixTest.rows)
+    test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence = getattr(
+        CrossTenantRouteMatrixTest,
+        "test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence",
+    )
+
+    def setUp(self):
+        super().setUp()
+        with use_operator():
+            self.actors = (
+                make_tenant("paid-foreign"),
+                make_tenant("paid-foreign-staff", staff=True),
+                make_tenant("paid-foreign-root", superuser=True),
             )

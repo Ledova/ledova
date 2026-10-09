@@ -49,7 +49,13 @@ instructions and a first-member LINK bootstrap. The fourth increment's
 and original cap-only execution. The fifth increment's
 [pause/unpause guide](company-pause-changes.md) describes implemented company decisions,
 genuine observations and original transaction recovery.
-Paid issuance remains a later #867 increment.
+The sixth increment's [paid-issue guide](company-paid-issues.md) describes
+implemented company decisions over existing recorded PAID
+subscriptions, original execution and distinct allotment/register outcomes.
+It adds no new payment mechanics or off-chain investor allotment. #867 remains
+open for the undelivered employee award/vesting records. #868 owns external
+capital records and company-approved allotment under the revised scope; new
+integrated payment mechanics are deferred.
 #866 and #868–#873 retain the revised core/deferred scopes and dependencies
 below. Their company/member, allotment and register authority remains separate.
 The #862 lifecycle provides [authority requests, self-declaration admission and

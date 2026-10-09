@@ -4,8 +4,9 @@
 
 **Status:** Third #867 increment implemented, following the empty-deployment
 and company-wallet increments. Its pull request records the source,
-independent review, executed checks and limits. Paid issuance, capital and pause
-conversion remain later increments.
+independent review, executed checks and limits. Paid issues, capital increases and
+pause changes use their separate company workflows in the
+[implementation index](README.md).
 
 ## Supported grant
 

@@ -2,10 +2,12 @@ import threading
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.db import connection
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset
@@ -20,8 +22,6 @@ from offerings.models import (
 )
 from offerings.services.subscription import (
     accept,
-    allot,
-    allot_batch,
     confirm_payment,
     create_draft,
     issue_instruction,
@@ -30,36 +30,45 @@ from offerings.services.subscription import (
 )
 from offerings.tasks import allot_subscription_task, reconcile_subscriptions
 from offerings.tests.factories import (
-    allotment_queue,
     configure_operator,
     forget_fixture_subscriptions,
-    instruct,
 )
 from shared.db import acting_for
+from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     IssuanceStatus,
+    RegisterEvidenceKind,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
+from tokens.services.register_paid_issues import (
+    decide_paid_issue,
+    prepare_paid_issue,
+    preview_paid_issue_decision,
+)
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
 from tokens.tasks import check_executing_issuance_requests
+from tokens.tests.evidence_fixtures import upload_evidence
 from tokens.tests.test_chain_integration import (
     CAP,
     CHAIN_SETTINGS,
     ChainTestMixin,
     chain_available,
 )
+from tokens.tests.test_register_imports import owner_appointment
 from wallets.models import Holding, Wallet
 
+DEFER = "tokens.services.issuance_execution.App"
 PRICE = Decimal("2.50")
 
 
 class AllotmentChainMixin(ChainTestMixin):
     def setUp(self):
         super().setUp(company_activation=True)
-        self.defer = self.enterContext(allotment_queue())
+        self.defer = patch(DEFER).start().return_value.configure_task.return_value.defer
+        self.addCleanup(patch.stopall)
         forget_fixture_subscriptions()
         configure_operator()
         self.admit_current_participant(self.tenant)
@@ -91,12 +100,49 @@ class AllotmentChainMixin(ChainTestMixin):
             received_on=timezone.now().date(),
             reference_seen=subscription.reference,
         )
-        instruct(subscription)
         return subscription
+
+    def _proposal(self, subscription):
+        appointment = owner_appointment(self.token.company)
+        evidence = upload_evidence(self.tenant.user, appointment, RegisterEvidenceKind.AUTHORITY)
+        proposal = prepare_paid_issue(
+            actor=self.tenant.user,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            subscription=subscription.pk,
+            approving_director="Synthetic Company Director",
+            authority_reference="SYNTHETIC-PAID-CHAIN",
+            reason="Company-authorised paid allotment",
+            authority_evidence=evidence.pk,
+        )
+        return proposal, appointment
+
+    def _decide(self, proposal, appointment, kind):
+        _, preview = preview_paid_issue_decision(
+            actor=self.tenant.user, paid_issue_id=proposal.pk, appointment=appointment.pk, kind=kind
+        )
+        self.assertEqual(preview["unmet_requirements"], [])
+        return decide_paid_issue(
+            actor=self.tenant.user,
+            paid_issue_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
+
+    def _admit(self, subscription):
+        proposal, appointment = self._proposal(subscription)
+        self._decide(proposal, appointment, "approve")
+        proposal = self._decide(proposal, appointment, "apply")
+        return ShareIssuanceRequest.objects.get(pk=proposal.request_id)
 
     def _run_task(self, subscription):
         command = ShareIssuanceExecution.objects.get(subscription_id=subscription.pk)
-        return allot_subscription_task(str(subscription.uuid), executed_by=self.staff.pk, execution_id=str(command.pk))
+        return allot_subscription_task(
+            str(subscription.uuid), executed_by=command.executed_by_id, execution_id=str(command.pk)
+        )
 
 
 @chain_available
@@ -108,7 +154,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         offering = self._offering()
         subscription = self._allottable(offering, quantity=40)
 
-        request = allot(subscription, self.staff, notes="Allotted from the operator console")
+        request = self._admit(subscription)
         self.assertEqual(request.status, RequestStatus.APPROVED)
         self.assertEqual(self.defer.call_count, 1)
         self.assertEqual(self._contract().functions.totalSupply().call(), 0)
@@ -134,7 +180,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=25)
-        allot(subscription, self.staff)
+        self._admit(subscription)
 
         first = self._run_task(subscription)
         nonce_after_first = self._signer_nonce()
@@ -153,14 +199,12 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=10)
-        allot(subscription, self.staff)
+        self._admit(subscription)
         self._run_task(subscription)
 
         blocks_before = self.w3.eth.block_number
-        result = allot_batch([Subscription.objects.get(pk=subscription.pk)], self.staff)
-
-        self.assertEqual(result["allotted"], 0)
-        self.assertIn("cannot be allotted twice", result["refusals"][0])
+        with self.assertRaises((RegisterChangeConflict, ValidationError)):
+            self._admit(Subscription.objects.get(pk=subscription.pk))
         self.assertEqual(self.w3.eth.block_number, blocks_before)
         self.assertEqual(ShareIssuanceRequest.objects.count(), 1)
         self.assertEqual(self._contract().functions.totalSupply().call(), 10)
@@ -169,7 +213,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=30)
-        request = allot(subscription, self.staff)
+        request = self._admit(subscription)
 
         record_refund(subscription, amount=Decimal("75.00"), reference="RTGS-CHAIN")
 
@@ -190,7 +234,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=20)
-        allot(subscription, self.staff)
+        self._admit(subscription)
 
         self.assertTrue(self._run_task(subscription)["success"])
         subscription.refresh_from_db()
@@ -207,7 +251,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=20)
-        request = allot(subscription, self.staff)
+        request = self._admit(subscription)
 
         with self._missing_issuance_receipts():
             self.assertEqual(self._run_task(subscription)["status"], "executing")
@@ -235,7 +279,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=20)
-        request = allot(subscription, self.staff)
+        request = self._admit(subscription)
 
         with self._missing_issuance_receipts():
             self.assertEqual(self._run_task(subscription)["status"], "executing")
@@ -263,7 +307,7 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=15)
-        allot(subscription, self.staff)
+        self._admit(subscription)
 
         with patch.object(Subscription, "mark_allotted", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
@@ -284,23 +328,6 @@ class SubscriptionAllotmentChainTest(AllotmentChainMixin, APITransactionTestCase
         self.assertEqual(ShareIssuance.objects.get().status, IssuanceStatus.COMPLETED)
         self.assertEqual(reconcile_subscriptions(), {"flipped": 0})
 
-    def test_a_batch_over_the_chain_headroom_is_refused_whole_and_mints_nothing(self):
-        self._deployed()
-        self._historical_whitelist(self.investor)
-        offering = self._offering()
-        Offering.objects.filter(pk=offering.pk).update(cap_shares=CAP * 2)
-        offering.refresh_from_db()
-        rows = [self._allottable(offering, quantity=CAP - 100), self._allottable(offering, quantity=200)]
-
-        blocks_before = self.w3.eth.block_number
-        result = allot_batch(rows, self.staff)
-
-        self.assertEqual(result["allotted"], 0)
-        self.assertIn(f"{CAP} left of the authorized supply", result["refusals"][0])
-        self.assertEqual(self.w3.eth.block_number, blocks_before)
-        self.assertFalse(ShareIssuanceRequest.objects.exists())
-        self.assertEqual(self._contract().functions.totalSupply().call(), 0)
-
 
 @chain_available
 @override_settings(**CHAIN_SETTINGS)
@@ -314,7 +341,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=30)
-        allot(subscription, self.staff)
+        self._admit(subscription)
 
         nonce_before = self._signer_nonce()
         barrier = threading.Barrier(2)
@@ -349,10 +376,12 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
 
-    def test_two_operators_clicking_allot_at_once_create_one_issuance_request(self):
+    def test_two_company_applications_of_the_same_proposal_create_one_issuance_request(self):
         self._deployed()
         self._historical_whitelist(self.investor)
         subscription = self._allottable(self._offering(), quantity=20)
+        proposal, appointment = self._proposal(subscription)
+        self._decide(proposal, appointment, "approve")
 
         barrier = threading.Barrier(2)
         results = {}
@@ -360,7 +389,7 @@ class SubscriptionAllotmentChainConcurrencyTest(AllotmentChainMixin, APITransact
         def worker(name):
             try:
                 barrier.wait(timeout=10)
-                results[name] = allot(Subscription.objects.get(pk=subscription.pk), self.staff)
+                results[name] = self._decide(proposal, appointment, "apply")
             except BaseException as exc:
                 results[name] = exc
             finally:

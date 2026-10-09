@@ -179,17 +179,16 @@ class RegisterIssuesTest(CompanyIssueCases, APITransactionTestCase):
 
     def test_genuine_paid_unentered_outcome_is_recovered_after_a_post_commit_recording_failure(self):
         from decimal import Decimal
-        from types import SimpleNamespace
 
         from companies.services.editing import update_company
         from offerings.models import Offering
-        from offerings.services.subscription import allot
         from offerings.tests.factories import (
-            allottable_subscription,
             configure_operator,
+            retained_paid_execution,
             subscription_technical_actor,
         )
         from tokens.tasks import check_executing_issuance_requests
+        from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 
         self.company = update_company(self.company, {"is_open_to_investors": True}, actor=self.owner)
         self.token.company = self.company
@@ -206,13 +205,10 @@ class RegisterIssuesTest(CompanyIssueCases, APITransactionTestCase):
                 opens_at=timezone.now() - timedelta(days=1),
                 closes_at=timezone.now() + timedelta(days=30),
             )
-            tenant = SimpleNamespace(
-                user=self.participant, account=self.account, wallet=self.wallet, company=self.company, offering=offering
-            )
-            subscription = allottable_subscription(tenant, quantity=10)
-            actor = subscription_technical_actor()
-            request = allot(subscription, actor, headroom=(100, 100))
-            command = ShareIssuanceExecution.objects.get(pk=request.dispatch_id)
+            self.offer = offering
+            actor = self.technical = subscription_technical_actor()
+            subscription = CompanyPaidIssueCases.genuine_paid_subscription(self, quantity=10)
+            request, command = retained_paid_execution(subscription, actor, signed_client=self.issuance_node.client)
             self.assertIsNone(command.source_instruction_id)
             with patch(
                 "tokens.services.issuance_execution.record_completed_effects",
