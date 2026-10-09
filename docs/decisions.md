@@ -826,7 +826,7 @@ each recommendation
 no company API key, because nothing authenticated with it; no theme or selected
 portfolio preference, because paper is the only look and no client read the
 portfolio; and routes offer only the methods in use, which
-[#832](https://github.com/Ledova/ledova/issues/832) carried out by removing the
+[#832](https://github.com/Ledova/ledova/pull/832) carried out by removing the
 33 operations no client called, taking the schema from 191 operations to 158.
 The [upgrade notes](operations/upgrades.md) record the key and preference
 removals.
