@@ -12,7 +12,7 @@ from shared.db import atomic, current_alias, use_migrate
 OWNER_PROVENANCE = "synthetic historical company owner"
 
 
-def historical_owner_appointment(company):
+def historical_owner_appointment(company, *, provenance=OWNER_PROVENANCE):
     with use_migrate(), atomic(durable=True):
         existing = (
             CompanyAppointment.objects.filter(company=company, appointee=company.owner)
@@ -40,7 +40,7 @@ def historical_owner_appointment(company):
                     company=company,
                     owner=company.owner,
                     owner_profile=profile,
-                    provenance=OWNER_PROVENANCE,
+                    provenance=provenance,
                 )
                 appointment = CompanyAppointment.objects.create(
                     company=company,

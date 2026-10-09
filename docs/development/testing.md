@@ -212,6 +212,16 @@ does not replay the owner-upgrade migrations for each route case. The fixture
 requires the migration role and restores both appointment/source identity guards;
 genuine upgrade tests continue to use their historical migrations.
 
+Routine company registry and legacy-owner authority cases also use the existing
+bounded synthetic historical-owner fixture on the current schema. Their fixture
+does not rewind and reinstall later migrations for each runtime assertion.
+Legacy authority cases supply their retained migration-format provenance as
+synthetic fixture data; this does not establish that a migration executed or
+that its source and appointment timestamps match. Genuine legacy-owner upgrade
+and reversal tests still exercise the historical models, schema, actors, private
+records and migration guards. Test selections and required ordinary/scoped
+coverage remain unchanged.
+
 ## Scoped connection evidence
 
 The ordinary suite uses SET ROLE on a shared test connection to exercise policies
