@@ -33,8 +33,8 @@ Caller-declared recipient, amount and fee do not override signed terms.
 
 | Detail needed | Reference |
 | --- | --- |
-| EVM gas bounds, global nonce/hash identity and exact-byte retry | [EVM transfers](../reference/evm-transfers.md) |
-| Supported Bitcoin scripts, input reservations and recovery | [Bitcoin transfers](../reference/bitcoin-transfers.md) |
+| EVM gas bounds, global nonce/hash identity and exact-byte retry | [EVM transfers](../reference/wallet-transfers.md#evm) |
+| Supported Bitcoin scripts, input reservations and recovery | [Bitcoin transfers](../reference/wallet-transfers.md#bitcoin) |
 | Confirmation, reorg observations and nonce-spend evidence | [Transaction evidence](../reference/transaction-evidence.md) |
 | An unresolved transfer or worker | [Recovery guide](../operations/recovery.md) |
 

@@ -10,7 +10,7 @@ application code. These are current remedies distilled from prior failures.
 | Dashboard serves old code after restart | Rebuild its image; Compose has no dashboard source volume. Keep backend and worker images aligned too. |
 | Signup has no email | On the local debug stack, read the backend log for the verification code. Check the configured provider outside debug. |
 | Cookie writes return CSRF 403 | Put the dashboard origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; clearing localStorage does not clear cookies. |
-| Backend tests cannot start | Start PostgreSQL and supply the isolated test database/role settings. SQLite is no longer the default test environment. |
+| Backend tests cannot start | Start PostgreSQL and supply the isolated test database/role settings; the backend suites run on PostgreSQL only. |
 | Backend `make lint` reports *No module named black* (or isort, flake8) | The lint tools are development requirements, not part of the backend image. Run `make install-backend` on the host, then `cd backend && make lint`; see [backend verification](testing.md#backend-verification). |
 | Type-check cannot find Expo configuration | Install mobile dependencies inside `mobile/`, or run `make check`. A root package copy is not proof Metro can resolve it. |
 | Many unrelated PostgreSQL failures | Check alias/principal selection, role credentials and another runner sharing the same test database before blaming a policy. Use a separate database per worktree. |
@@ -27,6 +27,7 @@ application code. These are current remedies distilled from prior failures.
 | `chain-deploy` exits 1, and `migrate`, `backend`, `worker` and `dashboard` never start | Its message names the difference: core contracts missing, owned or configured differently, or built from other sources, as after a change to `contracts/`. The chain and database go together: `make dev-clean`, then `make dev-up`. See [the local stack's chain](../operations/chains.md#the-local-stacks-chain). |
 | `migrate` stops at `admit_local_signer` with *the chain was reset, or lost its latest blocks* | The database recorded transactions the chain no longer has, because the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both together. |
 | `chain` exits at once with *invalid value '/state/state.json' for '--state'* | A hard kill interrupted Anvil while it was rewriting its state file, which it does in place. The chain cannot be recovered: `make dev-clean`. |
+| A mobile signing test times out | Cold renderer setup, not signing: the first settlement-screen test timed out at five seconds in CI with 488 of 489 mobile tests passing, and a measured run with its budget raised completed in 7.28 s, 6.67 s of it in the first render. That one integration test has a ten-second limit; the five-second default, real renderer, cryptographic signer and duplicate-submit assertions stand. These are harness timings, not a reason to extend a timeout without locating the cost ([#542](https://github.com/Ledova/ledova/issues/542)). |
 
 For PostgreSQL authentication on an existing volume, see
 [role provisioning](../operations/configuration.md#row-level-security-roles).
@@ -40,22 +41,3 @@ pending issuance, transfer or retained file, use [operator recovery](../operatio
 When an instrument caused the apparent failure, record that correction. Keep
 historical failure counts and old implementation shapes in their dated source
 records rather than turning them into current setup instructions.
-
-**A signing-test timeout can be cold renderer setup rather than signing.**
-The first settlement-screen test timed out at five seconds twice in CI, with
-488 of 489 mobile tests passing ([#542](https://github.com/Ledova/ledova/issues/542)).
-Stage timings and a V8 profile located most of its cost in the initial screen
-render: Jest was lazily transforming React Native's ScrollView, animation code
-and native renderer. Mnemonic derivation took tens of milliseconds. Removing
-the decorative gradient did not fix the controlled failure, so that change was
-discarded.
-
-With a fresh transform cache, three Jest workers and one CPU of affinity, the
-unchanged test failed while the other 488 passed. A measured run with its budget
-raised completed all assertions in 7.28 seconds: 6.67 seconds in the first
-render, then about 0.6 seconds for the rest of the flow. This one integration
-test now has a ten-second limit; the five-second default, actual renderer,
-cryptographic signer, duplicate-submit assertions and all other tests remain.
-That allows the measured cold fixture cost and adds five seconds to detecting a
-hang in this case. These are test-harness timings, not application performance
-measurements or a reason to extend timeouts without locating the cost.

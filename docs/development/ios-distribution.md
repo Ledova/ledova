@@ -43,18 +43,14 @@ submitting for App Review; an unused local build number is not reserved at Apple
 Use an Xcode release accepted by App Store Connect. Since April 28, 2026,
 [Apple requires the iOS 26 SDK or later](https://developer.apple.com/news/?id=ueeok6yw).
 This requirement is separate from the app's minimum supported iOS version and
-the simulator CI toolchain. Xcode 27 also refuses pod targets below iOS 15.0;
-the config plugin's post-install step raises them to the Podfile platform, as
-[mobile builds](mobile-builds.md) describes. An app built with the iOS 27 SDK
-must also adopt the UIKit scene life cycle or iOS 27 stops it at launch;
-`plugins/withSceneLifecycle.cjs` adds the scene manifest and delegate at
-prebuild, and `check-native-projects.mjs` refuses a generated project without
-them. Before uploading, launch the same commit on iOS 27: build it in Release for
-an iOS 27 simulator and open it to the sign-in screen, or install the archive on
-an iOS 27 device. An earlier iOS does not enforce the scene life cycle, so a
-device on iOS 18 does not cover this check. A link that opens the closed app
-does not reach JavaScript under the scene life cycle, as
-[mobile builds](mobile-builds.md) explains.
+the simulator CI toolchain. Xcode 27 refuses pod targets below iOS 15.0, and
+iOS 27 stops an app built with its SDK unless it adopts the UIKit scene life
+cycle; [mobile builds](mobile-builds.md) describes how the config plugin
+handles both and why a link that opens the closed app does not reach
+JavaScript. Before uploading, launch the same commit on iOS 27: build it in
+Release for an iOS 27 simulator and open it to the sign-in screen, or install
+the archive on an iOS 27 device. An earlier iOS does not enforce the scene life
+cycle, so a device on iOS 18 does not cover this check.
 
 After installing the locked dependencies described in [mobile builds](mobile-builds.md),
 run from `mobile/` with the release environment already set:
@@ -83,7 +79,7 @@ revoke certificates to resolve a local setup issue without checking their other
 users.
 
 Inspect the archive's Info.plist, signature and embedded provisioning profile.
-In Xcode Organizer, validate and export for App Store Connect using the owning
+In Xcode Organiser, validate and export for App Store Connect using the owning
 team's distribution signing. A development-signed archive is not a distribution
 IPA. Keep exports, logs, provisioning profiles and keys outside Git.
 
