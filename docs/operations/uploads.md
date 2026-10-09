@@ -46,7 +46,10 @@ by a rolled-back or interrupted preparation fall under the 24-hour orphan
 sweep. This is the one statement of that rule; the
 [register runbook](register-foundation.md#company-register-decisions) and the
 plan guides link here. Their production retention is decided before any real
-data (owner decisions, 22 September and 5 October 2026).
+data (owner decisions, 22 September and 5 October 2026). Account and company
+deletion still respect the protected register relations. Classification
+evidence, former-member retention and export records have independent
+retention policies; this rule does not change them.
 
 [Publications to members](../architecture/shareholder-publications.md#retention)
 share the same floor and setting, measured from the publication, and a

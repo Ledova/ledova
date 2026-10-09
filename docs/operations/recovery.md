@@ -125,8 +125,9 @@ mark an uncertain outcome complete. Staff add/remove APIs and admin quick
 actions admit no fresh decision. A company appointee can prepare REMOVE from a
 genuine retained CONFIRMED or UNCHANGED ADD journal, including a historical
 NULL-source ADD, even after wallet deletion; an approval-only row with no
-journal is not invented into an ADD source. Verify actual absence before
-retiring a blocked removal job. Pause uses its own company instruction. The
+journal is not invented into an ADD source. Restoring a read or an appointment
+does not itself create a new approval, source renewal or replacement
+instruction. Verify actual absence before retiring a blocked removal job. Pause uses its own company instruction. The
 rules are in [whitelist changes](../architecture/outgoing-signing.md#whitelist-changes),
 [refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
 and the [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md).
@@ -136,7 +137,8 @@ and the [company wallet workflow](../plans/company-managed-registers/company-wal
 The operator console's **Whitelist entries needing holder standing review**
 counts investor accounts with an inactive login or rejected, suspended or
 terminated investment standing that still hold a live or uncertain company
-approval, each once, from the last observation and without reading the chain.
+approval, each once, from the last observation and without reading the chain;
+the approval inline retains the last observed company status and expiry.
 A removed or expired approval stays listed while a live company decision
 remains and standing is not refused, so staff inspect the specific company and
 current eligibility before acting; the worklist authorises nothing.
@@ -192,11 +194,12 @@ recorded outcome without provider access. Keep the original
 [company preparation or decision](../plans/company-managed-registers/company-pause-changes.md)
 body and key when a reply is lost; both clients recover the receipt by
 repeating the original command, and a changed draft cannot rebuild its
-authority. Approval alone admits no execution, and a pending result does not
-mean transfers have stopped or resumed. The retained legacy owner reminders
-keep **Check outcome** and **Retry same request** for an existing exact row
-only; a never-admitted UUID receives an explicit fresh-admission refusal, and
-fresh owner or staff submission is retired. Recover the original observation or
+authority. Approval alone admits no execution, a pending result does not mean
+transfers have stopped or resumed, and a completed original outcome can differ
+from the token's current state after a later request. The retained legacy
+owner reminders keep **Check outcome** and **Retry same request** for an
+existing exact row only; a never-admitted UUID receives an explicit
+fresh-admission refusal, and fresh owner or staff submission is retired. Recover the original observation or
 canonical receipt rather than creating a new command for an ambiguous outcome;
 if a retained NULL-source projection cannot reach its original scoped class,
 restore the correct identity, because no operator fallback bypasses that

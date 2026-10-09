@@ -180,7 +180,7 @@ guards, and replaces the admin workflow clause in the administration guard so
 activation needs its exact current personal appointment and applied provider
 receipt while technical recovery keeps its model permission. It creates no
 historical declaration, provider pass or activation actor
-([activation guide](../plans/company-managed-registers/company-activation.md#upgrade-and-technical-recovery)).
+([activation guide](../plans/company-managed-registers/company-activation.md)).
 Reversal refuses while any check carries a request key; otherwise it restores
 the earlier guard body and drops the functions and columns.
 
@@ -197,8 +197,10 @@ The [company-managed register plan](../architecture/company-managed-registers.md
 replaced the global staff gates with company appointments and scoped service,
 row-level-security and database admission checks through #861–#865 and the six
 #867 increments; the [implementation index](../plans/company-managed-registers/README.md)
-says what each delivered. The migrations below are their notes, in the order
-the increments landed, newest first within each group. They remain applied
+says what each delivered. The migrations below are their notes, grouped by
+increment: the #863 eligibility cutover, the #865 grants and transfers, the
+#864 register commands (newest first) and the six #867 chain increments in
+their own subsections. They remain applied
 history: do not edit them or reset a database to reach the current schema. Back
 up the database and referenced private files together, verify each migration on
 preserved data and retain exact unresolved signed operations for recovery. None
@@ -232,9 +234,9 @@ has their rehearsal and reversal rules. In short:
   identity policy trigger and drops the functions.
 - `users/0034` adds the SQL functions that decide whether a decision is still
   current for an account, company, purpose and product; reversal drops them.
-- `users/0035` removes the one-open-submission constraint, so a holder can keep
-  several submitted sources, makes a classification's issuer nullable with
-  `SET NULL`, and installs the trigger that refuses the retired staff review
+- `users/0035` removes the one-open-submission constraint, so an account can
+  keep several submitted sources, makes a classification's `company` nullable
+  with `SET NULL`, and installs the trigger that refuses the retired staff review
   operation. Reversal refuses while any account has more than one submitted
   source, because the constraint cannot return.
 - `tokens/0082` adds the eligibility decision and admission columns to order
@@ -832,9 +834,11 @@ migration is needed.
   reverse. `users/0030_join_activation_and_kyc_results` merges the two and
   changes nothing.
 - `wallets/0023_transaction_market_value_aud` adds `market_value_aud` to
-  transactions and values every existing one at the USD/AUD rate stored when
-  it runs, or at par for AUDY ([transaction monitoring](operator-console.md#transaction-monitoring));
-  it depends on `assets/0014` and `wallets/0022`. **Reversal does not restore
+  transactions and values every existing one that has a market value and a
+  stored USD/AUD rate, at the rate stored when it runs, or that is a verified
+  AUDY amount, at par; the rest stay null
+  ([transaction monitoring](operator-console.md#transaction-monitoring)). It
+  depends on `assets/0014` and `wallets/0022`. **Reversal does not restore
   data.** It drops the column, and re-applying values the rows again at the
   rate stored then.
 - `tokens/0081_held_orders_and_retired_statuses` adds the `held` order status

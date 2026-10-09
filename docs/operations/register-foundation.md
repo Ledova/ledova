@@ -461,7 +461,8 @@ boundary produces an explicit empty opening, distinct from an uninitialised
 register. Issuance and settlement completion take the same share-class lock, so
 neither can interleave with an application. The database also refuses a
 preparation for a class that is not deployed or paused or whose register
-already has an entry, one without a boundary or whose boundary is not complete,
+already has an entry, one whose authority fields are incomplete, one without a
+boundary or whose boundary is not complete,
 typed snapshot provenance for this class with its canonical transfer history, a
 mapping that does not pair exactly with the boundary's holders, repeats an
 address, names another company's member, contradicts an existing wallet link or
@@ -570,8 +571,8 @@ address that an acknowledged `unlinked` reconciliation discrepancy names can
 also surface new discrepancies at the next reconciliation. The database also
 refuses a mapping that is empty, repeats an address, holds a value that is not
 a JSON string, names another company's member or names an address already
-linked in the company, and an application that leaves a mapped wallet unlinked
-to its member.
+linked in the company, incomplete authority fields, and an application that
+leaves a mapped wallet unlinked to its member.
 
 ## Register instructions for issues
 
@@ -739,7 +740,7 @@ evidence cannot place it, which covers a completion at an earlier height whose
 transaction is missing from the history, one recorded after the boundary yet
 present in it, and every completion against a missing or malformed history,
 whatever its height. These are the effects the platform itself completes; a
-holder's own on-chain transfer outside settlement is a reconciliation question,
+member's own on-chain transfer outside settlement is a reconciliation question,
 not a classified completion.
 
 Preparation refuses an opening whose captured boundary leaves any completed

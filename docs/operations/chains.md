@@ -53,8 +53,11 @@ order-challenge lifetime remains 300 seconds.
   it from `process.env` into the `localhost` and `baseSepolia` account lists.
   Export it in the deploying shell for the length of the deployment; nothing
   loads it from a file. Leave it unset against `localhost`, where Hardhat falls
-  back to the node's own accounts. The local stack's `chain-deploy` sets it to
-  the operator key, so its deployer and the backend's signer are one address.
+  back to the node's own accounts; unset against `baseSepolia` it leaves the
+  deployment with no signer (`contracts/hardhat.config.ts`:
+  `accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : []`). The local
+  stack's `chain-deploy` sets it to the operator key, so its deployer and the
+  backend's signer are one address.
 - **It is not a second, independent key.**
   `contracts/scripts/deploy-all.ts` passes `deployer.address` as the owner of
   ShareTokenFactory, AUDY and AtomicSwap, and it is also the address added as
