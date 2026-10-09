@@ -16,14 +16,14 @@ authority.
 
 ## Data flow of an offering
 
-1. The owner sets `Company.is_open_to_investors` from `/company/offering`
+1. A company administrator sets `Company.is_open_to_investors` from `/company/offering`
    through `CompanyUpdateSerializer`. It defaults to `False`, so the directory
-   is empty until an owner opts in. Listing is meant to be the owner's act and
-   the operator's lever a takedown only, but that is an expectation, not a
-   control: `is_open_to_investors` is in `EDITABLE_FIELDS` and `update_company`
-   applies it either way (`backend/companies/services/editing.py`), from the
-   API and from admin alike. It is a flag, not a `CompanyStatus`, so
-   suspension and reinstatement do not drop the listing.
+   is empty until the company opts in. Listing is the company's own act:
+   `is_open_to_investors` is in `EDITABLE_FIELDS`, and `update_company`
+   (`backend/companies/services/editing.py`) applies it for a current company
+   administrator, or a draft's owner, from the API and from admin alike;
+   platform staff hold no takedown lever on it. It is a flag, not a
+   `CompanyStatus`, so suspension and reinstatement do not drop the listing.
 2. The company creates an `Offering` against one deployed share class at `POST
    /api/v1/offerings/`, with price, bounds in whole shares, window, exemption
    relied on, payment rails and the `CompanyDocument`s to attach. Every
@@ -72,7 +72,7 @@ authority.
    document that is not attached to such an offering. `GET
    /api/v1/directory/tokens/{uuid}/documents/` lists them, newest first, each
    once however many offerings carry it, with the name, type, size, upload date
-   and any validity dates the issuer recorded; `GET
+   and any validity dates the company recorded; `GET
    /api/v1/directory/tokens/{uuid}/documents/{document}/file/` streams one,
    inline for a PDF or image. The class resolves through the directory's own
    selector, so an ineligible investor, a class that has left the directory, a
@@ -102,7 +102,7 @@ authority.
    refuses a submitted, under-review or withdrawn one with a 400 naming its
    status. It takes only the offer document types, the picker's list, because
    what it adds to an approved offering can never come off. An approved
-   offering cannot be edited, so no write from the issuer detaches a document,
+   offering cannot be edited, so no write from the company detaches a document,
    and deleting a company document that an approved or closed offering
    carries answers 409 `offered_document`. On the web and in the app,
    Offerings has Add documents on an approved or closed offering: the attached

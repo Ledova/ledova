@@ -63,7 +63,7 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    Existing classes keep their symbols.
 2. `/api/v1/tokens/register-deployments/` provides company preparation, preview,
    approval, application and rejection. A draft requires an active company, the
-   existing selected issuer wallet and proven empty register state. Preparation
+   company's existing selected wallet and proven empty register state. Preparation
    freezes company/class/issuer metadata, the factory intent and register boundary.
    Application consumes the exact approval; its original deployment UUID,
    `DEPLOYING` status and actual applying-principal job commit together. Exact
@@ -150,9 +150,9 @@ Reviewers write `review_notes`; execution attempts append timestamped entries to
 an intervening attempt. Successful execution adds its outcome to that same log
 after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
-last failure. Reviewer notes are omitted from the issuer serializers and from
-the client type in `packages/shared/src/types/domain/company-token.ts`; issuers
-receive execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
+last failure. Reviewer notes are omitted from the company-facing serializers and from
+the client type in `packages/shared/src/types/domain/company-token.ts`; the company
+receives execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
 categories in operator records; provider URLs and exception text do not enter
 public responses or recovery diagnostics.
 

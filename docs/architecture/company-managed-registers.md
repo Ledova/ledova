@@ -78,7 +78,7 @@ The chosen approach replaces two product variants and routine staff execution
 with one product and company authority. Keeping the earlier staff-run model
 would preserve existing admin paths but would not satisfy the owner's decision.
 The consequence is migration work across clients, services, policies and triggers;
-the benefit is that normal register completion no longer depends on Ledova staff
+the benefit is that normal register completion no longer depends on platform staff
 availability. Technical operations, meaningful validation and historical evidence
 remain necessary. This plan does not add a second self-hosted roadmap or declare
 legal, signature or filing requirements resolved.
@@ -251,7 +251,7 @@ rather than issuing them a second time.
   until required company approval exists. Global staff permissions do not count
   as that appointment, and shareholder status grants no register admin rights.
 - Opening, exact issue/allotment and resulting certificate complete without any
-  Ledova staff action when required company/participant decisions exist.
+  platform staff action when required company/participant decisions exist.
 - Fresh company and participant signup reaches evidenced company activation
   and the required identity/classification outcomes for the selected action
   without pre-verified fixtures or routine staff approval. Unresolved,

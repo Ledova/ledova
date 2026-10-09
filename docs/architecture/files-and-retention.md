@@ -22,7 +22,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
-| Company register decision: import, opening, correction, wallet link, particulars change, grant, transfer, capital increase, pause change, instruction | `companies/<uuid>/register-evidence/` for the company's upload and `register-<kind>s/` for the decision's own copy; both are retained with their rows; interrupted-copy orphans are swept |
+| Company register decision: import, opening, correction, wallet link, particulars change, grant, transfer, capital increase, pause change, instruction | `companies/<uuid>/register-evidence/` for the company's upload and `register-<kind>/` (`register-imports/`, `register-links/`, `register-particulars/` and so on) for the decision's own copy; both are retained with their rows; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
 | Company document | `companies/`; swept after becoming an orphan |
@@ -96,7 +96,7 @@ reviewer, except that its read records are deleted with it when it is
 
 Company documents carry no read audit: not for the owner, not for staff in
 admin, and not for an investor opening an offering's documents. Those are the
-offer information the issuer chose to give every eligible investor, rather than
+offer information the company chose to give every eligible investor, rather than
 a personal record such as a payslip or a member's own statement.
 
 A [company pack](company-pack.md#documents) carries a company's documents,

@@ -4,7 +4,7 @@
 
 One database serves one deployment. PostgreSQL row-level security (RLS) enforces
 tenant isolation. Customer requests and principal-bearing jobs select authority
-at their boundary; product selectors retain narrower issuer, account and
+at their boundary; product selectors retain narrower company, account and
 eligibility rules where database read scopes are wider.
 
 ## Company authority
@@ -92,8 +92,8 @@ company ownership or staff status grants no access to another person's proposal.
 Initial self-declaration admission shares the request lock and rejects a
 withdrawal. It retains the exact declaration, scoped appointment and genuine ABR
 check without activating the company. Self-revocation creates an immutable outcome;
-expiry/revocation stops current capability checks. The preserved configured issuer
-identity gate consumes server-owned provider results. None of these reads widens
+expiry/revocation stops current capability checks. The preserved configured representative
+identity gate (`issuer_kyc_required`) consumes server-owned provider results. None of these reads widens
 legacy owner-based company, investor or financial-data scopes.
 
 Invitations are readable only by their inviter through the app role. Bounded
@@ -220,7 +220,7 @@ outer transaction cannot undo that durable boundary. See [issuance](contracts-an
 [recovery](../operations/recovery.md).
 
 Three bounded operator reads serve product behavior that ownership alone would
-refuse: resolving a supplied active issuer UUID for an associated-person claim,
+refuse: resolving a supplied active company UUID for an associated-person claim,
 fetching public market prices for already admitted tokens, and reading the
 documents attached to the approved offerings of a share class the caller's
 directory admits ([offerings](offerings.md)). Each resolves what the caller may

@@ -205,7 +205,7 @@ contention holds the original operation; original signed receipt recovery and th
 automatic swap-approval suffix keep their existing association checks. See
 [company deployment](../plans/company-managed-registers/company-deployments.md).
 
-After the issuer's token projection and asset bridge succeed, a bounded operator
+After the token projection and asset bridge succeed, a bounded operator
 transaction commits `projected_at`, a frozen approval disposition and the exact
 `recover_swap_approval` job together on the existing private `TokenDeployment`.
 Approval runs asynchronously and never reverses a successful deployment. It has
@@ -522,7 +522,7 @@ signing; paid fulfilment does not reapply unrelated participant eligibility,
 nomination or grant requirements. Original financial receipt/refund producers
 remain separate until #868 changes them. Fresh staff paid ISSUE admission is
 retired; historical accepted commands keep their original actor and source.
-App connections cannot read or write private commands; public issuer reads
+App connections cannot read or write private commands; public company reads
 retain their existing shape. Accepted recovery remains operator-owned after the
 initiating actor loses access.
 
@@ -595,7 +595,7 @@ journal, job, signature or state change. Application consumes that exact approva
 and current applier authority, admitting one source-bound private `PauseChange`
 and its durable recovery job atomically under the original proposal UUID.
 Ownership and staff permissions provide no company mandate. The replaced fresh
-issuer POST and staff admin admission are retired; exact existing issuer-row
+owner POST and staff admin admission are retired; exact existing owner-row
 POST replay and private GET recovery retain their original identity and direction.
 
 A verified initial boolean at a recorded block may produce `observed`, with no
@@ -617,19 +617,19 @@ public state. Fresh opening/signing contexts acquire source/class authority
 before outgoing and signer locks and recheck default-deferred effects using
 actual time. Network operations run outside database transactions.
 
-Retained NULL-source issuer projection preserves its original path: target and
-private journal locks on the operator alias, then original issuer company/class
+Retained NULL-source owner projection preserves its original path: target and
+private journal locks on the operator alias, then original owner company/class
 writes on the scoped app connection. It holds no operator company/class lock
 while that separate connection projects. That write commits before completing
 the private command. A lost commit response retains the barrier for idempotent
 original recovery, preventing a newer opposite command from overtaking it.
-Completed replay returns before updating the token. Missing original issuer
-ownership keeps the outcome and barrier; no operator fallback supplies that write.
+Completed replay returns before updating the token. Missing original owner
+provenance keeps the outcome and barrier; no operator fallback supplies that write.
 
 Historical `0051`/`0052` retain their definitions and original states. New
 `0104`/`0105` add company sources without backfilling approvals, reject fresh
 NULL-source admission and refuse reversal with retained company history. API and
 clients expose requested state, genuine observation or original receipt separately
-from current class state. The v1 five-field issuer reminder remains, with original
+from current class state. The v1 five-field owner reminder remains, with original
 UUID/direction, same-account reload/replay/polling and completed-only dismissal.
 A saved UUID never admitted to the server gets an explicit fresh-admission refusal.

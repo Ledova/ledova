@@ -246,7 +246,7 @@ Read sections by their headers rather than assuming one width or column index.
 the kind, the stored register sequence exported, the current- and former-member
 row counts, and the time. A refused or failed export records nothing, and the
 route refuses `HEAD`, which would record a sheet it never sends. The records are
-kept for staff: the table is operator-only, so no issuer or customer route reads
+kept for staff: the table is operator-only, so no company or customer route reads
 it, and operators query it in admin. Records cannot be rewritten. The daily
 former-member purge removes them after the same
 [2,557-day floor](../operations/uploads.md#data-retention).

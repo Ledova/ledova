@@ -95,9 +95,10 @@ Account readiness is separate. `investor_readiness(user)` in
 investing account in good standing; with `investor_kyc_required` on, pending
 accounts and an unverified profile are refused, and with it off pending alone
 does not refuse. Rejected, suspended and terminated accounts remain refused.
-`issuer_kyc_required` concerns company representatives: with it on, initial
-admission, activation and company decisions require the representative's
-verified identity.
+`issuer_kyc_required` concerns company representatives: with it on, every
+company-authority act (initial admission, appointment acceptance, activation,
+administration, eligibility decisions, and register and wallet decisions)
+requires the representative's verified identity.
 
 Discovery follows the decisions. `directory_admission(user)` admits a
 participant to the companies and exact products their current decisions cover,
@@ -105,8 +106,9 @@ and the same selector decides who opens the documents of a class's approved
 offerings ([offerings](offerings.md)); `secondary_company_ids(user)` bounds the
 market the same way, with no widening from an associated-person decision.
 Inaccessible list/detail querysets produce empty lists or 404; they do not
-confirm a hidden row with 403. Operator payment instructions use eligibility for
-at least one company.
+confirm a hidden row with 403. Operator payment instructions are shown to
+platform staff and to holders of a current secondary-market decision from at
+least one company.
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md),
 [registry verification procedure](../operations/integrations.md#company-registry-verification),

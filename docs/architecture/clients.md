@@ -130,8 +130,10 @@ refresh withholds stale rows and their actions until a retry succeeds, and an
 open form keeps its draft through a failed refresh while holding its write
 until a read succeeds. Exact decimal strings are kept for share counts, prices
 and amounts; a legacy count outside JavaScript's safe range is marked
-unavailable rather than rounded. The paragraphs below say what is specific to
-each page.
+unavailable rather than rounded. A failed file delivery is distinguished from
+an unavailable stored document, and on mobile a company, account or session
+change retires a pending document action. The paragraphs below say what is
+specific to each page.
 
 **Register** is the company landing page on both clients and a page for every
 signed-in account on the web, at `/company/register`; the API decides which
@@ -218,10 +220,13 @@ applicant-filtered application list. Actions open the application detail or
 Notices; nothing submits, pays or votes from Holdings.
 
 **Verification** shows the person's eligibility sources and complete claim
-history, and **Your company eligibility** lets them request a decision from one
-company or an approved offering; **Company eligibility**, reachable from
-Holdings and Company team, lets a current company approver read the queue and
-accept, refuse or revoke ([company eligibility](../plans/company-managed-registers/company-eligibility.md)).
+history, and **Your company eligibility** (**Eligibility requests** on mobile)
+lets them request a decision from one company or an approved offering;
+**Company eligibility**, reachable from Holdings and Company team, lets a
+current company approver read the queue and accept, refuse or revoke
+([company eligibility](../plans/company-managed-registers/company-eligibility.md)),
+and holds the company's wallet nominations and instructions
+([wallet approvals](../plans/company-managed-registers/company-wallet-approvals.md)).
 Every claim page loads before a submission is offered, so a pending claim on a
 later page still prevents a second one.
 

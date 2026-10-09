@@ -139,7 +139,7 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    current ADMIN/PREPARE in the exact company and class. Approvers and register
    readers can inspect proposals without that selector or the financial ledger.
    The existing subscription API carries create, list, detail, submit and withdraw
-   for the investor and no operator financial write route. The issuer reads
+   for the investor and no operator financial write route. The company reads
    its own offering's subscriptions at `GET
    /api/v1/offerings/{uuid}/subscriptions/`, scoped by the offering's own
    `subscribed_by(user)` and read-only, so payment confirmed and allotment pending
