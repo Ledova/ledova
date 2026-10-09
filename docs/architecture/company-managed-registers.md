@@ -2,7 +2,10 @@
 
 [Product](../product.md) · [Decisions](../decisions.md#company-managed-registers-and-one-product) · [Roadmap](../roadmap.md)
 
-**Status:** Accepted product direction; phases 1 and 2 delivered.
+**Status:** Accepted product direction, reprioritised on 9 October 2026.
+Development-workflow simplification (#943) comes first; the essential registry
+scope below replaces the earlier all-workflow completion sequence.
+Phases 1 and 2 delivered.
 The company-authority foundation is delivered by [PR #911](https://github.com/Ledova/ledova/pull/911)
 at commit `13684719c5245f1d61809d46e37a904f833e1c6d`.
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
@@ -81,11 +84,14 @@ implements exact company decisions and original observation or
 transaction recovery. The sixth
 [paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
 implements company decisions over existing recorded payment, retaining exact
-issue approval, original execution and distinct allotment/register outcomes. New payment mechanics remain
-#868 work.
-#866 and #868–#873 remain planned.
-Their company/member, offering and register authority is separate.
-**Date:** 3 October 2026, Australia/Sydney.
+issue approval, original execution and distinct allotment/register outcomes.
+It adds no new payment mechanics or off-chain investor allotment. #867 remains
+open for the undelivered employee award/vesting records. #868 owns external
+capital records and company-approved allotment under the revised scope; new
+integrated payment mechanics are deferred.
+#866 and #868–#873 remain planned within the revised core/deferred scope below.
+Their company/member, allotment and register authority is separate.
+**Date:** 3 October 2026; priority amendment 9 October 2026, Australia/Sydney.
 **Decision maker:** Project owner, in the instruction defining this direction.
 
 The [implementation index](../plans/company-managed-registers/README.md) records
@@ -105,26 +111,36 @@ A private internal instance uses the same software, features
 and authority model. Hosting does not select a separately maintained product.
 This decision does not change the software licence or establish a legal finding.
 
-The owner's [5 October product clarification](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-keeps the private-company register and issuing, managing, transferring and
-purchasing company shares as the core. Crypto on-ramp purchases are optional and
-investor-only; companies must not buy cryptocurrency through that integration.
-AUD is a required share-payment method, distinct from AUD pricing and an
-AUD-denominated stablecoin. Payment mechanics remain undecided in
-[#868](https://github.com/Ledova/ledova/issues/868) and
-[#869](https://github.com/Ledova/ledova/issues/869); the investor-only on-ramp
-guards are tracked separately in [#920](https://github.com/Ledova/ledova/issues/920).
-Company appointments and wallets needed for share operations do not grant
-crypto-purchase permission.
+The owner's [9 October priority amendment](../decisions.md#essential-registry-and-development-workflow-priority)
+puts #943 first, then a simple register for non-paid employee awards and vesting
+records, externally arranged investor capital and company-approved allotments,
+accurate ownership, member access and basic outputs. Core outputs (#871) and
+core acceptance (#873) no longer wait for deferred trading (#869), advanced
+governance (#870) or filings (#872). The earlier required integrated AUD-payment
+expansion is deferred; #868 now focuses on external capital records and allotment.
 
-Several remaining domain workflows submit proposals that only platform staff can review and apply;
-some submissions lack client forms. Staff also handle payment, allotment and
-publication work. Replace these dependencies with explicit company authority
-and participant-facing tools while preserving evidence and durable history.
+Current grants issue outright shares; a stored agreement does not implement
+vesting. Structured award/vesting records and new off-chain investor allotments
+remain delivery gaps. Contractual entitlements and actual issued ownership must
+stay distinct. No legal/tax rule engine or option-exercise scheme is selected.
+The single account-to-member association remains #866 work; this amendment does
+not select its invitation/access policy.
+
+Useful existing chain and payment functionality, evidence and recovery are
+retained. Optional crypto on-ramp purchases remain personal investor activity;
+companies must not buy cryptocurrency through it, and #920's investor and
+provider-lifetime guards stand. AUD capital can be recorded from genuine
+company-provided evidence without claiming Ledova collected or settled funds.
+Future payment mechanics remain an owner decision. A core register entry needs
+no payment integration, wallet or fabricated chain transaction.
+
+Several remaining domain workflows still depend on platform staff. Replace the
+core dependencies with company/member tools; retain deferred functionality and
+its existing guards until a separately authorised replacement lands.
 
 ## Goals
 
-1. Complete a normal company/participant register lifecycle with zero routine
+1. Complete the essential company/participant register lifecycle with zero routine
    platform-staff actions, global staff privilege grants, admin screens or manual DB edits.
 2. Bind every company action to current authority for that company and capability;
    revocation stops a new action from an open session or pending job.
@@ -143,8 +159,9 @@ automated execution and exceptional support interventions separately.
   prepare changes without requesting a Ledova employee's action.
 - As an authorised company approver, I can approve the exact decision and its
   evidence so the software executes the company's instruction.
-- As a shareholder or employee, I can confirm my particulars, accept an offer
-  and obtain my own records and certificates directly from the company workflow.
+- As a shareholder or employee, I can confirm my particulars, inspect my award
+  and ownership records, and obtain permitted records and certificates from the
+  company workflow.
 - As platform support, I can diagnose and recover technical failures under a
   recorded support scope without assuming a company mandate.
 
@@ -263,54 +280,57 @@ planned. Pending proposals and withdrawals retain their original history.
 
 ## Required self-service workflows
 
-| Workflow                  | Company                                                                                            | Participant                                              | Tools/automation                                                                             |
-| ------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Setup                     | Provide company/share information, declare representative authorisation and invite team            | Verify account and accept invitation                     | Existing identity/ABR checks; record declaration and scoped appointments                     |
-| Opening/import            | Import particulars/structure, resolve differences and approve initial records                      | Confirm particulars when requested                       | Validate totals/duplicates, retain source and apply exact opening                            |
-| Issue/employee grant      | Prepare terms/resolution, select recipients and approve exact issue                                | Apply/accept, supply information and sign                | Validate authority/limits; record effect and tokenise when the selected workflow requires it |
-| Paid subscription         | Publish terms, decide applications, issue instructions, reconcile receipts and authorise allotment | Apply, inspect instructions and pay company/provider     | References, reconciliation evidence and exactly-once authorised allotment                    |
-| Member/wallet link        | Resolve identity and approve mapping                                                               | Confirm particulars and prove wallet control when needed | Conflicts/duplicates checks and retained proof                                               |
-| Transfer                  | Record required company decision; accept/refuse register change                                    | Agree terms and sign respective instruments/actions      | Holdings/restrictions checks; separate settlement status and approved entry                  |
-| Correction/reconciliation | Investigate and authorise reasoned correction                                                      | Request correction and provide evidence                  | Detect discrepancies and append correction without overwriting history                       |
-| Certificates/access       | Prepare/approve certificates, inspection copies and exports                                        | Read own certificate/permitted records; request updates  | Issuer identity, version, provenance and access controls                                     |
-| Resolutions/distributions | Publish to correct roll; record decisions and payment evidence                                     | Read, acknowledge, vote or receive                       | Frozen roll, calculations, notices and history                                               |
-| Corporate actions/filings | Authorise supported action, review figures and record filing outcome                               | Review resulting holdings/rights/notices                 | Checked preparation and clear gap/failure statuses                                           |
+These are target workflows, not a claim that every capability is implemented.
+The status above and linked increment guides identify delivered behaviour.
 
-ASIC tools begin with checked figures, supporting documents, reminders and
-recorded submission outcomes. A generated draft is not a lodged filing. Direct
-filing integration must retain company authorisation and provider/regulator
-response before claiming submission/acceptance. Forms, signatures, deadlines and
-legal effects remain questions for existing regulatory work, not findings here.
+| Essential workflow             | Company                                                                   | Participant                                                              | Tools/automation                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Setup                          | Supply company/share information, declare authority and appoint team      | Verify account and accept relevant invitation                            | Existing checks, declaration, scoped appointments and revocation                                            |
+| Opening/import                 | Import particulars and structure, resolve differences and approve opening | Confirm particulars when requested                                       | Validate totals and duplicates, retain company-provided evidence and exact opening                          |
+| Employee award and issue       | Record agreement/schedule, confirm vesting events and approve exact issue | Read terms and accept/sign where the company's arrangement requires it   | Distinguish award entitlement from issued ownership; record actual approved effect without employee payment |
+| Investor capital and allotment | Record external agreement/capital evidence and approve exact allotment    | Provide particulars and investment documents                             | Separate commitment, receipt and actual issue; no new collection rail required                              |
+| Member access/link             | Resolve member identity and review particulars changes                    | Read permitted own records; prove wallet control only for a chain action | One account association under #866, exact identity and private access                                       |
+| Ownership change/correction    | Approve supported direct transfer or reasoned compensating correction     | Supply required instruments or correction evidence                       | Preserve quantities, actors, dates, atomic effects and immutable history                                    |
+| Certificates/access            | Prepare company-authorised certificates, inspection copies and exports    | Obtain permitted own outputs                                             | Genuine register sequence, evidence, provenance and access controls                                         |
+
+New integrated payments and marketplace settlement (#869), advanced
+publications/voting/distributions (#870), and filing preparation/submission
+(#872) are deferred. Preserve existing governed functionality and retained
+records. Neither a generated filing draft nor an external receipt establishes
+lodgement, regulatory acceptance or share issuance. Future integration choices
+remain owner decisions.
 
 ```mermaid
 flowchart LR
-    C[Company authorised users] --> P[Prepare terms and instruction]
+    C[Company authorised users] --> P[Record agreement and exact instruction]
     P --> A[Record required company approval]
-    H[Investor shareholder or employee] --> S[Provide particulars accept and sign]
+    H[Investor shareholder or employee] --> S[Provide particulars terms and evidence]
     S --> V[Validate exact instruction and requirements]
     A --> V
-    V --> E[Execute authorised change]
+    V --> E[Record authorised share change]
     E --> R[Company register and audit history]
-    R --> D[Certificates notices exports and filing preparation]
+    R --> D[Certificates and exports]
     R --> H
     L[Ledova infrastructure and tools] -. supplies .-> V
-    L -. runs authorised automation .-> E
+    L -. runs bounded automation .-> E
     L -. stores and delivers .-> D
 ```
 
 ## Existing gates to replace
 
-| Current implementation                                                               | Change needed                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Staff offering publication and classification review                                 | Verified onboarding and company-owned offering/eligibility workflows using configured checks or the company's appointed providers; no unconditional Ledova reviewer dependency |
-| `Company.owner`, global staff groups and model permissions                           | Company memberships/capabilities, mandates and revocation                                                                                                                      |
-| Owner proposal APIs, several without forms                                           | Company prepare/preview/approve/apply client actions                                                                                                                           |
-| Staff evidence review and register-opening/link/instruction/import/correction guards | Company authority at API, service, worker, policy and trigger boundaries                                                                                                       |
-| Staff-only DB decision/issuance triggers; customer ledger writes refused             | Bounded company-authorised commands, preserving guarded system execution                                                                                                       |
-| Operator payment settings and staff subscription/allotment actions                   | Company payment settings/decisions with exact company issue authority                                                                                                          |
-| Staff whitelist and issuance                                                         | Company capabilities for dependent actions, preserving eligibility and finality                                                                                                |
-| Admin-only outputs and staff publication/ballot/payment workflows                    | Company tools and participant read/response flows                                                                                                                              |
-| Operator console names the platform as every company's register keeper               | Attribute company administration and each actual decision maker correctly                                                                                                      |
+Company appointments and most setup/register commands are already delivered.
+Remaining core work is narrower than the original staff-workflow conversion:
+
+| Current boundary                                                        | Core work remaining                                                                        |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Outright non-paid grants with retained terms                            | Record supported award/vesting arrangements separately from actual issued ownership        |
+| Staff-attested payment records and company-authorised paid chain issues | Company-provided external capital records and exact company-authorised off-chain allotment |
+| No delivered walletless member account association                      | One #866 association and permitted own-record/particulars workflows                        |
+| Staff-prepared outputs                                                  | Capability-scoped company outputs and permitted member access under #871                   |
+
+Other existing staff publication, settlement and filing workflows retain their
+controls; expanding them is deferred. Removing a staff check alone never
+establishes company authority or delivers a replacement.
 
 Relevant existing sources include
 [register reviewers](../../backend/tokens/services/register_openings.py),
@@ -346,42 +366,32 @@ uncertain execution completed or manufacture company authority through support.
 
 ## Delivery sequence
 
-1. **Remove product modes.** Remove model/admin/API/client field and mode-only
-   evidence branches; keep historical migrations and add `RemoveField`.
-   Supporting evidence retains current registry behaviour, private access,
-   reviewer restrictions, retention and audits; no purge or replacement mode
-   flag. Coordinate client/API release: removing the response field first would
-   make the dashboard's `deploymentMode === 'registry'` hide evidence. Rollback
-   recreates a default field, not each discarded historical mode choice.
-2. **Company authority.** Add memberships, capabilities, invitations, mandates
-   and revocation. Seed owners without inventing approvals. Prove API, DB and
-   worker authority/isolation before exposing new writes.
-3. **Register setup/change tools.** Openings, imports, particulars, links and
-   corrections, with preparation, required company approval and application.
-   Adapt services, RLS and DB triggers together; retain current ledger protections.
-   Add explicit non-tokenised issue/transfer and member-administration paths,
-   preserving supply and genuine authority without requiring a wallet or
-   manufacturing chain completions. Design subsequent tokenisation as a mirror.
-   Replace routine staff onboarding/activation and eligibility dependencies with
-   declared company authority and the existing identity/ABR and participant
-   eligibility checks. Self-declaration establishes representative authority;
-   it does not fabricate success for a separate configured provider check.
-4. **Primary relationship.** Company-controlled offering publication and investor
-   application decisions, payment instructions,
-   receipt/refund evidence and exact issue/allotment authority. Primary payments
-   name company/provider. Preserve existing instruction snapshots and migrate
-   secondary market deposit/settlement separately.
-5. **Shareholder administration.** Supported transfer decisions, publications,
-   resolutions, distributions, certificates and inspection/export workflows.
-   Unsupported corporate actions remain explicit, never appear complete.
-6. **Filing tools and new journey.** Checked preparation and genuine submission
-   outcomes where supported; record company/participant completion with zero
-   routine staff actions. Preserve the earlier 62-screen staff-assisted journey
-   as historical evidence; capture new screens after implementation works.
+The [9 October owner policy](https://github.com/Ledova/ledova/issues/860#issuecomment-6078277168)
+and live issue claims supersede the original six-phase all-workflow sequence:
 
-Each increment includes schema/API/client changes and relevant verification.
-Mode removal alone does not deliver company-managed registers. Current guides
-remain implementation references until their described workflows change.
+1. **Development workflow (#943).** Measure costly tests and simplify verified
+   setup, duplication and scheduling. This work is not blocked by #867.
+   Preserve meaningful coverage, applicable green CI and independent review.
+   The first timing increment does not deliver all proposed routing or tiers.
+2. **Preserved foundation (#861–#865).** Retain the delivered one-product,
+   company authority, activation/eligibility, register commands and non-tokenised
+   ledger. No replacement product flag or historical migration rewrite is needed.
+3. **Essential awards and allotment (#867/#868).** Record supported employee
+   award/vesting agreements and actual issues; record external investor capital
+   and exact approved allotments. Keep entitlement, receipt and ownership distinct.
+   Existing chain work remains guarded; a non-chain entry needs no wallet or mint.
+4. **Member access and outputs (#866/#871).** Deliver one association, private
+   own-record/particulars workflows, basic certificates and exports. Respect
+   each issue's current prerequisites, without waiting for #869/#870/#872.
+5. **Core journey (#873).** Verify the essential company/member web/mobile
+   journey and preserved migrations. Retain earlier staff-assisted evidence;
+   record new screens only after the actual workflows work. #624 remains a
+   separate genuine human release acceptance requirement.
+
+#869's new transfer/settlement work, #870's advanced governance and #872's filing
+work remain deferred. Their useful existing functionality and history are
+preserved. Each delivered increment owns its relevant verification; deferred
+work does not block core outputs or acceptance, and is not implicitly complete.
 
 ## Acceptance criteria
 
@@ -397,9 +407,9 @@ remain implementation references until their described workflows change.
   as that appointment, and shareholder status grants no register admin rights.
 - Opening, exact issue/allotment and resulting certificate complete without any
   Ledova staff action when required company/participant decisions exist.
-- Fresh company and participant signup reaches evidenced company activation,
-  company-approved offering publication and the required identity/classification
-  outcomes without pre-verified fixtures or routine staff approval. Unresolved,
+- Fresh company and participant signup reaches evidenced company activation
+  and the required identity/classification outcomes for the selected action
+  without pre-verified fixtures or routine staff approval. Unresolved,
   expired or revoked checks block the affected action; wallet ownership and
   company-specific whitelist approval remain independently recorded.
 - Revocation after preview, stale/expired confirmations and changed evidence or
@@ -417,16 +427,20 @@ remain implementation references until their described workflows change.
 - Core register/share journeys do not require a crypto on-ramp purchase.
   Companies cannot open one; permitted investor use remains optional and
   separately verified under #920.
-- Paid share workflows support AUD once their recorded payment design is
-  delivered. Identify the actual recipient, currency, instruction and receipt;
-  do not label AUD pricing or stablecoin settlement as direct AUD payment.
-- A supported non-paid employee grant or other authorised non-paid issue records
-  its genuine terms and authority without inventing a receipt or paid subscription.
-- Supported non-tokenised register issues, transfers and publications operate on
+- External investor records retain genuine amount, currency and capital evidence
+  separately from company-approved allotment. Do not label a commitment as a
+  receipt, a receipt as issued shares, or company evidence as Ledova verification.
+  Integrated AUD payment and secondary settlement expansion are deferred.
+- A supported employee award records its agreement and vesting terms distinctly
+  from actual shares issued. Company-confirmed vesting and issue events do not
+  invent a receipt, paid subscription or unsupported legal/tax calculation.
+- Supported non-tokenised register issues and direct transfers operate on
   genuine company-authorised ledger events without a fabricated chain transaction
   or compulsory wallet; any later tokenisation preserves rather than doubles supply.
-- Outputs retain requester, instruction, register sequence and digest. Filing
-  drafts stay preparation; submitted/accepted status needs actual evidence.
+- Basic outputs retain requester, instruction, register sequence and digest.
+  Core outputs and acceptance do not require deferred trading, advanced
+  governance or filings. Existing filing drafts remain preparation; any
+  submitted/accepted status still requires genuine evidence.
 - Upgrading either old mode preserves records, private-evidence restrictions,
   retention and historical actors; private instances use identical capabilities.
 
@@ -437,8 +451,8 @@ test from each old value, evidence-availability client tests and regenerated
 OpenAPI/shared types. Check migration drift and API/client contract gates in a
 coordinated release. No chain change is implied by removing the field.
 
-Authority increments need both ordinary and scoped backend suites plus role/
-policy checks, including direct SQL/ORM forgery, cross-company IDs, preview
+Authority changes need affected ordinary and genuine scoped checks plus role/
+policy coverage, including direct SQL/ORM forgery, cross-company IDs, preview
 revocation, atomic rollback and identical/changed retries. Existing economic,
 evidence, ledger and finality regression coverage must remain meaningful while
 staff-only expectations become company-authority tests.
@@ -460,6 +474,8 @@ company workflows. Administrator changes follow the accepted existing-administra
 or court/regulator rule, separate from own-account recovery.
 Signature/filing/legal requirements remain in the regulatory pathway. No separate
 self-hosted product roadmap is required.
-AUD collection, receipt verification, reconciliation, refunds and secondary
-settlement choices still need owner decisions through #868/#869. This accepted
-payment requirement does not select a bank, provider or custody model.
+Supported vesting arrangements, documentary capture and the #866 member access
+policy remain explicit decisions. No invitation policy, option-exercise scheme
+or legal/tax rule engine is selected. Future integrated AUD collection, receipt
+verification, reconciliation, refunds and secondary settlement still need owner
+decisions before implementation; they are outside the essential registry scope.

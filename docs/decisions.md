@@ -7,6 +7,8 @@ architecture guides. This page makes no new product, licensing or legal decision
 Read earlier choices in date order: the 3 October decision below supersedes
 their allocation of routine register work to staff. Quotations and delivered
 mechanisms remain here as history, not requirements to retain those staff gates.
+The [9 October decision](#essential-registry-and-development-workflow-priority)
+supersedes earlier immediate payment, marketplace, governance and filing priorities.
 
 ## Company-managed registers and one product
 
@@ -566,10 +568,65 @@ each ballot withheld and read counts in place of readers.
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.
 
+## Essential registry and development workflow priority
+
+**Owner decision, 9 October 2026**, supplied directly in the active Codex session
+and recorded as the [current programme policy on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-6078277168).
+
+Fix the expensive development workflow first through existing
+[#943](https://github.com/Ledova/ledova/issues/943), without waiting for #867.
+Measure slow test work, simplify proven duplication and unnecessary setup, and
+improve scheduling while preserving meaningful coverage and reliability.
+Use focused development checks, applicable green CI and independent review at
+the merging head. The first timing increment does not deliver every proposed
+CI tier or path filter. Essential coverage and safeguards remain required;
+retire tests only where obsolete or duplicate coverage is established.
+
+Then deliver a simple private-company share registry that records established
+company processes:
+
+- Non-paid employee awards, their agreement and vesting records, and the
+  company's actual approved share issues. Employees need not buy their awards.
+- Externally arranged investor capital and the company's approved allotment,
+  with agreement, capital receipt and share issuance recorded distinctly.
+- Accurate ownership and history, member access to permitted records, and basic
+  certificates and register exports.
+
+Current register and chain grants are outright non-paid issues; attached terms
+do not implement vesting. A contractual award, an option and issued shares must
+remain distinct where the company's arrangement distinguishes them. Vesting
+recording is planned; no automatic legal/tax rule engine or option-exercise
+scheme is selected. New off-chain investor allotments are also not delivered by
+the current non-paid grant. The single account-to-member association remains
+with #866; its invitation/access policy has not been selected by this decision.
+
+Narrow #868 to external investment records and authorised allotment. Defer new
+integrated AUD collection, reconciliation, refunds and market settlement, new
+trading work (#869), advanced governance (#870) and filing workflows (#872).
+Core outputs (#871) and core journey acceptance (#873) no longer wait for those
+deferred issues. Reuse existing issues and preserve the delivered #865 history;
+do not create a parallel programme or adopt another agent's claimed assets.
+
+Keep useful existing payment and chain functionality, retained records and
+execution recovery controls. No new chain or payment integration is required
+for an off-chain registry entry. Existing company authority, tenant isolation,
+private evidence, arithmetic, immutable history and retention remain effective.
+Companies must not buy cryptocurrency through the on-ramp; personal investor
+use stays optional with #920's guards. AUD amounts can be recorded as genuine
+company-provided capital evidence without claiming Ledova collected or settled
+them. Future payment mechanics still require an owner decision.
+
+This changes priority and completion scope, not live-operation authorisation,
+the licence or legal findings. #624 still needs genuine human release acceptance.
+
 ## Registry priority, crypto on-ramp and AUD payments
 
 **Owner decision, 5 October 2026**, supplied directly in the active Codex session
 and recorded in [#860](https://github.com/Ledova/ledova/issues/860#issuecomment-5991923610):
+
+**Historical scope:** the [9 October decision](#essential-registry-and-development-workflow-priority)
+supersedes the immediate AUD-payment and marketplace expansion described here.
+The investor-only on-ramp restriction and preservation of existing controls stand.
 
 - The core product is the private-company share registry and issuing, managing,
   transferring and purchasing company shares.
@@ -592,32 +649,38 @@ wallet grants no on-ramp purchase permission; authorised company wallet operatio
 remain separate. Synthetic tests establish the guards, with external-provider
 and physical-device acceptance remaining separate.
 
-The owner has not selected the payment rails/provider, collection, receipt
-verification, reconciliation, refund or secondary AUD settlement mechanics.
-[#868](https://github.com/Ledova/ledova/issues/868) owns primary company/provider
-payment workflows; [#869](https://github.com/Ledova/ledova/issues/869) owns
-secondary payments and settlement. Record those choices for the owner before
+At this decision's date the owner had not selected the payment rails/provider,
+collection, receipt verification, reconciliation, refund or secondary AUD
+settlement mechanics. [#868](https://github.com/Ledova/ledova/issues/868) then
+owned primary company/provider payment workflows;
+[#869](https://github.com/Ledova/ledova/issues/869) owned secondary payments and settlement. Record those choices for the owner before
 implementation. Core share journeys must not require a crypto on-ramp purchase.
 Preserve existing instructions, payment evidence and the current prefunded
 stablecoin protocol until an authorised replacement or extension lands.
 Receipt, issue authority, execution and register effect remain distinct.
 
-The existing company-managed programme lanes and dependencies are unchanged.
+At this decision's date the existing programme lanes and dependencies were
+unchanged.
 This decision neither selects a payment integration nor authorises live
 operation or real funds.
 
 ## Payments and settlement
 
-Under the [3 October plan](architecture/company-managed-registers.md#delivery-sequence),
+The [9 October decision](#essential-registry-and-development-workflow-priority)
+defers new integrated payment and secondary settlement work. The earlier direction and
+existing mechanisms below remain historical context and guarded functionality;
+they do not require expanding payment capabilities for the core registry.
+
+Under the original 3 October plan,
 primary subscription instructions and receipt/refund decisions become company
 or appointed-provider workflows. Existing instruction snapshots are preserved.
 Secondary market prefunding and atomic settlement below remain separate; the
 plan does not turn a payment receipt into authority to issue shares.
 
 The [5 October decision](#registry-priority-crypto-on-ramp-and-aud-payments)
-requires AUD share-payment support while leaving its implementation choices
-open. The prefunding and stablecoin mechanism below describes the current
-experimental secondary protocol; it is not a direct AUD settlement design or a
+required AUD share-payment support while leaving its implementation choices
+open; its immediate delivery priority is superseded. The prefunding and
+stablecoin mechanism below describes the current experimental secondary protocol; it is not a direct AUD settlement design or a
 requirement to purchase cryptocurrency through the on-ramp.
 
 **A secondary buyer funds before placing an offer** (owner decision, 25 September
