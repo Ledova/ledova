@@ -179,7 +179,7 @@ use the existing fresh approval review.
 The five-minute `recover_swap_approval_submissions` sweep attempts at most 100
 pending rows, least recently updated first. An attempt advances that activity
 timestamp before checking identity or reading a provider, so an unavailable
-row cannot repeatedly monopolize a bounded batch. The send timestamp remains
+row cannot repeatedly monopolise a bounded batch. The send timestamp remains
 separate and controls the existing resend interval. Each attempt verifies the bytes
 against the recorded identity, reads the endpoint's current chain ID, and looks
 for the receipt by hash first, recording it when found. With no receipt, a
@@ -339,7 +339,7 @@ is set.
 | Migration | Freezes |
 | --- | --- |
 | `tokens/0039` | The settlement context, digest and `order_hash` cannot be replaced, and the fifteen-field swap identity (uuid, both parents, both wallets, token, payment asset, both addresses, both amounts, nonce, order hash, expiry, creation) is immutable; new swaps must carry protocol 1 and name both parent orders with matching tokens, types, wallets and addresses; a recorded settlement identity cannot be deleted |
-| `tokens/0040` | Each order's owner identity (uuid, account, wallet, address) cannot change, and a referenced parent order cannot be replaced; a captured party's signature is permitted through either currently authorised participant while the other order and wallet stay private |
+| `tokens/0040` | Each order's owner identity (uuid, account, wallet, address) cannot change, and a referenced parent order cannot be replaced; a captured party's signature is permitted through either currently authorised participant while the other order and wallet stay private; case-only address spelling, economic/status updates and unreferenced order deletion remain available; an unchanged V1 update must prove one current captured participant to avoid both-parent derivation, and INSERT, legacy and the original operator/both-visible path retain their checks |
 | `tokens/0056` | Every V0 row is held: all UPDATE and DELETE attempts on it, including operator writes and parent cascades, are rejected |
 | `tokens/0057` | Execution admission is frozen: exact addresses, supported exact integers, both original 65-byte signatures and the original chain; transaction identity, admission and arguments are immutable, the first receipt summary, first submission time and original nonce are retained, and historical transactions gain no new signing authority; admission requires its original actor and participant, its original V1 order, arguments equal to the original settlement and signatures, an unclaimed ready order and an empty journal; failure requires proof that the original operation never signed; the original claim cannot restart, including after a revert |
 | `tokens/0058` | Fresh swaps start without signatures or execution claims; claimed swaps retain their journal, signatures and execution hash; `executing` becomes `completed` only with a confirmed admitted journal, its confirmed operation, a matching hash and a completion time, or `failed` with a reverted journal or a proved unsigned failure whose journal holds no hash; `completed` and `failed` are terminal; signed swaps remain held until finality |

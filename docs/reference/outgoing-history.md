@@ -63,8 +63,11 @@ UPDATE/DELETE of all three inventory tables; keep them in protected backups.
 Malformed raw text is retained privately, and command errors omit database
 exception text.
 
-An inventory is a point-in-time observation that no empty mempool or
-unchanged-looking snapshot turns into authorisation: the drain of old signers,
-revalidation of provenance and coverage, guarded activation and the separate
-fresh-admission path that cannot lift these holds are in the
+An inventory is a point-in-time observation to revalidate after old signers
+drain. Historical pause/approval sends and offline or old CLI/binary key use are
+not fully observable in these tables, and unknown historical signer identity
+stays unassigned and can require a deployment-wide hold. Neither an empty
+mempool nor an unchanged-looking snapshot authorises cutover: the drain of old
+signers, revalidation of provenance and coverage, guarded activation and the
+separate fresh-admission path that cannot lift these holds are in the
 [outgoing signing foundation](../architecture/outgoing-signing.md).

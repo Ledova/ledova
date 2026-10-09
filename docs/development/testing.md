@@ -27,7 +27,6 @@ backend suites run on PostgreSQL in both ordinary and specialised settings.
 | Design tokens                   | `make generate-tokens`, then check generated CSS is unchanged                                       |
 | Native/mobile                   | [Builds](mobile-builds.md) and [probes](native-probes.md)                                           |
 
-
 `make check` installs backend development requirements and any missing workspace
 dependencies. Workspace-only commands require the correct workspace installation;
 mobile resolves from its own `node_modules`. `make help` lists entry points.
@@ -54,7 +53,6 @@ CI configuration is authoritative for invoked checks:
 [native CI](../../.github/workflows/mobile-native.yml).
 Real Redis/ClamAV controls are separate from unit fakes; see
 [integrations](../operations/integrations.md) and [uploads](../operations/uploads.md).
-
 
 ## Backend verification
 
@@ -156,7 +154,8 @@ skipped because none was needed.
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under
 [#943](https://github.com/Ledova/ledova/issues/943). Its first increment
-ordered CI around the registry workflow and captured the timings above while
+aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
+`CONTRIBUTING.md`) from the Django jobs and captured the timings above, while
 retaining every test selection, required verdict and main-push check. Further
 routing, scheduled broad checks, verification tiers and time targets are
 proposals on that issue until a reviewed implementation lands; this guide

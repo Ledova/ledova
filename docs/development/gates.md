@@ -119,7 +119,9 @@ a config with no file set and no references must name its files. The checker
 resolves JSONC and inherited `files`/`include` independently, reports unreadable
 configuration, accounts for every discovered workspace or explicit exclusion,
 and distinguishes a successful empty check from a compiler error that already
-fails CI. It does not replace compilation. Install the correct workspace
+fails CI; compiler-calibrated fixtures preserve the difference between ordinary
+tsc and project-reference build mode. It does not replace compilation. Install
+the correct workspace
 dependencies before running its type-check directly; `make check` installs
 missing ones.
 
@@ -168,7 +170,7 @@ assertion quality.
 ## The error body gate
 
 `make check-error-bodies` refuses caught exception text in API errors or public
-serialized failure fields. Raise the fixed API exception message or use an approved
+serialised failure fields. Raise the fixed API exception message or use an approved
 sanitizer, and keep bounded diagnostics in the log and on the operator-facing
 record under the logging rules. The checker follows caught exception values
 through local assignments, formatted messages and selected model failure
@@ -226,16 +228,23 @@ exclude class/module fixtures and Django pre/post hooks.
 
 `scripts/check-ordinary-shards.py` runs once in the first matrix job before its
 suite; a failure fails that job and the Django verdict. It discovers the suite
-with no patterns and with each shard's patterns, each in a fresh interpreter,
-and refuses a shard without patterns, a pattern that selects no test, a test id
-the unlabelled suite finds more than once (as when a factory builds two classes
-with one name), a module whose test ids the shards find fewer or more times
-than the unlabelled suite, a test id only a shard finds, a module that fails to
-load, and a `backend-suite-shard` matrix that is anything but the file's shard
-names. `-k` selects by name, so a test unittest builds without reading names (a
-module that raises `SkipTest` as it is imported, a class whose only test is
-`runTest`, an instance a `load_tests` adds) is found by every shard and refused
-as duplicated: skip a class rather than a module. The gate needs the backend
+with no patterns and with each shard's patterns, re-running itself with
+`--discover` in a fresh interpreter for each, because a `load_tests` that keeps
+state can find different tests the second time a module is loaded and each CI
+shard starts from nothing. It refuses a shard without patterns, a pattern that
+selects no test, a test id the unlabelled suite finds more than once (as when a
+factory builds two classes with one name), a module whose test ids the shards
+find fewer or more times than the unlabelled suite, a test id only a shard
+finds, a module that fails to import, which is discovered as one `_FailedTest`
+in every discovery and would otherwise look covered, and a `backend-suite-shard`
+matrix that is anything but the file's shard names. Django matches a pattern
+against the whole id, so a class one module imports from another is selected by
+the defining module's pattern, and a pattern without `*` matches anywhere in an
+id; the checker widens such a pattern the same way when it refuses one that
+selects no test. `-k` selects by name, so a test unittest builds without reading
+names (a module that raises `SkipTest` as it is imported, a class whose only
+test is `runTest`, an instance a `load_tests` adds) is found by every shard and
+refused as duplicated: skip a class rather than a module. The gate needs the backend
 requirements and a `SECRET_KEY` but no database; `make check` runs it from
 `backend/` with a generated key, and
 [its tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
@@ -255,9 +264,11 @@ snapshot; ordinary comparison never rewrites it. Mapping keys are canonicalised;
 array order, constraints, request/response metadata and nullability remain
 significant. Fix diagnostics through real declarations and existing enum
 definitions, without bypassing authorisation or suppressing warnings. The
-schema checker's explicit provider-webhook exclusions are Alchemy, KYCAID
-identity, KYCAID crypto and Sumsub; missing routes, phantom operations and
-stale exclusions fail.
+schema checker shares the tenancy route walker's administrative, static,
+API-root, format-duplicate and bodyless-method scope; its explicit
+provider-webhook exclusions are Alchemy, KYCAID identity, KYCAID crypto and
+Sumsub. Missing routes, phantom operations and stale exclusions fail; unused
+application routes and error-only compatibility routes still count.
 
 `make check-api-types` regenerates the
 [shared TypeScript contracts](../../packages/shared/src/generated/api.ts) from
@@ -277,10 +288,14 @@ consumers against those contracts.
 committed schema to account for shared, dashboard and mobile HTTP operations and
 their successful response kinds, including 204, binary and streams. It
 recognises Axios through locked compiler declarations, not the name of a `.get`
-method. Every member of a typed Axios call's claimed response union must accept
-a generated successful response variant from the operation it calls, which
-covers nested values and arrays and rejects invented required fields; bodyless
-responses remain `void`. Unavailable generated operations and unresolved
+method. Request replay sites cannot change destination, method or origin; the
+mobile stored-file download has explicit binary-route accounting, externally
+linked documents are not registered operations, and browser/mobile stream
+builders are accounted for. Every member of a typed Axios call's claimed
+response union must accept a generated successful response variant from the
+operation it calls, which covers nested values and arrays and rejects invented
+required fields; literal `blob`/`arraybuffer` decoders use their browser result
+types and bodyless responses remain `void`. Unavailable generated operations and unresolved
 explicit types fail closed; untyped calls stay in the route census without
 claiming a response-type proof, and unresolved transports need explicit tested
 accounting, not a silent exemption. The checker does not establish which

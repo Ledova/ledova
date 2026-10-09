@@ -77,8 +77,8 @@ must be removed. Do not add an exception merely to make a check green.
   preserve evidence, actor history, isolation and recovery for already
   submitted transactions. Company policy defines required approvals; there is
   no universal Ledova reviewer.
-- The staff checks that remain are platform
-  [settlement-asset minting](../architecture/outgoing-signing.md#mint-requests)
+- The staff checks that remain are
+  [settlement-asset and yield-token minting](../architecture/outgoing-signing.md#mint-requests)
   and technical retries of already admitted work.
 - Product modes are retired: [`operators/0002`](../operations/upgrades.md#one-registry-product)
   removed the field, its initial migration stays, and private hosting uses the

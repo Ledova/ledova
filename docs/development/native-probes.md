@@ -216,7 +216,6 @@ its 15-second wait and before the probe's own deadline can report.
 This exercises the loaded bridge with a synthetic event; it does not
 reproduce natural JavaScript queue timing or scan a physical camera image.
 
-
 The temporary recorder locates the loaded Expo `UntypedAsyncFunctionComponent`
 for this view's `isCurrentScan`. Expo registers the same view definition under
 its name and a compatibility default key; function lookup deduplicates those
