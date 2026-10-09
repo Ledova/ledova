@@ -133,18 +133,23 @@ and amounts; a legacy count outside JavaScript's safe range is marked
 unavailable rather than rounded. A failed file delivery is distinguished from
 an unavailable stored document, and on mobile a company, account or session
 change retires a pending document action. The paragraphs below say what is
-specific to each page.
+specific to each page; the [register runbook](../operations/register-foundation.md)
+holds each register command's rules and API.
 
 **Register** is the company landing page on both clients and a page for every
 signed-in account on the web, at `/company/register`; the API decides which
-registers it shows. It reads every page of the share classes the person may
-read, as the company owner or through a current appointment holding
-administration or a register capability, groups them by company and, where the
-person can read more than one company, reads only the selected company's
-stored registers: current members, linked wallets, exact issued and authorised
-shares, the register CSV download and the inspection-copy preparation, with
-unopened registers and unknown or positive waiting-effect counts stated. Each
-class then lists its register entries, newest first a page at a time, and its
+registers it shows, and with nothing readable the page says there is no company
+register to show. It reads every page of the share classes the person may read,
+as the company owner or through a current appointment holding administration
+or a register capability, groups them by company and, where the person can
+read more than one company, reads only the selected company's stored
+registers: current members, linked wallets, exact issued and authorised shares,
+the register CSV download and the inspection-copy preparation, with unopened
+registers and unknown or positive waiting-effect counts stated. Each class then
+lists its register entries, newest first a page at a time with Load more (an
+entry a later page repeats is listed once, a page with a share change that is
+not whole fails and offers a retry, and an entry's corrected or reversing entry
+reads as not loaded yet until its page arrives), its
 [imports](../operations/register-foundation.md#importing-an-existing-register),
 [corrections](../operations/register-foundation.md#compensating-corrections),
 [openings](../operations/register-foundation.md#opening-the-register-from-the-chain)
@@ -153,36 +158,72 @@ the company's [particulars changes](../operations/register-foundation.md#changin
 and [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)
 follow in sections of their own. Each proposal shows its stage, preparer,
 dates, terms, authority, decision trail, any rejection reason and its
-document's download, and says whether the company provided the evidence or
-platform staff verified it before the command was company-run. The person's
-own current appointments, read through the same account-bound cache as Company
-team and read again after every decision, refusal or revocation, decide which
-steps a proposal offers: approval and rejection need administration or
-`approve`, application administration or `apply`, and preparation
-administration or `prepare`; a retained staff-era proposal offers only
-rejection, and a reader with none of these steps sees the history read-only.
-Every decision opens the shared preview-first dialog, `useRegisterDecision`,
-which previews the exact decision, its unmet requirements in words and what
-applying records, and confirms it with a retry key reused only for the same
-preview while the step's appointment is still the one previewed; a discrepancy
-is acknowledged through `useDiscrepancyAcknowledgement` with a reason of up to
-1,000 characters. Preparation opens a page of its own, listed in the
-[shared client layer](#the-shared-client-layer): each takes the company's
-upload and the proposal's terms, keeps the upload's retry key and confirmed
-receipt, reuses its operation only for an identical request, refreshes the
-proposals once the receipt is confirmed, and gives way to the read-only note
-once a refusal shows the appointment is gone. A class page at
-`/company/register/:uuid` shows class state, the stored members and the
-history of its company-authorised deployment, chain grants, paid issues,
-capital increases and pause changes, each prepared, approved and applied under
-company authority with saved recovery of an uncertain reply within the session
-([implementation index](../plans/company-managed-registers/README.md)).
+document's download; one that predates its command being company-run says
+whether platform staff verified the evidence, and a particulars change, which
+was company-run from the start, notes that the company provided the document.
+A proposal of another company or class, a mapping or holding that cannot be
+read, and a correction lookup that answers with entries it was not asked for
+fail the read. The reconciliation shows status, block, compared sequence, time,
+any failure and each discrepancy in words with its acknowledgement; rows
+needing attribution say so and offer nothing, and a class without a
+reconciliation says so.
+
+The person's own current appointments decide which steps a proposal offers:
+approval and rejection need administration or `approve`, application
+administration or `apply`, and preparation administration or `prepare`; only
+an active appointment before its expiry counts, a retained staff-era proposal
+offers only rejection, and a reader with none of these steps sees the history
+with a read-only note. The web reads the appointments through the same
+account-bound cache as Company team; mobile Register reads them itself and
+hides every register action while they cannot be read. Both read them again
+after a revocation on Company team or Representative authority, after a
+decision, preview or acknowledgement the server refuses, after a
+waiting-wallets read refused as not found, on mobile after a pull to refresh,
+and, for every command but imports, after a recorded decision; a recorded
+import decision refreshes the imports, the register and its entries. Every
+decision opens the shared preview-first dialog, `useRegisterDecision`, which
+previews the exact decision, its unmet requirements in words and what applying
+records, and confirms it with a retry key reused only for the same preview
+while the step's appointment is still the one previewed; on mobile the dialog
+closes when a refresh withdraws its step. A discrepancy is acknowledged through
+`useDiscrepancyAcknowledgement` with a reason of up to 1,000 characters; the
+dialog keeps the appointment it opened with and holds confirmation if a refresh
+changes it. Every read, upload, preview, decision, acknowledgement and
+preparation is bound to the signed-in account and the session the screen
+opened under, and each repeated control is named for screen readers after its
+visible label and the entry, proposal or discrepancy it concerns.
+
+### Register command screens
+
+Each preparation opens a page of its own (routes in the
+[shared client layer](#the-shared-client-layer)); on mobile it opens in the
+same stack. Every form takes the company's upload, keeps the upload's retry
+key and confirmed receipt, reuses its operation only for an identical request,
+refreshes the proposals once the receipt is confirmed, takes a new operation
+after a conflict, shows the server's words on a refusal, and gives way to the
+read-only note once a refusal as not found shows the appointment is gone.
+
+| Action                   | Offered to                                                                                                                 | What the form takes and does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Prepare an import**    | Administration or `prepare`, while the class has no applied import                                                         | The company's current share register and ASIC extract, the register date, the authority, the member rows, former members and the stated ASIC figures. An opened class lists one row per current holder with member and shares fixed; a class whose register is not opened takes rows under new member IDs with editable shares. The stated figures must match the rows before preparation. The decision preview shows the comparison with the stored register, the stated and imported figures and, before an application that opens the register, the note that the class will not be on chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Correct this entry**   | Administration or `prepare`, on each correctable entry                                                                     | Reads the entry by its ID and shows it with the exact inverse a correction records; takes the authority document, the authority, the approving director of a resolution, the reference, the reason and an effective date no later than today (UTC), defaulting to today. The preview adds the original and compensating changes and the register sequence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Open this register**   | Administration or `prepare`, while a deployed or paused class's register is not opened                                     | Reads the class's holdings on chain at the current block, largest first, and refuses holdings that are not whole shares; a chain that cannot be read says so with a retry, and a class the server will not open shows its reason instead of the form. The holdings are read again only on request (Reload the holdings or Retry) or after a conflict, never on focus or reconnect, and Prepare is held while the holdings, the appointments or the class are being read again. An address already linked keeps its member; every other address is assigned on the page to a linked member or to a new member under a client-generated ID that several addresses may share, labelled as the Register will list them. Choices are kept by address, dropped only when the address no longer holds or is now linked or its member is no longer offered, and the page then says the choices were reset. A refusal with the holdings-moved code shows the reason and offers to reload the holdings, keeping the authority details and every choice that still applies. The preview adds the opening entry's effective date and shares by member, with the boundary note before approval and the holdings note before application; a staff-era opening whose boundary was never captured says so |
+| **Change particulars**   | Administration or `prepare`, on each current member of an opened class                                                     | Finds the member among the current members of the companies where the person may prepare, names them as Register does or neutrally, and takes the company's supporting document, the new name and residential address, an as-at date no later than today (UTC), defaulting to today, and the reason. The preview shows the current particulars, or that none are recorded, beside the proposal, with the note that the latest as-at date wins between imports and changes while a live verified identity wins over both                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Link waiting wallets** | Administration or `prepare`, once the company's waiting-wallets read returns a wallet; otherwise a note says nothing waits | Lists each waiting wallet in the order a link records it, with the number of effects waiting for it and, for information only, whether its holder proved control of it on Ledova and the holder's name, shown only for a wallet on the company's whitelist. Each wallet starts as its own new member and is never matched to a member by name; the person maps it to a current member of the class registers or to a new member under a client-generated ID that several wallets may share. Choices are kept by address and reset only when the wallet no longer waits or its member is no longer offered, which the page announces (on iOS and in a polite live region on mobile). Only waiting wallets are offered, although the API accepts any address. Takes the authority document, the authority, the approving director, the reference and the reason; the preview lists each address with its member and the application note                                                                                                                                                                                                                                                                                                                                                    |
+| **Acknowledge**          | Administration or `approve`, on an acknowledgeable discrepancy                                                             | A reason of up to 1,000 characters, then reads the reconciliation again; a refusal also reads the appointments                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+
+A class page at `/company/register/:uuid` shows class state, the stored
+members and the history of its company-authorised deployment, chain grants,
+paid issues, capital increases and pause changes, each prepared, approved and
+applied under company authority with saved recovery of an uncertain reply
+within the session ([implementation index](../plans/company-managed-registers/README.md)).
 Certificates, notice figures and the company pack are still prepared by
 platform staff on written instruction.
 
 **Company** reads the selected company's complete detail and every page of
 its share classes and team; administrators edit company information and
-documents, activate the company and invite, delegate and revoke appointments
+documents, sending only changed fields, activate the company and invite,
+delegate and revoke appointments
 ([authority guide](../plans/company-managed-registers/authority-requests.md),
 [company information](../plans/company-managed-registers/company-information.md),
 [activation](../plans/company-managed-registers/company-activation.md)); the
@@ -192,96 +233,144 @@ share class and the Register under its classes.
 
 **Offerings** lists every offering of the selected company and every
 subscription to the selected offering, followed by directory visibility.
-Subscriptions show requested and allotted shares separately; payment recording
-stays a platform-staff workflow, and the company's paid-issue panel prepares,
-approves and applies the original issue under company authority. The create
-and edit forms list the company's uploaded offer documents to attach, keep an
-edited offering's attachments until one is switched off, and refuse quantities
-above the 2,147,483,647 request limit; an approved or closed offering has Add
-documents instead, whose attached documents are ticked and disabled and which
-sends only the new choices ([offerings](offerings.md)).
+Subscriptions show requested and allotted shares separately, including zero
+allotments; payment recording stays a platform-staff workflow, and the
+company's paid-issue panel prepares, approves and applies the original issue
+under company authority. The create and edit forms check price, ordered
+bounds, dates and the available settlement choices before submission, set the
+window in the device's local time on mobile, require a removed settlement asset
+to be removed from the draft explicitly, list the company's uploaded offer
+documents to attach, keep an edited offering's attachments until one is
+switched off, and refuse quantities above the 2,147,483,647 request limit; an
+approved or closed offering has Add documents instead, whose attached documents
+are ticked and disabled and which sends only the new choices, and a dialog
+opened on an offering that has since left approved or closed says so and sends
+nothing ([offerings](offerings.md)).
 
 **Published to your members** opens from Company at `/company/publications`
 and in the mobile app, reading the selected owned company's publications with
-`issuer` set; [shareholder publications](shareholder-publications.md#in-the-members-everyday-views)
-describes it and **Notices**.
+`issuer` set into one Publications card whose title carries the complete count;
+[shareholder publications](shareholder-publications.md#in-the-members-everyday-views)
+describes it and **Notices**. Loading and failed company or publication reads
+block document actions, a retry never presents a partial list as complete, and
+document delivery failures remain visible.
 
 **Holdings** reads every page of the person's wallets and lists their
 tokenised security holdings by company and class, one row per asset across
 chains, using the API's current class and company names where available and
-the asset's combined name otherwise; whole share counts are added without
-floating-point conversion and expand into chain and wallet balances. Below the
-shares, _Needs you_ links to draft applications and payment instructions and
-counts resolutions awaiting the person's vote; _In progress_ lists applications
-under way and counts dividends awaiting a company payment record, which is not
-proof of a bank transfer; _Recently published to you_ lists the three latest
-notices. These are personal reads, and only a known investing role reads the
-applicant-filtered application list. Actions open the application detail or
-Notices; nothing submits, pays or votes from Holdings.
+the asset's combined name otherwise, so a missing class lookup never removes a
+holding; whole share counts are added without floating-point conversion and
+expand into chain and wallet balances. Below the shares, _Needs you_ links to
+draft applications and payment instructions and counts resolutions awaiting
+the person's vote; _In progress_ lists applications under way and counts
+dividends awaiting a company payment record, which is not proof of a bank
+transfer; _Recently published to you_ lists the three latest notices, each
+with its company, kind, date and until when its vote is open. These are
+personal reads, and only a known investing role reads the applicant-filtered
+application list. Actions open the application detail or Notices; nothing
+submits, pays or votes from Holdings.
 
 **Verification** shows the person's eligibility sources and complete claim
-history, and **Your company eligibility** (**Eligibility requests** on mobile)
-lets them request a decision from one company or an approved offering;
-**Company eligibility**, reachable from Holdings and Company team, lets a
-current company approver read the queue and accept, refuse or revoke
+history in a cache of its own, and **Your company eligibility** (**Eligibility
+requests** on mobile) lets them request a decision from one company or an
+approved offering; **Company eligibility**, reachable from Holdings and
+Company team, lets a current company approver read the queue and accept,
+refuse or revoke
 ([company eligibility](../plans/company-managed-registers/company-eligibility.md)),
 and holds the company's wallet nominations and instructions
 ([wallet approvals](../plans/company-managed-registers/company-wallet-approvals.md)).
 Every claim page loads before a submission is offered, so a pending claim on a
-later page still prevents a second one.
+later page still prevents a second one, and a failed background read keeps an
+open claim's fields and selected file with a retry inside the modal.
 
 **Directory** groups the accessible share classes under their company and
 opens a class's current offering, with the documents attached to its approved
-offerings; a draft application reads every verified Base wallet page and
-computes its fixed-price total in integer cents, and the server still selects
-the applicant and enforces quantity and eligibility. **Applications** presents
-the recorded company, class, currency and payment instruction independently of
-current Directory access, including the unaltered reference, bank details or
-settlement units; a recorded partial payment shows the amount outstanding and
-asks the investor to confirm any further payment with the operator.
+offerings; the first experience presents one fictional company and adds no
+registry search. A draft application reads every verified Base wallet page,
+computes its fixed-price total in integer cents, keeps its quantity and chosen
+wallet through a failed refresh while hiding the application actions, and is
+scoped to the offering, so a replacement offering starts fresh; a closed or
+unavailable offering has no form, and the server still selects the applicant
+and enforces quantity and eligibility. **Applications** presents the recorded
+company, class, currency and payment instruction independently of current
+Directory access, including the unaltered reference, leading zeroes, bank
+details or raw settlement units, never falling back to generic payment rails;
+a copy failure keeps the value available, and a recorded partial payment shows
+the amount outstanding and asks the investor to confirm any further payment
+with the operator.
 
 **Market** presents For sale and Wanted lists with automatic matching; buyers
 fund before placing an offer ([trading](trading.md)). Owned order history reads
 independently of listed classes and wallets, the chosen wallet's allowlist
-status gates creation, and saved orders, cancellations, changes, signatures
-and approvals are records on this device for the signed-in account, read when
-Market loads and after each recovery and shown in one Saved work section.
+status gates creation, AUD totals use integer cents and new quantities use
+exact integer strings within the signed 64-bit storage bound. Saved orders,
+cancellations, changes, signatures and approvals are records on this device
+for the signed-in account, read when Market loads and after each recovery (one
+saved in another tab appears when Market is reopened on the web or pulled to
+refresh on mobile), and sit in one Saved work section after Trades awaiting
+signatures, shown only while something is saved or a message about them needs
+showing, with one refresh that reads all three again.
 
 **Wallets** reads every wallet page into a ledger of its own; each chain's card
 lists its wallets with verification and signing preference as icons named for
 screen readers, sync age, native balance to at most eight decimal places
-(`formatCryptoBalance`) and AUD value, ordered by decimal-string comparison
-(`sortWallets`). On the web each row carries Edit, Sync and Delete, with Verify
-and Derive address where they apply, and Add wallet is a title action; on
-mobile each row opens the wallet's own screen, which holds its actions. Buy
-crypto and Send are Wallets actions rather than menu items. Buy crypto requires
-a personal `investor` or `both` account and an owned receiving wallet, which
-the API checks again before contacting the provider, and both clients refuse
-direct opening and late responses after account or role loss
-([#920](https://github.com/Ledova/ledova/issues/920)). Send and Buy open their
-form directly only when a finished read finds exactly one verified wallet on
-the relevant networks and otherwise ask which wallet, from choosers that read
-every page, never say there are none before a read has answered, and offer
-Try again without the request's error text. Send offers crypto and payment
-tokens, including AUDY, and never shares.
+(`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`) and AUD
+value, labelled Value on the web and Estimated value on mobile, ordered by
+decimal-string comparison (`sortWallets` in
+`packages/shared/src/hooks/useWalletSort.ts`). On the web each row carries
+Edit, Sync and Delete, with Verify and Derive address where they apply, a
+failed sync is reported in its wallet's row, every Sync waits while one runs,
+and Add wallet is a title action; on mobile each row opens the wallet's own
+screen, which holds Verify address, Sync balances, Derive address and Delete
+wallet, while Wallets' title row adds Sync balances for every wallet. Add,
+edit, derive and delete keep refused input and stay open until success, and on
+mobile a pending one cannot be dismissed or submitted twice; imports run one
+address at a time and remember confirmed additions for retry within the same
+import; mobile's software registration waits for the server after the
+authenticated local seed storage. Buy crypto and Send are Wallets actions
+rather than menu items. Buy crypto requires a personal `investor` or `both`
+account and an owned receiving wallet, which the API checks again before
+contacting the provider, and both clients refuse direct opening and late
+responses after account or role loss
+([#920](https://github.com/Ledova/ledova/issues/920)); when the purchase page
+cannot be opened it gives the server's reason (`readApiError` in
+`packages/shared/src/utils/errors.ts`) or "The purchase page could not be
+opened. Try again.", never a proxy's error page. Send opens its form directly
+when Wallets has read exactly one verified wallet on the networks it lists
+(Ethereum, Bitcoin and Base), offering Cancel where Back would return to a
+choice never made, and otherwise asks which wallet; the web counts the wallets
+last read even while re-reading, mobile asks until the read has finished and
+opens a lone Bitcoin wallet in the Bitcoin send form. Buy crypto goes straight
+to the widget only when a finished read finds exactly one verified wallet on
+the chosen asset's network. Every chooser reads every page, lists only the
+networks Wallets lists, never says there are none before a read has answered,
+and offers Try again without the request's error text; mobile's Send forms
+wait for the chosen wallet's balances, say so with the server's reason when
+they cannot be read, and keep Continue unavailable until they have been read.
+Send offers crypto and payment tokens, including AUDY, and never shares.
 
 **Activity** presents recorded wallet transfers read-only, with exact decimal
 amounts, native fees and status; a share transfer's amount carries its class's
 own symbol ([a share holding names its class](wallets-and-valuations.md#a-share-holding-names-its-class)).
-Its history read does not depend on the wallet filter read; filters use only
-supported API fields, with date bounds covering whole local days, and each
-entry opens in place to its detail and explorer link.
+Its history read does not depend on the wallet filter read, and a failed
+selector page disables the selector without hiding history or clearing draft
+filters; filters use only supported API fields, with date bounds covering
+whole local days (block time on mobile, excluding records without one), and
+each entry opens in place to its detail and explorer link.
 
 **Profile and Settings** use the ledger sections for personal information,
 identity status, security, notifications and data controls. Members edit their
-own name, residential address and phone in Profile
-([member profile](../plans/company-managed-registers/member-profile.md)). The
-transaction-alerts switch is the `transactionAlerts` field of the one user
+own name, residential address and phone in Profile through Edit personal
+details ([member profile](../plans/company-managed-registers/member-profile.md)).
+The transaction-alerts switch is the `transactionAlerts` field of the one user
 preferences record, read through `useUserPreferences` and saved with a partial
-`POST` to `/api/user-preferences/`. Password changes, data export and account
-deletion show failures and allow retry; deletion keeps its confirmation dialog,
-states which records are retained, and clears the tab's account data after the
-server confirms. Mobile Settings adds biometric sign-in and app lock.
+`POST` to `/api/user-preferences/`; mobile distinguishes an unavailable
+preferences record from disabled alerts. Password changes, data export and
+account deletion show failures and allow retry, and their mobile dialogs stay
+open after a refusal and cannot close while a request is pending; deletion
+keeps its confirmation dialog, states which records are retained, and clears
+the tab's account data after the server confirms. Mobile Settings adds
+biometric sign-in and app lock.
 
 Where market values are shown, they are in AUD: the shared `useCurrency`
 converts the API's US-dollar values at the current rate, shows a dash while the
@@ -298,9 +387,12 @@ and answers 404 for one it refuses.
 ## The shared client layer
 
 `packages/shared` holds the client layer for every company-run register
-command, on which both clients' screens are built: a service for each list,
-preview, decision, preparation and document download; a check of each
-prepared proposal against every field of its request (`isPreparedRegisterOpening`,
+command, on which both clients' screens are built: a service for each list
+(with the company, share class, member and status filters each family
+takes), preview, decision, preparation and document download; a check of
+each prepared proposal against every field of its request, with an opening's
+or link's mapping narrowed at runtime and a link's address and member pairs
+compared in any order and letter case (`isPreparedRegisterOpening`,
 `isPreparedRegisterParticularsChange`, `isPreparedRegisterLink` and their
 siblings); the decision families `useRegisterDecision` takes
 (`REGISTER_OPENING_DECISIONS`, `REGISTER_PARTICULARS_DECISIONS`,
@@ -424,7 +516,7 @@ section does, and it keeps its content width wherever it sits: in the title row
 for the page as a whole (Edit company, Add wallet, Refresh, and the way back to the
 parent page such as Back to Register, Back to Company, Back to Directory or Back
 to Applications), inside a section for what that section does (Create share
-class, Edit phone, Change password beside its sentence), and in a row for what is
+class, Edit personal details, Change password beside its sentence), and in a row for what is
 done to that row's record alone (each wallet's Edit, Sync and Delete on Wallets,
 a submitted claim's Withdraw claim on Verification), so nothing is selected
 before acting and no toolbar waits under a list. A page reaches each of
