@@ -1118,7 +1118,10 @@ class RegisterInstructionMigrationTest(TransactionTestCase):
             forged(issue, kind="transfer", items=[{**settlement, "amount": "03"}])
 
     def test_downgrade_refuses_to_discard_instructions(self):
-        tenant, _, document, request = instruction_fixture("instruction-downgrade")
+        tenant = make_tenant("instruction-downgrade")
+        reviewer = instruction_reviewer()
+        document = verified_authority(tenant.company, reviewer)
+        request = retained_approved_request(tenant.deployed_token, tenant.wallet.address, reviewer=reviewer)
         submit_instruction(actor=tenant.user, **instruction_payload(tenant.deployed_token, document, [request]))
         migration = importlib.import_module("tokens.migrations.0073_register_instructions")
         with self.assertRaisesRegex(RuntimeError, "Retain register instructions"), atomic():
@@ -1147,7 +1150,9 @@ class CompanyInstructionBoundaryTest(TransactionTestCase):
                 ValidationError, "company's retained appointment"
             ):
                 submit_instruction(actor=self.owner, **instruction_payload(self.token, document, [candidate]))
-        with self.assertRaisesMessage(DatabaseError, "genuine company source"), atomic():
+        with self.assertRaisesMessage(
+            DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
+        ), atomic():
             fresh.approve(instruction_reviewer())
         fresh.refresh_from_db()
         self.assertEqual((fresh.status, fresh.reviewed_by_id), (RequestStatus.SUBMITTED, None))
