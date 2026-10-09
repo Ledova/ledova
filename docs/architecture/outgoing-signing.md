@@ -23,7 +23,7 @@ which keep their recorded identity and bounded recovery. An uncertain
 preparation or decision reply keeps its exact original body and key: current
 read access recovers the retained receipt, including after the step's
 appointment has expired or the proposal has changed stage, changed retries
-conflict, and nothing replays after process loss. Private journals stay
+conflict, and no replay after process loss is promised. Private journals stay
 inaccessible to customer connections, and company self-service does not relax
 the bootstrap, same-key writer drain or cutover requirements.
 
