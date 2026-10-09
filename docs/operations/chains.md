@@ -225,7 +225,9 @@ authority, original execution and separate Mint/register outcomes,
 plus `tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest`
 and `tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest` for
 the genuine company capital and pause seed commands and their captured original
-jobs. It then stops the node. The capital class verifies cap-only execution
+jobs. It runs the integration module and the remaining selectors sequentially
+in separate fresh test-database lifetimes, preserving case order while bounding
+historical-fixture migration churn. It then stops the node. The capital class verifies cap-only execution
 without relying on the currently unsupported no-key treasury seed path.
 `CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
 deploy connects to (through `LOCALHOST_RPC_URL`, which
@@ -234,7 +236,7 @@ two worktrees can run the chain test at the same time on different ports. The
 target refuses to start when that port is already taken, naming the port rather
 than failing later with Hardhat's `HH108`. The local stack's chain holds 8545,
 so while the stack is up run `make chain-test CHAIN_TEST_PORT=8546`, or any
-other free port. The chain test keeps its own Hardhat node and test database
+other free port. The chain test keeps its own Hardhat node and test databases
 and never touches the stack's chain.
 The chain test uses PostgreSQL. Set `POSTGRES_*` for an isolated database; the
 two-worker capital-increase case requires its real row locks.
