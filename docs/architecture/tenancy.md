@@ -31,6 +31,16 @@ permanently; a pending authority request keeps the draft editable. Expiry,
 revocation, configured identity and current account checks determine appointment
 effectiveness. Delegatable scopes never count as personal authority.
 
+Company list, detail and basic edits, and company-document upload, private-file
+reads and deletion, use the actor-bound functions in
+`companies/services/administration.py`, `editing.py` and `documents.py`. Each
+locks the company before the live account, profile, operator identity
+requirement, appointments and affected document or wallet, and checks the
+actual clock after the wait. The existing identifier, status, reviewed-name and
+verified-wallet restrictions remain, and a PATCH answers with the complete
+`CompanyDetail`, so a client can validate its edit receipt. A pending authority
+request alone does not consume the draft-setup exception.
+
 The Company read policy retains its existing public discovery and market terms;
 its customer list/detail selectors remain narrower. App writes to Company and
 CompanyDocument are denied, with exact actor-bound operator services and database
