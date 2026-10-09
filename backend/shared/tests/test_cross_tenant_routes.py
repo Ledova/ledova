@@ -28,7 +28,6 @@ from companies.services.editing import update_company
 from companies.tests.registry_fixtures import DECLARATION, matching_observation
 from companies.tests.test_document_file_access import (
     attach_file,
-    legacy_company_administrators,
     make_document,
 )
 from feature_flags.models import FeatureFlag
@@ -53,6 +52,7 @@ from tokens.models import (
     TransferOrder,
 )
 from tokens.services.register_events import open_register
+from tokens.tests.evidence_fixtures import owner_appointment
 from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
 from tokens.tests.test_register_events import DAY
@@ -812,7 +812,8 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                     effective_on=DAY,
                     recorded_by=tenant.user,
                 )
-        legacy_company_administrators(*(tenant.company for tenant in (*self.actors, self.other)))
+        for tenant in (*self.actors, self.other):
+            owner_appointment(tenant.company)
 
     def _patch(self, target, **kwargs):
         patcher = patch(target, **kwargs)

@@ -20,7 +20,8 @@ NATIVE_INPUT_FILES = frozenset(
     )
 )
 UNREAD_BY_DJANGO = ("dashboard/", "docs/", "marketing/", "mobile/", "packages/")
-DOCUMENT = re.compile(rb"docs/[\w./-]+\.md")
+UNREAD_FILES_BY_DJANGO = frozenset(("AGENTS.md", "CONTRIBUTING.md"))
+DOCUMENT = re.compile(rb"docs/[\w./-]+\.md|(?:AGENTS|CONTRIBUTING)\.md")
 JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard", "backend")}
 
 
@@ -93,7 +94,12 @@ def django_scope(event_name, payload, repository):
     if paths is None:
         return {"required": True, "reason": "Complete ancestor comparison unavailable"}
     named = documents_named_in(repository / "backend")
-    required = any(not path.startswith(UNREAD_BY_DJANGO) or path in named or changes_checkouts(path) for path in paths)
+    required = any(
+        (not path.startswith(UNREAD_BY_DJANGO) and path not in UNREAD_FILES_BY_DJANGO)
+        or path in named
+        or changes_checkouts(path)
+        for path in paths
+    )
     return {
         "required": required,
         "reason": "A path the Django jobs read changed" if required else "Only client code and documentation changed",

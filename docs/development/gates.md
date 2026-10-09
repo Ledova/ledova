@@ -11,23 +11,23 @@ controls. Commands run from the repository root unless stated otherwise.
 `check-docs.py` holds this table to `scripts/`: a gate script with no entry
 fails, and an entry naming no script fails.
 
-| Script | Rule | `make check` | CI job |
-| --- | --- | --- | --- |
-| `check-comments.py` | [The comment gate](#the-comment-gate) | yes | source gates |
-| `check-type-check.py` | [The type-check gate](#the-type-check-gate) | yes | source gates |
-| `check-layers.py` | [The layer gate](#the-layer-gate) | yes | source gates |
-| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate) | yes | source gates |
-| `check-schema-responses.py` | [The schema response gate](#the-schema-response-gate) | yes | source gates |
-| `check-test-shadowing.py` | [The test shadowing gate](#the-test-shadowing-gate) | yes | source gates |
-| `check-error-bodies.py` | [The error body gate](#the-error-body-gate) | yes | source gates |
-| `check-logging.py` | [The logging privacy gate](#the-logging-privacy-gate) | yes | source gates |
-| `check-docs.py` | [The documentation gate](#the-documentation-gate) | yes | source gates |
-| `check-pr-metadata.py` | [The PR metadata gate](#the-pr-metadata-gate) | no | PR metadata |
-| `check-api-schema.py` | [The API type drift gate](#the-api-type-drift-gate) | no | Django |
-| `check-ordinary-shards.py` | [The ordinary shard gate](#the-ordinary-shard-gate) | yes | Django ordinary shards |
-| `check-api-types.mjs` | [The API type drift gate](#the-api-type-drift-gate) | yes | JavaScript |
-| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate) | no | JavaScript |
-| `check-self-imports.mjs` | [Clients and the shared package](../architecture/clients.md) | yes | JavaScript |
+| Script                        | Rule                                                         | `make check` | CI job                 |
+| ----------------------------- | ------------------------------------------------------------ | ------------ | ---------------------- |
+| `check-comments.py`           | [The comment gate](#the-comment-gate)                        | yes          | source gates           |
+| `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                  | yes          | source gates           |
+| `check-layers.py`             | [The layer gate](#the-layer-gate)                            | yes          | source gates           |
+| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate)  | yes          | source gates           |
+| `check-schema-responses.py`   | [The schema response gate](#the-schema-response-gate)        | yes          | source gates           |
+| `check-test-shadowing.py`     | [The test shadowing gate](#the-test-shadowing-gate)          | yes          | source gates           |
+| `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                  | yes          | source gates           |
+| `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)        | yes          | source gates           |
+| `check-docs.py`               | [The documentation gate](#the-documentation-gate)            | yes          | source gates           |
+| `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                | no           | PR metadata            |
+| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Django                 |
+| `check-ordinary-shards.py`    | [The ordinary shard gate](#the-ordinary-shard-gate)          | yes          | Django ordinary shards |
+| `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | JavaScript             |
+| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | no           | JavaScript             |
+| `check-self-imports.mjs`      | [Clients and the shared package](../architecture/clients.md) | yes          | JavaScript             |
 
 `check-port-free.py` is in `scripts/` and is not on this table: it refuses to
 start the chain test when its port is taken, which is Makefile plumbing rather
@@ -247,6 +247,10 @@ but no database. `make check` installs the requirements and runs it, through
 `make check-ordinary-shards`, from `backend/` with a generated key, as it runs
 `manage.py check`. `--run SHARD` runs that shard's suite as its CI job does. The
 gate counts test identities, not durations, so balance remains a measurement.
+Its `--run SHARD` command emits built-in method durations and setup timings
+without changing the selection. Those durations exclude class/module fixtures
+and Django pre/post hooks; retain complete identities and skipped-case counts
+independently when assessing cost.
 
 ## The API type drift gate
 

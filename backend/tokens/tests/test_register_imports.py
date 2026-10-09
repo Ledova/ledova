@@ -1107,7 +1107,7 @@ class RegisterImportTest(TransactionTestCase):
         ):
             with self.subTest(entry=entry, after=after.__name__):
                 refusal = (
-                    "New non-paid issue approval requires its genuine company source"
+                    "Fresh paid and nonpaid approval requires its retained company decision"
                     if after is an_approved_issue
                     else "exactly the register's only entry"
                 )

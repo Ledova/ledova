@@ -8,7 +8,7 @@ companies. Ledova provides infrastructure, workflows and bounded automation.
 Private hosting uses the same product and authority model.
 
 The [GitHub programme #860](https://github.com/Ledova/ledova/issues/860) owns the
-transition and its 13 implementation issues below. GitHub is the working backlog;
+transition and the existing issues below. GitHub is the working backlog;
 this folder records scope, sequencing and documentation traceability. Phases 1
 and 2 are delivered: #861 retired product modes and #862 established company
 authority, with its final foundation delivered by [PR #911](https://github.com/Ledova/ledova/pull/911)
@@ -52,13 +52,16 @@ genuine observations and original transaction recovery.
 The sixth increment's [paid-issue guide](company-paid-issues.md) describes
 implemented company decisions over existing recorded PAID
 subscriptions, original execution and distinct allotment/register outcomes.
-New payment mechanics remain #868 work.
-The first #866 [Profile increment](member-profile.md) exposes own full-name,
-residential-address and phone edits through the existing Profile API in both
-clients. Own register access, confirmations, certificate requests and walletless
-attribution remain separate increments.
-#866 and #868–#873 remain dependency-ordered and own the later company/member,
-offering and register workflows.
+It adds no new payment mechanics or off-chain investor allotment. #867 remains
+open for the undelivered employee award/vesting records. #868 owns external
+capital records and company-approved allotment under the revised scope; new
+integrated payment mechanics are deferred.
+The first #866 [Profile increment](member-profile.md) adds self-reported full-name
+and residential-address editing to the existing personal Profile in both clients,
+retaining phone editing. Own register access, confirmations, certificate requests
+and walletless association remain separate increments under the essential scope.
+#866 and #868–#873 retain the revised core/deferred scopes and dependencies
+below. Their company/member, allotment and register authority remains separate.
 The #862 lifecycle provides [authority requests, self-declaration admission and
 self-revocation](authority-requests.md) in both clients, retaining private
 evidence and history. Initial scoped appointments require the existing configured
@@ -104,108 +107,75 @@ plus the accepted plan: 74 documents, 46 updated and 28 retained as aligned
 technical contracts, historical evidence or a truthful runtime-generated output.
 This index and the audit report are additional reviewed documents.
 
-The owner's [5 October product clarification](../../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-prioritises the private-company register and share issuance, management,
-transfer and purchase. Optional crypto on-ramp purchases are investor-only;
-companies must not use that integration to buy cryptocurrency. Its current
-investing-account and provider-lifetime guards are tracked separately in
-[#920](https://github.com/Ledova/ledova/issues/920), without changing programme
-dependencies or agent ownership. AUD is a valid share-payment requirement,
-distinct from AUD pricing and stablecoin settlement. #868 owns primary payment
-work and #869 the secondary path; payment rails/provider, collection,
-verification, reconciliation, refund and settlement choices remain undecided.
-Core share journeys must not require an on-ramp purchase.
+The owner's [9 October priority amendment](../../decisions.md#essential-registry-and-development-workflow-priority)
+puts development-workflow simplification (#943) first. The essential register
+then supports non-paid employee awards and vesting records, externally arranged
+investor capital and company-approved allotments, accurate ownership, member
+access and basic outputs. Current grants are outright; structured vesting and
+new off-chain investor allotments are not delivered. No legal/tax rule engine,
+option-exercise scheme or #866 invitation/access policy is selected.
+
+New integrated AUD payments, trading, advanced governance and filings are
+deferred. Keep useful existing chain/payment functionality, history and recovery.
+AUD capital evidence can be recorded without claiming Ledova collected funds;
+future payment mechanics remain owner decisions. Investor-only optional crypto
+purchases retain #920's guards; companies cannot use the on-ramp to buy crypto.
 
 ## Delivery tracking
 
-Follow the accepted six phases. Each issue includes concrete scope, completion
-checks and code starting points; dependencies below are delivery prerequisites.
-Each increment owns its meaningful verification rather than deferring it to the
-final journey. Some output work may be delivered incrementally once its required
-inputs are ready, without reducing the final issue's scope.
+The [current owner policy on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-6078277168)
+and live issue claims supersede the original six-phase all-workflow sequence.
+Use these existing issues; every increment owns its meaningful verification.
+#943 no longer waits for #867. Basic outputs and core acceptance no longer wait
+for deferred #869, #870 or #872. No deferred capability is implicitly delivered.
 
-| Phase | Issue                                                                                                                                                | Depends on                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | [#861 Remove Registry and Single-issuer product modes](https://github.com/Ledova/ledova/issues/861)                                                  | None                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| 2     | [#862 Add company appointments, capabilities, invitations and revocation](https://github.com/Ledova/ledova/issues/862)                               | [#861](https://github.com/Ledova/ledova/issues/861)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 3     | [#863 Make company activation and participant eligibility evidenced self-service workflows](https://github.com/Ledova/ledova/issues/863)             | [#862](https://github.com/Ledova/ledova/issues/862)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 3     | [#864 Provide company register openings, imports, links, corrections and reconciliation tools](https://github.com/Ledova/ledova/issues/864)          | [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| 3     | [#865 Support company-managed non-tokenised register issues, transfers and member administration](https://github.com/Ledova/ledova/issues/865)       | [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863), [#864](https://github.com/Ledova/ledova/issues/864)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 3     | [#866 Let shareholders and employees manage their particulars and access their own records](https://github.com/Ledova/ledova/issues/866)             | [#862](https://github.com/Ledova/ledova/issues/862), [#864](https://github.com/Ledova/ledova/issues/864), [#865](https://github.com/Ledova/ledova/issues/865)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 4     | [#867 Authorise share issuance, company wallet approvals and capital actions through company workflows](https://github.com/Ledova/ledova/issues/867) | [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863), [#864](https://github.com/Ledova/ledova/issues/864), [#865](https://github.com/Ledova/ledova/issues/865)                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| 4     | [#868 Give companies offering decisions, subscription payments, refunds and allotment workflows](https://github.com/Ledova/ledova/issues/868)        | [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863), [#864](https://github.com/Ledova/ledova/issues/864), [#867](https://github.com/Ledova/ledova/issues/867)                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| 5     | [#869 Provide company and shareholder transfer decisions with separate settlement and register states](https://github.com/Ledova/ledova/issues/869)  | [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863), [#864](https://github.com/Ledova/ledova/issues/864), [#866](https://github.com/Ledova/ledova/issues/866), [#867](https://github.com/Ledova/ledova/issues/867)                                                                                                                                                                                                                                                                                                                                                                                    |
-| 5     | [#870 Let companies publish member documents, resolutions and distributions](https://github.com/Ledova/ledova/issues/870)                            | [#862](https://github.com/Ledova/ledova/issues/862), [#864](https://github.com/Ledova/ledova/issues/864), [#866](https://github.com/Ledova/ledova/issues/866), [#865](https://github.com/Ledova/ledova/issues/865)                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| 5     | [#871 Provide company certificates, inspection copies, exports and truthful register provenance](https://github.com/Ledova/ledova/issues/871)        | [#862](https://github.com/Ledova/ledova/issues/862), [#864](https://github.com/Ledova/ledova/issues/864), [#866](https://github.com/Ledova/ledova/issues/866), [#867](https://github.com/Ledova/ledova/issues/867), [#869](https://github.com/Ledova/ledova/issues/869), [#870](https://github.com/Ledova/ledova/issues/870), [#865](https://github.com/Ledova/ledova/issues/865)                                                                                                                                                                                                                                                                          |
-| 6     | [#872 Add checked company filing preparation and submission outcome tracking](https://github.com/Ledova/ledova/issues/872)                           | [#862](https://github.com/Ledova/ledova/issues/862), [#864](https://github.com/Ledova/ledova/issues/864), [#871](https://github.com/Ledova/ledova/issues/871)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 6     | [#873 Verify preserved migrations and record the complete company-managed web/mobile journey](https://github.com/Ledova/ledova/issues/873)           | [#861](https://github.com/Ledova/ledova/issues/861), [#862](https://github.com/Ledova/ledova/issues/862), [#863](https://github.com/Ledova/ledova/issues/863), [#864](https://github.com/Ledova/ledova/issues/864), [#866](https://github.com/Ledova/ledova/issues/866), [#867](https://github.com/Ledova/ledova/issues/867), [#868](https://github.com/Ledova/ledova/issues/868), [#869](https://github.com/Ledova/ledova/issues/869), [#870](https://github.com/Ledova/ledova/issues/870), [#871](https://github.com/Ledova/ledova/issues/871), [#872](https://github.com/Ledova/ledova/issues/872), [#865](https://github.com/Ledova/ledova/issues/865) |
+| Priority             | Existing issue and scope                                                                                          | Prerequisites                                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| First                | [#943 Development workflow and measured CI simplification](https://github.com/Ledova/ledova/issues/943)           | Ready independently of #867; first timing increment does not deliver all proposed routing/tiers                          |
+| Delivered foundation | [#861 One registry product](https://github.com/Ledova/ledova/issues/861)                                          | None                                                                                                                     |
+| Delivered foundation | [#862 Company authority](https://github.com/Ledova/ledova/issues/862)                                             | #861                                                                                                                     |
+| Delivered foundation | [#863 Activation and participant eligibility](https://github.com/Ledova/ledova/issues/863)                        | #862                                                                                                                     |
+| Delivered foundation | [#864 Register commands](https://github.com/Ledova/ledova/issues/864)                                             | #862, #863                                                                                                               |
+| Delivered foundation | [#865 Non-tokenised grants, transfers and member history](https://github.com/Ledova/ledova/issues/865)            | #862, #863, #864                                                                                                         |
+| Essential            | [#866 Member particulars and own-record access](https://github.com/Ledova/ledova/issues/866)                      | #862, #864, #865; single account association/access policy remains to be decided                                         |
+| Essential            | [#867 Authorised issuance and employee award/vesting records](https://github.com/Ledova/ledova/issues/867)        | #862, #863, #864, #865; preserve current delivered chain increments and claimed work                                     |
+| Essential            | [#868 External investor capital and company-approved allotment](https://github.com/Ledova/ledova/issues/868)      | Delivered #862–#865; specific #866 access or #867 execution inputs only when used; integrated payment expansion deferred |
+| Essential            | [#871 Basic certificates, inspection copies, exports and provenance](https://github.com/Ledova/ledova/issues/871) | Delivered #862, #864, #865; specific #866 member-access or #867 issuance inputs only when used; no #869/#870 blocker     |
+| Essential            | [#873 Preserved migrations and core web/mobile journey](https://github.com/Ledova/ledova/issues/873)              | Initial #943 improvement, delivered #861–#865 and essential #866/#867/#868/#871 increments; no #869/#870/#872 blocker    |
+| Deferred             | [#869 Later transfer decisions and market settlement](https://github.com/Ledova/ledova/issues/869)                | #862, #863, #864, #866, #867 when scheduled                                                                              |
+| Deferred             | [#870 Advanced publications, resolutions and distributions](https://github.com/Ledova/ledova/issues/870)          | #862, #864, #865, #866 when scheduled                                                                                    |
+| Deferred             | [#872 Filing preparation and submission outcomes](https://github.com/Ledova/ledova/issues/872)                    | #862, #864, #871 when scheduled                                                                                          |
 
 ## Dependency flow
 
 ```mermaid
 flowchart TB
-    modes["#861 One product"]
-    authority["#862 Company authority"]
-    onboarding["#863 Onboarding and eligibility"]
-    register["#864 Register commands"]
-    nonchain["#865 Non-tokenised ledger"]
+    workflow["#943 CI and development workflow first"]
+    foundation["#861–#865 Delivered foundation"]
     participants["#866 Member records and access"]
-    issuance["#867 Issue whitelist and capital"]
-    primary["#868 Offer payment and allotment"]
-    transfers["#869 Transfer decisions"]
-    governance["#870 Publications voting distributions"]
-    outputs["#871 Certificates exports provenance"]
-    filings["#872 Filing preparation"]
-    acceptance["#873 Migration and new journey"]
-    modes --> authority
-    authority --> onboarding
-    authority --> register
-    onboarding --> register
-    authority --> nonchain
-    onboarding --> nonchain
-    register --> nonchain
-    authority --> participants
-    register --> participants
-    nonchain --> participants
-    authority --> issuance
-    onboarding --> issuance
-    register --> issuance
-    nonchain --> issuance
-    authority --> primary
-    onboarding --> primary
-    register --> primary
-    issuance --> primary
-    authority --> transfers
-    onboarding --> transfers
-    register --> transfers
-    participants --> transfers
-    issuance --> transfers
-    authority --> governance
-    register --> governance
-    participants --> governance
-    nonchain --> governance
-    authority --> outputs
-    register --> outputs
-    participants --> outputs
-    issuance --> outputs
-    transfers --> outputs
-    governance --> outputs
-    nonchain --> outputs
-    authority --> filings
-    register --> filings
-    outputs --> filings
-    modes --> acceptance
-    authority --> acceptance
-    onboarding --> acceptance
-    register --> acceptance
+    issuance["#867 Issuance and employee award records"]
+    primary["#868 External capital and allotment"]
+    outputs["#871 Basic outputs"]
+    acceptance["#873 Core migration and journey evidence"]
+    later["Deferred #869 trading #870 governance #872 filings"]
+    workflow -. priority .-> participants
+    workflow -. priority .-> issuance
+    foundation --> participants
+    foundation --> issuance
+    foundation --> primary
+    issuance -. when used .-> primary
+    foundation --> outputs
+    participants -. when used .-> outputs
+    issuance -. when used .-> outputs
+    foundation --> acceptance
     participants --> acceptance
     issuance --> acceptance
     primary --> acceptance
-    transfers --> acceptance
-    governance --> acceptance
     outputs --> acceptance
-    filings --> acceptance
-    nonchain --> acceptance
+    workflow -. initial improvement .-> acceptance
+    participants -. later .-> later
+    issuance -. later .-> later
+    outputs -. later .-> later
 ```
 
 ## Ownership boundaries
@@ -213,8 +183,11 @@ flowchart TB
 The register-command issue owns existing opening/import/link/correction and
 reconciliation commands. The non-tokenised issue owns genuine ledger effects,
 company command UI and chain-independent identity/roll/output inputs. The member
-issue owns claim/invitation/request/own-record UI; governance owns publication,
-voting and distribution UI for tokenised and non-tokenised registers alike.
+issue owns the single account association and permitted particulars/own-record
+UI; its access policy remains undecided. #867 owns supported employee award and
+issuance records; #868 owns external capital and company-approved allotment.
+#871 owns basic outputs and #873 the essential journey evidence. Advanced
+governance, trading and filings remain with their deferred existing issues.
 
 Company mandates and required approvals remain separate from finance receipts,
 participant signatures and technical execution. A payment does not authorise

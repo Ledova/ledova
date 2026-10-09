@@ -395,3 +395,47 @@ it.each(
     );
   },
 );
+
+it('requires primitive original receipt identities and keeps malformed register references separate from a genuine mint', () => {
+  const record = admitted();
+  const execution = {
+    ...record.execution!,
+    status: 'executed' as const,
+    issuance: ID(150),
+    operationId: ID(151),
+    claimId: ID(152),
+    transaction: ID(153),
+    operationStatus: 'confirmed' as const,
+    txHash: `0x${'3'.repeat(64)}`,
+    blockNumber: 7,
+    blockHash: `0x${'4'.repeat(64)}`,
+    completedAt: '2026-10-08T00:02:00Z',
+    registerEntry: ID(154),
+    effectiveOn: '2026-10-08',
+  };
+  const invalid = [[], [ID(999)], 42, true, {}, null, '', ' '];
+  expect(registerPaidIssueExecutionState({ ...record, execution })).toBe(
+    'Finalised original paid mint recorded in the register',
+  );
+  for (const field of ['execution', 'dispatchId', 'issuance', 'operationId', 'claimId', 'transaction'] as const)
+    for (const value of invalid)
+      expect(registerPaidIssueExecutionState({ ...record, execution: { ...execution, [field]: value } })).toBe(
+        'Original marked executed; complete original mint receipt unavailable',
+      );
+  for (const value of [42, true, null, '', ' '])
+    expect(
+      registerPaidIssueExecutionState({
+        ...record,
+        request: value as unknown as string,
+        execution: { ...execution, request: value as unknown as string },
+      }),
+    ).toBe('Original paid issue receipt does not identify this request');
+  for (const field of ['registerEntry', 'effectiveOn'] as const)
+    for (const value of invalid)
+      expect(registerPaidIssueExecutionState({ ...record, execution: { ...execution, [field]: value } })).toBe(
+        'Finalised original paid mint; register entry not recorded',
+      );
+  expect(registerPaidIssueExecutionState({ ...record, execution: { ...execution, effectiveOn: 'not a date' } })).toBe(
+    'Finalised original paid mint; register entry not recorded',
+  );
+});

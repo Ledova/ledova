@@ -256,13 +256,12 @@ chain-test:
 	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) $(NPM) --prefix contracts run deploy:local:core; \
 	set -a; . ./.deployed-contracts.env; set +a; \
 	cd backend && \
+	for test_labels in \
+	    "tokens.tests.test_chain_integration" \
+	    "offerings.tests.test_chain_allotment wallets.tests.test_submission_chain tokens.tests.test_chain_journey shared.tests.test_seed_chain tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest tokens.tests.test_company_paid_issue_chain"; do \
 	CHAIN_TEST_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_RPC_URL=$(CHAIN_TEST_RPC_URL) \
 	BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
-	$(PYTHON) manage.py test tokens.tests.test_chain_integration offerings.tests.test_chain_allotment \
-	    wallets.tests.test_submission_chain tokens.tests.test_chain_journey shared.tests.test_seed_chain \
-	    tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest \
-	    tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest \
-	    tokens.tests.test_company_paid_issue_chain \
-	--settings=ledova_backend.settings.test --noinput
+	$(PYTHON) manage.py test $$test_labels --settings=ledova_backend.settings.test --noinput; \
+	done
 
 .DEFAULT_GOAL := help

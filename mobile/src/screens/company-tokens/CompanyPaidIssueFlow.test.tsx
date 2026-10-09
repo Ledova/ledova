@@ -598,6 +598,18 @@ it('preserves genuine latest Mint/register receipts without inferring from recor
   records[0].execution!.effectiveOn = '2026-10-08';
   await fireEvent.press(view.getByRole('button', { name: 'Refresh company paid issue records' }));
   await view.findByText('Finalised original paid mint recorded in the register');
+  records[0].execution!.operationId = [] as unknown as string;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await view.findByText('Original marked executed; complete original mint receipt unavailable');
+  expect(view.queryByText(/Finalised original paid mint/)).toBeNull();
+  records[0].execution!.operationId = ID(151);
+  records[0].execution!.registerEntry = [ID(154)] as unknown as string;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await view.findByText('Finalised original paid mint; register entry not recorded');
+  expect(view.queryByText('Finalised original paid mint recorded in the register')).toBeNull();
+  records[0].execution!.registerEntry = ID(154);
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await view.findByText('Finalised original paid mint recorded in the register');
   failHistory = true;
   await fireEvent.press(view.getByRole('button', { name: 'Refresh company paid issue records' }));
   await view.findByText('The paid issue records could not be refreshed. Retained original receipts remain available.');
