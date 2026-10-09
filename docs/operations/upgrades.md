@@ -149,24 +149,153 @@ Reversal refuses while any legacy source or appointment remains, including a
 revoked appointment or retained source alone. Supported empty reversal restores
 the preceding guard and constraints. Do not delete history to force a downgrade.
 
-## Remaining company-managed register upgrade
+`companies/0018_team_invitation_admission_guards` is guard-only: it extends
+the invited-appointment check `0017` installed so an inviter cannot accept their
+own invitation and a person with a current, unrevoked, unexpired appointment in
+the company cannot accept a second one. It changes no appointment, invitation,
+revocation or actor, and reversal restores the exact preceding clause.
 
-The accepted [company-managed register plan](../architecture/company-managed-registers.md)
-has delivered product-mode retirement and initial self-declared appointments
-above, plus the invitation/team API, both client team screens and the legacy-owner
-upgrade. Dependent company-authority workflows remain planned. The historical migrations
-below remain applied history; do not edit them or reset a database to implement
-the new direction.
+`companies/0020_company_administration` (#862) installs the administration
+guards behind [company information and documents](../plans/company-managed-registers/company-information.md):
+the `app_company_administration_ids` and `app_company_discovery_ids` helpers,
+the visible and manageable helpers remade as fixed-search-path definers, the
+ACN/ABN check-digit function, and the company and company-document triggers
+that admit a change only through the actor-bound company command with current
+personal administration (or the owner's draft setup exception before a root
+exists), lock the declared company before document and offering rows, and
+protect identity and review fields. It reinstalls the policies on both tables
+and depends on `companies/0019`, `offerings/0009` and `shared/0004`. It rewrites
+no row, so reversal loses no data: it drops the guards and helpers and restores
+the invoker helpers, leaving company metadata and documents open to the earlier
+owner-only rules.
 
-- Replace global staff gates with company appointments and scoped service,
-  row-level-security and database admission checks. An existing company owner
-  may seed a company administrator, but must not thereby acquire a director
-  mandate or approve a pending instruction. Preserve the genuine historical
-  actors on completed reviews and operations.
-- Back up the database and referenced private files together, verify the
-  migration on preserved data and retain exact unresolved signed operations
-  for recovery. Deployment-mode retirement does not require fresh contracts,
-  signer admission or the [#648 fresh-start redeploy](chains.md#fresh-start-redeploy).
+`companies/0021_company_activation` (#863) adds to `CompanyRegistryCheck` the
+initiating appointment, request key, person identity, configured identity
+requirement, declaration version and text and `applied_at`, with one request
+key per initiator, one applied activation effect per company and a check that
+an activation check carries all of its provenance or none. It installs the
+canonical-name function (NFKC, a frozen Unicode 15.1 case-fold map and
+whitespace collapse), the registry company lock, receipt and activation effect
+guards, and replaces the admin workflow clause in the administration guard so
+activation needs its exact current personal appointment and applied provider
+receipt while technical recovery keeps its model permission. It creates no
+historical declaration, provider pass or activation actor
+([activation guide](../plans/company-managed-registers/company-activation.md#upgrade-and-technical-recovery)).
+Reversal refuses while any check carries a request key; otherwise it restores
+the earlier guard body and drops the functions and columns.
+
+`companies/0022_company_wallet_lock_order` is guard-only: when an edit selects a
+new operator wallet, the administration guard now locks the wallet and its
+account `FOR NO KEY UPDATE` before the actor row and compares the wallet's
+`VERIFIED` status as the model spells it, where the earlier body compared a
+lowercase value and locked in the other order. Reversal restores the earlier
+lock order and literal.
+
+## Company-managed register upgrades
+
+The [company-managed register plan](../architecture/company-managed-registers.md)
+replaced the global staff gates with company appointments and scoped service,
+row-level-security and database admission checks through #861–#865 and the six
+#867 increments; the [implementation index](../plans/company-managed-registers/README.md)
+says what each delivered. The migrations below are their notes, in the order
+the increments landed, newest first within each group. They remain applied
+history: do not edit them or reset a database to reach the current schema. Back
+up the database and referenced private files together, verify each migration on
+preserved data and retain exact unresolved signed operations for recovery. None
+of them requires fresh contracts, signer admission or the
+[fresh-start redeploy](chains.md#fresh-start-redeploy), and none manufactures a
+company appointment, director mandate or approval: an existing owner was seeded
+as an administrator by `companies/0019` and nothing more.
+
+### Company eligibility decisions
+
+`users/0032_company_eligibility_records`, `users/0033_company_eligibility_guards`,
+`users/0034_company_eligibility_consumption`, `users/0035_retire_staff_source_review`,
+`tokens/0082_company_eligibility_admission` and
+`whitelist/0009_company_eligibility_invalidation` are the #863 cutover from
+staff classification review to company decisions; the
+[eligibility guide](../plans/company-managed-registers/company-eligibility.md#evidence-and-upgrades)
+has their rehearsal and reversal rules. In short:
+
+- `users/0032` adds `withdrawn_by` to classifications and the four record
+  tables (requests, decisions, withdrawals, revocations) with their actor-key,
+  outcome and product-scope constraints, app-role grants and read policies. It
+  infers no historical actor or approval. Reversal refuses once any record or
+  withdrawal attribution exists.
+- `users/0033` installs the evidence, command, account-standing and
+  eligibility guards and bakes the retention constants
+  (`CLASSIFICATION_EVIDENCE_RETENTION_DAYS`, `UNATTACHED_DOCUMENT_RETENTION_DAYS`,
+  the certificate time zone) from the configuration it is applied with; it
+  refuses a negative or non-integer period, and changing either period later
+  needs an explicit guard migration. Reversal refuses while any record or
+  withdrawal attribution exists; otherwise it restores the earlier issuer
+  identity policy trigger and drops the functions.
+- `users/0034` adds the SQL functions that decide whether a decision is still
+  current for an account, company, purpose and product; reversal drops them.
+- `users/0035` removes the one-open-submission constraint, so a holder can keep
+  several submitted sources, makes a classification's issuer nullable with
+  `SET NULL`, and installs the trigger that refuses the retired staff review
+  operation. Reversal refuses while any account has more than one submitted
+  source, because the constraint cannot return.
+- `tokens/0082` adds the eligibility decision and admission columns to order
+  submissions, order actions, swap orders and transfer orders with their pairing
+  constraints, and installs the trading command guards that bind every new
+  order, modification and first swap signature to the exact current company
+  decision on the operator command. It depends on `users/0034`,
+  `wallets/0023`, `blockchain/0008`, `assets/0014` and `tokens/0089`. Reversal
+  refuses once any order or swap carries a decision.
+- `whitelist/0009` creates `WhitelistEligibilityInvalidation`, the retained
+  account, identity and wallet facts behind an automatic REMOVE, makes a
+  change's `initiated_by` nullable, renames the `refresh` authority label to
+  "Eligibility invalidation", adds `eligibility_decision`,
+  `eligibility_invalidation`, `invalidation_cause` and `invalidated_at` to
+  changes, and installs the operator-only, append-only guards; the app role
+  cannot read the table. Reversal refuses while any invalidation or any change
+  with a cause exists.
+
+`whitelist/0008_classification_refresh_authority` (#648) earlier added
+`refresh` to a change's authority choices and check constraint so the refresh
+sweep could record its own removals. Reversal re-adds the narrower constraint,
+which fails while any refresh change exists.
+
+`tokens/0079_order_submission_eligibility_refusal` replaces the order submission
+outcome constraint so a refusal may carry the code `investor_not_eligible`.
+Reversal re-adds the earlier constraint, which fails while any submission
+carries that code.
+
+### Non-paid register grants and transfers
+
+`tokens/0094_company_register_grants` and `tokens/0095_company_register_grant_guards`
+add the [walletless grant](../plans/company-managed-registers/register-grants.md)
+(#865). `0094` creates `RegisterGrant` and its append-only decisions,
+operator-only, with the company, class, preparing appointment, member, terms,
+authority, terms and acceptance evidence copies and the entry it produced; it
+adds `source_grant` to member particulars and replaces the one-source check so
+particulars name exactly one of an import, a change or a grant, and requires
+positive shares, one decision per person and key and one outcome per grant. It
+depends on `companies/0022` and `tokens/0093`. `0095` installs the grant,
+decision and deferred effect guards and replaces the particulars and import
+guards `0091` installed so a grant can be a particulars source: a non-tokenised
+ISSUE entry, a new member and its particulars come only from the exact current
+company application. Reversing `0095` refuses once any grant exists; otherwise
+it restores both guards as `0091` left them, and reversing `0094` then drops the
+empty tables and column.
+
+`tokens/0096_company_register_transfers` and `tokens/0097_company_register_transfer_guards`
+add [direct transfers](../plans/company-managed-registers/register-transfers.md)
+and cessation history (#865). `0096` creates `RegisterTransfer` and its
+decisions, with the authority and instrument evidence copies, and
+`RegisterMemberCessation`, one per member and entry with positive shares at
+cessation and a nullable return entry and date; it adds `source_transfer` to
+particulars and extends the one-source check to four sources, and requires
+positive shares and distinct members. `0097` installs the transfer, decision,
+deferred effect and cessation guards and replaces the particulars and import
+guards again: a direct transfer entry needs its exact current company
+application, a cessation freezes the exact positive-to-zero entry and
+particulars, a return is filled once by the zero-to-positive entry, and
+particulars keep their actual exit clock. Reversing `0097` refuses once any
+transfer or cessation exists; otherwise it restores the guards as `0095` left
+them, and reversing `0096` then drops the empty tables and column.
 
 - `tokens/0092_company_register_wallet_links` and
   `tokens/0093_company_register_wallet_link_guards` make member-wallet links
@@ -348,10 +477,9 @@ deployment/signature recovery remains separate from fresh signing authority.
 
 ### Company non-paid chain grants
 
-The third #867 increment is in progress; its
+The third #867 increment is delivered; its
 [workflow guide](../plans/company-managed-registers/company-register-issues.md)
-and eventual pull request distinguish implemented source from completed release
-verification. `tokens/0100_company_register_issue_instructions` extends the
+describes it. `tokens/0100_company_register_issue_instructions` extends the
 existing ISSUE instruction with company preparation, append-only decisions,
 member/nomination/wallet approval and retained evidence. It adds a nullable
 original source to the existing issuance execution journal. Historical requests,
@@ -382,10 +510,10 @@ increment's pull request; these release notes authorise no live migration.
 
 ### Company paid issues
 
-The sixth #867 increment is under implementation; its
+The sixth #867 increment is delivered by
+[#951](https://github.com/Ledova/ledova/pull/951); its
 [paid-issue guide](../plans/company-managed-registers/company-paid-issues.md)
-distinguishes its source contract from completed release verification.
-`tokens/0106_company_register_paid_issues` adds nullable immutable PROTECT
+describes it. `tokens/0106_company_register_paid_issues` adds nullable immutable PROTECT
 subscription provenance to the existing register instruction. Historical
 instructions, requests, payments, execution journals and actors receive no
 invented company source or approval.
@@ -457,10 +585,9 @@ Final source review, fresh migration/roles/catalogue, authority/deferred, histor
 process and isolated real-chain evidence belongs in the pull request. These
 instructions authorise no live migration.
 
-As each remaining phase lands, add its actual migration identifiers, coordinated
-release order, rollback limits and verification commands here. These notes do not
-authorise staff to manufacture company appointments or approvals while the
-company tools are missing.
+Add each later increment's migration identifiers, coordinated release order,
+rollback limits and verification commands here. These notes do not authorise
+staff to manufacture company appointments or approvals.
 
 ## Retired asset and portfolio HTTP routes
 
@@ -632,10 +759,9 @@ older backend. No database migration is needed.
 
 ## Finished job records are removed
 
-The worker now runs `remove_old_jobs` daily at 04:30 UTC, which deletes
-succeeded job records seven days after they finished and failed, cancelled and
-aborted ones thirty days after; [the job schedule](jobs.md#removing-old-job-records)
-says why. Nothing removed them before, so the first run after the upgrade
+The worker now runs `remove_old_jobs` daily at 04:30 UTC;
+[removing old job records](jobs.md#removing-old-job-records) says what it
+deletes and why. Nothing removed them before, so the first run after the upgrade
 deletes the whole backlog in one statement, which can take a minute on a
 deployment that has run for months. Copy any older records worth keeping out of
 `procrastinate_jobs` and `procrastinate_events` before upgrading. No database
@@ -695,6 +821,30 @@ migration is needed.
   account's first portfolio, which is what sign-up selected; a person with no
   account or no portfolio selects none. A `light` theme or another selection
   saved before the upgrade is gone.
+- `users/0029_first_activation_date` dates existing active, suspended and
+  terminated accounts from the earliest evidence of their activation, as
+  [transaction monitoring](operator-console.md#transaction-monitoring)
+  describes, and installs the trigger that keeps the earliest date. The
+  backfill does not reverse; reversal drops only the trigger, so the dates stay
+  and can move later again. `users/0029_kyc_results_in_the_fields_choices`
+  rewrites profiles' provider results to the mapping's current values (a blank
+  review result becomes null, an `unused` status becomes `init`); it does not
+  reverse. `users/0030_join_activation_and_kyc_results` merges the two and
+  changes nothing.
+- `wallets/0023_transaction_market_value_aud` adds `market_value_aud` to
+  transactions and values every existing one at the USD/AUD rate stored when
+  it runs, or at par for AUDY ([transaction monitoring](operator-console.md#transaction-monitoring));
+  it depends on `assets/0014` and `wallets/0022`. **Reversal does not restore
+  data.** It drops the column, and re-applying values the rows again at the
+  rate stored then.
+- `tokens/0081_held_orders_and_retired_statuses` adds the `held` order status
+  for orders held back from the book, retires the `executing`, `expired` and
+  `failed` order statuses and the `approved` mint request status that no code
+  ever wrote, replaces the `transfer_order_known_status` check with the new set
+  and lets the order action guard cancel a held order. It refuses to run, changing no row,
+  while any row holds a retired status, naming up to 20 per status: record each
+  row's real outcome explicitly rather than mapping them in bulk. Reversal
+  refuses while any order is held; cancel or re-place them first.
 - `companies/0004_company_additional_info_response` stores the applicant's
   answer to a request for more information.
 - `tokens/0035_trading_state_invariants` checks existing order/swap amounts,
@@ -997,21 +1147,21 @@ migration is needed.
 
 ## Before and after an upgrade
 
-1. Use a reviewed commit with green CI. Keep the target on synthetic data and a
-   supported local/public test network, with trading off.
-2. Preserve database and private storage together. Rehearse applicable migrations
+Follow the [pre-flight list](README.md#before-using-a-configured-instance) for
+the commit, configuration, seeds and health checks, on synthetic data and a
+supported local or public test network. An upgrade adds:
+
+1. Preserve database and private storage together. Rehearse applicable migrations
    on a restored copy, including any stated refusal conditions. Data-preserving
    rollback, schema reversal and irreversible deletion are different outcomes.
-3. Configure [core settings and database roles](configuration.md), Redis, scanner,
-   email and required providers. Redis is required even with trading disabled.
-4. Stop stale API/worker writers where a protocol migration requires a coordinated
-   cutover. Apply migrations, verify roles, run [seeds](operator-console.md#seeding),
-   and restart workers with the new code.
-5. Run `python manage.py reconcile_private_media --check` from `backend/` when
+2. Stop stale API/worker writers where a protocol migration requires a coordinated
+   cutover. Apply migrations, verify roles, run the seeds, and restart workers
+   with the new code.
+3. Run `python manage.py reconcile_private_media --check` from `backend/` when
    private-storage history is relevant. See [file migration procedures](../reference/private-storage-migrations.md).
-6. Inspect operator configuration health and [reconciliation](recovery.md). Confirm
-   `/health/` returns 200 and anonymous `/api/operator/` returns 401; separately
-   establish database, Redis, worker and provider readiness.
+4. Inspect operator configuration health and [recovery](recovery.md), and
+   separately establish database, Redis, worker and provider readiness; the
+   health route proves none of them.
 
 The notes above span historical migrations, not one current release. Newer journal,
 wallet-identity and private-file constraints are documented beside their mechanisms:

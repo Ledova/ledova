@@ -4,13 +4,13 @@
 
 Configure the local chain or Base Sepolia and align deployment ownership with the backend signer.
 
-This guide describes the current contract ownership and technical signer setup.
-Under the accepted [company-managed register plan](../architecture/company-managed-registers.md),
-an execution key carrying out a company register decision must act on its exact
-company-authorised instruction; possession of that key does not give a human
-operator authority to decide
-a company's share issue, transfer or correction. The current staff admission
-and approval procedures below remain implementation references until replaced.
+This guide describes the contract ownership and technical signer setup. The
+operator key signs deployments, wallet approvals, mints, capital changes and
+pauses only on an exact company decision made through the
+[company workflows](../plans/company-managed-registers/README.md); possession
+of the key gives nobody authority to decide a company's share issue, transfer
+or correction, and signer admission is a platform-staff act under
+[outgoing signing](../architecture/outgoing-signing.md).
 
 ## Blockchain
 
@@ -193,12 +193,8 @@ says what else the suites read from the environment.
 
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and
-`BASE_SEPOLIA_RPC_URL` exported in that shell. The `DEPLOYER_PRIVATE_KEY`
-address becomes the owner of all three contracts, so it must be the same signer
-as the `BLOCKCHAIN_OPERATOR_KEY` you put in `backend/.env`, or you must transfer
-ownership of ShareTokenFactory, AUDY and AtomicSwap to the operator address
-immediately after deploying. Otherwise the backend's `onlyOwner` calls revert
-against the freshly deployed contracts.
+`BASE_SEPOLIA_RPC_URL` exported in that shell. The deployer must be the
+backend's operator key, as [key management](#key-management) says.
 
 The package carries three more npm scripts that neither `deploy:local:core`
 nor `deploy:testnet` runs: `deploy:local:sample-share` (`scripts/deploy.ts`,
@@ -253,23 +249,24 @@ start to expire on chain once the earlier tests ran longer than that.
 
 ## Fresh-start redeploy
 
-This procedure belongs to the retired global-registry contract cutover in #648.
-It is not the upgrade procedure for company-managed registers or deployment-mode
-retirement. These changes preserve existing companies, registers,
-documents, approvals and signed history; see [upgrades](upgrades.md#remaining-company-managed-register-upgrade).
-
-The per-company registries of [#648](https://github.com/Ledova/ledova/issues/648)
-changed the bytecode of every contract, and a deployed share token can never be
-rebound to another registry. Moving a deployment onto the new contracts is
-therefore a fresh start, [the owner's decision](../decisions.md#company-scoped-approvals):
-new contracts and a new database, with nothing carried over and no register
-re-anchored. The database must be a new, empty one: migration
+This procedure stands up a fresh public-testnet environment on the per-company
+contracts: new contracts and a new, empty database, with nothing carried over
+and no register re-anchored. Its origin is [#648](https://github.com/Ledova/ledova/issues/648),
+whose per-company registries changed the bytecode of every contract, and a
+deployed share token can never be rebound to another registry, so moving onto
+those contracts was [the owner's decision](../decisions.md#company-scoped-approvals)
+to start fresh; the [Base Sepolia evidence](approval-controls.md#base-sepolia)
+records the authorised run of 25 September 2026. It is not the upgrade
+procedure for an existing environment, whose companies, registers, documents,
+approvals and signed history the
+[company-managed register upgrades](upgrades.md#company-managed-register-upgrades)
+preserve. The database must be a new, empty one: migration
 `whitelist/0007_per_company_approvals` refuses to run where whitelist changes
 written for the retired global registry remain, but a database carrying share
 classes deployed by a retired factory and no such rows would pass it, and step
 8's last check is what catches that.
 
-Steps 6 and 7 both sign, so the owner must explicitly authorize signer
+Steps 6 and 7 both sign, so the owner must explicitly authorise signer
 admission for the fresh environment. The narrow Base Sepolia bootstrap below
 verifies the five core deployment transactions before first admission; it cannot
 reopen an old signer or resolve historical cutover. Local `make chain-test`
@@ -280,7 +277,7 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    key. Prepare a new key used only for this fresh isolated environment; do not
    reuse a signer with previous deployments or sends. Preserve existing database
    volumes and historical evidence separately.
-2. For the authorized Base Sepolia deployment, export `DEPLOYER_PRIVATE_KEY`
+2. For the authorised Base Sepolia deployment, export `DEPLOYER_PRIVATE_KEY`
    and `BASE_SEPOLIA_RPC_URL`. The deploying key must be the backend operator
    key. Also supply all fresh-bootstrap metadata together:
 
@@ -293,7 +290,7 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    FRESH_SIGNER_ATTEST_PRODUCERS_STOPPED=true
    ```
 
-   The environment ID and authorization reference are nonempty, at most 200
+   The environment ID and authorisation reference are nonempty, at most 200
    and 500 characters. Export the values only after establishing the facts they
    attest. Run `npm --prefix contracts run deploy:testnet`. Fresh mode refuses
    any chain other than 84532, nonzero latest or pending sender nonce, or an
@@ -310,11 +307,11 @@ local stack's `admit_local_signer` refuses every chain but 31337.
 3. Configure a separate, newly created empty database. From `backend/`, run
    `python manage.py migrate`, `python manage.py check_rls_roles` and
    `python manage.py check_rls_catalogue` against it. Do not carry old rows into
-   this database. A cluster initialized without `POSTGRES_HOST_AUTH_METHOD=trust`
+   this database. A cluster initialised without `POSTGRES_HOST_AUTH_METHOD=trust`
    refuses the passwordless roles the migration creates; `check_rls_roles`
    prints the two `ALTER ROLE` statements that fix it. [Row-level security roles](configuration.md#row-level-security-roles)
    owns the rule.
-4. Configure `BLOCKCHAIN_CHAIN_ID=84532`, the authorized provider, the fresh
+4. Configure `BLOCKCHAIN_CHAIN_ID=84532`, the authorised provider, the fresh
    `BLOCKCHAIN_OPERATOR_KEY`, and the three `.deployed-contracts.env` addresses
    in `backend/.env`. Remove any `WHITELIST_CONTRACT_ADDRESS` line. Keep the
    backend, workers and all producers stopped. Wait for all five transactions
@@ -338,7 +335,7 @@ local stack's `admit_local_signer` refuses every chain but 31337.
    The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
    lists the strict transaction, finality, history and replay checks. This
    command must run before companies, legacy source rows or outgoing operations
-   exist. An inventory report does not authorize admission or clear legacy holds.
+   exist. An inventory report does not authorise admission or clear legacy holds.
 
 5. After successful admission, start the backend and workers and recreate
    companies and users through the browser. `createsuperuser` and admin wallet
@@ -461,8 +458,9 @@ local stack's `admit_local_signer` refuses every chain but 31337.
 
    Prints `[]`: no share class carries a deployment made by another factory.
 
-[The §5 evidence](approval-controls.md) records the rehearsal of this runbook,
-what each check answered, and the place for the authorised Base Sepolia result.
+[The approval controls](approval-controls.md) record the local rehearsal of
+this runbook, what each check answered, and the authorised Base Sepolia result
+of 25 September 2026.
 
 An approval refreshes itself when a classification is revoked or renewed, when
 an account is suspended or terminated, and when a wallet is deleted or
@@ -489,6 +487,3 @@ from the Compose network, or run the node inside that network and use its
 service/container name. Host firewall rules can block `host.docker.internal`;
 [provider networking](integrations.md#document-extraction) explains that
 failure. Restart backend and worker after changing their environment.
-
-The public testnet sequence and local sequence both require the deployment key
-and backend operator key to identify the configured contract owner.

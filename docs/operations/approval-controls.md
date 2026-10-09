@@ -21,10 +21,12 @@ This page records the evidence for
 merged pull request supplies each required behaviour, which test on `main`
 proves it, what the bypass review asked and answered, and what the
 [fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found. The earlier reviews below are dated evidence; their original commands and
-source remain in the linked pull requests. The #863 eligibility cutover retires
-the global classification renewal workflow and replaces it with retained
-company-decision and actual participant-loss removal controls. Updated test
-references identify that replacement without claiming a new test run.
+source remain in the linked pull requests. The #863 eligibility cutover retired
+the global classification renewal workflow and replaced it with retained
+company-decision and actual participant-loss removal controls; commit
+`c42402e7` (5 October 2026) renamed the stage-check tests accordingly, and the
+names in the first row below are the ones on `main`, updated on 10 October 2026
+without claiming a new test run.
 
 Contract tests are Mocha names inside `contracts/test/`, run with
 `npm --prefix contracts test`. Backend tests are `module.Class.method`, run with
@@ -34,7 +36,7 @@ the three [backend suites](../development/testing.md#backend-verification).
 
 | §5 behaviour | Where it is enforced | Merged | Test on `main` |
 | --- | --- | --- | --- |
-| Apply checks at relevant stages, including listing, acceptance and transfer | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701) | `tokens.tests.test_marketplace_stage_checks.ListingRequiresALiveClassificationTest.test_a_revoked_classification_records_the_eligibility_refusal`; `...AcceptanceRequiresALiveClassificationTest.test_a_party_whose_classification_was_revoked_cannot_accept`; `...test_a_relayed_signature_is_judged_by_whose_signature_it_is`; `ShareToken` → `Sender checks` → "Should refuse a direct transfer from a removed sender" |
+| Apply checks at relevant stages, including listing, acceptance and transfer | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701) | `tokens.tests.test_marketplace_stage_checks.ListingRequiresALiveClassificationTest.test_a_revoked_company_decision_records_the_eligibility_refusal`; `...AcceptanceRequiresALiveClassificationTest.test_a_party_whose_company_decision_was_revoked_cannot_accept`; `...test_a_fresh_seller_signature_cannot_be_submitted_as_the_buyer` (the nearest successor of `test_a_relayed_signature_is_judged_by_whose_signature_it_is`, removed in `c42402e7`); `ShareToken` → `Sender checks` → "Should refuse a direct transfer from a removed sender" |
 | Bind approvals to the correct participant, company, wallet and action; enforce expiry, revocation and protection against reuse | The factory keys one registry per ACN; a change carries its company, address, action and expiry, bound into the exact `setExpiry` calldata by a database trigger; `isWhitelisted` is `expiresAt > block.timestamp` | [#701](https://github.com/Ledova/ledova/pull/701) | `ShareTokenFactory` → `Cross-company isolation` → "Should grant nothing on company B's token for an approval in company A's registry"; `WhitelistRegistry` → "Should stop listing an address once its expiry has passed"; `whitelist.tests.test_change_recovery.WhitelistChangeRecoveryTest.test_each_company_keeps_its_own_approval_row_and_registry`; `whitelist.tests.test_change_migration.WhitelistChangeMigrationTest.test_the_guard_binds_the_expiry_into_the_registry_call`; `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_exact_applied_replay_survives_source_loss_and_changed_terms_conflict` |
 | Enforce rules on direct contract calls and delegated transfers; check administrative and recovery paths for bypasses | `_update` is the single enforcement point, so a direct call, a delegated transfer and a swap settlement all meet it; fresh company instructions check the exact company mandates and sources; technical removal retains its actual loss cause | [#701](https://github.com/Ledova/ledova/pull/701), this slice | `ShareToken` → `Sender checks` (four cases); `Approval bypasses` (whole file); `whitelist.tests.test_bypass_paths` (whole file) — see [the bypass review](#the-bypass-review) |
 | Refresh affected permissions when evidence or restrictions change, with documented update delays | Company revocation, holder withdrawal, expiry and actual standing/wallet losses retain their original decision or loss before removal; refresh cannot add or renew authority. The approval sweep covers surviving rows; removal jobs retry every five minutes after their rows disappear. The normal update window is fifteen minutes | [#702](https://github.com/Ledova/ledova/pull/702), removal recovery under [#648](https://github.com/Ledova/ledova/issues/648) | `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_company_revocation_removes_under_the_real_now_inactive_company_revoker`; `...test_holder_source_withdrawal_retains_the_holder_without_a_staff_reviewer`; `...test_actual_expiry_is_automation_with_no_invented_human`; `whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest.test_deleted_wallet_removal_job_survives_pending_add_then_removes_its_late_confirmation` |
@@ -202,8 +204,8 @@ The authorised core deployment and fresh signer admission completed on
 **25 September 2026**, on public Base Sepolia, chain **84532**. The backend,
 worker and dashboard run locally; this is not a hosted production deployment.
 The [rollout checkpoint](https://github.com/Ledova/ledova/issues/648#issuecomment-5835262968)
-and the later public observations below record progress, **not closure of
-#648 or public release acceptance**.
+and the later public observations below were recorded as progress, **not
+public release acceptance**; #648 closed on 26 September 2026 on this evidence.
 
 Checkpoint cutoff: **25 September 2026, 18:24:17 UTC**.
 
@@ -410,8 +412,8 @@ rechecked factory/registry/token bindings. This completes the natural-expiry
 control from its earlier finalized positive baseline; no local time advancement
 or expiry-zero removal was used to establish C's negative result.
 
-The #648 public approval-control exercise now has retained completion evidence;
-issue closure remains subject to final evidence review. The local funded
+The #648 public approval-control exercise has retained completion evidence, and
+#648 closed on 26 September 2026 after that review. The local funded
 journey for [#645 is already accepted](https://github.com/Ledova/ledova/issues/645#issuecomment-5827887653).
 Physical Keystone acceptance and release-level public swap proof belong to
 [#624](https://github.com/Ledova/ledova/issues/624), separately from this exercise.

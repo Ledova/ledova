@@ -2,11 +2,10 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-This guide describes the current implementation. The accepted
-[company-managed register plan](../architecture/company-managed-registers.md)
-retires routine platform-staff register gates as replacement company tools are
-implemented. Product-mode selection is already removed; the remaining
-configuration and staff workflows below describe current behaviour.
+This guide describes the operator record's configuration, the console and the
+demo data. Register decisions are company-run under the
+[company-managed register plan](../architecture/company-managed-registers.md);
+the staff workflows below are the ones that remain.
 
 The [product priority](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
 is the private-company share register and share workflows. Crypto on-ramp
@@ -18,10 +17,9 @@ share-wallet operations or their authority, execution and recovery safeguards.
 The singleton represents the platform operator organisation and its technical
 configuration; staff accounts are individual people working within its granted
 permissions. Neither makes an employee a company-appointed register
-administrator or director. The current register worklist labels active
-companies with the operator's identity as keeper. That reflects the legacy
-staff-operated allocation, not the target allocation to each company and its
-appointed users. Private hosting does not require a separate product mode.
+administrator or director. The register worklist still labels active
+companies with the operator's identity as keeper; that is a legacy label, not
+the allocation to each company and its appointees.
 
 ## Operator configuration
 
@@ -62,16 +60,19 @@ with none or several configured, order messages and executions are refused until
 the list holds one, and every created order records that asset.
 
 `investor_kyc_required` is enforced by investor/account eligibility.
-`issuer_kyc_required` stops an owner whose identity is unverified from submitting
-a company for review, and stops staff from activating it once approved. Resolving
-a warning and reinstating are not affected. Turn it on only with a KYC provider
-configured ([integrations](integrations.md#kyc-providers)): an owner becomes
-verified only through the provider, so with none configured every submission is
-refused.
-Supporting payslips, classification evidence and review are available on every
-instance under the same private-access and retention controls. The legacy mode
-field and evidence-only restrictions are
-[removed](upgrades.md#one-registry-product); no hosting or capability flag replaces them.
+`issuer_kyc_required` requires a company representative's identity to be
+verified: it gates initial self-declaration admission and invitation
+acceptance, company activation, and every company decision made through an
+appointment, including register commands
+(`tokens/services/register_authority.py`) and eligibility decisions
+(`users/services/company_eligibility.py`). Staff technical recovery of a
+company is not affected. Turn it on only with a KYC provider configured
+([integrations](integrations.md#kyc-providers)): a representative becomes
+verified only through the provider, so with none configured every company
+decision is refused. Supporting payslips and classification evidence are
+available on every instance under the same private-access and retention
+controls; company appointees decide eligibility
+([company eligibility](../plans/company-managed-registers/company-eligibility.md)).
 See [eligibility](../architecture/companies-and-eligibility.md) and
 [file retention](../architecture/files-and-retention.md).
 
@@ -97,7 +98,7 @@ The two register queues count **completed allotment addresses**, using current
 whitelist/profile identity. They can include former holders and miss transfer-only
 holders or identities available only from a retained stamp. They are not a complete
 register audit. Both open the unfiltered whitelist changelist because
-missing entries cannot be represented by a filter. Use the issuer's register view
+missing entries cannot be represented by a filter. Use the company's register view
 to locate the address, then resolve duplicates or link/add the correct named wallet.
 See [register identity](../architecture/register.md).
 
@@ -180,34 +181,23 @@ User.objects.filter(email='investor@demo.ledova.test').update(email='investor@le
 
 The first run on a database also adds a synthetic population with six months of
 history. A fixed random seed generates it, so every fresh database gets the same
-people, companies and amounts, dated relative to the day of the run:
-
-- Reference data: the countries in use; the operator's legal name, ABN and contact
-  email where they are blank (the ABN is eleven zeros, obviously not real); daily
-  prices for BTC, ETH, USDC and USDT over the six months; and a USD to AUD rate. The
-  settlement asset is left to the chain layer below.
-- Staff: a compliance officer, a document reviewer in the "Document operations"
-  group and an operations officer, each with the model permissions their queues
-  need, and a deactivated former staff member.
-- Investors, 60 unless `--investors` asks for another number (at least 20), who
-  joined at a growing rate. Most are verified, classified and active; others never
-  confirmed their email, stopped part-way through signing up, are waiting for or
-  failed an identity check, or were rejected, suspended or terminated. They carry
-  risk assessments, financial profiles, wallets on Base, Ethereum and Bitcoin
-  testnet (most verified with signatures over real challenges, some on
-  Keystone-style hardware derivations), wallet transactions and holdings, device
-  tokens (all inactive, so the worker never pushes to them), notifications,
-  preferences, payslips with extraction results, and classification claims in
-  every status and category.
-- Companies: Demo Robotics and two more active companies, each with full details,
-  every document type uploaded and verified by the document reviewer, an
-  officeholder attestation and a passed ABR check recorded from a synthetic
-  observation; one more company with information requested and one submitted for
-  review.
-- Compliance work: alerts in every status and several types, most closed with an
-  outcome, one with a suspicious matter report. Their amounts are the AUD values
-  the rules compare, and each account that was ever active is dated from its
-  identity check, so only customers in their first 30 days count as new.
+people, companies and amounts, dated relative to the day of the run. The
+modules under [`backend/shared/seeds/synthetic/`](../../backend/shared/seeds/synthetic/)
+are the description of record: `reference.py` (countries, the operator's blank
+identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT
+prices and a USD to AUD rate), `staff.py` (a compliance officer, a document
+reviewer in the "Document operations" group, an operations officer and a
+deactivated former staff member), `people.py` and `identities.py` (60
+investors unless `--investors` asks for at least 20, in every signup, identity,
+standing and classification state, with wallets on Base, Ethereum and Bitcoin
+testnet, transactions, holdings, inactive device tokens, notifications and
+payslips), `companies.py` (Demo Robotics and two more active companies with
+verified documents, officeholder attestation and a passed ABR check from a
+synthetic observation, one company with information requested and one
+submitted), `eligibility.py` (company eligibility decisions) and
+`alerts.py` (alerts in every status, one with a suspicious matter report, with
+AUD amounts the rules compare and activation dates that make only customers in
+their first 30 days new).
 
 The testers get the richest data. The founder's wallet is development account 0
 of the public test mnemonic, which is also the operator's signer, and the
@@ -224,146 +214,67 @@ come from a namespaced hash, except the testers' development accounts of the
 public test mnemonic. The seed sends nothing and queues no job: no email, push
 notification, identity check or ABR lookup.
 
-The chain and market fixture description below is **historical staff-assisted
-journey evidence**. Fresh [company wallet admission](../plans/company-managed-registers/company-wallet-approvals.md)
-requires a genuine successful proof and explicit nomination. The historical
-no-key employee-trust address cannot provide either, and its fresh admission
-refuses explicitly. Normal owned synthetic participants can use their actual
-signing keys and company commands; that does not complete the unsupported
-historical treasury layer. Do not override proof, fabricate a participant or
-reset retained records to reproduce its earlier completion. Preserve earlier
-screenshots, chain controls and data as history.
+With a configured local chain, chain id 31337 answering at `BLOCKCHAIN_RPC_URL`
+with the core contracts deployed and the operator signer admitted, as in the
+stack `make dev-up` starts ([its chain](chains.md#the-local-stacks-chain)),
+the first run also adds a chain layer and then a market layer, each once per
+database with its own marker. The chain layer
+([`seeds/synthetic/chain/`](../../backend/shared/seeds/synthetic/chain/))
+signs and sends about 130 real transactions in under a minute, one at a time,
+calling each service and the task the worker would have run, so the worker
+stays stopped and no job is queued: it makes AUDY the operator's settlement
+asset on Base with a receiving wallet and par price (`settlement.py`); deploys
+Demo Robotics' ordinary and seed preference shares, Wattlefield's and
+Coralgum's ordinary shares and Coralgum's convertible preference shares, the
+last paused through an evidenced company instruction, and leaves Demo
+Robotics' Series A and Saltbush's ordinary shares as drafts (`classes.py`);
+approves each Base wallet that holds shares or reached a payment instruction
+for its company until its decision's expiry, founders' wallets and the
+employee share trusts never expiring, and no suspended, terminated or rejected
+account (`approvals.py`); issues each company's existing register on chain
+under one applied register instruction and allots the closed offerings under
+the company's retained paid ISSUE approvals, then opens each class's register
+by a company-run opening, imports its particulars with dates entered back to
+the founding, amounts paid and a few pre-platform former members, and
+reconciles and folds it with at least ten members and nothing waiting
+(`issues.py`, `registers.py`); and seeds offerings in every status, about 60
+applications on both rails, issuance requests in every status and company-run
+capital increases (`offerings.py`, `issues.py`, `classes.py`). Without such
+a chain it writes nothing to any chain and prints why, a later `make dev-seed`
+adds it, and it leaves alone an operator already set to settle in anything but
+AUDY on Base, naming the fields to clear. A run that stopped part-way says to
+start over.
 
-At the recorded historical baseline, a configured local chain added a
-chain layer: chain id 31337 answering at `BLOCKCHAIN_RPC_URL` with the core
-contracts deployed and the operator signer admitted, as in the stack
-`make dev-up` starts ([its chain](chains.md#the-local-stacks-chain)). The layer
-signs and sends real transactions there, about 130 in under a minute, one at a
-time, and calls each service and the task the worker would have run, so the
-worker stays stopped and no job is queued. Without such a chain it writes
-nothing to any chain and prints why, and a later `make dev-seed` adds it. It
-likewise leaves alone an operator already set to settle in anything but AUDY on
-Base, and names the fields to clear. Like the population it runs once per
-database: a later run says it is present, and a run that stopped part-way, a
-balance the node would not set included, says to start over. It adds:
-
-- Settlement: AUDY becomes the operator's settlement asset on Base, with a
-  receiving wallet and its par price, so payment instructions show both rails and
-  every health check above passes.
-- Share classes: Demo Robotics' ordinary and seed preference shares, Wattlefield's
-  and Coralgum's ordinary shares and Coralgum's convertible preference shares,
-  deployed with their share assets, the last paused through an evidenced company
-  instruction and its original captured recovery job; and
-  two drafts, Demo Robotics' Series A preference shares and Saltbush's ordinary
-  shares.
-- Approvals: each Base wallet that holds shares, or whose application reached a
-  payment instruction, is approved for its company until the expiry the
-  classification refresh would set, that is the latest expiry of the holder's
-  live claims, to the second, or none; the founders' wallets and the employee
-  share trusts' addresses never expire. No suspended, terminated or rejected
-  account is approved.
-- Registers: each company's existing register (founders, directors, an employee
-  share trust held at a custodian address with no key behind it, and investors
-  from earlier rounds) is issued on chain through issuance requests that one
-  applied register instruction approves. Closed offering allotments use the
-  company's retained authority, exact paid ISSUE approval/application and the
-  original captured task, preserving recorded payment/refund quantities and dates.
-  Each class's register is then opened from the chain by a company-run opening,
-  its particulars are imported with names, dates entered back to the founding,
-  amounts paid and a few pre-platform former members, and it is reconciled with
-  the chain and folded. Every opened register has at least ten members and no
-  effect waiting.
-- Offerings in every status: three closed and allotted, one of them scaled back
-  with the excess refunded; one open and close to its cap; one approved to open
-  twelve days after the run; one submitted, one under review, one draft, one
-  rejected and one withdrawn, all priced in AUD and made under section 708
-  exemptions, except Wattlefield's, which are for wholesale clients under section
-  761G. About 60 applications on both rails cover every application status, with
-  references from the operator's prefix and payment due dates still ahead. Each
-  offering carries an information memorandum generated from its own terms,
-  verified by the document reviewer when the round was approved, and its
-  company's risk disclosure statement; eligible investors open those of the
-  approved and closed rounds from the Directory.
-- Issuance requests submitted, under review, approved, rejected and executed (a
-  top-up of Demo Robotics' employee share trust after its register opened, which
-  the register records under its instruction), and capital increases executed
-  (raising Demo Robotics' authorised shares), under review, rejected and draft.
-  New capital histories use company-provided authority, personal company approval
-  and application; retained drafts remain history. Staff capital review/admission
-  is retired, while original technical recovery remains.
+The market layer ([`seeds/synthetic/market/`](../../backend/shared/seeds/synthetic/market/))
+signs about 40 more operator transactions and about 25 from the investors' own
+wallets, whose keys the seed derives as it derived their addresses, and skips,
+saying why, when the chain is unreachable, the operator settles in anything but
+AUDY on Base, or a deployed class has no code on the node. It records and
+mints AUDY deposits through the operations officer, builds an order book in
+each deployed class over the preceding eighteen days with cancellations and
+three lapsed matches (one seed preference sale still held back), settles about
+20 trades on the day of the run with both approvals, both signatures, the
+relayed swap and its finality, enters first-time buyers under company-run
+wallet links and records the day's transfers under one applied transfer
+instruction per class so every register reconciles matched, and publishes 27
+notices across the four classes: statements, meeting notices, three dividends
+with payment records and generated remittance evidence, and resolutions in
+every state, five of them closing during the run. The seed's own generated
+documents are the only files that skip the malware scan.
 
 Database-only steps (offerings, applications up to payment, reviews) are dated
 over the six months. Everything a chain transaction completes, from deployments
-to allotments and register entries, carries the day of the run, so a register
-opens that day and shows each member's imported date entered. The investor
+to allotments and register entries, carries the day of the run. The investor
 tester holds four classes in three companies across development accounts 1, 2
-and 4, two of them through allotted applications, and has applications awaiting
-payment and paid; the founder's growth round, still open, has applications in
-every status but allotted, and the founder's offerings together cover all nine.
-The console's warning and information rows have work in them and its danger rows
-stay at zero. No periodic job signs or removes anything, and none changes a
-seeded row other than the founder's Base ether below: the registry sync and
-refresh, reconciliation, fold, expiry and recovery jobs leave every seeded row
-as it is.
-
-Once the chain layer is present, the first run then adds a market layer on the
-same chain, likewise once per database with its own marker: a later run says it
-is present, and one that stopped part-way says to start over. It skips, and says
-why, when the chain is unreachable, when the operator settles in anything but
-AUDY on Base, or when a deployed class has no code on the node. It signs about
-40 more operator transactions and about 25 from the investors' own wallets,
-whose keys the seed derives as it derived their addresses, through the services
-and tasks the worker would run. It adds:
-
-- AUDY deposits: one for each buyer, recorded and minted by the operations
-  officer through the mint service to cover the buyer's bids, dated by the day
-  the bank deposit arrived; two more recorded and not yet minted, and two
-  rejected with their reason. Every AUDY holding matches the chain.
-- An order book in each deployed class (Demo Robotics' ordinary and seed
-  preference shares, Wattlefield's and Coralgum's ordinary shares): For sale and
-  Wanted orders at several prices around the class's offering price, each signed
-  by its wallet with a current challenge on the day of the run. The synthetic
-  plan orders its story over the preceding eighteen days; admitted orders retain
-  their actual creation times. Some are cancelled with a current signed
-  cancellation. Three unsigned matches simulate expiry just after their captured
-  deadlines: the order that had been resting returned to the book
-  and the one that took it was held back from the book. Two of those traders
-  then cancelled; the third, a seed preference sale at the best bid, is still
-  held back, because it crosses the bid it lapsed against and the sweep never
-  pairs them again. Its trader sees it as Held Back, and the seed's summary
-  names them.
-- About 20 trades settled on the day of the run, each a signed order against a
-  resting one, with the seller's and buyer's one-time approvals, both settlement
-  signatures, the relayed swap and its finality; each class then shows a last
-  price. One buyer is approved for the company first, and one buys an odd lot of
-  eight shares.
-- Registers: each company enters its first-time buyers' wallets as members under
-  a company-run wallet link and records the day's transfers under one applied
-  transfer instruction per class, so every register reconciles matched with
-  nothing waiting. Each deposit writes its recipient's AUDY holding and each
-  settled trade the buyer's and the seller's share and AUDY holdings from the
-  chain, as they do outside the seed, and each investor's ether goes back to its
-  seeded balance after their approvals paid for gas.
-- Notices to members: 27 publications across the four classes, each with the
-  day of the run as its record date, because each register opened that day:
-  holding statements; meeting notices; three dividends in AUD, recorded as paid
-  to every member (each payment with generated evidence), to some, and to none
-  yet, the last leaving the odd-lot holder less than a cent; and resolutions not
-  yet open, open with and without ballots, and five circular resolutions put to
-  the morning's members with a short voting window that closes during the run,
-  two carried and three not. Members with an account get a notification, never a
-  push or an email. The seed's own generated documents are the only files that
-  skip the malware scan, so seeding does not wait for ClamAV.
-
-The investor tester has an order in four of the statuses the market's panels
-show (open, partially filled, filled and cancelled), sold Wattlefield shares,
-bought seed preference shares into the Trading wallet, which held none, voted on
-two resolutions with others waiting under Needs you, and has more than a page of
-notices. One state is left out: a trade awaiting signatures lapses fifteen
-minutes after its match (`SWAP_ORDER_EXPIRY_HOURS`), so it would expire before
-anyone looked. The periodic jobs leave the market as it is: no match lapses, the
-held order stays held, no resolution closes, nothing is signed and the wallet
-sync reads the balances already recorded.
+and 4, has applications awaiting payment and paid, an order in four statuses,
+shares sold and bought, two resolutions voted on and more than a page of
+notices; the founder's offerings together cover all nine statuses. The
+console's warning and information rows have work in them and its danger rows
+stay at zero. The periodic jobs leave every seeded row as it is, other than the
+founder's Base ether below: nothing is signed or removed, no match lapses, the
+held order stays held and no resolution closes. A trade awaiting signatures is
+left out, since it lapses fifteen minutes after its match
+(`SWAP_ORDER_EXPIRY_HOURS`).
 
 Wallet balances follow the worker's hourly sync wherever it can read a chain.
 Base balances come from the local chain, so the chain layer sets each seeded

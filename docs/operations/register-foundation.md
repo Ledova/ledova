@@ -2,73 +2,28 @@
 
 [Operations](README.md) · [Register architecture](../architecture/register.md)
 
-This guide describes the current implementation and the staged #647 operator
-exercise. The accepted [company-managed register plan](../architecture/company-managed-registers.md)
-replaces routine platform-staff register work with company-appointed users and
-company instructions. The owner and staff routes below are not the final
-company authority model, and their presence is not a reason to grant customers
-global staff permissions.
-
-The replacement tools must cover company bootstrap and appointments, imports
-and openings, walletless and employee issues, member links, transfers,
-corrections, register access, certificates and filing preparation. Actual
-director approval and conflict rules remain explicit; an initial administrator
-is not automatically a director, and external approval evidence need not force
-the director to create a platform account. Private hosting uses the same
-product and authority model. Until these tools and enforcement changes ship,
-the detailed limitations and recovery steps below still apply.
-
-[#647](https://github.com/Ledova/ledova/issues/647) built the authoritative
-stored register: company-scoped member references with durable wallet links, an
-append-only share-event chain, stored holdings, an approved opening capture and
-reviewed compensating corrections.
-The HTTP and CSV register routes serve it once a share class's opening is
-applied, and issuance and settlement then record each later completed effect in
-it, each only under an applied register instruction that a named director's
-approval supports, and the issuer can list the effects still waiting and why;
-opening preparation, opening decisions and the inclusion report classify completed
-effects against the captured boundary, and a scheduled job reconciles it with the
-chain. An
-import adds an existing register's particulars and former members to a class
-opened from the chain, or opens a class not yet on chain from that register, and
-current company appointees prepare [inspection copies](#preparing-an-inspection-copy)
-of it. Staff still prepare [certificates](#preparing-a-certificate) for its issues and transfers and the
-[figures for its notices](#preparing-notice-figures) on a company's written
-instruction, and a [due list](#working-the-due-list) shows the certificates and
-figures still due. A class an import opened supports company-run
-[non-paid register grants](../plans/company-managed-registers/register-grants.md)
-and [direct non-paid transfers](../plans/company-managed-registers/register-transfers.md)
-without deployment or a wallet, including new/returning members and retained
-cessation history. Tokenisation remains design-only later work. No real company's register may rely on it before
-the decisions reserved for real data are made, among them production retention
-and how to undo a mistaken opening import.
-
-The [company empty-deployment workflow](../plans/company-managed-registers/company-deployments.md)
-can deploy an empty class without issuing shares. Positive issued register supply
-refuses; an existing zero book keeps its entries and head. Once a company admits
-deployment, register head advances, imports and corrections wait for the original
-attributed projection. A genuinely new opening then binds the original confirmed
-deployment through the company-approved chain-opening workflow. An import-origin
-zero book cannot receive a second opening or a fresh issuance execution merely
-because its class has a contract. A chain opening followed by a matching-holdings
-particulars import retains its existing meaning. Mirroring existing holdings and
-imported-baseline chain attribution remain later work.
+[#647](https://github.com/Ledova/ledova/issues/647), closed on 22 September
+2026, built the authoritative stored register: company-scoped members with
+durable wallet links, an append-only hash-chained event log and the holdings
+projection the holders route and CSV serve. Companies run openings, imports,
+corrections, wallet links, particulars changes and discrepancy acknowledgements
+through current appointments with company-provided evidence
+([company register decisions](#company-register-decisions)), and issue shares
+through the [chain grant](../plans/company-managed-registers/company-register-issues.md),
+[paid-issue](../plans/company-managed-registers/company-paid-issues.md) and
+[walletless grant](../plans/company-managed-registers/register-grants.md)
+families. Platform staff still review settled-transfer instructions and prepare
+certificates, notice figures and the company pack on written instruction. The
+operator commands here run on synthetic data only: production retention and the
+undoing of a mistaken opening import are decided before real data is admitted.
 
 ## Identity and events
 
-A member has a UUID belonging to one company, independent of a wallet or platform
-account. The owner chose this so imports can include walletless members and one
-member can have multiple wallet links. Wallet links are durable insert-only
-identity records created by an applied opening or an applied
-[wallet link](#linking-wallets-after-the-opening): one address resolves to
-one member per company, and an existing link for a mapped address must agree
-with the mapping. The register routes name members from their wallets'
-identities and allotment stamps; an [import's](#importing-an-existing-register)
-recorded particulars fill in only where neither resolves, or where the only
-identity is a treasury label. It never merges members by matching names.
-
-A register belongs to one share class. Its first entry records the opening state,
-including an explicitly empty state. Subsequent event kinds are:
+[Register architecture](../architecture/register.md#membership-and-identity)
+describes members, wallet links and identity resolution; what follows is how
+the event chain is written and checked. A register belongs to one share class.
+Its first entry records the opening state, including an explicitly empty state,
+and later entries are:
 
 | Kind       | Effect                                                        |
 | ---------- | ------------------------------------------------------------- |
@@ -77,36 +32,32 @@ including an explicitly empty state. Subsequent event kinds are:
 | Cessation  | Remove a member's entire holding in this class                |
 | Correction | Compensate every quantity in one earlier entry exactly        |
 
-A transfer that empties a holding leaves a zero position. Cessation here describes
-the class holding, not a conclusion about membership across the company's other
-classes. Former-member recording remains on the existing path. A correction can
-itself be compensated, but each original entry can be compensated only once and
-no change can make a position negative. Partial corrections and general
-replacement transactions remain later work; the company-run workflows for
-corrections and openings are documented below. Recording a cessation or
-correction does not burn, seize or transfer tokens on chain.
+A transfer that empties a holding leaves a zero position; a cessation describes
+the class holding, not membership across the company's other classes. A
+correction can itself be compensated, but each original entry can be
+compensated only once and no change can make a position negative. Recording a
+cessation or correction burns, seizes or transfers nothing on chain. Partial
+corrections and replacement transactions are not built.
 
 PostgreSQL locks the register head, validates the event and member company,
 assigns the next sequence and hashes the event with its predecessor. It updates
 the holdings and issued supply in the same transaction. Quantities are exact
 integers bounded by the unsigned 256-bit range. A repeated operation UUID with
 the same instructions returns its original entry; changed instructions conflict.
-
-Entry payloads admit only member UUIDs and share changes. They contain no names
-or residential addresses. Existing former-member retention and purge are
-unchanged. Database triggers refuse entry/member rewrites and deletes, and
-holdings/head writes outside event projection. The operator role has no TRUNCATE
-privilege. The schema owner remains trusted and can alter database protections;
-the hash chain is not an externally anchored proof against a schema owner who
-rewrites the entire history and every hash.
+Entry payloads admit only member UUIDs and share changes, never names or
+residential addresses. Database triggers refuse entry and member rewrites and
+deletes, and holdings or head writes outside event projection; the operator role
+has no TRUNCATE privilege. The schema owner remains trusted and can alter
+database protections: the hash chain is not an externally anchored proof against
+a schema owner who rewrites the entire history and every hash.
 
 The hash input is a PostgreSQL JSONB array in this order: format marker
 `ledova-register-v1`, entry UUID, register UUID, operation UUID, sequence, kind,
 effective date, sorted changes, corrected-entry UUID, actor ID, previous hash and
 creation time in UTC with microseconds. SHA-256 covers its UTF-8 JSONB text. The
-first predecessor is 64 zeroes. Verification checks each digest and link, replays
-positions and entry dates, and compares the resulting head and supply with
-storage. An uninitialized head fails verification. `tokens_register_entry_preimage`
+first predecessor is 64 zeroes. Verification checks each digest and link,
+replays positions and entry dates, and compares the resulting head and supply
+with storage. An uninitialised head fails verification. `tokens_register_entry_preimage`
 returns the exact text the hash function digests, which the
 [company pack](../architecture/company-pack.md#hash-preimages) carries beside
 each entry.
@@ -117,7 +68,7 @@ Use an isolated PostgreSQL16 development database with configured app, operator
 and migration roles, an existing synthetic company/share class, and an active
 staff actor. Apply schema migrations only to that development database. Commands
 select the operator connection explicitly; application connections can only read
-their issuer's rows through RLS.
+their company's rows through RLS.
 
 Create `opening.json` with synthetic UUIDs and whole-share amounts:
 
@@ -171,7 +122,7 @@ canonical block-hash `eth_call` requests. Unsupported or unavailable historical
 reads are refused rather than replaced by current balances.
 
 The JSON records the company, class, deployment transaction, network, contract,
-block number/hash/date, finality policy, issued/authorized supply, positive
+block number/hash/date, finality policy, issued/authorised supply, positive
 holdings and the canonical transfer history it folded: one entry per observed
 transaction that moved shares, with its block number and block hash. A
 transaction whose transfers all carry zero shares is folded but not listed,
@@ -191,17 +142,18 @@ workflow event is recorded. This inspection neither approves nor imports the
 register, and cannot guarantee future chain finality. No signing or database
 writes take place.
 
-Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
-and [backend verification](../development/testing.md#backend-verification).
+Next: [backend verification](../development/testing.md#backend-verification);
+#647 closed on 22 September 2026 with this command as delivered.
 
 ## Reviewing documentary evidence
 
 The register approval model uses documentary director authority submitted by
 the company owner and verified by authorised staff. An owner account alone is
 not proof of director authority. The company-document admin provides its
-content-verification prerequisite; the register instruction workflows below are
-its only consumer. Openings, imports, corrections, wallet links and particulars
-changes use company-provided evidence instead.
+content-verification prerequisite; the retained
+[register instructions](#register-instructions-for-issues) below and
+[publications](publications.md) consume it. Openings, imports, corrections,
+wallet links and particulars changes use company-provided evidence instead.
 
 In the company document admin, choose **Review and verify document**, open the
 private file, review its company, document type and validity details, then confirm.
@@ -235,45 +187,143 @@ background storage monitoring or deletion/retention change is introduced here.
 Documentary authority and an exact proposed register change remain separate
 requirements of each approval workflow.
 
-## Compensating corrections
+## Company register decisions
 
-A correction reverses one identified entry exactly. This is a compensation, not
-an editable replacement: the original entry and its hash remain, and the new
-entry names the original. Applying it changes the stored holdings the register
-routes serve; it broadcasts no chain change. Replacement transactions and
-reconciliation remain #647 work.
+Since 5 October 2026 the company runs its register itself, under the owner's
+[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence).
+The rules below apply to every register command: corrections, openings, wallet
+links, imports and particulars changes here, and the
+[walletless grants](../plans/company-managed-registers/register-grants.md),
+[direct transfers](../plans/company-managed-registers/register-transfers.md),
+[chain grants](../plans/company-managed-registers/company-register-issues.md),
+[paid issues](../plans/company-managed-registers/company-paid-issues.md),
+[capital increases](../plans/company-managed-registers/company-capital-increases.md),
+[pause changes](../plans/company-managed-registers/company-pause-changes.md),
+[wallet approvals](../plans/company-managed-registers/company-wallet-approvals.md)
+and [empty deployments](../plans/company-managed-registers/company-deployments.md)
+in their own guides. The subsections that follow hold only what is specific to
+each command. The Register screen in both clients runs every step through the
+API.
 
-Since 5 October 2026 the company runs its corrections itself, as it runs its
-[imports](#importing-an-existing-register), under the owner's
-[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
+**Who may act.** A current appointment holding `admin` or `prepare` uploads
+evidence and prepares; `admin` or `approve` approves or rejects; `admin` or
+`apply` applies. One person may take every step and no second person is
+required. Application needs an approval whose approver still holds a current
+appointment; if that appointment was revoked or has expired, a current approver
+approves again. Staff permissions, company ownership alone and shareholding
+grant none of these steps. Listing and reading proposals, their decisions and
+their evidence copies takes the register-read scope: the company owner, or a
+current appointment holding `admin`, `read_register`, `prepare`, `approve` or
+`apply`. Every command also meets the identity requirement
+[`issuer_kyc_required`](operator-console.md#operator-configuration) imposes on
+the appointee.
 
-- the evidence is company-provided. The company uploads the director resolution
-  or court order that authorises the correction as an `authority` upload. Ledova
-  staff do not verify it, and the correction's copy is shown as provided by the
-  company;
-- a current appointment holding `admin` or `prepare` uploads and prepares,
-  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
-  person may take every step, and no second person is required;
-- application needs an approval whose approver still holds a current
-  appointment. If that appointment was revoked or has expired, a current
-  approver approves again;
-- a correction submitted for the retired staff review and still waiting can only
-  be rejected. The company then prepares a new one.
+**Evidence.** The company uploads its evidence with
+`POST /api/v1/tokens/register-evidence/` (multipart: `company_id`,
+`appointment`, `kind`, `idempotency_key`, `file`), which answers a receipt with
+the file's size, type and SHA-256. The kinds are `share_register` and
+`asic_extract` for an import, `authority` for the director resolution or court
+order behind an opening, a correction or a wallet link, and `supporting` for a
+particulars change. An upload is checked like every other upload, then kept
+privately with its SHA-256; an identical retry returns the first receipt, and
+the same key with a different file conflicts. Preparation accepts only the
+preparer's own upload for this company, of the right kind, whose stored bytes
+still match its fingerprint, and the proposal keeps its own private copy with a
+snapshot naming the upload, its size, type and SHA-256, marked as provided by
+the company. Ledova staff verify nothing. A director resolution names the
+approving director; `court_order` instead carries a court reference and an
+empty `approving_director`. An owner account is not proof of director authority.
 
-Staff permissions, company ownership alone and shareholding grant none of these
-steps. The Register screen in both clients lists each class's entries and
-corrections and runs these steps, through the API below.
+**Routes.** Each command has the same family under `/api/v1/tokens/`:
+`POST register-<command>/` prepares and returns the retained proposal;
+`GET register-<command>/` pages the proposals of companies whose register the
+caller may read, filterable by `company` and `status` and, where the command
+concerns a class or a member, `token` or `member`; `GET register-<command>/{uuid}/`
+returns the proposal with its evidence, stage and decisions;
+`GET .../{uuid}/file/` streams the proposal's copy of its document as an
+authenticated attachment; `POST .../{uuid}/decision-preview/` and
+`POST .../{uuid}/decide/` are the decision steps below. An identical preparation
+retry returns the proposal; the same `operation_id` with any change conflicts.
 
-| Method and route                                                    | Result                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/tokens/{uuid}/register/entries/`                       | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
-| `POST /api/v1/tokens/register-evidence/`                            | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                                                                     |
-| `POST /api/v1/tokens/register-corrections/`                         | Prepare the correction; return the retained request                                                                                                                                                                                                                                                                                                                                          |
-| `GET /api/v1/tokens/register-corrections/`                          | Paginated corrections for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `register`, `token` (the share class) and `status`                                                                                                                            |
-| `GET /api/v1/tokens/register-corrections/{uuid}/`                   | Request, bound revision and evidence, stage and decisions                                                                                                                                                                                                                                                                                                                                    |
-| `GET /api/v1/tokens/register-corrections/{uuid}/file/`              | Authenticated attachment of the correction's copy of the authority document                                                                                                                                                                                                                                                                                                                  |
-| `POST /api/v1/tokens/register-corrections/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the original entry's changes and their inverse, and the preview digest                                                                                                                                                                                                                          |
-| `POST /api/v1/tokens/register-corrections/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                                                          |
+**Preview, digest and retry.** Every decision starts with a preview for the
+caller's appointment, which lists what the decision still lacks and answers a
+digest binding the proposal, the decision kind, the person, the appointment, the
+reason and, for application, the state the effect depends on (each subsection
+says which). The decision carries that digest, a retry key and
+`confirmation: true`; any change in between conflicts. An identical decision
+retry with the same key returns the proposal, and the same key with any change
+conflicts. Every step rechecks the appointment after taking the company lock, so
+a revocation that commits first refuses the decision and records nothing.
+Rejection needs a reason and stays available until a decision applies or
+rejects the proposal, including when the retained copy is unavailable. The
+requirements every command reports are:
+
+| Requirement                             | Meaning                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                                                  |
+| `<command>_decided`                     | The proposal is already applied or rejected: `correction_decided`, `opening_decided`, `link_decided`, `import_decided` or `change_decided`                   |
+| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected                                                                                                    |
+| `already_approved`                      | A current approval exists                                                                                                                                    |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                                                                |
+| `evidence_unavailable`                  | A retained copy no longer matches its size or SHA-256                                                                                                        |
+| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                                                                                                 |
+
+**Staff-era proposals.** A proposal submitted for the retired staff review and
+still waiting can only be rejected; the company then prepares a new one. Such a
+proposal keeps its copy of the staff-verified company document and its
+reviewer, readable through the API, the admin and the
+[company pack](../architecture/company-pack.md), shown as `staff_verified`;
+deleting that document deletes neither the copy nor the decision.
+**Admin → Tokens → Register corrections**, **Register openings**,
+**Register wallet links** and **Register imports** show proposals and their
+copies as read-only history; the review pages are gone, and particulars changes
+have no admin page.
+
+**What the database guarantees.** Proposals, uploads, decisions and the records
+they create are immutable, and PostgreSQL refuses:
+
+- an upload or preparation not made through the company command by a person
+  whose current appointment holds `admin` or `prepare`;
+- a preparation whose evidence, fingerprint, snapshot or copy path differ from
+  the preparer's own upload of the required kind for the company;
+- a decision whose digest the database does not recompute, whose appointment is
+  not the decider's current one with the capability the decision needs, a
+  second current approval, an approval or application of a staff-era proposal,
+  or an application without a current approval;
+- an applied or rejected proposal without its matching decision, and a decision
+  whose proposal does not carry its effect when the transaction commits;
+- an application whose effect is not exactly the one the proposal describes,
+  recorded by the person applying it.
+
+Application commits the effect, the decision and, where holdings change, the
+holdings projection atomically; a failure rolls them all back. Use the
+[foundation verifier](#synthetic-operator-exercise) to check the resulting
+event chain and projection; that is not a claim of chain reconciliation.
+
+**Retention.** Proposals, their copies of the company's uploads, their captured
+boundaries or figures and their decisions are evidence with no automatic expiry
+during the synthetic-only experiment, and ordinary deletion is blocked.
+Committed copies are protected by their retained row; copies left by a
+rolled-back or interrupted preparation fall under the 24-hour orphan sweep.
+[Data retention](uploads.md#data-retention) is the single statement of what the
+daily purge removes and what it leaves. Production retention needs its own
+decision before real data is admitted.
+
+### Compensating corrections
+
+A correction reverses one identified entry exactly. It is a compensation, not an
+editable replacement: the original entry and its hash remain, the new entry
+names the original, and an already compensated entry cannot be compensated a
+second time. Applying it changes the stored holdings the register routes serve
+and broadcasts no chain change; the next [reconciliation](#reconciling-with-the-chain)
+reports the difference as `member` and `supply` rows, which the company
+acknowledges. Replacement transactions and partial corrections are not built.
+The evidence is an `authority` upload.
+
+| Method and route                              | Result                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction entry that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries; another class's entry is not returned and a malformed UUID is refused |
+| `POST /api/v1/tokens/register-corrections/`   | Prepare the correction. `GET` lists, filterable by `company`, `register`, `token` (the share class) and `status`; `{uuid}/` returns the request, bound revision, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                                                                                     |
 
 For a synthetic exercise, use the register foundation command to create an
 opening and identify the entry to compensate, and upload a synthetic signed
@@ -294,165 +344,62 @@ from the exercise:
 }
 ```
 
-An entry is `correctable` while it has changes and no correction reverses it;
-preparation still refuses an inverse that would take a holding below zero.
+An entry is `correctable` while it has changes and no correction reverses it.
 Preparation derives the exact inverse share changes and captures the register's
-current sequence and head hash. The effective date may be today (UTC) or earlier,
-since a rectification can be backdated; preparation refuses a later one, which
-would hold back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
-until that date. A director resolution names the approving director;
-`court_order` instead uses a court reference and an empty `approving_director`.
-An owner account is not proof of director authority.
+current sequence and head hash. The effective date may be today (UTC) or
+earlier, since a rectification can be backdated; a later one is refused, because
+it would hold back [later issues and transfers](#recording-issues-and-transfers-after-the-opening)
+until that date. Preparation also refuses an entry of a company in which the
+caller holds no current appointment, an entry already corrected or with no
+changes, and an inverse that would take a stored holding below zero.
 
-Preparation refuses, with a message naming the problem:
-
-- an entry of a company in which the caller holds no current appointment;
-- evidence that is not the preparer's own `authority` upload for this company,
-  or whose stored bytes no longer match its fingerprint;
-- an entry already corrected, or one with no changes;
-- an inverse that would take a stored holding below zero.
-
-The correction keeps its own private copy of the upload, with a snapshot naming
-the upload, its size, type and SHA-256, and marked as provided by the company.
-An identical preparation retry returns the correction; the same operation ID
-with any change conflicts.
-
-Each decision starts with a preview, which shows the original entry's changes
-beside their inverse and lists what the decision still lacks:
-
-| Requirement                             | Meaning                                                                       |
-| --------------------------------------- | ----------------------------------------------------------------------------- |
-| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs   |
-| `correction_decided`                    | The correction is already applied or rejected                                 |
-| `company_provided_evidence_required`    | A retained staff-era correction, which can only be rejected                   |
-| `already_approved`                      | A current approval exists                                                     |
-| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                       |
-| `register_changed`                      | The register has a newer entry than the revision preparation captured         |
-| `entry_already_corrected`               | Another correction of the same entry was applied                              |
-| `position_would_go_negative`            | Applying the inverse would take a stored holding below zero                   |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                  |
-
-The preview digest binds the correction, the decision, the person, the
-appointment, the reason and, for application, the register's sequence and head
-hash. The decision must carry the same digest, so any change in between
-conflicts. An identical decision retry with the same retry key returns the
-correction; the same key with any change conflicts. Every step rechecks the
-appointment after taking the company lock, so a revocation that commits first
-refuses the decision and records nothing.
+The preview shows the original entry's changes beside their inverse, and its
+digest binds, for application, the register's sequence and head hash. The
+correction's own requirements are `register_changed` (the register has a newer
+entry than the revision preparation captured), `entry_already_corrected`
+(another correction of the same entry was applied) and
+`position_would_go_negative`. A correction the register has moved past cannot
+be applied: reject it with a reason and prepare a new one against the current
+register.
 
 Application records the compensating entry, whose operation ID is the
-correction's UUID and which the person applying it records, with the decision
-and the holdings projection; a failure rolls them all back. A correction the
-register has moved past cannot be applied: reject it with a reason and prepare a
-new one against the current register. Rejection stays available until a decision
-applies or rejects the correction, including when the retained copy is
-unavailable. An already compensated entry cannot be compensated a second time.
-**Admin → Tokens → Register corrections** shows corrections and their copies as
-read-only history. The database keeps corrections, uploads and decisions
-immutable and refuses:
+correction's UUID, directly after the revision preparation captured. The
+database also refuses a preparation whose changes are not the exact inverse,
+whose register revision is not current, whose entry is already corrected, whose
+authority fields are incomplete or whose effective date is after today, and an
+application whose entry is not the exact compensating entry. Export records
+follow the 2,557-day floor, purged by the daily retention job.
 
-- a preparation not made through the company command by a person whose current
-  appointment holds `admin` or `prepare`;
-- a preparation whose evidence, fingerprint, snapshot or copy path differ from
-  the preparer's own `authority` upload for the company;
-- a preparation whose changes are not the exact inverse, whose register revision
-  is not current, whose entry is already corrected, whose authority fields are
-  incomplete or whose effective date is after today;
-- a decision whose digest the database does not recompute, whose appointment is
-  not the decider's current one with the capability the decision needs, a second
-  current approval, an approval or application of a staff-era correction, or an
-  application without a current approval;
-- an applied or rejected correction without its matching decision, and a
-  decision whose correction does not carry its effect when the transaction
-  commits;
-- an application whose entry is not the exact compensating entry, recorded by
-  the person applying it directly after the revision preparation captured.
-
-Use the foundation verifier to check the resulting event chain and projection;
-that is not a claim of chain reconciliation.
-
-The owner chose private retention without automatic expiry for corrections and
-their authority files during the synthetic-only experiment. Ordinary deletion is
-blocked. A correction made before corrections were company-run keeps its copy of
-the staff-verified company document; deleting that document deletes neither the
-copy nor the decision. Committed copies are protected by their retained row;
-copies left by a rolled-back or interrupted preparation fall under the existing
-24-hour orphan sweep. The company's uploads are kept like import evidence
-(owner decision, 5 October 2026). Account/company deletion still respects
-protected register relations. Production retention needs its own decision before
-real data is admitted. Classification evidence, former-member retention and
-export records have independent policies; this choice does not change them.
-Export records follow the 2,557-day floor, purged by the daily retention job.
-
-## Opening the register from the chain
+### Opening the register from the chain
 
 The stored register of a deployed share class is initialised from one verified
-canonical chain boundary. The company opens it itself, as it runs its
-[imports](#importing-an-existing-register) and
-[corrections](#compensating-corrections), under the owner's
-[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
-
-- the evidence is company-provided. The company uploads the director resolution
-  or court order that authorises the opening as an `authority` upload. Ledova
-  staff do not verify it, and the opening's copy is shown as provided by the
-  company;
-- a current appointment holding `admin` or `prepare` uploads and prepares,
-  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
-  person may take every step, and no second person is required;
-- application needs an approval whose approver still holds a current
-  appointment. If that appointment was revoked or has expired, a current
-  approver approves again;
-- an opening submitted for the retired staff review and still waiting, whether
-  or not a reviewer captured its boundary, can only be rejected. The company
-  then prepares a new one.
-
-Staff permissions, company ownership alone and shareholding grant none of these
-steps. The Register screen in both clients lists each class's openings, opens
-an unopened class's register from its on-chain holders and runs these steps,
-through the API below.
-
-An opening maps each wallet address holding shares at the boundary to a company
-member ID. There are no free-typed quantities or dates: the opening's effective
-date is the boundary block's date, and its share changes are the boundary's
-holdings grouped by the mapped members. Walletless members and several wallets
-per member are supported. One address resolves to one member per company; an
+canonical chain boundary, captured when the company prepares the opening. An
+opening maps each wallet address holding shares at the boundary to a company
+member ID; there are no free-typed quantities or dates. Its effective date is
+the boundary block's date and its share changes are the boundary's holdings
+grouped by the mapped members. Walletless members and several wallets per
+member are supported. One address resolves to one member per company, an
 existing wallet link for a mapped address must agree with the mapping, and a
-mapping may not repeat an address. An opening stores no personal particulars; a
+mapping may not repeat an address. An opening stores no personal particulars: a
 later [import](#importing-an-existing-register) records names and residential
-addresses.
+addresses. The evidence is an `authority` upload. A staff-era opening can only
+be rejected, whether or not a reviewer captured its boundary.
 
-| Method and route                                                 | Result                                                                                                                                                                                                                                                                                                                                                     |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/tokens/{uuid}/register/opening-holders/`            | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
-| `POST /api/v1/tokens/register-evidence/`                         | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                                   |
-| `POST /api/v1/tokens/register-openings/`                         | Prepare the opening, capturing its boundary; return the retained request                                                                                                                                                                                                                                                                                   |
-| `GET /api/v1/tokens/register-openings/`                          | Paginated openings for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status`                                                                                                                           |
-| `GET /api/v1/tokens/register-openings/{uuid}/`                   | Request, captured boundary and its summary, mapping, evidence, stage and decisions                                                                                                                                                                                                                                                                         |
-| `GET /api/v1/tokens/register-openings/{uuid}/file/`              | Authenticated attachment of the opening's copy of the authority document                                                                                                                                                                                                                                                                                   |
-| `POST /api/v1/tokens/register-openings/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the opening entry's share changes and effective date, and the preview digest                                                                                                                                                                                  |
-| `POST /api/v1/tokens/register-openings/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                        |
+| Method and route                                      | Result                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/{uuid}/register/opening-holders/` | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
+| `POST /api/v1/tokens/register-openings/`              | Prepare the opening, capturing its boundary. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, captured boundary and its summary, mapping, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                               |
 
-The opening holders read shows a preparer which addresses to map before
-preparing. It captures a canonical snapshot as preparation does, takes no lock
-and stores nothing. Each holding address carries the
-member the company already links to it, matched regardless of letter case,
-that member's name as the register names members, and `memberExists`, true
-exactly when the address is linked; an address with no link has neither member
-nor name. Holdings are listed largest first, then by address. Because it reads the
-chain, only a current appointment holding `admin` or `prepare` in the class's
-company may read it, under the same issuer identity requirement as register
-reads; the owner alone, other capabilities, platform staff and other companies get
-the same 404 as an unknown class. A class that is not deployed or paused, or whose
-register already has an entry, is refused with 400 before the chain is read, and a
-chain that cannot be read answers 503 without the provider's detail. Preparation
-captures its own boundary rather than trusting the read: its mapping must cover
-exactly the addresses holding shares then, and the opening records the shares held
-at that boundary, as its `boundarySummary` shows. Each summary holding carries
-its mapped `member`, that member's `memberName` and `memberExists`, true when the
-member is already a member of the opening's company, so a member the opening
-will create can be told apart from an existing member the register cannot name.
-Names are resolved only when the opening maps an existing member.
+The opening holders read shows a preparer which addresses to map. It captures a
+canonical snapshot as preparation does, takes no lock and stores nothing, lists
+holdings largest first then by address, and matches linked addresses regardless
+of letter case. Because it reads the chain, only a current appointment holding
+`admin` or `prepare` in the class's company may read it, under the same
+identity requirement as register reads; the owner alone, other capabilities,
+platform staff and other companies get the same 404 as an unknown class. A
+class that is not deployed or paused, or whose register already has an entry,
+is refused with 400 before the chain is read, and a chain that cannot be read
+answers 503 without the provider's detail.
 
 Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
@@ -472,17 +419,15 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 }
 ```
 
-Preparation first checks that the caller's named appointment is current and
-holds `admin` or `prepare`, then captures a fresh canonical snapshot (see
-[inspecting a snapshot](#inspecting-a-canonical-chain-snapshot)), including the
-canonical transfer history that later classification needs. It reads the chain
-before it takes the company lock, then checks everything else against that
-boundary under the lock, the appointment included. It refuses, with a message
-naming the problem:
+Preparation checks the appointment, then captures a fresh canonical snapshot
+(see [inspecting a snapshot](#inspecting-a-canonical-chain-snapshot)), including
+the canonical transfer history that later classification needs. It reads the
+chain before it takes the company lock and checks everything else against that
+boundary under the lock. Its `boundarySummary` gives the boundary's block
+number, hash and date and each holding address with its shares, mapped `member`,
+`memberName` and `memberExists`, so a member the opening will create can be told
+apart from an existing member the register cannot name. Preparation refuses:
 
-- a share class of a company in which the caller holds no current appointment,
-  or an appointment that holds neither `admin` nor `prepare`, before reading the
-  chain;
 - a class that is not deployed or paused, or whose register already has an entry;
 - a mapped member of another company, or a mapped address already linked to
   another member of the company;
@@ -491,150 +436,64 @@ naming the problem:
   so that clients can offer to read the holders again;
 - a completed issue or transfer that the boundary does not
   [represent](#classifying-completed-inclusions);
-- evidence that is not the preparer's own `authority` upload for this company,
-  or whose stored bytes no longer match its fingerprint;
-- incomplete authority fields. A director resolution names the approving
-  director; `court_order` instead uses a court reference and an empty
-  `approving_director`. An owner account is not proof of director authority.
+- a chain that cannot be read, with 503 and nothing recorded.
 
-A chain that cannot be read refuses preparation with 503, and nothing is
-recorded. The opening keeps its own private copy of the upload, with a snapshot
-naming the upload, its size, type and SHA-256, and marked as provided by the
-company. An identical preparation retry returns the opening without reading the
-chain again; the same operation ID with any change conflicts. The response's
-`boundarySummary` gives the boundary's block number, hash and date, and each
-holding address with its shares and mapped member.
-
-Each decision starts with a preview, which shows the share changes the opening
-entry would record and its effective date, and lists what the decision still
-lacks:
-
-| Requirement                             | Meaning                                                                                                                                                   |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                                               |
-| `opening_decided`                       | The opening is already applied or rejected                                                                                                                |
-| `company_provided_evidence_required`    | A retained staff-era opening, which can only be rejected                                                                                                  |
-| `already_approved`                      | A current approval exists                                                                                                                                 |
-| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                                                             |
-| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                                                                                                   |
-| `boundary_changed`                      | Reading the chain again found the boundary block no longer canonical or no longer covered by the approved finality policy, or the policy or chain changed |
-| `register_initialized`                  | The class's register already has an entry                                                                                                                 |
-| `completions_not_represented`           | A completed issue or transfer is not represented by the boundary                                                                                          |
-| `wallet_linked_elsewhere`               | A mapped address was linked to another member after preparation                                                                                           |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                                                                                              |
-
-Approval and application read the chain again before they take the company lock,
-and check only stored facts under it. They read it only for a caller whose
-appointment is current and holds the step's capability or `admin`. A chain that
-cannot be read refuses them with 503 rather than an unmet requirement; rejection
-never reads the chain. The preview digest binds the opening, the decision, the
-person, the appointment, the reason, the boundary block's hash and, for
-application, the class's register state: either that no register exists or its
-sequence and head hash. The decision must carry the same digest, so any change in
-between conflicts. An identical decision retry with the same retry key returns
-the opening without reading the chain; the same key with any change conflicts.
-Every step rechecks the appointment after taking the company lock, so a
-revocation that commits first refuses the decision and records nothing.
+An identical preparation retry returns the opening without reading the chain
+again. Approval and application read the chain again before they take the
+company lock, only for a caller whose appointment is current and holds the
+step's capability or `admin`; a chain that cannot be read refuses them with 503
+rather than an unmet requirement, and rejection never reads the chain. The
+preview shows the share changes and effective date the opening entry would
+record, and its digest binds the boundary block's hash and, for application,
+the class's register state: either that no register exists or its sequence and
+head hash. The opening's own requirements are `boundary_changed` (reading the
+chain again found the boundary block no longer canonical or no longer covered
+by the approved finality policy, or the policy or chain changed),
+`register_initialized`, `completions_not_represented` and
+`wallet_linked_elsewhere` (a mapped address was linked to another member after
+preparation). An identical decision retry returns the opening without reading
+the chain.
 
 Application commits the members, the wallet links, the opening entry, the
-decision and the holdings projection atomically, and a failure rolls them all
-back. The opening entry is the register's first entry, dated on the boundary
-block's date and recorded by the person applying it. An explicitly empty boundary
-produces an explicit empty opening, distinct from an uninitialised register.
-Issuance and settlement completion take the same share-class lock, so neither can
-interleave with an application. Rejection stays available until a decision
-applies or rejects the opening, including when the chain or the retained copy is
-unavailable.
+decision and the holdings projection atomically. The opening entry is the
+register's first entry, dated on the boundary block's date; an explicitly empty
+boundary produces an explicit empty opening, distinct from an uninitialised
+register. Issuance and settlement completion take the same share-class lock, so
+neither can interleave with an application. The database also refuses a
+preparation for a class that is not deployed or paused or whose register
+already has an entry, one without a boundary or whose boundary is not complete,
+typed snapshot provenance for this class with its canonical transfer history, a
+mapping that does not pair exactly with the boundary's holders, repeats an
+address, names another company's member, contradicts an existing wallet link or
+holds a value that is not a JSON string, any later change to an opening's
+boundary or terms, and an application whose entry is not the exact opening
+entry with every mapped wallet linked. The captured boundary is retained with
+the opening. Until an opening is applied, the holders and CSV routes report the
+register as not initialised.
 
-**Admin → Tokens → Register openings** shows openings and their copies as
-read-only history. The database keeps openings, uploads, decisions and wallet
-links immutable and refuses:
-
-- a preparation not made through the company command by a person whose current
-  appointment holds `admin` or `prepare`;
-- a preparation whose evidence, fingerprint, snapshot or copy path differ from
-  the preparer's own `authority` upload for the company;
-- a preparation for a class that is not deployed or paused or whose register
-  already has an entry, or whose authority fields are incomplete;
-- a preparation without a boundary, or whose boundary is not complete, typed
-  snapshot provenance for this class with its canonical transfer history;
-- a mapping that does not pair exactly with the boundary's holders, repeats an
-  address, names another company's member, contradicts an existing wallet link
-  or holds a value that is not a JSON string;
-- any later change to an opening's boundary or terms;
-- a decision whose digest the database does not recompute, whose appointment is
-  not the decider's current one with the capability the decision needs, a second
-  current approval, an approval or application of a staff-era opening, or an
-  application without a current approval;
-- an applied or rejected opening without its matching decision, and a decision
-  whose opening does not carry its effect when the transaction commits;
-- an application whose entry is not the exact opening entry: the boundary's
-  holdings by mapped member, on the boundary's date, as the register's first
-  entry, recorded by the person applying it, with every mapped wallet linked.
-
-Retention follows the owner's correction decision: openings, their copies of the
-authority upload and the captured boundary are retained without automatic expiry
-during the synthetic-only experiment, and ordinary deletion is blocked. An
-opening submitted before openings were company-run keeps its copy of the
-staff-verified company document; deleting that document deletes neither the copy
-nor the decision. The company's uploads are kept like import evidence. Production
-retention needs its own decision before real data. Applying an opening
-initialises the register the holders and CSV routes serve; until then they report
-it as not initialised.
-
-## Linking wallets after the opening
+### Linking wallets after the opening
 
 After a class is opened, an issue or transfer that completes to a wallet no
 member owns waits with the reason `unlinked` rather than creating a member, and
 members are never merged by matching names (owner decision, 21 September 2026).
 A wallet link records which member of the company owns each such wallet: a new
-subscriber's, a first-time buyer's or another wallet of an existing member.
-The company links wallets itself, under the owner's
-[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence)
-of 5 October 2026, which reached links once [#863](https://github.com/Ledova/ledova/issues/863)
-closed:
+subscriber's, a first-time buyer's or another wallet of an existing member, and
+a [chain grant](../plans/company-managed-registers/company-register-issues.md)
+links its selected nominated wallet to a new member the same way before any
+mint. Links are company-wide: one link serves every share class, and a company
+needs no opened register to link, so a link applied before an opening shows its
+member in the [opening holders read](#opening-the-register-from-the-chain). A
+member ID may be new, and application creates it, or may already belong to the
+company, and several addresses may map to one member. One address resolves to
+one member per company, matched regardless of letter case, and an address
+linked once is never linked again. The authority is documentary, as decided on
+21 September 2026, uploaded as an `authority` upload. Company-run links reached
+links once [#863](https://github.com/Ledova/ledova/issues/863) closed.
 
-- the authority is documentary, as decided on 21 September 2026: a director
-  resolution that names the approving director, or a court order. The company
-  uploads it as an `authority` upload. Ledova staff do not verify it, and the
-  link's copy is shown as provided by the company;
-- a current appointment holding `admin` or `prepare` uploads and prepares,
-  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
-  person may take every step, and no second person is required;
-- application needs an approval whose approver still holds a current
-  appointment. If that appointment was revoked or has expired, a current
-  approver approves again;
-- a link submitted for the retired staff review and still waiting can only be
-  rejected. The company then prepares a new one.
-
-Staff permissions, company ownership alone and shareholding grant none of these
-steps. The Register screen in both clients lists the company's wallet links,
-prepares a link for the wallets still waiting for a member and runs these steps,
-through the API below.
-
-A link maps wallet addresses to company member IDs. A member ID may be new, and
-application creates it, or may already belong to the company, and several
-addresses may map to one member. Links are company-wide, so one link serves
-every share class, and a company needs no opened register to link: a link
-applied before an opening shows its member in the
-[opening holders read](#opening-the-register-from-the-chain). One address
-resolves to one member per company, matched regardless of letter case, and an
-address linked once is never linked again.
-
-| Method and route                                              | Result                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/tokens/register-links/waiting-wallets/?company=` | `wallets`: each wallet that a completed issue or transfer of the company's opened classes waits for, as the [waiting list](#the-issuers-waiting-list) names it in `unlinkedWallets`, with `waiting`, the number of waiting effects naming it, and its statuses below, ordered by address. Only for a current appointment holding `admin` or `prepare` |
-| `POST /api/v1/tokens/register-evidence/`                      | Upload the authority document (multipart: `company_id`, `appointment`, `kind` of `authority`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                                                                                                                                              |
-| `POST /api/v1/tokens/register-links/`                         | Prepare the link; return the retained link                                                                                                                                                                                                                                                                                                            |
-| `GET /api/v1/tokens/register-links/`                          | Paginated links for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company` and `status`                                                                                                                                  |
-| `GET /api/v1/tokens/register-links/{uuid}/`                   | The link, its mapping and `mappingSummary`, evidence, stage and decisions                                                                                                                                                                                                                                                                             |
-| `GET /api/v1/tokens/register-links/{uuid}/file/`              | Authenticated attachment of the link's copy of the authority document                                                                                                                                                                                                                                                                                 |
-| `POST /api/v1/tokens/register-links/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, each address with its member and statuses, and the preview digest                                                                                                                                                                                        |
-| `POST /api/v1/tokens/register-links/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                   |
-
-The waiting-wallets read reads only the database, never the chain, and takes no
-lock. Anyone else, platform staff and the owner alone included, gets the same
-404 as an unknown company, and a `company` that is not a UUID is refused with 400.
+| Method and route                                              | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/tokens/register-links/waiting-wallets/?company=` | `wallets`: each wallet that a completed issue or transfer of the company's opened classes waits for, as the [waiting list](#the-issuers-waiting-list) names it in `unlinkedWallets`, with `waiting`, the number of waiting effects naming it, and its statuses below, ordered by address. It reads only the database and takes no lock. Only for a current appointment holding `admin` or `prepare`: anyone else, platform staff and the owner alone included, gets the same 404 as an unknown company, and a `company` that is not a UUID is refused with 400 |
+| `POST /api/v1/tokens/register-links/`                         | Prepare the link. `GET` lists, filterable by `company` and `status`; `{uuid}/` returns the link, its mapping and `mappingSummary`, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                                                                                                                                                                                                                                             |
 
 Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 
@@ -654,27 +513,14 @@ Preparation accepts this JSON, replacing UUIDs with those from the exercise:
 }
 ```
 
-Preparation stores each address checksummed, in address order, and refuses,
-with a message naming the problem:
-
-- a company in which the caller holds no current appointment, as not found, or
-  an appointment that holds neither `admin` nor `prepare`, also as not found;
-- an empty mapping, one that is not a list of addresses and member UUIDs, or one
-  that repeats an address in any letter case;
-- a mapped member of another company;
-- an address already linked in the company, whether an opening or another link
-  linked it;
-- evidence that is not the preparer's own `authority` upload for this company,
-  or whose stored bytes no longer match its fingerprint;
-- incomplete authority fields. A director resolution names the approving
-  director; `court_order` instead uses a court reference and an empty
-  `approving_director`. An owner account is not proof of director authority.
-
-The link keeps its own private copy of the upload, with a snapshot naming the
-upload, its size, type and SHA-256, and marked as provided by the company. An
-identical preparation retry returns the link; the same operation ID with any
-change conflicts. The response's `mappingSummary` gives each address with its
-member and `memberExists`, true when the member already belongs to the company.
+Preparation stores each address checksummed, in address order, and refuses an
+empty mapping, one that is not a list of addresses and member UUIDs or that
+repeats an address in any letter case, a mapped member of another company, and
+an address already linked in the company, whether an opening or another link
+linked it. A company in which the caller holds no current appointment holding
+`admin` or `prepare` is answered as not found. The response's `mappingSummary`
+gives each address with its member and `memberExists`, true when the member
+already belongs to the company.
 
 The preview and the waiting-wallets read show two statuses of each address, but
 only for an address with a whitelist approval for the company, whatever its
@@ -686,31 +532,12 @@ all three, so the statuses reveal nothing about who holds an arbitrary address.
 They are live and informational: no step requires them, they are not stored or
 bound into the digest, and they never choose a member.
 
-Each decision starts with a preview, which lists what the decision still lacks:
-
-| Requirement                             | Meaning                                                                       |
-| --------------------------------------- | ----------------------------------------------------------------------------- |
-| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs   |
-| `link_decided`                          | The link is already applied or rejected                                       |
-| `company_provided_evidence_required`    | A retained staff-era link, which can only be rejected                         |
-| `already_approved`                      | A current approval exists                                                     |
-| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                       |
-| `wallet_linked_elsewhere`               | A mapped address was linked to another member after preparation               |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                  |
-
-The preview digest binds the link, the decision, the person, the appointment,
-the reason and, for application, the current links of the mapped addresses. The
-decision must carry the same digest, so a link made between the preview and the
-decision conflicts: the new preview passes when the address was linked to the
-same member, and reports `wallet_linked_elsewhere` otherwise. An identical
-decision retry with the same retry key returns the link; the same key with any
-change conflicts. Every step rechecks the appointment after taking the company
-lock, so a revocation that commits first refuses the decision and records
-nothing.
-
-Application takes the company lock and then every share class of the company,
-in order, and records in one transaction:
+The preview digest binds, for application, the current links of the mapped
+addresses, so a link made between the preview and the decision conflicts: the
+new preview passes when the address was linked to the same member, and reports
+`wallet_linked_elsewhere` otherwise. Application takes the company lock and
+then every share class of the company, in order, and records in one
+transaction:
 
 - the new members and the links, skipping an address an opening or another link
   has since linked to the same member;
@@ -722,90 +549,52 @@ in order, and records in one transaction:
   left waiting without undoing the link;
 - the link as applied, with the decision.
 
-A failure rolls them all back. A link makes no register entry of its own, changes
-no whitelist approval and creates no proof of possession: deleting a wallet or
-losing its proof later does not unlink it. Rejection with a reason stays
-available until a decision applies or rejects the link, including when the
-retained copy is unavailable.
-
-Application can deadlock with an issue or transfer completing at the same moment
-whose recorder, its approving reviewer or transferor, is the person applying the
-link: the application holds that person's user row while it waits for the
-share-class lock, and the completion needs the row to commit. PostgreSQL aborts
-one of them, which can be retried. Corrections share this pattern.
+A link makes no register entry of its own, changes no whitelist approval and
+creates no proof of possession: deleting a wallet or losing its proof later does
+not unlink it. Application can deadlock with an issue or transfer completing at
+the same moment whose recorder, its approving reviewer or transferor, is the
+person applying the link: the application holds that person's user row while it
+waits for the share-class lock, and the completion needs the row to commit.
+PostgreSQL aborts one of them, which can be retried. Corrections share this
+pattern.
 
 Openings follow the same rules. An opening's own mapping links its addresses
 when it is applied, and its preparation refuses an address already linked to
 another member. An applied link makes a pending opening that maps the address to
 another member report `wallet_linked_elsewhere`, as an applied opening does for a
-pending link.
-
-Once linked, the member's [register name](../architecture/register.md#membership-and-identity)
-resolves from all of its wallets: a live identity wins over recorded particulars,
-and wallets that resolve to different people make the member ambiguous. Linking
-an address that an acknowledged `unlinked` reconciliation discrepancy names can
-also surface new discrepancies at the next reconciliation. Both are existing
-behaviour, unchanged by company-run links.
-
-**Admin → Tokens → Register wallet links** shows links and their copies as
-read-only history; the review page is gone. The database keeps links, uploads,
-decisions and the member wallets they record immutable and refuses:
-
-- a preparation not made through the company command by a person whose current
-  appointment holds `admin` or `prepare`;
-- a preparation whose evidence, fingerprint, snapshot or copy path differ from
-  the preparer's own `authority` upload for the company;
-- a mapping that is empty, repeats an address, holds a value that is not a JSON
-  string, names another company's member or names an address already linked in
-  the company, and incomplete authority fields;
-- a decision whose digest the database does not recompute, whose appointment is
-  not the decider's current one with the capability the decision needs, a second
-  current approval, an approval or application of a staff-era link, or an
-  application without a current approval;
-- an applied or rejected link without its matching decision, and a decision
-  whose link does not carry its effect when the transaction commits;
-- an application that leaves a mapped wallet unlinked to its member.
-
-Retention follows openings and corrections: links, their copies of the authority
-upload and their decisions are retained without automatic expiry during the
-synthetic-only experiment, and ordinary deletion is blocked. A link submitted
-before links were company-run keeps its copy of the staff-verified company
-document and its reviewer, readable through the API, the admin and the
-[company pack](../architecture/company-pack.md), shown as `staff_verified`. The
-company's uploads are kept like import evidence. Production retention needs its
-own decision before real data.
+pending link. Once linked, the member's
+[register name](../architecture/register.md#membership-and-identity) resolves
+from all of its wallets: a live identity wins over recorded particulars, and
+wallets that resolve to different people make the member ambiguous. Linking an
+address that an acknowledged `unlinked` reconciliation discrepancy names can
+also surface new discrepancies at the next reconciliation. The database also
+refuses a mapping that is empty, repeats an address, holds a value that is not
+a JSON string, names another company's member or names an address already
+linked in the company, and an application that leaves a mapped wallet unlinked
+to its member.
 
 ## Register instructions for issues
 
-Company-authorised [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
-use `/api/v1/tokens/register-issues/` and the company prepare/approve/apply/reject
-family in both clients. Exact member, nomination, finite company wallet approval
-and company-provided authority/terms/required acceptance are retained. The company
-can first run a genuine LINK for one selected nominated wallet and a new member,
-before any mint. Application admits the original issuance; its finalised genuine
-Mint supplies the original member's ISSUE once, without a paid subscription or
-receipt. Imported classes retain their separate walletless grant workflow and
-cannot use this chain path merely because a contract has been deployed.
+Fresh issues are company-run: [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
+use `/api/v1/tokens/register-issues/`, [paid issues](../plans/company-managed-registers/company-paid-issues.md)
+over a recorded PAID subscription use `/api/v1/tokens/register-paid-issues/`,
+delivered by [#951](https://github.com/Ledova/ledova/pull/951), and an imported
+class uses the walletless [register grant](../plans/company-managed-registers/register-grants.md)
+and cannot use the chain path merely because a contract has been deployed. The
+direct owner issue POST, fresh staff approval and admission of non-paid
+requests, and fresh staff paid ISSUE approval and allotment are retired; staff
+**Reject** remains for retained review requests, and financial receipt/refund
+producers remain separate pending #868. [Register architecture](../architecture/register.md)
+describes how each family's finalised outcome supplies the member's once-only
+ISSUE entry.
 
-The [paid-issue conversion](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation. It uses the company's exact approval over a genuine
-recorded PAID subscription, then admits its original request and execution only
-on application. Payment, approval, finalised Mint, ALLOTTED and register recording
-remain separate. Its original wallet-to-member LINK supplies attribution, or the
-effect waits for that link. Fresh staff paid ISSUE approval and allotment are
-retired; financial receipt/refund producers remain separate pending #868.
-
-Retained already-approved direct issues awaiting register cover use the earlier
-instruction workflow below. Historical paid instructions retain their genuine
-staff decisions and original source; they supply no fresh paid admission route.
-Under the retained workflow, staff verify a named director's approval (owner
-decision 2, 22 September 2026). The company owner submits a register instruction
-listing each retained direct issue by its issuance request, recipient wallet and
-whole number of shares. It
-names the approving director and carries a verified company document, and it
-retains a private copy of the authority file. Its kind is
-`issue`; a [transfer instruction](#register-instructions-for-transfers) has its
-own kind.
+The retained instruction workflow below exists for already-approved direct
+issues still awaiting register cover. Staff verify a named director's approval
+(owner decision 2, 22 September 2026): the company owner submits an instruction
+of kind `issue` listing each retained direct issue by its issuance request,
+recipient wallet and whole number of shares, naming the approving director and
+carrying a verified company document, of which it retains a private copy. A
+[transfer instruction](#register-instructions-for-transfers) has its own kind.
 
 | Method and route                                        | Result                                                                                                                                                                                    |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -833,55 +622,44 @@ own kind.
 }
 ```
 
-Each new item must belong to the share class and match the retained non-paid
-request's recipient and shares as they stand. A standalone request must already be approved and await that cover;
-submitted and under-review standalone requests are refused. Listing a retained
-approval adds the cover its entry waits for, without approving it again. An
-original paid instruction keeps its subscription references and financial terms
-as history. New subscription items and requests linked to a paid subscription
-require the company paid family, including when they seek register cover.
+Each item must belong to the share class and match the retained non-paid
+request's recipient and shares as they stand; the request must already be
+approved and await that cover, so submitted and under-review requests are
+refused. Listing a retained approval adds the cover its entry waits for, without
+approving it again. Historical paid instructions keep their subscription
+references, financial terms and staff decisions as history and supply no fresh
+paid admission route; new subscription items and requests linked to a paid
+subscription require the company paid family.
 
 In **Admin → Tokens → Register instructions**, open the instruction's review
-link. An active staff user with change permission inspects the retained file, the
-named director, the authority reference and the company identity. They check each
-item's exact terms, shown with the recipient wallet, the names it identifies, the
-shares and the class, and that the director is not a recipient. Then they
-explicitly confirm and choose **Approve and apply**. Submission, review and
-application all refuse:
+link. An active staff user with change permission inspects the retained file,
+the named director, the authority reference and the company identity, checks
+each item's exact terms, shown with the recipient wallet, the names it
+identifies, the shares and the class, and that the director is not a recipient,
+then explicitly confirms and chooses **Approve and apply**. Submission, review
+and application all refuse:
 
-- an item whose recipient or shares differ from its request's or subscription's
-  current terms, as when they change after submission;
+- an item whose recipient or shares differ from its request's current terms, as
+  when they change after submission;
 - an item that does not name a retained non-paid approval awaiting cover, or
   an item another applied instruction already covers;
 - a director who is the recipient an item identifies, by the request's
   recipient name or the profile name of the account holding the recipient
   wallet;
 - any instruction for a share class an [import opened](#importing-an-existing-register),
-  which records no issue until it is on chain.
+  which records no chain issue until it is on chain.
 
-Rejection with a reason stays available. Application rechecks the reviewer-bound,
-expiring confirmation, the retained evidence and every item under the company and
-share-class locks, then in one transaction:
-
-- records any listed retained already-approved issue that completed and was
-  [waiting for cover](#recording-issues-and-transfers-after-the-opening).
-
-Fresh non-paid grants use the company preparation and decision family described
-above. The direct owner issue POST and staff approval/admission of fresh non-paid
-requests are retired. Staff **Reject** remains for retained review requests.
-Fresh paid issues use the company paid family above. Changed payment or scale-back
-facts invalidate its captured source and confirmation; an admitted original
-subscription/request binding cannot be renewed by preparing a duplicate.
-
-Repeated identical submissions and decisions are idempotent, and conflicting UUID
-reuse is refused. The database keeps instructions immutable and undeletable,
-refuses an item outside the instruction's company and share class, and refuses
-customer-role or forged legacy decisions. It also refuses an application that
-leaves a listed request unapproved and, since `tokens/0077`, any application for a
-class an import opened. Legacy request review retains its active staff reviewer
-and database guards. New company grants instead require their exact current
-company appointment and matching retained decision; a company connection alone
-supplies no review authority. Retention follows openings and corrections.
+Rejection with a reason stays available. Application rechecks the
+reviewer-bound, expiring confirmation, the retained evidence and every item
+under the company and share-class locks, then records in one transaction any
+listed retained issue that completed and was
+[waiting for cover](#recording-issues-and-transfers-after-the-opening).
+Repeated identical submissions and decisions are idempotent, and conflicting
+UUID reuse is refused. The database keeps instructions immutable and
+undeletable, refuses an item outside the instruction's company and share class,
+customer-role or forged legacy decisions, an application that leaves a listed
+request unapproved and, since `tokens/0077`, any application for a class an
+import opened. Retention follows the company register decisions.
 
 ## Register instructions for transfers
 
@@ -944,30 +722,25 @@ instruction already covers.
 A transfer the directors decline is not modelled yet. The owner submits no
 instruction for it, and its settlement keeps waiting as `uninstructed`, stays on
 the waiting list and holds later issues and transfers in its class behind it.
+Later transfer decisions and market settlement are deferred
+[#869](https://github.com/Ledova/ledova/issues/869) work.
 
 ## Classifying completed inclusions
 
-The boundary an opening captures fixes which economic effects the opening already
-represents. Each completed issuance and settlement for that share class carries
-the finalized receipt recorded when it completed — its block number, block hash,
-gas and the approved finality policy — and the captured boundary carries the
-canonical transfer history it folded. Classification asks whether the
-completion's transaction is in that history:
-
-| Classification  | Meaning                                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `unopened`      | The share class has no applied opening, so nothing represents the effect yet                                                                  |
-| `opening`       | The completion's transaction is in the boundary's canonical history, at the same block and hash, so the opening's holdings already contain it |
-| `after_opening` | The completion is in a later block than the boundary and absent from its history                                                              |
-| `attribution`   | The boundary's own evidence cannot place the completion, so an operator must resolve it                                                       |
-
-A lower block number is not ancestry. A completion at an earlier height whose
-transaction is missing from the captured history was orphaned, or belongs to
-another chain, and is held for `attribution` rather than read as represented, as
-is a completion recorded after the boundary yet present in its history. A missing
-or malformed history is not an empty one: it cannot show that a transaction was
-absent, so every completion is held for `attribution` against it, whatever its
-height.
+[Register architecture](../architecture/register.md) states the
+rule: each completed issuance and settlement carries the finalized receipt
+recorded when it completed, the captured boundary carries the canonical
+transfer history it folded, and classification asks whether the completion's
+transaction is in that history. `unopened` means the class has no applied
+opening; `opening` that the transaction is in the history at the same block and
+hash, so the opening's holdings already contain it; `after_opening` that it is
+in a later block and absent from the history; and `attribution` that the
+evidence cannot place it, which covers a completion at an earlier height whose
+transaction is missing from the history, one recorded after the boundary yet
+present in it, and every completion against a missing or malformed history,
+whatever its height. These are the effects the platform itself completes; a
+holder's own on-chain transfer outside settlement is a reconciliation question,
+not a classified completion.
 
 Preparation refuses an opening whose captured boundary leaves any completed
 effect unrepresented, naming the effect, its block and the reason, and refuses a
@@ -976,24 +749,14 @@ Approval and application recheck it and report `completions_not_represented`.
 The boundary is captured once, at preparation, and then frozen, so the remedy
 for a pending opening is a fresh opening whose new boundary covers the effect,
 with the mapping that boundary requires; reject the superseded opening with a
-reason. That recheck is what keeps the gap between capture and application
-closed: a completion cannot land in it unobserved, because both completions take
-the share-class lock the application holds.
-
-These are the effects the platform itself completes. A holder's own on-chain
-transfer, made outside settlement, is not one of them: the boundary's holdings
-already contain it up to the boundary block, and anything later is a
-reconciliation question rather than a classified completion.
-
-A completed effect with no recorded finalized receipt is refused outright rather
-than classified. Issuance execution wrote a terminal status and a confirmed
-transaction block before it waited for finality, so those fields cannot show that
-an older completion passed the policy; only the recorded receipt can. Such
-completions, and settlements completed before settlement evidence was retained,
-need operator attribution before any boundary can represent or exclude them. The
-database enforces the same rule going forward: a completed issuance must record
-its finalized receipt, bound to its original confirmed mint journal, and recorded
-evidence can never be rewritten, removed or dropped by a downgrade.
+reason. Both completions take the share-class lock the application holds, so a
+completion cannot land in the gap between capture and application unobserved.
+A completed effect with no recorded finalized receipt, and a settlement
+completed before settlement evidence was retained, is refused outright rather
+than classified and needs operator attribution before any boundary can
+represent or exclude it; the database requires every new completion to record
+its finalized receipt, bound to its original confirmed mint journal, and never
+rewrites, removes or drops recorded evidence on a downgrade.
 
 The read-only operator command below reports the boundary and each
 classification. It performs no provider read and writes nothing:
@@ -1022,69 +785,44 @@ procedure, and none exists yet.
 
 ## Recording issues and transfers after the opening
 
-Once a share class has an applied opening, each completed issuance and settlement
-that classifies `after_opening` is recorded as a register event. Company grant
-recording follows the outcome transaction with the original instruction/member
-and retains reservations until its entry exists. A waiting effect is recorded
-when its actual prerequisite is resolved. A settlement's transfer waits for its
-[transfer instruction](#register-instructions-for-transfers), because directors
-decide on it after it completes.
+[Register architecture](../architecture/register.md) states the
+rules: once a share class has an applied opening, each completion that
+classifies `after_opening` is recorded as a register event in chain order, by
+block and then by the transaction index its finalized receipt records (a
+completion finalized before `tokens/0068` has no index and follows the kind and
+ID within its block), dated the day the entry is made (UTC), with the completed
+issuance or settlement as its operation ID so that recording is idempotent. An
+issue is recorded by the company appointee who applied the grant or paid issue,
+or by the original staff reviewer or allotter under a retained
+[register instruction](#register-instructions-for-issues); a settlement's
+transfer is recorded by the transferor, whose signed order is the instrument,
+once an applied [transfer instruction](#register-instructions-for-transfers)
+lists it, because directors decide on it after it completes. An effect the
+opening already represents records nothing, and so does a settlement between
+two wallets of the same member. Only an issue or transfer entry counts: a
+correction or opening that reuses a completion's ID does not mark it recorded.
+Paid issues approved since `tokens/0073` are covered by their applied
+instruction; entries recorded before `tokens/0073`, transfer entries recorded
+before `tokens/0076` and entries recorded before late-entry dating stay as they
+are, and no approval is invented for them. A request with no recorded reviewer
+waits rather than recording someone else.
 
-| Effect     | Entry                                                      | Recorded by                                                                                                                                                                                                | Effective date                   |
-| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Issuance   | `issue` of the minted shares to the original linked member | The company appointee who applied the exact non-paid grant or paid issue; historical work retains its original staff reviewer/allotter under the [register instruction](#register-instructions-for-issues) | The date the entry is made (UTC) |
-| Settlement | `transfer` from the seller's linked member to the buyer's  | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement                                                    | The date the entry is made (UTC) |
-
-An entry uses the date it is actually made. Issuance recording follows the
-completion transaction, and recovery can retry a finalised original whose ISSUE
-has not yet been entered. One recorded after its effect waited carries the later
-date on which it is made, whatever it waited for, a wallet link included
-(owner decision, 22 September 2026). Entries recorded before this rule keep their
-completion dates.
-
-The entry's operation ID is the completed issuance or settlement, so recording is
-idempotent. Only an issue or transfer entry counts: a correction or opening that
-reuses a completion's ID does not mark it recorded. The completion then waits,
-with the register's refusal logged. An effect the opening already represents records nothing, and so does
-a settlement between two wallets of the same member, since no holding changes.
-An issue is recorded only once its exact applied company instruction covers its
-original request/member or a retained paid instruction covers its request or
-subscription. Paid issues approved since `tokens/0073` are covered because
-allotment needs an applied instruction; an earlier issue waits until an instruction
-lists it. The recorder remains the original company applier or paid/historical
-reviewer. A request with no recorded reviewer waits rather than recording someone
-else. Entries recorded before `tokens/0073` stay as they are, and no approval is
-invented for them. A transfer is recorded only once an applied
-transfer instruction lists its settlement. Transfer entries recorded before
-`tokens/0076` stay as they are; a settlement completed but not yet recorded before
-it waits for an instruction like any later one.
-
-Recording follows chain order: by block, then by the transaction index the
-completion's finalized receipt records. A completion finalized before
-`tokens/0068` has no index; within its block it follows the kind and ID.
-Recording stops at the first effect it cannot record:
-a wallet with no link, an issue or transfer no applied instruction covers, a completion held
-for attribution, or an entry the register refuses, such as a transfer whose
-seller's stored holding does not cover it after a move outside settlement. Nothing is recorded past that effect, so the
-stored holdings never skip ahead of the chain. The completion itself still
-commits, because a register record must not stall the workflow; the reason is
-logged. Recording resumes at the next completion in that share class, the next
-applied wallet link in the company or the next applied register instruction for
-that share class, so an effect waits until one of those runs after its cause is
-resolved. Applying a wallet link or a register instruction records whatever was
-waiting for it; each takes the share class's lock first, a wallet link every
-class of its company, so a completion in progress cannot miss the new link or
-cover.
-`register_inclusions` reports `recorded` for each effect.
-
-The register never dates an issue or transfer before its latest entry.
-Recording makes a share class's entries one at a time under its lock, so their
-dates do not go backwards, and a correction cannot be dated after the day it is
-submitted; only an entry made another way can carry a later date, such as an
-opening whose boundary block's time runs ahead of the platform's clock. While the
-latest entry is dated after today, the register refuses the next issue or
-transfer, and it waits with the reason `refused` until a recording on or after
-that date.
+Recording stops at the first effect it cannot record: a wallet with no link, an
+issue or transfer no applied instruction covers, a completion held for
+attribution, or an entry the register refuses, such as a transfer whose
+seller's stored holding does not cover it after a move outside settlement.
+Nothing is recorded past that effect, so the stored holdings never skip ahead
+of the chain. The completion itself still commits, because a register record
+must not stall the workflow; the reason is logged. Recording resumes at the
+next completion in that share class, the next applied wallet link in the
+company or the next applied register instruction for that share class, each of
+which takes the share-class lock first, a wallet link every class of its
+company, so a completion in progress cannot miss the new link or cover.
+`register_inclusions` reports `recorded` for each effect. The register never
+dates an issue or transfer before its latest entry: while the latest entry is
+dated after today, as with an opening whose boundary block's time runs ahead of
+the platform's clock, the next issue or transfer waits as `refused` until a
+recording on or after that date.
 
 ### The issuer's waiting list
 
@@ -1113,29 +851,26 @@ seller's then the buyer's for a transfer), its `shares`, its `reason` and
 | `behind`       | Nothing of its own: an earlier effect in the class waits                                      | Resolving the earlier effect                                                                                                                                              |
 
 A waiting transfer's row carries what a transfer instruction names: its `source`,
-its two `wallets` and its `shares`.
-
-The list, the `waitingEffects` count and recording walk the same classification
-in the same order, so the count is always the list's length and the first effect
-listed is the one recording stops at. The route answers whoever may read the
-share class's register (its company's owner, or a current appointment holding
-`admin`, `read_register`, `prepare`, `approve` or `apply`) and 404 for anyone
-else, from one database snapshot.
+its two `wallets` and its `shares`. The list, the `waitingEffects` count and
+recording walk the same classification in the same order, so the count is
+always the list's length and the first effect listed is the one recording stops
+at. The route answers 404 for anyone outside the register-read scope, from one
+database snapshot.
 
 ## Reading the register
 
-The holders route and the CSV export serve the stored holdings with the chain
-unreachable; the [register architecture](../architecture/register.md#api-and-export)
-describes both. Before a share class's opening is applied, holders report
+[Register architecture](../architecture/register.md#api-and-export) describes
+the holders route and the CSV export, which serve the stored holdings with the
+chain unreachable. Before a share class's opening is applied, holders report
 `initialized: false` and the export is refused with 409
-`register_not_initialized`: prepare, approve and apply an opening to start it. A positive
-`waitingEffects` count, or the CSV's "Completed effects waiting to be recorded"
-row, means completions are not yet in the holdings. The
+`register_not_initialized`: prepare, approve and apply an opening to start it. A
+positive `waitingEffects` count, or the CSV's "Completed effects waiting to be
+recorded" row, means completions are not yet in the holdings; the
 [waiting list](#the-issuers-waiting-list) names each of them and why it waits.
-A count of `null`, or `unknown` in the CSV, means the
-completions could not be classified, or the register has no captured boundary to
-classify them against, as with one loaded by the synthetic command above;
-`register_inclusions` prints the refusal or a null boundary. A register an
+A count of `null`, or `unknown` in the CSV, means the completions could not be
+classified, or the register has no captured boundary to classify them against,
+as with one loaded by the synthetic command above; `register_inclusions` prints
+the refusal or a null boundary. A register an
 [import opened](#importing-an-existing-register) has no boundary either: its
 count is 0 while nothing has completed on chain for the class, and its CSV says
 `not on chain` where another would say `never` for the reconciliation or
@@ -1197,8 +932,8 @@ it only on the company's written instruction. Ledova hands it over unsigned, and
 the company executes it and gives it to the member (owner decision,
 22 September 2026).
 
-You need the **Can change register outputs** permission that inspection copies
-use. The share class needs an applied opening.
+You need the **Can change register outputs** permission. The share class needs
+an applied opening.
 
 1. Keep the company's written instruction, and note its reference and the issue
    or transfer it names.
@@ -1422,62 +1157,33 @@ only each attempt's hash, nonce, signer and chain id.
 ## Importing an existing register
 
 A company that arrives with a register keeps its members' particulars and its
-pre-platform former members. Imports follow the owner decisions of
-21 September 2026:
+pre-platform former members. Under the owner decisions of 21 and 22 September
+2026, an import for a class already opened from the chain adds particulars and
+former members and leaves holdings to the stored register; for a class not yet
+on chain, the import is the opening, and that class then records
+[walletless grants](../plans/company-managed-registers/register-grants.md) and
+[direct transfers](../plans/company-managed-registers/register-transfers.md)
+as ledger entries, with genuine cessation and return history, but no chain
+issue or transfer until it is anchored on chain, which remains later work. The
+applied import's copies of its evidence are kept like opening and correction
+evidence; a member's live verified identity wins over imported particulars; and
+a mistaken opening import strands its class until partial corrections exist,
+because a correction can reverse only its whole opening entry and the class
+takes no second import, which is accepted during the synthetic experiment and
+settled before any real data.
 
-- for a class already opened from the chain, the import adds particulars and
-  former members and leaves holdings to the stored register;
-- for a class not yet on chain, the import is the opening.
-
-The owner decided on 22 September 2026 that:
-
-- the applied import's copies of its evidence are kept like opening and
-  correction evidence;
-- a member's live verified identity wins over imported particulars;
-- a class an import opened records no issue, transfer or cessation until it is
-  anchored on chain, because entries come only from chain completions;
-  this historical boundary is superseded by #865's company-approved non-paid
-  grants and direct transfers, with genuine walletless exit/return history.
-  Tokenising the existing holdings remains later work;
-- a mistaken opening import strands its class until partial corrections exist:
-  a correction can reverse only its whole opening entry, and the class takes no
-  second import. This is accepted during the synthetic experiment and settled
-  before any real data.
-
-Since 5 October 2026 the company runs its imports itself, under the owner's
-[company-run register decisions](../decisions.md#company-run-register-authority-and-evidence):
-
-- the evidence is company-provided. The company uploads its current share
-  register and its ASIC extract, and states the extract's issued total and
-  member count for the class when it prepares the import. Ledova staff verify
-  neither, and every copy is shown as provided by the company;
-- a current appointment holding `admin` or `prepare` uploads and prepares,
-  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
-  person may take every step, and no second person is required;
-- application needs an approval whose approver still holds a current
-  appointment. If that appointment was revoked or has expired, a current
-  approver approves again;
-- an import submitted for the retired staff review and still waiting can only
-  be rejected. The company then prepares a new one.
-
-Staff permissions, company ownership alone and shareholding grant none of these
-steps. The API below and the
-[import screens](../architecture/clients.md#company-managed-client-work) on
+The [company register decisions](#company-register-decisions) apply, with two
+uploads, the company's current share register as `share_register` and its ASIC
+extract as `asic_extract`, and the company's own statement of the extract's
+issued total and member count for the class; Ledova staff verify neither. A
+share class takes one applied import: preparation and application each refuse
+another once one is applied, and a partial unique index backs them. The
+[import screens](../architecture/clients.md) on
 Register in both clients are delivered.
 
-A share class takes one applied import. Preparation and application each
-refuse another once one is applied, and a partial unique index backs them.
-
-| Method and route                                                | Result                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/tokens/register-evidence/`                        | Upload one evidence file (multipart: `company_id`, `appointment`, `kind` of `share_register` or `asic_extract`, `authority` for an [opening](#opening-the-register-from-the-chain), a [correction](#compensating-corrections) or a [wallet link](#linking-wallets-after-the-opening), or `supporting` for a [particulars change](#changing-a-members-particulars), `idempotency_key`, `file`); return its receipt with size, type and SHA-256 |
-| `POST /api/v1/tokens/register-imports/`                         | Prepare the import; return the retained request                                                                                                                                                                                                                                                                                                                                                                                               |
-| `GET /api/v1/tokens/register-imports/`                          | Paginated imports for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `token` and `status`                                                                                                                                                                                                               |
-| `GET /api/v1/tokens/register-imports/{uuid}/`                   | Request, rows, stated figures, stage and decisions                                                                                                                                                                                                                                                                                                                                                                                            |
-| `GET /api/v1/tokens/register-imports/{uuid}/file/`              | Authenticated attachment of the import's copy of the register document                                                                                                                                                                                                                                                                                                                                                                        |
-| `GET /api/v1/tokens/register-imports/{uuid}/asic-file/`         | Authenticated attachment of the import's copy of the ASIC extract                                                                                                                                                                                                                                                                                                                                                                             |
-| `POST /api/v1/tokens/register-imports/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the comparison with the stored register and the preview digest                                                                                                                                                                                                                                                                                   |
-| `POST /api/v1/tokens/register-imports/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                                                                                                                                                                                                                                           |
+| Method and route                        | Result                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/v1/tokens/register-imports/` | Prepare the import. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, rows, stated figures, stage and decisions; `{uuid}/file/` and `{uuid}/asic-file/` stream the import's copies of the register document and the ASIC extract; `{uuid}/decision-preview/` and `{uuid}/decide/` as above |
 
 ```json
 {
@@ -1514,11 +1220,6 @@ refuse another once one is applied, and a partial unique index backs them.
 }
 ```
 
-An upload is checked like every other upload, then kept privately with its
-SHA-256. An identical upload retry returns the first receipt; the same retry
-key with a different file conflicts. Uploads that no import uses are kept until
-production retention is decided (owner decision, 5 October 2026).
-
 A class is not yet on chain while its register has no entries, no issuance
 request for it has ever been approved and no register instruction for it has
 been applied: an undeployed class, or a deployed one never minted. Its import
@@ -1526,12 +1227,9 @@ names each current member by a new member ID the company chooses or by an
 existing member of the company, and a former member may have ceased on the
 register date itself. Preparation and application refuse such a class once an
 issue has been approved or an instruction applied for it: open it from the chain
-instead, then import its particulars.
+instead, then import its particulars. Preparation also refuses, with a message
+naming the problem:
 
-Preparation refuses, with a message naming the problem:
-
-- evidence that is not the preparer's own uploads for this company, of the right
-  kinds, or whose stored bytes no longer match their fingerprints;
 - stated figures that differ from the rows' total shares and member count;
 - for an opened class, a current member who is not already a member of the
   company with a stored holding, and for any class a member of another company;
@@ -1546,147 +1244,75 @@ Preparation refuses, with a message naming the problem:
   (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), because the retention
   job would purge them.
 
-The import keeps its own private copies of both files, each with a snapshot
-naming the upload, its size, type and SHA-256, and marked as provided by the
-company. An identical preparation retry returns the import; the same operation
-ID with any change conflicts.
-
-Each decision starts with a preview. For each member it shows the imported name
-beside the member's linked wallets and current live identity, so names swapped
-between equal holdings show, and the stored date entered beside the imported
-one. It compares each imported holding with the stored one. A class not yet on
-chain has nothing stored or on chain to compare, so the stated figures and the
-names beside the holdings are the only check. The preview lists what the
-decision still lacks:
-
-| Requirement                                                         | Meaning                                                                                                                                                                                               |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appointment_capability_required`                                   | The appointment holds neither `admin` nor the capability the decision needs                                                                                                                           |
-| `import_decided`                                                    | The import is already applied or rejected                                                                                                                                                             |
-| `company_provided_evidence_required`                                | A retained staff-era import, which can only be rejected                                                                                                                                               |
-| `already_approved`                                                  | A current approval exists                                                                                                                                                                             |
-| `approval_required`, `approval_lapsed`                              | Application needs a current approval; an earlier approver's appointment ended                                                                                                                         |
-| `evidence_unavailable`                                              | A retained copy no longer matches its fingerprint                                                                                                                                                     |
-| `class_has_applied_import`, `class_not_openable`, `holdings_differ` | The class already took an import; a class not yet on chain had an issue approved or an instruction applied; an opened class's holdings differ from the rows, including a member the import leaves out |
-| `former_member_after_opening`, `former_member_before_retention`     | A former member's date ceased fails the rules above                                                                                                                                                   |
-| `reason_required`, `reason_not_allowed`                             | Rejection needs a reason; approval and application take none                                                                                                                                          |
-
-The preview digest binds the import, the decision, the person, the appointment,
-the reason and, for application, the register's sequence and head hash. The
-decision must carry the same digest, so any change in between conflicts. An
-identical decision retry with the same retry key returns the import; the same
-key with any change conflicts. Every step rechecks the appointment after taking
-the company lock, so a revocation that commits first refuses the decision and
-records nothing.
+The preview shows, for each member, the imported name beside the member's linked
+wallets and current live identity, so names swapped between equal holdings
+show, and the stored date entered beside the imported one, and compares each
+imported holding with the stored one. A class not yet on chain has nothing
+stored or on chain to compare, so the stated figures and the names beside the
+holdings are the only check. The digest binds, for application, the register's
+sequence and head hash. The import's own requirements are
+`class_has_applied_import`, `class_not_openable` (a class not yet on chain had
+an issue approved or an instruction applied), `holdings_differ` (an opened
+class's holdings differ from the rows, including a member the import leaves
+out), `former_member_after_opening` and `former_member_before_retention`.
 
 For a class not yet on chain, application first opens the register in the same
 transaction. It creates the new members and records the opening entry: its
 operation ID is the import's UUID, it is dated the register date, it holds each
 member's shares, and the person applying it records it, so the register's
 sequence is 1. It links no wallets: a
-[wallet link](#linking-wallets-after-the-opening) links them. A
-class opened another way after preparation takes the import by the opened
-class's rules. Application then stores each member's particulars, dated the
-register date, except where the member already has particulars dated later, from
-an import or a [particulars change](#changing-a-members-particulars), and the
-imported former members. It keeps the register sequence on the request.
-Rejection with a reason stays available until a decision applies or rejects the
-import. **Admin → Tokens → Register imports** shows imports and both copies as
-read-only history. The database keeps imports, uploads and decisions immutable
-and refuses:
+[wallet link](#linking-wallets-after-the-opening) links them. A class opened
+another way after preparation takes the import by the opened class's rules.
+Application then stores each member's particulars, dated the register date,
+except where the member already has particulars dated later, from an import or
+a [particulars change](#changing-a-members-particulars), and the imported
+former members. It keeps the register sequence on the request. The database
+also refuses a preparation whose stated figures differ from the rows, rows
+whose keys or types differ from what preparation accepts, a member of another
+company or, for an opened class, anyone not already a member of this company,
+a former member who ceased on or after an opening the import did not record,
+an import for a class not yet on chain that has an approved issue or an applied
+instruction, an application that opens a register unless the register's only
+entry is exactly that opening, with sequence 1, the import's UUID, members and
+shares, register date and the person applying it, and still nothing approved,
+an application whose figures differ from the rows or that leaves a member
+without particulars from it, from a later-dated applied import or from a
+later-dated change, particulars naming an import as their source unless they
+are written during that import's application, through the company command, by
+the person applying it, for a member the import lists, with exactly that
+member's name and address and the register date, and a second applied import
+for the class.
 
-- an upload or preparation not made through the company command by a person
-  whose current appointment holds `admin` or `prepare`;
-- a preparation whose evidence, fingerprints, snapshots or stated figures differ
-  from the preparer's uploads and the rows;
-- rows whose keys or types differ from what preparation accepts;
-- a member of another company or, for an opened class, anyone not already a
-  member of this company;
-- a former member who ceased on or after an opening the import did not record;
-- an import for a class not yet on chain that has an approved issue or an
-  applied instruction;
-- a decision whose digest the database does not recompute, whose appointment is
-  not the decider's current one with the capability the decision needs, a second
-  current approval, an approval or application of a staff-era import, or an
-  application without a current approval;
-- an applied or rejected import without its matching decision, and a decision
-  whose import does not carry its effect when the transaction commits;
-- an application that opens a register unless the register's only entry is
-  exactly that opening, with sequence 1, the import's UUID, members and shares,
-  register date and the person applying it, and still nothing approved;
-- an application whose figures differ from the rows;
-- an application that leaves a member without particulars from it, from a
-  later-dated applied import or from a later-dated change;
-- particulars naming an import as their source unless they are written during
-  that import's application, through the company command, by the person applying
-  it, for a member the import lists, with exactly that member's name and address
-  and the register date;
-- a second applied import for the class.
-
-The [register reads](../architecture/register.md#membership-and-identity) then
-show a member's live verified identity when it is present and unambiguous.
-Recorded particulars, from the import or [change](#changing-a-members-particulars)
-dated latest, or applied last of those sharing a date, fill in only for a member
-with no live identity and no resolved allotment stamp, and an ambiguous identity
-stays ambiguous. A treasury
-label is not a live identity: a member held at a labelled treasury address, such
-as an employee share trust, takes its recorded name and residential address and
-stays a treasury holder. The
-imported date entered applies to a member the opening carried in for as long as
-the holding stays continuous, and the imported amount paid only while that
-holding is also unchanged since the import. A member who entered on the
-platform keeps the date and amount the platform recorded. The holders API and
-the CSV list imported former members beside the chain-derived ones. A folded
-former member whose wallet resolves to no profile and no resolved stamp, or
-only to a treasury label, takes the particulars of the member the wallet is
-linked to. A class an import opened
+[Membership and identity](../architecture/register.md#membership-and-identity)
+says how recorded particulars fill in, how a treasury label is read and how the
+imported date entered and amount paid apply to a member the opening carried
+in. The holders API and the CSV list imported former members beside the
+chain-derived ones, and a folded former member whose wallet resolves to no
+profile and no resolved stamp, or only to a treasury label, takes the
+particulars of the member the wallet is linked to. A class an import opened
 reads as not on chain, as [reading the register](#reading-the-register)
 describes, and takes no [register instruction](#register-instructions-for-issues)
-until it is.
-
-The daily retention job purges particulars once the member has held nothing in
-the company for the 2,557-day floor, and imported former members that long after
-their date ceased. It purges nothing else of an import. The import, with every
-name and address it carried, its copies of the register document and ASIC
-extract, its decisions and the company's uploads are evidence, kept like opening
-and correction evidence: nothing expires them automatically during the
-synthetic experiment, and production retention is decided before any real data
-(owner decisions, 22 September and 5 October 2026).
+until it is. The daily retention job purges particulars once the member has
+held nothing in the company for the 2,557-day floor, and imported former
+members that long after their date ceased; it purges nothing else of an import
+([data retention](uploads.md#data-retention)).
 
 ## Changing a member's particulars
 
-A company keeps its members' names and residential addresses up to date itself,
-under the owner's [decisions of 5 October 2026](../decisions.md#company-run-register-authority-and-evidence):
+A company keeps its members' names and residential addresses up to date itself.
+The [company register decisions](#company-register-decisions) apply, with one
+`supporting` upload the company provides, such as a deed poll or a member's
+notice of a new address, and a reason. The latest "as at" date wins across
+imports and changes, with the one applied later winning a shared date, and a
+member's live verified identity still wins over both. Members editing their own
+particulars is the separate [Profile increment](../plans/company-managed-registers/member-profile.md)
+of [#866](https://github.com/Ledova/ledova/issues/866). The Register screen in
+both clients lists the company's particulars changes and prepares a change
+from a current member's row.
 
-- a change needs a reason and one supporting document the company provides,
-  such as a deed poll or a member's notice of a new address, uploaded as a
-  `supporting` upload. Ledova staff do not verify it, and the change's copy is
-  shown as provided by the company;
-- a current appointment holding `admin` or `prepare` uploads and prepares,
-  `admin` or `approve` approves or rejects, and `admin` or `apply` applies. One
-  person may take every step, and no second person is required;
-- application needs an approval whose approver still holds a current
-  appointment. If that appointment was revoked or has expired, a current
-  approver approves again;
-- the latest "as at" date wins across imports and changes, with the one applied
-  later winning a shared date, and a member's live verified identity still wins
-  over both.
-
-Staff permissions, company ownership alone and shareholding grant none of these
-steps. The Register screen in both clients lists the company's particulars
-changes, prepares a change from a current member's row and runs these steps,
-through the API below. Shareholders changing their own particulars is planned
-work in [#866](https://github.com/Ledova/ledova/issues/866).
-
-| Method and route                                                            | Result                                                                                                                                                                                                                           |
-| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/tokens/register-evidence/`                                    | Upload the supporting document (multipart: `company_id`, `appointment`, `kind` of `supporting`, `idempotency_key`, `file`); return its receipt with size, type and SHA-256                                                       |
-| `POST /api/v1/tokens/register-particulars-changes/`                         | Prepare the change; return the retained request                                                                                                                                                                                  |
-| `GET /api/v1/tokens/register-particulars-changes/`                          | Paginated changes for companies whose register the caller may read: as the owner, or through a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`. Filter by `company`, `member` and `status` |
-| `GET /api/v1/tokens/register-particulars-changes/{uuid}/`                   | Request, evidence, stage and decisions                                                                                                                                                                                           |
-| `GET /api/v1/tokens/register-particulars-changes/{uuid}/file/`              | Authenticated attachment of the change's copy of the supporting document                                                                                                                                                         |
-| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/` | Preview approval, application or rejection for the caller's appointment: unmet requirements, the change beside the member's current particulars, and the preview digest                                                          |
-| `POST /api/v1/tokens/register-particulars-changes/{uuid}/decide/`           | Record the previewed decision with its digest, a retry key and `confirmation: true`                                                                                                                                              |
+| Method and route                                    | Result                                                                                                                                                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /api/v1/tokens/register-particulars-changes/` | Prepare the change. `GET` lists, filterable by `company`, `member` and `status`; `{uuid}/` returns the request, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` (the change beside the member's current particulars) and `{uuid}/decide/` as above |
 
 ```json
 {
@@ -1704,84 +1330,38 @@ work in [#866](https://github.com/Ledova/ledova/issues/866).
 `as_at` is the date the company's register records the change: today (UTC) or
 earlier. A change dated on or after the date of the member's current particulars
 replaces them when it is applied. Preparation trims the name, address and
-reason, and refuses, with a message naming the problem:
+reason, and refuses a member of a company in which the caller holds no current
+appointment, an empty name, residential address or reason, a name of more than
+255 characters, an address or reason of more than 1,000, a date after today or
+before the date of the member's current particulars, and a member who has held
+no shares in the company since the retention cutoff
+(`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), whose particulars the
+register no longer keeps.
 
-- a member of a company in which the caller holds no current appointment;
-- evidence that is not the preparer's own `supporting` upload for this company,
-  or whose stored bytes no longer match its fingerprint;
-- an empty name, residential address or reason, a name of more than 255
-  characters, or an address or reason of more than 1,000;
-- a date after today, or before the date of the member's current particulars;
-- a member who has held no shares in the company since the retention cutoff
-  (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default), whose particulars the
-  register no longer keeps.
-
-The change keeps its own private copy of the upload, with a snapshot naming the
-upload, its size, type and SHA-256, and marked as provided by the company. An
-identical preparation retry returns the change; the same operation ID with any
-change conflicts.
-
-Each decision starts with a preview, which shows the change beside the member's
-current particulars, their date and the import or change that recorded them, and
-lists what the decision still lacks:
-
-| Requirement                             | Meaning                                                                                                     |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                 |
-| `change_decided`                        | The change is already applied or rejected                                                                   |
-| `already_approved`                      | A current approval exists                                                                                   |
-| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                               |
-| `evidence_unavailable`                  | The retained copy no longer matches its size or SHA-256                                                     |
-| `member_left_retention`                 | The member has held no shares since the retention cutoff, so the register no longer keeps their particulars |
-| `newer_particulars_exist`               | The member's particulars are now dated after the change, from a later import or change                      |
-| `reason_required`, `reason_not_allowed` | Rejection needs a reason; approval and application take none                                                |
-
-The preview digest binds the change, the decision, the person, the appointment,
-the reason and, for application, the member's current particulars: their name,
-address, date and source. The decision must carry the same digest, so particulars
-recorded in between conflict. An identical decision retry with the same retry
-key returns the change; the same key with any change conflicts. Every step
-rechecks the appointment after taking the company lock, so a revocation that
-commits first refuses the decision and records nothing.
+The preview shows the change beside the member's current particulars, their date
+and the import or change that recorded them, and its digest binds, for
+application, the member's current particulars: their name, address, date and
+source, so particulars recorded in between conflict. The change's own
+requirements are `member_left_retention` (the member has held no shares since
+the retention cutoff, so the register no longer keeps their particulars) and
+`newer_particulars_exist` (the member's particulars are now dated after the
+change, from a later import or change).
 
 Application records the change's name, residential address and date as the
-member's particulars, naming the change as their source, with the decision; a
-failure rolls them both back. Rejection with a reason stays available until a
-decision applies or rejects the change, including when the retained copy is
-unavailable. There is no admin page for changes. The database keeps changes,
-uploads and decisions immutable and refuses:
-
-- an upload or preparation not made through the company command by a person
-  whose current appointment holds `admin` or `prepare`;
-- a preparation for a member of another company, with a blank name, address or
-  reason, or dated after today;
-- a preparation whose evidence, fingerprint, snapshot or copy path differ from
-  the preparer's own `supporting` upload for the company;
-- a decision whose digest the database does not recompute, whose appointment is
-  not the decider's current one with the capability the decision needs, a second
-  current approval, or an application without a current approval;
-- an applied or rejected change without its matching decision, and a decision
-  whose change does not carry its effect when the transaction commits;
-- an application that does not record the change's particulars for its member;
-- particulars naming a change as their source unless that change's application
-  writes them, through the company command, by the person applying it, with
-  exactly its member, name, address and date;
-- particulars naming an import as their source unless that import's application
-  writes them, as the [import guard](#importing-an-existing-register) describes;
-- moving particulars to another member or to an earlier date, whichever
-  recorded them;
-- removing particulars during any company command. Outside one, the retention
-  purge removes them, and the database does not tell it apart from other
-  operator code;
-- any write to particulars from the app role.
-
-The daily retention job purges a member's particulars, whichever recorded them,
-once the member has held nothing in the company for the 2,557-day floor. It
-purges nothing else of a change: the change, with the name and address it
-carried, its copy of the supporting document, its decisions and the company's
-upload are evidence, kept like import evidence with no automatic expiry during
-the synthetic experiment, and production retention is decided before any real
-data (owner decisions, 22 September and 5 October 2026).
+member's particulars, naming the change as their source. The database also
+refuses a preparation for a member of another company, with a blank name,
+address or reason, or dated after today, an application that does not record
+the change's particulars for its member, particulars naming a change as their
+source unless that change's application writes them with exactly its member,
+name, address and date, particulars naming an import as their source unless
+that import's application writes them, moving particulars to another member or
+to an earlier date, whichever recorded them, removing particulars during any
+company command (outside one, the retention purge removes them, and the
+database does not tell it apart from other operator code), and any write to
+particulars from the app role. The daily retention job purges a member's
+particulars, whichever recorded them, once the member has held nothing in the
+company for the 2,557-day floor, and nothing else of a change
+([data retention](uploads.md#data-retention)).
 
 ## Reconciling with the chain
 
@@ -1829,7 +1409,7 @@ previous result in the CSV, so the failed job is the signal to look at.
 
 | Discrepancy                    | Meaning and next step                                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `unrecognised_transfer`        | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the holders |
+| `unrecognised_transfer`        | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the parties |
 | `missing_transfer`             | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged                                                                                                                                                                                    |
 | `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood                                                                                 |
 | `attribution`                  | A completion the evidence cannot place, as in [classification](#classifying-completed-inclusions). It cannot be acknowledged                                                                                                                                                                                                                                         |
@@ -1842,7 +1422,7 @@ python manage.py register_reconcile --token TOKEN_UUID
 
 It prints the retained record. The database refuses to rewrite or delete a
 reconciliation, or to record one inconsistent with its status. Only the
-operator records them. The issuer reads its own, and register readers read them
+operator records them. The company reads its own, and register readers read them
 through the [reconciliation API](#acknowledging-a-discrepancy). Downgrading
 `tokens/0070` refuses while any exist.
 
@@ -1894,7 +1474,7 @@ nothing and refuses:
   found;
 - an appointment that is not the caller's current appointment holding `admin` or
   `approve`, as not found;
-- a caller who does not meet the issuer identity check the operator requires;
+- a caller who does not meet the identity requirement `issuer_kyc_required` imposes;
 - a reconciliation that is not the class's latest: for a row of an older record,
   wait for the next run and use it;
 - a position outside the record's discrepancies;
@@ -1917,8 +1497,8 @@ acknowledged the same way, through the `member` and `supply` rows it leaves.
 Once every row is acknowledged, the next run is `matched`. An acknowledgement
 explains a divergence; it records nothing in the register, whose holdings stay
 as recorded. `attribution` and `missing_transfer` cannot be acknowledged: they
-need the attribution procedure, which is still
-[#647](https://github.com/Ledova/ledova/issues/647) work.
+need the attribution procedure, which is not built; #647 closed on
+22 September 2026 without it.
 
 Each acknowledgement is retained with the reconciliation, the exact row, the
 reason, the person, their appointment and the time. The company register
@@ -1944,5 +1524,5 @@ acknowledged discrepancies through an operator command, `register_acknowledge`,
 until 5 October 2026. That command is retired; the acknowledgements it recorded
 are kept unchanged and still explain their rows.
 
-Next: [the remaining register work](https://github.com/Ledova/ledova/issues/647)
-and [register architecture](../architecture/register.md).
+Next: [register architecture](../architecture/register.md) and the
+[job schedule](jobs.md#schedule).
