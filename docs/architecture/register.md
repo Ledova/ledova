@@ -7,45 +7,21 @@ The current-members register of one share class is its stored register.
 holdings with each member's linked wallets and the identity and allotment
 records, and reads no chain. Former members are stored separately.
 
-## Company-managed target and current limits
+## Who runs what
 
-The [accepted plan](company-managed-registers.md#required-self-service-workflows)
-makes authorised company users responsible for opening/import, particulars,
-wallet links, exact issues and transfer decisions, corrections and discrepancy
-acknowledgement. Company mandates and approval policy replace the staff-only
-decision gates described below. `RegisterMember` remains a shareholder record,
-not an administrative appointment; an owner, holder or global staff role does
-not by itself supply director approval.
-
-Deliver supported preparation, preview, approval/application and output actions
-on web/mobile. Preserve documentary fingerprints and retained copies, conflict
-rules, exact revision/recipient/quantity bindings, immutable events, atomic
-projections, idempotency and the distinction between settlement, finality and
-the approved register entry. Bounded privileged execution must recheck company
-authority; customers must not receive raw ledger writes or unrestricted
-operator connections. Certificates, inspection copies, exports and due work
-need capability-scoped company routes with the existing provenance and privacy.
-
-The remaining sections describe current implementation, including staff-only
-review of instructions, and admin-only outputs. Openings, imports, corrections,
-wallet links and changes to members' particulars are company-run: the company
-provides the evidence, states an import's ASIC figures, and its appointments
-approve and apply them. Its appointments holding `admin` or `approve` also
-acknowledge reconciliation discrepancies. An import can open a register and
-retain members with no wallet, but an imported non-chain class currently accepts
-neither chain issue nor transfer instructions. Company-run
-[non-paid register grants](../plans/company-managed-registers/register-grants.md)
-now add genuine issues for new or existing walletless members with retained
-terms, acceptance where required, and current company approval. [Direct non-paid
-transfers](../plans/company-managed-registers/register-transfers.md) preserve
-supply, instrument/lodgement dates and attributable cessation/return history.
-Publications also require a deployed or paused
-class until #870 converts that workflow. A wallet is required only when the chosen action uses the chain. A
-non-chain issue or transfer must record its real approved ledger effect, never a
-fabricated chain completion. Later tokenisation must mirror existing authorised
-holdings without issuing those shares again. Unsupported tokenisation and
-corporate actions must stay explicit rather than appear available after a
-permission change.
+Openings, imports, corrections, wallet links, members' particulars,
+[non-paid grants](../plans/company-managed-registers/register-grants.md) and
+[transfers](../plans/company-managed-registers/register-transfers.md),
+reconciliation acknowledgement and inspection copies are company-run through
+current appointments, with company-provided evidence. Platform staff still
+review settled-transfer instructions and prepare certificates, notice figures
+and the company pack on the company's written instruction
+([#871](https://github.com/Ledova/ledova/issues/871)). `RegisterMember` is a
+shareholder record, not an appointment. An imported class opens without a
+contract and accepts no chain issue or transfer instruction: its grants and
+transfers are ledger events, a wallet is required only for a chain action, and
+later tokenisation mirrors its holdings without issuing them twice.
+Publications require a deployed or paused class until #870.
 
 The [stored register foundation](../operations/register-foundation.md) adds member
 references with durable wallet links, immutable events and a holdings projection
@@ -91,20 +67,16 @@ once-only ISSUE entry. The first-member LINK can precede a first mint. Imported
 books retain their separate walletless grant workflow and cannot obtain chain
 issue authority by deploying a contract, including when imported supply is zero.
 
-The [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation. It binds the company's exact preparation, approval and
-application to an existing recorded PAID subscription. Application admits its
-original request and execution; a genuine finalised Mint supplies the original
-member's ISSUE once its wallet link exists. The entry records the company
-appointee who applied the issue. Payment, approval, Mint, ALLOTTED and register
-recording remain separate. Financial decisions remain pending #868.
+A [paid issue](../plans/company-managed-registers/company-paid-issues.md)
+binds the company's exact preparation, approval and application to an existing
+recorded PAID subscription. Application admits its original request and
+execution; a genuine finalised Mint supplies the original member's ISSUE once
+its wallet link exists. The entry records the company appointee who applied the
+issue. Payment, approval, Mint, ALLOTTED and register recording remain separate.
 Retained paid instructions keep their original staff decisions and financial
-source. Fresh legacy paid admission is retired; retained non-paid requests may
-still obtain their earlier guarded register cover. PostgreSQL keeps those
+source; fresh legacy paid admission is retired, and retained non-paid requests
+may still obtain their earlier guarded register cover. PostgreSQL keeps those
 instructions immutable and rejects fabricated company or legacy authority.
-An import-origin class takes no
-chain issue or transfer instruction; later tokenisation needs a genuine mirror
-that preserves its recorded holdings.
 
 A settled transfer is entered only under a
 [transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers).
@@ -208,9 +180,9 @@ current members and linked wallets, exact issued and authorised shares, unopened
 registers and waiting-effect warnings. If any read fails, the page offers retry
 and hides partial or stale register rows. It does not substitute wallet balances
 for the stored register. Former members remain available in the register CSV,
-downloaded from each class on Register or from the class page; certificates and
-other staff-prepared outputs still follow written instructions through the
-operator workflow described below.
+downloaded from each class on Register or from the class page, and inspection
+copies are prepared there too; certificates, notice figures and the company
+pack are still staff-prepared on written instruction, as described below.
 
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
 initialised, current members with their wallets, the stored issued supply, the
@@ -538,38 +510,10 @@ retain their original identity independently. Allotment identity stamps preserve
 the member identity where one was resolved when shares were issued. Treasury relabeling or current profile guesses
 must not replace that historical source.
 
-## Publications to members
-
-A [shareholder publication](shareholder-publications.md) is the first
-member-readable projection of the register: its roll is resolved once from the
-stored register at a record date and frozen, carrying the same four holder types
-and the same refusal to name a member the register cannot name. It reads the
-register and never writes to it.
-
-## The company pack
-
-A [company pack](company-pack.md) carries every share class's register: the CSV
-above, built by the export's own code, and every entry with the exact text its
-hash was computed over, so a reader without the platform can check the chain and
-replay the holdings. Beside them are the openings, imports, corrections,
-instructions and wallet links behind the entries, each with the evidence copy it
-retained, the former members with the
-date each must be kept until, the reconciliations, the waiting list and the
-outputs due, and each settlement that transferred shares: the order both
-parties signed, with its domain and signatures, and its finalized receipt.
-Staff produce it in admin on the company's written
-instruction, and it is recorded as a `company_pack` kind of register export, once
-for each share class it carries.
+A [shareholder publication](shareholder-publications.md) freezes a roll from
+this register at a record date and never writes to it, and a
+[company pack](company-pack.md) carries every class's register, the decisions
+behind its entries and their evidence copies.
 
 Next: [legal positions](../legal/positions.md), [scheduled folds](../operations/jobs.md)
 and [operator recovery](../operations/recovery.md).
-
-## Company publication readback
-
-The web Company page links to Published to your members. It selects the current
-owned company explicitly, follows every page and reads the stored documents,
-resolution results and dividend rate/date facts. Personal Notices continues to
-select the caller's membership separately. The issuer page has no member ballot
-controls or staff publication/payment execution actions; staff act on written
-instruction. The [publication contract](shareholder-publications.md#the-members-route)
-owns the filter, storage and read-audit details.

@@ -13,20 +13,13 @@ what an implementation would therefore have to add. See
 
 ## Company authority in a later implementation
 
-The [company-managed plan](company-managed-registers.md#required-self-service-workflows)
-supersedes the staff-run approval process this earlier design proposed. Any
-supported corporate action must be prepared and approved by appropriately
-appointed company users under the company's policy and retained authority,
-without routine platform-staff decisions. Technical signing and recovery remain
-bounded infrastructure work. This changes who may instruct a future mechanism;
-it does not add one or make a consolidation executable.
-
-Preserve this design's whole-unit, cap, ratio, register and chain constraints.
-Company authority cannot substitute for holder signatures where the contract
-requires them. Non-chain register changes require their own real ledger path;
-later tokenisation must mirror authorised stored holdings without issuing the
-same shares a second time. Keep unsupported actions explicit while the contract,
-ledger and output designs remain unresolved.
+Any supported corporate action would be prepared and approved by appointed
+company users under the delivered authority model, with technical signing and
+recovery as bounded infrastructure work; that changes who may instruct a future
+mechanism and does not add one. Company authority cannot substitute for holder
+signatures where the contract requires them, and a non-chain register change
+needs its own ledger path that later tokenisation mirrors without issuing the
+same shares twice.
 
 ## What each one is here
 

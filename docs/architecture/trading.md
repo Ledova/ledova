@@ -12,33 +12,17 @@ safety: releases require the human checks in
 [#624](https://github.com/Ledova/ledova/issues/624), and operation with real
 participants follows the [regulatory pathway](../regulatory-pathway.md).
 
-## Company register decisions alongside trading
+## Company decisions alongside trading
 
-[Share purchases must support AUD payment](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments).
-The current secondary protocol requires pre-funded wallets and a configured
-stablecoin settlement asset; an AUD price or AUDY balance does not deliver a
-direct AUD payment method. [#869](https://github.com/Ledova/ledova/issues/869)
-tracks the secondary payment and settlement design, which remains undecided.
-Preserve the protocol below until that design is selected and implemented;
-optional personal investor on-ramp purchases must not become a prerequisite for
-share purchases. Company share-wallet approval, transfer decisions and register
-actions remain separate from the ban on company crypto on-ramp purchases.
-
-The [company-managed plan](company-managed-registers.md#required-self-service-workflows)
-replaces routine staff review/application of the company's transfer instruction
-with company-capability decisions. Preserve director conflicts, exact settlement
-parties and quantity, documentary authority and the distinction between a
-completed settlement and its approved register entry. A company appointment
-does not confer access to investors' private orders or authority to sign for
-their wallets; the matching and participant-signature protocol below remains
-current.
-
-Company/provider eligibility and company-specific wallet approval need the
-planned attributable, live company workflows. Technical relaying, finality and
-recovery continue to use bounded accepted work. The `trading_enabled` safety
-switch is a feature/operations control, not the retired registry/single-issuer
-product-mode distinction, and company self-service does not remove its existing
-release or payment/crypto safeguards.
+The secondary protocol settles in a configured stablecoin from pre-funded
+wallets; an AUD price or AUDY balance is not a direct AUD payment method, and
+new settlement work is deferred ([#869](https://github.com/Ledova/ledova/issues/869)).
+Company eligibility decisions and company wallet approvals feed the checks below
+through the delivered company workflows. A company appointment confers no access
+to investors' private orders and no authority to sign for their wallets, and a
+settled transfer still enters the register through a staff-reviewed director
+instruction until #869. `trading_enabled` is an operations switch, not a product
+mode.
 
 ## Intent and settlement
 
@@ -67,13 +51,13 @@ submission UUID and rolling back execution effects. Unjournaled orders
 retain their same-account behavior; they gain no cross-account matching authority.
 Both participants still approve and sign the captured settlement before execution.
 Creating an order and signing a swap both require the acting party to hold a
-live investor classification for the share class's company, checked with the
-same predicate the offering paths use, in addition to the wallet, registry and
-balance checks. Either party may relay the other's captured signature, so the
-check follows the signature rather than the caller: the account that signed must
-hold the live classification, not whoever submits it. A party whose
-classification lapses between the two keeps their signature but cannot add
-another, and the share token itself refuses the settlement.
+current [eligibility decision](companies-and-eligibility.md#participant-eligibility)
+from the share class's company, in addition to the wallet, registry and balance
+checks. Either party may relay the other's captured signature, so the check
+follows the signature rather than the caller: the account that signed must hold
+the decision, not whoever submits it. A party whose decision lapses or is
+revoked between the two keeps their signature but cannot add another, and the
+share token itself refuses the settlement.
 
 Deliberate new orders receive account-scoped submission UUIDs. Cancel and modify
 actions use separate action UUIDs. Retries retain those identities; equal terms

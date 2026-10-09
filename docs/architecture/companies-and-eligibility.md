@@ -2,32 +2,12 @@
 
 [Architecture](README.md) · [Documentation](../README.md)
 
-How company verification and investor eligibility bound access to offers.
-
-## Company-managed onboarding and decisions
-
-The [accepted plan](company-managed-registers.md#responsibility-and-company-access)
-replaces routine staff activation and classification review with evidenced
-company authority and configured verification/provider outcomes. Bootstrap starts
-at fresh signup: record the representative's authorisation declaration under the
-[accepted self-declaration decision](company-managed-registers.md#representative-verification),
-retaining the existing representative identity check and ABR company lookup.
-Company details are provided by the company, never verified by Ledova, and the
-terms make the company responsible for them. A declaration or checksum-valid ACN
-does not fabricate success for a separate configured provider check. Activation is a
-validated outcome once the applicable requirements are met, not an unconditional
-staff approval.
-
-Company-appointed users decide offers and company-specific eligibility within
-their capabilities, using attributable, live verification facts and the relevant
-company/provider decision. Preserve expiry, revocation, amount/context bindings
-and private evidence; company administration does not grant unrestricted access
-to personal financial or identity files. Shareholders and employees can access
-their own records independently of unrelated investment eligibility. Wallet
-ownership proof and company-specific whitelist approval remain separate.
-Company activation is delivered by the [administrator activation workflow](../plans/company-managed-registers/company-activation.md).
-Company-specific participant eligibility and its dependent consumer conversions
-remain planned under #863. The investor predicates below describe current code.
+How company activation and participant eligibility bound access to offers.
+Companies [activate themselves](../plans/company-managed-registers/company-activation.md)
+and [decide their own participants' eligibility](../plans/company-managed-registers/company-eligibility.md);
+company details are provided by the company, never verified by Ledova. A
+declaration or checksum-valid ACN does not fabricate success for a separate
+configured provider check.
 
 ## Company identifiers
 
@@ -91,28 +71,42 @@ recovery and `backend/companies/tests/test_company_activation.py`,
 `test_company_activation_scoped.py` and `test_company_activation_migration.py`
 for current activation and upgrade controls.
 
-## Investor eligibility
+## Participant eligibility
 
-[The eligibility service](../../backend/users/services/eligibility.py) owns the
-predicate. It requires an investing account in good standing and a live classification.
-With `investor_kyc_required` on, pending accounts and an unverified profile are
-refused; with it off, pending alone does not refuse. Rejected, suspended and
-terminated accounts remain refused. `issuer_kyc_required` gates the company
-lifecycle above, not investor eligibility.
+Eligibility is one company's decision about one participant. A participant
+submits a classification source and requests a decision from a company; a
+current company approver accepts it with a bounded expiry or refuses it, and can
+revoke it ([company eligibility](../plans/company-managed-registers/company-eligibility.md)).
+`users/services/company_eligibility.py` records those decisions and
+`users/services/company_eligibility_consumption.py` consumes them:
+`company_eligibility(account, company, purpose=...)` and
+`subscription_eligibility(account, offering, quantity)` evaluate the current
+decision, standing and evidence at the time of the action, and
+`require_subscription_eligibility` and
+`require_subscription_acceptance_eligibility` apply them to a subscription, so
+the decision must cover the offering's company and, for a product-value claim,
+the exact offering, quantity and amount. A decision is per company: an
+acceptance by one company supplies no permission with another. This is distinct
+from on-chain recipient whitelisting, which is a separate
+[company wallet instruction](../plans/company-managed-registers/company-wallet-approvals.md).
 
-`investor_eligibility(user, company=...)` answers discovery questions;
-`account_eligibility(account, company=..., amount_aud=...)` binds the actual account.
-Subscriptions use `require_subscription_eligibility` so the claim must cover the
-issuer and, for product-value claims, the subscription amount. This is distinct
-from on-chain recipient whitelisting.
+Account readiness is separate. `investor_readiness(user)` in
+[the eligibility service](../../backend/users/services/eligibility.py) requires an
+investing account in good standing; with `investor_kyc_required` on, pending
+accounts and an unverified profile are refused, and with it off pending alone
+does not refuse. Rejected, suspended and terminated accounts remain refused.
+`issuer_kyc_required` concerns company representatives: with it on, initial
+admission, activation and company decisions require the representative's
+verified identity.
 
-Directory selectors allow a globally eligible investor to discover companies, or
-restrict an associated-person investor to the companies their live claims name.
-The same selector decides who opens the documents of a class's approved offerings
-([offerings](offerings.md)). The secondary market uses the unscoped predicate and receives no widening from
-associated-person claims. Inaccessible list/detail querysets produce empty lists
-or 404; they do not confirm a hidden row with 403. Operator payment instructions
-use eligibility for at least one company.
+Discovery follows the decisions. `directory_admission(user)` admits a
+participant to the companies and exact products their current decisions cover,
+and the same selector decides who opens the documents of a class's approved
+offerings ([offerings](offerings.md)); `secondary_company_ids(user)` bounds the
+market the same way, with no widening from an associated-person decision.
+Inaccessible list/detail querysets produce empty lists or 404; they do not
+confirm a hidden row with 403. Operator payment instructions use eligibility for
+at least one company.
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md),
 [registry verification procedure](../operations/integrations.md#company-registry-verification),

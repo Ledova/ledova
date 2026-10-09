@@ -6,21 +6,10 @@ Uploaded evidence is private in every storage mode. File ownership and the
 retention clock determine who can read or remove it; a public media URL never
 substitutes for an authenticated route.
 
-## Company-managed evidence access
-
-The [company-managed plan](company-managed-registers.md#responsibility-and-company-access)
-requires company-scoped document and authority workflows in place of routine
-staff review. A company appointment must authorise only the relevant company's
-documents and task; it does not grant access to participants' private identity,
-classification or financial evidence. Provider facts and the company's decision
-must remain attributable and content-bound, with evidence expiry, revocation,
-read audits and retention enforced where applicable.
-
-The serving and retention paths below describe current code. Retiring the legacy
-product modes keeps supporting evidence available with the current registry
-product's private access and review safeguards. Remove the field and mode-only
-branches in a coordinated API/client release; do not purge retained content,
-relax reviewer restrictions or replace the mode with another product flag.
+A company appointment authorises only that company's documents and tasks; it
+grants no access to participants' private identity, classification or financial
+evidence. Supporting evidence keeps the same private access, review and
+retention safeguards on every instance.
 
 ## Storage and serving
 
@@ -33,8 +22,7 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
 | Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
-| Register opening, correction and wallet link authority | `companies/`; the company's upload and the opening's, correction's or link's copy are retained with their rows; interrupted-copy orphans are swept |
-| Particulars change supporting document | `companies/`; the company's upload and the change's copy are retained with their rows; interrupted-copy orphans are swept |
+| Company register decision: import, opening, correction, wallet link, particulars change, grant, transfer, capital increase, pause change, instruction | `companies/<uuid>/register-evidence/` for the company's upload and `register-<kind>s/` for the decision's own copy; both are retained with their rows; interrupted-copy orphans are swept |
 | Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
 | Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
 | Company document | `companies/`; swept after becoming an orphan |
@@ -115,31 +103,22 @@ A [company pack](company-pack.md#documents) carries a company's documents,
 the evidence copies its register changes retained, its publications' documents
 and its payment records' remittance evidence, all stored under `companies/`. No file stored under `users/` or `documents/` leaves in a pack.
 
-Openings, corrections and wallet links retain a private copy of the company's
-authority upload, with its size, type and SHA-256; one submitted before they were
-company-run retains its copy of the staff-verified company document. During the
-synthetic experiment those openings, corrections, links, uploads and files have
-no automatic expiry. The database refuses ordinary row deletion; the existing
-orphan sweep removes only unreferenced copies. See the
-[opening](../operations/register-foundation.md#opening-the-register-from-the-chain),
-[correction](../operations/register-foundation.md#compensating-corrections) and
-[wallet link](../operations/register-foundation.md#linking-wallets-after-the-opening)
-workflows.
-
-A change to a member's particulars retains a private copy of the company's
-`supporting` upload, with its size, type and SHA-256, and its own copy of the
-name and residential address it recorded. Like an import, the change, its copy
-and the upload are kept with the register with no automatic expiry during the
-synthetic experiment, while the member's particulars themselves are purged
-2,557 days after the member last held shares in the company. The database
-refuses ordinary deletion of the change. See
-[changing a member's particulars](../operations/register-foundation.md#changing-a-members-particulars).
+Every company register decision retains a private copy of the company's upload
+with its size, type and SHA-256, and a particulars change also its own copy of
+the name and residential address it recorded; one submitted before the
+decisions were company-run retains its copy of the staff-verified document.
+During the synthetic experiment those decisions, uploads and copies have no
+automatic expiry, while a member's particulars themselves are purged 2,557 days
+after the member last held shares in the company. The database refuses ordinary
+row deletion; the orphan sweep removes only unreferenced copies. The
+[register runbook](../operations/register-foundation.md) describes each
+decision's workflow.
 
 [Representative authority requests](../plans/company-managed-registers/authority-requests.md)
 retain a separate private upload and immutable person/company/terms/content
 snapshot. Only the requester can read the personal API or download its evidence.
-The initial slice records no verified mandate and has no automatic purge;
-requested appointment expiry or withdrawal does not erase the submission.
+The request has no automatic purge; appointment expiry, revocation or
+withdrawal does not erase the submission.
 Withdrawal adds immutable requester history and leaves the original bytes
 downloadable. Its referenced file
 stays protected by the retained row, while aborted-copy orphans use the ordinary

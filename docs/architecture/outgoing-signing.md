@@ -11,23 +11,17 @@ leaves the deployment pending for attribution.
 
 ## Company decisions and signer authority
 
-Under the [company-managed plan](company-managed-registers.md#existing-gates-to-replace),
-company mandates authorise routine register-related whitelist, issuance,
-capital and lifecycle commands. The technical signer and PostgreSQL operator
-role execute bounded accepted instructions; neither confers a human company
-appointment. The adapter-specific active-staff/admin admission checks below
-describe current code and need coordinated company-capability replacements
-where they block those workflows. Platform settlement-asset/yield-token minting,
-signer admission and infrastructure recovery are not automatically delegated to
-company administrators.
-
-Recheck current company, capability, mandate and exact terms before new unsigned
-work can create its effect. Preserve immutable admission, actor/authority
-provenance, nonce fencing, original bytes and receipt/finality checks. Revocation
-does not permit discarding or replacing already signed transactions: accepted
-work retains its recorded identity and normal bounded recovery. Keep private
-journals inaccessible to customer connections, and do not relax the bootstrap,
-same-key writer drain or cutover requirements as part of company self-service.
+Company appointees authorise whitelist, issuance, capital and pause commands
+through the [delivered workflows](../plans/company-managed-registers/README.md);
+the technical signer and PostgreSQL operator role execute bounded accepted
+instructions and confer no company appointment. Platform settlement-asset and
+yield-token minting, signer admission and infrastructure recovery are not
+delegated to company administrators. New unsigned work rechecks current
+company, capability, mandate and exact terms before it can create its effect;
+revocation never permits discarding or replacing already signed transactions,
+which keep their recorded identity and bounded recovery. Private journals stay
+inaccessible to customer connections, and company self-service does not relax
+the bootstrap, same-key writer drain or cutover requirements.
 
 The foundation now requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
@@ -392,8 +386,8 @@ already recorded is not checked again: a repeated request and the recovery sweep
 re-send the bytes the check admitted. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
 answers the same question for the share class at contract address `<token>`,
 for any signed-in user and any address. Creating an order and signing a swap
-also require a live investor classification for the share class's company, from
-the same predicate the offering paths use; order creation records the refusal as
+also require a current [eligibility decision](companies-and-eligibility.md#participant-eligibility)
+from the share class's company; order creation records the refusal as
 `investor_not_eligible` and signing answers 403.
 
 ## Refreshing an approval
@@ -444,7 +438,7 @@ What a reader may conclude from an approval's status:
 | `failed`  | The last change failed or reverted, and is logged at error level. What the registry holds is unknown and every platform read treats the wallet as not approved. `failed` is terminal for that command, so the refresh submits a new one; the thirty-minute sync re-observes the row and replaces the status with what the registry actually holds |
 
 That is what failing closed means here, and its limits are worth stating. The
-platform refuses at once, both on the registry read and on the classification
+platform refuses at once, both on the registry read and on the eligibility
 checks at order creation and signing. The registry itself cannot be forced
 closed while the write is failing, so until a removal lands a direct contract
 call can still move shares, and pausing the token is the operator's lever.
@@ -519,8 +513,8 @@ retains its bytes and attribution after company source loss. Finalised completio
 and original-member register recording are distinct bounded transactions;
 executed but unentered allocations remain reserved until the once-only ISSUE.
 
-The [paid-issue company conversion](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation. Its exact applied instruction consumes current company
+A [paid issue](../plans/company-managed-registers/company-paid-issues.md) uses
+the same admission: its exact applied instruction consumes current company
 approval and binds the original PAID subscription, request, private
 `ShareIssuanceExecution` and exact job together. Preparation and approval admit
 none of these execution effects. Current source and headroom checks precede new

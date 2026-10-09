@@ -4,95 +4,18 @@
 
 Where backend code belongs and how its layers interact.
 
-## Company-managed implementation direction
+## Company authority
 
-The app and layer catalogue below describes current code. Company authority is
-recorded by retained requests, scoped appointments, invitations and revocations in
-`companies`; `Company.owner` and `RegisterMember` do not substitute for these
-appointments. The [accepted plan](company-managed-registers.md#delivery-sequence)
-extends that authority to dependent register workflows. Team web/mobile screens
-and the legacy-owner migration are available. Basic company information and private
-company-document operations now use current personal administration; activation
-and action-specific company approvals remain planned.
-Place company authority with the company concern and pass an explicit actor and
-company command into shared workflow services. Client actions and exceptional
-admin support must call those services rather than duplicate decision logic.
-
-Routine activation, offering decisions, register changes, payment/allotment and
-shareholder administration move to company-authorised workflows. The `operators`
-configuration row and privileged automation remain technical infrastructure;
-neither establishes a human company appointment. New customer entry points need
-the service, policy, trigger and worker changes in the plan, rather than reuse of
-global admin permissions. Preserve the admin permission checks below for the
-current and exceptional staff surfaces.
-
-Company list/detail/basic edits and company-document upload, private-file reads
-and deletion use the actor-bound functions in `companies/services/administration.py`,
-`editing.py` and `documents.py`. Services lock the company before the live account,
-profile, operator identity requirement, appointments and affected document or
-wallet. They check the actual clock after waits. Personal `admin` authorises these
-operations; delegatable `admin`, staff status, shareholder membership and retained
-ownership do not replace it. A current active, email-verified owner may set up an unrooted draft
-before its initial appointment. Any retained request-sourced initial appointment
-or legacy-owner source permanently consumes that exception, including after
-expiry, revocation or an owner change. A pending request alone does not consume it.
-
-Company responses carry `is_owner` as relationship metadata and
-`administrative_access` as current personal capabilities plus `draft_setup`.
-The PATCH response is a complete `CompanyDetail`, expanding the former write-field
-subset so clients can validate an edit receipt. Existing identifier, status,
-reviewed-name and verified-wallet restrictions remain. Contact serialization
-returns only the existing owner's name and email after an exact bounded resource
-check; it does not admit raw profiles, accounts or wallets.
-
-App-role company and company-document writes are closed. Bounded services restore
-the principal and company-command settings they use on the operator connection;
-`companies.0020` guards the exact actor, company, permitted fields and current
-personal authority at persistence. The schema-owning migration connection remains
-the maintenance boundary. Document update/delete statements and command-scoped
-association removals acquire the company boundary before row locks. For
-`document_delete`, statement guards lock all offerings of the declared company
-before either document or association rows and recheck authority after that wait.
-The deletion service uses
-a document lock that permits foreign-key attachment checks, then locks attached
-offerings and rechecks current authority and published retention. Public company
-discovery uses a separate fixed-search-path UUID helper with the existing
-active/open or deployed/nonempty-address terms; private resource access remains
-separate. Provider projections and the existing owner submission,
-staff lifecycle review and content-bound document verification retain their
-specific checks through bounded callers. Status API review requires current active
-staff, while admin review additionally requires its existing model change
-permission. Document verification retains its model permission and exact content
-confirmation. Generic admin add/delete and document
-metadata writes are closed. These retained staff workflows do not grant basic
-administration or deliver the later company-managed workflow conversions.
-
-Company API metadata reads admit the exact current active owner alongside current
-personal administration. An owner without that administration receives no contact
-name/email or private document inventory, and cannot edit company information or
-files. Raw Company access retains the separate administration/public policy.
-Existing owner-domain reads and writes remain independent of personal
-administration: `app_visible_company_ids()` and `app_manageable_company_ids()` keep
-their exact owner UUID bodies and become fixed-search-path definers only after
-migration 0020. Child, participant, subscriber, profile, account and wallet policy
-terms remain unchanged. Historical installation and reversal restore the original
-invoker attributes. Owner API selectors bind the actual request owner; offering
-and capital effects recheck the live owner and active actor under company-first
-locks. Private documents supplied to offering actions separately require current
-personal administration. Offering updates and document attachment lock the exact
-offering before that check, so expiry during the row wait prevents a new private
-document reference. Share-class creation accepts only its existing validated
-fields and rechecks its selected owner and active actor under the same lock order.
-Personal administration supplies no mandate for these retained owner workflows.
-Historical policy installation waits for required columns, and the new
-administration migration reverses before the earlier policy installer is removed.
-
-Retained publication list and file routes use the existing operator-action pattern
-with an explicit company-owner or named-recipient queryset before personal
-annotations and file lookup. They preserve publication access after a share-class
-pause without granting basic company administration. Ballots and summaries retain
-their existing app-role paths. The direct file service retains its existing active
-staff read and audit; the customer file route still excludes unrelated staff.
+Company authority is recorded by retained requests, scoped appointments,
+invitations and revocations in `companies`; `Company.owner` and `RegisterMember`
+do not substitute for an appointment, and the `operators` configuration row and
+privileged automation are technical infrastructure. Place company authority with
+the company concern and pass an explicit actor and company command into shared
+workflow services; client actions and exceptional admin support call those
+services rather than duplicate decision logic. [Tenancy](tenancy.md#roles-and-principal)
+describes how selectors, policies and database guards enforce it, and the
+[implementation index](../plans/company-managed-registers/README.md) links each
+delivered workflow.
 
 ## Backend apps
 
@@ -103,9 +26,9 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/`, and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                                        |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                               |
-| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, `InvestorClassification` and the investor-eligibility predicate                                                      |
-| `companies`      | `Company`, its application lifecycle, `CompanyDocument`, and representative-authority request, appointment, invitation and retained revocation records                                                                                                                |
-| `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, and the trading models                                                                                                                                  |
+| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                               |
+| `companies`      | `Company`, its activation, `CompanyDocument`, and representative-authority request, appointment, invitation and retained revocation records                                                                                                                           |
+| `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, and the trading models                                                                           |
 | `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                               |
 | `offerings`      | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/`                                                                                                                      |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands and the sync from each company's registry                                                                                                                                    |
@@ -120,8 +43,9 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `shared`         | Base model, country lookup, the health-check middleware, the cross-tenant route matrix                                                                                                                                                                                |
 
 The [outgoing-signing guide](outgoing-signing.md) owns admission, locking, history
-and activation constraints. Converted writers use the foundation; signer admission
-remains closed until the separate cutover requirements are met.
+and activation constraints. Converted writers use the foundation; the local stack
+admits its own signer, and a public network's signer stays closed until the owner
+runs the cutover in [#624](https://github.com/Ledova/ledova/issues/624).
 
 ## Backend layers
 
