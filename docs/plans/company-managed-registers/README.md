@@ -155,7 +155,7 @@ flowchart TB
     foundation --> primary
     issuance -. when used .-> primary
     foundation --> outputs
-    participants --> outputs
+    participants -. when used .-> outputs
     issuance -. when used .-> outputs
     foundation --> acceptance
     participants --> acceptance
