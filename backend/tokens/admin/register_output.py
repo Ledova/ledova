@@ -9,6 +9,7 @@ from django.views.decorators.http import require_http_methods
 from rest_framework.exceptions import ValidationError
 
 from shared.utils.admin_actions import admin_action_path, admin_page_path
+from tokens.exceptions import RegisterNotInitialized
 from tokens.models import RegisterExportKind, RegisterOutput
 from tokens.services.register import (
     outputs_due,
