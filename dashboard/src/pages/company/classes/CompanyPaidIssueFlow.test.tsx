@@ -607,6 +607,18 @@ it('distinguishes actual allotment from Mint/register completion and retains the
   records[0].execution!.effectiveOn = '2026-10-08';
   fireEvent.click(screen.getByRole('button', { name: 'Refresh company paid issue records' }));
   await screen.findByText('Finalised original paid mint recorded in the register');
+  records[0].execution!.operationId = [] as unknown as string;
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await screen.findByText('Original marked executed; complete original mint receipt unavailable');
+  expect(screen.queryByText(/Finalised original paid mint/)).toBeNull();
+  records[0].execution!.operationId = ID(151);
+  records[0].execution!.registerEntry = [ID(154)] as unknown as string;
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await screen.findByText('Finalised original paid mint; register entry not recorded');
+  expect(screen.queryByText('Finalised original paid mint recorded in the register')).toBeNull();
+  records[0].execution!.registerEntry = ID(154);
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh company paid issue records' }));
+  await screen.findByText('Finalised original paid mint recorded in the register');
   failHistory = true;
   fireEvent.click(screen.getByRole('button', { name: 'Refresh company paid issue records' }));
   await screen.findByText(

@@ -12,6 +12,7 @@ const digest = (value: unknown): value is string => typeof value === 'string' &&
 const hash = (value: unknown): value is string => typeof value === 'string' && /^0x[0-9a-f]{64}$/i.test(value);
 const dated = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value));
 const decimal = (value: unknown) => typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value);
+const identifier = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0;
 
 export function isRegisterPaidIssueSource(source: RegisterPaidIssueSource, company: string, token: string) {
   return (
@@ -126,7 +127,7 @@ export function isRegisterPaidIssueDecisionReceipt(
 export function registerPaidIssueExecutionState(record: RegisterPaidIssue) {
   const execution = record.execution;
   if (!execution) return 'No paid issue execution admitted';
-  if (!record.request || execution.request !== record.request)
+  if (!identifier(record.request) || execution.request !== record.request)
     return 'Original paid issue receipt does not identify this request';
   if (execution.operationStatus === 'reverted') return 'Original transaction reverted';
   if (execution.status === 'cancelled') return 'Original unsigned execution cancelled; paid allocation remains bound';
@@ -134,10 +135,14 @@ export function registerPaidIssueExecutionState(record: RegisterPaidIssue) {
     return 'Original paid issue execution failed';
   if (
     execution.status === 'executed' &&
-    execution.issuance &&
-    execution.operationId &&
-    execution.claimId &&
-    execution.transaction &&
+    [
+      execution.execution,
+      execution.dispatchId,
+      execution.issuance,
+      execution.operationId,
+      execution.claimId,
+      execution.transaction,
+    ].every(identifier) &&
     execution.operationStatus === 'confirmed' &&
     hash(execution.txHash) &&
     execution.blockNumber !== null &&
@@ -146,7 +151,7 @@ export function registerPaidIssueExecutionState(record: RegisterPaidIssue) {
     hash(execution.blockHash) &&
     dated(execution.completedAt)
   )
-    return execution.registerEntry && execution.effectiveOn
+    return identifier(execution.registerEntry) && dated(execution.effectiveOn)
       ? 'Finalised original paid mint recorded in the register'
       : 'Finalised original paid mint; register entry not recorded';
   if (execution.status === 'executed') return 'Original marked executed; complete original mint receipt unavailable';
