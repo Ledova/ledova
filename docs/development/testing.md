@@ -127,14 +127,23 @@ partition of the unlabelled suite's, so on the same commit their `Ran N tests`
 counts add up to the unsharded run's. Locally, run the unsharded command. To
 repeat one shard, run `python ../scripts/check-ordinary-shards.py --run NAME`.
 
+CI's ordinary wrapper and strict scoped command emit the existing runner's
+`--durations 0 --verbosity 2 --timing` output during the necessary run. This
+records named method timings and overall test/database setup timings without a
+profiling framework or an extra suite. Method totals omit class/module fixtures
+and Django pre/post hooks, so they do not establish complete class costs or
+worker idle time. Keep full inventories and declared skips separate from these
+measurements; a duration report does not establish a scheduling improvement.
+
 On a pull request, a scope job decides whether the Django jobs run: the shards
 and "Django checks & tests". They run unless every changed file is under
-`dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`. Even then, two kinds
-of change run them:
+`dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
+the root `AGENTS.md` or `CONTRIBUTING.md`. Even then, two kinds of change run them:
 
 - A document that any file under `backend/` names, which is today the only way the
   Django jobs read one: `check_rls_catalogue` names `docs/architecture/tenancy.md`,
-  and a test reads that document's heading.
+  and a test reads that document's heading. Backend references to either root
+  policy document also require Django.
 - Any `.gitattributes`, which can change how a document is checked out without
   changing the document.
 
@@ -148,6 +157,15 @@ kind for the [native builds](mobile-builds.md). The "Django verdict" check fails
 unless the scope job succeeded and each Django job succeeded, or was skipped
 because the scope job found none needed; a failed, cancelled or wrongly skipped
 job fails it.
+
+The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
+prioritises further fixture and CI simplification under
+[#943](https://github.com/Ledova/ledova/issues/943). This first increment retains
+every current test selection, required verdict and main-push check. JavaScript,
+native, scanner and general backend routing remain unchanged; scheduled broad
+checks and more selective pre-merge coverage need their own reviewed
+implementation. The under-five-minute documentation/configuration and
+15–25-minute routine-registry targets are not delivered measurements.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing

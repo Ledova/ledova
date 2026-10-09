@@ -25,6 +25,9 @@ before opening your first pull request.
   synthetic-data-only: operation with real participants follows the
   [regulatory pathway](docs/regulatory-pathway.md), and releases require the
   human checks in [#624](https://github.com/Ledova/ledova/issues/624).
+  Existing trading controls remain effective; new trading and integrated AUD
+  payment expansion is deferred under the
+  [9 October priority decision](docs/decisions.md#essential-registry-and-development-workflow-priority).
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
@@ -37,6 +40,12 @@ before opening your first pull request.
   sequence the accepted work; the earlier
   [product alignment programme](https://github.com/Ledova/ledova/issues/645)
   records the shipped foundation.
+- [#943](https://github.com/Ledova/ledova/issues/943) is the immediate workflow
+  priority. Then deliver employee award/vesting records, externally arranged
+  investor capital and authorised allotments, ownership, member access and basic
+  outputs. The current issue scopes separate these essentials from deferred
+  payments, trading, advanced governance and filings. Reuse those issues and
+  respect other agents' claims.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
   implementation.
@@ -66,6 +75,9 @@ Follow [local setup](docs/getting-started.md), then the
 3. Add or update tests for any behaviour change. Security and correctness fixes
    come with a regression test. A new detail route or custom action also needs a
    cross-tenant row in `backend/shared/tests/test_cross_tenant_routes.py`.
+   Prefer focused checks and retire demonstrably obsolete or duplicate tests;
+   preserve meaningful authority, privacy, economic, retention and migration
+   coverage. Documentation-only changes need no tests that mirror their text.
 4. Follow the coding rules in
    [engineering standards](docs/development/standards.md#the-rules). The one that
    surprises people most: **source carries no comments and no docstrings**. Only
@@ -85,19 +97,19 @@ this repository. Use `type(#issue): description` for its title, for example
 `feat(#123): add portfolio export`, `fix(#124): reject expired signatures`, or
 `deps(#518): update marketing dependencies`.
 
-| Type | Change |
-| --- | --- |
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `refactor` | Internal restructuring |
-| `perf` | Performance improvement |
-| `docs` | Documentation |
-| `test` | Tests or test tooling |
-| `build` | Build tooling or packaging |
-| `ci` | Continuous integration |
-| `deps` | Dependency updates |
-| `chore` | Other maintenance |
-| `revert` | Reversal of a previous change |
+| Type       | Change                        |
+| ---------- | ----------------------------- |
+| `feat`     | New feature                   |
+| `fix`      | Bug fix                       |
+| `refactor` | Internal restructuring        |
+| `perf`     | Performance improvement       |
+| `docs`     | Documentation                 |
+| `test`     | Tests or test tooling         |
+| `build`    | Build tooling or packaging    |
+| `ci`       | Continuous integration        |
+| `deps`     | Dependency updates            |
+| `chore`    | Other maintenance             |
+| `revert`   | Reversal of a previous change |
 
 Start the body with `Refs #issue` on its own line, matching the title. Use
 `Closes #issue` instead only when this PR completes the entire issue. For several
@@ -153,12 +165,16 @@ Run the checks appropriate to the change before opening a pull request.
 The [gate inventory](docs/development/gates.md#every-gate-and-where-its-rule-is-written)
 owns source rules, commands and CI coverage. The [testing command table](docs/development/testing.md#commands)
 covers workspace, backend, chain and device checks, including local-only formatting.
+Use focused checks while developing and applicable required CI on the stable
+merging head, rather than repeating full local suites without a new reason.
+Follow the current workflow until #943's measured changes land; a proposed
+verification tier or path filter does not itself change today's merge checks.
 
 ## Reporting security issues
 
 Do not open a public issue for a vulnerability. Use GitHub's private
-vulnerability reporting on this repository (Security, then *Report a
-vulnerability*). See [SECURITY.md](SECURITY.md).
+vulnerability reporting on this repository (Security, then _Report a
+vulnerability_). See [SECURITY.md](SECURITY.md).
 
 ## Licensing of contributions
 

@@ -137,7 +137,20 @@ def discover(shards, backend=BACKEND):
 def run(patterns):
     os.chdir(BACKEND)
     selection = [argument for pattern in patterns for argument in ("-k", pattern)]
-    command = ["manage.py", "test", f"--settings={SETTINGS}", "--parallel", WORKERS, "--noinput", *selection]
+    command = [
+        "manage.py",
+        "test",
+        f"--settings={SETTINGS}",
+        "--parallel",
+        WORKERS,
+        "--noinput",
+        "--durations",
+        "0",
+        "--verbosity",
+        "2",
+        "--timing",
+        *selection,
+    ]
     return os.execv(sys.executable, [sys.executable, *command])
 
 

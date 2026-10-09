@@ -307,6 +307,7 @@ jobs:
         run: >-
           python manage.py test --settings=ledova_backend.settings.test_scoped
           --require-scoped-coverage --parallel 4 --noinput
+          --durations 0 --verbosity 2 --timing
       - name: Row-level-security roles and catalogue (the half no test can see)
         run: |
           python manage.py migrate --noinput

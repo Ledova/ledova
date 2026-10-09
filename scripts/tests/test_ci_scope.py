@@ -317,6 +317,33 @@ class DjangoScopeTest(ScopeCase):
                 self.assertTrue(self.decision(head, scope="django")["required"])
                 self.git("reset", "--hard", self.base)
 
+    def test_root_policy_document_additions_edits_and_deletions_skip_django(self):
+        added = self.commit({"AGENTS.md": "guidance", "CONTRIBUTING.md": "contributing"})
+        edited = self.commit({"AGENTS.md": "updated guidance", "CONTRIBUTING.md": "updated contributing"})
+        removed = self.commit({}, removed=("AGENTS.md", "CONTRIBUTING.md"))
+        for base, head in ((self.base, added), (added, edited), (edited, removed)):
+            with self.subTest(head=head):
+                self.assertFalse(self.decision(head, base=base, scope="django")["required"])
+                self.assertEqual(self.decision(head, base=base, scope="django")["changed_files"], 2)
+
+    def test_policy_document_exemption_is_exact_and_does_not_hide_other_changes(self):
+        for path in ("nested/AGENTS.md", "AGENTS.md.bak", "CONTRIBUTING.md.py", "README.md", "backend/base.py"):
+            with self.subTest(path=path):
+                head = self.commit({"AGENTS.md": "guidance", path: "changed"})
+                self.assertTrue(self.decision(head, scope="django")["required"])
+                self.git("reset", "--hard", self.base)
+
+    def test_a_backend_reference_to_a_root_policy_document_requires_django(self):
+        for name in ("AGENTS.md", "CONTRIBUTING.md"):
+            with self.subTest(name=name):
+                base = self.commit({name: "guidance", "backend/rule.py": f'RULE = "{name}"\n'})
+                edited = self.commit({name: "updated guidance"})
+                removed = self.commit({}, removed=(name,))
+                for before, head in ((base, edited), (edited, removed)):
+                    with self.subTest(head=head):
+                        self.assertTrue(self.decision(head, base=before, scope="django")["required"])
+                self.git("reset", "--hard", self.base)
+
     def test_a_document_a_backend_file_names_runs_django_when_it_changes(self):
         named = self.commit(
             {
@@ -347,7 +374,7 @@ class DjangoScopeTest(ScopeCase):
                 self.git("reset", "--hard", self.base)
 
     def test_every_push_and_manual_run_tests_django_whatever_changed(self):
-        head = self.commit({"docs/guide.md": "updated"})
+        head = self.commit({"AGENTS.md": "guidance", "CONTRIBUTING.md": "contributing", "docs/guide.md": "updated"})
         self.assertFalse(self.decision(head, scope="django")["required"])
         for event in ("push", "workflow_dispatch", None):
             with self.subTest(event=event):
