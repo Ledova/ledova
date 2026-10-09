@@ -13,8 +13,6 @@ from offerings.services.payments import (
 )
 from offerings.services.subscription import (
     accept,
-    allot,
-    allot_batch,
     cap_headroom,
     confirm_payment,
     create_draft,
@@ -33,8 +31,6 @@ from offerings.services.subscription import (
 
 __all__ = [
     "accept",
-    "allot",
-    "allot_batch",
     "attach_documents",
     "build_instruction",
     "cap_headroom",

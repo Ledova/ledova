@@ -9,6 +9,8 @@ TOKENS = Path(tokens.__file__).parent
 NO_KEY_AUTHORITY_LOCKS = {
     ("services/register_deployments.py", "_lock_wallet"),
     ("services/register_deployments.py", "signing_source"),
+    ("services/register_paid_issues.py", "_command"),
+    ("services/register_paid_issues.py", "signing_source"),
     ("services/swap_execution.py", "_lock_authority"),
     ("services/token_transfer_service.py", "create_order_and_match"),
     ("services/trading_order_create.py", "_lock_authorized_wallet"),

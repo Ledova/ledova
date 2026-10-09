@@ -1,3 +1,4 @@
+import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -72,6 +73,11 @@ export function ShareClass({ uuid }: { uuid: string }) {
       />
       <CompanyCapitalFlow
         key={`capital/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+      />
+      <CompanyPaidIssueFlow
+        key={`paid-issue/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
       />

@@ -88,6 +88,7 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   api.get.mockImplementation(async (url: string) => {
     if (url === failed) throw new Error('Unavailable');
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS) return { data: [] };
     if (url === CLASS) return { data: { ...token } };
     if (url === HOLDERS) return { data: register };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS) return { data: { ...EMPTY, results: deployments } };
@@ -571,5 +572,18 @@ it('mounts company pause preparation for a nonowner appointee on a deployed whol
   for (const path of [ISSUANCES, REQUESTS, CAPITAL, '/api/v1/companies/company-one/'])
     expect(api.get.mock.calls.map(([url]) => url)).not.toContain(path);
   expect(screen.queryByText('Existing pause controls')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+});
+
+it('mounts company paid issue authority for an appointed nonowner without loading owner financial history', async () => {
+  prepareCompanyClient(client, 'investor');
+  token = { ...token, isOwner: false };
+  appointments = [APPOINTMENT];
+  show();
+  await screen.findByRole('button', { name: 'Prepare paid issue' });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.get.mock.calls.map(([url]) => url)).toContain(COMPANY_TOKEN_ENDPOINTS.REGISTER_PAID_ISSUE_SUBSCRIPTIONS);
+  for (const path of [ISSUANCES, REQUESTS, CAPITAL, '/api/v1/companies/company-one/'])
+    expect(api.get.mock.calls.map(([url]) => url)).not.toContain(path);
   expect(api.post).not.toHaveBeenCalled();
 });

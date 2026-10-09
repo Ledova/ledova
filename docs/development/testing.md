@@ -32,9 +32,16 @@ dependencies. Workspace-only commands require the correct workspace installation
 mobile resolves from its own `node_modules`. `make help` lists entry points.
 Formatting checks remain local: CI has no general workspace format step.
 
-The five real-chain modules and exact company-capital seed class that `make chain-test` runs, listed in
-[chains and keys](../operations/chains.md#chain-configuration), are skipped by an
-ordinary backend suite without their chain environment. Use a free
+The real-chain selectors in `make chain-test`, including the exact company
+capital/pause seed classes and paid-issue module, are skipped by an ordinary
+backend suite without their chain environment. The command uses two sequential
+test-database lifetimes: the integration module, then the remaining selectors,
+with the same node, deployed contracts and original case order. Each lifetime
+runs genuine migrations and destroys its test database. This bounds repeated
+historical-fixture schema excursions, whose dropped columns still occupy
+PostgreSQL column slots. Record both complete test footers separately; their
+sum is not a single suite invocation. See
+[chains and keys](../operations/chains.md#chain-configuration). Use a free
 `CHAIN_TEST_PORT` per checkout, and one other than 8545 while the local stack is
 up, since its chain holds that port (`make chain-test CHAIN_TEST_PORT=8546`).
 Inspect verbose skip reasons. A PostgreSQL policy, trigger or status constraint requires the full
@@ -180,6 +187,12 @@ not it passes. Install the tools with `make install-backend` from the repository
   components and query clients after every test, including the final one.
 - Read migration-era rows with the executor's historical models. Restore current
   migrations after a tested rollback or rollback refusal before using current models.
+
+The cross-tenant route matrix uses the existing explicit synthetic historical-owner
+fixture to retain its legacy-source assertions on the current schema. Its setup
+does not replay the owner-upgrade migrations for each route case. The fixture
+requires the migration role and restores both appointment/source identity guards;
+genuine upgrade tests continue to use their historical migrations.
 
 ## Scoped connection evidence
 

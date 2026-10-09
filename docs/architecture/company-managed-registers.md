@@ -78,7 +78,11 @@ The fourth [capital increment](../plans/company-managed-registers/company-capita
 implements exact company decisions through the existing cap-only
 execution journal. The fifth [pause/unpause increment](../plans/company-managed-registers/company-pause-changes.md)
 implements exact company decisions and original observation or
-transaction recovery. Paid issuance remains a later #867 increment.
+transaction recovery. The sixth
+[paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
+implements company decisions over existing recorded payment, retaining exact
+issue approval, original execution and distinct allotment/register outcomes. New payment mechanics remain
+#868 work.
 #866 and #868–#873 remain planned.
 Their company/member, offering and register authority is separate.
 **Date:** 3 October 2026, Australia/Sydney.

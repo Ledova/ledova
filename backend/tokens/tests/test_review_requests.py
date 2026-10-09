@@ -51,7 +51,9 @@ class ReviewableRequestModelTest(TestCase):
     def test_new_request_requires_admission_before_claiming_execution(self):
         request = issuance_request(self.token)
         staff = make_tenant("staff", staff=True).user
-        with self.assertRaisesMessage(DatabaseError, "genuine company source"), atomic():
+        with self.assertRaisesMessage(
+            DatabaseError, "Fresh paid and nonpaid approval requires its retained company decision"
+        ), atomic():
             request.approve(staff)
         with self.assertRaises(ValueError):
             request.mark_executing()

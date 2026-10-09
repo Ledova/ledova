@@ -292,7 +292,7 @@ def _effect(inclusion, company_id, classification):
             .select_related("source_instruction")
             .first()
         )
-        if execution is not None:
+        if execution is not None and execution.subscription_id is None:
             source = execution.source_instruction
             if (
                 source.request_id != request.pk

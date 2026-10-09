@@ -1,10 +1,13 @@
 import textwrap
 from datetime import timedelta
+from unittest.mock import patch
+from uuid import uuid4
 
 from django.utils import timezone
 
 from companies.models import CompanyDocument, DocumentType
 from companies.services.authority_requests import _requester_principal
+from ledova_backend.procrastinate_app import app
 from offerings.models import (
     Offering,
     OfferingExemption,
@@ -15,7 +18,6 @@ from offerings.services.offering import submit_offering, transition_offering
 from offerings.services.subscription import (
     EXPIRY_NOTE,
     accept,
-    allot_batch,
     amount_for,
     confirm_payment,
     create_draft,
@@ -28,12 +30,9 @@ from offerings.services.subscription import (
 )
 from shared.db import atomic, use_migrate, use_operator
 from shared.seeds.synthetic import keys
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
-from shared.seeds.synthetic.chain.registers import (
-    instruct,
-    reference_prefix,
-    subscription_item,
-)
+from shared.seeds.synthetic.chain.registers import reference_prefix
 from shared.seeds.synthetic.chain.story import (
     ALLOTTED,
     LAPSED,
@@ -46,19 +45,22 @@ from shared.seeds.synthetic.chain.story import (
 from shared.seeds.synthetic.clock import AEST, frozen
 from shared.seeds.synthetic.paper import (
     acn_text,
-    authority,
     company_document,
     pdf,
     verified,
 )
-from tokens.models import ShareToken
+from tokens.models import RegisterEvidenceKind, ShareToken
+from tokens.services.register_evidence import retain_register_evidence
+from tokens.services.register_paid_issues import (
+    decide_paid_issue,
+    prepare_paid_issue,
+    preview_paid_issue_decision,
+)
 
 CLOSE_REASON = "Closed at the end of the offer period."
-ALLOTMENT_NOTE = "Allotted after the offer closed, under the directors' allotment resolution."
 APPROVED_ROUNDS = ("approved", "closed")
 MEMORANDUM_WIDTH = 90
 SCALED_DIFFERENTLY = "The {key} scale-back allotted {actual} to a subscription the plan scales to {planned}."
-NOT_ALLOTTED = "The {key} allotment refused: {refusals}"
 UNFINISHED = "Subscription {reference} of {key} ended {status}, not allotted."
 
 
@@ -269,27 +271,52 @@ def allot_round(item, records):
             )
         subscriptions.append(subscription)
     company_key = item.share_class.split("/")[0]
-    document = authority(
-        records.companies[company_key],
-        f"allotment-{item.key}",
-        f"allotment of the {token.symbol} offer",
+    actor = records.owner(company_key)
+    appointment = historical_owner_appointment(token.company)
+    raw = pdf(
+        f"Directors' resolution: allotment of the {token.symbol} offer",
         [
+            token.company.name,
+            acn_text(token.company.acn),
             f"The directors resolved to allot {sum(application.allotted for application in allotted):,} {token.name}",
             f"to the {len(allotted)} applicants who paid by the close of the offer, on the terms listed.",
         ],
-        records.documents,
     )
-    instruct(
-        token,
-        [subscription_item(subscription) for subscription in subscriptions],
-        document,
-        records,
-        reference=f"{reference_prefix(token)}-ALT-{token.symbol}",
-        reason=f"Allot the {token.symbol} shares the applicants paid for.",
+    evidence, _ = retain_register_evidence(
+        actor=actor,
+        company_id=token.company_id,
+        appointment=appointment.pk,
+        kind=RegisterEvidenceKind.AUTHORITY,
+        idempotency_key=uuid4(),
+        name=f"allotment-{item.key}.pdf",
+        raw=raw,
+        mime_type="application/pdf",
     )
-    result = allot_batch(subscriptions, records.operations, notes=ALLOTMENT_NOTE)
-    if result["refusals"]:
-        raise ChainStepFailed(NOT_ALLOTTED.format(key=item.key, refusals="; ".join(result["refusals"])))
+    for subscription in subscriptions:
+        proposal = prepare_paid_issue(
+            actor=actor,
+            operation_id=uuid4(),
+            appointment=appointment.pk,
+            subscription=subscription.pk,
+            approving_director=records.plan.directors[company_key],
+            authority_reference=f"{reference_prefix(token)}-ALT-{token.symbol}",
+            reason=f"Allot the {token.symbol} shares the applicants paid for.",
+            authority_evidence=evidence.pk,
+        )
+        for kind in ("approve", "apply"):
+            _, preview = preview_paid_issue_decision(
+                actor=actor, paid_issue_id=proposal.pk, appointment=appointment.pk, kind=kind
+            )
+            with patch("tokens.services.issuance_execution.App", return_value=app):
+                proposal = decide_paid_issue(
+                    actor=actor,
+                    paid_issue_id=proposal.pk,
+                    appointment=appointment.pk,
+                    kind=kind,
+                    idempotency_key=uuid4(),
+                    preview_digest=preview["preview_digest"],
+                    confirmation=True,
+                )
     records.run()
     for application, subscription in zip(allotted, subscriptions):
         subscription.refresh_from_db()

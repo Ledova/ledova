@@ -27,14 +27,14 @@ SYSTEM_WIDE = {
     "tokens.tasks.mint_request.recover_mint_requests": "Recovers durably admitted mint requests across the deployment, "
     "using operator authority and the original signed operation. It never admits a new request "
     "or restarts a reverted attempt.",
-    "tokens.tasks.review_request.execute_review_request_task": "Recovers exact admitted non-paid issuance and "
-    "capital work through its original request, execution and recorded audit actor. The operator role supplies "
-    "bounded technical execution across issuer and recipient records; the actor supplies audit attribution "
-    "rather than a tenant principal, and the task cannot create a new company mandate.",
-    "offerings.tasks.subscription.allot_subscription_task": "Executes allotment and retries enqueued only by "
-    "staff admin actions with change permission. It explicitly uses the operator role across issuer and "
-    "investor writes, retaining executed_by for audit. The owner confirmed this classification on "
-    "2026-09-13 in #520; there is no customer execution caller.",
+    "tokens.tasks.review_request.execute_review_request_task": "Recovers an exact admitted non-paid issuance or "
+    "capital execution using its original request, execution and audit actor. New work requires company "
+    "authority; retained staff history keeps its original provenance. The operator role supplies bounded "
+    "technical execution across issuer and recipient records without granting a new company mandate.",
+    "offerings.tasks.subscription.allot_subscription_task": "Recovers one admitted paid issuance using the exact "
+    "subscription, execution and original audit actor. Company application commits new authority and its job "
+    "together; retained staff instructions recover their original history. The operator role supplies bounded "
+    "technical execution across issuer and investor records without approving an issue or payment.",
     "assets.sync_all_assets": "Refreshes the global asset catalogue, which belongs to no tenant.",
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "

@@ -77,6 +77,16 @@ issuance, request and subscription together. Missing policy/provider evidence or
 a changed receipt outcome remains held; see the
 [issuance finality boundary](../architecture/outgoing-signing.md#share-issuances).
 
+The [company paid-issue conversion](../plans/company-managed-registers/company-paid-issues.md)
+is under implementation. New paid admission requires its original consumed
+company approval and exact application; financial receipt alone or staff
+permissions cannot admit it. Genuine permanent authority loss before any
+signature preserves the unique execution, immutable subscription/request link
+and paid money, with retained diagnostics. It does not renew authority, admit a
+second request or automatically refund funds. Original signed/confirmed work
+recovers its saved receipt and projection after authority loss. Further financial
+resolution policy remains #868 work.
+
 An import-origin register cannot admit new issuance execution, retry a failed
 issuance into queued work or sign an unsigned issuance. Its retained requests
 and journals remain. Already signed/confirmed original issuance still recovers

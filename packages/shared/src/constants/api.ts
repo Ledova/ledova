@@ -81,6 +81,12 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  REGISTER_PAID_ISSUES: '/api/v1/tokens/register-paid-issues/',
+  REGISTER_PAID_ISSUE_SUBSCRIPTIONS: '/api/v1/tokens/register-paid-issues/ready-subscriptions/',
+  REGISTER_PAID_ISSUE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/`,
+  REGISTER_PAID_ISSUE_FILE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/file/`,
+  REGISTER_PAID_ISSUE_PREVIEW: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decision-preview/`,
+  REGISTER_PAID_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decide/`,
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
   PAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/pause/` as const,

@@ -55,6 +55,7 @@ from tokens.tests.instruction_fixtures import (
     apply_instruction,
     instruction_payload,
     instruction_reviewer,
+    retained_nonpaid_cover,
     verified_authority,
 )
 from tokens.tests.issuance_fixtures import IssuanceNode
@@ -547,7 +548,7 @@ class SettledTransferFixtures(test_swap_finality.SwapFinalityFixtures):
                 amount=5,
                 client=node.client,
                 reviewed_by=self.reviewer,
-                instructed=lambda request: apply_instruction(
+                instructed=lambda request: retained_nonpaid_cover(
                     token, request, reviewer=self.reviewer, document=self.document
                 ),
             )

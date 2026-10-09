@@ -74,6 +74,7 @@ ADDED_COLUMNS = {
     "tokens_tokendeployment": ["source_deployment_id"],
     "tokens_shareissuanceexecution": ["source_instruction_id"],
     "tokens_registerinstruction": [
+        "paid_subscription_id",
         "preparing_appointment_id",
         "member_id",
         "nomination_id",
@@ -388,6 +389,7 @@ class CompanyEligibilitySubscriptionCutoverReversalTest(
             _, decision = self.accepted()
             subscription = self.submitted()
             self.assertEqual(subscription.eligibility_decision_id, decision.pk)
+            self.migrate([("tokens", "0105_company_register_pause_guards")])
             self.assert_refusal_preserves_schema_and_records(
                 [("offerings", "0009_published_documents_stay")],
                 RuntimeError,

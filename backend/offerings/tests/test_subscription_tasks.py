@@ -5,24 +5,25 @@ from unittest.mock import patch
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
-from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.models import Subscription, SubscriptionStatus
 from offerings.querysets.subscription import SubscriptionQuerySet
-from offerings.services.subscription import allot, retry_allotment
+from offerings.services.subscription import retry_allotment
 from offerings.tasks import (
     allot_subscription_task,
     expire_unpaid_subscriptions,
     reconcile_subscriptions,
 )
 from offerings.tests.factories import (
-    allottable_subscription,
     configure_operator,
     draft_subscription,
     eligible_subscriber,
     extra_wallet,
     open_offering,
     paid_subscription,
+    retained_paid_execution,
+    subscription_technical_actor,
 )
+from offerings.tests.test_allotment import CompanyAllotmentTestCase
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceStatus,
@@ -31,52 +32,45 @@ from tokens.models import (
     ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
+from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 from tokens.tests.issuance_fixtures import (
     CHAIN_ID,
-    FINALITY_POLICIES,
     KEY,
-    IssuanceNode,
 )
 
-WHITELISTED = "tokens.services.share_token_service.is_recipient_whitelisted"
-SUPPLY = "tokens.services.share_token_service.share_supply"
-DEFER = "offerings.tasks.subscription.allot_subscription_task.defer"
 
-
-@override_settings(
-    BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES
-)
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class SubscriptionTaskTestCase(TransactionTestCase):
     def setUp(self):
-        self.node = IssuanceNode()
-        patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client).start()
-        admitted_signer()
-        patch(WHITELISTED, return_value=True).start()
-        patch(SUPPLY, return_value=(1000, 0)).start()
-        patch("wallets.services.holdings.sync_holding").start()
-        self.defer = patch(DEFER).start()
-        self.addCleanup(patch.stopall)
-
+        super().setUp()
         self.tenant = make_tenant("tasks")
         configure_operator()
         self.offering = open_offering(self.tenant, target_shares=200, cap_shares=500)
         eligible_subscriber(self.tenant)
-        self.operator_user = make_tenant("tasks-staff", staff=True).user
-        self.operator_user.is_superuser = True
-        self.operator_user.save(update_fields=["is_superuser"])
+        self.operator_user = subscription_technical_actor()
 
-    def _allotted(self, quantity=10, wallet=None):
-        subscription = allottable_subscription(self.tenant, quantity=quantity, wallet=wallet)
-        allot(subscription, self.operator_user)
+    def _history_subscription(self, wallet):
+        self.offer, self.account, self.wallet = self.offering, self.tenant.account, wallet
+        self.participant, self.technical = self.tenant.user, self.operator_user
+        return CompanyPaidIssueCases.genuine_paid_subscription(self, quantity=10)
+
+    def _legacy_pending(self, wallet):
+        subscription = self._history_subscription(wallet)
+        retained_paid_execution(subscription, self.operator_user)
         subscription.refresh_from_db()
         return subscription
 
 
-class SubscriptionTaskTest(SubscriptionTaskTestCase):
+class CompanySubscriptionTaskTest(CompanyAllotmentTestCase):
+    def _allotted(self):
+        subscription, _ = super()._allotted()
+        subscription.refresh_from_db()
+        return subscription
+
     def run_allotment(self, subscription):
         return allot_subscription_task(
             str(subscription.pk),
-            executed_by=self.operator_user.pk,
+            executed_by=self.owner.pk,
             execution_id=str(subscription.issuance_request.dispatch_id),
         )
 
@@ -102,7 +96,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
 
     def test_a_missing_row_or_an_unlinked_subscription_has_no_admitted_job_identity(self):
-        unlinked = paid_subscription(self.tenant)
+        unlinked = self.subscription
         for identifier in ("00000000-0000-0000-0000-000000000000", str(unlinked.pk)):
             self.assertEqual(
                 allot_subscription_task(identifier),
@@ -112,7 +106,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
 
     def test_unsigned_failure_keeps_payment_and_requires_explicit_retry(self):
         subscription = self._allotted()
-        self.node.client.estimate_gas.side_effect = RuntimeError("provider unavailable")
+        self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic definite gas refusal")
         self.assertFalse(self.run_allotment(subscription)["success"])
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
@@ -128,25 +122,20 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.ALLOTTED)
         self.assertEqual(ShareIssuance.objects.count(), 1)
 
+
+class SubscriptionTaskTest(SubscriptionTaskTestCase):
+
     def historical_allotment(self, wallet):
-        subscription = paid_subscription(self.tenant, wallet=wallet)
-        request = ShareIssuanceRequest.objects.create(
-            token=self.offering.token,
-            recipient_address=wallet.address,
-            amount=subscription.quantity,
-            reason="Historical mint awaiting subscription projection",
-            dispatch_id=None,
-            status=RequestStatus.EXECUTED,
-        )
-        subscription.issuance_request = request
-        subscription.save(update_fields=["issuance_request"])
+        subscription = self._history_subscription(wallet)
+        request, _ = retained_paid_execution(subscription, self.operator_user, dispatch_id=None)
+        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
         return subscription
 
-    def test_reconcile_repairs_historical_projection_and_leaves_current_pending_rows_alone(self):
+    def test_reconcile_repairs_historical_projection_and_preserves_unsigned_history_and_unentered_rows(self):
         mirrored = self.historical_allotment(extra_wallet(self.tenant, "1"))
         untouched_paid = paid_subscription(self.tenant, wallet=extra_wallet(self.tenant, "2"))
         untouched_draft = draft_subscription(self.tenant, wallet=extra_wallet(self.tenant, "3"))
-        pending = self._allotted(wallet=extra_wallet(self.tenant, "4"))
+        pending = self._legacy_pending(extra_wallet(self.tenant, "4"))
         self.assertEqual(reconcile_subscriptions(), {"flipped": 1})
         for subscription, expected in (
             (mirrored, "allotted"),

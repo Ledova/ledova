@@ -55,8 +55,8 @@ from tokens.services.register_snapshot import ZERO_ADDRESS, capture_snapshot
 from tokens.tests.deployment_fixtures import DeploymentNode, legacy_deployment_token
 from tokens.tests.evidence_fixtures import owner_appointment, upload_evidence
 from tokens.tests.instruction_fixtures import (
-    apply_instruction,
     instruction_reviewer,
+    retained_nonpaid_cover,
     verified_authority,
 )
 from tokens.tests.issuance_fixtures import CHAIN_ID, IssuanceNode
@@ -135,7 +135,7 @@ class InclusionFixtures:
     def admitted(self, *, amount=10, block=MINT_BLOCK, recipient=None, index=None, reviewer=None, instructed=True):
         instruction = (
             (
-                lambda request: apply_instruction(
+                lambda request: retained_nonpaid_cover(
                     self.tenant.token, request, reviewer=reviewer or self.actor, document=self.document
                 )
             )
