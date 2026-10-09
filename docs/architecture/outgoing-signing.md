@@ -514,8 +514,10 @@ The personal company mandates, member/nomination/finite wallet approval, evidenc
 and intent are rechecked before a fresh signature. The source prefix precedes
 outgoing/signer locks; RPC runs outside those locks. Temporary source
 contention, technical refusal or provider failure holds the original unsigned
-intent with no signature or nonce; permanent loss of the captured source
-terminalises only a genuinely never-signed allocation. Original signed recovery
+intent with no signed attempt or nonce, a known refusal in the paid or legacy
+path becomes a definite unsigned failure with a safe explanation, and
+permanent loss of the captured source terminalises only a genuinely
+never-signed allocation. Original signed recovery
 retains its bytes and attribution after company source loss. Finalised completion
 and original-member register recording are distinct bounded transactions;
 executed but unentered allocations remain reserved until the once-only ISSUE.
