@@ -19,7 +19,11 @@ yield-token minting, signer admission and infrastructure recovery are not
 delegated to company administrators. New unsigned work rechecks current
 company, capability, mandate and exact terms before it can create its effect;
 revocation never permits discarding or replacing already signed transactions,
-which keep their recorded identity and bounded recovery. Private journals stay
+which keep their recorded identity and bounded recovery. An uncertain
+preparation or decision reply keeps its exact original body and key: current
+read access recovers the retained receipt, including after the step's
+appointment has expired or the proposal has changed stage, changed retries
+conflict, and nothing replays after process loss. Private journals stay
 inaccessible to customer connections, and company self-service does not relax
 the bootstrap, same-key writer drain or cutover requirements.
 
