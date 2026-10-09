@@ -188,6 +188,12 @@ not it passes. Install the tools with `make install-backend` from the repository
 - Read migration-era rows with the executor's historical models. Restore current
   migrations after a tested rollback or rollback refusal before using current models.
 
+The cross-tenant route matrix uses the existing explicit synthetic historical-owner
+fixture to retain its legacy-source assertions on the current schema. Its setup
+does not replay the owner-upgrade migrations for each route case. The fixture
+requires the migration role and restores both appointment/source identity guards;
+genuine upgrade tests continue to use their historical migrations.
+
 ## Scoped connection evidence
 
 The ordinary suite uses SET ROLE on a shared test connection to exercise policies
