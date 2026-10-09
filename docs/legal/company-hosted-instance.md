@@ -2,11 +2,12 @@
 
 [Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Historical operating analysis.** The 3 October 2026
-[company-managed registry decision](../architecture/company-managed-registers.md)
-replaces the two-mode product design. Private hosting uses the same product;
-this page is retained research, not a separate product roadmap. Its legal
-readings are not newly confirmed by that decision.
+**Historical analysis A, written 15 September 2026.** The
+[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
+postdate the readings on this page, which have not been reconfirmed against
+the current company-managed workflows. Neither product decision establishes a
+legal conclusion.
 
 The earlier scenario studied here is a private company deploying and running
 its own Ledova instance, for its own shares and its own shareholders, with no
@@ -15,7 +16,9 @@ the company uses to keep its register and the processes around it. The earlier
 product description associated this scenario with the single-issuer setting.
 That setting controls supporting-payslip availability, not single-company
 tenancy or a separate company authority model, and is scheduled for retirement
-([product direction](../product.md#roles-and-deployment)).
+([product direction](../product.md#roles-and-deployment)). [Retired by
+`operators/0002` on 3 October 2026; see
+[one registry product](../operations/upgrades.md#one-registry-product).]
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
@@ -37,9 +40,7 @@ on its behalf unless the company chooses a host.
 
 Ledova the project is a software supplier. On the reading in
 [position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service),
-supplying software is not a financial service. Separately, the current software
-licence requires written commercial permission for a company's own business use
-([position 5](positions.md#5-software-licensing-and-commercial-permission)).
+supplying software is not a financial service.
 If the project also hosts or supports the instance, the reading is that it
 becomes an IT supplier to the company: a hosting agreement with a data-processing
 clause, and nothing from the financial services perimeter, provided it never
@@ -53,7 +54,8 @@ someone outside the company makes entries on its behalf, the
 ## What the company can do without additional regulatory permission
 
 On the readings in positions 4a, 4b, 6, 7, 9 and 11, subject to the software
-permission above and the [live-operation conditions](../regulatory-pathway.md):
+licence ([position 5](positions.md#5-software-licensing-and-commercial-permission))
+and the [live-operation conditions](../regulatory-pathway.md):
 
 - **Keep its register** in the instance as the register of members.
 - **Issue its own shares.** A body corporate's transaction relating only to its
@@ -90,8 +92,7 @@ permission above and the [live-operation conditions](../regulatory-pathway.md):
 
 ## Feature by feature
 
-"No permission" in this table refers to additional regulatory permission. The
-current software licence still requires separate written commercial permission.
+"No permission" in this table refers to additional regulatory permission.
 
 | Feature | Status in this model |
 | --- | --- |
@@ -107,10 +108,9 @@ current software licence still requires separate written commercial permission.
 
 ## Getting a first company there
 
-A private company that wants to issue shares to an employee would first need
-written commercial permission to use the software and to meet the
-[live-operation conditions](../regulatory-pathway.md). The sequence below is the
-operating model on the positions as drafted.
+A private company that wants to issue shares to an employee would first need to
+meet the [live-operation conditions](../regulatory-pathway.md). The sequence
+below is the operating model on the positions as drafted.
 
 1. **Choose where the instance runs.** The company's own cloud account, or a
    managed host. Hosting can be outsourced; the entries cannot, or the model
@@ -137,7 +137,7 @@ operating model on the positions as drafted.
 | Cost | In this model |
 | --- | --- |
 | Regulatory licence and enrolment fees | None, on the positions as drafted: no AFSL, no market licence, no AUSTRAC enrolment for a company acting for itself |
-| Software licence | Separate written commercial permission; any fee is agreed separately |
+| Software licence | Separate written commercial permission ([position 5](positions.md#5-software-licensing-and-commercial-permission)); any fee is agreed separately |
 | Recurring | Hosting, backups and someone to administer the instance; the accountant who already lodges the company's notices |
 | Optional filings | The computer-storage notice; a low-volume market registration if a transfer board is opened |
 

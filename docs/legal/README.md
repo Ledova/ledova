@@ -2,21 +2,21 @@
 
 [Documentation](../README.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-The owner adopted [company-managed registers and one product](../architecture/company-managed-registers.md)
-on 3 October 2026. The operating-model pages here retain research about earlier
-responsibility assumptions; they do not define two maintained product modes.
-Their analysis must be revisited against the new company-managed workflows.
-The product decision itself establishes no new legal conclusion.
+**Folder index, written 15 September 2026.** The
+[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
+postdate the readings in this folder, which have not been reconfirmed against
+the current company-managed workflows. Neither product decision establishes a
+legal conclusion.
 
 This folder records what the project has decided about the law it operates
 under, why, and what it still has to find out. **Nobody qualified has been
 asked any of it.** Each question is worked out from primary sources and
-written down as a position: the source it rests on, what would show it wrong,
-which way to be wrong where the directions are not equal, and the trigger that
-must happen before the question bites. Nothing here is legal advice or a legal
-opinion. The [regulatory pathway](../regulatory-pathway.md) defines how
-counsel is engaged — a targeted assessment is step 2 of its engagement
-sequence — and the conditions that must hold before live operation.
+written down as a position with the [same parts](#how-a-position-is-written)
+every time. Nothing here is legal advice or a legal opinion. The
+[regulatory pathway](../regulatory-pathway.md) defines how counsel is engaged
+— a targeted assessment is step 2 of its engagement sequence — and the
+conditions that must hold before live operation.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
@@ -25,6 +25,18 @@ sequence — and the conditions that must hold before live operation.
 | [Positions](positions.md) | Dated positions, sources, triggers, historical responsibility assumptions and sign-off status | Before changing anything that touches the register, evidence, licensing or the licence; reassess readings affected by the current plan |
 | [Regulatory pathway](../regulatory-pathway.md) | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity |
 | [LICENSE](../../LICENSE) | The Ledova Noncommercial License 1.0 the code is published under | Position 5 |
+
+## Historical analyses A and B
+
+The positions were written against two scenarios, each with its own page:
+[A, the company-hosted instance](company-hosted-instance.md), where a private
+company runs its own instance and its own officers make every entry, and
+[B, the registry service](registry-service.md), where one operator keeps the
+registers of many companies on their written instructions and is a second
+legal person with an agreement per company. The pivot between them is who
+makes the entries, not who hosts the servers. A and B are retained research
+labels, not product modes; the "Binds" column in the [positions](positions.md)
+says which analysis engaged each position.
 
 ## How a position is written
 
@@ -40,10 +52,14 @@ silence:
 - **Which way to be wrong** — where one error is a defect and the other is an
   offence, the position leans towards the defect.
 - **Trigger** — the event that must happen before the question is engaged.
-- **Status** — either carried over from the previous page and reviewed, or
-  *drafted* by the assistant and not yet confirmed by the owner. A draft is a
-  reading written down; confirming it means the owner removes the marker in a
-  later change. Product and legal decisions remain the owner's.
+- **Status** — the sign-off state, dated. *Reviewed* positions were carried
+  over from the previous page and reviewed; *Rewritten* and *Reframed* ones
+  were carried over and changed, and await sign-off; *Drafted* ones were
+  written by the assistant and are not yet confirmed by the owner; position 5
+  carries *Licence policy approved*, the owner's decision of 2026-09-20, which
+  is not legal advice. A draft is a reading written down; confirming it means
+  the owner removes the marker in a later change. Product and legal decisions
+  remain the owner's.
 
 ## Conventions
 
@@ -71,29 +87,9 @@ not engaged by a register of fictional members.
 
 Each position therefore names its trigger. Most triggers are the first real
 company's first real member, the first fee charged for keeping a real register,
-or the first real offer of a security. The software licence (position 5) applies
-from the outset: permitted noncommercial study, testing and contributions are
-allowed, while commercial use or using the code for a competing product or
-service requires separate written permission. That includes a company's own
-business use and a free competing service. Public forks for permitted purposes
-remain welcome.
-
-The earlier positions compare two operating assumptions, each with its own page, because the
-law places register duties on the company and asks its licence questions of
-whoever operates the register:
-
-- **A, the [company-hosted instance](company-hosted-instance.md):** a private
-  company runs its own instance for its own shares, and its own officers make
-  every entry. No new legal person appears; the project is a software supplier.
-- **B, the [registry service](registry-service.md):** one operator keeps the
-  registers of many companies on their written instructions. The operator is a
-  second legal person, with an agreement per company and a boundary to hold.
-
-The pivot between them is who makes the entries, not who hosts the servers. Each
-model's page distinguishes software permission from its regulatory perimeter;
-the [regulatory pathway](../regulatory-pathway.md) covers the route beyond that
-perimeter, which position 4b reads as needing a licence, a registration or
-relief in either model.
+or the first real offer of a security. The software licence applies from the
+outset, synthetic data or not
+([position 5](positions.md#5-software-licensing-and-commercial-permission)).
 
 ## Sources
 
@@ -218,6 +214,7 @@ In the order they unblock work. Each says what it settles.
 | AFSL | Australian financial services licence, Part 7.6 of the Corporations Act |
 | AML/CTF | Anti-Money Laundering and Counter-Terrorism Financing Act 2006 and its rules, administered by AUSTRAC |
 | ASIC | Australian Securities and Investments Commission |
+| Clerk | In historical analysis B and position 4a, an operator that makes register entries only on a company's written instruction, with a director's approval recorded, and decides nothing itself |
 | CS facility | Clearing and settlement facility, licensed under Part 7.3 |
 | CSF | Crowd-sourced funding, Part 6D.3A |
 | DAF Act | Corporations Amendment (Digital Assets Framework) Act 2026 |
@@ -229,9 +226,12 @@ In the order they unblock work. Each says what it settles.
 | FSL | Functional Source License, used for earlier versions; their existing grants remain effective |
 | INFO | An ASIC information sheet |
 | LVFM | Low volume financial market, Instrument 2016/888 |
+| Member, shareholder | A member is a person entered on a company's register of members, with or without an account or a wallet, the [product's term](../product.md#roles-and-deployment); these pages say shareholder where a source or scenario does |
 | NTA | Net tangible assets, RG 166 |
+| Operator | Either the legal person that operates a deployment, which historical analysis B calls the registry service's operator, or the [software role](../product.md#roles-and-deployment): a deployment's single configuration record, its technical database and signer roles, and the platform staff tooling, none of which is a company mandate |
 | REP | An ASIC report |
 | RG | An ASIC regulatory guide |
+| Registry service, registry product | The registry service is historical analysis B, a platform operator keeping many companies' registers on their written instructions; the registry product is the one product adopted on 3 October 2026, in which companies administer their own registers wherever the software is hosted |
 | Responsible manager | The person whose experience an AFSL applicant relies on, RG 105 |
 | s708 | The exemptions from disclosure for offers to wholesale, sophisticated, professional and associated investors |
 | Tier 2 | The lighter tier of Australian market licence in RG 172 |

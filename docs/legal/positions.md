@@ -2,22 +2,22 @@
 
 [Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Dated research and implementation record.** The accepted
-[3 October 2026 company-managed register plan](../architecture/company-managed-registers.md)
-sets one product in which companies administer their registers, whether hosted
-by Ledova or privately. It retires the two deployment modes and the assumption
-that platform staff routinely act as register clerks. This page preserves the
-earlier source readings, dates and sign-off status; it does not confirm those
-readings for the replacement workflows. Staff-only procedures described here
-are current implementation references pending that work, not the new authority
-model. Platform payment, crypto and support functions must be assessed on what
-they actually do.
+**Current positions, written 15 September 2026 and dated individually below.**
+The [3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
+postdate the readings on this page, which have not been reconfirmed against
+the current company-managed workflows. Neither product decision establishes a
+legal conclusion. Procedures described here as performed by platform staff are
+implementation references pending the replacement workflows, not the current
+authority model. The 4 October decision also sets the rule that no
+impersonation or fraud verification is added unless a legal duty on Ledova
+requires it, and sends any such duty here to be raised with the owner with its
+source.
 
 The questions the project depends on. Nobody qualified has been asked any of
-them. Each position records what the source says, what the code does, the
-reading the project acts on, what would show it wrong, which way to be wrong,
-and the trigger that must happen before it matters. Read the provision before
-relying on a summary of it; the [sources](README.md#sources) are listed once.
+them. Each position has the [same parts](README.md#how-a-position-is-written).
+Read the provision before relying on a summary of it; the
+[sources](README.md#sources) are listed once.
 
 Positions 1 to 5 were carried over from the previous `docs/legal.md` and
 reviewed on 2026-09-15; position 4 was rewritten because a registry that only
@@ -27,17 +27,17 @@ assistant from primary sources and are **not yet confirmed by the owner**.
 Position 12 was drafted on 2026-09-22, when the owner chose to record
 PyMuPDF's licence, and is not yet confirmed either.
 
-The positions were written against two responsibility assumptions, the
-[company-hosted instance](company-hosted-instance.md) (A) and the
-[registry service](registry-service.md) (B). The "Binds" column says which
-historical assumption a position was engaged by; where the earlier reading
-differs between them, the position says so. A and B are retained research
-labels, not selectable product modes.
+The positions were written against two historical analyses,
+[A, the company-hosted instance](company-hosted-instance.md), and
+[B, the registry service](registry-service.md). The "Binds" column says which
+analysis a position was engaged by; where the earlier reading differs between
+them, the position says so. A and B are retained research labels, not
+selectable product modes.
 
 | # | Question | Triggered by | Binds | Status |
 | --- | --- | --- | --- | --- |
 | 1 | s169(3) retention of former members | The first real company's first real member | A and B | Reviewed |
-| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; model sentence awaiting sign-off |
+| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; analysis A sentence awaiting sign-off |
 | 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed |
 | 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
 | 5 | Software licensing and commercial permission | Any commercial use or use of the code for a competing product or service | A, B and third-party users | Licence policy approved by owner 2026-09-20; not legal advice |
@@ -100,8 +100,8 @@ says the register may be kept on computer, pointing to s1306.
 **The position.** The company carries the obligation and the platform keeps the
 register as its agent. That is the plain reading. In a
 [company-hosted instance](company-hosted-instance.md) there is no agent: the
-company keeps the register itself, and the agreement below is not needed; the
-earlier analysis therefore distinguished those two responsibility arrangements.
+company keeps the register itself, and the agreement below is not needed;
+historical analyses A and B therefore differ on this point.
 The current plan removes the software modes and assigns ordinary register work
 to companies; the agency reading and any required terms must be revisited
 against the actual replacement service.
@@ -128,7 +128,8 @@ SHA-256 of its manifest.
 
 **Status.** Reviewed 2026-09-15; the note pointing s168 to s1306 and the
 agreement's contents added. The company-hosted-instance sentence was drafted
-for the model split and awaits the owner's sign-off.
+when the page split into historical analyses A and B and awaits the owner's
+sign-off.
 
 ## 3. The evidence-retention period
 
@@ -157,17 +158,18 @@ is the answer to watch for rather than the number.
 destroying it too early is a compliance failure that cannot be undone. Where the
 two conflict, the code keeps the evidence, which is the recoverable direction.
 
-**Status.** Reviewed 2026-09-15; unchanged. Note that neither operating model
-collects an identity document until investor onboarding is switched on or the
-operator turns on the issuer KYC switch, which requires a company's owner to be
-identity-verified before the company is submitted for review; this position is
-engaged only then. The issuer switch was added to this note on 2026-09-21.
+**Status.** Reviewed 2026-09-15; unchanged. Note that in neither historical
+analysis is an identity document collected until investor onboarding is
+switched on or the operator turns on the issuer KYC switch, which requires a
+company's owner to be identity-verified before the company is submitted for
+review; this position is engaged only then. The issuer switch was added to this
+note on 2026-09-21.
 
 ## 4. Operating without a licence: the two halves
 
 The original question was what would allow an operator to run this platform
 without an Australian financial services licence (AFSL), and the original answer
-was to not reach the trigger. The registry-service model splits the question.
+was to not reach the trigger. Historical analysis B splits the question.
 One half can be answered from primary sources; the other keeps the original answer
 and gains a [pathway](../regulatory-pathway.md) for reaching the trigger lawfully.
 
@@ -274,7 +276,7 @@ with synthetic data for issuance, payments and transfers until the operator
 holds the AFSL authorisations, the market registration or the relief that the
 [regulatory pathway](../regulatory-pathway.md) sets out, and the chain guards are
 what make that a mechanism rather than an intention. This half binds both
-operating models: in either, the licence question arises the moment the
+historical analyses: in either, the licence question arises the moment the
 platform rather than the company makes or hosts the offer.
 
 **When it is worth paying for, it is one scoped question, not open-ended
@@ -582,7 +584,7 @@ operator holds a signer for deployment; investors verify their own wallets.
 Wallet functionality is part of the [product definition](../product.md).
 
 **The position.** Ledova never possesses a token for or on behalf of a member,
-in either operating model: in a company-hosted instance the company must not
+in either historical analysis: in a company-hosted instance the company must not
 hold tokens for its shareholders through the instance, and in a registry service
 the operator must not. Members either hold their own keys or there are no tokens
 in their hands at all. The [product definition](../product.md#4-self-custody-and-ownership-records)
@@ -626,10 +628,10 @@ operator as well. Whether or not the exemption applies to the operator on a
 given day, the platform is built to the Australian Privacy Principles: a
 privacy policy, collection limited to what the register and the client's
 instructions need, access and correction on request, breach notification
-readiness, and no tax file numbers, which the registry model has no reason to
-collect because it pays no dividends. The client company will ask for this, and
-becoming an AML reporting entity or trading in personal information would
-remove the exemption without notice.
+readiness, and no tax file numbers, which the registry service of historical
+analysis B has no reason to collect because it pays no dividends. The client
+company will ask for this, and becoming an AML reporting entity or trading in
+personal information would remove the exemption without notice.
 
 **What would show this wrong.** Nothing would make building to the principles
 wrong; what could change is the date compliance stops being voluntary.
@@ -665,7 +667,7 @@ by a register instruction that retains the directors' authority document and
 names the approving director beside the issues it lists.
 
 **The position.** Every obligation in this position belongs to the company and
-its advisers. In the registry model Ledova records the outcome — the allotment,
+its advisers. In historical analysis B Ledova records the outcome — the allotment,
 its date, the number, class and price, the amount paid — and stores the board
 resolution and the offer and acceptance as evidence beside the entry, so the
 company's later scheme reporting and any concession claim can be substantiated
