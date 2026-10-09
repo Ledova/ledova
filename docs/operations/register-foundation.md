@@ -1462,7 +1462,7 @@ Since 5 October 2026 the company runs its imports itself, under the owner's
 
 Staff permissions, company ownership alone and shareholding grant none of these
 steps. The API below and the
-[import screens](../architecture/clients.md#company-managed-client-work) on
+[import screens](../architecture/clients.md#what-each-page-does) on
 Register in both clients are delivered.
 
 A share class takes one applied import. Preparation and application each
