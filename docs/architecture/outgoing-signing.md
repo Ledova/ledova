@@ -512,7 +512,10 @@ programme acceptance. See [operator recovery](../operations/recovery.md#capital-
 from its exact applied RegisterInstruction ISSUE and original consumed approval.
 The personal company mandates, member/nomination/finite wallet approval, evidence
 and intent are rechecked before a fresh signature. The source prefix precedes
-outgoing/signer locks; RPC runs outside those locks. Original signed recovery
+outgoing/signer locks; RPC runs outside those locks. Temporary source
+contention, technical refusal or provider failure holds the original unsigned
+intent with no signature or nonce; permanent loss of the captured source
+terminalises only a genuinely never-signed allocation. Original signed recovery
 retains its bytes and attribution after company source loss. Finalised completion
 and original-member register recording are distinct bounded transactions;
 executed but unentered allocations remain reserved until the once-only ISSUE.
