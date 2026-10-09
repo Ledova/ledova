@@ -6,9 +6,11 @@ import { MemoryRouter, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   ApiClientProvider,
+  AUTH_QUERY_KEY,
   DESTINATIONS,
   FEATURE_FLAG_ENDPOINTS,
   USER_PROFILE_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
   type DestinationKey,
 } from '@ledova/shared';
 import type { AxiosInstance } from 'axios';
@@ -20,10 +22,6 @@ import { SendTransferProvider } from '@hooks/useSendTransfer';
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('@keystonehq/animated-qr', () => ({ AnimatedQRCode: () => null }));
-vi.mock('@ledova/shared', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ledova/shared')>()),
-  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
-}));
 vi.mock('@hooks/useRole', () => ({
   useRole: () => ({ role: 'both', isKnown: true, isUnavailable: false, isLoading: false, retry: vi.fn() }),
 }));
@@ -81,6 +79,10 @@ it.each(KEYS)('titles the real %s page, with its lede where it has one, once rea
     return { data: EMPTY };
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'account', role: 'both' } },
+  });
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>

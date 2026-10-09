@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -14,15 +14,12 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import UserProfilePage from './user-profile';
+import { useUserProfile } from './user-profile/useUserProfile';
 import SettingsPage from './settings';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@ledova/shared', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ledova/shared')>()),
-  useAuth: () => ({ isAuthenticated: true }),
-}));
 vi.mock('./user-profile/components/IdentityVerificationModal', () => ({
   IdentityVerificationModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? <button onClick={onClose}>Close identity review</button> : null,
@@ -53,6 +50,10 @@ function show(page: 'profile' | 'settings') {
   });
   clients.push(client);
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  if (page === 'profile')
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: profile.uuid, userAccount: { uuid: 'account-one', role: 'investor' } },
+    });
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
@@ -80,6 +81,22 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+it('settles the signed-out profile without requesting private account data', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  clients.push(client);
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+  const { result } = renderHook(() => useUserProfile(), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+      </QueryClientProvider>
+    ),
+  });
+  expect(result.current.isLoading).toBe(false);
+  expect(result.current.userProfile).toBeNull();
+  expect(api.get).not.toHaveBeenCalled();
+});
+
 it('shows profile ledger data and keeps identity review reachable', async () => {
   show('profile');
   expect(await screen.findByText('Avery Example')).toBeTruthy();
@@ -99,17 +116,23 @@ it('shows profile ledger data and keeps identity review reachable', async () => 
 it('keeps a failed phone edit and its values until a successful retry', async () => {
   api.patch.mockRejectedValueOnce(new Error('synthetic refused edit'));
   show('profile');
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit phone' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit personal details' }));
   fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '411111111' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Save phone' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
   expect((await screen.findByRole('alert')).textContent).toContain('could not be saved');
   expect((screen.getByLabelText('Phone number') as HTMLInputElement).value).toBe('411111111');
-  fireEvent.click(screen.getByRole('button', { name: 'Save phone' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
   await waitFor(() => expect(screen.queryByLabelText('Phone number')).toBeNull());
-  expect(api.patch).toHaveBeenLastCalledWith(USER_PROFILE_ENDPOINTS.DETAIL(profile.uuid), {
-    phoneCountryCode: '+61',
-    phoneNumber: '411111111',
-  });
+  expect(api.patch).toHaveBeenLastCalledWith(
+    USER_PROFILE_ENDPOINTS.DETAIL(profile.uuid),
+    {
+      fullName: profile.fullName,
+      residentialAddress: '',
+      phoneCountryCode: '+61',
+      phoneNumber: '411111111',
+    },
+    expect.objectContaining({ signal: expect.any(AbortSignal), ledovaSubmissionGuard: expect.any(Function) }),
+  );
 });
 
 it('blocks duplicate phone saves and cancellation while the request is pending', async () => {
@@ -121,8 +144,8 @@ it('blocks duplicate phone saves and cancellation while the request is pending',
       }),
   );
   show('profile');
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit phone' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Save phone' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit personal details' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
   expect((await screen.findByRole('button', { name: 'Saving…' })).hasAttribute('disabled')).toBe(true);
   expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(true);
   expect(api.patch).toHaveBeenCalledTimes(1);
@@ -138,7 +161,7 @@ it('suppresses stale profile details on refresh failure and retries the read', a
   });
   expect((await screen.findByRole('alert')).textContent).toContain('could not be loaded');
   expect(screen.queryByText('Avery Example')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Edit phone' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Edit personal details' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByText('Avery Example')).toBeTruthy();
 });
@@ -148,19 +171,19 @@ it('distinguishes an empty profile from a failed read', async () => {
   show('profile');
   expect(await screen.findByText('No profile data is available.')).toBeTruthy();
   expect(screen.queryByRole('alert')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Edit phone' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Edit personal details' })).toBeNull();
 });
 
 it('preserves an unfinished phone edit across a failed background refresh', async () => {
   const client = show('profile');
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit phone' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit personal details' }));
   fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '422222222' } });
   api.get.mockRejectedValueOnce(new Error('synthetic background failure'));
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['userProfiles'] });
   });
   expect((await screen.findByRole('alert')).textContent).toContain('could not be loaded');
-  expect(screen.queryByRole('button', { name: 'Save phone' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Save personal details' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(((await screen.findByLabelText('Phone number')) as HTMLInputElement).value).toBe('422222222');
   expect(api.patch).not.toHaveBeenCalled();
@@ -309,4 +332,88 @@ it('reports export failure and retries a JSON download', async () => {
   await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
   expect(api.get).toHaveBeenLastCalledWith(USER_PROFILE_ENDPOINTS.EXPORT_DATA, {});
   expect(create.mock.calls[0][0]).toBeInstanceOf(Blob);
+});
+
+it('saves self-reported name and address with phone details without changing verification fields', async () => {
+  let currentProfile = { ...profile };
+  const originalRead = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url: string, config?: unknown) =>
+    url === USER_PROFILE_ENDPOINTS.BASE
+      ? Promise.resolve({ data: { results: [currentProfile], next: null } })
+      : originalRead(url, config),
+  );
+  api.patch.mockImplementationOnce(async (_url, body) => {
+    currentProfile = { ...profile, ...body };
+    return { data: currentProfile };
+  });
+  show('profile');
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit personal details' }));
+  fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Avery Updated' } });
+  fireEvent.change(screen.getByLabelText('Residential address'), { target: { value: '12 Example Street\nSydney' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+  expect(api.patch.mock.calls[0]![1]).toEqual({
+    fullName: 'Avery Updated',
+    residentialAddress: '12 Example Street\nSydney',
+    phoneCountryCode: '+61',
+    phoneNumber: '400000000',
+  });
+  expect(api.patch.mock.calls[0]![0]).toBe(USER_PROFILE_ENDPOINTS.DETAIL(profile.uuid));
+  expect(await screen.findByText('Avery Updated')).toBeTruthy();
+  expect(screen.getByText(/12 Example Street/)).toBeTruthy();
+});
+
+it.each(['logout', 'account'])('rejects a pending profile update and retires the editor after %s', async (change) => {
+  const client = show('profile');
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit personal details' }));
+  let finish!: (value: unknown) => void;
+  api.patch.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save personal details' }));
+  await waitFor(() => expect(api.patch).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    if (change === 'logout') client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+    else
+      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+        data: { userProfile: 'profile-other', userAccount: { uuid: 'account-other', role: 'investor' } },
+      });
+    finish({ data: profile });
+  });
+  expect(screen.queryByLabelText('Residential address')).toBeNull();
+  expect(screen.queryByText(profile.fullName)).toBeNull();
+  expect(api.patch).toHaveBeenCalledTimes(1);
+});
+
+it('refuses a foreign profile response before offering personal details editing', async () => {
+  api.get.mockResolvedValue({ data: { results: [{ ...profile, uuid: 'profile-other' }], next: null } });
+  show('profile');
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByText(profile.fullName)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Edit personal details' })).toBeNull();
+  expect(api.patch).not.toHaveBeenCalled();
+});
+
+it('rejects a late profile read after the account changes without caching its personal fields', async () => {
+  let finish!: (value: unknown) => void;
+  api.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const client = show('profile');
+  await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: 'profile-other', userAccount: { uuid: 'account-other', role: 'investor' } },
+    });
+    finish({ data: { results: [{ ...profile, fullName: 'Obsolete private name' }], next: null } });
+  });
+  expect(screen.queryByText('Obsolete private name')).toBeNull();
+  expect(JSON.stringify(client.getQueriesData({ queryKey: ['userProfiles'] }))).not.toContain('Obsolete private name');
+  expect(api.patch).not.toHaveBeenCalled();
 });

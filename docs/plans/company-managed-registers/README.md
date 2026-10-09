@@ -56,6 +56,10 @@ It adds no new payment mechanics or off-chain investor allotment. #867 remains
 open for the undelivered employee award/vesting records. #868 owns external
 capital records and company-approved allotment under the revised scope; new
 integrated payment mechanics are deferred.
+The first #866 [Profile increment](member-profile.md) adds self-reported full-name
+and residential-address editing to the existing personal Profile in both clients,
+retaining phone editing. Own register access, confirmations, certificate requests
+and walletless association remain separate increments under the essential scope.
 #866 and #868–#873 retain the revised core/deferred scopes and dependencies
 below. Their company/member, allotment and register authority remains separate.
 The #862 lifecycle provides [authority requests, self-declaration admission and

@@ -5,7 +5,15 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiClientProvider, CACHE_TIMING, AUTH_QUERY_KEY } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  CACHE_TIMING,
+  AUTH_QUERY_KEY,
+  AUTH_ENDPOINTS,
+  USER_PROFILE_ENDPOINTS,
+  USER_ACCOUNT_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
+} from '@ledova/shared';
 
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import apiClient from '@services/apiClient';
@@ -36,7 +44,9 @@ function renderGuard(valid: boolean, stale = true, frameShowing?: boolean) {
       updatedAt: Date.now() - (stale ? CACHE_TIMING.DEFAULT_STALE_TIME + 1000 : 0),
     },
   );
-  client.setQueryData(['userProfiles'], { data: { results: [{ isSignupCompleted: true }] } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'account', role: 'investor' } },
+  });
   render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
@@ -64,19 +74,27 @@ function renderGuard(valid: boolean, stale = true, frameShowing?: boolean) {
 function holdVerification() {
   let resolve!: (valid: boolean) => void;
   let reject!: (reason: Error) => void;
-  vi.mocked(apiClient.get).mockReturnValue(
-    new Promise((succeed, fail) => {
-      resolve = (valid) => succeed({ data: { valid } });
-      reject = fail;
-    }),
-  );
+  const verification = new Promise((succeed, fail) => {
+    resolve = (valid) => succeed({ data: { valid } });
+    reject = fail;
+  });
+  vi.mocked(apiClient.get).mockImplementation(((url: string) =>
+    url === AUTH_ENDPOINTS.VERIFY ? verification : accountRead(url)) as typeof apiClient.get);
   return { resolve, reject };
+}
+
+function accountRead(url: string) {
+  if (url === USER_PROFILE_ENDPOINTS.BASE)
+    return Promise.resolve({ data: { results: [{ uuid: 'profile', isSignupCompleted: true }] } });
+  if (url === USER_ACCOUNT_ENDPOINTS.BASE) return Promise.resolve({ data: { uuid: 'account', role: 'investor' } });
+  throw new Error(`Unexpected GET ${url}`);
 }
 
 describe('a protected route checks an auth correction before redirecting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    vi.mocked(apiClient.get).mockImplementation(accountRead as typeof apiClient.get);
   });
 
   afterEach(() => {
@@ -132,7 +150,7 @@ describe('a protected route checks an auth correction before redirecting', () =>
     const verification = holdVerification();
     renderGuard(true);
 
-    expect(screen.getByText('Protected content')).toBeTruthy();
+    expect(await screen.findByText('Protected content')).toBeTruthy();
     expect(screen.queryByRole('status')).toBeNull();
     await act(async () => verification.resolve(true));
     expect(screen.getByText('Protected content')).toBeTruthy();

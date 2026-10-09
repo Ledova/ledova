@@ -6,16 +6,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { ApiClientProvider, USER_ACCOUNT_ENDPOINTS, USER_PROFILE_ENDPOINTS, type Audience } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  USER_ACCOUNT_ENDPOINTS,
+  USER_PROFILE_ENDPOINTS,
+  type Audience,
+} from '@ledova/shared';
 
 type Deferred = { promise: Promise<unknown>; resolve: (value: unknown) => void };
 const pending = vi.hoisted(() => new Map<string, Deferred>());
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@ledova/shared', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ledova/shared')>()),
-  useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false }),
-}));
 vi.mock('@pages/wallets/components/BuyCryptoModal', () => ({ BuyCryptoModal: () => null }));
 vi.mock('@hooks/useSendTransfer', () => ({ SendTransferProvider: ({ children }: PropsWithChildren) => children }));
 vi.mock('@components/Sidebar', () => ({ Sidebar: () => <nav aria-label="Sidebar" /> }));
@@ -70,9 +73,14 @@ let root: Root;
 let container: HTMLDivElement;
 
 function load(entry: string, route: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'profile', userAccount: { uuid: 'owner', role: 'investor' } },
+  });
   root = createRoot(container);
   root.render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <MemoryRouter initialEntries={[entry]}>
           <Layout>
@@ -100,9 +108,8 @@ beforeEach(() => {
   renders.length = 0;
   pending.clear();
   api.get.mockImplementation((url: string) => {
-    const answer = deferred();
-    pending.set(url, answer);
-    return answer.promise;
+    if (!pending.has(url)) pending.set(url, deferred());
+    return pending.get(url)!.promise;
   });
   container = document.createElement('div');
   document.body.appendChild(container);

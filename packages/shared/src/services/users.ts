@@ -9,14 +9,23 @@ import type {
   AccountExportData,
 } from '../types';
 
-export const updateUserProfile = (apiClient: AxiosInstance, uuid: string, data: UpdateUserProfile) =>
-  apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data);
+export const updateUserProfile = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: UpdateUserProfile,
+  config?: AxiosRequestConfig,
+) =>
+  config
+    ? apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data, config)
+    : apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data);
 
 export const updateUserProfileCompletion = (apiClient: AxiosInstance, uuid: string, data: CompleteUserProfile) =>
   apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data);
 
-export const getUserProfiles = (apiClient: AxiosInstance) =>
-  apiClient.get<PaginatedResponse<UserProfile>>(USER_PROFILE_ENDPOINTS.BASE);
+export const getUserProfiles = (apiClient: AxiosInstance, config?: AxiosRequestConfig) =>
+  config
+    ? apiClient.get<PaginatedResponse<UserProfile>>(USER_PROFILE_ENDPOINTS.BASE, config)
+    : apiClient.get<PaginatedResponse<UserProfile>>(USER_PROFILE_ENDPOINTS.BASE);
 
 export const deleteAccount = (apiClient: AxiosInstance) =>
   apiClient.post<ApiResponse<'api_user_profiles_delete_account_create'>>(USER_PROFILE_ENDPOINTS.DELETE_ACCOUNT);
