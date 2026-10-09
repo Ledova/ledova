@@ -7,7 +7,8 @@ The [3 October 2026 one-product decision](../architecture/company-managed-regist
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
 postdate the readings on this page, which have not been reconfirmed against
 the current company-managed workflows. Neither product decision establishes a
-legal conclusion. Procedures described here as performed by platform staff are
+legal conclusion, and platform payment, crypto and support functions must be
+assessed on what they actually do. Procedures described here as performed by platform staff are
 implementation references pending the replacement workflows, not the current
 authority model. The 4 October decision also sets the rule that no
 impersonation or fraud verification is added unless a legal duty on Ledova
