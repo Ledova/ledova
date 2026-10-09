@@ -25,27 +25,16 @@ before opening your first pull request.
   synthetic-data-only: operation with real participants follows the
   [regulatory pathway](docs/regulatory-pathway.md), and releases require the
   human checks in [#624](https://github.com/Ledova/ledova/issues/624).
-  Existing trading controls remain effective; new trading and integrated AUD
-  payment expansion is deferred under the
-  [9 October priority decision](docs/decisions.md#essential-registry-and-development-workflow-priority).
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Where to start
 
 - Issues are tracked on GitHub, not in this repository. Browse the
-  [open issues](https://github.com/Ledova/ledova/issues). The
-  [company-managed register plan](docs/architecture/company-managed-registers.md)
-  and [programme #860](https://github.com/Ledova/ledova/issues/860)
-  sequence the accepted work; the earlier
-  [product alignment programme](https://github.com/Ledova/ledova/issues/645)
-  records the shipped foundation.
-- [#943](https://github.com/Ledova/ledova/issues/943) is the immediate workflow
-  priority. Then deliver employee award/vesting records, externally arranged
-  investor capital and authorised allotments, ownership, member access and basic
-  outputs. The current issue scopes separate these essentials from deferred
-  payments, trading, advanced governance and filings. Reuse those issues and
-  respect other agents' claims.
+  [open issues](https://github.com/Ledova/ledova/issues).
+  [Programme #860](https://github.com/Ledova/ledova/issues/860) and the
+  [9 October decision](docs/decisions.md#essential-registry-and-development-workflow-priority)
+  set the order of work; reuse those issues and respect other agents' claims.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
   implementation.
@@ -55,10 +44,8 @@ before opening your first pull request.
 - Link pull requests to their issues and close an issue only when its work is
   complete. Record distinct problems discovered along the way in follow-up
   issues, checking for an existing issue first.
-- Build one registry product for hosted and private instances. Company
-  appointments authorise register decisions; platform staff permissions do not.
-  Preserve evidence, tenant isolation and guarded execution when replacing
-  staff workflows. Document accepted scope separately from current behaviour.
+- Company appointments authorise register decisions; platform staff permissions
+  do not. Document accepted scope separately from current behaviour.
 
 ## Development setup
 
@@ -163,12 +150,10 @@ in [testing and review](docs/development/testing.md).
 
 Run the checks appropriate to the change before opening a pull request.
 The [gate inventory](docs/development/gates.md#every-gate-and-where-its-rule-is-written)
-owns source rules, commands and CI coverage. The [testing command table](docs/development/testing.md#commands)
-covers workspace, backend, chain and device checks, including local-only formatting.
-Use focused checks while developing and applicable required CI on the stable
-merging head, rather than repeating full local suites without a new reason.
-Follow the current workflow until #943's measured changes land; a proposed
-verification tier or path filter does not itself change today's merge checks.
+owns source rules, commands and CI coverage. The
+[testing guide](docs/development/testing.md#commands) owns the command table
+and the rule of focused checks while developing and the applicable required CI
+once on the merging head.
 
 ## Reporting security issues
 
@@ -190,12 +175,8 @@ material requires the relevant contributor's separate written permission; the
 maintainer must obtain that permission before including it in a commercial
 offering or granting commercial rights to others.
 
-Ledova is source-available, not open source in the OSI sense. Commercial use,
-including internal business use and paid services, and using its code for a
-competing product or service, whether free or paid, require separate written
-permission. Contributions under this license do not automatically become Apache
-licensed after two years. Earlier grants and third-party licenses are unaffected.
-The full terms are in [LICENSE](LICENSE), with a summary in
+Ledova is source-available, not open source in the OSI sense. The full terms are
+in [LICENSE](LICENSE), with a summary in
 [README.md](README.md#ownership-and-license).
 
 Ledova makes no claim of regulatory compliance or legal recognition.

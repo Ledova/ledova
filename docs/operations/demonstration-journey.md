@@ -1,6 +1,6 @@
 # The demonstration journey
 
-[Operations](README.md) · [Chains and keys](chains.md) · [Product §8](../product.md#8-guidance-for-implementation)
+[Operations](README.md) · [Chains and keys](chains.md) · [Product §8](../product.md)
 
 This page records the existing synthetic chain journey and its staff-assisted
 setup. It does not demonstrate the accepted
@@ -11,7 +11,7 @@ test and its evidence as regression coverage while adding verification of the
 replacement company workflows; payment and crypto operations do not confer
 company register authority.
 
-[Product §8](../product.md#8-guidance-for-implementation) asks for an
+[Product §8](../product.md) asks for an
 incremental flow covering discovery, a seller listing, offer acceptance,
 approvals, simulated external payment, contract-enforced transfer and
 reconciliation, and for verification of private-data isolation, revocation,

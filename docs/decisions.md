@@ -2,13 +2,16 @@
 
 [Documentation](README.md) · [Roadmap](roadmap.md)
 
-These are recorded owner choices and their reasons. Current mechanisms live in
-architecture guides. This page makes no new product, licensing or legal decision.
-Read earlier choices in date order: the 3 October decision below supersedes
-their allocation of routine register work to staff. Quotations and delivered
-mechanisms remain here as history, not requirements to retain those staff gates.
-The [9 October decision](#essential-registry-and-development-workflow-priority)
-supersedes earlier immediate payment, marketplace, governance and filing priorities.
+These are recorded owner choices and their reasons, in the owner's words where
+they were given. This page makes no new product, licensing or legal decision,
+and it does not say what the code does today: the
+[capability boundaries](product.md#current-capability-boundaries) do that, and
+the architecture guides own the mechanisms. Read earlier choices in date order.
+The [3 October decision](#company-managed-registers-and-one-product) supersedes
+the earlier allocation of routine register work to platform staff; the
+[9 October decision](#essential-registry-and-development-workflow-priority)
+supersedes earlier immediate payment, marketplace, governance and filing
+priorities. Superseded choices stay here as history.
 
 ## Company-managed registers and one product
 
@@ -21,7 +24,7 @@ a separately maintained product mode.
 Companies and their investors, shareholders or employees handle their share
 relationship and decisions directly. Ledova supplies infrastructure, records,
 workflows, tools and authorised automation. Routine register actions must not
-depend on Ledova staff performing or approving them. Platform operations remain
+depend on platform staff performing or approving them. Platform operations remain
 for the service and specifically scoped crypto/payment functions; these
 permissions do not substitute for company authority.
 
@@ -29,11 +32,10 @@ This supersedes the earlier allocation of routine register review/entry to
 platform staff and the two-mode product distinction. Historical decisions and
 recordings retain the implementation they described. Authority, evidence,
 isolation, audit and retention controls must be adapted to company actors rather
-than discarded. The software licence and legal positions are not changed.
-
-The [company-managed register plan](architecture/company-managed-registers.md)
-defines roles, workflows, migration sequence and acceptance criteria. It is
-accepted direction, not a statement that the code already implements it.
+than discarded. The software licence and legal positions are not changed. The
+[company-managed register plan](architecture/company-managed-registers.md)
+records the decision; the [implementation index](plans/company-managed-registers/README.md)
+lists what has been delivered under it.
 
 ### Company-run register authority and evidence
 
@@ -44,80 +46,54 @@ the answers on #864
 [read scope](https://github.com/Ledova/ledova/issues/864#issuecomment-5987962820)).
 The owner then confirmed them directly in Codex's session the same day
 ([recorded on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-5988858576)).
-They apply to #864 and every later issue.
-A current company administrator may prepare, approve, apply and reject register
-changes; `prepare`, `approve`, `apply` and `read_register` remain the narrower
-capabilities for delegates, so an existing owner or a first representative can run
-the register alone. Register evidence is company-provided: uploaded documents are
-kept as evidence with their fingerprints, the company states the ASIC totals, and
-both are shown as provided by the company, with no Ledova staff verification step.
-Holders of `prepare`, `approve` or `apply` read the full register, including
-residential addresses in the CSV and retained evidence copies, because they work
-from member details. The invitation labels for those capabilities say that they
-include reading the register. The owner's amendment recorded on #860 also let
-#864 start before #863 closed, except member-wallet links, which waited until #863
-closed.
+They apply to #864 and every later issue:
 
-For company-run imports the owner decided four more questions the same day
-([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5988960147)).
-Application needs an approval whose approver's appointment is still current;
-otherwise a current approver approves again. An import submitted for the retired
-staff review and still waiting can only be rejected, and the company prepares a
-new one. Evidence uploads that no import uses are kept until production
-retention is decided. Evidence downloads are not logged; that can be added later
-for every register proposal at once.
+- A current company administrator may prepare, approve, apply and reject register
+  changes; `prepare`, `approve` and `apply` are the narrower capabilities for
+  delegates, with rejection taking `approve`, so an existing owner or a first
+  representative can run the register alone. One person may take every step; no
+  approver-conflict rule is added.
+- Application needs an approval whose approver's appointment is still current;
+  otherwise a current approver approves again.
+- Register evidence is company-provided: uploaded documents are kept as evidence
+  with their fingerprints, the company states the ASIC totals, and both are shown
+  as provided by the company, with no platform-staff verification step. Evidence
+  downloads are not logged; that can be added later for every register proposal
+  at once. Evidence uploads that no proposal uses are kept until production
+  retention is decided.
+- A proposal submitted for the retired staff review and still waiting can only be
+  rejected; the company prepares a new one.
+- Holders of `prepare`, `approve` or `apply` read the full register, including
+  residential addresses in the CSV and retained evidence copies, because they
+  work from member details; the invitation labels for those capabilities say so.
 
-The owner applied the same rules to company-run corrections the same day
-(recorded on #864 and #860): a current `admin` appointment may take every step
-and `prepare`, `approve` and `apply` are the narrower delegate capabilities, with
-rejection taking `approve`; application needs an approval whose approver still
-holds a current appointment; the company's authority document is company-provided
-evidence with no Ledova staff verification; a correction still waiting for the
-retired staff review can only be rejected; and evidence downloads are not logged.
+The owner's amendment recorded on #860 also let #864 start before #863 closed,
+except member-wallet links, which waited until #863 closed on 6 October 2026.
+The same day the owner applied these rules to each register command and settled
+what is specific to it
+([imports](https://github.com/Ledova/ledova/issues/864#issuecomment-5988960147);
+corrections and openings recorded on #864 and #860;
+[links, reconciliation and particulars](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921)):
 
-The same rules apply to company-run openings, decided the same day (recorded on
-#864 and #860). An opening captures its chain boundary when the company prepares
-it, and approval and application check that boundary against the chain again. An
-opening still waiting for the retired staff review can only be rejected, whether
-or not a reviewer captured its boundary. Proposals that link a member's wallet
-after the opening waited for #863; an opening's own mapping of boundary addresses
-to members is part of the opening.
-
-#863 closed on 6 October 2026, and member-wallet links then became company-run
-under the same rules: a current `admin` appointment may take every step, with
-`prepare`, `approve` and `apply` as the narrower delegates; application needs a
-current approval; the company's authority document is company-provided evidence;
-and a link still waiting for the retired staff review can only be rejected. A
-link keeps the documentary authority decided on 21 September 2026, a director
-resolution naming the approving director or a court order, uploaded as an
-`authority` upload as openings and corrections do. The recorded default of
-5 October
-([#864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
-is that a link shows each address's proof of control and identity without
-requiring either. Both are built that way, and the owner has yet to confirm
-them: the statuses are live and informational, shown only for an address on the
-company's whitelist, and never choose a member.
-
-For reconciliation discrepancies the owner decided the same day
-([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
-that acknowledgement is one company step: a current appointment holding `admin`
-or `approve` acknowledges one specific discrepancy of the latest reconciliation
-with a written reason. There is no Ledova staff step and no second person, and
-#864 adds no new approver-conflict rule.
-
-For members' particulars the owner decided the same day
-([recorded on #864](https://github.com/Ledova/ledova/issues/864#issuecomment-5990240921))
-that the company changes a member's name and residential address under the same
-rules: a current `admin` appointment may prepare, approve, apply and reject;
-`prepare`, `approve` and `apply` are the narrower delegates, with rejection
-taking `approve`; application needs an approval whose approver still holds a
-current appointment; and one person may take every step, with no new
-approver-conflict rule. A change needs a reason and one supporting document the
-company provides, shown as provided by the company with no Ledova staff
-verification. Between imports and company changes the latest "as at" date wins,
-and a member's live verified identity still wins over both, as decided on
-22 September 2026. Shareholders managing their own particulars is separate work
-in [#866](https://github.com/Ledova/ledova/issues/866).
+- An **opening** captures its chain boundary when the company prepares it, and
+  approval and application check that boundary against the chain again. Its
+  mapping of boundary addresses to members is part of the opening.
+- A **wallet link** keeps the documentary authority decided on 21 September 2026,
+  a director resolution naming the approving director or a court order, uploaded
+  as an `authority` upload as openings and corrections do. The recorded default is
+  that a link shows each address's proof of control and identity without
+  requiring either; both are built that way and the owner has yet to confirm
+  them. The statuses are live and informational, shown only for an address on
+  the company's whitelist, and never choose a member.
+- A **reconciliation discrepancy** is acknowledged in one company step: a current
+  appointment holding `admin` or `approve` acknowledges one specific discrepancy
+  of the latest reconciliation with a written reason. There is no platform-staff
+  step and no second person.
+- A **change to a member's particulars** needs a reason and one supporting
+  document the company provides. Between imports and company changes the latest
+  "as at" date wins, and a member's live verified identity still wins over both,
+  as decided on 22 September 2026. Members editing their own particulars is
+  separate work in [#866](https://github.com/Ledova/ledova/issues/866).
 
 ### Company representative verification
 
@@ -146,15 +122,10 @@ agreement is required for representative authority; those prerequisites no longe
 block #862–#873. A declaration can establish the initial representative's
 authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
-signed-transaction safeguards. Memberships, scoped capabilities, in-app
-delegation, invitations, revocation and action-specific company approvals remain
-in scope. [Initial self-declaration admission and self-revocation](plans/company-managed-registers/authority-requests.md)
-are implemented for exact retained draft-company requests; pending requests and
-withdrawals grant no company authority. The
-[team API](plans/company-managed-registers/authority-requests.md#team-invitation-api)
-also supports scoped invitations, acceptance, administrator team reads and retained
-revocation. Team web/mobile screens, legacy-owner migration and dependent company
-approvals remain planned.
+signed-transaction safeguards. The
+[authority guide](plans/company-managed-registers/authority-requests.md)
+describes the delivered admission, invitation, delegation and revocation
+workflows.
 
 Do not add impersonation or fraud verification unless a legal duty on Ledova
 requires it. If such a duty is identified, raise it with the owner with its source
@@ -164,14 +135,12 @@ records the implementation boundary.
 
 ## Eligibility and ownership records
 
-The 3 October [company-managed plan](architecture/company-managed-registers.md#responsibility-and-company-access)
-replaces routine staff company activation and classification review with
-evidenced company/provider workflows. The scope, privacy and expiry requirements
-below remain; a reusable identity fact is not approval for every company.
-[Company activation](plans/company-managed-registers/company-activation.md) now
-records a current administrator instruction and distinct configured activation
-check. Company-specific participant eligibility conversion remains planned under
-#863.
+Under the 3 October decision, company
+[activation](plans/company-managed-registers/company-activation.md) and
+[company eligibility decisions](plans/company-managed-registers/company-eligibility.md)
+replaced staff company activation and classification review on 6 October 2026
+(#863). The scope, privacy and expiry requirements below remain; a reusable
+identity fact is not approval for every company.
 
 The first offerings target wholesale and sophisticated investors. The four
 classification categories and the deliberately excluded experienced-investor
@@ -179,7 +148,7 @@ category are recorded in [legal positions](legal/positions.md#4b-issuance-paymen
 Those positions were taken without advice; deployment stays on test networks
 with synthetic data pending the required advice.
 
-An `associated_person` claim reaches only its named issuer's directory entries;
+An `associated_person` claim reaches only its named company's directory entries;
 it does not widen the secondary market. A holder who lacks market eligibility
 cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
@@ -192,9 +161,9 @@ or withdrawn publish none, and the company's other documents stay with the
 company. The product has investors review the documents before they apply, with
 appropriate access to offer information; directory eligibility is that access.
 Once an offering is approved or closed, its documents are added to and never
-removed (owner decision, 2 October 2026): the issuer or staff can attach a
+removed (owner decision, 2 October 2026): the company or staff can attach a
 supplementary memorandum, but nobody detaches or deletes a document investors
-may already have read. The issuer's picker keeps to the offer document types:
+may already have read. The company's picker keeps to the offer document types:
 prospectus or information memorandum, risk disclosure, business plan, financial
 statements, auditor report, constitution and shareholder agreement (owner
 decision, the same day).
@@ -206,19 +175,23 @@ fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
 [the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
 
-The operator's issuer KYC switch gates two points only: submitting a company for
-review, and activating it once approved. Every later action relies on that gate
-rather than checking again, including resolving a warning and reinstating a
-suspended company. The owner chose this on 21 September 2026 in
-[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810);
-[eligibility](architecture/companies-and-eligibility.md) owns the mechanism.
+The operator configuration's issuer KYC switch gates admission points only, and
+every later action relies on that gate rather than checking again, including
+resolving a warning and reinstating a suspended company. The owner chose this on
+21 September 2026 in
+[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810),
+when the points were submitting a company for review and activating it. Since
+staff review was retired, the switch requires the representative's configured
+identity verification at initial admission, activation and company eligibility
+decisions; [eligibility](architecture/companies-and-eligibility.md) owns the
+mechanism.
 
 ## The stored register
 
-The staff reviewer and admin-only output choices below describe the earlier
-implementation. The [new decision](#company-managed-registers-and-one-product)
-supersedes that responsibility and the API-only client scope. Exact authority,
-evidence, identity, event history and retention controls remain requirements.
+The staff reviewer and admin-only output choices below were the implementation
+until 5 October 2026. The company-run rules above replaced the reviewer; the
+register's authority, evidence, identity, event history and retention controls
+remain requirements.
 
 Wallets become linked to register members only through documentary authority:
 an opening's mapping, or a later wallet link. Staff verified it at first;
@@ -238,18 +211,16 @@ For a class already opened from the chain, it adds particulars and pre-platform
 former members. For a class not yet on chain, it becomes the opening, and later
 tokenising mints mirror it rather than add shares. A staff reviewer entered the
 ASIC extract's issued total and member count, and application refused a mismatch;
-since 5 October 2026 the company states them when it prepares the import
-([company-run register authority](#company-run-register-authority-and-evidence)).
+since 5 October 2026 the company states them when it prepares the import.
 An entry recorded automatically names the person who authorised its change: the
-staff member who approved an issue, or the transferor whose signed order is a
-transfer's instrument, rather than the company owner or a service account that
-took no action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
+approver of an issue, or the transferor whose signed order is a transfer's
+instrument, rather than the company owner or a service account that took no
+action ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5756732848)).
 A reconciliation divergence that has been investigated and accepted is
 acknowledged, one discrepancy at a time with a reason, in an append-only record
 only the operator connection writes, and later runs treat it as explained, so a
 share class can return to `matched`. Staff acknowledged them until 5 October
-2026, when acknowledgement became a company step
-([company-run register authority](#company-run-register-authority-and-evidence)).
+2026, when acknowledgement became a company step.
 Transfers of zero shares are ignored, because anyone can emit one. Both were
 chosen on 22 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273).
@@ -267,27 +238,18 @@ reaches the register and particulars never hide a conflict
 On 22 September 2026 the owner chose one register instruction as the approval
 behind issues and transfers, over evidence attached to each workflow and over
 standing authorities ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5767606273),
-decision 2). The company owner submits an instruction listing the exact issuance
-requests, offering subscriptions or settlements it approves, with a named
-approving director and documentary authority that staff verify and review as
-they review openings. Applying an issue instruction is the approval, so the
-separate staff Approve action goes and the company's own connection may no
-longer write an issuance request's review decision. An issue or transfer is
-entered only once an applied instruction covers it, and trading is unchanged.
-With it the owner chose that:
-
-- directors decide on a settlement after it, while its entry waits;
-- the retained signed order is the instrument of transfer, with s1071B left open;
-- a refused settled transfer is not modelled yet, so it keeps waiting and stays
-  visible;
-- an instruction lists offering allotments by subscription;
-- a late entry is dated when it is made;
-- the clients stay API-only, plus the issuer's list of waiting entries;
-- evidence copies are retained like openings and corrections.
-
-Issue instructions came first, then the issuer's waiting list and the rule that
-a late entry is dated the day it is made, then transfer instructions, so an
-issue or transfer is now entered only on an applied instruction.
+decision 2): an instruction listing the exact requests or settlements the company
+approves, with a named approving director and documentary authority, and an
+issue or transfer entered only once an applied instruction covers it. With it
+the owner chose that directors decide on a settlement after it, while its entry
+waits; that the retained signed order is the instrument of transfer, with s1071B
+left open; that a refused settled transfer is not modelled yet, so it keeps
+waiting and stays visible; that a late entry is dated when it is made; and that
+evidence copies are retained like openings and corrections. New issues have
+since become company decisions under the
+[company-run rules](#company-run-register-authority-and-evidence): non-paid
+register grants, chain grants and paid issues. The instruction route remains for
+settled transfers until [#869](https://github.com/Ledova/ledova/issues/869).
 [The register](architecture/register.md) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:
@@ -300,14 +262,13 @@ unsigned for the company to execute, and only its SHA-256 and register sequence
 are kept. One certificate covers the shares one entry moved to one member, with a
 balance certificate for a seller who keeps shares, and PyMuPDF renders it. The
 alternatives were certificates generated automatically, stored and served to the
-issuer, and figures without documents. The work lands in four slices:
-inspection copies, certificate PDFs, notice figures, then a list of what is due.
-Inspection copies came first, then certificates, then notice figures, then the
-list of what is due; the register owns the mechanisms of
+company, and figures without documents. The register owns the mechanisms of
 [inspection copies](architecture/register.md#inspection-copies),
 [certificates](architecture/register.md#certificates),
 [notice figures](architecture/register.md#notice-figures) and
-[outputs due](architecture/register.md#outputs-due).
+[outputs due](architecture/register.md#outputs-due);
+[#871](https://github.com/Ledova/ledova/issues/871) moves their preparation to
+company appointments.
 
 PyMuPDF, which checks uploaded PDFs and renders certificates, is licensed under
 the AGPL-3.0 or commercially by Artifex. The same day the owner chose to record
@@ -322,36 +283,38 @@ chain, one with no register entries, no approved issue and no applied register
 instruction ([#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5772293439),
 decisions 1, 3 and 4). Applying the reviewed import records the register's
 opening entry itself, with the same review, evidence and ASIC check, in one
-owner submission; the alternative was an opening built from the import followed
-by a second import for the particulars. A class it opens records no issue,
-transfer or cessation until it is anchored on chain, because entries come only
-from chain completions. A mistaken opening import strands its class until
-partial corrections exist; that is accepted during the synthetic experiment and
-settled before any real data. [The register](architecture/register.md) owns the
+submission; the alternative was an opening built from the import followed by a
+second import for the particulars. A class it opens records no issue, transfer
+or cessation until it is anchored on chain or a company-run non-paid grant or
+transfer enters one. A mistaken opening import strands its class until partial
+corrections exist; that is accepted during the synthetic experiment and settled
+before any real data. [The register](architecture/register.md) owns the
 mechanism.
 
 ## Company-scoped approvals
 
-Company-appointed users will authorise company wallet approvals under the
-[new plan](architecture/company-managed-registers.md). The earlier staff-only
-approval choice below is superseded; contract expiry, refresh and recovery
-requirements remain. The historical fresh-start contract deployment is not the
-migration policy for company authority: this transition preserves existing data.
+Company appointees authorise wallet approvals through the
+[wallet nomination and instruction workflow](plans/company-managed-registers/company-wallet-approvals.md);
+the staff-entered approval below is its history. The fresh-start deployment was
+a one-time cutover, not the migration policy for company authority, which
+preserves existing data.
 
 Each company has its own on-chain whitelist registry with an expiry for every
 approved wallet, decided by the owner on 19 September 2026 and settled in detail
 on 22 September in
 [#648](https://github.com/Ledova/ledova/issues/648#issuecomment-5775711424):
 
-- **Fresh start.** Moving to the new contracts means new contracts and a new
-  database. No testnet data is carried over and no register is re-anchored,
-  because a deployed token can never be rebound to another registry.
+- **Fresh start, September 2026.** Moving to the new contracts meant new
+  contracts and a new database. No testnet data was carried over and no register
+  was re-anchored, because a deployed token can never be rebound to another
+  registry.
 - **An expired or removed holder cannot send.** A transfer checks both sides.
   No forced transfer is added, so such a holding is frozen until the approval is
   renewed. A holder can still burn their own shares.
-- **Staff approve a wallet for each company.** A wallet with no investor
-  classification, such as a treasury, issuer or imported member, gets the expiry
-  staff enter; blank means none.
+- **An approval is for one company.** A wallet with no investor classification,
+  such as a treasury, company or imported member, got the expiry staff entered,
+  with blank meaning none; since the wallet workflow a company instruction with
+  a finite expiry approves it.
 - **A stablecoin payment asks for an approval with any company.** AUDY has no
   registry of its own, so a payment the platform sends checks that each party
   holds a live approval for at least one company, from the stored approvals
@@ -381,7 +344,7 @@ on 22 September in
 - **One identity row per wallet.** `WhitelistEntry` stays the wallet's identity
   row, because the register names holders through it and two rows for one
   wallet would make every holder ambiguous. Approval state lives in a separate
-  staff-only row for each entry and company.
+  row for each entry and company that only the operator connection writes.
 
 [Contracts and issuance](architecture/contracts-and-issuance.md#contracts) owns
 the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
@@ -389,11 +352,9 @@ redeploy.
 
 ## Shareholder publications
 
-The [company-managed direction](#company-managed-registers-and-one-product)
-supersedes staff publication, represented-ballot and payment-recording duties
-below. Preserve frozen rolls, member-only reads, ballots, audit and arithmetic
-while authorising company users. Privileged database insertion describes the
-execution mechanism and does not require a Ledova employee's decision.
+Platform staff publish, enter represented ballots and record payments on the
+company's written instruction until [#870](https://github.com/Ledova/ledova/issues/870),
+which is deferred. The rules below bind any company-run replacement.
 
 The owner chose on 23 September 2026, in
 [the design note](https://github.com/Ledova/ledova/issues/649#issuecomment-5789320596),
@@ -407,8 +368,8 @@ proxies the issue's non-goals exclude.
 - **The first documents are the annual holding statement and the meeting
   notice.** The distribution statement is the artefact a dividend produces and
   arrives with that work, rather than being built twice.
-- **Ledova staff publish on the company's written instruction**, as inspection
-  copies, certificates and notice figures are prepared today. Company
+- **Platform staff publish on the company's written instruction**, as inspection
+  copies, certificates and notice figures were prepared then. Company
   self-service can be added later without changing anything a member sees.
 - **The roll is frozen once, at the record date.** A publication is evidence
   that a company communicated with the members it had then, so resolving the
@@ -447,25 +408,14 @@ proxies the issue's non-goals exclude.
   the same way, on the company's written instruction: the roll gives them no
   account, and the database refuses a member's ballot that names none.
 - **A member's ballot is resolved under the policies and inserted by the
-  operator.** The design note proposed an insert policy for the application role
-  (its option (b)); slice 3 chose not to give the application role any write to
-  a hash-chained table. A trigger runs with its caller's rights, so under the
-  application role the trigger's own reads of the chain would be narrowed by the
-  member's policy — a member sees their own ballot and a close, not the latest
-  event — and allocating the sequence would need a security-definer function to
-  see past it. Instead `cast_ballot` finds the resolution and the caller's own
-  roll row on the calling connection, under the policies, exactly as a read
-  does, and only the insert runs on the operator connection. The guarantee that
-  a member casts only their own ballot stays in the database: the trigger
-  refuses a ballot that is not staff-entered unless its actor is the account the
-  roll row names. On the application connection `cast_ballot` also refuses
-  unless the connection's principal is the user it casts for, because a
-  company owner's policy admits the whole roll and could otherwise find a
-  member's row. A person the roll names more than once, because two register
-  members resolve to one account, casts once for every holding they have not
-  already voted, and the verifier refuses a member's ballot whose actor is not
-  the account its roll row names. Members, staff and the closing job then share
-  one write path and one lock.
+  operator connection.** The design note proposed an insert policy for the
+  application role (its option (b)); slice 3 chose not to give the application
+  role any write to a hash-chained table, because a trigger runs with its
+  caller's rights and the member's own policy would narrow what it could read.
+  The guarantee that a member casts only their own ballot stays in the database,
+  and members, staff and the closing job share one write path and one lock.
+  [Shareholder publications](architecture/shareholder-publications.md#resolutions)
+  describes the mechanism.
 
 - **Dividends round down to the cent for each holder**, and what rounding leaves
   over is recorded as undistributed rather than given to anyone, so the company
@@ -520,9 +470,8 @@ reasoning and lists what an implementation issue must still decide.
 
 ## The company pack
 
-The [company-managed plan](architecture/company-managed-registers.md)
-supersedes the staff-only production and no-customer-route choices below.
-Company-scoped preparation and delivery must preserve export privacy, provenance
+Platform staff produce the pack in admin until [#871](https://github.com/Ledova/ledova/issues/871)
+adds company-scoped preparation, which must preserve export privacy, provenance
 and truthful contract ownership and handover instructions.
 
 On 23 September 2026 the owner took every recommendation of
@@ -559,11 +508,6 @@ for reporting and portability, recorded in
   contract interface files in this pack to operate and move the company's own
   register and contracts."
 
-The pack is built in slices: the registers, company and contracts first, then
-the approvals and history behind them, then each class's chain evidence and
-settlements, then the company's documents and the evidence copies behind its
-approvals, under the ceiling on stored files, and last its publications, with
-each ballot withheld and read counts in place of readers.
 [The company pack](architecture/company-pack.md) owns the mechanism and
 [producing a company pack](operations/register-foundation.md#producing-a-company-pack)
 the procedure.
@@ -619,6 +563,34 @@ them. Future payment mechanics still require an owner decision.
 This changes priority and completion scope, not live-operation authorisation,
 the licence or legal findings. #624 still needs genuine human release acceptance.
 
+### First scopes for employee awards and external capital
+
+**Owner decisions, 10 October 2026**, recorded on
+[#867](https://github.com/Ledova/ledova/issues/867#issuecomment-6088911142) and
+[#868](https://github.com/Ledova/ledova/issues/868#issuecomment-6088911736).
+
+- **Employee awards: promised shares, issued on vesting.** The award is recorded
+  as a promised entitlement (member, class, total quantity, agreement and
+  evidence, with the schedule retained as recorded data, not computed). The
+  company records each vesting event with its quantity, date and evidence.
+  Shares reach the register only through a separate company-approved non-paid
+  grant that references the award and the vested quantity, using the existing
+  grant path. Elapsed dates never create holdings or decisions; nothing issues
+  automatically. No restriction or forfeiture on issued shares, no exercise
+  price and no employee purchase. Shares issued upfront with vesting or
+  restriction-release events were not selected; a restricted-share arrangement
+  can be a later increment if a company needs it.
+- **External capital: fully paid allotments only.** The record holds the
+  external agreement, the investor or member (new or existing, walletless
+  allowed), class, whole quantity and AUD consideration. The company records its
+  own receipt attestation (amount received, date, supporting evidence) before it
+  approves the allotment; Ledova does not verify it, and it is not issue
+  authority. Agreement, contribution record, company decision and the single
+  register ISSUE stay distinct records, but may be captured in one
+  prepare/approve flow. Partly paid allotments, calls and outstanding amounts
+  are deferred; the existing amount-paid row shape stays so a later increment
+  needs no migration. No collection, provider or refund mechanics.
+
 ## Registry priority, crypto on-ramp and AUD payments
 
 **Owner decision, 5 October 2026**, supplied directly in the active Codex session
@@ -649,48 +621,28 @@ wallet grants no on-ramp purchase permission; authorised company wallet operatio
 remain separate. Synthetic tests establish the guards, with external-provider
 and physical-device acceptance remaining separate.
 
-At this decision's date the owner had not selected the payment rails/provider,
-collection, receipt verification, reconciliation, refund or secondary AUD
-settlement mechanics. [#868](https://github.com/Ledova/ledova/issues/868) then
-owned primary company/provider payment workflows;
-[#869](https://github.com/Ledova/ledova/issues/869) owned secondary payments and settlement. Record those choices for the owner before
-implementation. Core share journeys must not require a crypto on-ramp purchase.
-Preserve existing instructions, payment evidence and the current prefunded
-stablecoin protocol until an authorised replacement or extension lands.
-Receipt, issue authority, execution and register effect remain distinct.
-
-At this decision's date the existing programme lanes and dependencies were
-unchanged.
-This decision neither selects a payment integration nor authorises live
-operation or real funds.
+At this decision's date no payment rail, provider, collection, receipt
+verification, reconciliation, refund or secondary AUD settlement mechanism had
+been selected, and none has since; the 9 October decision deferred them. It
+neither selects a payment integration nor authorises live operation or real
+funds.
 
 ## Payments and settlement
 
-The [9 October decision](#essential-registry-and-development-workflow-priority)
-defers new integrated payment and secondary settlement work. The earlier direction and
-existing mechanisms below remain historical context and guarded functionality;
-they do not require expanding payment capabilities for the core registry.
-
-Under the original 3 October plan,
-primary subscription instructions and receipt/refund decisions become company
-or appointed-provider workflows. Existing instruction snapshots are preserved.
-Secondary market prefunding and atomic settlement below remain separate; the
-plan does not turn a payment receipt into authority to issue shares.
-
-The [5 October decision](#registry-priority-crypto-on-ramp-and-aud-payments)
-required AUD share-payment support while leaving its implementation choices
-open; its immediate delivery priority is superseded. The prefunding and
-stablecoin mechanism below describes the current experimental secondary protocol; it is not a direct AUD settlement design or a
-requirement to purchase cryptocurrency through the on-ramp.
+The 9 October decision defers new integrated payment and secondary settlement
+work; the mechanisms below are the current experimental secondary protocol and
+guarded functionality, not a direct AUD settlement design or a requirement to
+purchase cryptocurrency through the on-ramp, and a payment receipt is never
+authority to issue shares.
 
 **A secondary buyer funds before placing an offer** (owner decision, 25 September
 2026, on [#645](https://github.com/Ledova/ledova/issues/645)). Buy-order
 admission requires the buyer to hold the settlement stablecoin when the order is
 created, and the second settlement signature queues execution at once, so the
 platform does not accept an unfunded offer and then wait for payment. The
-simulated external payment of product §8 is the buyer's AUD deposit, recorded by
-staff as a mint request with its reference and date, whose mint is the stablecoin
-that pays the seller inside the atomic swap. Acceptance, payment, transfer and the
+simulated external payment is the buyer's AUD deposit, recorded by staff as a
+mint request with its reference and date, whose mint is the stablecoin that pays
+the seller inside the atomic swap. Acceptance, payment, transfer and the
 register update stay distinct recorded events, and the seller is never exposed to
 an unpaid transfer. Unfunded acceptance with payment-gated execution was declined:
 it would add reserved liquidity, a payment deadline and a path for refusing an
@@ -726,16 +678,16 @@ model: a second payment updates the cumulative total with a note. A future
 `SubscriptionPayment` table is additive if automated reconciliation needs it.
 
 The bank-feed/payment provider remains undecided; selection and settlement
-automation are unscheduled in the [current roadmap](roadmap.md#remaining-work). Incoming
-AUD transfers must carry their reference text unchanged through a webhook or a
-poll. References use the operator prefix plus an eight-character Crockford code
-within an 18-character field. See [B7c](https://github.com/Ledova/ledova/issues/115#issuecomment-5574962513)
+automation are deferred. Incoming AUD transfers must carry their reference text
+unchanged through a webhook or a poll. References use the operator prefix plus
+an eight-character Crockford code within an 18-character field. See
+[B7c](https://github.com/Ledova/ledova/issues/115#issuecomment-5574962513)
 and [operator configuration](operations/operator-console.md).
 
 Shares are issued through allotment; generic wallet send endpoints refuse share
 tokens. On-chain recipient whitelisting and the register's Transfer-event read
 also account for subsequent share movements. Bitcoin sends remain externally
-built and signed; the backend now decodes and verifies them before admission.
+built and signed; the backend decodes and verifies them before admission.
 See [transfers](architecture/transfers.md).
 
 ## Assets and portfolio presentation
@@ -743,44 +695,35 @@ See [transfers](architecture/transfers.md).
 Share classes stay out of the general asset list. Discovery belongs to the
 eligible investor directory, while holders can read their own holdings.
 A share Asset has no current price: nominal issue price is not a market valuation
-of an unlisted security.
-
-The intended portfolio presentation is one line and allocation slice per asset,
-summed across chains, with an expandable per-chain split. Sending and receiving
-still select a chain. A sum must identify its value sources and explicitly identify
-unpriced holdings. This is a display requirement, not a claim that every client
-has completed it; see [B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348)
-and [valuation presentation work](https://github.com/Ledova/ledova/issues/346).
-
-The later [signed-in app decision](#the-signed-in-app) supersedes that chart
-presentation: Holdings lists shares by company and class, and crypto actions
-stay in Wallets. The asset identity and valuation-source principles above still
-apply; the retired chart helpers are no longer part of either client.
+of an unlisted security. A valuation sum must identify its value sources and
+explicitly identify unpriced holdings
+([B7d](https://github.com/Ledova/ledova/issues/115#issuecomment-5574975348),
+[#346](https://github.com/Ledova/ledova/issues/346)). The
+[signed-in app decision](#the-signed-in-app) replaced the earlier per-asset
+chart presentation: Holdings lists shares by company and class, and crypto
+actions stay in Wallets.
 
 ## The signed-in app
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
 no longer the core (owner decisions, 26 September 2026, on
 [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5839112787)).
-This records the target; the steps on #732 build it.
-
-The programme is now shipped. Its staff review, fixed owner-only administration
-and deferred company output access below are historical boundaries superseded
-by [company-managed registers](architecture/company-managed-registers.md).
-Retain personal shareholder menus and the paper interface while adding company
-appointments and actions; signup account type alone must not grant company authority.
+The programme is shipped. Where a choice below named staff review or owner-only
+administration, the [company-managed decision](#company-managed-registers-and-one-product)
+has since put that decision with company appointments; the personal shareholder
+menus and the paper interface stay, and a signup account type alone grants no
+company authority.
 
 - **Menus.** Every account gets _Your shares_: Holdings, Notices and Activity,
   because anyone entered on a register can receive notices and votes, including
   a company representative who signed up as a company. Investing accounts also
   get _Invest_: Directory, Applications, Market (only while `trading_enabled` is
   on) and Verification. Company accounts get their company group (Register,
-  Offerings, Company) and land on Register. The web Register now implements this
+  Offerings, Company) and land on Register. The web Register implements this
   landing with the stored register of current members, rather than wallet balances.
-  Each class now opens from Register on its own ledger page, with the existing
-  staff-reviewed cap request named Raise authorised shares.
-  The role stays as chosen at sign-up;
-  staff set "both" in admin, and a customer cannot change it afterwards.
+  Each class opens from Register on its own ledger page, with Raise authorised
+  shares, now a company-authorised capital increase. The role stays as chosen at
+  sign-up; staff set "both" in admin, and a customer cannot change it afterwards.
   Since #864 an account without the company role also reaches Register, from
   Settings on the web and the drawer on mobile, when a current company
   appointment grants register access.
@@ -790,9 +733,8 @@ appointments and actions; signup account type alone must not grant company autho
   held the name is retired; Verification replaces Eligibility; Register and
   Share classes replace Share Tokens; "Raise authorised shares" replaces Capital
   Increase; and the company application sits under Company instead of as
-  Listing. Company details, Offerings and the company Application use ledger sections,
-  retaining the existing owner submissions and staff review boundaries. Directory
-  keeps its name.
+  Listing. Company details and Offerings use ledger sections. Directory keeps
+  its name.
 - **Crypto lives inside Wallets.** Buying crypto and sending stay, as actions
   inside Wallets rather than menu items. The coin-price page and favourites are
   deleted; the Buy crypto step shows the current price. Amounts are in AUD
@@ -820,11 +762,11 @@ appointments and actions; signup account type alone must not grant company autho
 - **Notices stays personal.** Asked whether to accept the gap until the register
   work provides the company's own publication list, the owner chose "Accept the
   gap": "Notices stays personal; the company's own list arrives with the register
-  work in step 6. Mobile keeps its current list until step 10." The issuer list
-  opens from Company as Published to your members in both clients, selecting the
-  owned company explicitly and showing stored documents and recorded tallies
-  without member voting controls. (Owner decision, 26 September 2026, on
-  [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
+  work in step 6. Mobile keeps its current list until step 10." The company's
+  list opens from Company as Published to your members in both clients,
+  selecting the owned company explicitly and showing stored documents and
+  recorded tallies without member voting controls. (Owner decision, 26 September
+  2026, on [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 - **Applications keep their names.** Asked how an application should keep
@@ -844,7 +786,7 @@ The owner answered the two remaining scope questions on 27 September 2026
 - **Initial Market:** "Keep automatic matching for the first version."
 
 On these answers the first testnet Invest experience presents one fictional
-issuer, and Directory lists its share classes and offerings with no registry
+company, and Directory lists its share classes and offerings with no registry
 search. The API's visibility stays authoritative, so the client does not discard
 an accessible class because another company was returned first. Market shows
 _For sale_ and _Wanted_ over the existing automatic matching, with no seller
@@ -860,7 +802,8 @@ requests on #785 carry out the last three:
   status of the outputs staff prepare for them (certificates, inspection copies,
   the company pack) and how to ask for one, the owner chose "Not now": "Keep the
   static boundary text. Companies ask the operator directly; revisit when real
-  issuers use it. No new issuer read of operator records."
+  issuers use it. No new issuer read of operator records." The 9 October
+  decision has since put those outputs on [#871](https://github.com/Ledova/ledova/issues/871).
 - **Data nothing reads goes.** For the favourites table and the hourly holding
   snapshots, the owner chose "Delete them": "Remove the favourites model, table
   and admin, and stop writing holding snapshots and drop that table. One
@@ -881,22 +824,11 @@ sendable; shares move through allotment and the market.
 The owner answered the tidy-up's three questions on 29 September 2026, accepting
 each recommendation
 ([#792](https://github.com/Ledova/ledova/issues/792#issuecomment-5887890998)):
-
-- **No company API key.** `Company.api_key` was generated when a company was
-  first saved and no authentication read it, so the field, its route and its
-  admin are removed.
-- **No theme or selected portfolio.** `UserPreferences.theme` goes because paper
-  is the only look, and `selected_portfolio` because no client read it; it can
-  return with a portfolio switcher.
-- **Routes offer only the methods in use.** #832 removed the 33 operations no
-  client called, taking the schema from 191 operations to 158. Besides the API
-  key route's `GET` and `POST`, they were every `PUT` but the portfolios'
-  (eight), `PATCH` and `DELETE` on share classes, capital increases and user
-  preferences, `DELETE` on companies, thirteen single-row reads, the company
-  documents list, the user profile create and the `GET` on an order's cancel
-  message, trimmed through `http_method_names`, viewsets built from only the
-  mixins they need and an action narrowed to `POST`. The schema and shared
-  types were regenerated and the docs updated.
+no company API key, because nothing authenticated with it; no theme or selected
+portfolio preference, because paper is the only look and no client read the
+portfolio; and routes offer only the methods in use, which #832 carried out by
+removing the 33 operations no client called. The
+[upgrade notes](operations/upgrades.md) record what each removal retired.
 
 The owner chose the look of the signed-in pages on 29 September 2026:
 
@@ -946,16 +878,16 @@ and limits.
 
 ## Tenancy, sessions and deployment
 
-The earlier implementation's registry and single-issuer modes share one operator
+The earlier implementation's registry and single-issuer modes shared one operator
 model and tenancy boundary. The 3 October 2026
-[one-product decision](#company-managed-registers-and-one-product) supersedes
-that mode distinction. [#861](https://github.com/Ledova/ledova/issues/861) removes
-the field with `operators/0002` and retires its API/client/evidence branches.
-The initial migration remains historical; reversal recreates the registry
-default rather than each installation's old choice. Private evidence, unrelated
-configuration and register/payment history are preserved. Company authority is
-separate remaining work.
-PostgreSQL RLS enforces row isolation; product selectors still distinguish issuer
+[one-product decision](#company-managed-registers-and-one-product) retired the
+mode distinction: [#861](https://github.com/Ledova/ledova/issues/861) removed
+the field with [`operators/0002`](operations/upgrades.md#one-registry-product)
+and its API, client and evidence branches. The initial migration remains
+historical; reversal recreates the registry default rather than each
+installation's old choice. Private evidence, unrelated configuration and
+register/payment history are preserved.
+PostgreSQL RLS enforces row isolation; product selectors still distinguish company
 management, personal accounts and discovery. See [tenancy](architecture/tenancy.md).
 
 There is one authentication path: simplejwt sessions with browser and mobile
@@ -998,7 +930,7 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-Directory, Applications and issuer Offering workflows are available in both the
+Directory, Applications and company Offering workflows are available in both the
 dashboard and mobile app, using shared hooks. Earlier client boundaries are
 recorded in [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
