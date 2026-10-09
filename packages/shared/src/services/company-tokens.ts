@@ -7,6 +7,8 @@ import type {
   PauseSubmissionResponse,
   TokenCreate,
   TokenHoldersResponse,
+  RegisterInspectionPreview,
+  RegisterInspectionRequest,
   TokenIssuance,
   CapitalIncreaseListItem,
   PaginatedResponse,
@@ -62,6 +64,31 @@ export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string, c
 
 export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { ...config, responseType: 'blob' });
+
+export const getRegisterInspectionPreview = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<RegisterInspectionPreview>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), config);
+
+export const createRegisterInspectionCopy = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: RegisterInspectionRequest,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
+    ...config,
+    responseType: 'blob',
+  });
+
+export const createRegisterInspectionCopyBytes = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: RegisterInspectionRequest,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.post<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
+    ...config,
+    responseType: 'arraybuffer',
+  });
 
 export const getCompanyTokenIssuances = (
   apiClient: AxiosInstance,

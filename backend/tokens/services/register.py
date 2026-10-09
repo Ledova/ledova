@@ -34,7 +34,7 @@ from tokens.constants import (
     STATUTORY_CALENDAR,
     TRANSFER_CERTIFICATE_MONTHS,
 )
-from tokens.exceptions import RegisterNotInitialized
+from tokens.exceptions import RegisterChangeConflict, RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
     RegisterEntry,
@@ -588,17 +588,32 @@ def export_rows(token, requested_by) -> list[list]:
     return rows
 
 
-def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, recipient) -> bytes:
+def _inspection_source(token):
+    register = _opened_register(token)
+    rows = [REGISTER_HEADERS, *_sheet(token, register)]
+    sheet = io.StringIO()
+    csv.writer(sheet).writerows(rows)
+    source = f"{token.pk}/{register['sequence']}\n".encode() + sheet.getvalue().encode()
+    return register, rows, hashlib.sha256(source).hexdigest()
+
+
+def inspection_copy_preview(token):
+    register, _, digest = _inspection_source(token)
+    return {"token": token.pk, "register_sequence": register["sequence"], "source_digest": digest}
+
+
+def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, recipient, source_digest=None) -> bytes:
     produced_on = timezone.localdate(timezone=STATUTORY_CALENDAR)
     if requested_on > produced_on:
         raise ValidationError("The request date cannot be in the future.")
-    register = _opened_register(token)
+    register, rows, digest = _inspection_source(token)
+    if source_digest is not None and source_digest != digest:
+        raise RegisterChangeConflict("The register changed. Refresh the inspection copy before preparing it.")
     late = produced_on - requested_on > timedelta(days=INSPECTION_COPY_DAYS)
     sheet = io.StringIO()
     csv.writer(sheet).writerows(
         [
-            REGISTER_HEADERS,
-            *_sheet(token, register),
+            *rows,
             [],
             [INSPECTION_COPY_HEADING],
             [REQUESTED_ON_ROW, requested_on.isoformat()],

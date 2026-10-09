@@ -14,6 +14,9 @@ export type PauseSubmissionResponse = ApiResponse<'api_v1_tokens_pause_create'>;
 
 export type TokenHoldersResponse = ApiResponse<'api_v1_tokens_holders_retrieve'>;
 
+export type RegisterInspectionPreview = ApiResponse<'api_v1_tokens_register_inspection_copy_retrieve'>;
+export type RegisterInspectionRequest = ApiRequest<'api_v1_tokens_register_inspection_copy_create'>;
+
 export type FormerMember = ApiSchema<'FormerMember'>;
 
 export type TokenIssuance = ApiResponse<'api_v1_tokens_issuances_list'>['results'][number];

@@ -18,6 +18,7 @@ from tokens.constants import STATUTORY_CALENDAR
 from tokens.models import RegisterExport, RegisterOutput
 from tokens.services.former_holders import purge_register_exports
 from tokens.tasks.former_holders import purge_former_members_past_the_clock
+from tokens.tests.evidence_fixtures import owner_appointment
 from tokens.tests.test_register_certificates import entered, member_of, wallet_of
 from tokens.tests.test_register_events import DAY, register_fixture
 
@@ -270,26 +271,37 @@ class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTes
             self.assertEqual(list(RegisterExport.objects.filter(kind="inspection_copy")), [copy])
 
     @override_settings(STORAGES=ADMIN_STORAGES)
-    def test_the_register_outputs_page_records_its_copy_on_the_operator_connection(self):
+    def test_the_company_copy_records_on_the_operator_connection_without_granting_audit_access(self):
         with use_operator():
-            staff = grant(staff_user("scoped-register-outputs"), admin.site._registry[RegisterOutput], "change")
-            self.client.force_login(staff)
+            self.owner.is_staff = False
+            self.owner.save(update_fields=["is_staff"])
+            owner_appointment(self.company)
+        self.signed_in_as(self.owner)
+        path = f"/api/v1/tokens/{self.token.pk}/register/inspection-copy/"
+        preview = self.client.get(path)
+        self.assertEqual(preview.status_code, 200, preview.content)
+        source = preview.json()
         requested_on = timezone.localdate(timezone=STATUTORY_CALENDAR) - timedelta(days=1)
         response = self.client.post(
-            reverse("admin:tokens_registeroutput_inspection_copy", args=[self.token.pk]),
+            path,
             {
+                "appointment": source["appointment"],
+                "sourceDigest": source["sourceDigest"],
                 "instruction": "SYNTHETIC-INSTRUCTION-2",
-                "requested_on": requested_on,
+                "requestedOn": requested_on,
                 "recipient": "Synthetic Requester",
             },
+            format="json",
         )
         self.assertEqual((response.status_code, response["Content-Type"]), (200, "text/csv"))
         with use_operator():
             record = RegisterExport.objects.get(kind="inspection_copy")
         self.assertEqual(
             (record.requested_by_id, record.digest, record.requested_on),
-            (staff.pk, hashlib.sha256(response.content).hexdigest(), requested_on),
+            (self.owner.pk, hashlib.sha256(response.content).hexdigest(), requested_on),
         )
+        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
+            RegisterExport.objects.filter(pk=record.pk).exists()
 
     def test_the_issuer_can_neither_read_nor_write_a_certificate_record(self):
         with use_operator():

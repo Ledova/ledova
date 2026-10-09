@@ -60,6 +60,11 @@ The first #866 [Profile increment](member-profile.md) adds self-reported full-na
 and residential-address editing to the existing personal Profile in both clients,
 retaining phone editing. Own register access, confirmations, certificate requests
 and walletless association remain separate increments under the essential scope.
+The first #871 [inspection-copy increment](company-inspection-copies.md) lets a
+current company register appointee prepare the existing inspection CSV in both
+clients, with exact source binding and retained requester/file-digest audit.
+Certificates, company-pack provenance and permitted member fulfilment remain
+separate increments; the replaced staff inspection form is retired.
 #866 and #868–#873 retain the revised core/deferred scopes and dependencies
 below. Their company/member, allotment and register authority remains separate.
 The #862 lifecycle provides [authority requests, self-declaration admission and

@@ -106,10 +106,12 @@ class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection
                     cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
                 transaction.set_rollback(True, using=OPERATOR_ALIAS)
             return
-        if (
-            route
-            and route.method == "post"
-            and route.path in {"/api/v1/companies/{company}/documents/", "/api/v1/companies/{company}/activate/"}
+        if route and (
+            route.path.endswith("/register/inspection-copy/")
+            or (
+                route.method == "post"
+                and route.path in {"/api/v1/companies/{company}/documents/", "/api/v1/companies/{company}/activate/"}
+            )
         ):
             with super().undone_before_the_next_case(route, actor):
                 yield
