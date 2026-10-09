@@ -59,7 +59,7 @@ docker compose exec backend python manage.py seed_demo
 ```
 
 and starts the worker again. The command prints generated credentials and
-refreshes a synthetic operator, superuser, issuer, investor, wallets,
+refreshes a synthetic operator, superuser, company, investor, wallets,
 classification and share class; rerunning resolves and applies a password
 again. The first run on a fresh database also adds six months of synthetic
 history: staff, about sixty investors in every sign-up and verification state,
@@ -91,7 +91,7 @@ The stack's chain is Anvil on chain id 31337, published at
 from a browser wallet, add a network with that RPC URL, chain id `31337` and
 currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
-the operator, which the backend signs with, and the demo issuer wallet;
+the operator, which the backend signs with, and the demo company's wallet;
 account #1 is the demo investor's wallet. Each starts with 10,000 test ether.
 `make dev-seed` gives accounts #1, #2 and #4, the demo investor's Base wallets,
 the ether their seeded history leaves them, between about 0.3 and 2 ETH, which

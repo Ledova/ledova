@@ -175,23 +175,21 @@ fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
 [the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
 
-The operator configuration's issuer KYC switch gates admission points only, and
-every later action relies on that gate rather than checking again, including
-resolving a warning and reinstating a suspended company. The owner chose this on
-21 September 2026 in
-[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810),
-when the points were submitting a company for review and activating it. Since
-staff review was retired, the switch requires the representative's configured
-identity verification at initial admission, activation and company eligibility
-decisions; [eligibility](architecture/companies-and-eligibility.md) owns the
-mechanism.
+The owner chose on 21 September 2026 in
+[#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
+that the `issuer_kyc_required` switch gates two points only, submitting a
+company for review and activating it, with every later action relying on that
+gate rather than checking again. Since staff review was retired the switch is
+checked wherever an appointment is exercised: admission, invitation acceptance,
+activation, eligibility decisions and each register command;
+[eligibility](architecture/companies-and-eligibility.md) owns the mechanism.
 
 ## The stored register
 
-The staff reviewer and admin-only output choices below were the implementation
-until 5 October 2026. The company-run rules above replaced the reviewer; the
-register's authority, evidence, identity, event history and retention controls
-remain requirements.
+The staff reviewer below was retired by the rules above, decided on 5 October
+and delivered under #864 by 7 October 2026; the admin-only outputs remain
+until #871. The register's authority, evidence, identity, event history and
+retention controls remain requirements.
 
 Wallets become linked to register members only through documentary authority:
 an opening's mapping, or a later wallet link. Staff verified it at first;
@@ -268,7 +266,8 @@ company, and figures without documents. The register owns the mechanisms of
 [notice figures](architecture/register.md#notice-figures) and
 [outputs due](architecture/register.md#outputs-due);
 [#871](https://github.com/Ledova/ledova/issues/871) moves their preparation to
-company appointments.
+company appointments, and inspection copies came first
+([PR #954](https://github.com/Ledova/ledova/pull/954)).
 
 PyMuPDF, which checks uploaded PDFs and renders certificates, is licensed under
 the AGPL-3.0 or commercially by Artifex. The same day the owner chose to record
@@ -826,9 +825,11 @@ each recommendation
 ([#792](https://github.com/Ledova/ledova/issues/792#issuecomment-5887890998)):
 no company API key, because nothing authenticated with it; no theme or selected
 portfolio preference, because paper is the only look and no client read the
-portfolio; and routes offer only the methods in use, which #832 carried out by
-removing the 33 operations no client called. The
-[upgrade notes](operations/upgrades.md) record what each removal retired.
+portfolio; and routes offer only the methods in use, which
+[#832](https://github.com/Ledova/ledova/issues/832) carried out by removing the
+33 operations no client called, taking the schema from 191 operations to 158.
+The [upgrade notes](operations/upgrades.md) record the key and preference
+removals.
 
 The owner chose the look of the signed-in pages on 29 September 2026:
 

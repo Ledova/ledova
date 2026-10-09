@@ -22,7 +22,7 @@ The company-managed register foundation, delivered under #860:
 - Activation and participant eligibility ([#863](https://github.com/Ledova/ledova/issues/863)):
   [company activation](plans/company-managed-registers/company-activation.md)
   and [company eligibility decisions](plans/company-managed-registers/company-eligibility.md),
-  which replaced staff classification review.
+  which replaced platform-staff classification review.
 - Register commands ([#864](https://github.com/Ledova/ledova/issues/864)):
   register reads by appointment, imports, corrections, reconciliation
   acknowledgement, openings from the chain, member particulars changes and
@@ -56,8 +56,9 @@ its phase issues:
   ([capability boundaries](product.md#current-capability-boundaries)).
 - The authoritative stored register ([#647](https://github.com/Ledova/ledova/issues/647)):
   an append-only event log and holdings served with the chain unreachable and
-  reconciled with it, retained former members, and staff-prepared inspection
-  copies, certificates and notice figures with a list of those due
+  reconciled with it, retained former members, and inspection copies,
+  certificates and notice figures prepared by platform staff with a list of
+  those due
   ([the register](architecture/register.md)).
 - The secondary market: order, matching and settlement code, its recovery
   journeys proven end to end ([#5](https://github.com/Ledova/ledova/issues/5)),
@@ -72,7 +73,7 @@ its phase issues:
   platform staff on the company's instruction
   ([shareholder publications](architecture/shareholder-publications.md)).
 - Reporting and portability ([#650](https://github.com/Ledova/ledova/issues/650)):
-  the staff-produced [company pack](architecture/company-pack.md) and the
+  the [company pack](architecture/company-pack.md) platform staff produce and the
   [account-data export](reference/account-data-export.md).
 - [The signed-in app](https://github.com/Ledova/ledova/issues/732) rebuilt around
   the register, on the web and in the mobile app, as
@@ -90,7 +91,7 @@ the merging head.
 
 ### Next: finish the essential register
 
-- **Employee awards and vesting records (#867).** Record the award as a promised
+- **Employee awards and vesting records ([#867](https://github.com/Ledova/ledova/issues/867)).** Record the award as a promised
   entitlement with its agreement and vesting events; shares reach the register
   only through a separate company-approved non-paid grant
   ([10 October first scope](decisions.md#first-scopes-for-employee-awards-and-external-capital)).
