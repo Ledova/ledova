@@ -19,6 +19,7 @@ import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
+import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
@@ -47,8 +48,9 @@ function RegisterPage({
           for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
           this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
           holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
-          increases and pause changes use separate company workflows with exact company approval. Certificates,
-          inspection copies, publications and the company pack are prepared by staff on written instruction.
+          increases and pause changes use separate company workflows with exact company approval. Company appointees
+          prepare inspection copies above. Certificates, publications and the company pack are prepared by staff on
+          written instruction.
         </p>
       </Section>
     </Page>
@@ -182,6 +184,11 @@ function OwnRegister({
                   </div>
                 }
                 <RegisterDownload register={register} />
+                <ClassInspectionCopy
+                  register={register}
+                  guard={guard}
+                  sourceReady={!classes.isFetching && !registers.isFetching}
+                />
                 <RegisterMembers owner={owner} guard={guard} register={register} company={company.uuid} />
                 {ON_CHAIN.includes(register.token.status) && (
                   <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />

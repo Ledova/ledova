@@ -417,6 +417,10 @@ it('opens each class in place under its row, all closed at first, independently 
   expect(document.activeElement).toBe(within(detail).getByRole('link', { name: 'Share class' }));
   await user.tab();
   expect(document.activeElement).toBe(within(detail).getByRole('button', { name: 'Download CSV' }));
+  for (const name of ['Written instruction reference', 'Recipient', 'Date of request (Sydney)']) {
+    await user.tab();
+    expect(document.activeElement).toBe(within(detail).getByLabelText(name));
+  }
   await user.tab();
   expect(document.activeElement).toBe(preference);
   await user.keyboard('{Enter}');

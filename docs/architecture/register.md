@@ -287,16 +287,14 @@ transfer-only holders; neither is a substitute for the register.
 ## Inspection copies
 
 Section 173(3) requires a company to give a copy of its register within 7 days
-after a proper request. Staff prepare it in admin, on the company's written
-instruction, from the share class's **Register outputs** page; the
+after a proper request. Current exact-company appointees holding administration
+or a register capability prepare it in the web/mobile **Register**; the
 [runbook](../operations/register-foundation.md#preparing-an-inspection-copy)
-has the steps. The page needs the register outputs change permission
-(`tokens.change_registeroutput`), which opens nothing else: deploying or pausing
-a class still needs share token change permission, and share token permissions
-do not open the page. There is no API route. The company decides whether a
-request is proper and hands the copy over.
+has the steps. Ownership and platform staff permissions supply no inspection-copy
+authority. The company decides whether a request is proper and provides the copy.
 
-[register_output.py](../../backend/tokens/admin/register_output.py) calls
+[register_inspection_copies.py](../../backend/tokens/services/register_inspection_copies.py)
+serves the company-authorised preview and generation behind the API. It calls
 `prepare_inspection_copy` in [register.py](../../backend/tokens/services/register.py),
 which builds the register CSV above from one snapshot read with the export's own
 code and adds a fourth section: the request date, the instruction's reference,
@@ -316,7 +314,12 @@ reference, the request date, the recipient and the late flag, so the file and
 its record agree. Database check constraints require an `inspection_copy` row
 to carry all five and a `register_csv` row to carry none. A register with no
 opening, a request date after today and a blank field are refused, and a
-refusal records nothing. The records share the export records' update guard,
+refusal records nothing. Preparation binds the exact appointment and source
+fingerprint; generation refuses changed source or lost authority and rechecks
+authority before committing the record. The source fingerprint includes the
+class, sequence and base CSV bytes; the audit digest identifies the final bytes.
+The retired staff form supplies no parallel generation route. Historical records
+and direct generator consumers remain. The records share the export records' update guard,
 operator-only table and daily purge after the 2,557-day floor.
 
 ## Certificates

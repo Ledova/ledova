@@ -23,7 +23,7 @@ jest.mock('@ledova/shared', () => ({
   getCompanyTokens: jest.fn(),
   useUserPreferences: () => mockPreferences,
 }));
-jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn() } }));
+jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
 
@@ -124,6 +124,7 @@ beforeEach(() => {
   pages = [[shareClass], [preference]];
   read = defaultRead;
   get.mockReset();
+  jest.mocked(apiClient.post).mockReset();
   get.mockImplementation(
     (url, config) =>
       read(url, (config?.params as { page?: number } | undefined)?.page ?? 1) as ReturnType<typeof apiClient.get>,
@@ -133,6 +134,50 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
+});
+
+it('prepares an inspection copy from the expanded company register while keeping the ordinary CSV action', async () => {
+  const route = '/api/v1/tokens/ordinary/register/inspection-copy/';
+  read = (url, number) =>
+    url === route
+      ? Promise.resolve({
+          data: {
+            token: 'ordinary',
+            appointment: 'personal-appointment',
+            registerSequence: 3,
+            sourceDigest: 'a'.repeat(64),
+          },
+        })
+      : defaultRead(url, number);
+  const post = jest.mocked(apiClient.post);
+  post.mockResolvedValue({
+    data: Uint8Array.from('member,shares', (value) => value.charCodeAt(0)).buffer,
+    headers: { 'content-type': 'text/csv' },
+  } as never);
+  const view = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  expect(view.getByRole('button', { name: 'Download CSV for Ordinary shares' })).toBeEnabled();
+  await fireEvent.press(view.getByRole('button', { name: 'Prepare inspection copy for Ordinary shares' }));
+  await fireEvent.changeText(view.getByLabelText('Written instruction'), 'Company written request');
+  await fireEvent.changeText(view.getByLabelText('Recipient'), 'Synthetic recipient');
+  await fireEvent.changeText(view.getByLabelText('Requested on (YYYY-MM-DD)'), '2026-10-01');
+  await fireEvent.press(view.getByRole('button', { name: 'Preview inspection copy' }));
+  await fireEvent.press(
+    await view.findByRole('button', { name: 'Confirm and share inspection copy for Ordinary shares' }),
+  );
+  await waitFor(() => expect(Sharing.shareAsync).toHaveBeenCalledTimes(1));
+  expect(post).toHaveBeenCalledWith(
+    route,
+    {
+      appointment: 'personal-appointment',
+      sourceDigest: 'a'.repeat(64),
+      instruction: 'Company written request',
+      recipient: 'Synthetic recipient',
+      requestedOn: '2026-10-01',
+    },
+    { responseType: 'arraybuffer', ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) },
+  );
+  expect(requested()).not.toContain(URLS.REGISTER_EXPORT('ordinary'));
 });
 
 it('shows walletless cessation and return clocks with stable identity and entry provenance beside current holdings', async () => {
