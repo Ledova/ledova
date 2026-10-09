@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { ApiClientProvider, AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
@@ -9,6 +9,7 @@ import { clearTokens } from '../../services/tokenStorage';
 import { invalidateSessionScope } from '../../services/sessionScope';
 import { resetFiles } from '../../testSupport/documentFiles';
 import { UserProfileScreen } from '../user-profile';
+import { useUserProfile } from '../user-profile/useUserProfile';
 import { SettingsScreen } from '../settings';
 
 const mockReset = jest.fn();
@@ -22,10 +23,6 @@ const mockLock = {
   setEnabled: jest.fn(),
 };
 jest.mock('../../contexts', () => ({ ...jest.requireActual('../../contexts'), useAppLock: () => mockLock }));
-jest.mock('@ledova/shared', () => ({
-  ...jest.requireActual('@ledova/shared'),
-  useAuth: () => ({ isAuthenticated: true }),
-}));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset }) }));
 jest.mock('../user-profile/components/VerificationModal', () => ({ VerificationModal: () => null }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
@@ -132,6 +129,20 @@ async function passwordForm() {
   await fireEvent.changeText(view.getByLabelText('Confirm new password'), 'synthetic-new');
   return view;
 }
+
+it('settles the signed-out profile without requesting private account data', async () => {
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+  const { result } = await renderHook(() => useUserProfile(), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+      </QueryClientProvider>
+    ),
+  });
+  expect(result.current.profile.isLoading).toBe(false);
+  expect(result.current.userProfile).toBeNull();
+  expect(apiClient.get).not.toHaveBeenCalled();
+});
 
 it('reads the profile without the old portfolio and notification requests', async () => {
   const view = await screen(<UserProfileScreen />);

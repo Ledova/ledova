@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -14,15 +14,12 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import UserProfilePage from './user-profile';
+import { useUserProfile } from './user-profile/useUserProfile';
 import SettingsPage from './settings';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn(), post: vi.fn() }));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@ledova/shared', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@ledova/shared')>()),
-  useAuth: () => ({ isAuthenticated: true }),
-}));
 vi.mock('./user-profile/components/IdentityVerificationModal', () => ({
   IdentityVerificationModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? <button onClick={onClose}>Close identity review</button> : null,
@@ -82,6 +79,22 @@ afterEach(() => {
   cleanup();
   clients.splice(0).forEach((client) => client.clear());
   vi.restoreAllMocks();
+});
+
+it('settles the signed-out profile without requesting private account data', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  clients.push(client);
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+  const { result } = renderHook(() => useUserProfile(), {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+      </QueryClientProvider>
+    ),
+  });
+  expect(result.current.isLoading).toBe(false);
+  expect(result.current.userProfile).toBeNull();
+  expect(api.get).not.toHaveBeenCalled();
 });
 
 it('shows profile ledger data and keeps identity review reachable', async () => {

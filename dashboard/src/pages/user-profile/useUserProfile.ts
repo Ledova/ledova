@@ -6,6 +6,7 @@ import {
   CACHE_TIMING,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
+  useAuth,
   useSubmissionOwner,
   type UpdateUserProfile,
 } from '@ledova/shared';
@@ -15,6 +16,7 @@ type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress'
 
 export function useUserProfile() {
   const client = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const { owner, boundary } = useSubmissionOwner();
   const id = useId();
   const [generation, setGeneration] = useState({ owner, value: 0 });
@@ -125,7 +127,7 @@ export function useUserProfile() {
   };
   const state = {
     ...profile,
-    isLoading: preferences?.status !== 'error' && (!ownerReady || profile.isLoading),
+    isLoading: isAuthenticated && preferences?.status !== 'error' && (!ownerReady || profile.isLoading),
     isError: preferences?.status === 'error' || profile.isError,
     isFetching: preferences?.fetchStatus === 'fetching' || profile.isFetching,
   };
