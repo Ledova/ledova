@@ -8,9 +8,11 @@ modes. This folder holds one short guide per delivered increment: what the
 company or participant does, what is recorded, the API family and the
 increment's own boundaries. Who may prepare, approve, apply and reject is stated
 once in the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-execution, unsigned holds, uncertain replies and recovery after authority loss
-are stated once in the [outgoing signing foundation](../../architecture/outgoing-signing.md).
-The guides link those rules rather than restating them. The
+the uncertain-reply rule is stated once under
+[company decisions and signer authority](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority),
+and each family's unsigned holds and recovery after authority loss in its own
+[outgoing signing](../../architecture/outgoing-signing.md) section. The guides
+link those rules rather than restating them. The
 [9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority)
 puts [#943](https://github.com/Ledova/ledova/issues/943) first, then the
 essential register below; new integrated AUD payments, trading, advanced
@@ -20,7 +22,7 @@ governance and filings are deferred.
 
 | Issue                                               | Increment                                                                                                      | Guide                                                                                                       | PR                                                                                                   |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [#862](https://github.com/Ledova/ledova/issues/862) | Authority requests, admission, team invitations, revocation, legacy-owner upgrade; company information         | [authority-requests.md](authority-requests.md), [company-information.md](company-information.md)            | [#911](https://github.com/Ledova/ledova/pull/911)                                                    |
+| [#862](https://github.com/Ledova/ledova/issues/862) | Authority requests, admission, team invitations, revocation, legacy-owner upgrade; company information         | [authority-requests.md](authority-requests.md), [company-information.md](company-information.md)            | [#911](https://github.com/Ledova/ledova/pull/911) at `13684719c5245f1d61809d46e37a904f833e1c6d`  |
 | [#863](https://github.com/Ledova/ledova/issues/863) | Administrator activation                                                                                       | [company-activation.md](company-activation.md)                                                              | [#913](https://github.com/Ledova/ledova/pull/913), [#914](https://github.com/Ledova/ledova/pull/914) |
 | #863                                                | Eligibility records and the consumer cutover                                                                   | [company-eligibility.md](company-eligibility.md)                                                            | [#915](https://github.com/Ledova/ledova/pull/915), [#917](https://github.com/Ledova/ledova/pull/917) |
 | [#864](https://github.com/Ledova/ledova/issues/864) | Register reads, imports, corrections, discrepancy acknowledgement, chain openings, particulars and wallet links | [Register foundation](../../operations/register-foundation.md)                                              | through [#936](https://github.com/Ledova/ledova/pull/936)                                            |

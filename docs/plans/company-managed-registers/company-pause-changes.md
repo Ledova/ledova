@@ -53,8 +53,10 @@ projection. Missing or duplicate events and reorgs remain unresolved.
 
 New signatures and deferred effects recheck the exact consumed company source,
 current personal authority, evidence, intent and configuration. Unsigned holds,
-never-signed retirement, signed work after authority loss and uncertain replies
-follow the [pause and unpause rules](../../architecture/outgoing-signing.md#pause-and-unpause);
+never-signed retirement and signed work after authority loss follow the
+[pause and unpause rules](../../architecture/outgoing-signing.md#pause-and-unpause),
+and uncertain replies the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority);
 changed drafts or a later class state cannot reconstruct an original request.
 
 The clients show the original requested state and result separately from current
@@ -65,8 +67,8 @@ transaction evidence.
 ## Boundaries
 
 Fresh owner/platform-staff pause submission, confirmations and admin actions
-are retired. Existing exact issuer-row POST replay and GET recovery remain, bound to
-their original account, actor, company, class, UUID and requested direction.
+are retired. Existing exact owner-row POST replay and GET recovery remain, bound
+to their original account, actor, company, class, UUID and requested direction.
 The v1 saved-reminder key and its five fields remain unchanged. Reload,
 original-direction retry, GET polling and local completed-only dismissal retain
 their existing privacy, storage and native session/epoch/transport guards. A

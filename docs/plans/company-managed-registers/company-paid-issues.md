@@ -61,8 +61,10 @@ holding and register entry remain separately visible outcomes.
 
 Fresh signing rechecks the original consumed company authority, evidence,
 subscription and exact transaction. Unsigned holds, permanent authority loss
-before any signature, signed work after authority loss, refund holds and
-uncertain replies follow the [share issuance rules](../../architecture/outgoing-signing.md#share-issuances).
+before any signature, signed work after authority loss and refund holds follow
+the [share issuance rules](../../architecture/outgoing-signing.md#share-issuances),
+and uncertain replies the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority).
 A genuine finalised Mint and the original paid subscription quantity underpin
 ALLOTTED and holding projection. Register recording uses the existing actual
 wallet-to-member LINK, retaining a waiting outcome when no link exists. This

@@ -49,8 +49,10 @@ approval, admitted work, original transaction status and the projected result.
 
 Fresh signing rechecks the captured company decision, current personal
 authority, evidence, unchanged terms and configuration. Unsigned holds,
-never-signed retirement, signed work after authority loss and uncertain replies
-follow the [capital increase rules](../../architecture/outgoing-signing.md#capital-increases);
+never-signed retirement and signed work after authority loss follow the
+[capital increase rules](../../architecture/outgoing-signing.md#capital-increases),
+and uncertain replies the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority);
 an unavailable read or a changed current cap does not justify constructing a
 different retry.
 
@@ -62,14 +64,14 @@ Both clients use the same exact preview and confirmed decision.
 
 ## Boundaries
 
-Fresh owner/staff capital creation, submission, review and admission are
-retired. Existing private owner histories, original technical recovery,
-migration history and retained evidence remain, and retained legacy actors,
-intents, signatures and historical arithmetic are unchanged. Pause and
-paid-issue authority use their own guides. Genuine payment and transfer records
-and the investor-only provider guards remain; #868 records externally arranged
-capital and company-approved allotments, and new integrated payment and transfer
-mechanics are deferred under the
+Fresh capital creation, submission, review and admission under ownership and
+platform-staff permissions are retired. Existing private owner histories,
+original technical recovery, migration history and retained evidence remain,
+and retained legacy actors, intents, signatures and historical arithmetic are
+unchanged. Pause and paid-issue authority use their own guides. Genuine payment
+and transfer records and the investor-only provider guards remain; #868 records
+externally arranged capital and company-approved allotments, and new integrated
+payment and transfer mechanics are deferred under the
 [9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority).
 This increment supplies no member-binding, payment, treasury or
 populated-mirror policy.

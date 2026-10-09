@@ -89,10 +89,10 @@ restart or replacement command.
 ## Boundaries
 
 Fresh platform-staff participant ADD/REMOVE admissions and the
-subscription-admin whitelist action are replaced by this company workflow. Genuine subscription, receiving
-wallet and evidence records remain. Technical eligibility invalidation/removal,
-private histories, original signed recovery and existing target/finality guards
-remain independently attributable.
+subscription-admin whitelist action are replaced by this company workflow.
+Genuine subscription, receiving wallet and evidence records remain. Technical
+eligibility invalidation/removal, private histories, original signed recovery
+and existing target/finality guards remain independently attributable.
 
 The old synthetic no-key employee-trust treasury cannot provide participant
 possession proof. Its unsupported fresh-admission caller is retired without

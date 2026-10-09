@@ -70,8 +70,10 @@ original dispatch, claim, signed bytes, nonce, transaction, receipt and finality
 outcome.
 
 Fresh signing rechecks the original company mandates, source, evidence and exact
-terms. Unsigned holds, signed work after authority or source loss and uncertain
-replies follow the [share issuance rules](../../architecture/outgoing-signing.md#share-issuances).
+terms. Unsigned holds and signed work after authority or source loss follow the
+[share issuance rules](../../architecture/outgoing-signing.md#share-issuances),
+and uncertain replies the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority).
 A finalised genuine Mint and its original member instruction are required for
 the matching holding and once-only register ISSUE. Completion of a chain journal
 and completion of register recording remain distinguishable; an unentered

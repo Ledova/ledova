@@ -6,15 +6,16 @@ Delivered by [PR #941](https://github.com/Ledova/ledova/pull/941).
 
 A company appointment authorises deployment of an empty share class. The existing
 technical signer creates its contract; deployment issues no shares, receives no
-payment and changes no register holding. The captured issuer address is contract
-metadata, separate from the technical sender, gas payer and any future recipient.
+payment and changes no register holding. The captured `issuer` address is
+contract metadata, separate from the technical sender, gas payer and any future
+recipient.
 Company share operations grant no crypto on-ramp purchase permission.
 
 ## What the company does
 
 An appointee opens the class from the company's Register and prepares a
 proposal. Preparation captures the company-provided company/class information,
-whole-share cap and identifier, selected issuer address, exact
+whole-share cap and identifier, selected `issuer` address, exact
 chain/factory/transaction intent and register state. The company reviews that
 snapshot before approving it. Application consumes the exact approval and admits
 one original deployment job. An applied proposal means admitted, not a deployed
@@ -46,8 +47,10 @@ pause decisions.
 New signatures require the original approving and applying mandates, captured
 wallet association, configuration, terms and register state to remain
 applicable; the original selected address is checked rather than replaced by a
-newer wallet. Unsigned holds, signed work after authority loss and uncertain
-replies follow the [automatic swap approval rules](../../architecture/outgoing-signing.md#automatic-swap-approval);
+newer wallet. Unsigned holds and signed work after authority loss follow the
+[automatic swap approval rules](../../architecture/outgoing-signing.md#automatic-swap-approval),
+and uncertain replies the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority);
 this increment supplies no automatic replacement, reapproval or renewal route.
 Both clients distinguish admission, unsigned holds, signed uncertainty,
 confirmation awaiting projection and the original projected outcome. A contract
@@ -81,7 +84,8 @@ retained requests and journals remain. Already signed/confirmed original issuanc
 recovers without inventing a missing register entry. Imported-baseline chain
 attribution is not delivered by this increment.
 
-Fresh owner/staff deployment admissions and direct-deploy client controls are
-replaced by this workflow. Historical journals, nullable legacy source/principal
-records and original-ID technical recovery remain. The private-company register
+Fresh deployment admissions under ownership and platform-staff permissions and
+the direct-deploy client controls are replaced by this workflow. Historical
+journals, nullable legacy source/principal records and original-ID technical
+recovery remain. The private-company register
 and optional investor crypto integration remain separate.
