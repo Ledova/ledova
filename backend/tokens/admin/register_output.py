@@ -9,12 +9,10 @@ from django.views.decorators.http import require_http_methods
 from rest_framework.exceptions import ValidationError
 
 from shared.utils.admin_actions import admin_action_path, admin_page_path
-from tokens.exceptions import RegisterNotInitialized
 from tokens.models import RegisterExportKind, RegisterOutput
 from tokens.services.register import (
     outputs_due,
     prepare_certificate,
-    prepare_inspection_copy,
     prepare_notice_figures,
 )
 
@@ -22,12 +20,6 @@ PREPARE_PAGES = {
     RegisterExportKind.CERTIFICATE: "admin:tokens_registeroutput_certificate",
     RegisterExportKind.NOTICE_FIGURES: "admin:tokens_registeroutput_notice_figures",
 }
-
-
-class InspectionCopyForm(forms.Form):
-    instruction = forms.CharField(max_length=255, label="Reference of the company's written instruction")
-    requested_on = forms.DateField(label="Date the request was made", widget=forms.DateInput(attrs={"type": "date"}))
-    recipient = forms.CharField(max_length=255, label="Who the copy is for")
 
 
 class CertificateForm(forms.Form):
@@ -52,10 +44,10 @@ def _download(content, content_type, filename):
 
 @admin.register(RegisterOutput)
 class RegisterOutputAdmin(admin.ModelAdmin):
-    list_display = ["symbol", "name", "company", "inspection_copy_link", "certificate_link", "notice_figures_link"]
+    list_display = ["symbol", "name", "company", "certificate_link", "notice_figures_link"]
     list_select_related = ["company"]
     search_fields = ["symbol", "name", "company__name"]
-    fields = ["name", "symbol", "company", "inspection_copy_link", "certificate_link", "notice_figures_link"]
+    fields = ["name", "symbol", "company", "certificate_link", "notice_figures_link"]
     readonly_fields = fields
     actions = None
 
@@ -82,21 +74,11 @@ class RegisterOutputAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             admin_page_path(self, "due/", "tokens_registeroutput_due", self.due),
-            admin_action_path(
-                self, "<uuid:uuid>/inspection-copy/", "tokens_registeroutput_inspection_copy", self.inspection_copy
-            ),
             admin_action_path(self, "<uuid:uuid>/certificate/", "tokens_registeroutput_certificate", self.certificate),
             admin_action_path(
                 self, "<uuid:uuid>/notice-figures/", "tokens_registeroutput_notice_figures", self.notice_figures
             ),
         ] + super().get_urls()
-
-    @admin.display(description="Inspection copy")
-    def inspection_copy_link(self, obj):
-        return format_html(
-            '<a href="{}">Prepare an inspection copy</a>',
-            reverse("admin:tokens_registeroutput_inspection_copy", args=[obj.pk]),
-        )
 
     @admin.display(description="Certificate")
     def certificate_link(self, obj):
@@ -141,21 +123,6 @@ class RegisterOutputAdmin(admin.ModelAdmin):
                 ],
             },
         )
-
-    @method_decorator(require_http_methods(["GET", "POST"]))
-    def inspection_copy(self, request, token):
-        form = InspectionCopyForm(request.POST if request.method == "POST" else None)
-        refusal = ""
-        if form.is_valid():
-            try:
-                content = prepare_inspection_copy(token, request.user, **form.cleaned_data)
-            except RegisterNotInitialized:
-                refusal = "This share class's register has not been opened, so there is no register to copy."
-            except ValidationError as error:
-                refusal = _refusal(error)
-            else:
-                return _download(content, "text/csv", f"register-{token.symbol}-inspection-copy.csv")
-        return self._page(request, token, "admin/tokens/register_inspection_copy.html", form, refusal)
 
     @method_decorator(require_http_methods(["GET", "POST"]))
     def certificate(self, request, token):

@@ -27,6 +27,10 @@ from tokens.serializers.pause_change import (
     PauseSubmissionRequestSerializer,
     PauseSubmissionResponseSerializer,
 )
+from tokens.serializers.register_inspection_copy import (
+    RegisterInspectionPreviewSerializer,
+    RegisterInspectionRequestSerializer,
+)
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
 from tokens.services import pause_changes
@@ -38,6 +42,10 @@ from tokens.services.register import (
     stored_entries,
     stored_register,
     stored_waiting_list,
+)
+from tokens.services.register_inspection_copies import (
+    prepare_company_inspection_copy,
+    preview_company_inspection_copy,
 )
 from tokens.services.register_openings import opening_holders
 from tokens.services.register_transfers import register_members
@@ -65,6 +73,7 @@ class ShareTokenViewSet(
             "register",
             "register_entries",
             "register_export",
+            "register_inspection_copy",
             "register_opening_holders",
             "register_waiting",
             "register_members",
@@ -86,11 +95,21 @@ class ShareTokenViewSet(
         "Register reads (the class list, holders, entries, export and waiting effects) also admit a current "
         "company appointment holding administration or a register capability, alongside the owner. "
         "The opening holders read reads the chain for a class whose register is not opened, so it admits only a "
-        "current appointment holding administration or prepare, and names linked members from the same sources."
+        "current appointment holding administration or prepare, and names linked members from the same sources. "
+        "Inspection copies separately require a current personal register appointment inside the locked company "
+        "operation; ownership and platform staff permission grant no inspection-copy authority."
     )
 
     register_reads = frozenset(
-        {"register", "holders", "register_entries", "register_export", "register_waiting", "register_members"}
+        {
+            "register",
+            "holders",
+            "register_entries",
+            "register_export",
+            "register_waiting",
+            "register_members",
+            "register_inspection_copy",
+        }
     )
 
     def get_serializer_class(self):
@@ -299,4 +318,23 @@ class ShareTokenViewSet(
         writer.writerow(REGISTER_HEADERS)
         for row in rows:
             writer.writerow(row)
+        return response
+
+    @extend_schema(methods=["GET"], responses=RegisterInspectionPreviewSerializer)
+    @extend_schema(
+        methods=["POST"],
+        request=RegisterInspectionRequestSerializer,
+        responses={(200, "text/csv"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=["get", "post"], url_path="register/inspection-copy")
+    def register_inspection_copy(self, request, uuid=None):
+        token = self.get_object()
+        if request.method == "GET":
+            preview = preview_company_inspection_copy(actor=request.user, token=token)
+            return Response(RegisterInspectionPreviewSerializer(preview).data)
+        serializer = RegisterInspectionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        content = prepare_company_inspection_copy(actor=request.user, token=token, **serializer.validated_data)
+        response = HttpResponse(content, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="register-{token.symbol}-inspection-copy.csv"'
         return response

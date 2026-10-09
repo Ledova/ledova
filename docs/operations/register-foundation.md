@@ -31,8 +31,8 @@ effects against the captured boundary, and a scheduled job reconciles it with th
 chain. An
 import adds an existing register's particulars and former members to a class
 opened from the chain, or opens a class not yet on chain from that register, and
-staff prepare [inspection copies](#preparing-an-inspection-copy) of it,
-[certificates](#preparing-a-certificate) for its issues and transfers and the
+current company appointees prepare [inspection copies](#preparing-an-inspection-copy)
+of it. Staff still prepare [certificates](#preparing-a-certificate) for its issues and transfers and the
 [figures for its notices](#preparing-notice-figures) on a company's written
 instruction, and a [due list](#working-the-due-list) shows the certificates and
 figures still due. A class an import opened supports company-run
@@ -1030,10 +1030,10 @@ when its actual prerequisite is resolved. A settlement's transfer waits for its
 [transfer instruction](#register-instructions-for-transfers), because directors
 decide on it after it completes.
 
-| Effect     | Entry                                                      | Recorded by                                                                                                                                                                                           | Effective date                   |
-| ---------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Effect     | Entry                                                      | Recorded by                                                                                                                                                                                                | Effective date                   |
+| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
 | Issuance   | `issue` of the minted shares to the original linked member | The company appointee who applied the exact non-paid grant or paid issue; historical work retains its original staff reviewer/allotter under the [register instruction](#register-instructions-for-issues) | The date the entry is made (UTC) |
-| Settlement | `transfer` from the seller's linked member to the buyer's  | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement                                               | The date the entry is made (UTC) |
+| Settlement | `transfer` from the seller's linked member to the buyer's  | The transferor, whose signed order is the instrument, once an applied [transfer instruction](#register-instructions-for-transfers) lists the settlement                                                    | The date the entry is made (UTC) |
 
 An entry uses the date it is actually made. Issuance recording follows the
 completion transaction, and recovery can retry a finalised original whose ISSUE
@@ -1145,27 +1145,32 @@ count is 0 while nothing has completed on chain for the class, and its CSV says
 
 Anyone may ask a company for a copy of its register, and the company must give
 it within 7 days after a proper request (s173(3) of the Corporations Act). The
-company decides whether a request is proper. Staff prepare the copy only on the
-company's written instruction, and the company hands it over (owner decision,
-22 September 2026).
+company decides whether a request is proper and provides the copy to its
+recipient. The [company workflow](../plans/company-managed-registers/company-inspection-copies.md)
+replaces the earlier staff preparation step.
 
-You need an active staff account with **Can change register outputs**
-(`tokens.change_registeroutput`). Share token permissions do not include it, and
-it grants nothing else. The share class needs an applied opening.
+You need a current personal appointment for the exact company with administration
+or a register capability. Ownership and staff permissions grant no inspection-copy
+authority. The share class needs an applied opening.
 
 1. Keep the company's written instruction, and note its reference, the date the
    request was made and who the copy is for.
-2. In **Admin → Tokens → Register outputs**, open the share class and choose
-   **Prepare an inspection copy**.
-3. Enter the instruction's reference, the request date and the recipient, then
-   choose **Prepare and download**.
+2. In the **Register**, select the company and open the share class. Enter the
+   instruction reference, request date and recipient in **Inspection copy**
+   (or choose **Prepare inspection copy** in mobile).
+3. Choose **Preview inspection copy**, review the request and register sequence,
+   then **Confirm and download inspection copy** in web or **Confirm and share
+   inspection copy** in mobile.
 
-The download, `register-SYMBOL-inspection-copy.csv`, is the register CSV with a
+The API/browser download, `register-SYMBOL-inspection-copy.csv` (mobile shares
+`inspection-CLASS-UUID.csv`), is the register CSV with a
 fourth section: the request date, the instruction, the recipient, the date it
-was produced, and whether that is more than 7 days after the request. Give the
-file to the company unchanged. The page refuses, and records nothing, when the
+was produced, and whether that is more than 7 days after the request. Preserve the
+file unchanged when providing it to the recipient. The workflow refuses, and records nothing, when the
 share class has no applied opening, when the request date is after today in
-Sydney's calendar, or when a field is blank.
+Sydney's calendar, or when a field is blank. A changed register source or lost
+appointment also refuses; expiry during generation rolls back the record. Editing,
+refreshing, closing or changing accounts/classes retires the prepared client request.
 
 Each copy is recorded once in **Admin → Tokens → Register exports** as kind
 **Inspection copy**: who prepared it, the register sequence copied, the row

@@ -829,9 +829,10 @@ migration is needed.
   five and a register CSV export none. Existing records are CSV exports, which
   satisfy them unchanged; nothing is backfilled. It also adds the
   [Register outputs](register-foundation.md#preparing-an-inspection-copy) admin
-  page, opened only by the new **Can change register outputs** permission: grant
-  it to the staff who prepare inspection copies. Reversal refuses once any
-  inspection copy exists.
+  page, historically opened by **Can change register outputs**. The later
+  [company inspection-copy increment](../plans/company-managed-registers/company-inspection-copies.md)
+  retires that preparation form while preserving these records and constraints.
+  Reversal refuses once any inspection copy exists.
 - The issuer's waiting list and late-entry dating have no migration.
   `GET /api/v1/tokens/{uuid}/register/waiting/` lists, for the owner of a share
   class's company, each completed effect not yet recorded with the reason it

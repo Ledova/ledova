@@ -49,9 +49,11 @@ from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.models import (
     PauseChange,
     ShareIssuanceRequest,
+    ShareToken,
     TransferOrder,
 )
 from tokens.services.register_events import open_register
+from tokens.services.register_inspection_copies import preview_company_inspection_copy
 from tokens.tests.evidence_fixtures import owner_appointment
 from tokens.tests.order_action_fixtures import ActionFixtures
 from tokens.tests.order_submission_fixtures import pending_submission
@@ -135,6 +137,17 @@ def _prepare_company_activation(tenant):
     return {
         "activation_appointment": str(context["appointment"]),
         "activation_revision": str(context["lifecycle_revision"]),
+    }
+
+
+def _prepare_register_inspection(tenant):
+    with use_operator():
+        owner_appointment(tenant.company)
+        token = ShareToken.objects.get(pk=route_context(tenant)["deployed_token"])
+        preview = preview_company_inspection_copy(actor=tenant.user, token=token)
+    return {
+        "inspection_appointment": str(preview["appointment"]),
+        "inspection_source_digest": preview["source_digest"],
     }
 
 
@@ -492,6 +505,19 @@ ROUTES = (
     Route("get", "/api/v1/tokens/{deployed_token}/issuances/"),
     Route("get", "/api/v1/tokens/{deployed_token}/holders/"),
     Route("get", "/api/v1/tokens/{deployed_token}/register/export/"),
+    Route("get", "/api/v1/tokens/{deployed_token}/register/inspection-copy/", prepare=_prepare_register_inspection),
+    Route(
+        "post",
+        "/api/v1/tokens/{deployed_token}/register/inspection-copy/",
+        {
+            "appointment": "{inspection_appointment}",
+            "sourceDigest": "{inspection_source_digest}",
+            "instruction": "SYNTHETIC-INSPECTION",
+            "requestedOn": "2026-09-20",
+            "recipient": "Synthetic requester",
+        },
+        prepare=_prepare_register_inspection,
+    ),
     Route("get", "/api/v1/tokens/{deployed_token}/register/waiting/"),
     Route("get", "/api/v1/tokens/{deployed_token}/register/entries/"),
     Route(
@@ -703,6 +729,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
     @contextmanager
     def undone_before_the_next_case(self, route=None, actor=None):
+        if route and route.path.endswith("/register/inspection-copy/"):
+            yield
+            return
         if route and route.method == "post" and route.path == "/api/v1/companies/{company}/documents/":
             with self.committed_document_upload(actor):
                 yield
@@ -827,6 +856,9 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
 
     def send(self, route, actor, context):
         context = {**{f"own_{key}": value for key, value in route_context(actor).items()}, **context}
+        if route.path.endswith("/register/inspection-copy/"):
+            context.setdefault("inspection_appointment", str(uuid4()))
+            context.setdefault("inspection_source_digest", "0" * 64)
         if route.path == "/api/v1/companies/{company}/activate/":
             context.setdefault("activation_appointment", str(uuid4()))
             context.setdefault("activation_revision", "0")

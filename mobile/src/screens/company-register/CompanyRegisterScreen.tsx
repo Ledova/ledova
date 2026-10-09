@@ -14,6 +14,7 @@ import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from './RegisterDownload';
+import { RegisterInspectionCopy } from './RegisterInspectionCopy';
 
 export function CompanyRegisterScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
@@ -84,6 +85,12 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         disabled={!register.initialized}
                         accessibilityLabel={`${REGISTER_COPY.DOWNLOAD} for ${register.token.name}`}
                       />
+                      <RegisterInspectionCopy
+                        uuid={uuid}
+                        name={register.token.name}
+                        epoch={epoch}
+                        disabled={!register.initialized || isFetching}
+                      />
                       <ClassRecords
                         epoch={epoch}
                         company={company.uuid}
@@ -148,7 +155,8 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
           holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
           increases and pause changes use separate company workflows with exact company approval. Certificates,
-          inspection copies, publications and the company pack are prepared by staff on written instruction.
+          publications and the company pack are prepared by staff on written instruction. Current company appointees
+          prepare inspection copies above with the written instruction, recipient and request date.
         </Text>
       </Section>
     </Page>

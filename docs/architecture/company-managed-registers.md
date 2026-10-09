@@ -89,6 +89,11 @@ It adds no new payment mechanics or off-chain investor allotment. #867 remains
 open for the undelivered employee award/vesting records. #868 owns external
 capital records and company-approved allotment under the revised scope; new
 integrated payment mechanics are deferred.
+The first #871 [inspection-copy increment](../plans/company-managed-registers/company-inspection-copies.md)
+lets current company register appointees prepare the existing inspection CSV
+through both clients, retaining source binding, requester and exact file digest.
+Its routine staff form is retired; other outputs and member fulfilment remain
+separate increments.
 #866 and #868–#873 remain planned within the revised core/deferred scope below.
 Their company/member, allotment and register authority is separate.
 **Date:** 3 October 2026; priority amendment 9 October 2026, Australia/Sydney.

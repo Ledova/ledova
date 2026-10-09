@@ -96,6 +96,7 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER: '/api/v1/tokens/register/',
   HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/holders/` as const,
   REGISTER_EXPORT: (uuid: string) => `/api/v1/tokens/${uuid}/register/export/` as const,
+  REGISTER_INSPECTION_COPY: (uuid: string) => `/api/v1/tokens/${uuid}/register/inspection-copy/` as const,
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',

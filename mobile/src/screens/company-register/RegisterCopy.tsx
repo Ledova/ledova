@@ -40,7 +40,11 @@ export function RegisterCopy({
             bytes: new Uint8Array(response.data),
           };
         },
-        (uri, type) => Sharing.shareAsync(uri, { mimeType: type, UTI: UTI_BY_MIME_TYPE[type] }),
+        (uri, type) =>
+          Sharing.shareAsync(uri, {
+            mimeType: type,
+            UTI: type === 'text/csv' ? 'public.comma-separated-values-text' : UTI_BY_MIME_TYPE[type],
+          }),
         guard,
       );
     },

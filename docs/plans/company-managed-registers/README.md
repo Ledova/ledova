@@ -56,6 +56,11 @@ It adds no new payment mechanics or off-chain investor allotment. #867 remains
 open for the undelivered employee award/vesting records. #868 owns external
 capital records and company-approved allotment under the revised scope; new
 integrated payment mechanics are deferred.
+The first #871 [inspection-copy increment](company-inspection-copies.md) lets a
+current company register appointee prepare the existing inspection CSV in both
+clients, with exact source binding and retained requester/file-digest audit.
+Certificates, company-pack provenance and permitted member fulfilment remain
+separate increments; the replaced staff inspection form is retired.
 #866 and #868–#873 retain the revised core/deferred scopes and dependencies
 below. Their company/member, allotment and register authority remains separate.
 The #862 lifecycle provides [authority requests, self-declaration admission and
