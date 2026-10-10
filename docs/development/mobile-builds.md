@@ -24,7 +24,8 @@ Expo 54 and React Native 0.81.5 generate an app-delegate app with no scene deleg
 Expo adds one in SDK 58, and in 57.0.23 behind `ios.enableSceneSupport`. Until the
 upgrade, `plugins/withSceneLifecycle.cjs` declares a `UIApplicationSceneManifest` in
 both Info.plists and adds `LedovaSceneDelegate`, so every iOS version the app
-supports runs the scene life cycle.
+supports runs the scene life cycle, and `check-native-projects.mjs` refuses a
+generated project without the manifest and the delegate.
 
 `LedovaSceneDelegate` moves the window that `AppDelegate` still creates at launch
 into the connecting window scene. `AppDelegate` keeps creating it because Expo 54's

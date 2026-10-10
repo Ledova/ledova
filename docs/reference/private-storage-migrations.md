@@ -19,30 +19,36 @@ Moving a field onto private storage follows
 3. `RunPython(widen_char_column(...), noop)` widens the column on PostgreSQL.
 
 The helpers are in `backend/shared/utils/migrations.py`. **A file move is not
-covered by the DDL transaction, so it undoes itself.** `_relocate` records
-every file it has moved and, when a move raises, puts them all back before
-re-raising, so a reverse that dies halfway leaves the whole corpus where it
-started rather than half of it publicly readable under `MEDIA_ROOT` with the
-ledger still claiming the migration applied — unrecoverable by normal operator
-action, because Django will not re-run an operation belonging to an applied
-migration. Operations reverse back to front, putting the byte move last, so
-nothing runs after it that could roll the database back out from under a
-succeeded move. If the put-back itself fails, the migration raises
-`UploadRelocationError` naming every file it could not return, and
-`manage.py reconcile_private_media` repairs the corpus: over every `FileField`
-bound to `PrivateMediaStorage` it moves stored keys whose bytes sit under
-`MEDIA_ROOT` back under `PRIVATE_MEDIA_ROOT`, drops a public copy that
-duplicates a private one byte for byte, and refuses to guess when the two
-differ; `--check` reports without moving and exits non-zero, so it also
-audits. The widening reverses to a no-op rather than to `AlterField`'s
-auto-derived narrowing, which would raise
-`value too long for type character varying(100)` on any document uploaded
-after the migration — the generated keys run to 118 characters; a rollback
-leaves the column wider than the state claims, which costs nothing and strands
-no bytes. `backend/shared/tests/test_private_storage_migrations.py`
-round-trips both migrations with real bytes, a row whose file is missing, and
-a key generated after the widening, and drives a reverse that fails partway
-through the byte move in both the recoverable and the unrecoverable shape.
+covered by the DDL transaction, so it undoes itself:**
+
+1. `_relocate` records every file it has moved and, when a move raises, puts
+   them all back before re-raising. A reverse that dies halfway therefore
+   leaves the whole corpus where it started rather than half of it publicly
+   readable under `MEDIA_ROOT` with the ledger still claiming the migration
+   applied, which no ordinary action recovers, because Django will not re-run
+   an operation belonging to an applied migration.
+2. Operations reverse back to front, putting the byte move last, so nothing
+   runs after it that could roll the database back out from under a succeeded
+   move.
+3. If the put-back itself fails, the migration raises `UploadRelocationError`
+   naming every file it could not return. `manage.py reconcile_private_media`
+   then repairs the corpus: over every `FileField` bound to
+   `PrivateMediaStorage` it moves stored keys whose bytes sit under
+   `MEDIA_ROOT` back under `PRIVATE_MEDIA_ROOT`, drops a public copy that
+   duplicates a private one byte for byte, and refuses to guess when the two
+   differ. `--check` reports without moving and exits non-zero, so it also
+   audits.
+4. The widening reverses to a no-op rather than to `AlterField`'s auto-derived
+   narrowing, which would raise
+   `value too long for type character varying(100)` on any document uploaded
+   after the migration (the generated keys run to 118 characters). A rollback
+   leaves the column wider than the state claims, which costs nothing and
+   strands no bytes.
+
+`backend/shared/tests/test_private_storage_migrations.py` round-trips both
+migrations with real bytes, a row whose file is missing, and a key generated
+after the widening, and drives a reverse that fails partway through the byte
+move in both the recoverable and the unrecoverable shape.
 
 ## Check historical MIME types
 
@@ -66,6 +72,6 @@ ORDER BY source, rows DESC;
 The current upload allowlist is PDF, PNG and JPEG. Include blank values in the
 review: they are allowed stored values on documents/classification metadata, but
 not company-document MIME metadata. Values continuing into current writes require
-finding the writer; old values need explicit normalization. Out-of-allowlist files
+finding the writer; old values need explicit normalisation. Out-of-allowlist files
 remain attachments, and a blank type falls back to `application/octet-stream`.
 Do not weaken serving rules for historical rows.

@@ -14,16 +14,15 @@ when starting or resuming work, including after context compaction.
   each increment; preserve other agents' claimed work.
 - Keep the design and implementation simple. Prefer existing patterns and small,
   focused changes over speculative abstractions or additional product modes.
-- Focus on non-paid employee awards and vesting records, externally arranged
-  investor capital and company-approved allotments, accurate ownership, member
-  access and basic register outputs. Distinguish an award or contractual
-  entitlement from shares actually issued; current grants are outright and do
-  not implement vesting. Do not require employees to purchase their awards.
-  Defer new integrated AUD payments, trading, advanced governance and filing
-  workflows. Preserve useful existing payment/chain controls and history.
-  Crypto on-ramp purchases remain optional personal investor functionality;
-  companies must not buy cryptocurrency through it. Preserve #920's investor
-  account and provider-lifetime guards.
+- Deliver the essential register scope of the 9 October decision and its
+  [10 October first scopes](docs/decisions.md#first-scopes-for-employee-awards-and-external-capital):
+  employee awards and vesting records, externally arranged investor capital and
+  company-approved allotments, accurate ownership, member access and basic
+  outputs. An award is an entitlement, not issued shares; employees never buy
+  their awards. New integrated AUD payments, trading, advanced governance and
+  filings are deferred; keep useful existing payment/chain controls and history.
+  Companies must not buy cryptocurrency through the on-ramp; preserve #920's
+  investor account and provider-lifetime guards.
 - Tidy as each issue progresses. Remove code, imports, configuration, routes,
   tests and documentation that become obsolete when their replacement lands.
   Check references before deleting; do not leave parallel unused implementations.
@@ -32,9 +31,9 @@ when starting or resuming work, including after context compaction.
   must not discard data or weaken privacy, authority or execution safeguards.
 - Update documentation to describe what is actually delivered, keeping planned
   capabilities distinct from current behaviour.
-- Use focused, meaningful checks during development and avoid duplicate full
-  local runs. #943 owns measured CI simplification; do not claim proposed test
-  routing is delivered before it lands. Keep applicable required CI, authority,
+- Use focused checks during development and the applicable required checks once
+  on the merging head, as the [testing guide](docs/development/testing.md) says;
+  do not claim proposed #943 test routing before it lands. Keep authority,
   isolation, economic, retention and historical migration coverage. Record
   results and material gaps in the pull request.
 - Use focused pull requests, independent review at the merging commit, and green
