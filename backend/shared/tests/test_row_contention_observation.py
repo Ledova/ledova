@@ -89,6 +89,7 @@ class RowContentionObservationTest(row_contention.RealRowContention, SimpleTestC
             ([17], "Lock", "BEGIN"),
             ([17], "Lock", 'SELECT "tokens_sharetoken"."uuid" FROM "tokens_sharetoken" FOR UPDATE'),
             ([17], "Lock", 'SELECT 1 FROM "tokens_sharetoken" JOIN "companies_company" ON TRUE FOR UPDATE'),
+            ([17], "Lock", 'SELECT "companies_company"."uuid" FROM "tokens_sharetoken" FOR UPDATE'),
         ):
             with self.subTest(observed=observed):
                 with self.assertRaisesRegex(AssertionError, "PID 31 did not wait on PID 17"):
@@ -98,6 +99,7 @@ class RowContentionObservationTest(row_contention.RealRowContention, SimpleTestC
         for query in (
             QUERY,
             'SELECT 1 AS "a" FROM "companies_company" JOIN "users_userprofile" ON TRUE LIMIT 1 FOR NO KEY UPDATE',
+            ("SELECT " + ", ".join(f'"companies_company"."column_{index}"' for index in range(50)))[:1023],
         ):
             with self.subTest(query=query):
                 self.assertEqual(self.observe([([17], "Lock", query)], [0, 1, 11]), (1, 0))

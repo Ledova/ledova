@@ -70,7 +70,10 @@ class NamedRemoteTestResult(RemoteTestResult):
             except Exception as serialization_error:
                 index = event[1]
                 identity = event[2] if index == -1 and event[0] == "addError" else self.test_ids[index]
-                error = self.named_error(identity, None, serialization_error, context=f" in {event[0]}")
+                original = (
+                    event[-1] if event[0] in {"addError", "addFailure", "addExpectedFailure", "addSubTest"} else None
+                )
+                error = self.named_error(identity, original, serialization_error, context=f" in {event[0]}")
                 event = ("addError", -1, identity, error) if index == -1 else ("addError", index, error)
                 failed.add(index)
             events.append(event)

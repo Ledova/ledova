@@ -57,16 +57,22 @@ class RealRowContention:
                     [waiter],
                 )
                 last = cursor.fetchone()
+            observed_query = (last[2] or "") if last else ""
+            select_columns, from_clause, from_table = observed_query.partition(" FROM ")
             if (
                 last
                 and blocker in last[0]
                 and last[1] == "Lock"
-                and (expected is None or expected in (last[2] or ""))
+                and (expected is None or expected in observed_query)
                 and (
                     select_table is None
                     or (
-                        (last[2] or "").startswith("SELECT ")
-                        and (last[2] or "").partition(" FROM ")[2].startswith(select_table)
+                        observed_query.startswith("SELECT ")
+                        and (
+                            from_table.startswith(select_table)
+                            if from_clause
+                            else select_columns.startswith(f"SELECT {select_table}.")
+                        )
                     )
                 )
             ):

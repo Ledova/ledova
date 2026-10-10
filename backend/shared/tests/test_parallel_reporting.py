@@ -5,8 +5,25 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
+from shared.test_runner import NamedRemoteTestResult
+from shared.tests.parallel_reporting_worker import UnserializableValue
+
 
 class ParallelFailureReportingTest(SimpleTestCase):
+    def test_a_whole_event_failure_preserves_its_original_subtest_error(self):
+        result = NamedRemoteTestResult()
+        result.test_ids[0] = self.id()
+        try:
+            self.fail("Synthetic assertion before whole-event serialization")
+        except AssertionError:
+            result.events = [("addSubTest", 0, UnserializableValue(), sys.exc_info()), ("addSuccess", 0)]
+        result.prepare_events()
+        self.assertEqual(len(result.events), 1)
+        event = result.events[0]
+        self.assertEqual(event[:2], ("addError", 0))
+        self.assertIn(self.id(), str(event[2][1]))
+        self.assertIn("Synthetic assertion before whole-event serialization", str(event[2][1]))
+
     def test_an_unserializable_event_names_its_test_and_keeps_a_failed_verdict(self):
         for settings in (
             "ledova_backend.settings.test",
