@@ -94,9 +94,9 @@ explains how the ordinary and scoped suites differ.
 The suites read the environment as the backend does. CI sets `SECRET_KEY`,
 `STORAGE_BACKEND` and the `POSTGRES_*` connection for them and no other backend
 setting; locally these usually come from loading `backend/.env`, whose other
-values then reach the suites too. In CI the scoped suite also inherits
-`UPLOAD_TEST_CLAMAV_HOST`, a test variable that the scanner step exports and
-only the separate scanner suite reads. A setting the test settings assign keeps
+values then reach the suites too. In CI the separate scanner suite reads
+`UPLOAD_TEST_CLAMAV_HOST`, a test variable exported within the backend checks
+job; the scoped job has its own environment. A setting the test settings assign keeps
 their value, though one the backend derives from the same variable can still
 follow the file. They assign the chain id and the finality policies, the only
 settings derived from `BLOCKCHAIN_CHAIN_ID` and `LOCAL_CHAIN_FINALITY_DEPTH`, so
@@ -136,8 +136,9 @@ profiling framework or an extra suite. Method totals omit class/module fixtures
 and Django pre/post hooks, so they do not establish complete class costs or
 worker idle time; a duration report does not establish a scheduling improvement.
 
-On a pull request, a scope job decides whether the Django jobs run: the shards
-and "Django checks & tests". They run unless every changed file is under
+On a pull request, a scope job decides whether the Django jobs run: the six
+ordinary shards, "Django checks & tests", strict scoped tests and genuine chain
+checks. They run unless every changed file is under
 `dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
 the root `AGENTS.md` or `CONTRIBUTING.md`, except that a document any file
 under `backend/` names (`check_rls_catalogue` names `docs/architecture/tenancy.md`,
@@ -151,21 +152,36 @@ same kind for the [native builds](mobile-builds.md). The "Django verdict" check
 fails unless the scope job succeeded and each Django job succeeded or was
 skipped because none was needed.
 
+The scoped and chain jobs depend only on that scope decision and can run
+concurrently with each other and the remaining backend checks. Each has its own
+hosted runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
+job retains the complete required scoped inventory and zero-skip checks; the
+chain job retains both EVM invocations and Bitcoin regtest. Schema generation,
+role/catalogue checks, real Redis controls and ClamAV remain in the backend job.
+All four backend job groups must have their expected result before the verdict
+passes; a missing dependency fails it. Independent jobs may still queue, and
+their source topology alone does not establish an elapsed-time improvement.
+
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under
-[#943](https://github.com/Ledova/ledova/issues/943). Its first increment
+[#943](https://github.com/Ledova/ledova/issues/943). Its delivered increments
 aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
-`CONTRIBUTING.md`) from the Django jobs and captured the timings above, while
-retaining every test selection, required verdict and main-push check. Further
-routing, scheduled broad checks, verification tiers and time targets are
-proposals on that issue until a reviewed implementation lands; this guide
-describes only what runs today.
+`CONTRIBUTING.md`) from the Django jobs and captured the timings above (#952),
+replaced routine historical schema rewinds in runtime company fixtures (#959)
+and gave the scoped and chain stages their own jobs (#960), while retaining
+every test selection, required verdict and main-push check. JavaScript, native,
+scanner and general backend routing remain unchanged. Scheduled broad checks,
+more selective pre-merge coverage and verification tiers need their own
+reviewed implementation, and the under-five-minute documentation/configuration
+and 15–25-minute routine-registry targets are goals, not delivered
+measurements. This guide describes only what runs today.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
 about CI's Lint step. Lint runs first in the Django checks job and stops that
-job when it fails; the ordinary suite's shards run in their own jobs whether or
-not it passes. Install the tools with `make install-backend` from the repository root
+job when it fails; ordinary shards, strict scoped tests and genuine chain checks
+run independently. A failure in any required group still fails the Django
+verdict. Install the tools with `make install-backend` from the repository root
 (`make check` does the same); CI installs the same file with
 `pip install -r requirements-dev.txt -c schema/requirements.txt` from
 `backend/`. Then run `cd backend && make lint`: `black --check` and
@@ -198,6 +214,16 @@ fixture to retain its legacy-source assertions on the current schema. Its setup
 does not replay the owner-upgrade migrations for each route case. The fixture
 requires the migration role and restores both appointment/source identity guards;
 genuine upgrade tests continue to use their historical migrations.
+
+Routine company registry and legacy-owner authority cases also use the existing
+bounded synthetic historical-owner fixture on the current schema. Their fixture
+does not rewind and reinstall later migrations for each runtime assertion.
+Legacy authority cases supply their retained migration-format provenance as
+synthetic fixture data; this does not establish that a migration executed or
+that its source and appointment timestamps match. Genuine legacy-owner upgrade
+and reversal tests still exercise the historical models, schema, actors, private
+records and migration guards. Test selections and required ordinary/scoped
+coverage remain unchanged.
 
 ## Scoped connection evidence
 

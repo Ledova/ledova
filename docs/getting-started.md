@@ -6,12 +6,10 @@ Start a synthetic local instance. You need Docker with Compose and Python 3.13.
 Node/npm are needed only when running client or contract commands on the host.
 The native toolchain is covered separately in [mobile builds](development/mobile-builds.md).
 
-This guide exercises the current implementation, including seeded staff accounts
-and admin steps. The accepted [company-managed register plan](architecture/company-managed-registers.md)
-replaces routine platform-staff register work with company authority and participant
-tools; those workflows are not delivered by running this setup. Private self-hosting
-uses the same product. Remaining staff gates persist until their coordinated
-replacements are implemented.
+This guide starts the current stack. Company onboarding, authority and register
+workflows run from the dashboard and mobile app; platform staff still review
+offerings, record payments and publish to members, as the
+[capability boundaries](product.md#current-capability-boundaries) list.
 
 ## Start the stack
 
@@ -61,7 +59,7 @@ docker compose exec backend python manage.py seed_demo
 ```
 
 and starts the worker again. The command prints generated credentials and
-refreshes a synthetic operator, superuser, issuer, investor, wallets,
+refreshes a synthetic operator, superuser, company, investor, wallets,
 classification and share class; rerunning resolves and applies a password
 again. The first run on a fresh database also adds six months of synthetic
 history: staff, about sixty investors in every sign-up and verification state,
@@ -70,25 +68,21 @@ compliance alerts. Its historical staff-assisted chain layer deployed classes,
 approved wallets and issued/opened/imported registers, followed by offerings,
 market trades and notices. Preserve that earlier journey as evidence.
 
-The default fresh treasury-bearing chain plan now returns `SKIPPED` before
-chain-layer records, deployments, minting, signatures or market work. Supported
-participant helpers follow the guarded company deployment and explicit wallet
-workflows. An owned participant with an actual synthetic signing key can produce
-proof and nomination. The historical no-key
-employee-trust treasury cannot: its fresh approval is explicitly unsupported, so
-the complete historical chain/market layer is not a current fresh-seed completion
-claim. Skipping its approval would not make treasury issuance valid. Without a
-configured local chain the seed writes nothing on chain and explains why. Do not
-reset retained data or bypass guards to obtain the earlier fixture result.
-See [demo details](operations/operator-console.md#demo-data).
+That chain and market layer is evidence from the staff-assisted era, not a
+fresh-seed claim: the historical treasury has no key, its fresh approval is
+unsupported, so the default chain plan reports `SKIPPED` and the seed writes
+nothing on chain without a configured local chain. Do not reset retained data or
+bypass guards to reproduce the earlier fixture; see
+[demo details](operations/operator-console.md#demo-data).
 
 For issuance beyond the seed, the stack has already deployed the core
 contracts, configured their addresses and admitted the signer. Use the Register
-for [company-authorised empty deployment](plans/company-managed-registers/company-deployments.md)
-and the [participant nomination/company wallet workflow](plans/company-managed-registers/company-wallet-approvals.md).
-Human application and actual chain confirmation remain distinct. Existing mint,
-capital and pause paths retain their current boundaries until their #867
-conversion; the [issuance guide](architecture/contracts-and-issuance.md) records them.
+for [company-authorised empty deployment](plans/company-managed-registers/company-deployments.md),
+the [wallet nomination and instruction workflow](plans/company-managed-registers/company-wallet-approvals.md)
+and the other company-authorised chain actions listed in the
+[implementation index](plans/company-managed-registers/README.md); the
+[issuance guide](architecture/contracts-and-issuance.md) explains how the
+company's decision, technical execution and chain confirmation stay distinct.
 
 ## The local chain
 
@@ -97,7 +91,7 @@ The stack's chain is Anvil on chain id 31337, published at
 from a browser wallet, add a network with that RPC URL, chain id `31337` and
 currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
-the operator, which the backend signs with, and the demo issuer wallet;
+the operator, which the backend signs with, and the demo company's wallet;
 account #1 is the demo investor's wallet. Each starts with 10,000 test ether.
 `make dev-seed` gives accounts #1, #2 and #4, the demo investor's Base wallets,
 the ether their seeded history leaves them, between about 0.3 and 2 ETH, which
