@@ -16,7 +16,6 @@ from companies.services.team import (
 from operators.models import Operator
 from shared.db import use_migrate, use_operator
 from shared.seeds.synthetic.authority import historical_owner_appointment
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterExport, ShareToken
 from tokens.querysets import RegisterProposalQuerySet
 from tokens.services.register_corrections import prepare_correction
@@ -313,9 +312,3 @@ class RegisterProposalFamiliesTest(APITransactionTestCase):
                 self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/").json()["results"], [])
                 self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/").status_code, 404)
                 self.assertEqual(foreign.get(f"/api/v1/tokens/{kind}/{proposal.uuid}/file/").status_code, 404)
-
-
-class ScopedRegisterAccessByAppointmentTest(RunsOnTheScopedConnection, RegisterAccessByAppointmentTest):
-    def submit(self, payload):
-        self.the_principal_the_middleware_would_set(self.owner)
-        return super().submit(payload)

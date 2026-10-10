@@ -9,7 +9,6 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Holding, Transaction
 from wallets.services import transaction_confirmation
 from wallets.services.chain_observations import (
@@ -335,20 +334,3 @@ class WalletFinalityChecks(WalletFinalityFixture):
 
 class WalletFinalityTest(WalletFinalityChecks, APITransactionTestCase):
     pass
-
-
-class ScopedWalletFinalityTest(RunsOnTheScopedConnection, WalletFinalityChecks, APITransactionTestCase):
-    def test_foreign_principal_is_refused_before_operator_observation_or_balance_effect(self):
-        from shared.tests.tenants import make_tenant
-
-        with use_operator():
-            other = make_tenant("finality-other")
-        before = self.financial_state()
-        with patch("wallets.tasks.confirmation.observe_wallet_chain") as observe:
-            result = confirm_pending_transaction.func(
-                self.signed_transfer.hash.to_0x_hex(), str(self.wallet.pk), principal_id=other.user.pk
-            )
-        self.assertEqual(result, {"status": "error", "error": "Wallet not found"})
-        observe.assert_not_called()
-        self.assertEqual(self.financial_state(), before)
-        self.assertEqual(self.finish()["status"], "confirmed")

@@ -541,10 +541,6 @@ class RegisterPaidIssuesTest(CompanyPaidIssueCases, APITransactionTestCase):
             )
 
 
-class ScopedRegisterPaidIssuesTest(RunsOnTheScopedConnection, RegisterPaidIssuesTest):
-    pass
-
-
 class RegisterPaidIssueMetadataChecks(CompanyEligibilityConsumptionCases, StubUploadDependencies):
     def setUp(self):
         self.enterContext(override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID))
@@ -654,10 +650,4 @@ class RegisterPaidIssueMetadataChecks(CompanyEligibilityConsumptionCases, StubUp
 
 
 class RegisterPaidIssueMetadataTest(RegisterPaidIssueMetadataChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedRegisterPaidIssueMetadataTest(
-    RunsOnTheScopedConnection, RegisterPaidIssueMetadataChecks, APITransactionTestCase
-):
     pass

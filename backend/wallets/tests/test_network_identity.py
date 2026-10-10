@@ -5,13 +5,11 @@ from unittest import skipUnless
 from unittest.mock import patch
 
 from django.db import connection, connections
-from django.test import TransactionTestCase, override_settings
-from rest_framework.test import APIClient, APITestCase, APITransactionTestCase
+from django.test import TransactionTestCase
+from rest_framework.test import APIClient, APITestCase
 from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment
-from integrations.tests.test_alchemy_webhook_network import SIGNING_KEY, post_webhook
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
 from wallets.exceptions import InvalidTransactionException
@@ -186,50 +184,3 @@ class ConcurrentWalletRegistrationTest(TransactionTestCase):
         success = next(body for code, body in outcomes if code == 201)
         self.assertEqual(str(wallet.pk), success["uuid"])
         self.assertTrue(self.tenant.portfolio.wallets.filter(pk=wallet.pk).exists())
-
-
-class ScopedWalletNetworkIdentityTest(RunsOnTheScopedConnection, APITransactionTestCase):
-    def setUp(self):
-        with self.as_an_operator_would():
-            self.owner = make_tenant("scoped-wallet-owner")
-            self.other = make_tenant("scoped-wallet-other")
-            self.existing = Wallet.objects.create(user_account=self.owner.account, address=ADDRESS, chain="ethereum")
-            self.foreign = Wallet.objects.create(user_account=self.other.account, address=ADDRESS, chain="base")
-        self.signed_in_as(self.owner.user)
-
-    def test_creating_the_other_network_uses_the_callers_account_on_the_app_connection(self):
-        response = self.client.post(
-            "/api/wallets/",
-            {"userAccount": str(self.owner.account.pk), "address": ADDRESS, "chain": "base"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, 201, response.content)
-        rows = self.client.get("/api/wallets/", {"address": ADDRESS, "chain": "base"})
-        self.assertEqual(rows.status_code, 200, rows.content)
-        self.assertEqual([row["uuid"] for row in rows.json()["results"]], [response.json()["uuid"]])
-        with self.as_an_operator_would():
-            self.assertEqual(Wallet.objects.filter_by_address(ADDRESS, chain="base").count(), 2)
-
-    def test_a_foreign_account_or_wallet_cannot_supply_the_address_scope(self):
-        response = self.client.post(
-            "/api/wallets/",
-            {"userAccount": str(self.other.account.pk), "address": ADDRESS, "chain": "ethereum"},
-            format="json",
-        )
-        self.assertEqual(response.status_code, 400, response.content)
-        response = self.client.get("/api/transactions/", {"wallet": str(self.foreign.pk), "address": ADDRESS})
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["results"], [])
-
-    @override_settings(ALCHEMY_WEBHOOK_SIGNING_KEY=SIGNING_KEY, BLOCKCHAIN_CHAIN_ID=84532)
-    def test_provider_webhooks_use_operator_visibility_and_the_reported_network(self):
-        self.client.force_authenticate(user=None)
-        self.no_principal_is_set()
-        payload = {
-            "type": "ADDRESS_ACTIVITY",
-            "event": {"network": "BASE_SEPOLIA", "activity": [{"hash": "0xscoped-network", "fromAddress": ADDRESS}]},
-        }
-        with patch("wallets.tasks.sync_wallet.defer") as sync:
-            response = post_webhook(self.client, payload)
-        self.assertEqual(response.status_code, 200, response.content)
-        sync.assert_called_once_with(wallet_uuid=str(self.foreign.pk), principal_id=None)

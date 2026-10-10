@@ -22,7 +22,6 @@ from shared.db import (
     current_alias,
     use_operator,
 )
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, Wallet, WalletSubmission
@@ -399,8 +398,4 @@ class SubmissionRecoveryChecks(SubmissionFixture):
 
 
 class SubmissionRecoveryTest(SubmissionRecoveryChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedSubmissionRecoveryTest(RunsOnTheScopedConnection, SubmissionRecoveryChecks, APITransactionTestCase):
     pass

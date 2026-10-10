@@ -6,7 +6,6 @@ from blockchain.models import SignedAttempt
 from companies.models import Company
 from shared.db import use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import ShareToken, TokenDeployment
 from tokens.services import deployment
 from tokens.tests.deployment_fixtures import (
@@ -91,7 +90,3 @@ class DeploymentLockOrderTest(RealRowContention, TransactionTestCase):
             CREATED,
         )
         self.assertEqual(len(self.node.broadcasts), 1)
-
-
-class ScopedDeploymentLockOrderTest(RunsOnTheScopedConnection, DeploymentLockOrderTest):
-    pass

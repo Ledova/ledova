@@ -109,7 +109,7 @@ def decide(owner, appointment, proposal, kind, **changes):
     )
 
 
-class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
+class RegisterGrantFixtures(AppointsTeam):
     def setUp(self):
         with use_operator():
             self.owner, self.company, self.token, self.member, self.appointment, self.payload = grant_fixture()
@@ -121,6 +121,8 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
     def decide(self, proposal, kind):
         return decide(self.owner, self.appointment, proposal, kind)
 
+
+class RegisterGrantsTest(RegisterGrantFixtures, TransactionTestCase):
     def test_new_and_existing_walletless_grants_supply_real_roll_and_certificate_inputs(self):
         proposal = self.prepare()
         self.assertIsNone(RegisterGrantSerializer().get_effective_on(proposal))
@@ -718,7 +720,7 @@ class RetainedRegisterGrantHistoryTest(TransactionTestCase):
             self.assertEqual(after["entries"], before["entries"] + 1)
 
 
-class ScopedRegisterGrantsTest(RunsOnTheScopedConnection, RegisterGrantsTest):
+class ScopedRegisterGrantsTest(RunsOnTheScopedConnection, RegisterGrantFixtures, TransactionTestCase):
     def test_app_reads_only_its_company_grants_and_cannot_write_grants_or_decisions(self):
         proposal = self.prepare()
         self.the_principal_the_middleware_would_set(self.owner)

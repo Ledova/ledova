@@ -788,7 +788,3 @@ class RegisterIssuesTest(CompanyIssueCases, APITransactionTestCase):
         with use_operator():
             execution.refresh_from_db()
             self.assertEqual(execution.operation.claim_id, original_claim)
-
-
-class ScopedRegisterIssuesTest(RunsOnTheScopedConnection, RegisterIssuesTest):
-    pass

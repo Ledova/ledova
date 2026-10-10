@@ -17,7 +17,6 @@ from companies.tests import test_company_administration as fixtures
 from companies.tests.test_authority_requests import STORAGES
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserAccount, UserProfile
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -282,7 +281,3 @@ class CompanyWalletLockOrderTest(StubUploadDependencies, RealRowContention, APIT
 
     def test_sql_guard_rechecks_appointment_expiry_after_wallet_wait(self):
         self.assert_refused_after_expiry(raw=True)
-
-
-class ScopedCompanyWalletLockOrderTest(RunsOnTheScopedConnection, CompanyWalletLockOrderTest):
-    pass

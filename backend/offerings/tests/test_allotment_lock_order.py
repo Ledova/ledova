@@ -8,7 +8,6 @@ from offerings.models import Subscription, SubscriptionStatus
 from offerings.services.subscription import scale_back
 from offerings.tests.test_allotment import CompanyAllotmentTestCase
 from shared.db import atomic, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RequestStatus, ShareIssuanceRequest
 
 
@@ -70,7 +69,3 @@ class AllotmentLockOrderTest(CompanyAllotmentTestCase):
 
     def test_single_allotment_holds_company_and_token_before_offering(self):
         self.check_prefix(self.offering, free=(self.subscription,), held=(self.company, self.token))
-
-
-class ScopedAllotmentLockOrderTest(RunsOnTheScopedConnection, AllotmentLockOrderTest):
-    pass

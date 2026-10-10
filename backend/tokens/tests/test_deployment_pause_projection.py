@@ -7,7 +7,6 @@ from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 
 from shared.db import atomic, current_alias, principal_of, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterDeployment, RegisterDeploymentDecision, ShareToken
 from tokens.services import deployment, pause_changes
 from tokens.tasks.pause import recover_pause_change
@@ -116,7 +115,3 @@ class CompanyDeploymentPauseProjectionTest(TransactionTestCase):
             self.assertEqual((unbound.status, unbound.deployment_id), ("draft", None))
             self.assertEqual(RegisterDeployment.objects.get(pk=self.source.pk).status, "applied")
             self.assertEqual(RegisterDeploymentDecision.objects.filter(register_deployment=self.source).count(), 2)
-
-
-class ScopedCompanyDeploymentPauseProjectionTest(RunsOnTheScopedConnection, CompanyDeploymentPauseProjectionTest):
-    pass

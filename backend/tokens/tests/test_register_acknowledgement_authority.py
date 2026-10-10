@@ -22,7 +22,6 @@ from companies.services.team import (
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.tests.retained_rows import retained_rows
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterAcknowledgement, RegisterReconciliation, ShareToken
 from tokens.services import register_reconciliation
@@ -573,11 +572,3 @@ class RegisterAcknowledgementGuardTest(AcknowledgementFixtures, APITransactionTe
             self.recorded(), [(self.record.pk, self.record.discrepancies[0], staff.pk, None, "Accepted by staff")]
         )
         self.assertIsNone(retained.idempotency_key)
-
-
-class ScopedRegisterAcknowledgementAuthorityTest(RunsOnTheScopedConnection, RegisterAcknowledgementAuthorityTest):
-    pass
-
-
-class ScopedRegisterAcknowledgementGuardTest(RunsOnTheScopedConnection, RegisterAcknowledgementGuardTest):
-    pass

@@ -86,7 +86,7 @@ def raw_team_appointment(*, invitation, code, actor, profile):
     return identifier
 
 
-class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
+class CompanyTeamInvitationFixtures(StubUploadDependencies):
     app_as = AuthorityRequestCases.app_as
 
     def setUp(self):
@@ -174,6 +174,26 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
                     files[str(proposal.pk)] = retained.read()
         return records, files
 
+    def concurrent(self, actors, code):
+        barrier = Barrier(len(actors))
+        codes = code if isinstance(code, (list, tuple)) else [code] * len(actors)
+
+        def consume(arguments):
+            actor, invitation_code = arguments
+            try:
+                barrier.wait(timeout=20)
+                appointment = accept_team_invitation(requester=actor, **self.declaration(invitation_code))
+                return str(appointment.pk), appointment.appointee_id
+            except APIException as error:
+                return error.status_code
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=len(actors)) as pool:
+            return list(pool.map(consume, zip(actors, codes)))
+
+
+class CompanyTeamInvitationTest(CompanyTeamInvitationFixtures, APITransactionTestCase):
     def test_self_acceptance_cannot_convert_delegatable_approve_into_personal_authority(self):
         _, delegated = self.issue_and_accept()
         self.assertFalse(
@@ -671,24 +691,6 @@ class CompanyTeamInvitationTest(StubUploadDependencies, APITransactionTestCase):
         response = self.client.post(f"{APPOINTMENTS}{appointed.pk}/revoke/", {}, format="json")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertFalse(response.json()["isEffective"])
-
-    def concurrent(self, actors, code):
-        barrier = Barrier(len(actors))
-        codes = code if isinstance(code, (list, tuple)) else [code] * len(actors)
-
-        def consume(arguments):
-            actor, invitation_code = arguments
-            try:
-                barrier.wait(timeout=20)
-                appointment = accept_team_invitation(requester=actor, **self.declaration(invitation_code))
-                return str(appointment.pk), appointment.appointee_id
-            except APIException as error:
-                return error.status_code
-            finally:
-                connections.close_all()
-
-        with ThreadPoolExecutor(max_workers=len(actors)) as pool:
-            return list(pool.map(consume, zip(actors, codes)))
 
     def test_concurrent_distinct_codes_for_the_same_person_deliver_one_live_appointment(self):
         first = self.issue()

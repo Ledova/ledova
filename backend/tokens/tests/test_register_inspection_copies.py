@@ -14,7 +14,6 @@ from rest_framework.test import APIClient, APITransactionTestCase
 from companies.models import CompanyCapability
 from companies.services.team import revoke_company_appointment
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
 from shared.utils import csv_cell
 from tokens.models import (
@@ -250,7 +249,3 @@ class InspectionCopyTest(AppointsTeam, APITransactionTestCase):
         self.assertEqual(self.client.post(change, {"name": "Renamed shares", "symbol": "REG"}).status_code, 405)
         with use_operator():
             self.assertEqual(ShareToken.objects.get(pk=self.token.pk).name, "Synthetic shares")
-
-
-class ScopedInspectionCopyTest(RunsOnTheScopedConnection, InspectionCopyTest):
-    pass

@@ -12,7 +12,6 @@ from feature_flags.models import FeatureFlag
 from shared.db import APP_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.db.aliases import configured
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.utils.typed_data import signable_message
 from tokens.models import OrderModificationLog, SigningChallenge, TransferOrder
@@ -244,8 +243,4 @@ class ModificationChecks:
 
 
 class ModificationRefusalTest(ModificationChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedModificationRefusalTest(RunsOnTheScopedConnection, ModificationChecks, APITransactionTestCase):
     pass

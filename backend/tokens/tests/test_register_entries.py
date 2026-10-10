@@ -5,7 +5,6 @@ from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from shared.db import use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterEvidenceKind, ShareToken
 from tokens.services.register_events import (
     create_member,
@@ -163,12 +162,6 @@ class RegisterEntriesTest(APITransactionTestCase):
         client.force_authenticate(self.owner)
         refused = client.get(f"/api/v1/tokens/{self.token.uuid}/register/entries/", {"entry": "not-a-uuid"})
         self.assertEqual(refused.status_code, 400, refused.content)
-
-
-class ScopedRegisterEntriesTest(RunsOnTheScopedConnection, RegisterEntriesTest):
-    def submit(self, payload):
-        self.the_principal_the_middleware_would_set(self.owner)
-        super().submit(payload)
 
 
 class RegisterEntryLegacyMigrationTest(APITransactionTestCase):

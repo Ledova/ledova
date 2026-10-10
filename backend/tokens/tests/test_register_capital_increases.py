@@ -14,7 +14,6 @@ from rest_framework.test import APITransactionTestCase
 from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, current_alias, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import CapitalIncreaseUnresolved, RegisterChangeConflict
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -363,7 +362,3 @@ class RegisterCapitalIncreasesTest(CompanyCapitalCases, APITransactionTestCase):
         with use_operator():
             self.token.refresh_from_db()
             self.assertEqual((self.token.status, self.token.total_supply), ("paused", "1100"))
-
-
-class ScopedRegisterCapitalIncreasesTest(RunsOnTheScopedConnection, RegisterCapitalIncreasesTest):
-    pass

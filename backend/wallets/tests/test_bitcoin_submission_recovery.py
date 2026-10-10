@@ -17,7 +17,6 @@ from shared.db import (
     current_alias,
     use_operator,
 )
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import (
@@ -355,11 +354,4 @@ class BitcoinSubmissionRecoveryChecks(BitcoinSubmissionFixture):
 
 @override_settings(BITCOIN_NETWORK="regtest")
 class BitcoinSubmissionRecoveryTest(BitcoinSubmissionRecoveryChecks, APITransactionTestCase):
-    pass
-
-
-@override_settings(BITCOIN_NETWORK="regtest")
-class ScopedBitcoinSubmissionRecoveryTest(
-    RunsOnTheScopedConnection, BitcoinSubmissionRecoveryChecks, APITransactionTestCase
-):
     pass

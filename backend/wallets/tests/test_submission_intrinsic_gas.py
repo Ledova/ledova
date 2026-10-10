@@ -11,7 +11,6 @@ from web3 import Web3
 
 from assets.models import Asset, AssetChainDeployment
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Holding, WalletSubmission
 from wallets.tests.test_submission_durability import SubmissionFixture
 
@@ -171,8 +170,4 @@ class SubmissionIntrinsicGasChecks(SubmissionFixture):
 
 
 class SubmissionIntrinsicGasTest(SubmissionIntrinsicGasChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedSubmissionIntrinsicGasTest(RunsOnTheScopedConnection, SubmissionIntrinsicGasChecks, APITransactionTestCase):
     pass

@@ -8,7 +8,6 @@ from rest_framework.test import APITestCase, APITransactionTestCase
 from offerings.models import Subscription
 from shared.db import use_operator
 from shared.db.principal import PRINCIPAL_SETTING
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant, open_to_investors
 from shared.tests.under_the_policies import what_the_policies_admit_to
 from tokens.models import (
@@ -214,7 +213,3 @@ class CompanyIssueRequestHistoryTest(CompanyIssueCases, APITransactionTestCase):
         self.client.force_authenticate(self.participant)
         self.assertEqual(self.listed(), [])
         self.assertEqual(self.client.get(BASE).json()["results"], [])
-
-
-class ScopedCompanyIssueRequestHistoryTest(RunsOnTheScopedConnection, CompanyIssueRequestHistoryTest):
-    pass

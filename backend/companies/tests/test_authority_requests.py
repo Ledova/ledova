@@ -123,6 +123,29 @@ class AuthorityRequestCases:
                 else:
                     reset_principal()
 
+    def assert_committed_evidence_survives(self):
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+            proposal = CompanyAuthorityRequest.objects.get(requester=self.user, idempotency_key=self.key)
+            self.assertEqual(proposal.file_sha256, hashlib.sha256(PDF).hexdigest())
+            with proposal.file.open("rb") as source:
+                self.assertEqual(source.read(), PDF)
+            self.assertEqual(sweep_orphaned_files(moment=timezone.now() + timedelta(days=2))["found"], 0)
+        self.assertEqual(len(self.private_files()), 1)
+        retry = self.submit()
+        self.assertEqual(retry.status_code, 200, retry.content)
+        self.assertEqual(retry.json()["uuid"], str(proposal.pk))
+        self.assertEqual(retry.json()["requestDigest"], proposal.request_digest)
+        download = self.client.get(retry.json()["fileUrl"])
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download["Cache-Control"], "private, no-store")
+        self.assertEqual(b"".join(download.streaming_content), PDF)
+        self.assertEqual(len(self.private_files()), 1)
+        with use_operator():
+            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
+
+
+class AuthorityRequestChecks:
     def test_fresh_unverified_identity_submits_real_private_pending_evidence(self):
         self.assertFalse(self.profile.is_id_verified)
         response = self.submit()
@@ -551,27 +574,6 @@ class AuthorityRequestCases:
             self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
         self.assertEqual(len(self.private_files()), 1)
 
-    def assert_committed_evidence_survives(self):
-        with use_operator():
-            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
-            proposal = CompanyAuthorityRequest.objects.get(requester=self.user, idempotency_key=self.key)
-            self.assertEqual(proposal.file_sha256, hashlib.sha256(PDF).hexdigest())
-            with proposal.file.open("rb") as source:
-                self.assertEqual(source.read(), PDF)
-            self.assertEqual(sweep_orphaned_files(moment=timezone.now() + timedelta(days=2))["found"], 0)
-        self.assertEqual(len(self.private_files()), 1)
-        retry = self.submit()
-        self.assertEqual(retry.status_code, 200, retry.content)
-        self.assertEqual(retry.json()["uuid"], str(proposal.pk))
-        self.assertEqual(retry.json()["requestDigest"], proposal.request_digest)
-        download = self.client.get(retry.json()["fileUrl"])
-        self.assertEqual(download.status_code, 200)
-        self.assertEqual(download["Cache-Control"], "private, no-store")
-        self.assertEqual(b"".join(download.streaming_content), PDF)
-        self.assertEqual(len(self.private_files()), 1)
-        with use_operator():
-            self.assertEqual(CompanyAuthorityRequest.objects.count(), 1)
-
     def test_a_committed_request_keeps_evidence_when_principal_restoration_fails(self):
         with use_app():
             reset_principal()
@@ -706,5 +708,9 @@ class AuthorityRequestCases:
         self.assertEqual(len(self.private_files()), 1)
 
 
-class AuthorityRequestApiTest(StubUploadDependencies, AuthorityRequestCases, APITransactionTestCase):
+class AuthorityRequestApiFixtures(StubUploadDependencies, AuthorityRequestCases):
+    pass
+
+
+class AuthorityRequestApiTest(AuthorityRequestApiFixtures, AuthorityRequestChecks, APITransactionTestCase):
     pass

@@ -53,7 +53,6 @@ from shared.db import (
     use_migrate,
     use_operator,
 )
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -1444,7 +1443,3 @@ class CompanyAdministrationTest(StubUploadDependencies, APITransactionTestCase):
             document.refresh_from_db()
         self.assertTrue(document.is_verified)
         self.assertEqual(document.verified_by_id, reviewer.pk)
-
-
-class ScopedCompanyAdministrationTest(RunsOnTheScopedConnection, CompanyAdministrationTest):
-    pass

@@ -60,10 +60,13 @@ SOURCE = CompanyLegacyOwnerSource._meta.db_table
 PROVENANCE = "companies.0019_legacy_owner_appointments"
 
 
-class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTestCase):
+class CompanyLegacyOwnerAppointmentFixtures(StubUploadDependencies):
     app_as = AuthorityRequestCases.app_as
+
     concurrent = invitation_cases.CompanyTeamInvitationTest.concurrent
+
     declaration = invitation_cases.CompanyTeamInvitationTest.declaration
+
     retained_history = invitation_cases.CompanyTeamInvitationTest.retained_history
 
     def setUp(self):
@@ -134,6 +137,8 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
             sources = list(CompanyLegacyOwnerSource.objects.order_by("uuid").values())
         return self.retained_history(), sources
 
+
+class CompanyLegacyOwnerAppointmentTest(CompanyLegacyOwnerAppointmentFixtures, APITransactionTestCase):
     def test_legacy_delegation_cannot_become_personal_authority_by_self_acceptance_at_api_or_raw_guard(self):
         invitation, code, _ = self.issue(capabilities=["approve"], delegatable_capabilities=[])
         before = self.legacy_history()

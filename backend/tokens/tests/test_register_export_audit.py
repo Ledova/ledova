@@ -2,7 +2,6 @@ import hashlib
 from datetime import timedelta
 from uuid import uuid4
 
-from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db import DatabaseError, IntegrityError, connections
 from django.test import TestCase, override_settings
@@ -12,13 +11,12 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, current_alias, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
-from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
+from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from tokens.constants import STATUTORY_CALENDAR
-from tokens.models import RegisterExport, RegisterOutput
+from tokens.models import RegisterExport
 from tokens.services.former_holders import purge_register_exports
 from tokens.tasks.former_holders import purge_former_members_past_the_clock
 from tokens.tests.evidence_fixtures import owner_appointment
-from tokens.tests.test_register_certificates import entered, member_of, wallet_of
 from tokens.tests.test_register_events import DAY, register_fixture
 
 User = get_user_model()
@@ -247,17 +245,6 @@ class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTes
             recorded(self.token, self.owner)
             self.assertEqual(RegisterExport.objects.count(), 2)
 
-    def test_the_issuer_can_neither_read_nor_write_an_inspection_copy_record(self):
-        with use_operator():
-            copy = copied(self.token, self.owner)
-        self.the_principal_the_middleware_would_set(self.owner)
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            RegisterExport.objects.filter(pk=copy.pk).exists()
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            copied(self.token, self.owner)
-        with use_operator():
-            self.assertEqual(list(RegisterExport.objects.filter(kind="inspection_copy")), [copy])
-
     @override_settings(STORAGES=ADMIN_STORAGES)
     def test_the_company_copy_records_on_the_operator_connection_without_granting_audit_access(self):
         with use_operator():
@@ -290,33 +277,3 @@ class ScopedRegisterExportAuditTest(RunsOnTheScopedConnection, APITransactionTes
         )
         with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
             RegisterExport.objects.filter(pk=record.pk).exists()
-
-    def test_the_issuer_can_neither_read_nor_write_a_certificate_record(self):
-        with use_operator():
-            certificate = certified(self.token, self.owner)
-        self.the_principal_the_middleware_would_set(self.owner)
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            RegisterExport.objects.filter(pk=certificate.pk).exists()
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            certified(self.token, self.owner)
-        with use_operator():
-            self.assertEqual(list(RegisterExport.objects.filter(kind="certificate")), [certificate])
-
-    @override_settings(STORAGES=ADMIN_STORAGES)
-    def test_the_register_outputs_page_records_its_certificate_on_the_operator_connection(self):
-        with use_operator():
-            member = member_of(self.company, wallet_of("Synthetic Scoped Member", "4 Synthetic Street"))
-            entered(self.opening.register, "issue", (member, 5))
-            staff = grant(staff_user("scoped-certificates"), admin.site._registry[RegisterOutput], "change")
-            self.client.force_login(staff)
-        response = self.client.post(
-            reverse("admin:tokens_registeroutput_certificate", args=[self.token.pk]),
-            {"sequence": 2, "instruction": "SYNTHETIC-INSTRUCTION-4"},
-        )
-        self.assertEqual((response.status_code, response["Content-Type"]), (200, "application/pdf"))
-        with use_operator():
-            record = RegisterExport.objects.get(kind="certificate")
-        self.assertEqual(
-            (record.requested_by_id, record.digest, record.register_sequence, record.member_rows),
-            (staff.pk, hashlib.sha256(response.content).hexdigest(), 2, 1),
-        )

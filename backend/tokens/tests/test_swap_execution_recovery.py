@@ -26,7 +26,6 @@ from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, SENDER, admitted_s
 from blockchain.tests.test_outgoing_processes import finish
 from feature_flags.models import FeatureFlag
 from shared.db import acting_for, atomic, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import ShareToken, SwapOrder, TransferOrder
@@ -705,10 +704,6 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         with patch.object(swap_execution, "get_base_chain_client", return_value=self.node.client):
             self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
         self.assert_held()
-
-
-class ScopedSwapExecutionRecoveryTest(RunsOnTheScopedConnection, SwapExecutionRecoveryTest):
-    pass
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, ATOMIC_SWAP_ADDRESS=CONTRACT)

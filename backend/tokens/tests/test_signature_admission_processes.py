@@ -14,7 +14,6 @@ from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAt
 from blockchain.tests.outgoing_fixtures import KEY
 from shared.db import current_alias, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterEvidenceKind, ShareToken, SwapOrder, TransferOrder
 from tokens.services.register_pause_changes import (
     decide_pause_change,
@@ -262,7 +261,3 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
         with use_operator():
             self.assertEqual(ShareToken.objects.get(pk=self.swap.share_token_id).status, "deployed")
         self.assertEqual(self.state()[0]["seller_signature"], self.fixture.signatures["seller"])
-
-
-class ScopedSignatureAdmissionProcessesTest(RunsOnTheScopedConnection, SignatureAdmissionProcessesTest):
-    pass

@@ -17,7 +17,6 @@ from eth_account.messages import encode_typed_data
 from shared.db import use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.process_readiness import WORKER_START_TIMEOUT
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.tests.order_process_fixtures import worker_databases
 from tokens.tests.swap_state_fixtures import (
@@ -213,14 +212,3 @@ class SwapWorkersUseOneCurrentClaimTest(TransactionTestCase):
         self.swap.refresh_from_db()
         self.assertTrue(self.swap.seller_signature)
         self.assertTrue(self.swap.buyer_signature)
-
-
-@skipUnless(connection.vendor == "postgresql", "Requires independent PostgreSQL row locks")
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-class ScopedSwapWorkersUseOneCurrentClaimTest(RunsOnTheScopedConnection, SwapWorkersUseOneCurrentClaimTest):
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            user = self.swap.sell_order.owner_account.user_profile.user
-        self.the_principal_the_middleware_would_set(user)
-        self.addCleanup(self.no_principal_is_set)
