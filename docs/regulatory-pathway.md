@@ -1,14 +1,14 @@
 # Regulatory pathway
 
-[Documentation](README.md) · [Product and functionality](product.md)
+[Documentation](README.md) · [Product and functionality](product.md) · [Legal and regulatory](legal/README.md)
 
-Assessment dated 19 September 2026 · Product direction updated 3 October 2026
-
-The [3 October 2026 company-managed register decision](architecture/company-managed-registers.md)
-sets the current product direction: one registry product, with companies making
-their own share decisions and administering their registers through the tools.
-Validate this responsibility allocation against the actual replacement workflows;
-the product decision is not a finding about the platform's legal obligations.
+**Regulatory pathway, assessed 19 September 2026; product direction updated
+3 October 2026.** The
+[3 October 2026 one-product decision](architecture/company-managed-registers.md)
+and the [4 October 2026 minimal-involvement decision](decisions.md#company-representative-verification)
+postdate the assessment; validate its responsibility allocation against the
+actual company-managed workflows. Neither product decision establishes a legal
+conclusion.
 
 ## Purpose and status
 
@@ -176,5 +176,6 @@ Agents need owner authorisation to contact regulators, submit applications or
 launch services. Recheck current law and instruments before relying on the
 selected pathway.
 
-Next: the [legal positions](legal/positions.md) and [historical operating analyses](legal/README.md)
-behind the assessment, then the [decision log](decisions.md).
+Next: the [legal positions](legal/positions.md) and the
+[legal and regulatory folder](legal/README.md) behind the assessment, then the
+[decision log](decisions.md).
