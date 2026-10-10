@@ -5,8 +5,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, connection, connections
-from django.db.migrations.executor import MigrationExecutor
+from django.db import DatabaseError, connections
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -47,17 +46,15 @@ from companies.tests.test_authority_requests import (
     authority_fixture,
     evidence,
 )
+from companies.tests.test_document_file_access import legacy_company_administrators
 from companies.tests.test_legacy_owner_migration import (
     APPOINTMENT,
-    NEW,
-    OLD,
     PROVENANCE,
     SOURCE,
 )
 from companies.tests.test_team_invitations import raw_team_appointment
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
-from shared.tests.schema import restore_every_migration
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserProfile
 
@@ -73,7 +70,6 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
 
     def setUp(self):
         super().setUp()
-        self.addCleanup(restore_every_migration)
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.enterContext(override_settings(PRIVATE_MEDIA_ROOT=directory.name, STORAGES=STORAGES))
@@ -85,9 +81,7 @@ class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTe
             operator.issuer_kyc_required = True
             operator.save(update_fields=["issuer_kyc_required"])
         self.proposal = self.submit()
-        MigrationExecutor(connection).migrate([OLD])
-        MigrationExecutor(connection).migrate([NEW])
-        restore_every_migration()
+        legacy_company_administrators(self.company, self.foreign_company, provenance=PROVENANCE)
         with use_operator():
             self.source = CompanyLegacyOwnerSource.objects.get(company=self.company)
             self.initial = CompanyAppointment.objects.get(legacy_owner=self.source)

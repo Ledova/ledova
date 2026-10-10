@@ -3,7 +3,7 @@
 [Reference](README.md) · [Wallets](../architecture/wallets-and-valuations.md)
 
 History imports, optimistic deductions and authoritative chain refreshes have
-different effects. This page records those boundaries and their recovery behavior.
+different effects. This page records those boundaries and their recovery behaviour.
 
 Manual wallet sync returns `success: false` with an actionable `syncResult.error`
 when verification is missing, the provider fails, history cannot be read or a
@@ -67,11 +67,11 @@ and [Bitcoin Core transaction contract](https://bitcoincore.org/en/doc/30.0.0/rp
 Matching identity alone does not establish deeper finality or canonicality.
 
 Local submitted transfers settle from the existing immutable chain observations.
-The observation must match the journal's network and transaction hash, a canonical
-receipt block, and the approved policy: Base Sepolia and Ethereum Sepolia use the
-`finalized` head; Bitcoin testnet requires six canonical confirmations. Synthetic
-local-chain tests configure their policy explicitly. Production policies and
-legacy attribution remain owner work under #624.
+The observation must match the journal's network and transaction hash, a
+canonical receipt block, and the
+[approved finality policy](transaction-evidence.md#wallet-chain-observations)
+for that network. Production policies and legacy attribution remain owner work
+under #624.
 
 The principal-bearing confirmation task first resolves its scoped wallet and
 transaction. A bounded operator step records chain evidence outside financial

@@ -124,7 +124,7 @@ use a masked address and report PASS/BLOCK with the observed error.
 Ownership PASS does not complete EIP-712 order signing, transaction signing,
 physical Android/iPhone acceptance or the release-deployment swap in #624.
 Those need their own actual device evidence. Coordinate any defect with the
-existing issues before starting a parallel implementation; Claude owns #732.
+existing issues before starting a parallel implementation.
 
 To stop this Mac instance while retaining its local data:
 
