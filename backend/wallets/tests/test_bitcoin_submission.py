@@ -14,7 +14,13 @@ from integrations.blockchain.bitcoin import BitcoinClient
 from shared.db import acting_for, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from wallets.models import BitcoinSubmission, BitcoinSubmissionInput, Holding, Transaction, Wallet
+from wallets.models import (
+    BitcoinSubmission,
+    BitcoinSubmissionInput,
+    Holding,
+    Transaction,
+    Wallet,
+)
 from wallets.services import transfers
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "bitcoin_submission.json").read_text())
