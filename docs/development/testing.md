@@ -163,40 +163,42 @@ All four backend job groups must have their expected result before the verdict
 passes; a missing dependency fails it. Independent jobs may still queue, and
 their source topology alone does not establish an elapsed-time improvement.
 
-Preferred self-hosted routing uses only real `push` or `workflow_dispatch`
-events in `Ledova/ledova` on `refs/heads/main`. The scope router reads the actual
-GitHub repository, event, full ref, run ID and attempt with case-sensitive
-comparisons. It selects only the fixed Mac-hosted Linux ARM64 group/profile
-for complete strict scoped. All six ordinary shards, including whole `tokens-2`,
-use `ubuntu-latest` with a 360-minute execution timeout. The scoped selection
-also requires `ledova-main-<run_id>-<run_attempt>` alongside its fixed label,
-binding a fresh registration to that run and attempt. Missing or invalid
-identity and every other context use standard runners. CLI event
-arguments cannot supply runner identity. Chain, scanner, source, JavaScript and
-native routing remain unchanged; ordinary CI does not dispatch native builds.
+Preferred self-hosted routing uses real `push` or `workflow_dispatch` events
+in `Ledova/ledova` on `refs/heads/main`. The scope router checks the actual
+repository, event, full ref, run ID and attempt with case-sensitive comparisons.
+Compatible source, JavaScript and backend work selects the Mac's isolated Linux
+ARM64 guests. The existing primary profile runs strict scoped and the complete
+`tokens-1`, `tokens-2` and `others` ordinary shards; the ordinary profile runs the
+remaining ordinary shards, backend checks, genuine chain checks and JavaScript
+and source gates, followed by the Django verdict. The lightweight scope bootstrap
+stays on `ubuntu-latest`.
+Native Android/iOS jobs keep their platform-specific hosted runners.
 
-Keeping this job available requires disposing each used guest and replenishing
-a clean one-job guest under the fixed primary allocation of six CPUs and 12 GiB.
-Each new immutable policy binds the actual queued reviewed main source SHA/tree,
-repository, event, workflow/ref, run/attempt and assigned job/profile. A later
-main commit needs a new policy and registration. Do not widen or reload a live
-receipt. Establish and read back exact repository/main-workflow eligibility
-before delivery, with registrations offline throughout separate settings writes.
-Eligibility can remain narrow between jobs; listener admission still requires
-fresh immutable source/run/job receipts and a current policy readback before
-starting the matching controller. Retain diagnostics and let busy work finish
-during drain. The existing dormant zero-policy sessions supply no job admission.
+Every selected job requests its fixed profile label,
+`ledova-main-<run_id>-<run_attempt>` and its exact `ledova-job-<job>` label.
+The matrix label includes the shard, so a registration cannot pick up another
+queued job in the same run. Missing or invalid identity and other contexts keep
+standard routing. CLI event arguments cannot supply runner identity. PRs remain
+hosted until protected reusable definitions and verified PR admission are
+implemented; this main-route increment does not deliver that work.
 
-Complete inventories, commands, services and four workers remain unchanged.
-The selected scoped job has a 130-minute execution timeout; its standard-runner
-contexts retain 360 minutes. An unavailable selected runner leaves work queued;
-GitHub's runner queue limit is 24 hours, separate from execution time. No automatic
-hosted fallback is implemented. Surface outage and replenishment failures rather
-than presenting queued or skipped work as success. Linux ordinary preference requires a later reviewed source increment after its
-disabled host handover and readiness. Both secondary slots need separate
-compatible-job policy and full-load acceptance before their routing changes.
-Trusted PR preference needs a protected reusable definition and its own
-verified source admission; current PRs stay on standard runners.
+The persistent host service prepares and disposes a fresh one-job guest for each
+assignment. Each existing physical slot has six CPUs, 12 GiB and a bounded disk;
+using both slots requires reviewed admission for their assigned jobs and actual
+resource verification. Each immutable receipt binds the exact queued source,
+workflow, run/attempt, job and profile. Do not widen or reload an admitted receipt.
+A changed CI definition requires reviewed delivery, a clean drain and rebinding
+before admission. Retain diagnostics, let busy work finish during drain and stop
+replenishment when lifecycle state is uncertain. Source routing alone establishes
+neither unattended availability nor full-load acceptance.
+
+Complete test inventories, commands, services and four workers remain unchanged.
+Selected execution has a 130-minute timeout; standard contexts retain 360 minutes.
+An unavailable selected runner leaves work queued, with no automatic hosted
+fallback. The verdict can use standard capacity when scope itself fails so it
+still reports the failed dependency; that does not move unavailable selected
+work onto hosted runners. Keep failed or missing required jobs visible. Linux
+runner expansion is deferred under the owner's Mac-only direction.
 
 Record actual source/job/runner identities, guest CPU/memory, architecture,
 resolved tools/services, IDs/skips, queue/setup/test/job timing, verdict and
@@ -212,12 +214,14 @@ aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
 `CONTRIBUTING.md`) from the Django jobs and captured the timings above (#952),
 replaced routine historical schema rewinds in runtime company fixtures (#959)
 and gave the scoped and chain stages their own jobs (#960), while retaining
-every test selection, required verdict and main-push check. JavaScript, native,
-scanner and general backend routing remain unchanged. Scheduled broad checks,
+every test selection, required verdict and main-push check. Those earlier
+increments left JavaScript, native, scanner and general backend routing unchanged.
+The Mac expansion above changes the compatible main-run allocation. Scheduled broad checks,
 more selective pre-merge coverage and verification tiers need their own
-reviewed implementation, and the under-five-minute documentation/configuration
-and 15–25-minute routine-registry targets are goals, not delivered
-measurements. This guide describes only what runs today.
+reviewed implementation. The [10 October baseline decision](https://github.com/Ledova/ledova/issues/943#issuecomment-6096774615)
+sets targets of PR checks within 15 minutes and the full backend suite within
+20 minutes on the Mac, through the migration baseline, essential process proofs
+and preflight work. These are goals, not delivered measurements.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing

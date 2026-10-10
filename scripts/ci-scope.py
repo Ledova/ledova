@@ -23,6 +23,23 @@ UNREAD_BY_DJANGO = ("dashboard/", "docs/", "marketing/", "mobile/", "packages/")
 UNREAD_FILES_BY_DJANGO = frozenset(("AGENTS.md", "CONTRIBUTING.md"))
 DOCUMENT = re.compile(rb"docs/[\w./-]+\.md|(?:AGENTS|CONTRIBUTING)\.md")
 JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard", "backend", "backend-scoped", "backend-chain")}
+MAC_JOBS = (
+    "source-gates",
+    "javascript",
+    "backend-suite",
+    "backend",
+    "backend-scoped",
+    "backend-chain",
+    "backend-suite-shard-tokens-1",
+    "backend-suite-shard-tokens-2",
+    "backend-suite-shard-tokens-3",
+    "backend-suite-shard-shared-wallets",
+    "backend-suite-shard-companies-users",
+    "backend-suite-shard-others",
+)
+MAC_PRIMARY_JOBS = frozenset(
+    ("backend-scoped", "backend-suite-shard-tokens-1", "backend-suite-shard-tokens-2", "backend-suite-shard-others")
+)
 
 
 def changes_checkouts(path):
@@ -121,14 +138,13 @@ def django_runners(environment):
         and re.fullmatch(r"[1-9][0-9]*", attempt)
     )
     run_label = f"ledova-main-{run_id}-{attempt}"
-    return {
-        "scoped_runner": (
-            {"group": "ledova-mac-linux-arm64-pilot", "labels": ["ledova-mac-linux-arm64-pilot", run_label]}
-            if trusted
-            else "ubuntu-latest"
-        ),
-        "scoped_timeout": 130 if trusted else 360,
-    }
+    runners = {}
+    for job in MAC_JOBS:
+        group = "ledova-mac-linux-arm64-pilot" if job in MAC_PRIMARY_JOBS else "ledova-mac-linux-arm64-ordinary-pilot"
+        runners[job] = (
+            {"group": group, "labels": [group, run_label, f"ledova-job-{job}"]} if trusted else "ubuntu-latest"
+        )
+    return {"runners": runners, "runner_timeout": 130 if trusted else 360}
 
 
 def verdict(needs, jobs):
