@@ -292,7 +292,7 @@ def django_runners(environment):
         runners[job] = (
             {"group": group, "labels": [group, run_label, f"ledova-job-{job}"]} if trusted else "ubuntu-latest"
         )
-    return {"runners": runners, "runner_timeout": 130 if trusted else 360}
+    return {"runners": runners}
 
 
 def verdict(needs, jobs):

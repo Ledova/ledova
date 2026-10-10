@@ -18,7 +18,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.checks_required == 'true'
     runs-on: ${{ fromJSON(needs.scope.outputs.runners)['checks'] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
@@ -87,10 +87,11 @@ jobs:
         run: |
           make generate-tokens
           git diff --exit-code dashboard/src/styles/tokens.css marketing/src/tokens.css
-      - name: Type-check workspaces
+      - name: Type-check shared and mobile
         if: needs.scope.outputs.javascript_required == 'true'
         run: |
-          npm run typecheck
+          npm --prefix packages/shared run type-check
+          npm --prefix mobile run type-check
 
       - name: Mobile imports resolve from mobile/node_modules
         if: needs.scope.outputs.javascript_required == 'true'
@@ -150,7 +151,6 @@ jobs:
       chains: ${{ steps.scope.outputs.chains }}
       audit: ${{ steps.scope.outputs.audit }}
       runners: ${{ steps.scope.outputs.runners }}
-      runner_timeout: ${{ steps.scope.outputs.runner_timeout }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -180,7 +180,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.required == 'true'
     runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend'] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
+    timeout-minutes: 45
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -193,7 +193,7 @@ jobs:
       UPLOAD_TEST_REDIS_URL: redis://127.0.0.1:6379/0
     services:
       redis:
-        image: redis:7-alpine
+        image: ${{ needs.scope.outputs.uploads == 'true' && 'redis:7-alpine' || '' }}
         ports:
           - 6379:6379
         options: >-

@@ -194,7 +194,7 @@ def stop_process(process):
     raise BackendFailure("The owned backend child process group did not stop")
 
 
-def phase(name, arguments, env, directory, results, *, cwd=BACKEND, timeout=7200, log=None):
+def phase(name, arguments, env, directory, results, *, cwd=BACKEND, timeout=1800, log=None):
     log = log or directory / f"{name}.log"
     print(f"Backend phase {name}; log {log}", flush=True)
     start = time.monotonic()
@@ -265,6 +265,7 @@ def cleanup_database(connection, database, roles):
             all(name in names and owner == roles["migrate"] for name, owner in found),
             "Scratch database ownership changed; cleanup refused",
         )
+        cursor.execute("SET statement_timeout = '60s'")
         for name, _ in found:
             cursor.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
         for name in reversed(list(roles.values())):
@@ -281,6 +282,7 @@ def scratch_database(env, receipt, receipt_path):
     password = secrets.token_urlsafe(32)
     created = {}
     connection = None
+    primary_failed = False
     receipt["database"] = database
     receipt["roles"] = roles
     write_receipt(receipt_path, receipt)
@@ -329,12 +331,23 @@ def scratch_database(env, receipt, receipt_path):
             "RLS_OPERATOR_DB_PASSWORD": password,
         }
         yield child
+    except BaseException:
+        primary_failed = True
+        raise
     finally:
         if connection is not None:
             try:
                 if created:
-                    cleanup_database(connection, database, created)
-                    receipt["database_cleanup"] = "complete"
+                    try:
+                        cleanup_database(connection, database, created)
+                        receipt["database_cleanup"] = "complete"
+                    except Exception as error:
+                        receipt["database_cleanup"] = "failed"
+                        receipt["database_cleanup_error_type"] = type(error).__name__
+                        if not primary_failed:
+                            raise BackendFailure(
+                                "Scratch database cleanup failed; inspect retained resources"
+                            ) from error
             finally:
                 connection.close()
                 write_receipt(receipt_path, receipt)

@@ -541,7 +541,7 @@ class DjangoScopeTest(ScopeCase):
             "required=false\nchecks_required=true\njavascript_required=false\ntooling_required=false\n"
             "uploads=false\nchains=false\naudit=false\nrunners="
             + json.dumps(dict.fromkeys(SCOPE.MAC_JOBS, "ubuntu-latest"), separators=(",", ":"))
-            + "\nrunner_timeout=360\n",
+            + "\n",
         )
 
 
@@ -737,7 +737,6 @@ class PreferredMainRunnerTest(unittest.TestCase):
                 "required": "true",
                 **dict.fromkeys(SCOPE.CI_FLAGS, "true"),
                 "runners": json.dumps(dict.fromkeys(SCOPE.MAC_JOBS, "ubuntu-latest"), separators=(",", ":")),
-                "runner_timeout": "360",
             },
         )
 
@@ -746,7 +745,7 @@ class PreferredMainRunnerTest(unittest.TestCase):
             with self.subTest(event=event):
                 decision, outputs = self.route({"GITHUB_EVENT_NAME": event})
                 self.assertTrue(decision["required"])
-                self.assertEqual(outputs["runner_timeout"], "130")
+                self.assertNotIn("runner_timeout", outputs)
                 runners = json.loads(outputs["runners"])
                 self.assertEqual(set(runners), set(SCOPE.MAC_JOBS))
                 primary = "ledova-mac-linux-arm64-pilot"
@@ -818,7 +817,7 @@ class PreferredMainRunnerTest(unittest.TestCase):
                 with self.subTest(context=changes, argument=event):
                     _, outputs = self.route(changes, arguments=("--event", event))
                     self.assertEqual(json.loads(outputs["runners"]), dict.fromkeys(SCOPE.MAC_JOBS, "ubuntu-latest"))
-                    self.assertEqual(outputs["runner_timeout"], "360")
+                    self.assertNotIn("runner_timeout", outputs)
 
     def test_preferred_main_context_does_not_add_native_runner_outputs(self):
         for event in ("push", "workflow_dispatch"):
@@ -851,7 +850,7 @@ class PreferredMainRunnerTest(unittest.TestCase):
             self.assertTrue(decision["required"])
             self.assertEqual(decision["reason"], "Complete ancestor comparison unavailable")
             self.assertEqual(decision["runners"], dict.fromkeys(SCOPE.MAC_JOBS, "ubuntu-latest"))
-            self.assertEqual(decision["runner_timeout"], 360)
+            self.assertNotIn("runner_timeout", decision)
             self.assertEqual(output.read_text(), "preserved\n")
 
 
@@ -1065,8 +1064,8 @@ class DjangoWorkflowTest(unittest.TestCase):
         events = self.workflow.get("on", self.workflow.get(True))
         self.assertEqual(set(events), {"push", "pull_request", "workflow_dispatch"})
         self.assertIsNone(events["workflow_dispatch"])
-        self.assertEqual(set(self.jobs["scope"]["outputs"]), {"required", *SCOPE.CI_FLAGS, "runners", "runner_timeout"})
-        for output in (*SCOPE.CI_FLAGS, "runners", "runner_timeout"):
+        self.assertEqual(set(self.jobs["scope"]["outputs"]), {"required", *SCOPE.CI_FLAGS, "runners"})
+        for output in (*SCOPE.CI_FLAGS, "runners"):
             self.assertEqual(self.jobs["scope"]["outputs"][output], "${{ steps.scope.outputs." + output + " }}")
         self.assertEqual(self.jobs["scope"]["runs-on"], "ubuntu-latest")
         for name in ("checks", "backend"):
@@ -1074,7 +1073,7 @@ class DjangoWorkflowTest(unittest.TestCase):
                 job = self.jobs[name]
                 self.assertEqual(job["needs"], "scope")
                 self.assertEqual(job["runs-on"], "${{ fromJSON(needs.scope.outputs.runners)['" + name + "'] }}")
-                self.assertEqual(job["timeout-minutes"], "${{ fromJSON(needs.scope.outputs.runner_timeout) }}")
+                self.assertEqual(job["timeout-minutes"], 45)
         self.assertEqual(set(self.jobs) - {"scope", "backend-suite"}, set(SCOPE.MAC_JOBS))
         self.assertEqual(SCOPE.MAC_PRIMARY_JOBS, {"backend"})
         verdict = self.jobs["backend-suite"]
@@ -1093,6 +1092,14 @@ class DjangoWorkflowTest(unittest.TestCase):
             self.assertIn("needs.scope.outputs.javascript_required == 'true'", step["if"])
         audit = next(step for step in steps if "npm audit" in step.get("run", ""))
         self.assertIn("needs.scope.outputs.audit == 'true'", audit["if"])
+        typecheck = next(step for step in steps[node_index:] if step.get("name", "").startswith("Type-check"))
+        self.assertEqual(
+            typecheck["run"].splitlines(),
+            ["npm --prefix packages/shared run type-check", "npm --prefix mobile run type-check"],
+        )
+        self.assertLess(
+            next(index for index, step in enumerate(steps) if step.get("run") == "make build"), steps.index(typecheck)
+        )
 
     def test_one_shared_backend_command_replaces_every_runtime_wrapper(self):
         commands = self.commands()
@@ -1120,7 +1127,9 @@ class DjangoWorkflowTest(unittest.TestCase):
     def test_the_backend_group_installs_pinned_dependencies_and_real_services(self):
         job = self.jobs["backend"]
         self.assertEqual(job["services"]["postgres"]["image"], "postgres:16")
-        self.assertEqual(job["services"]["redis"]["image"], "redis:7-alpine")
+        self.assertEqual(
+            job["services"]["redis"]["image"], "${{ needs.scope.outputs.uploads == 'true' && 'redis:7-alpine' || '' }}"
+        )
         self.assertIn("pg_isready", job["services"]["postgres"]["options"])
         self.assertIn("redis-cli ping", job["services"]["redis"]["options"])
         self.assertEqual(job["env"]["POSTGRES_HOST"], "127.0.0.1")

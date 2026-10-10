@@ -389,6 +389,7 @@ class BackendCommandTest(unittest.TestCase):
         self.assertEqual(
             queries,
             [
+                "SET statement_timeout = '60s'",
                 'DROP DATABASE "test_owned_4" WITH (FORCE)',
                 'DROP DATABASE "owned" WITH (FORCE)',
                 'DROP ROLE "owned_operator"',
@@ -426,6 +427,49 @@ class BackendCommandTest(unittest.TestCase):
                 self.assertNotIn("ledova_app", child.values())
         self.assertNotIn("synthetic-private-password", self.receipt_path.read_text())
         self.assertEqual(self.receipt["database_cleanup"], "complete")
+
+    def test_database_cleanup_failure_is_recorded_without_replacing_a_phase_failure(
+        self,
+    ):
+        def attempt(primary):
+            try:
+                with BACKEND.scratch_database(self.env, self.receipt, self.receipt_path):
+                    if primary is not None:
+                        raise primary
+            except Exception as error:
+                return error
+            self.fail("Cleanup failure was accepted")
+
+        for primary, ambient in ((None, False), (BACKEND.BackendFailure("Core phase failed"), False), (None, True)):
+            with self.subTest(primary=primary, ambient=ambient):
+                connection = MagicMock()
+                cursor = connection.cursor.return_value.__enter__.return_value
+                cursor.fetchone.return_value = (160015, True)
+                cursor.fetchall.side_effect = [[], []]
+                self.receipt = {"run_id": "a" * 32}
+                with (
+                    patch.dict(sys.modules, {"psycopg": PSYCOPG}),
+                    patch.object(BACKEND, "postgres_connection", return_value=connection),
+                    patch.object(
+                        BACKEND,
+                        "cleanup_database",
+                        side_effect=RuntimeError("synthetic-private-password"),
+                    ),
+                ):
+                    if ambient:
+                        try:
+                            raise ValueError("Unrelated handled error")
+                        except ValueError:
+                            outcome = attempt(primary)
+                    else:
+                        outcome = attempt(primary)
+                self.assertIsInstance(outcome, BACKEND.BackendFailure)
+                if primary is not None:
+                    self.assertIs(outcome, primary)
+                self.assertEqual(self.receipt["database_cleanup"], "failed")
+                self.assertEqual(self.receipt["database_cleanup_error_type"], "RuntimeError")
+                self.assertNotIn("synthetic-private-password", self.receipt_path.read_text())
+                connection.close.assert_called_once_with()
 
     def test_a_preexisting_scratch_role_is_not_adopted_or_removed(self):
         connection = MagicMock()
