@@ -110,6 +110,28 @@ def django_scope(event_name, payload, repository):
 SCOPES = {"native": native_scope, "django": django_scope}
 
 
+def django_runners(environment):
+    trusted = (
+        environment.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+        and environment.get("GITHUB_REPOSITORY") == "Ledova/ledova"
+        and environment.get("GITHUB_REF") == "refs/heads/codex/943-trusted-selfhosted-pilot-runs"
+    )
+    return {
+        "tokens2_runner": (
+            {"group": "ledova-selfhosted-linux-pilot", "labels": "ledova-selfhosted-linux-x64-943-8c24g"}
+            if trusted
+            else "ubuntu-latest"
+        ),
+        "scoped_runner": (
+            {"group": "ledova-mac-linux-arm64-pilot", "labels": "ledova-mac-linux-arm64-pilot"}
+            if trusted
+            else "ubuntu-latest"
+        ),
+        "tokens2_timeout": 130 if trusted else 360,
+        "scoped_timeout": 130 if trusted else 360,
+    }
+
+
 def verdict(needs, jobs):
     try:
         routing = needs["scope"]
@@ -145,11 +167,15 @@ def main():
     except (TypeError, ValueError, OSError):
         payload = None
     decision = SCOPES[args.scope](args.event, payload, args.repository)
+    runners = django_runners(os.environ) if args.scope == "django" else {}
+    decision.update(runners)
     print(json.dumps(decision))
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
         with Path(output).open("a") as stream:
             stream.write(f"required={str(decision['required']).lower()}\n")
+            for name, value in runners.items():
+                stream.write(f"{name}={json.dumps(value, separators=(',', ':'))}\n")
     return 0
 
 

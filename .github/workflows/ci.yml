@@ -7,6 +7,7 @@ on:
   # got no CI at all under `branches: [main]`, which is exactly the branch that
   # most needs it.
   pull_request:
+  workflow_dispatch:
 
 jobs:
   source-gates:
@@ -125,6 +126,10 @@ jobs:
     timeout-minutes: 5
     outputs:
       required: ${{ steps.scope.outputs.required }}
+      tokens2_runner: ${{ steps.scope.outputs.tokens2_runner }}
+      scoped_runner: ${{ steps.scope.outputs.scoped_runner }}
+      tokens2_timeout: ${{ steps.scope.outputs.tokens2_timeout }}
+      scoped_timeout: ${{ steps.scope.outputs.scoped_timeout }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -137,7 +142,8 @@ jobs:
     name: Django ordinary shard (${{ matrix.shard }})
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_runner || '"ubuntu-latest"') }}
+    timeout-minutes: ${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_timeout || '360') }}
     strategy:
       fail-fast: false
       matrix:
@@ -313,7 +319,8 @@ jobs:
     name: Django strict scoped requests
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.scope.outputs.scoped_runner) }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.scoped_timeout) }}
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local

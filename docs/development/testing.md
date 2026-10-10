@@ -168,13 +168,40 @@ job fails it.
 
 The scoped and chain jobs depend only on that scope decision and can run
 concurrently with each other and the remaining backend checks. Each has its own
-hosted runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
+runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
 job retains the complete required scoped inventory and zero-skip checks; the
 chain job retains both EVM invocations and Bitcoin regtest. Schema generation,
 role/catalogue checks, real Redis controls and ClamAV remain in the backend job.
 All four backend job groups must have their expected result before the verdict
 passes; a missing dependency fails it. Independent jobs may still queue, and
 their source topology alone does not establish an elapsed-time improvement.
+
+The manual capacity comparison uses only the exact execution branch
+`codex/943-trusted-selfhosted-pilot-runs` in `Ledova/ledova`. The existing scope
+router checks the real repository, full branch ref and `workflow_dispatch` event
+with case-sensitive comparisons. It selects the fixed x64 runner group/label for
+ordinary `tokens-2` and the fixed Linux ARM64 group/label for the complete strict
+scoped job. Public pull requests, pushes and every other manual context stay on
+standard runners. Chain, scanner, source, JavaScript and native routing remain
+unchanged; dispatching ordinary CI does not dispatch the separate native workflow.
+
+Start with one ephemeral job per host on the same reviewed source, complete
+inventories and four workers. Selected manual jobs have a 130-minute timeout;
+the same jobs in other contexts retain their 360-minute default. Before dispatch, record the reviewed
+SHA/tree and exact execution branch in the sole dispatcher's execution ledger.
+The branch name alone does not pin its contents. Host owners provide a fresh
+disposable guest and restrict group access to the exact repository/workflow/ref
+for that session. An unavailable runner or failed installation remains a real
+failure; do not silently substitute workers, selectors or dependency versions.
+
+Record actual architecture, resolved tools, service images, IDs/skips, queue,
+setup, test and job timings, verdict and disposal evidence. ARM64 wheel metadata
+and smoke readiness do not prove the full scoped job fits four workers within
+6 GiB. Do not equate method totals, different architectures or a single successful
+trial with repeatable wall-time improvement. Further trials need their own
+stable-source ledger and fresh one-job sessions; do not rerun the whole cohort.
+Managed paid capacity remains separately controlled and is unused by this route.
+Retire temporary routing through the normal reviewed workflow when it is obsolete.
 
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under
