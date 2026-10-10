@@ -2,29 +2,33 @@
 
 [Implementation index](README.md) · [Accepted plan](../../architecture/company-managed-registers.md)
 
-[Issue #862](https://github.com/Ledova/ledova/issues/862) provides private authority
-requests, withdrawal and initial self-declaration admission on web and mobile.
-A pending request grants no authority. Admission records the representative's
-declaration and an effective initial appointment for the exact company, personal
-capabilities, delegatable scope and expiry. Company activation and register
-decisions retain their current workflows; an appointment supplies no approval of
-a share instruction, payment or director decision.
+Delivered under [#862](https://github.com/Ledova/ledova/issues/862); the final
+foundation landed in [PR #911](https://github.com/Ledova/ledova/pull/911).
+
+Private authority requests, withdrawal and initial self-declaration admission
+run on web and mobile. A pending request grants no authority. Admission records
+the representative's declaration and an effective initial appointment for the
+exact company, personal capabilities, delegatable scope and expiry. An
+appointment supplies no approval of a share instruction, payment or director
+decision; [company activation](company-activation.md) and the register
+workflows in the [implementation index](README.md) use these appointments
+through their own proposals and checks.
 
 Company details are **provided by the company**. The existing ABR lookup checks
 entity facts; it does not make Ledova responsible for company information or
 establish the representative's mandate. Use synthetic people, companies and
 evidence in this experimental implementation.
 
-## Company user steps
+## What the company does
 
 1. Sign up, verify your account email and register a draft company. Complete the
-   existing representative identity check when configured for issuers.
+   existing representative identity check when configured for companies.
 2. Open **Representative authority** from the company details screen on web or
    mobile. Select the draft company you own; selection is explicit when you have
    several companies.
 3. Choose personal capabilities and, separately, capabilities you intend to
-   delegate. Initial admission requires personal company administration. Set an
-   expiry if required. Selecting scopes alone grants no authority.
+   delegate. Initial admission requires personal `admin`. Set an expiry if
+   required. Selecting scopes alone grants no authority.
 4. Upload supporting PDF, PNG or JPEG through the existing checked upload flow.
    No ASIC extract is required. The file remains private and retained.
 5. Submit the request. The platform freezes the company and representative
@@ -57,12 +61,11 @@ flowchart LR
 ```
 
 Team invitations, acceptance, appointment history, administrator team reads and
-revocation are available on web and mobile and through the API below. The upgrade
-records existing company owners as administrators under the legacy source below.
-Company activation, register decisions and payments follow their owning issues in the
-[dependency index](README.md#delivery-tracking).
+revocation are available on web and mobile and through the API below. The
+upgrade records existing company owners as administrators under the legacy
+source below.
 
-## Company team on web and mobile
+## Web and mobile
 
 Open **Company team** from company details, web **Settings → Profile and security**
 or the mobile drawer. The settings/drawer entry is available to investor-only
@@ -71,15 +74,15 @@ appointments.
 
 1. To invite someone, select the company and one of your current delegating
    appointments. Select personal permissions and onward delegation separately,
-   within that appointment's recorded delegation scope. Granting company
-   administration also requires a current personal administrator appointment for
-   that company.
-   Optional appointment expiry and invitation deadline are explicit.
+   within that appointment's recorded delegation scope. Granting `admin` also
+   requires a current personal `admin` appointment for that company. Optional
+   appointment expiry and invitation deadline are explicit.
 2. Create the invitation and privately share its displayed one-time code. The
    code is shown in the current form and disappears when the form is replaced or
-   your account or selected appointment changes. It is not available from history. An unchanged interrupted retry keeps
-   its idempotency key; a confirmed retry can return the retained invitation with
-   no retrievable code. Create another invitation if you did not retain the code.
+   your account or selected appointment changes. It is not available from
+   history. An unchanged interrupted retry keeps its idempotency key; a confirmed
+   retry can return the retained invitation with no retrievable code. Create
+   another invitation if you did not retain the code.
 3. To accept, enter the code and agree to the displayed authorisation and company
    responsibility declaration. Your own account, verified email and configured
    identity checks apply. Editing the code clears agreement; failed acceptance
@@ -92,20 +95,22 @@ appointments.
    team appointment. Confirm the permanent action in the web dialog or native
    mobile alert. Cancelled, reused or stale confirmations cannot submit a new
    effect; a failed or unconfirmed result requires fresh confirmation. An initial
-   or legacy-owner appointment cannot be replaced through another bootstrap declaration.
+   or legacy-owner appointment cannot be replaced through another bootstrap
+   declaration.
 
 Refresh failures hide unavailable authority and team results. Account changes
 invalidate pending submissions and late receipts. Company details are attributed
 to the company; team access does not expose another person's private declaration,
 identity/financial evidence or bootstrap file.
 
-## API and retained records
+## API
 
 `/api/v1/company-authority/requests/` provides authenticated multipart submission
 and paginated personal history. Detail and file actions resolve only the caller's
 own request. Active accounts with verified email are required. New submissions
 also require current ownership of the selected draft company. Public company
-visibility, shareholder records and staff permissions do not widen this scope.
+visibility, shareholder records and platform staff permissions do not widen this
+scope.
 
 The server validates the upload and freezes raw and normalised identities,
 file SHA256/size/type, requested scopes and expiry. It accepts no caller-supplied
@@ -156,7 +161,7 @@ Issuance requires `company`, `inviter_appointment`, a caller-scoped
 offered personal and delegatable capabilities must be within the selected
 appointment's current delegatable scope. A caller may delegate a capability they
 do not personally hold; this does not grant it to the caller. Granting or
-delegating `admin` also requires a current personal administrator appointment for
+delegating `admin` also requires a current personal `admin` appointment for
 that company. A platform staff role, company ownership or shareholder record
 supplies neither appointment nor access to its team.
 
@@ -170,16 +175,16 @@ accepting account. No email-delivery service or code-bearing URL is introduced.
 
 Acceptance requires `code`, `declaration_version: "2026-10-04"` and
 `accept_declaration: true`. It checks the actual accepting account and profile,
-the configured issuer identity requirement, the invitation deadline and current
+the configured company identity requirement, the invitation deadline and current
 inviter authority before creating the exact offered appointment. An inviter cannot
 accept their own invitation. A new acceptance also refuses an existing unrevoked,
 unexpired appointment for the same person and company, even if that appointment
 is temporarily ineffective. A new invitation can be accepted after the earlier
 appointment expires or is revoked. No ABR check is fabricated for an invitation.
-Concurrent acceptance creates one effect. The same
-accepting account's retry returns its retained appointment, including after
-expiry or revocation; a different account cannot consume it again. Revoking the
-inviter blocks a new acceptance but does not revoke an already accepted child.
+Concurrent acceptance creates one effect. The same accepting account's retry
+returns its retained appointment, including after expiry or revocation; a
+different account cannot consume it again. Revoking the inviter blocks a new
+acceptance but does not revoke an already accepted child.
 
 Team reads contain account name/email, appointment identifiers, capabilities,
 expiry and current status. They expose no identity-provider files, financial
@@ -188,30 +193,30 @@ revocation remains available after loss of identity verification. Administrators
 may revoke an initial or another administrator appointment; there is no last
 administrator exception or new-bootstrap path. History remains retained.
 
-## Database and upgrade boundaries
+## What is recorded
 
 The app connection reads only its principal's requests, appointments, issued
-invitations and retained
-outcomes. An appointment names its appointee and their profile; initial admission
-records the request's requester as the appointee, and a company has one such
-bootstrap appointment. It cannot create or alter these authority records directly. Bounded
-operator services carry and restore the individual principal, lock and recheck
-identities and exact scopes. Database triggers protect admission, withdrawal,
-revocation and immutable history. Existing identity-provider results and the
-configured issuer check remain server-owned; ordinary profile changes keep their
+invitations and retained outcomes. An appointment names its appointee and their
+profile; initial admission records the request's requester as the appointee,
+and a company has one such bootstrap appointment. The app connection cannot
+create or alter these authority records directly. Bounded operator services
+carry and restore the individual principal, lock and recheck identities and
+exact scopes. Database triggers protect admission, withdrawal, revocation and
+immutable history. Existing identity-provider results and the configured
+company identity check remain server-owned; ordinary profile changes keep their
 existing account scope.
 
-An appointment has exactly one initial-request, invitation or legacy-owner source. Company
-locks precede actor locks in submission, admission, invitation and revocation
-services. Invitation guards check possession of the code through a temporary
-transaction setting and restore any prior setting after successful acceptance;
-rollback also restores the outer transaction. Database expiry checks use actual
-time after waiting for locks. Invitation history and non-self administrator
-revocation prevent reversal of migration `0017`; supported empty/self-revocation
-reversal restores the preceding guards and policies exactly. Guard-only migration
-`0018` protects new invitation admissions without changing prior appointments,
-invitations, revocations or actors; reversing it restores the exact preceding
-invitation guard.
+An appointment has exactly one initial-request, invitation or legacy-owner
+source. Company locks precede actor locks in submission, admission, invitation
+and revocation services. Invitation guards check possession of the code through
+a temporary transaction setting and restore any prior setting after successful
+acceptance; rollback also restores the outer transaction. Database expiry checks
+use actual time after waiting for locks. Invitation history and non-self
+administrator revocation prevent reversal of migration `0017`; supported
+empty/self-revocation reversal restores the preceding guards and policies
+exactly. Guard-only migration `0018` protects new invitation admissions without
+changing prior appointments, invitations, revocations or actors; reversing it
+restores the exact preceding invitation guard.
 
 ### Existing owner appointments
 
@@ -221,7 +226,7 @@ An expired or revoked initial appointment still counts, so upgrading cannot
 restore it. The source retains the company's actual owner account and profile at
 upgrade time, the migration identifier and the time recorded by the upgrade.
 It does not fabricate a signed declaration, ABR result, director mandate,
-activation or approval of a pending instruction. Existing records and actors
+activation or approval of a pending proposal. Existing records and actors
 remain unchanged.
 
 Legacy appointments have personal `admin` and may delegate the six existing
@@ -246,98 +251,63 @@ empty reversal preserves the earlier request and withdrawal lifecycle. Follow
 [upgrade notes](../../operations/upgrades.md) and retain the database and private
 storage together.
 
-## Accepted decision and remaining work
-
-### Basic company administration
-
-The [company information guide](company-information.md) describes the current
-client selection, edit and document workflow.
+## Boundaries
 
 Basic company PATCH and company-document upload, private-file reads and deletion
-require current personal `admin` for that exact company or the bounded draft setup
-exception below. Initial,
-invited and legacy appointments use the same live account, verified-email,
-configured identity, expiry and revocation checks. Personal capabilities remain
-six independent values; delegatable scope supplies no basic administration.
-Company responses expose `is_owner` and
+require current personal `admin` for that exact company or the draft setup
+exception below; the [company information guide](company-information.md)
+describes the client workflow. Initial, invited and legacy appointments use the
+same live account, verified-email, configured identity, expiry and revocation
+checks. Personal capabilities remain six independent values (`admin`,
+`prepare`, `approve`, `apply`, `finance` and `read_register`); delegatable
+scope supplies no basic administration. Company responses expose `is_owner` and
 `administrative_access: {capabilities, draft_setup}`. Ownership is retained
-relationship metadata for still-unconverted workflows. PATCH returns the complete
-company detail, and document responses include their read-only company UUID.
+relationship metadata for the owner workflows that keep their existing
+conditions. PATCH returns the complete company detail, and document responses
+include their read-only company UUID.
 
-Before a root exists, the current active, email-verified owner can edit their draft
-and upload its documents. Any retained initial appointment sourced by an admitted
-request, or any legacy-owner source, permanently closes that setup exception.
-Revoked/expired roots, hidden roots and later owner changes cannot reopen it.
-A pending request leaves the draft editable so admission still checks its exact
-retained identity snapshots against the current company.
+The draft setup exception: before a root exists, the current active,
+email-verified owner can edit their draft and upload its documents. Any
+retained initial appointment sourced by an admitted request, or any
+legacy-owner source, permanently closes that exception. Revoked/expired roots,
+hidden roots and later owner changes cannot reopen it. A pending request leaves
+the draft editable so admission still checks its exact retained identity
+snapshots against the current company.
 
-Persistence locks company first, then the live actor, profile, configured identity
-row and appointments, followed by the affected document, wallet and attached
-offerings. Checks use the
-actual time after waiting. Raw app writes are closed, and operator guards reject
-missing/wrong principals, foreign company bindings, ineffective personal scope
-and protected-field changes. Existing company identifiers and status controls,
-private storage, offered-document retention and document verification invalidation
-remain. Document update/delete statements and command-scoped association removals
-lock the declared company before their rows. For `document_delete`, statement
-guards lock all offerings of the declared company before either document or
-association rows and recheck authority after that wait. The deletion service permits foreign-key
-attachment checks while holding the document, then locks offerings and rechecks
-retention and authority. Public discovery retains its original terms through a
-separate UUID helper without granting private resource access.
-A failed upload removes only its newly written object. File reads open the
-private handle under the checked boundary, then stream with `private, no-store`.
+The connection roles, selectors, policies and owner-domain helpers behind these
+checks are described once in the
+[tenancy model](../../architecture/tenancy.md#roles-and-principal). Specific to
+this increment: persistence locks the company first, then the live actor,
+profile, configured identity row and appointments, followed by the affected
+document, wallet and attached offerings, and checks use the actual time after
+waiting; document update/delete statements and command-scoped association
+removals lock the declared company before their rows, and for `document_delete`
+the statement guards lock all offerings of the declared company before either
+document or association rows and recheck authority after that wait; a failed
+upload removes only its newly written object, and file reads open the private
+handle under the checked boundary, then stream with `private, no-store`. Public
+discovery retains its original terms through a separate UUID helper without
+granting private resource access. Share-class creation accepts only its existing
+validated fields and rechecks its selected owner and active actor under the same
+lock order; personal `admin` supplies no mandate for the retained owner
+workflows. The existing provider projection, owner submission and platform-staff
+lifecycle/content review callers retain their specific permissions through
+bounded commands: the status API requires current active platform staff, admin
+row review additionally requires the existing model change permission, and
+document review retains its own model permission and exact content
+confirmation. Staff status alone does not authorise basic metadata or document
+management, and generic admin add/delete and document metadata paths are
+closed. Offering, finance and publication authority keep their existing owner
+and platform-staff checks; no delivered increment converts them.
 
-Company API metadata reads admit the exact current active owner alongside current
-personal administration. An owner without that administration receives no contact
-name/email or private document inventory, and cannot edit company information or
-files. Raw Company access retains the separate administration/public policy.
-Existing owner-domain reads and writes remain independent of personal
-administration: `app_visible_company_ids()` and `app_manageable_company_ids()` keep
-their exact owner UUID bodies and become fixed-search-path definers only after
-migration 0020. Child, participant, subscriber, profile, account and wallet policy
-terms remain unchanged. Historical installation and reversal restore the original
-invoker attributes. Owner API selectors bind the actual request owner; offering
-and capital effects recheck the live owner and active actor under company-first
-locks. Private documents supplied to offering actions separately require current
-personal administration. Offering updates and document attachment lock the exact
-offering before that check, so expiry during the row wait prevents a new private
-document reference. Share-class creation accepts only its existing validated
-fields and rechecks its selected owner and active actor under the same lock order.
-Personal administration supplies no mandate for these retained owner workflows.
-Historical policy installation waits for required columns, and the new
-administration migration reverses before the earlier policy installer is removed.
-
-The existing provider projection, owner submission and staff lifecycle/content
-review callers retain their specific permissions through bounded commands. The
-status API requires current active staff; admin row review additionally requires
-the existing model change permission, and document review retains its own model
-permission and exact content confirmation. Staff
-status alone does not authorise basic metadata or document management. Generic
-admin add/delete and document metadata paths are closed. Activation, offering,
-register, finance, publication and worker authority conversions remain in their
-own dependent increments; this foundation supplies no company approval or provider
-result for them. Retained publication lists and files explicitly select the
-current company owner or named recipient on the operator connection, preserving
-paused-class reads independently of basic administration. Public file lookup
-excludes unrelated staff while the existing direct staff read service retains its
-audited access; ballots and summaries keep their app-role paths.
-
-The [owner's self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
-and [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
-supersede the earlier ASIC officeholder/InfoTrack route. No ASIC search, broker,
-extract or InfoTrack agreement is a prerequisite. The company remains responsible
-for its information, ASIC filings and legal obligations.
-
-Company administrators change through existing company administrators or
-court/regulator direction. Normal recovery of a person's own account is separate;
-it supplies no appointment to a replacement administrator. Initial admission and
-self-revocation implement neither disputed-access replacement nor a court-order
-processing route.
-
-Original #862 completion checks remain open for the remaining company authority
-boundaries; the team API, web/mobile screens and legacy-owner upgrade are available.
-Later domain issues must convert their API/service/worker/RLS/trigger authority
-boundaries together. No new fraud or impersonation verification is added. Any
-identified legal duty on Ledova must be cited and raised with the owner before
-building a check; see the dated [legal positions](../../legal/positions.md).
+The owner's [self-declaration decision](../../decisions.md#company-representative-verification)
+supersedes the earlier ASIC officeholder/InfoTrack route: no ASIC search, broker,
+extract or InfoTrack agreement is a prerequisite, and the company remains
+responsible for its information, ASIC filings and legal obligations. Company
+administrators change through existing company administrators or court/regulator
+direction. Normal recovery of a person's own account is separate; it supplies no
+appointment to a replacement administrator. Initial admission and self-revocation
+implement neither disputed-access replacement nor a court-order processing route.
+No new fraud or impersonation verification is added; any identified legal duty on
+Ledova must be cited and raised with the owner before building a check, as the
+dated [legal positions](../../legal/positions.md) record.
