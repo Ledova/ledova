@@ -112,4 +112,4 @@ measure serializer/form differences; the officeholder fields are separately boun
 by the update service. There is no complete comparison across every admin/model pair.
 
 Next: [tenancy](tenancy.md), [engineering standards](../development/standards.md),
-and [gate internals](../reference/gate-internals.md).
+and [gates](../development/gates.md).

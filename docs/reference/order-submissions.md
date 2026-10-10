@@ -33,10 +33,10 @@ The immutable intent's `quantity` and `min_quantity` are canonical decimal
 strings. Forward them unchanged when renewing or retrying so JavaScript number
 rounding cannot alter stored terms. New numeric draft inputs and existing order
 detail quantities retain their current formats.
-If a token becomes hidden, its previously authorized display snapshot can still
+If a token becomes hidden, its previously authorised display snapshot can still
 describe the owned order without granting visibility to the token itself.
 
-The exact submission is authorized in app scope before entering the bounded
+The exact submission is authorised in app scope before entering the bounded
 operator service. That service locks the submission, rechecks actor/account/wallet
 authority and immutable terms, and commits challenge spend, order creation,
 matching and the recorded outcome in one independent operator transaction.
@@ -60,7 +60,7 @@ pending, and the client retries its same UUID. A fresh UUID is not a retry.
 An unrepresentable settlement rolls back its candidate savepoint, releasing its
 authority/order locks before the next candidate is attempted. Unrelated
 lower-priority or minimum-incompatible wallets and order rows are not locked.
-The [owner chose this contention behavior](https://github.com/Ledova/ledova/issues/646#issuecomment-5745891659)
+The [owner chose this contention behaviour](https://github.com/Ledova/ledova/issues/646#issuecomment-5745891659)
 instead of accepting an order while silently skipping a busy counterparty.
 
 A negative whitelist result, an investor classification that is not live for
@@ -78,7 +78,7 @@ proposed fill fails that check, retaining price/time priority among usable fills
 neither rounds nor resizes a fill, and leaves skipped resting orders unchanged. The
 same submission UUID remains refused even if the counter-order or deployment later
 changes. A corrected intent uses a new UUID. See
-[payment units](swap-settlement.md) for the exact calculation rules.
+[payment units](swap-settlement.md#payment-units) for the exact calculation rules.
 Provider, configuration,
 database and unclassified matching failures remain retryable; a lost commit
 acknowledgement requires recovery. `tokens/0037` protects the account/key, original
@@ -115,9 +115,9 @@ intent before asking for a new review. Do not attach that ID to different terms.
 
 For an existing reminder or uncertain response, read
 `GET /api/v1/trading/orders/actions/{action_id}/?owner_account_uuid=...` directly.
-A 404 means absent or currently inaccessible; it does not authorize deleting the
+A 404 means absent or currently inaccessible; it does not authorise deleting the
 reminder, generating a replacement ID or claiming recovered terms. The execute
-POST identifies the action before checking a pending signature, so an authorized
+POST identifies the action before checking a pending signature, so an authorised
 recorded result remains recoverable with absent, expired or irrelevant old
 credentials. Account ownership and wallet/order ownership still apply.
 The response separates immutable `intent`, `review`, `result` and `refusal` from
@@ -140,8 +140,9 @@ ordinary required-field errors.
 A keyed pending action presenting an unlinked legacy challenge also receives
 `action_refresh_required` before spend. There is no automatic rebinding or legacy
 execution fallback. Existing settlement signatures and stored swap deadlines are
-unchanged. This protocol neither changes balance eligibility nor enables trading,
-activates signers, broadcasts transactions or establishes settlement finality.
+unchanged. This protocol changes no balance eligibility, admits no signer,
+broadcasts no transaction and establishes no settlement finality; trading is
+enabled by default.
 
 ## The trading lock graph
 
@@ -176,7 +177,7 @@ after the incoming authority and challenge but never waits (R3).
 Foreign-key checks introduce edges against G. A swap insert references both
 wallets; deferred checks after repeated order updates can also take `FOR KEY SHARE`
 on the counterparty's account at commit. Same-account legacy candidates retain
-their earlier authority-lock behavior; foreign candidates have their complete
+their earlier authority-lock behaviour; foreign candidates have their complete
 authority locked before matching. Three rules keep these edges from closing
 a cycle:
 
@@ -186,7 +187,7 @@ a cycle:
   with `FOR NO KEY UPDATE` and
   conflicts with `FOR UPDATE`, so a matcher's foreign-key checks never wait on
   another trading transaction's wallet or account lock. These locks still exclude
-  concurrent authorization changes. Without R1, one
+  concurrent authorisation changes. Without R1, one
   account's two wallets deadlock: the first request holds the account and wants a
   key share on the second wallet, while the second holds its wallet and waits for
   the account. A foreign seller's action can likewise hold its account and wait
@@ -213,7 +214,7 @@ Two properties of the graph are deliberate rather than defects. The create path
 reads the whitelist and the chain balance while holding its wallet and account
 rows, so a balance is measured against every commitment visible under the lock,
 while the modify path reads the chain outside every transaction; a slow provider
-therefore extends how long the wallet's other requests and its authorization
+therefore extends how long the wallet's other requests and its authorisation
 changes wait on the create path only. And matching runs only inside creation and
 the held-order sweep, and an order decides whether it may rest from the orders
 already committed: two crossing orders created concurrently each see only
@@ -228,7 +229,7 @@ settlement, lapse, revert and modification in turn checks the
 | --- | --- | --- |
 | P1 — create against create, one wallet | the second waits at the wallet lock and measures its balance against the first's committed order: refused when the two do not fit, open when they do | `test_order_submission_processes.py`: `test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment` and `test_two_sells_that_fit_the_balance_together_both_open_after_waiting`, through independent app requests with bounded operator commits |
 | P2 — create against create, two wallets of one account, crossing | the second waits on the account row; the matcher's key share on the second wallet does not deadlock; both commit and exactly one swap exists | `test_order_submission_processes.py`: `test_crossing_creates_on_two_wallets_wait_on_the_account_and_match_once`; reverting R1 turns it into a `DeadlockDetected` in one child |
-| P3 — a decision against an authorization change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused | `test_matching_wallet_locks.py` for the create path, whose two sides are threads on separate connections in one process; `test_order_action_processes.py`: `test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission` for the action path, where the modify is an independent process and the competing authorization change is a thread on the operator connection in the test process |
+| P3 — a decision against an authorisation change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused | `test_matching_wallet_locks.py` for the create path, whose two sides are threads on separate connections in one process; `test_order_action_processes.py`: `test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission` for the action path, where the modify is an independent process and the competing authorisation change is a thread on the operator connection in the test process |
 | P4 — the matcher against a cancel or modify of its candidate | same-account journeys serialize at the account; a foreign action waits behind an admitted matcher at the wallet, while a matcher encountering a busy foreign wallet returns retryable 503 and re-reads committed terms on retry: a modify or cancel of a matched order records its refusal with the spend committed, and a match after a modify uses the modified terms | `test_order_action_processes.py`: `test_a_modify_waits_for_the_match_and_is_then_refused_on_the_matched_order`, `test_a_cancellation_waits_for_the_match_and_is_then_refused_on_the_matched_order` and `test_a_match_waits_for_a_modification_and_matches_the_modified_values`, plus `test_the_foreign_sellers_modify_waits_for_matching_and_is_refused`, `test_the_foreign_sellers_cancel_waits_for_matching_and_is_refused` and `test_a_busy_foreign_modification_leaves_the_submission_retryable_with_no_spend` in `test_cross_account_matching.py`, using independent app requests and the bounded operator matcher; the serial one-process fences remain in `test_cancel_concurrency.py` and `test_modification_refusals.py` |
 | P5 — cancel or modify against signature, execution or settlement of the same order | fenced by status under the order lock: a decision taken while a swap is pending records a refusal, and that refusal is what every later replay returns | `test_order_actions.py`: `test_a_pending_swap_is_a_recorded_refusal_only_after_validated_execution`, which proves that one interleaving and its terminal replay once the swap has failed; a swap arriving while an action is already in flight is not in the suite |
 | P6 — signature, expiry and settlement of one swap against each other | both orders in primary-key order, then the swap: one release, a late admission refused, an admission never released | `test_swap_expiry_processes.py`, `test_swap_finality.py` (`test_two_settlement_workers_wait_for_the_share_class_an_opening_holds_and_complete_once`) and `test_swap_process_concurrency.py`, in independent processes; the expiry and signature/matching pairs also run as scoped twins with the ownership rules in force — the signing and matching requests authenticate the recorded principal before their bounded operator commits, while the expiry sweep runs as the operator, matching the task framework's `acting_for(None)` shape — while the settlement-process class stays ordinary-only because `settle` requires the operator connection by design |

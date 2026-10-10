@@ -32,15 +32,24 @@ Register export records share this clock, measured from the export. So do
 imported former members, from their date ceased, and a member's recorded
 particulars, from the last date the member held shares in the company. The same
 daily job purges them all (owner decisions, 21 September 2026). It removes
-nothing else of a register opening, import, correction, wallet link or
-particulars change: the import, its copies of the register document and ASIC
-extract, an opening's, correction's or wallet link's copy of its authority
-document, a particulars change with its copy of the supporting document, and the
-company's evidence uploads of kind `share_register`, `asic_extract`, `authority`
-or `supporting`, including those no opening, import, correction, link or change
-used, are evidence, kept with no automatic expiry during the synthetic
-experiment. Their production retention is
-decided before any real data (owner decisions, 22 September and 5 October 2026).
+nothing else of a register opening, import, correction, wallet link,
+particulars change, grant or direct transfer: the import, its copies of the
+register document and ASIC extract, an opening's, correction's or wallet link's
+copy of its authority document, a particulars change with its copy of the
+supporting document, a grant's or transfer's copies of its authority, terms,
+acceptance and instrument documents, each proposal's decisions, captured
+boundary and identity snapshots, and the company's evidence uploads of kind
+`share_register`, `asic_extract`, `authority` or `supporting`, including those
+no proposal used, are evidence, kept with no automatic expiry during the
+synthetic experiment; ordinary deletion of them is blocked, and only copies left
+by a rolled-back or interrupted preparation fall under the 24-hour orphan
+sweep. This is the one statement of that rule; the
+[register runbook](register-foundation.md#company-register-decisions) and the
+plan guides link here. Their production retention is decided before any real
+data (owner decisions, 22 September and 5 October 2026). Account and company
+deletion still respect the protected register relations. Classification
+evidence, former-member retention and export records have independent
+retention policies; this rule does not change them.
 
 [Publications to members](../architecture/shareholder-publications.md#retention)
 share the same floor and setting, measured from the publication, and a

@@ -2,28 +2,25 @@
 
 [Legal and regulatory](README.md) · [Company-hosted instance](company-hosted-instance.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Historical operating analysis.** The 3 October 2026
-[company-managed registry decision](../architecture/company-managed-registers.md)
-replaces the assumption that platform staff routinely operate company registers.
-This page retains research about that earlier service model; assess the new
-workflow separately before relying on those readings for it.
+**Historical analysis B, first written 15 September 2026.** The
+[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
+postdate the readings on this page, which have not been reconfirmed against
+the current company-managed workflows. Neither product decision establishes a
+legal conclusion.
 
 The earlier scenario studied here has one operator hosting the platform and
 keeping the share registers of many private companies, making each entry on
 the written instruction of that company's authorised officers with a director's
 approval recorded beside it. The current software implements staff-operated
 workflows. Its legacy registry setting is the default, but does not enforce the
-whole clerk-only service proposal below.
-The [accepted product direction](../product.md#roles-and-deployment) replaces
-that allocation of routine register work and removes product-mode selection.
+whole clerk-only service proposal below. [Retired by `operators/0002` on
+3 October 2026; see
+[one registry product](../operations/upgrades.md#one-registry-product).]
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
 apply, and the drafted ones remain unconfirmed until the owner signs them off.
-
-Separately, the current software licence requires written commercial permission
-to operate this service, including for Blueberry Money. Sponsorship is not that
-permission. See [position 5](positions.md#5-software-licensing-and-commercial-permission).
 
 ## Whom the law looks at
 
@@ -90,8 +87,8 @@ service. This model is the second line.
 
 ## Feature by feature
 
-"No permission" in this table refers to additional regulatory permission. It
-does not waive the software licence or the live-operation conditions.
+"No permission" in this table refers to additional regulatory permission; the
+[live-operation conditions](../regulatory-pathway.md) still apply.
 
 | Feature | Status in this model |
 | --- | --- |
@@ -115,12 +112,10 @@ the implementation sequence for company-managed registers; use the accepted
 
 On the positions as drafted, a clerk-only service does not need the financial
 services permissions discussed below while it stays within that boundary. The
-operator still needs written commercial permission to use the software and must
-meet the [live-operation conditions](../regulatory-pathway.md).
+operator must still meet the [live-operation conditions](../regulatory-pathway.md).
 
 1. **Choose the operating entity.** Every contract, privacy obligation,
-   enrolment and licence attaches to it. Obtain its written commercial software
-   permission before using the code for the business.
+   enrolment and licence attaches to it.
 2. **Write the registry services agreement**: authorised officers, instructions
    in writing, director approval recorded, data kept in Australia, export or
    escrow on exit, no advice, flat fees, a liability cap, and an explicit
@@ -145,7 +140,7 @@ meet the [live-operation conditions](../regulatory-pathway.md).
 | Cost | In this model |
 | --- | --- |
 | Regulatory licence and enrolment fees at the start | None, on the positions as drafted: the clerk model needs no AFSL, market licence or AUSTRAC enrolment |
-| Software licence | Separate written commercial permission; any fee is agreed separately |
+| Software licence | Separate written commercial permission ([position 5](positions.md#5-software-licensing-and-commercial-permission)); any fee is agreed separately |
 | What it does need | An entity, an agreement per company, Australian hosting, a privacy program, and the boundary enforced by the software |
 | Later, if wanted | Low-volume registration per company; a wholesale AFSL at $2,233 or $5,025 plus a responsible manager; relief at $3,487 per head of power |
 

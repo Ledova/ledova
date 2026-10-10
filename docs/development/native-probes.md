@@ -12,6 +12,8 @@ ANDROID_SERIAL=emulator-5556 npm run test:native -- android /absolute/fresh/andr
 IOS_SIMULATOR_UDID=your-owned-simulator-uuid npm run test:native -- ios /absolute/fresh/ios-results
 ```
 
+## The ordinary launch check
+
 The output directory must not already exist. The runner builds and launches the
 ordinary Release app, preserves that artifact and checks its release policy.
 It then requires the launch to show something: from ten seconds after launch,
@@ -24,6 +26,9 @@ loaded machine after a fresh install, hence the wait and the pair. The runner
 takes up to 20 screenshots and then fails, which is how a window without a
 scene, black but for the status bar, shows up. `ordinary-screen.json` records
 the final measurement.
+
+## Android evidence collection
+
 On Android it also records the focused window and app (`focus`) from
 `dumpsys window displays`, kept whole in `ordinary-window-displays.txt`; on API 36
 `dumpsys window windows` no longer prints them. It fails when a system
@@ -61,6 +66,9 @@ errors retain an incomplete cleanup status; unverified groups are not signalled
 and an unreaped child is recorded as such. A runner loss or
 uncatchable kill can still prevent final collection or upload. These collectors
 observe; they never dismiss a dialog, retry or skip a probe.
+
+## Emulator settling
+
 Before the first build, the job attempts to let the emulator settle after boot,
 within 300 seconds and without gating the run (`mobile/scripts/emulator-settle.mjs`).
 It waits for the broadcast queues to go idle, then polls the guest's 1-minute
@@ -93,6 +101,9 @@ recorded ANRs during settling in successful four-vCPU runs. No retained event
 identifies a SystemUI ANR. Early collectors retain a bounded observation
 interval; missing original traces remain a gap, and successful later jobs do
 not resolve it.
+
+## iOS signing and TLS test servers
+
 iOS uses Xcode's normal ad hoc simulator signing without an Apple account or
 signing certificate. Before each ordinary/probe installation, it checks both built
 architectures' `__TEXT,__entitlements` sections for the app identity and preserves
@@ -123,6 +134,8 @@ CA. Android receives a temporary test-only trust resource; iOS receives the CA
 only in the owned simulator keychain. The ordinary artifact retains its normal
 trust. An untrusted certificate with the same hostname/IP coverage must fail.
 
+## Transport controls
+
 The runner first enables native redirects in generated source and requires both
 307/308 refusal assertions to fail while the target receives exactly two
 requests. It restores the policy and requires zero redirected target requests,
@@ -137,11 +150,133 @@ and restore generated files. Short synchronous tool calls have timeouts.
 An uncatchable kill or host loss requires a fresh prebuild before using the
 generated project. Remove only the owned emulator/simulator afterward. Deleting
 the iOS simulator also removes its test CA.
-Do not distribute the probe artifact.
+Do not distribute the probe artifact, the test APKs or the synthetic probe
+apps.
+
+## Android scanner instrumentation
+
+`ScannerWindow.android.test.tsx` exercises each placement through the native
+event boundary. The Android instrumentation suite exercises real Activity and
+Dialog windows, CameraX open/closed state, parent visibility and detachment,
+fully clipped previews, backgrounding, delayed provider completion, replacement
+sessions, focus loss/regain before JavaScript admission changes, and real
+decoding of a synthetic QR bitmap. It runs
+inside the Android native CI probe and retains `scanner-window-tests.log`.
+A wait that reaches its 15-second deadline appends the focused window, focused
+app and top resumed activity at that moment, read through the instrumentation's
+shell. When a focus wait fails, a system window such as `Application Not
+Responding` holding focus marks an unhealthy emulator, and a test window holding
+focus points at scanner admission. The activity and its dialogs are all listed
+under the activity's name, so the state cannot say which of them has focus: for
+the modal wait, the activity keeping focus instead of the scanner dialog remains
+possible. When a camera wait fails, a focused test window only rules out lost
+window focus: CameraX binding or camera availability can still be the cause.
+
+The Release probe also drives nested React Native modal windows through the
+actual Expo bridge with camera permission granted by the emulator runner. That
+separate instrumentation APK first waits for bound preview/analysis use cases
+and CameraX OPEN while the scan is active. It requests unmount without delivering
+a barcode or calling finish, waits for an explicit JavaScript unmount checkpoint,
+and separately requires the captured native view to be detached and absent from
+all window trees. Both use cases must then be unbound, CameraX CLOSED and the
+selected camera available. Only then does the test request a fresh scanner mount.
+The same release conditions apply when that scanner's owning window is covered;
+refocus must open fresh use cases on that same view. The Release test retains the
+native window notifications while it
+delivers a synthetic pre-loss barcode through the existing Expo event callback.
+A recorder in the separate instrumentation APK observes the real native
+admission function, always delegating its arguments and Boolean result unchanged.
+The test requires that exact queued tuple to return false during loss and after
+quick regain, then a fresh tuple to return true and call the real scanner finish
+once. The completed scanner stays mounted and unbound through another focus
+cycle. Final completion removes that scanner and exposes a separate JavaScript
+checkpoint; native view absence and release must pass again before the test
+requests the unchanged HTTP probe. A missing click acknowledgement therefore
+fails its own stage before a teardown assertion is credited. Each release still
+has the same 20-second wait and requires all four release conditions. Failure
+artifacts record the last stage, captured camera ID, each use-case binding flag,
+CameraX state, selected-camera availability, native view attachment/presence and
+JavaScript scanner state. These are observations, not inferred failure causes.
+Window observations deduplicate native view identities: React Native's modal host
+also exposes the dialog's children from the activity tree. Distinct checkpoint
+views remain distinct and still refuse an ambiguous JavaScript state.
+
+Before its first checkpoint, each scanner mount asks an inactive 1×1 native
+scanner whether generation -1, scan 0 is current and requires `false`. It waits
+for that view's first native window event rather than its layout: under the New
+Architecture a layout event can reach JavaScript before the view is mounted, and
+Expo then rejects the call with `ERR_VIEW_NOT_FOUND`, reported as stage
+`method-native-view-not-found`. Any failure of that check ends the scanner probe;
+when it happens before the native test observes the camera, the Release test
+then fails at `active-unmount-open`, or `remount-open` for the second mount, with
+no camera observation. If the window event never arrives, the check never runs
+and the mount's next checkpoint button never appears: the Release test fails at
+`active-unmount-request`, or `queued-cover-request` for the second mount, after
+its 15-second wait and before the probe's own deadline can report.
+This exercises the loaded bridge with a synthetic event; it does not
+reproduce natural JavaScript queue timing or scan a physical camera image.
+
+The temporary recorder locates the loaded Expo `UntypedAsyncFunctionComponent`
+for this view's `isCurrentScan`. Expo registers the same view definition under
+its name and a compatibility default key; function lookup deduplicates those
+object identities while still rejecting distinct matching functions. It requires
+the original call to return a Boolean and returns that same result unchanged.
+Both its original function body and the exact
+view window callback are restored in `finally`, including a deliberate-throw
+restoration control. A missing reflection shape or an unobserved query fails the
+test. No product module API or scanner source is patched. The ordinary Release
+APK is checked for absence of the test class
+and probe controls; the test uses reflection rather than product test hooks.
+This establishes Release adapter behaviour, not OS permission-prompt behaviour.
+
+An additional native control opens the front camera through the pinned CameraX
+internal camera interface to occupy its opening slot. The back-camera scanner
+must remain bound in `PENDING_OPEN` while that front camera is OPEN. Closing the
+holder must let the same scanner session, camera, use cases, generation and scan
+ID reach OPEN without another request. The holder is closed in `finally`; only
+the separate test APK reads the pinned adapter field. This exercises CameraX
+resource availability, not camera contention with another application. The owned
+emulator must expose both front and back cameras; CI starts it with
+`-camera-front emulated`. All pending-state and recovery assertions remain
+required. A previous same-process Camera2 holder was invalid: opening the same
+camera again disconnects
+the first handle, so it cannot establish the required pending state. Its failed
+emulator run is retained. Cross-application camera priority remains device work.
+The initial JavaScript mount retains its one-minute deadline. The expanded
+continuation has a bounded six-minute deadline to accommodate its independent
+native stages; each native poll retains its existing 15- or 20-second limit.
+Mounted controls require progress past one minute and refusal at the continuation
+deadline, and confirm the initial deadline still applies.
+
+These emulator controls do not replace physical-device verification of sensor
+shutdown, OS permission dialogs, settings or OEM behaviour. The runner retains
+APK hashes, instrumentation logs, screenshots and window diagnostics, including
+failed runs, and removes both owned instrumentation packages during cleanup.
+The cleanup tracker includes attempted installs and uses bounded adb commands
+outside the cancelled command runner. Node controls cover install, instrumentation
+and cancellation failures, absent packages and a cleanup error alongside another
+owned package. Only completed emulator logs establish native results; JavaScript
+and script controls do not certify Kotlin compilation or camera hardware behaviour.
+
+To run only these native controls on an owned emulator after prebuild:
+
+```bash
+cd mobile/android
+./gradlew :ledova-scanner:assembleDebugAndroidTest --no-daemon --max-workers=2
+cd ..
+adb -s "$ANDROID_SERIAL" install -r modules/ledova-scanner/android/build/outputs/apk/androidTest/debug/ledova-scanner-debug-androidTest.apk
+adb -s "$ANDROID_SERIAL" shell am instrument -w -r org.example.ledova.scanner.test/androidx.test.runner.AndroidJUnitRunner
+adb -s "$ANDROID_SERIAL" uninstall org.example.ledova.scanner.test
+```
+
+Require the instrumentation's nonzero `OK (... tests)` result; `am instrument`
+can exit zero after test failure.
+
+## Recording native results
 
 Jest and native probe outcomes are recorded separately. A simulator does not
 establish physical biometric enrollment/change, hardware-backed key properties,
-OEM backup/transfer, store distribution or behavior on every supported OS.
+OEM backup/transfer, store distribution or behaviour on every supported OS.
 Record those limits, any failed native build and the exact tested head in the PR;
 JavaScript tests alone do not close a native hardening claim.
 
@@ -168,7 +303,7 @@ configured project, adds an XCTest target and bundles a small test host. It uses
 the actual native HTTP handler source. Configured Debug must reach the local
 server, unconfigured Debug must refuse without reaching it, and Release must
 refuse HTTP. The stock handler must reach the server in both Debug cases; its
-Release result is recorded because numeric-host ATS behavior depends on the OS
+Release result is recorded because numeric-host ATS behaviour depends on the OS
 and linked SDK. A timeout or unrelated network error cannot count as a refusal.
 
 An intentional change to the generated Debug allowlist guard must produce the
@@ -189,7 +324,7 @@ sanitized result record rather than committing the output directory.
 
 This probe invokes the compiled handler directly. It does not establish React
 Native dispatcher selection, which the separate Release app probe exercises,
-or physical local-network permission behavior. Apple documents that the
+or physical local-network permission behaviour. Apple documents that the
 [simulator does not implement local-network privacy](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy).
 The configured-host result must be repeated on a physical iPhone, with
 permission/reachability recorded separately from
