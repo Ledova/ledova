@@ -11,7 +11,6 @@ from operators.exceptions import SettlementAssetNotDeployedException
 from operators.settlement import require_deployment
 from shared.db import use_operator
 from tokens.exceptions import (
-    LegacySwapHeld,
     SettlementChainDisagreement,
     SettlementContextChanged,
 )
@@ -154,8 +153,8 @@ def capture_settlement_context(swap, deployment, price_per_share=None):
 
 
 def recorded_settlement_context(swap):
-    if swap.settlement_protocol_version == 0:
-        raise LegacySwapHeld()
+    if swap.settlement_protocol_version != SETTLEMENT_PROTOCOL_VERSION:
+        raise SettlementContextChanged()
     context = swap.settlement_context
     try:
         typed = context["typed_data"]

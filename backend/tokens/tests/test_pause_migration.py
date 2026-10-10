@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from django.db import DatabaseError, connections
+from django.db import DatabaseError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
@@ -13,26 +13,12 @@ from blockchain.tests.outgoing_fixtures import (
     chain_client,
 )
 from companies.services.team import revoke_company_appointment
-from shared.db import atomic, current_alias, use_migrate
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import atomic
 from shared.tests.tenants import make_tenant
-from tokens.models import PauseChange, ShareToken
+from tokens.models import PauseChange
 from tokens.services import pause_recovery
 from tokens.tests.pause_fixtures import install_pause
 from tokens.tests.retained_pause_fixtures import retain_pause_change
-
-
-class PauseHistoricalMigrationTest(TransactionTestCase):
-    def test_migration_preserves_existing_token_status_without_admitting_historical_authority(self):
-        tenant = make_tenant("historical-pause")
-        self.addCleanup(restore_every_migration)
-        before = migrate_to([("tokens", "0050_swap_approval_guards")])
-        old = before.get_model("tokens", "ShareToken").objects
-        old.filter(pk=tenant.deployed_token.pk).update(status="paused")
-        original = old.filter(pk=tenant.deployed_token.pk).values().get()
-        restore_every_migration()
-        self.assertEqual(ShareToken.objects.filter(pk=tenant.deployed_token.pk).values().get(), original)
-        self.assertFalse(PauseChange.objects.exists())
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
@@ -99,51 +85,23 @@ class PauseGuardTest(TransactionTestCase):
             outgoing.open_operation(operation.operation_key, **(operation.intent | {"value": 0}))
         self.assertEqual(PauseChange.objects.get(pk=self.change.pk).status, "failed")
 
-    def test_reverse_cannot_remove_pause_recovery_history(self):
-        self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Retain company pause sources"):
-            migrate_to([("tokens", "0050_swap_approval_guards")])
-        restore_every_migration()
-        self.assertTrue(PauseChange.objects.filter(pk=self.change.pk).exists())
-
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
-class CompanyPauseMigrationTest(TransactionTestCase):
-    def test_empty_company_pause_round_trip_preserves_original_guard_definitions(self):
-        self.addCleanup(restore_every_migration)
-        with use_migrate():
-            migrate_to([("tokens", "0103_company_register_capital_guards")])
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute(
-                    "SELECT proname, pg_get_functiondef(oid) FROM pg_proc "
-                    "WHERE proname IN ('protect_pause_change','protect_pause_operation') ORDER BY proname"
-                )
-                original = cursor.fetchall()
-            self.assertTrue(original)
-            restore_every_migration()
-            self.assertFalse(PauseChange.objects.exists())
-            migrate_to([("tokens", "0103_company_register_capital_guards")])
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute(
-                    "SELECT proname, pg_get_functiondef(oid) FROM pg_proc "
-                    "WHERE proname IN ('protect_pause_change','protect_pause_operation') ORDER BY proname"
-                )
-                self.assertEqual(cursor.fetchall(), original)
-            restore_every_migration()
+class RetainedPauseHistoryTest(TransactionTestCase):
 
-    def test_genuine_predecessor_signed_null_source_retains_bytes_and_original_reverse_refusal(self):
-        tenant = make_tenant("legacy-pause-migration")
+    def test_retained_signed_pause_keeps_its_bytes_and_null_company_source(self):
+        tenant = make_tenant("legacy-pause-retained")
         admitted_signer()
         change = retain_pause_change(tenant.deployed_token, tenant.user, signed=True)
         attempt = change.operation.current_attempt
         original = bytes(attempt.raw_transaction), attempt.tx_hash, attempt.nonce
         self.assertIsNone(change.source_pause_id)
-        self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove pause submission"):
-            migrate_to([("tokens", "0050_swap_approval_guards")])
-        restore_every_migration()
+        with self.assertRaisesMessage(DatabaseError, "Retain the original pause source association"), atomic():
+            PauseChange.objects.filter(pk=change.pk).update(source_pause_id=uuid4())
         attempt.refresh_from_db()
+        change.refresh_from_db()
         self.assertEqual((bytes(attempt.raw_transaction), attempt.tx_hash, attempt.nonce), original)
+        self.assertIsNone(change.source_pause_id)
         self.assertTrue(PauseChange.objects.filter(pk=change.pk).exists())
 
     def test_raw_predecessor_unsigned_execution_cannot_gain_a_fresh_signature_under_current_guards(self):

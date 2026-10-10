@@ -3,7 +3,6 @@ import io
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
-from importlib import import_module
 from queue import Queue
 from unittest.mock import patch
 from uuid import uuid4
@@ -21,7 +20,6 @@ from companies.services.authority import DECLARATION_VERSION
 from companies.services.team import accept_team_invitation, issue_team_invitation
 from shared.db import atomic, current_alias, use_operator
 from shared.storage import private_storage
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -48,14 +46,12 @@ from tokens.tests.register_command_fixtures import legacy_entry_before_company_t
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_imports import (
     LIVE,
-    RESIDENCE,
     apply_import,
 )
 from tokens.tests.test_register_imports import decide as decide_import
 from tokens.tests.test_register_imports import forge_decision as forge_import_decision
 from tokens.tests.test_register_imports import forge_outcome as forge_import_outcome
 from tokens.tests.test_register_imports import (
-    import_fixture,
     import_payload,
     live_wallet,
     owner_appointment,
@@ -789,97 +785,6 @@ class RegisterParticularsApiTest(APITransactionTestCase):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(detail).status_code, 401)
         self.assertEqual(self.client.post(PARTICULARS_CHANGES, self.payload, format="json").status_code, 401)
-
-
-class RegisterParticularsMigrationTest(TransactionTestCase):
-    GUARDS = ("tokens_guard_register_evidence", "tokens_guard_register_import")
-    FUNCTIONS = (
-        "tokens_check_register_particulars_decision",
-        "tokens_guard_register_member_particulars",
-        "tokens_guard_register_particulars_change",
-        "tokens_guard_register_particulars_decision",
-        "tokens_register_particulars_approved",
-        "tokens_register_particulars_decision_digest",
-    )
-    PINNED = ["search_path=pg_catalog, public, pg_temp"]
-
-    def installed(self, names):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, prosrc FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(names)]
-            )
-            return cursor.fetchall()
-
-    def configured(self, names):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(names)]
-            )
-            return cursor.fetchall()
-
-    def test_upgrade_dates_each_members_imported_particulars_from_its_import(self):
-        self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0082_company_eligibility_admission")])
-        owner, _, token, member, appointment, register_copy, asic, _ = import_fixture()
-        proposal = prepared_import(
-            owner, import_payload(token, register_copy, asic, member, appointment, as_at="2026-09-01")
-        )
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO tokens_registermemberparticulars (uuid, created_at, updated_at, member_id, name, "
-                "residential_address, source_import_id) VALUES (%s, now(), now(), %s, 'Mia Member', %s, %s)",
-                [uuid4(), member.pk, RESIDENCE, proposal.pk],
-            )
-        restore_every_migration()
-        held = RegisterMemberParticulars.objects.get(member=member)
-        self.assertEqual(
-            (held.name, held.as_at, held.source_import_id, held.source_change_id),
-            ("Mia Member", date(2026, 9, 1), proposal.pk, None),
-        )
-
-    def test_reversal_restores_the_earlier_guards_and_upload_kinds_then_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        every = self.GUARDS + self.FUNCTIONS
-        previous = ("tokens", "0082_company_eligibility_admission")
-        company_run, pinned = self.installed(every), self.configured(every)
-        self.assertEqual(pinned, [(name, self.PINNED) for name in sorted(every)])
-        self.assertIn("'supporting'", dict(company_run)["tokens_guard_register_evidence"])
-        self.assertIn("p.source_change_id IS NOT NULL", dict(company_run)["tokens_guard_register_import"])
-        migrate_to([("tokens", "0063_swap_finalized_receipt")])
-        migrate_to([previous])
-        earlier = self.installed(self.GUARDS)
-        self.assertEqual(self.configured(self.GUARDS), [(name, self.PINNED) for name in self.GUARDS])
-        self.assertNotIn("'supporting'", dict(earlier)["tokens_guard_register_evidence"])
-        self.assertNotIn("source_change_id", dict(earlier)["tokens_guard_register_import"])
-        self.assertEqual(self.installed(self.FUNCTIONS), [])
-        restore_every_migration()
-        self.assertEqual((self.installed(every), self.configured(every)), (company_run, pinned))
-        migrate_to([previous])
-        self.assertEqual((self.installed(self.GUARDS), self.installed(self.FUNCTIONS)), (earlier, []))
-        self.assertEqual(self.configured(self.GUARDS), [(name, self.PINNED) for name in self.GUARDS])
-        restore_every_migration()
-        self.assertEqual((self.installed(every), self.configured(every)), (company_run, pinned))
-
-    def test_reversal_refuses_while_changes_or_supporting_uploads_exist(self):
-        owner, _, _, member, appointment, evidence = particulars_fixture()
-        company_run = self.installed(self.GUARDS + self.FUNCTIONS)
-        migration = import_module("tokens.migrations.0091_company_particulars_change_guards")
-
-        def refused():
-            with self.assertRaisesMessage(DatabaseError, "Retain particulars changes"), atomic():
-                with connections[current_alias()].schema_editor() as editor:
-                    migration.remove_company_particulars(None, editor)
-            self.assertEqual(self.installed(self.GUARDS + self.FUNCTIONS), company_run)
-
-        refused()
-        prepared(owner, change_payload(member, evidence, appointment))
-        with atomic(), connections[current_alias()].cursor() as cursor:
-            cursor.execute("ALTER TABLE tokens_registerevidence DISABLE TRIGGER tokens_register_evidence_guard")
-            try:
-                cursor.execute("UPDATE tokens_registerevidence SET kind = 'authority' WHERE uuid = %s", [evidence.pk])
-            finally:
-                cursor.execute("ALTER TABLE tokens_registerevidence ENABLE TRIGGER tokens_register_evidence_guard")
-        refused()
 
 
 class ScopedRegisterParticularsTest(RunsOnTheScopedConnection, APITransactionTestCase):

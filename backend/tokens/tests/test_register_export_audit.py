@@ -1,5 +1,4 @@
 import hashlib
-import importlib
 from datetime import timedelta
 from uuid import uuid4
 
@@ -188,17 +187,6 @@ class RegisterExportAuditTest(TestCase):
             ):
                 self.insert(**{**CERTIFICATE, field: value})
         self.assertEqual(RegisterExport.objects.count(), 4)
-
-    def test_downgrade_refuses_to_discard_certificate_records(self):
-        migration = importlib.import_module("tokens.migrations.0075_register_certificates")
-        copied(self.token, self.owner)
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            migration.refuse_reversal(None, editor)
-        certificate = certified(self.token, self.owner)
-        with self.assertRaisesRegex(RuntimeError, "Retain certificate records"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.refuse_reversal(None, editor)
-        self.assertTrue(RegisterExport.objects.filter(pk=certificate.pk).exists())
 
     def test_the_purge_keeps_records_until_the_seven_year_clock_then_removes_them(self):
         exported_at = self.record.created_at

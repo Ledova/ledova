@@ -2,14 +2,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from datetime import timezone as utc_zone
-from importlib import import_module
 from queue import Queue
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib import admin
-from django.db import DatabaseError, connection, connections
+from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -19,7 +18,6 @@ from rest_framework.test import APITransactionTestCase
 from companies.models import Company
 from companies.services.administration import company_operation
 from shared.db import atomic, current_alias, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES
 from tokens.exceptions import RegisterChangeConflict
@@ -27,7 +25,6 @@ from tokens.models import (
     RegisterCorrection,
     RegisterCorrectionDecision,
     RegisterEntry,
-    RegisterEvidence,
     RegisterEvidenceKind,
     ShareRegister,
 )
@@ -560,111 +557,6 @@ class RegisterCorrectionApiTest(APITransactionTestCase):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(detail).status_code, 401)
         self.assertEqual(self.client.post(CORRECTIONS, self.payload, format="json").status_code, 401)
-
-
-class RegisterCorrectionMigrationTest(TransactionTestCase):
-    GUARDS = ("tokens_guard_register_correction", "tokens_guard_register_evidence")
-    FUNCTIONS = (
-        "tokens_register_correction_approved",
-        "tokens_register_correction_decision_digest",
-        "tokens_guard_register_correction_decision",
-        "tokens_check_register_correction_decision",
-    )
-
-    def installed(self, names=GUARDS):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, prosrc FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(names)]
-            )
-            return cursor.fetchall()
-
-    def configured(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
-                [list(self.GUARDS + self.FUNCTIONS)],
-            )
-            return cursor.fetchall()
-
-    def insert_policy(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_get_expr(polwithcheck, polrelid) FROM pg_policy "
-                "WHERE polname = 'tokens_registercorrection_insert'"
-            )
-            return cursor.fetchone()[0]
-
-    def test_upgrade_preserves_register_history_without_fabricated_proposals(self):
-        self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0063_swap_finalized_receipt")])
-        _, _, _, _, _, opening = register_fixture()
-        original_hash = opening.entry_hash
-        restore_every_migration()
-        self.assertEqual(RegisterEntry.objects.get(pk=opening.pk).entry_hash, original_hash)
-        self.assertFalse(RegisterCorrection.objects.exists())
-
-    def test_reversal_restores_the_staff_review_guard_owner_submissions_and_upload_kinds_then_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        previous = ("tokens", "0084_company_register_import_guards")
-        company_run, closed, pinned = self.installed(), self.insert_policy(), self.configured()
-        self.assertEqual(
-            pinned,
-            [(name, ["search_path=pg_catalog, public, pg_temp"]) for name in sorted(self.GUARDS + self.FUNCTIONS)],
-        )
-        self.assertIn("tokens_registercorrectiondecision", dict(company_run)["tokens_guard_register_correction"])
-        self.assertIn("'authority'", dict(company_run)["tokens_guard_register_evidence"])
-        self.assertNotIn("submitted_by_id", closed)
-        self.assertEqual(len(self.installed(self.FUNCTIONS)), 4)
-        migrate_to([("tokens", "0063_swap_finalized_receipt")])
-        migrate_to([previous])
-        earlier = self.installed()
-        self.assertEqual(dict(self.configured())["tokens_guard_register_correction"], None)
-        self.assertIn("Only operator review may decide", dict(earlier)["tokens_guard_register_correction"])
-        self.assertNotIn("'authority'", dict(earlier)["tokens_guard_register_evidence"])
-        self.assertIn("submitted_by_id", self.insert_policy())
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy(), self.configured()), (company_run, closed, pinned))
-        migrate_to([previous])
-        self.assertEqual(self.installed(), earlier)
-        self.assertIn("submitted_by_id", self.insert_policy())
-        self.assertEqual(self.installed(self.FUNCTIONS), [])
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy()), (company_run, closed))
-
-    def test_reversal_refuses_while_company_corrections_decisions_or_authority_uploads_exist(self):
-        correction_fixture()
-        company_run = self.installed()
-        migration = import_module("tokens.migrations.0086_company_register_correction_guards")
-        with self.assertRaisesMessage(DatabaseError, "Retain company register corrections"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_company_corrections(None, editor)
-        self.assertEqual(self.installed(), company_run)
-
-    def test_reversal_refuses_while_a_company_decision_on_a_staff_era_correction_exists(self):
-        owner, _, appointment, issue, evidence = correction_fixture()
-        proposal = staff_era(prepared(owner, correction_payload(issue, evidence, appointment)))
-        with use_migrate(), atomic(), connections[current_alias()].cursor() as cursor:
-            cursor.execute("ALTER TABLE tokens_registerevidence DISABLE TRIGGER tokens_register_evidence_guard")
-            try:
-                RegisterEvidence.objects.filter(pk=evidence.pk).update(kind=RegisterEvidenceKind.SHARE_REGISTER)
-            finally:
-                cursor.execute("ALTER TABLE tokens_registerevidence ENABLE TRIGGER tokens_register_evidence_guard")
-        decide(owner, appointment, proposal, "reject", reason="Prepared for the retired staff review")
-        company_run = self.installed()
-        migration = import_module("tokens.migrations.0086_company_register_correction_guards")
-        with self.assertRaisesMessage(DatabaseError, "Retain company register corrections"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_company_corrections(None, editor)
-        self.assertEqual(self.installed(), company_run)
-
-    def test_the_original_reversal_still_refuses_to_discard_existing_proposals(self):
-        owner, _, appointment, issue, evidence = correction_fixture()
-        proposal = prepared(owner, correction_payload(issue, evidence, appointment))
-        migration = import_module("tokens.migrations.0064_reviewed_register_corrections")
-        with self.assertRaisesRegex(RuntimeError, "Retain correction"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_guards(None, editor)
-        self.assertTrue(RegisterCorrection.objects.filter(pk=proposal.pk).exists())
 
 
 class ScopedRegisterCorrectionTest(RunsOnTheScopedConnection, APITransactionTestCase):

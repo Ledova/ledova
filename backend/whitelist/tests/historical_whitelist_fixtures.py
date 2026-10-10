@@ -9,9 +9,11 @@ from django.utils import timezone
 from blockchain.models import OutgoingStatus
 from blockchain.services import outgoing
 from shared.db import current_alias, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
+from tokens.tests.retained_guards import WALLET_GUARDS
 from whitelist.models import (
     WhitelistAction,
+    WhitelistApproval,
     WhitelistAuthority,
     WhitelistChange,
     WhitelistChangeStatus,
@@ -25,7 +27,6 @@ SOURCE_TABLES = (
     "whitelist_companywalletinstruction",
     "whitelist_companywalletinstructiondecision",
 )
-PREDECESSOR = [("whitelist", "0010_company_wallet_instructions")]
 PERMISSIONS = {
     WhitelistAuthority.OPERATOR_API: None,
     WhitelistAuthority.WHITELIST_ADMIN: "whitelist.change_whitelistentry",
@@ -117,10 +118,7 @@ def _retained_signed_change(
                     raise AssertionError(
                         "Predecessor history cannot remove guards over retained company wallet sources."
                     )
-        try:
-            apps = migrate_to(PREDECESSOR)
-            historical_change = apps.get_model("whitelist", "WhitelistChange")
-            historical_approval = apps.get_model("whitelist", "WhitelistApproval")
+        with retained_rows(*WALLET_GUARDS):
             with historical_operator():
                 alias = current_alias()
                 original_actor = get_user_model().objects.get(pk=actor.pk)
@@ -135,7 +133,7 @@ def _retained_signed_change(
                 address = entry.wallet_address.lower()
                 intent = changes._intent(action, address, registry_for(company, client), expiry)
                 with changes.target_transaction(intent["chain_id"], intent["to"], address):
-                    change = historical_change.objects.using(alias).create(
+                    change = WhitelistChange.objects.using(alias).create(
                         uuid=submission_id or uuid4(),
                         action=action,
                         address=address,
@@ -151,7 +149,7 @@ def _retained_signed_change(
                         source_instruction_id=None,
                     )
                     approval, _ = (
-                        historical_approval.objects.using(alias)
+                        WhitelistApproval.objects.using(alias)
                         .select_for_update()
                         .get_or_create(
                             entry_id=entry.pk, company_id=company.pk, defaults={"registry_address": intent["to"]}
@@ -159,7 +157,7 @@ def _retained_signed_change(
                     )
                     if approval.registry_address != intent["to"]:
                         raise AssertionError("Predecessor history cannot relabel an existing approval registry.")
-                    historical_approval.objects.using(alias).filter(pk=approval.pk).update(
+                    WhitelistApproval.objects.using(alias).filter(pk=approval.pk).update(
                         status="pending", updated_at=timezone.now()
                     )
                 observed = changes._observe_membership(change, client)
@@ -181,8 +179,6 @@ def _retained_signed_change(
                 retained = bytes(attempt.raw_transaction)
                 operation_id, claim_id, attempt_id = claim.operation_id, claim.claim_id, attempt.pk
                 change_id = change.pk
-        finally:
-            restore_every_migration()
     with use_operator():
         current = WhitelistChange.objects.select_related("operation__current_attempt").get(pk=change_id)
         if (
@@ -193,5 +189,5 @@ def _retained_signed_change(
             or current.operation.current_attempt_id != attempt_id
             or bytes(current.operation.current_attempt.raw_transaction) != retained
         ):
-            raise AssertionError("The upgraded fixture must retain its exact original NULL-source signed history.")
+            raise AssertionError("The fixture must retain its exact original NULL-source signed history.")
         return current

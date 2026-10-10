@@ -3,20 +3,18 @@ from uuid import uuid4
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from companies.services.editing import update_company
 from feature_flags.models import FeatureFlag
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import (
     make_associated,
     make_eligible,
 )
 from tokens.models import ShareToken
 from tokens.services.market_data_service import market_summaries
-from tokens.tests.market_fixtures import make_market_tenant
+from tokens.tests.market_fixtures import complete_market_trade, make_market_tenant
 
 DIRECTORY = "/api/v1/directory/tokens/"
 TRADING = "/api/v1/trading/tokens/"
@@ -29,17 +27,12 @@ class MarketSummaryTest(APITransactionTestCase):
         self.bob = make_market_tenant("bob")
         make_eligible(self.alice)
         make_eligible(self.bob)
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.alice.swap.pk).update(
-            status="completed", completed_at=timezone.now()
-        )
-        restore_every_migration()
         self.alice_decision = accept_company_eligibility(self.alice)
         self.bob_decision = accept_company_eligibility(self.bob)
         accept_company_eligibility(self.alice, issuer_decision=self.bob_decision)
         for tenant in (self.alice, self.bob):
             tenant.company = update_company(tenant.company, {"is_open_to_investors": True}, actor=tenant.user)
+        complete_market_trade(self, self.alice, "market-summary-execution")
         self.client.force_authenticate(self.alice.user)
 
     @staticmethod

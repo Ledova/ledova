@@ -1,10 +1,9 @@
-from importlib import import_module
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, IntegrityError, connection, connections
+from django.db import IntegrityError, connections
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -16,7 +15,6 @@ from companies.services.administration import company_operation
 from companies.tests.test_document_file_access import ADMIN_STORAGES
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
-from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterEvidenceKind,
@@ -488,76 +486,3 @@ class RegisterWalletLinkApiTest(APITransactionTestCase):
         self.assertTrue(
             {field.name for field in RegisterWalletLink._meta.fields} - {"file"} <= set(model_admin.readonly_fields)
         )
-
-
-class RegisterWalletLinkMigrationTest(TransactionTestCase):
-    GUARD = "tokens_guard_register_wallet_link"
-    FUNCTIONS = (
-        "tokens_check_register_link_decision",
-        "tokens_guard_register_link_decision",
-        "tokens_register_link_approved",
-        "tokens_register_link_decision_digest",
-    )
-    PINNED = ["search_path=pg_catalog, public, pg_temp"]
-    PREVIOUS = ("tokens", "0091_company_particulars_change_guards")
-
-    def installed(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, prosrc, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
-                [[self.GUARD, *self.FUNCTIONS]],
-            )
-            return cursor.fetchall()
-
-    def insert_policy(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_get_expr(polwithcheck, polrelid) FROM pg_policy "
-                "WHERE polname = 'tokens_registerwalletlink_insert'"
-            )
-            return cursor.fetchone()[0]
-
-    def test_reversal_restores_the_staff_review_guard_and_owner_submissions_then_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        company_run, closed = self.installed(), self.insert_policy()
-        self.assertEqual(
-            [(name, config) for name, _, config in company_run],
-            [(name, self.PINNED) for name in sorted((self.GUARD, *self.FUNCTIONS))],
-        )
-        self.assertIn(
-            "tokens_registerwalletlinkdecision", {name: source for name, source, _ in company_run}[self.GUARD]
-        )
-        self.assertNotIn("submitted_by_id", closed)
-        migrate_to([("tokens", "0066_issuance_finality_and_boundary_history")])
-        migrate_to([self.PREVIOUS])
-        original = self.installed()
-        self.assertEqual([(name, config) for name, _, config in original], [(self.GUARD, None)])
-        self.assertIn("is_active AND is_staff", original[0][1])
-        self.assertIn("submitted_by_id", self.insert_policy())
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy()), (company_run, closed))
-        migrate_to([self.PREVIOUS])
-        self.assertEqual((self.installed(), "submitted_by_id" in self.insert_policy()), (original, True))
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy()), (company_run, closed))
-
-    def test_reversal_refuses_while_a_company_link_or_a_link_decision_exists(self):
-        owner, company, _, appointment, evidence = link_fixture()
-        link = prepared(owner, link_payload(company, evidence, appointment))
-        company_run = self.installed()
-        migration = import_module("tokens.migrations.0093_company_register_wallet_link_guards")
-
-        def refused():
-            with self.assertRaisesMessage(DatabaseError, "Retain company wallet links"), atomic():
-                with connections[current_alias()].schema_editor() as editor:
-                    migration.remove_company_links(None, editor)
-            self.assertEqual(self.installed(), company_run)
-
-        refused()
-        decide(owner, appointment, staff_era(link), "reject", "Submitted for the retired staff review")
-        refused()
-        original = import_module("tokens.migrations.0067_register_wallet_links")
-        with self.assertRaisesRegex(RuntimeError, "Retain wallet link requests"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                original.remove_guards(None, editor)
-        self.assertEqual(RegisterWalletLink.objects.get(pk=link.pk).status, "rejected")

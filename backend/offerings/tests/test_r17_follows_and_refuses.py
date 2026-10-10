@@ -1,14 +1,13 @@
 from unittest import skipUnless
 
 from django.db import connection
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase
 
 from companies.models import Company, CompanyStatus, CompanyType
 from companies.validators import acn_check_digit
 from offerings.models import Offering
 from offerings.models.offering import LIVE_OFFERING_STATUSES
 from shared.constants import BLOCKCHAIN_BASE
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
 
@@ -84,26 +83,3 @@ class AnOfferingFollowsItsTokenAndWillNotChangeCompanyTest(TestCase):
         self.offering.refresh_from_db()
         self.assertEqual(self.offering.token_id, self.sibling.uuid)
         self.assertEqual(self.offering.company_id, self.tenant.company.uuid)
-
-
-@skipUnless(POSTGRES, REASON)
-class AnOfferingWhoseTokenChangedCompanyIsNotWedgedTest(TransactionTestCase):
-
-    def tearDown(self):
-        restore_every_migration()
-        super().tearDown()
-
-    def test_the_old_refusal_is_back_after_the_reverse_and_gone_after_the_forward(self):
-        tenant = make_tenant("r17stale")
-        second = _company(tenant.user, "Second", 99000001)
-
-        migrate_to([("offerings", "0005_r0_owner_columns")])
-        ShareToken.objects.filter(pk=tenant.deployed_token.pk).update(company=second)
-        with self.assertRaises(Exception) as wedged:
-            Offering.objects.filter(pk=tenant.offering.pk).update(summary="renamed")
-        self.assertIn("does not match its parent", str(wedged.exception))
-
-        migrate_to([("offerings", "0006_trigger_follows_and_refuses")])
-        Offering.objects.filter(pk=tenant.offering.pk).update(summary="renamed twice")
-        tenant.offering.refresh_from_db()
-        self.assertEqual(tenant.offering.company_id, second.uuid)

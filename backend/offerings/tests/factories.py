@@ -118,13 +118,15 @@ def extra_wallet(tenant, suffix):
     return wallet
 
 
-def retained_paid_execution(subscription, actor, *, signed_client=None, **request_fields):
-    from unittest.mock import patch
-
+def retained_paid_execution(subscription, actor, *, signed_client=None):
     from blockchain.services import outgoing
     from shared.db import atomic
-    from shared.tests.schema import migrate_to, restore_every_migration
-    from tokens.models import ShareIssuanceExecution, ShareIssuanceRequest
+    from shared.tests.retained_rows import retained_rows
+    from tokens.models import (
+        RegisterInstruction,
+        ShareIssuanceExecution,
+        ShareIssuanceRequest,
+    )
     from tokens.services import issuance_execution
     from tokens.services.register_openings import _retain
     from tokens.tests.instruction_fixtures import (
@@ -133,9 +135,9 @@ def retained_paid_execution(subscription, actor, *, signed_client=None, **reques
         verified_authority,
     )
     from tokens.tests.issuance_fixtures import KEY
+    from tokens.tests.retained_guards import INSTRUCTION_GUARDS, ISSUANCE_GUARDS
 
-    try:
-        historical = migrate_to([("tokens", "0106_company_register_paid_issues")])
+    with use_migrate(), retained_rows(*(ISSUANCE_GUARDS + INSTRUCTION_GUARDS)):
         with use_operator(), atomic(durable=True):
             subscription.refresh_from_db()
             request = ShareIssuanceRequest.objects.create(
@@ -144,7 +146,6 @@ def retained_paid_execution(subscription, actor, *, signed_client=None, **reques
                 amount=subscription.allotment_quantity,
                 submitted_by=actor,
                 reason="Retained paid subscription allotment",
-                **request_fields,
             )
             request.approve(actor)
             subscription.issuance_request = request
@@ -153,7 +154,7 @@ def retained_paid_execution(subscription, actor, *, signed_client=None, **reques
             reviewer = instruction_reviewer()
             document = verified_authority(subscription.company, reviewer)
             payload = instruction_payload(subscription.offering.token, document, [subscription])
-            proposal = historical.get_model("tokens", "RegisterInstruction")(
+            proposal = RegisterInstruction(
                 uuid=payload["operation_id"],
                 company_id=subscription.company_id,
                 token_id=subscription.offering.token_id,
@@ -163,19 +164,14 @@ def retained_paid_execution(subscription, actor, *, signed_client=None, **reques
                 authority_reference=payload["authority_reference"],
                 reason=payload["reason"],
             )
-            owner = historical.get_model("authentication", "CustomUser").objects.get(pk=subscription.company.owner_id)
-            with atomic(), patch(
-                "tokens.services.register_openings.CompanyDocument",
-                historical.get_model("companies", "CompanyDocument"),
-            ):
+            owner = subscription.company.owner
+            with atomic():
                 _retain(proposal, document.pk, owner)
                 proposal.status = "applied"
                 proposal.reviewed_by_id = reviewer.pk
                 proposal.reviewed_at = timezone.now()
                 proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
-            if request.dispatch_id is None:
-                return request, None
-            command = historical.get_model("tokens", "ShareIssuanceExecution").objects.create(
+            command = ShareIssuanceExecution.objects.create(
                 pk=request.dispatch_id,
                 request_id=request.pk,
                 subscription_id=subscription.pk,
@@ -195,6 +191,4 @@ def retained_paid_execution(subscription, actor, *, signed_client=None, **reques
                     KEY,
                     on_signed=lambda attempt: issuance_execution._record_signed(command.pk, attempt),
                 )
-    finally:
-        restore_every_migration()
     return request, ShareIssuanceExecution.objects.get(pk=command.pk)

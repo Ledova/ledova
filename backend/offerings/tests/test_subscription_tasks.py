@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
+from blockchain.tests.outgoing_fixtures import admitted_signer
 from offerings.models import Subscription, SubscriptionStatus
 from offerings.querysets.subscription import SubscriptionQuerySet
 from offerings.services.subscription import retry_allotment
@@ -24,18 +25,20 @@ from offerings.tests.factories import (
     subscription_technical_actor,
 )
 from offerings.tests.test_allotment import CompanyAllotmentTestCase
+from shared.db import use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     IssuanceStatus,
     RequestStatus,
     ShareIssuance,
-    ShareIssuanceRequest,
 )
 from tokens.services import issuance_execution
 from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 from tokens.tests.issuance_fixtures import (
     CHAIN_ID,
+    FINALITY_POLICIES,
     KEY,
+    IssuanceNode,
 )
 
 
@@ -124,15 +127,36 @@ class CompanySubscriptionTaskTest(CompanyAllotmentTestCase):
 
 
 class SubscriptionTaskTest(SubscriptionTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.node = IssuanceNode()
+        with use_operator():
+            admitted_signer()
 
-    def historical_allotment(self, wallet):
+    def completed_allotment_without_projection(self, wallet):
         subscription = self._history_subscription(wallet)
-        request, _ = retained_paid_execution(subscription, self.operator_user, dispatch_id=None)
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
+        request, execution = retained_paid_execution(subscription, self.operator_user, signed_client=self.node.client)
+        with (
+            override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES),
+            patch("tokens.services.issuance_execution.get_base_chain_client", return_value=self.node.client),
+            patch("tokens.services.share_token_service.seed_recipient_holding"),
+            patch.object(Subscription, "mark_allotted"),
+            use_operator(),
+        ):
+            self.assertEqual(issuance_execution.recover(execution.pk)["status"], RequestStatus.EXECUTED)
+        request.refresh_from_db()
+        execution.refresh_from_db()
+        subscription.refresh_from_db()
+        self.assertIsNotNone(request.dispatch_id)
+        self.assertEqual(request.executed_issuance_id, execution.issuance_id)
+        self.assertIsNone(execution.source_instruction_id)
+        self.assertEqual(execution.transaction.tx_hash, execution.operation.current_attempt.tx_hash)
+        self.assertIsNotNone(execution.finalized_receipt)
+        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
         return subscription
 
     def test_reconcile_repairs_historical_projection_and_preserves_unsigned_history_and_unentered_rows(self):
-        mirrored = self.historical_allotment(extra_wallet(self.tenant, "1"))
+        mirrored = self.completed_allotment_without_projection(extra_wallet(self.tenant, "1"))
         untouched_paid = paid_subscription(self.tenant, wallet=extra_wallet(self.tenant, "2"))
         untouched_draft = draft_subscription(self.tenant, wallet=extra_wallet(self.tenant, "3"))
         pending = self._legacy_pending(extra_wallet(self.tenant, "4"))
@@ -149,7 +173,7 @@ class SubscriptionTaskTest(SubscriptionTaskTestCase):
 
     def test_a_sweep_takes_a_bounded_bite_and_the_next_run_takes_the_rest(self):
         for letter in ("1", "2", "3"):
-            self.historical_allotment(extra_wallet(self.tenant, letter))
+            self.completed_allotment_without_projection(extra_wallet(self.tenant, letter))
         with patch("offerings.tasks.subscription.SWEEP_BATCH", 2):
             self.assertEqual(reconcile_subscriptions(), {"flipped": 2})
             self.assertEqual(reconcile_subscriptions(), {"flipped": 1})

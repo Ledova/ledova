@@ -4,6 +4,48 @@
 
 Apply only the migration notes relevant to the database you are upgrading. Schema reversibility does not guarantee data restoration.
 
+## Adopting the migration baseline
+
+The [10 October owner decision](../decisions.md#backend-migration-baseline)
+replaces shipped project migrations with a baseline, using dependency phases
+where needed. Their source and earlier upgrade notes remain in Git history.
+The notes below describe those pre-baseline changes; use the last pre-baseline
+release to complete them on an existing database. Fresh databases build directly
+from the baseline.
+
+Adopting this baseline on **ledova.io requires the owner's explicit release
+approval**, a database/private-storage backup and rehearsal on a restored copy.
+Implementation or green CI does not authorise that live release.
+
+1. With the old code at the
+   [recorded cut](https://github.com/Ledova/ledova/issues/860#issuecomment-6101119001),
+   main `b325fea6b816a075003cb97954b5df03e20251b1`, complete every old project
+   and required vendor migration. Preserve genuine records, referenced private
+   files and unresolved signed operations. A partly upgraded database must finish
+   the old chain before switching code.
+2. Rehearse the switch with matching configuration on the restored copy. The
+   baseline PR must record fresh old-chain/baseline schema, reference-data,
+   role/ACL and guard equivalence, plus unchanged application rows and schema
+   during old-cut adoption. Keep the backup and matching old release available.
+3. On the copy, switch to the baseline release with API/worker writers stopped. From
+   `backend/`, inspect `python manage.py migrate --plan`, then use
+   `python manage.py migrate --noinput`. A complete old cut is adopted through
+   Django replacement records without replaying baseline schema operations.
+   The history guard refuses partial old project/vendor history before planning
+   or DDL; do not use `--fake`, delete records or edit the recorder to bypass it.
+4. Verify role/catalogue and private-media checks, supported application health
+   and retained recovery state before restarting writers. Record the rehearsed
+   release and results, resolve any failures, then obtain the owner's explicit
+   approval before repeating the successful procedure on ledova.io.
+
+The baseline does not provide a downgrade to an earlier shipped schema.
+Recovery uses a preserved backup with its matching release and the separately
+approved procedure. Never discard retained rows to force a reversal. New
+post-baseline migrations still need their own focused upgrade/refusal checks,
+as the [testing guide](../development/testing.md#migration-baseline) describes.
+Essential process/timing repairs, one backend job group and `make preflight`
+remain later #943 work.
+
 ## One registry product
 
 `operators/0002_remove_operator_deployment_mode` removes only the legacy
@@ -23,11 +65,10 @@ new clients do not query the operator to decide whether evidence is available.
 The generated OpenAPI snapshot and shared types no longer contain the field or
 its enum. This retirement requires no contract deployment or signer activation.
 
-Rehearse against a restored database with its private storage. From `backend/`,
-the ordinary suite includes `operators.tests.test_product_mode_migration`,
-which upgrades historical models from both old mode values and verifies
-configuration, evidence bytes, extraction/read history, payment records and
-register entries before and after reversal. Run the required
+Rehearse against a restored database with its private storage. The original
+mode-upgrade tests remain in Git history; current code uses the
+[baseline adoption checks](#adopting-the-migration-baseline) and retains runtime
+configuration, private-evidence, payment and register assertions. Run the required
 [ordinary/scoped suites and role/catalogue checks](../development/testing.md#commands)
 before release.
 

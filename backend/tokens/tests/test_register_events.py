@@ -1,4 +1,3 @@
-import importlib
 import json
 from datetime import date, timedelta
 from io import StringIO
@@ -6,7 +5,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 
-from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -291,13 +289,6 @@ class RegisterEventsTest(TestCase):
                 )
             verify_register(self.register.pk)
         self.assertEqual(self.shares(self.member), 100)
-
-    def test_reverse_migration_refuses_to_discard_recorded_history(self):
-        migration = importlib.import_module("tokens.migrations.0062_register_foundation")
-        with self.assertRaisesRegex(RuntimeError, "Retain register history"):
-            with connections[current_alias()].schema_editor(atomic=False) as editor:
-                migration.remove_guards(apps, editor)
-        self.assertEqual(verify_register(self.register.pk)["entries"], 1)
 
     def test_grants_refuse_a_missing_table_after_its_creation_migration(self):
         with self.assertRaisesRegex(RuntimeError, "tokens_registerposition"), atomic():

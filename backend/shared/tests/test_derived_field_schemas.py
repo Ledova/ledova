@@ -23,10 +23,11 @@ from offerings.models import Offering, OfferingStatus
 from operators.models import Operator
 from shared.db import use_migrate
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import YieldToken
 from tokens.tests.market_fixtures import record_synthetic_admission
+from tokens.tests.swap_execution_fixtures import make_execution, signed_execution
+from tokens.tests.swap_state_fixtures import BUYER, SELLER
 from users.models import UserProfile
 
 ASSETS = "/api/assets/"
@@ -462,6 +463,7 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertEqual(datetime.fromisoformat(body["startedAt"]), now)
         self.assert_matches(self.response_schema(DOCUMENTS, page=True)["properties"]["latestExtraction"], body)
 
+    @override_settings(ATOMIC_SWAP_ADDRESS="0x" + "a" * 40)
     def test_issuer_and_directory_prices_remain_decimal_strings_or_null(self):
         for order in (self.owner.order, self.owner.counter_order):
             record_synthetic_admission(order)
@@ -477,12 +479,12 @@ class DerivedFieldResponseSchemaTest(APITransactionTestCase):
         self.assertIsNone(untraded["lastPrice"])
         self.assert_fields_match(schema, untraded, fields)
         self.assertEqual(self.get_json(DIRECTORY)["results"], [])
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.owner.swap.pk).update(
-            status="completed", completed_at=timezone.now()
+        fixture = make_execution("derived-price", issuer=self.owner)
+        signed_execution(
+            self,
+            fixture.swap,
+            (("seller", fixture.seller.user, SELLER), ("buyer", fixture.buyer.user, BUYER)),
         )
-        restore_every_migration()
         accept_company_eligibility(self.owner)
         open_to_investors(self.owner)
         for path in (TOKENS, DIRECTORY):

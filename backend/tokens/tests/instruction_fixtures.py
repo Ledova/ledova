@@ -1,4 +1,3 @@
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -83,12 +82,13 @@ def apply_instruction(token, *rows, reviewer=None, document=None):
 
 
 def retained_approved_request(token, recipient_address, *, reviewer=None, notes="", **fields):
-    from shared.tests.schema import migrate_to, restore_every_migration
+    from shared.db import use_migrate
+    from shared.tests.retained_rows import retained_rows
     from tokens.models import ShareIssuanceRequest
+    from tokens.tests.retained_guards import REQUEST_GUARDS
 
     reviewer = reviewer or instruction_reviewer()
-    try:
-        migrate_to([("tokens", "0099_company_register_deployment_guards")])
+    with use_migrate(), retained_rows(*REQUEST_GUARDS):
         request = ShareIssuanceRequest.objects.create(
             token=token,
             recipient_address=recipient_address,
@@ -99,26 +99,24 @@ def retained_approved_request(token, recipient_address, *, reviewer=None, notes=
             **fields,
         )
         request.approve(reviewer, notes=notes)
-    finally:
-        restore_every_migration()
     request.refresh_from_db()
     return request
 
 
 def retained_instruction(*, actor, **payload):
-    from shared.db import atomic
-    from shared.tests.schema import migrate_to, restore_every_migration
+    from shared.db import atomic, use_migrate
+    from shared.tests.retained_rows import retained_rows
     from tokens.models import RegisterInstruction, ShareToken
     from tokens.services.register_instructions import _items
     from tokens.services.register_openings import _authority_values, _retain
+    from tokens.tests.retained_guards import INSTRUCTION_GUARDS
 
-    try:
-        historical = migrate_to([("tokens", "0099_company_register_deployment_guards")])
-        values = _authority_values(
-            "director_resolution", payload["approving_director"], payload["authority_reference"], payload["reason"]
-        )
-        del values["authority"]
-        proposal = historical.get_model("tokens", "RegisterInstruction")(
+    values = _authority_values(
+        "director_resolution", payload["approving_director"], payload["authority_reference"], payload["reason"]
+    )
+    del values["authority"]
+    with use_migrate(), retained_rows(*INSTRUCTION_GUARDS):
+        proposal = RegisterInstruction(
             uuid=payload["operation_id"],
             company_id=ShareToken.objects.get(pk=payload["token_id"]).company_id,
             token_id=payload["token_id"],
@@ -126,22 +124,20 @@ def retained_instruction(*, actor, **payload):
             items=_items(payload["kind"], payload["items"]),
             **values,
         )
-        original_actor = historical.get_model("authentication", "CustomUser").objects.get(pk=actor.pk)
-        with atomic(), patch(
-            "tokens.services.register_openings.CompanyDocument", historical.get_model("companies", "CompanyDocument")
-        ):
-            _retain(proposal, payload["document_id"], original_actor)
-    finally:
-        restore_every_migration()
+        with atomic():
+            _retain(proposal, payload["document_id"], actor)
     return RegisterInstruction.objects.get(pk=proposal.pk)
 
 
 def retained_paid_instruction(*, actor, reviewer=None, status="submitted", **payload):
+    from django.utils import timezone
+
     from shared.db import atomic, use_migrate, use_operator
-    from shared.tests.schema import migrate_to, restore_every_migration
-    from tokens.models import RegisterInstruction
+    from shared.tests.retained_rows import retained_rows
+    from tokens.models import RegisterInstruction, ShareToken
     from tokens.services.register_instructions import _items
     from tokens.services.register_openings import _authority_values, _retain
+    from tokens.tests.retained_guards import INSTRUCTION_GUARDS
 
     if payload["kind"] != "issue" or not all("subscription" in item for item in payload["items"]):
         raise AssertionError("Retained paid instruction history requires its original subscription items.")
@@ -155,35 +151,23 @@ def retained_paid_instruction(*, actor, reviewer=None, status="submitted", **pay
         "director_resolution", payload["approving_director"], payload["authority_reference"], payload["reason"]
     )
     del values["authority"]
-    try:
-        with use_migrate():
-            historical = migrate_to([("tokens", "0106_company_register_paid_issues")])
-        with use_operator():
-            token = historical.get_model("tokens", "ShareToken").objects.get(pk=payload["token_id"])
-            owner = historical.get_model("authentication", "CustomUser").objects.get(pk=actor.pk)
-            proposal = historical.get_model("tokens", "RegisterInstruction")(
-                uuid=payload["operation_id"],
-                company_id=token.company_id,
-                token_id=token.pk,
-                kind="issue",
-                items=_items("issue", payload["items"]),
-                **values,
-            )
-            with atomic(), patch(
-                "tokens.services.register_openings.CompanyDocument",
-                historical.get_model("companies", "CompanyDocument"),
-            ):
-                _retain(proposal, payload["document_id"], owner)
-                if status == "applied":
-                    from django.utils import timezone
-
-                    proposal.status = status
-                    proposal.reviewed_by_id = reviewer.pk
-                    proposal.reviewed_at = timezone.now()
-                    proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
-    finally:
-        with use_migrate():
-            restore_every_migration()
+    with use_migrate(), retained_rows(*INSTRUCTION_GUARDS), use_operator():
+        token = ShareToken.objects.get(pk=payload["token_id"])
+        proposal = RegisterInstruction(
+            uuid=payload["operation_id"],
+            company_id=token.company_id,
+            token_id=token.pk,
+            kind="issue",
+            items=_items("issue", payload["items"]),
+            **values,
+        )
+        with atomic():
+            _retain(proposal, payload["document_id"], actor)
+            if status == "applied":
+                proposal.status = status
+                proposal.reviewed_by_id = reviewer.pk
+                proposal.reviewed_at = timezone.now()
+                proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
     with use_operator():
         original = RegisterInstruction.objects.get(pk=proposal.pk)
         if original.preparing_appointment_id is not None or original.paid_subscription_id is not None:
@@ -192,44 +176,35 @@ def retained_paid_instruction(*, actor, reviewer=None, status="submitted", **pay
 
 
 def retained_nonpaid_cover(token, *rows, reviewer, document):
-    from django.db import connection
-    from django.db.migrations.executor import MigrationExecutor
     from django.utils import timezone
 
-    from shared.db import atomic
+    from shared.db import atomic, use_migrate
+    from shared.tests.retained_rows import retained_rows
+    from tokens.models import RegisterInstruction
     from tokens.services.register_instructions import _items
     from tokens.services.register_openings import _authority_values, _retain
+    from tokens.tests.retained_guards import INSTRUCTION_GUARDS
 
-    executor = MigrationExecutor(connection)
-    predecessor = ("tokens", "0100_company_register_issue_instructions")
-    if (
-        predecessor not in executor.loader.applied_migrations
-        or ("tokens", "0101_company_register_issue_guards") in executor.loader.applied_migrations
-    ):
-        raise AssertionError("Retain this nonpaid cover inside the original signed fixture's actual0100 phase.")
     if any(isinstance(row, (Subscription, SwapOrder)) for row in rows):
-        raise AssertionError("This predecessor cover retains only original direct nonpaid requests.")
-    historical = executor.loader.project_state([predecessor]).apps
+        raise AssertionError("This retained cover names only original direct nonpaid requests.")
     payload = instruction_payload(token, document, rows)
     values = _authority_values(
         "director_resolution", payload["approving_director"], payload["authority_reference"], payload["reason"]
     )
     del values["authority"]
-    original_actor = historical.get_model("authentication", "CustomUser").objects.get(pk=token.company.owner_id)
-    proposal = historical.get_model("tokens", "RegisterInstruction")(
-        uuid=payload["operation_id"],
-        company_id=token.company_id,
-        token_id=token.pk,
-        kind="issue",
-        items=_items("issue", payload["items"]),
-        **values,
-    )
-    with atomic(), patch(
-        "tokens.services.register_openings.CompanyDocument", historical.get_model("companies", "CompanyDocument")
-    ):
-        _retain(proposal, document.pk, original_actor)
-        proposal.status = "applied"
-        proposal.reviewed_by_id = reviewer.pk
-        proposal.reviewed_at = timezone.now()
-        proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+    with use_migrate(), retained_rows(*INSTRUCTION_GUARDS):
+        proposal = RegisterInstruction(
+            uuid=payload["operation_id"],
+            company_id=token.company_id,
+            token_id=token.pk,
+            kind="issue",
+            items=_items("issue", payload["items"]),
+            **values,
+        )
+        with atomic():
+            _retain(proposal, document.pk, token.company.owner)
+            proposal.status = "applied"
+            proposal.reviewed_by_id = reviewer.pk
+            proposal.reviewed_at = timezone.now()
+            proposal.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
     return proposal

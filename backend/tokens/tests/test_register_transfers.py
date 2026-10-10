@@ -14,8 +14,8 @@ from rest_framework.exceptions import NotFound, ValidationError
 from companies.models import Company, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.team import revoke_company_appointment
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import APP_ALIAS, atomic, current_alias, use_migrate, use_operator
+from shared.tests.retained_rows import retained_rows
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shareholders.services.roll import frozen_rows, holdings_at
 from tokens.exceptions import RegisterChangeConflict
@@ -66,6 +66,7 @@ from tokens.services.register_transfers import (
     preview_transfer_decision,
     register_members,
 )
+from tokens.tests.register_command_fixtures import legacy_entry_before_company_transfers
 from tokens.tests.test_register_events import DAY
 from tokens.tests.test_register_grants import grant_fixture
 from tokens.tests.test_register_import_authority import AppointsTeam
@@ -344,34 +345,29 @@ class RegisterTransfersTest(AppointsTeam, TransactionTestCase):
             held = RegisterMemberParticulars.objects.get(member=self.member)
             snapshot = particulars_snapshot(held)
         ceased_on = retention_cutoff() - timedelta(days=1)
-        try:
-            historical = migrate_to([("tokens", "0096_company_register_transfers")])
-            with use_operator():
-                entry = record_entry(
-                    register_id=self.token.stored_register.pk,
-                    operation_id=uuid4(),
-                    kind="cessation",
-                    changes=[{"member": str(self.member.pk), "shares": "-100"}],
-                    effective_on=ceased_on,
-                    recorded_by=self.owner,
-                )
-                row = historical.get_model("tokens", "RegisterMemberCessation").objects.create(
-                    company_id=self.company.pk,
-                    register_id=self.token.stored_register.pk,
-                    member_id=self.member.pk,
-                    entry_id=entry.pk,
-                    ceased_on=ceased_on,
-                    shares_at_cessation=100,
-                    name=held.name,
-                    residential_address=held.residential_address,
-                    identity_source="particulars",
-                    particulars_snapshot=snapshot,
-                )
-                historical.get_model("tokens", "RegisterMemberCessation").objects.filter(pk=row.pk).update(
-                    created_at=timezone.make_aware(timezone.datetime.combine(ceased_on, timezone.datetime.min.time()))
-                )
-        finally:
-            restore_every_migration()
+        with use_migrate(), retained_rows(("tokens_registermembercessation", "tokens_register_member_cessation_guard")):
+            entry = legacy_entry_before_company_transfers(
+                self.token,
+                self.owner,
+                "cessation",
+                [{"member": str(self.member.pk), "shares": "-100"}],
+                ceased_on,
+            )
+            row = RegisterMemberCessation.objects.create(
+                company_id=self.company.pk,
+                register_id=self.token.stored_register.pk,
+                member_id=self.member.pk,
+                entry_id=entry.pk,
+                ceased_on=ceased_on,
+                shares_at_cessation=100,
+                name=held.name,
+                residential_address=held.residential_address,
+                identity_source="particulars",
+                particulars_snapshot=snapshot,
+            )
+            RegisterMemberCessation.objects.filter(pk=row.pk).update(
+                created_at=timezone.make_aware(timezone.datetime.combine(ceased_on, timezone.datetime.min.time()))
+            )
         with company_operation(self.owner, self.company.pk, "register_transfer_prepare"), self.assertRaises(
             DatabaseError
         ), atomic():
@@ -712,31 +708,6 @@ class RegisterTransfersTest(AppointsTeam, TransactionTestCase):
         with use_operator():
             self.assertEqual(RegisterEntry.objects.filter(operation_id=proposal.pk).count(), 1)
             self.assertEqual(RegisterMemberCessation.objects.filter(entry__operation_id=proposal.pk).count(), 1)
-
-
-class RegisterTransferMigrationTest(TransactionTestCase):
-    def test_empty_reverse_preserves_history_and_retained_transfer_refuses_discard(self):
-        with use_operator():
-            owner, _, token, member, appointment, payload = transfer_fixture()
-            before = verify_register(token.stored_register.pk)
-            held = RegisterMemberParticulars.objects.get(member=member)
-            source = held.source_import_id
-        try:
-            historical = migrate_to([("tokens", "0095_company_register_grant_guards")])
-            old = historical.get_model("tokens", "RegisterMemberParticulars").objects.get(pk=held.pk)
-            self.assertEqual(old.source_import_id, source)
-        finally:
-            restore_every_migration()
-        with use_operator():
-            self.assertEqual(verify_register(token.stored_register.pk), before)
-        proposal = prepare_transfer(actor=owner, **payload)[0]
-        try:
-            with self.assertRaisesMessage(RuntimeError, "Retain company register transfers"):
-                migrate_to([("tokens", "0095_company_register_grant_guards")])
-        finally:
-            restore_every_migration()
-        with use_operator():
-            self.assertEqual(RegisterTransfer.objects.get(pk=proposal.pk).status, "submitted")
 
 
 class ScopedRegisterTransfersTest(RunsOnTheScopedConnection, RegisterTransfersTest):

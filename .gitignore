@@ -69,6 +69,7 @@ __pycache__/
 # Database exports and secret-transfer archives
 **/*.dump
 **/*.sql
+!backend/*/baseline.sql
 **/*.sql.gz
 **/*secret*.zip
 **/*secret*.tar

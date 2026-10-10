@@ -1,4 +1,3 @@
-import importlib
 import random
 from datetime import timedelta
 from decimal import Decimal, localcontext
@@ -324,56 +323,3 @@ class TheDatabaseOwnsTheEntitlementsTest(StubUploadDependencies, TestCase):
                             f"UPDATE shareholders_publication SET {column} = %s WHERE uuid = %s",
                             [value, publication.pk],
                         )
-
-
-class DowngradingDistributionsTest(StubUploadDependencies, TestCase):
-    def setUp(self):
-        self.world = a_company_with_members("dividend-downgrade")
-        self.migration = importlib.import_module("shareholders.migrations.0004_distributions")
-
-    def remove_distributions(self):
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-                self.migration.remove_distributions(None, editor)
-                cursor.execute("SET CONSTRAINTS ALL DEFERRED")
-
-    def installed(self):
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute(
-                "SELECT tgname FROM pg_trigger WHERE tgname LIKE %s AND NOT tgisinternal ORDER BY 1", ["shareholders%"]
-            )
-            triggers = [row[0] for row in cursor.fetchall()]
-            cursor.execute("SELECT prosrc FROM pg_proc WHERE proname = %s", ["shareholders_publication_event_hash"])
-            hashing = cursor.fetchone()[0]
-            cursor.execute(
-                "SELECT prosrc FROM pg_proc WHERE proname = %s", ["shareholders_guard_publication_recipient"]
-            )
-            guarding = cursor.fetchone()[0]
-        return triggers, "event-v2" in hashing, "entitlement" in guarding
-
-    def test_downgrade_refuses_while_a_distribution_exists(self):
-        distribution = a_distribution(self.world)
-
-        with self.assertRaisesRegex(RuntimeError, "Retain distributions"):
-            self.remove_distributions()
-
-        self.assertTrue(Publication.objects.filter(pk=distribution.pk).exists())
-        self.assertIn("shareholders_distribution_adds_up", self.installed()[0])
-
-    def test_downgrade_with_no_distribution_restores_the_guards_the_resolutions_left(self):
-        published(self.world)
-        self.assertEqual(self.installed()[1:], (True, True))
-
-        self.remove_distributions()
-
-        triggers, hashes_payments, guards_entitlements = self.installed()
-        self.assertEqual(
-            triggers,
-            [
-                "shareholders_publication_event_chain",
-                "shareholders_publication_is_frozen",
-                "shareholders_publication_roll_is_frozen",
-            ],
-        )
-        self.assertEqual((hashes_payments, guards_entitlements), (False, False))

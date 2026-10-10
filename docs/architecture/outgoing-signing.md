@@ -584,15 +584,12 @@ original receipt after authority loss without a replacement approval. An actual
 financial cancellation still requires its existing refund/cancellation facts;
 further paid fund resolution policy belongs to #868.
 
-Migrations `tokens/0047` and `0048` leave every historical dispatch null and retain
-its fields and mint journal without adoption. New private metadata has no
-customer-facing foreign-key dependency. Guard reversal refuses existing commands,
-including cancelled admissions. Historical recovery can replay validated saved
-bytes or observe a named hash, but cannot sign fresh work. Ambiguous journals,
-missing records after execution and hashless legacy mints remain held. Original
-ID-less revert entries remain valid historical evidence. Naming checks exact
-transaction terms and prevents reuse of another issuance's retained historical
-hash. See [issuance recovery](../operations/recovery.md#deployment-and-issuance).
+The owner confirmed that pre-admission null-dispatch issuances, including signed
+legacy mint journals, are absent from ledova.io. Their hash-naming and recovery
+paths are retired with the migration baseline. Retained admitted executions
+without a company source keep their original transaction, receipt, finality and
+refund controls. Existing records and outgoing history evidence are preserved.
+See [issuance recovery](../operations/recovery.md#deployment-and-issuance).
 
 ## Pause and unpause
 

@@ -10,7 +10,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import BinaryField
-from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from hexbytes import HexBytes
 from rest_framework.test import APITransactionTestCase
 from web3 import Web3
@@ -875,7 +875,7 @@ class CompanyPackOpeningBoundaryTest(TransactionTestCase):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackRegistryOwnerTest(ProducesPacks, TestCase):
+class CompanyPackRegistryOwnerTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.client.force_login(pack_staff("pack-registry-staff"))

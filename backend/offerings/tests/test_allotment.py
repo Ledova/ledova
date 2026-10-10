@@ -1,6 +1,5 @@
 from decimal import Decimal
 from unittest.mock import patch
-from uuid import uuid4
 
 from django.test import TransactionTestCase
 from django.utils import timezone
@@ -11,7 +10,6 @@ from offerings.exceptions import SubscriptionRefusedException
 from offerings.models import Offering, Subscription, SubscriptionStatus
 from offerings.services.subscription import (
     ISSUANCE_ALREADY_CLAIMED,
-    MINT_BROADCAST,
     NO_REQUEST_TO_RETRY,
     cap_headroom,
     confirm_payment,
@@ -28,19 +26,16 @@ from offerings.tests.factories import (
     extra_wallet,
     open_offering,
     paid_subscription,
-    retained_paid_execution,
 )
 from shared.db import use_operator
 from shared.tests.tenants import make_tenant
-from tokens.exceptions import IssuanceExecutionConflict
 from tokens.models import (
-    IssuanceStatus,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import issuance_execution, legacy_issuance, share_token_service
+from tokens.services import issuance_execution
 from tokens.tasks import check_executing_issuance_requests
 from tokens.tests.company_paid_issue_fixtures import CompanyPaidIssueCases
 
@@ -85,9 +80,6 @@ class CompanyAllotmentTestCase(CompanyPaidIssueCases, APITransactionTestCase):
             return issuance_execution.confirmation(
                 subscription.issuance_request, self.technical, subscription=subscription
             )
-
-    def _historical(self):
-        return self.subscription, retained_paid_execution(self.subscription, self.technical, dispatch_id=None)[0]
 
     def _cap(self, offering, shares):
         with use_operator():
@@ -193,9 +185,10 @@ class MoneyOutNeverLeavesSharesOutTest(CompanyAllotmentTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
         self.assertIsNone(subscription.refunded_at)
 
-    def test_a_refund_is_refused_after_the_mint_and_before_the_reconciler_catches_up(self):
-        subscription, request = self._historical()
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
+    def test_a_refund_is_refused_after_the_mint_while_finality_is_pending(self):
+        subscription, request = self._allotted()
+        self.node.finalized = self.node.head - 1
+        self.assertEqual(self._execute(request)["status"], "executing")
 
         with self.assertRaises(SubscriptionRefusedException) as raised:
             record_refund(subscription, amount=Decimal("25.00"))
@@ -204,8 +197,9 @@ class MoneyOutNeverLeavesSharesOutTest(CompanyAllotmentTestCase):
         self.assertEqual(subscription.status, SubscriptionStatus.PAID)
 
     def test_reject_and_withdraw_are_refused_while_a_mint_stands(self):
-        subscription, request = self._historical()
-        ShareIssuanceRequest.objects.filter(pk=request.pk).update(status=RequestStatus.EXECUTED)
+        subscription, request = self._allotted()
+        self.node.finalized = self.node.head - 1
+        self.assertEqual(self._execute(request)["status"], "executing")
 
         for call, verb in ((reject, "Rejecting it"), (withdraw, "Withdrawing it")):
             with self.subTest(verb=verb):
@@ -230,46 +224,6 @@ class MoneyOutNeverLeavesSharesOutTest(CompanyAllotmentTestCase):
         self.assertEqual(subscription.amount_received, Decimal("25.00"))
         self.assertIsNone(subscription.allotted_quantity)
 
-    def _broadcast(self, request, tx_hash="0xmint", status=IssuanceStatus.PROCESSING):
-        return ShareIssuance.objects.create(
-            token=self.offering.token,
-            recipient_address=request.recipient_address,
-            amount=str(request.amount),
-            status=status,
-            tx_hash=tx_hash,
-            idempotency_key=share_token_service.issuance_key(request),
-        )
-
-    def _lost_the_receipt(self):
-        subscription, request = self._historical()
-        issuance = self._broadcast(request)
-        issuance.mark_failed("receipt lost after the transaction was sent")
-        request.mark_failed("receipt lost after the transaction was sent")
-        subscription.refresh_from_db()
-        return subscription, request, issuance
-
-    def _broadcast_refusal(self, request, tx_hash, verb):
-        return MINT_BROADCAST.format(uuid=request.uuid, tx_hash=tx_hash, verb=verb)
-
-    def _unidentified_legacy_mint(self):
-        subscription, request = self._historical()
-        issuance = self._broadcast(request, tx_hash=None, status=IssuanceStatus.FAILED)
-        request.mark_failed("Legacy worker stopped without recording its transaction identity")
-        subscription.refresh_from_db()
-        self.assertIsNone(issuance.mint_journal)
-        self.assertEqual(request.status, RequestStatus.FAILED)
-        return subscription, request
-
-    def test_a_legacy_hashless_failed_mint_blocks_a_refund(self):
-        subscription, request = self._unidentified_legacy_mint()
-        with self.assertRaisesMessage(SubscriptionRefusedException, "unidentified legacy mint"):
-            record_refund(subscription, amount=Decimal("25.00"))
-        subscription.refresh_from_db()
-        request.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
-        self.assertIsNone(subscription.refunded_at)
-        self.assertEqual(request.status, RequestStatus.FAILED)
-
     def test_an_admitted_failure_before_signing_can_still_be_refunded(self):
         subscription, request = self._allotted()
         self.node.client.estimate_gas.side_effect = RuntimeError("Synthetic unsigned failure")
@@ -280,66 +234,6 @@ class MoneyOutNeverLeavesSharesOutTest(CompanyAllotmentTestCase):
         subscription.refresh_from_db()
         self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
         self.assertEqual(ShareIssuanceExecution.objects.get().status, "cancelled")
-
-    def test_an_abandoned_historical_unsigned_attempt_can_still_be_refunded(self):
-        subscription, request = self._historical()
-        request.mark_executing()
-        issuance = self._broadcast(request, tx_hash=None)
-        issuance.mint_journal = [{"id": str(uuid4())}]
-        issuance.save(update_fields=["mint_journal"])
-        self.assertEqual(legacy_issuance.resolve_executing_issuance(request), "released")
-        issuance.refresh_from_db()
-        self.assertTrue(issuance.mint_journal[-1]["abandoned"])
-        record_refund(subscription, amount=Decimal("25.00"))
-        subscription.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.REFUNDED)
-
-    def test_a_refund_is_refused_while_a_failed_request_still_carries_a_broadcast_mint(self):
-        subscription, request, issuance = self._lost_the_receipt()
-        self.assertTrue(request.can_be_executed)
-
-        with self.assertRaises(SubscriptionRefusedException) as raised:
-            record_refund(subscription, amount=Decimal("25.00"))
-
-        self.assertEqual(str(raised.exception.detail), self._broadcast_refusal(request, "0xmint", "A refund"))
-        subscription.refresh_from_db()
-        request.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
-        self.assertIsNone(subscription.refunded_at)
-        self.assertIsNone(subscription.refund_amount)
-        self.assertEqual(request.status, RequestStatus.FAILED)
-        self.assertEqual(issuance.tx_hash, "0xmint")
-
-    def test_reject_withdraw_and_a_restated_payment_wait_for_the_broadcast_mint_too(self):
-        subscription, request, _ = self._lost_the_receipt()
-        calls = (
-            (lambda: reject(subscription, "Unwinding"), "Rejecting it"),
-            (lambda: withdraw(subscription, "Unwinding"), "Withdrawing it"),
-            (
-                lambda: confirm_payment(
-                    subscription,
-                    confirmed_by=self.operator_user,
-                    amount_received=Decimal("5.00"),
-                    received_on=timezone.now().date(),
-                    accept_as_final=True,
-                ),
-                "Restating the payment",
-            ),
-        )
-        for call, verb in calls:
-            with self.subTest(verb=verb):
-                with self.assertRaises(SubscriptionRefusedException) as raised:
-                    call()
-                self.assertEqual(str(raised.exception.detail), self._broadcast_refusal(request, "0xmint", verb))
-        subscription.refresh_from_db()
-        self.assertEqual(subscription.status, SubscriptionStatus.PAID)
-
-    def test_a_historical_mint_cannot_enter_new_admission(self):
-        subscription, request, _ = self._lost_the_receipt()
-        with patch("tokens.services.issuance_execution._enqueue") as enqueue:
-            with self.assertRaises(IssuanceExecutionConflict):
-                retry_allotment(subscription, self.operator_user, confirmed=self._confirmation(subscription))
-        enqueue.assert_not_called()
 
     def test_a_reverted_mint_retains_its_hash_and_the_refund_is_open_again(self):
         subscription, request = self._allotted()

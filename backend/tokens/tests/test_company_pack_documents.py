@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from botocore.exceptions import ClientError as S3ClientError
 from django.core.files.base import ContentFile
-from django.test import TestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from google.api_core.exceptions import NotFound
 
 from companies.models import CompanyDocument, DocumentType
@@ -205,7 +205,7 @@ class UnreadableStream:
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackDocumentsTest(ProducesPacks, TestCase):
+class CompanyPackDocumentsTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.unopened, self.opening, self.imported = with_opening_and_import(self.a)

@@ -180,16 +180,9 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         self.assertNotIn("mint_journal", model_admin.get_form(request, issuance).base_fields)
         self.assertNotIn("mint_journal", model_admin.get_fields(request, issuance))
 
-    def test_new_unsigned_claim_is_never_released_by_historical_recovery(self):
-        from tokens.services import legacy_issuance
-
+    def test_current_unsigned_claim_recovers_its_original_admitted_execution(self):
         command = admit(self.request, self.actor)
         issuance_execution._start(command)
-        self.assertIsNone(legacy_issuance.unnamed_mint(self.request))
-        with self.assertRaises(IssuanceExecutionConflict):
-            legacy_issuance.resolve_executing_issuance(self.request)
-        with self.assertRaises(IssuanceExecutionConflict):
-            legacy_issuance.release_unsigned_mint(self.request)
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")

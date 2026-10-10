@@ -2,53 +2,23 @@
 
 [Reference](README.md) · [Recovery](../operations/recovery.md#private-file-migrations)
 
-Use these procedures for a synthetic database carried from an older release.
-Preserve private storage alongside database backups; schema rollback cannot
-restore deleted evidence. Test the applicable migration on a restored copy first.
+Preserve private storage alongside database backups; a schema restore cannot
+restore deleted evidence. Test release adoption on a restored copy first and
+follow the [baseline upgrade procedure](../operations/upgrades.md#adopting-the-migration-baseline).
 
 ## Moving existing files
 
-Moving a field onto private storage follows
-`companies/migrations/0006_company_document_private_storage.py`:
+The baseline starts with private file fields and their widened columns. An older
+database must reach the complete pre-baseline release first; its file relocation
+migrations and tests remain in Git history. Baseline adoption moves no files and
+does not narrow stored keys.
 
-1. `RunPython(move_uploads(..., to_private=True), move_uploads(..., to_private=False))`
-     relocates existing bytes between `MEDIA_ROOT` and `PRIVATE_MEDIA_ROOT`,
-     skipping a row whose file is already missing from disk.
-2. `SeparateDatabaseAndState(state_operations=[AlterField(...)])` carries the
-     storage and `max_length` change in migration state only.
-3. `RunPython(widen_char_column(...), noop)` widens the column on PostgreSQL.
-
-The helpers are in `backend/shared/utils/migrations.py`. **A file move is not
-covered by the DDL transaction, so it undoes itself:**
-
-1. `_relocate` records every file it has moved and, when a move raises, puts
-   them all back before re-raising. A reverse that dies halfway therefore
-   leaves the whole corpus where it started rather than half of it publicly
-   readable under `MEDIA_ROOT` with the ledger still claiming the migration
-   applied, which no ordinary action recovers, because Django will not re-run
-   an operation belonging to an applied migration.
-2. Operations reverse back to front, putting the byte move last, so nothing
-   runs after it that could roll the database back out from under a succeeded
-   move.
-3. If the put-back itself fails, the migration raises `UploadRelocationError`
-   naming every file it could not return. `manage.py reconcile_private_media`
-   then repairs the corpus: over every `FileField` bound to
-   `PrivateMediaStorage` it moves stored keys whose bytes sit under
-   `MEDIA_ROOT` back under `PRIVATE_MEDIA_ROOT`, drops a public copy that
-   duplicates a private one byte for byte, and refuses to guess when the two
-   differ. `--check` reports without moving and exits non-zero, so it also
-   audits.
-4. The widening reverses to a no-op rather than to `AlterField`'s auto-derived
-   narrowing, which would raise
-   `value too long for type character varying(100)` on any document uploaded
-   after the migration (the generated keys run to 118 characters). A rollback
-   leaves the column wider than the state claims, which costs nothing and
-   strands no bytes.
-
-`backend/shared/tests/test_private_storage_migrations.py` round-trips both
-migrations with real bytes, a row whose file is missing, and a key generated
-after the widening, and drives a reverse that fails partway through the byte
-move in both the recoverable and the unrecoverable shape.
+`manage.py reconcile_private_media` repairs stray local uploads. For every
+private `FileField`, it moves stored keys whose bytes sit under `MEDIA_ROOT`
+back under `PRIVATE_MEDIA_ROOT`, removes a public duplicate only when its bytes
+match, and refuses to guess when the two copies differ. `--check` reports without
+moving and exits non-zero when it finds a stray or conflict. Current private-media
+corpus, reconciliation and cloud-lifecycle tests retain the runtime coverage.
 
 ## Check historical MIME types
 

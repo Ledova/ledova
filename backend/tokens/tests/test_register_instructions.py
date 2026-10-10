@@ -1,4 +1,3 @@
-import importlib
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -30,7 +29,6 @@ from offerings.tests.factories import (
 )
 from shared.db import atomic, current_alias, use_operator
 from shared.db.principal import PRINCIPAL_SETTING
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import RegisterChangeConflict
@@ -1053,81 +1051,6 @@ class ScopedTransferInstructionTest(RunsOnTheScopedConnection, SettledTransferFi
         self.assertEqual(
             (applied.status, entry.kind, entry.recorded_by_id), ("applied", "transfer", self.fixture.seller.user.pk)
         )
-
-
-class RegisterInstructionMigrationTest(TransactionTestCase):
-    def test_the_migration_reverses_and_reapplies_on_an_empty_table(self):
-        self.addCleanup(restore_every_migration)
-        tenant = make_tenant("instruction-migration")
-        staff = make_tenant("instruction-migration-staff", staff=True).user
-        before = migrate_to([("tokens", "0072_register_import")])
-        requests = before.get_model("tokens", "ShareIssuanceRequest").objects
-        unguarded = requests.create(
-            token_id=tenant.deployed_token.pk,
-            company_id=tenant.company.pk,
-            recipient_address=tenant.wallet.address,
-            amount=5,
-            reason="Approved before instructions",
-            status="approved",
-        )
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT to_regclass('tokens_registerinstruction') IS NULL")
-            self.assertTrue(cursor.fetchone()[0])
-        after = migrate_to([("tokens", "0073_register_instructions")])
-        self.assertEqual(
-            after.get_model("tokens", "ShareIssuanceRequest").objects.get(pk=unguarded.pk).status, "approved"
-        )
-        with self.assertRaisesMessage(DatabaseError, "requires an active staff reviewer"), atomic():
-            ShareIssuanceRequest.objects.create(
-                token=tenant.deployed_token, recipient_address=tenant.wallet.address, amount=5, status="approved"
-            )
-        approved = ShareIssuanceRequest.objects.create(
-            token=tenant.deployed_token,
-            recipient_address=tenant.wallet.address,
-            amount=5,
-            status="approved",
-            reviewed_by=staff,
-        )
-        self.assertEqual(ShareIssuanceRequest.objects.get(pk=approved.pk).reviewed_by_id, staff.pk)
-
-    def test_transfer_instructions_are_refused_before_their_migration_and_kept_through_a_refused_downgrade(self):
-        self.addCleanup(restore_every_migration)
-        tenant = make_tenant("transfer-migration")
-        reviewer = instruction_reviewer()
-        document = verified_authority(tenant.company, reviewer)
-        request = retained_approved_request(tenant.deployed_token, tenant.wallet.address, reviewer=reviewer)
-        issue = submit_instruction(actor=tenant.user, **instruction_payload(tenant.deployed_token, document, [request]))
-        settlement = {
-            "settlement": str(uuid4()),
-            "seller": Web3.to_checksum_address("0x" + "5a" * 20),
-            "buyer": Web3.to_checksum_address("0x" + "5b" * 20),
-            "amount": "3",
-        }
-        before = migrate_to([("tokens", "0075_register_certificates")])
-        with self.assertRaisesMessage(DatabaseError, "require exact current intent"), atomic():
-            forged(issue, before.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
-        after = migrate_to([("tokens", "0076_transfer_instructions")])
-        transfer = forged(issue, after.get_model("tokens", "RegisterInstruction"), kind="transfer", items=[settlement])
-        migration = importlib.import_module("tokens.migrations.0076_transfer_instructions")
-        with self.assertRaisesRegex(RuntimeError, "Retain transfer instructions"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.restore_guard(None, editor)
-        restore_every_migration()
-        self.assertEqual(RegisterInstruction.objects.get(pk=transfer.pk).kind, "transfer")
-        with self.assertRaisesMessage(DatabaseError, "require exact current intent"), atomic():
-            forged(issue, kind="transfer", items=[{**settlement, "amount": "03"}])
-
-    def test_downgrade_refuses_to_discard_instructions(self):
-        tenant = make_tenant("instruction-downgrade")
-        reviewer = instruction_reviewer()
-        document = verified_authority(tenant.company, reviewer)
-        request = retained_approved_request(tenant.deployed_token, tenant.wallet.address, reviewer=reviewer)
-        submit_instruction(actor=tenant.user, **instruction_payload(tenant.deployed_token, document, [request]))
-        migration = importlib.import_module("tokens.migrations.0073_register_instructions")
-        with self.assertRaisesRegex(RuntimeError, "Retain register instructions"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_guards(None, editor)
-        self.assertTrue(RegisterInstruction.objects.filter(company=tenant.company).exists())
 
 
 class CompanyInstructionBoundaryTest(TransactionTestCase):

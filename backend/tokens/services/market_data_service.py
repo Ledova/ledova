@@ -14,9 +14,7 @@ def list_market_tokens(user):
     return ShareToken.objects.with_company().deployed_with_contract().filter(company_id__in=secondary_company_ids(user))
 
 
-def _payment_decimals(protocol_version, captured_decimals, legacy_decimals):
-    if protocol_version == 0:
-        return legacy_decimals
+def _payment_decimals(protocol_version, captured_decimals):
     if protocol_version != 1 or type(captured_decimals) is not int or not 0 <= captured_decimals <= 255:
         raise SettlementContextChanged()
     return captured_decimals
@@ -38,7 +36,6 @@ def market_summaries(tokens):
                 best_ask=Subquery(open_orders.sell_orders().order_by("price_per_share").values("price_per_share")[:1]),
                 last_trade_payment_amount=Subquery(last_trade.values("payment_amount")[:1]),
                 last_trade_share_amount=Subquery(last_trade.values("share_amount")[:1]),
-                last_trade_decimals=Subquery(last_trade.values("payment_asset__decimals")[:1]),
                 last_trade_protocol=Subquery(last_trade.values("settlement_protocol_version")[:1]),
                 last_trade_deployment_decimals=Subquery(
                     last_trade.values("settlement_context__payment_asset__deployment_decimals")[:1]
@@ -50,7 +47,6 @@ def market_summaries(tokens):
                 "best_ask",
                 "last_trade_payment_amount",
                 "last_trade_share_amount",
-                "last_trade_decimals",
                 "last_trade_protocol",
                 "last_trade_deployment_decimals",
             )
@@ -66,7 +62,6 @@ def market_summaries(tokens):
                             _payment_decimals(
                                 row["last_trade_protocol"],
                                 row["last_trade_deployment_decimals"],
-                                row["last_trade_decimals"],
                             ),
                         )
                         / Decimal(row["last_trade_share_amount"])

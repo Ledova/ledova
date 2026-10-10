@@ -1,4 +1,3 @@
-import importlib
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
@@ -7,12 +6,10 @@ from django.db import DatabaseError
 from django.test import TestCase, TransactionTestCase
 
 from integrations.base_chain.client import (
-    BROADCAST_ROUND_TRIPS,
     HTTP_TIMEOUT_SECONDS,
     BaseChainClient,
 )
 from shared.db import atomic, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -22,8 +19,6 @@ from tokens.models import (
 )
 from tokens.serializers import CapitalIncreaseDetailSerializer
 from tokens.services.dilution import dilution_for
-from tokens.services.legacy_issuance import UNNAMED_MINT_GRACE
-from tokens.tasks.review_request import STALE_EXECUTION_AGE
 
 RECIPIENT = "0x" + "a" * 40
 
@@ -79,43 +74,9 @@ class ReviewableRequestModelTest(TestCase):
         self.assertIsNone(data["dilution_percentage"])
 
 
-class StatusDataMigrationTest(TransactionTestCase):
-    def test_pending_approval_maps_to_submitted_and_back(self):
-        migration = importlib.import_module("tokens.migrations.0012_reviewable_request")
-        tenant = make_tenant("owner")
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0046_capital_execution_guards")])
-        historical.get_model("tokens", "CapitalIncreaseRequest").objects.filter(pk=tenant.capital_increase.pk).update(
-            status="submitted"
-        )
-        request = historical.get_model("tokens", "ShareIssuanceRequest").objects.create(
-            token_id=tenant.deployed_token.pk,
-            company_id=tenant.company.pk,
-            recipient_address=RECIPIENT,
-            amount=10,
-            reason="Historical pending status",
-            status="pending_approval",
-        )
-        migration.forwards(historical, None)
-        request.refresh_from_db()
-        self.assertEqual(request.status, "submitted")
+class BaseChainClientTimeoutTest(TestCase):
 
-        migration.backwards(historical, None)
-        request.refresh_from_db()
-        tenant.capital_increase.refresh_from_db()
-        self.assertEqual(request.status, "pending_approval")
-        self.assertEqual(tenant.capital_increase.status, "submitted")
-
-
-class TheGraceIsJustifiedByTheWindowItCoversTest(TestCase):
-
-    def test_the_grace_brackets_the_broadcast_below_and_the_sweep_above(self):
-        longest_broadcast = BROADCAST_ROUND_TRIPS * timedelta(seconds=HTTP_TIMEOUT_SECONDS)
-
-        self.assertGreaterEqual(UNNAMED_MINT_GRACE, longest_broadcast)
-        self.assertLess(UNNAMED_MINT_GRACE, STALE_EXECUTION_AGE)
-
-    def test_the_timeout_the_grace_is_derived_from_is_the_one_the_client_uses(self):
+    def test_the_http_provider_uses_the_configured_timeout(self):
         with patch("integrations.base_chain.client.Web3") as web3:
             web3.HTTPProvider.return_value = Mock()
             web3.return_value.eth.chain_id = settings.BLOCKCHAIN_CHAIN_ID
@@ -126,9 +87,6 @@ class TheGraceIsJustifiedByTheWindowItCoversTest(TestCase):
                 BaseChainClient._web3 = None
 
         self.assertEqual(web3.HTTPProvider.call_args.kwargs["request_kwargs"], {"timeout": HTTP_TIMEOUT_SECONDS})
-
-    def test_the_operator_control_opens_before_the_sweep_can_act(self):
-        self.assertLess(UNNAMED_MINT_GRACE, STALE_EXECUTION_AGE)
 
 
 class CompanyReviewRequestAdmissionTest(TransactionTestCase):

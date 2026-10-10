@@ -777,29 +777,4 @@ describe('a drifted or held settlement is refused, not retried', () => {
     expect(f.controller.getSnapshot().phase).toBe('error');
     expect(f.requests.length).toBe(requestsAfterRefusal);
   });
-
-  test('a legacy swap held for attribution is surfaced and never offered for signing', async () => {
-    const f = setup();
-    f.handle(async (config) => {
-      failed(config, 409, {
-        code: 'legacy_swap_held',
-        detail:
-          'This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable.',
-      });
-    });
-    await f.controller.load();
-    const snapshot = f.controller.getSnapshot();
-    expect(snapshot.phase).toBe('error');
-    expect(snapshot.error).toBe(
-      'This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable.',
-    );
-    expect(snapshot.response).toBeNull();
-    const signer = jest.fn(async () => null);
-    await f.controller.sign(signer);
-    expect(signer).not.toHaveBeenCalled();
-    const requestsAfterLookup = f.requests.length;
-    await f.controller.refreshApprovalStatus();
-    expect(f.controller.getSnapshot().error).toBe('Refresh the original settlement before continuing.');
-    expect(f.requests.length).toBe(requestsAfterLookup);
-  });
 });

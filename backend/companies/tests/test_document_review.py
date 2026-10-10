@@ -5,9 +5,8 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import signing
-from django.db import connections
 from django.http import Http404
-from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -21,9 +20,7 @@ from companies.tests.test_document_file_access import (
     make_company,
     make_document,
 )
-from shared.db import atomic, current_alias, use_migrate
-from shared.tests.schema import migrate_to, restore_every_migration
-from users.models import UserProfile
+from shared.db import atomic, use_migrate
 
 
 def review_fixture():
@@ -283,27 +280,3 @@ class CompanyDocumentReviewAdminTest(TestCase):
         self.assertContains(response, "changed after review began")
         self.document.refresh_from_db()
         self.assertFalse(self.document.is_verified)
-
-
-class CompanyDocumentReviewMigrationTest(TransactionTestCase):
-    def setUp(self):
-        self.addCleanup(restore_every_migration)
-
-    def test_upgrade_does_not_invent_verification_and_downgrade_refuses_bound_evidence(self):
-        owner, company, reviewer, document = review_fixture()
-        UserProfile.objects.create(user=owner, full_name="Legacy document owner")
-        previous = [("companies", "0008_company_registry_verification")]
-        historical = migrate_to(previous)
-        old_document = historical.get_model("companies", "CompanyDocument")
-        old_document.objects.filter(pk=document.pk).update(is_verified=True, verified_by_id=reviewer.pk)
-        migrate_to([("companies", "0017_company_team_invitations")])
-        document.refresh_from_db()
-        self.assertTrue(document.is_verified)
-        self.assertEqual(document.verified_fingerprint, "")
-        _, confirmation = prepare_document_review(document_id=document.pk, reviewer=reviewer)
-        verify_document(document_id=document.pk, reviewer=reviewer, confirmation=confirmation)
-        with self.assertRaisesMessage(RuntimeError, "Retain document verification"):
-            migrate_to(previous)
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute("SELECT verified_fingerprint FROM companies_companydocument WHERE uuid = %s", [document.pk])
-            self.assertTrue(cursor.fetchone()[0])

@@ -2,7 +2,6 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
@@ -12,16 +11,11 @@ from web3 import Web3
 from assets.models import Asset, AssetChainDeployment
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.settlement import (
     SYNTHETIC_SETTLEMENT_CONTRACT,
     save_swap_with_context,
 )
-from tokens.models import (
-    ShareToken,
-    SwapOrder,
-    TransferOrder,
-)
+from tokens.models import ShareToken, TransferOrder
 from tokens.models.choices import (
     ShareTokenStatus,
     ShareTokenType,
@@ -37,11 +31,6 @@ User = get_user_model()
 
 @override_settings(ATOMIC_SWAP_ADDRESS=SYNTHETIC_SETTLEMENT_CONTRACT)
 class TradingReadIsolationTest(APITransactionTestCase):
-    legacy_cases = {
-        "test_order_swap_reads_reject_malformed_order_snapshot_before_service",
-        "test_legacy_list_retains_both_valid_and_malformed_address_history",
-    }
-
     def _make_tenant(self, email, address):
         user = User.objects.create_user(email=email, password="pw-12345678")
         profile = UserProfile.objects.create(user=user)
@@ -55,8 +44,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
         return user, account, wallet
 
     def _make_order(self, wallet, order_type, wallet_address=None):
-        model = self.legacy_apps.get_model("tokens", "TransferOrder") if hasattr(self, "legacy_apps") else TransferOrder
-        return model.objects.create(
+        return TransferOrder.objects.create(
             token_id=self.share_token.pk,
             payment_asset_id=self.stablecoin.pk,
             order_type=order_type,
@@ -87,23 +75,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
             completed_at=completed_at,
             expires_at=timezone.now() + timedelta(hours=1),
         )
-        if self._testMethodName not in self.legacy_cases:
-            return save_swap_with_context(**fields)
-        modules = getattr(settings, "MIGRATION_MODULES", {})
-        if "tokens" in modules and modules["tokens"] is None:
-            self.skipTest("Legacy malformed rows require actual pre-context migration setup")
-        if not hasattr(self, "legacy_apps"):
-            self.addCleanup(restore_every_migration)
-            self.legacy_apps = migrate_to([("tokens", "0038_order_action_submissions")])
-        for key in ("sell_order", "buy_order", "share_token", "payment_asset"):
-            fields[key + "_id"] = fields.pop(key).pk
-        fields["seller_wallet_id"] = sell_order.wallet_id
-        fields["buyer_wallet_id"] = buy_order.wallet_id
-        return self.legacy_apps.get_model("tokens", "SwapOrder").objects.create(**fields)
-
-    def _restore_legacy_swaps(self):
-        restore_every_migration()
-        self.swap = SwapOrder.objects.get(pk=self.swap.pk)
+        return save_swap_with_context(**fields)
 
     def swap_query(self, swap=None):
         swap = swap or self.swap
@@ -149,12 +121,7 @@ class TradingReadIsolationTest(APITransactionTestCase):
             asset=self.stablecoin, chain="base", contract_address="0x" + "e" * 40, decimals=2
         )
         self.alice_order = self._make_order(self.alice_wallet, TransferOrderType.SELL)
-        address = (
-            self.alice_wallet.address
-            if self._testMethodName == "test_order_swap_reads_reject_malformed_order_snapshot_before_service"
-            else self.bob_wallet.address
-        )
-        self.bob_order = self._make_order(self.bob_wallet, TransferOrderType.BUY, address)
+        self.bob_order = self._make_order(self.bob_wallet, TransferOrderType.BUY)
         self.swap = self._make_swap(self.alice_order, self.bob_order, "1")
 
     @property
@@ -313,48 +280,6 @@ class TradingReadIsolationTest(APITransactionTestCase):
                 self.assertEqual(response.status_code, 404)
 
         self.assertEqual(service_module.mock_calls, [])
-
-    @patch("tokens.views.trading_order.atomic_swap_service")
-    def test_order_swap_reads_reject_malformed_order_snapshot_before_service(self, service_module):
-        self._restore_legacy_swaps()
-        self.client.force_authenticate(self.bob)
-
-        for path in ("swap/", "swap/approval-status/", "swap/approval-data/"):
-            with self.subTest(path=path):
-                response = self.client.get(
-                    f"/api/v1/trading/orders/{self.bob_order.uuid}/{path}",
-                    self.swap_query(),
-                )
-                self.assertEqual(response.status_code, 404)
-
-        self.assertEqual(service_module.mock_calls, [])
-
-        self.client.force_authenticate(self.alice)
-        held = self.client.get(
-            f"/api/v1/trading/orders/{self.alice_order.pk}/swap/",
-            {
-                **self.swap_query(),
-                "owner_account_uuid": str(self.alice_account.pk),
-                "wallet_uuid": str(self.alice_wallet.pk),
-            },
-        )
-        self.assertEqual(held.status_code, 409, held.content)
-        self.assertEqual(held.json()["code"], "legacy_swap_held")
-        self.assertEqual(service_module.mock_calls, [])
-
-    def test_legacy_list_retains_both_valid_and_malformed_address_history(self):
-        latest = self._make_swap(self.alice_order, self.bob_order, "7")
-        latest.buyer_address = self.alice_wallet.address
-        latest.save(update_fields=["buyer_address"])
-        self._restore_legacy_swaps()
-        self.client.force_authenticate(self.bob)
-
-        response = self.client.get(
-            "/api/v1/trading/swaps/",
-            {"wallet_address": self.bob_case_variant},
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual([row["uuid"] for row in response.data["results"]], [str(latest.uuid), str(self.swap.uuid)])
 
     @patch("tokens.views.trading_order.atomic_swap_service")
     def test_order_approval_status_uses_exact_order_role(self, service_module):

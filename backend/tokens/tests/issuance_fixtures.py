@@ -30,18 +30,18 @@ FINALITY_POLICIES = {f"evm:{CHAIN_ID}": {"mode": "finalized"}}
 
 def issuance_request(name="historical-issuance", *, signed=False):
     from blockchain.services import outgoing
-    from shared.tests.schema import migrate_to, restore_every_migration
+    from shared.tests.retained_rows import retained_rows
+    from tokens.tests.retained_guards import ISSUANCE_GUARDS
 
     tenant = make_tenant(name)
     actor = get_user_model().objects.create_superuser(email=f"{name}-operator@example.test", password="synthetic")
-    try:
-        historical = migrate_to([("tokens", "0099_company_register_deployment_guards")])
+    with use_migrate(), retained_rows(*ISSUANCE_GUARDS):
         request = ShareIssuanceRequest.objects.create(
             token=tenant.deployed_token, recipient_address=tenant.wallet.address, amount=10, reason="Allotment"
         )
         request.approve(actor)
         intent = issuance_execution._intent(request, tenant.deployed_token)
-        command = historical.get_model("tokens", "ShareIssuanceExecution").objects.create(
+        command = ShareIssuanceExecution.objects.create(
             uuid=request.dispatch_id,
             request_id=request.pk,
             token_id=request.token_id,
@@ -94,8 +94,6 @@ def issuance_request(name="historical-issuance", *, signed=False):
                 issuance.save(update_fields=["transaction", "tx_hash", "status", "processed_at", "updated_at"])
 
             outgoing.sign_operation(claim, prepared, KEY, on_signed=retain)
-    finally:
-        restore_every_migration()
     tenant.issuance_request = request
     request.refresh_from_db()
     return tenant, actor

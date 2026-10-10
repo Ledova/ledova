@@ -26,15 +26,19 @@ when starting or resuming work, including after context compaction.
 - Tidy as each issue progresses. Remove code, imports, configuration, routes,
   tests and documentation that become obsolete when their replacement lands.
   Check references before deleting; do not leave parallel unused implementations.
-- Preserve useful history, database migration history, retained records and
+- Preserve useful history, old database migrations in Git, retained records and
   evidence, the earlier journey artifacts, and unrelated local work. Cleanup
   must not discard data or weaken privacy, authority or execution safeguards.
+- Follow the [10 October migration baseline decision](docs/decisions.md#backend-migration-baseline):
+  prove schema, reference-data and role equivalence before retiring shipped
+  upgrade/rollback tests. Keep meaningful current runtime assertions and cheap
+  upgrade coverage for each new migration after the baseline.
 - Update documentation to describe what is actually delivered, keeping planned
   capabilities distinct from current behaviour.
 - Use focused checks during development and the applicable required checks once
   on the merging head, as the [testing guide](docs/development/testing.md) says;
   do not claim proposed #943 test routing before it lands. Keep authority,
-  isolation, economic, retention and historical migration coverage. Record
+  isolation, economic, retention and current execution/recovery coverage. Record
   results and material gaps in the pull request.
 - Use focused pull requests, independent review at the merging commit, and green
   required CI on a branch up to date with main. Do not push directly to main.

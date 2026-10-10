@@ -1,9 +1,7 @@
 from copy import deepcopy
 from decimal import Decimal, localcontext
-from unittest import skipUnless
 from unittest.mock import patch
 
-from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from eth_account.messages import encode_typed_data
@@ -12,9 +10,10 @@ from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from operators.settlement import require_deployment
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import use_migrate
+from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.settlement import save_swap_with_context
-from shared.tests.tenants import make_tenant
+from shared.tests.tenants import make_eligible, make_tenant
 from tokens.exceptions import InsufficientBalanceException, SettlementContextChanged
 from tokens.models import SwapOrder, TransferOrder
 from tokens.services import (
@@ -23,6 +22,7 @@ from tokens.services import (
     token_transfer_service,
 )
 from tokens.services.settlement_context import recorded_settlement_context
+from tokens.tests.swap_execution_fixtures import signed_execution
 from tokens.tests.swap_state_fixtures import BUYER, SELLER
 from wallets.models import Wallet
 
@@ -33,6 +33,27 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.tenant = make_tenant("payment-units", with_swap=False)
         self.asset = self.tenant.refs.stablecoin
         self.deployment = AssetChainDeployment.objects.get(asset=self.asset, chain="base")
+        for key, attribute, kind in ((SELLER, "order", "sell"), (BUYER, "counter_order", "buy")):
+            old = getattr(self.tenant, attribute)
+            wallet = Wallet.objects.create(
+                user_account=self.tenant.account,
+                address=key.address,
+                chain="base",
+                verification_status="VERIFIED",
+            )
+            with use_migrate():
+                order = TransferOrder.objects.create(
+                    token=self.tenant.deployed_token,
+                    payment_asset=self.asset,
+                    wallet=wallet,
+                    owner_account=self.tenant.account,
+                    wallet_address=key.address,
+                    order_type=kind,
+                    quantity=old.quantity,
+                    price_per_share=old.price_per_share,
+                )
+                old.delete()
+            setattr(self.tenant, attribute, order)
 
     def scales(self, pricing, deployment):
         Asset.objects.filter(pk=self.asset.pk).update(decimals=pricing)
@@ -145,17 +166,22 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
             atomic_swap_service.assert_current_settlement(swap)
 
     def complete_history(self, *swaps):
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")]).get_model("tokens", "SwapOrder")
+        make_eligible(self.tenant)
+        accept_company_eligibility(self.tenant)
         completed_at = timezone.now()
         for swap in swaps:
-            historical.objects.filter(pk=swap.pk).update(
-                seller_signature=swap.seller_signature,
-                buyer_signature=swap.buyer_signature,
-                status="completed",
-                completed_at=completed_at,
-            )
-        restore_every_migration()
+            context = recorded_settlement_context(swap)
+            with self.settings(ATOMIC_SWAP_ADDRESS=context["typed_data"]["domain"]["verifyingContract"]):
+                Asset.objects.filter(pk=self.asset.pk).update(decimals=context["payment_asset"]["pricing_decimals"])
+                AssetChainDeployment.objects.filter(pk=self.deployment.pk).update(
+                    decimals=context["payment_asset"]["deployment_decimals"]
+                )
+                signed_execution(
+                    self,
+                    swap,
+                    (("seller", self.tenant.user, SELLER), ("buyer", self.tenant.user, BUYER)),
+                    completed_at=completed_at,
+                )
 
     def test_completed_trade_uses_its_original_scale_after_configuration_changes(self):
         swap = self.create()
@@ -183,7 +209,12 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         self.asset.refresh_from_db()
         orders = []
         for party, kind in ((SELLER, "sell"), (BUYER, "buy")):
-            wallet = Wallet.objects.create(user_account=self.tenant.account, address=party.address, chain="base")
+            wallet, _ = Wallet.objects.get_or_create(
+                user_account=self.tenant.account,
+                address=party.address,
+                chain="base",
+                defaults={"verification_status": "VERIFIED"},
+            )
             orders.append(
                 TransferOrder.objects.create(
                     token=self.tenant.deployed_token,
@@ -231,34 +262,6 @@ class SettlementPaymentUnitsTest(APITransactionTestCase):
         expected_price = {first.pk: "1.23", second.pk: "2.34"}[max(first.pk, second.pk)]
         summary = market_data_service.market_summaries([self.tenant.deployed_token])[self.tenant.deployed_token.pk]
         self.assertEqual(Decimal(summary["last_price"]), Decimal(expected_price))
-
-
-@skipUnless(getattr(settings, "MIGRATION_MODULES", {}).get("tokens", "enabled") is not None, "Requires migrations")
-@override_settings(ATOMIC_SWAP_ADDRESS="0x" + "9d" * 20)
-class SettlementPaymentHistoryMigrationTest(APITransactionTestCase):
-    def test_legacy_market_history_keeps_its_existing_pricing_scale_without_inventing_a_deployment(self):
-        tenant = make_tenant("payment-history", with_swap=False)
-        swap = atomic_swap_service.create_swap_order(
-            tenant.order, tenant.counter_order, share_amount=3, price_per_share=Decimal("1.23")
-        )
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0038_order_action_submissions")]).get_model("tokens", "SwapOrder")
-        historical.objects.filter(pk=swap.pk).update(status="completed", completed_at=timezone.now())
-        before = historical.objects.filter(pk=swap.pk).values().get()
-        restore_every_migration()
-        AssetChainDeployment.objects.filter(asset=tenant.refs.stablecoin, chain="base").update(decimals=8)
-        summary = market_data_service.market_summaries([tenant.deployed_token])[tenant.deployed_token.pk]
-        self.assertEqual(Decimal(summary["last_price"]), Decimal("1.23"))
-        after = SwapOrder.objects.filter(pk=swap.pk).values().get()
-        self.assertEqual(after.pop("settlement_protocol_version"), 0)
-        self.assertIsNone(after.pop("settlement_context"))
-        self.assertEqual(after.pop("settlement_digest"), "")
-        self.assertIsNone(after.pop("finalized_receipt"))
-        self.assertIsNone(after.pop("seller_eligibility_decision_id"))
-        self.assertIsNone(after.pop("seller_eligibility_admitted_at"))
-        self.assertIsNone(after.pop("buyer_eligibility_decision_id"))
-        self.assertIsNone(after.pop("buyer_eligibility_admitted_at"))
-        self.assertEqual(after, before)
 
 
 class SettlementBalanceDisplayTest(SimpleTestCase):

@@ -1,9 +1,11 @@
 import json
 from decimal import Decimal
 from pathlib import Path
+from unittest import skipUnless
 from unittest.mock import Mock, patch
 
 from django.apps import apps
+from django.db import DatabaseError, connection
 from django.test import override_settings
 from rest_framework.test import APITransactionTestCase
 
@@ -12,7 +14,13 @@ from integrations.blockchain.bitcoin import BitcoinClient
 from shared.db import acting_for, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
-from wallets.models import BitcoinSubmission, Holding, Transaction, Wallet
+from wallets.models import (
+    BitcoinSubmission,
+    BitcoinSubmissionInput,
+    Holding,
+    Transaction,
+    Wallet,
+)
 from wallets.services import transfers
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "bitcoin_submission.json").read_text())
@@ -121,6 +129,17 @@ class BitcoinSubmissionFixture:
 
 
 class BitcoinSubmissionChecks(BitcoinSubmissionFixture):
+    @skipUnless(connection.vendor == "postgresql", "PostgreSQL input reservation guards are required")
+    def test_a_missing_input_reservation_prevents_commit_and_broadcast(self):
+        with patch.object(BitcoinSubmissionInput.objects.__class__, "bulk_create", return_value=[]):
+            with self.assertRaises(DatabaseError):
+                self.submit_direct()
+        self.assertEqual(self.transactions(), [])
+        self.assertEqual(self.sent(), [])
+        self.assertEqual(self.quantity(), Decimal("50"))
+        with use_operator():
+            self.assertEqual(BitcoinSubmission.objects.count(), 0)
+
     def test_the_signed_identity_and_pending_row_exist_before_the_first_send(self):
         before_send = []
         journals = []

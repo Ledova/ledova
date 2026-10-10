@@ -115,7 +115,7 @@ proof of canonical inclusion or finality; the record has no chain ID. These
 guards cover the generic monitor, not every specialized transaction writer.
 Swap transaction types, swap business references and reverse swap associations
 are excluded both from selection and from the fresh receipt-write check. Their
-[dedicated recovery and legacy hold](swap-settlement.md#legacy-history-hold)
+[dedicated recovery](swap-settlement.md#pre-baseline-swap-history)
 retain outcomes that cannot be attributed to the original settlement context.
 
 The two retired cleanup tasks and how to clear jobs queued under them are in the

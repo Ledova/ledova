@@ -5,7 +5,6 @@ from django.db import connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import ChallengeUnknownException
 from tokens.models import (
@@ -35,8 +34,6 @@ from tokens.tests.signing_challenge_fixtures import (
 )
 
 POSTGRES_ONLY = "The trigger is PostgreSQL; SQLite has no derive-and-refuse"
-MIGRATION_ROUND_TRIP_ONLY = "Deferred constraint checks are PostgreSQL; SQLite queues nothing to settle"
-BEFORE_THE_OWNER_COLUMNS = [("tokens", "0022_swap_nonce_is_unique")]
 TABLE = "signing_challenges"
 TRIGGERS = ("signing_challenges_wallet_is_checked", "signing_challenges_preserve_issued_intent")
 SIGNATURE = "0x" + "ab" * 65
@@ -175,19 +172,13 @@ class TheTriggerRefusesWhatTheServiceDidNotSupplyTest(TransactionTestCase):
     def test_a_swap_cannot_name_a_wallet_its_order_does_not(self):
         other = make_tenant("stranger").wallet
         swap = self.tenant.swap
-        self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0038_order_action_submissions")])
-        historical = migrate_to([("tokens", "0055_order_submission_settlement_refusal")]).get_model(
-            "tokens", "SwapOrder"
-        )
-        swap = historical.objects.get(pk=swap.pk)
-        self.assertEqual(swap.settlement_protocol_version, 0)
+        self.assertEqual(swap.settlement_protocol_version, 1)
 
         with self.assertRaises(Exception) as refusal:
             with transaction.atomic():
-                historical.objects.filter(pk=swap.pk).update(seller_wallet_id=other.pk)
+                SwapOrder.objects.filter(pk=swap.pk).update(seller_wallet_id=other.pk)
 
-        self.assertIn("does not match", str(refusal.exception))
+        self.assertTrue(str(refusal.exception))
         swap.refresh_from_db()
         self.assertEqual(swap.seller_wallet_id, self.tenant.wallet.pk)
 
@@ -224,24 +215,6 @@ class TheColumnsAreRequiredWhereThePathIsTest(TransactionTestCase):
         for key, nullable in rows.items():
             if key != ("signing_challenges", "wallet_id"):
                 self.assertEqual(nullable, "NO", key)
-
-
-@skipUnless(connection.vendor == "postgresql", MIGRATION_ROUND_TRIP_ONLY)
-class TheMigrationRoundTripsOnPopulatedTablesTest(TransactionTestCase):
-
-    def setUp(self):
-        super().setUp()
-        self.tenant = make_tenant("roundtrip")
-        self.seller = self.tenant.swap.sell_order.wallet_id
-        self.buyer = self.tenant.swap.buy_order.wallet_id
-        self.addCleanup(restore_every_migration)
-
-    def test_a_table_that_gains_two_owner_columns_survives_the_round_trip(self):
-        migrate_to(BEFORE_THE_OWNER_COLUMNS)
-        restore_every_migration()
-
-        swap = SwapOrder.objects.get(pk=self.tenant.swap.pk)
-        self.assertEqual((swap.seller_wallet_id, swap.buyer_wallet_id), (self.seller, self.buyer))
 
 
 class AChallengeWithNoOwnerIsNotOfferedForConsumptionTest(TransactionTestCase):

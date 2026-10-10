@@ -1,7 +1,6 @@
 import ast
 import csv
 import hashlib
-import importlib
 import io
 import json
 import subprocess
@@ -18,6 +17,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
@@ -25,7 +25,7 @@ from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.db import DatabaseError, IntegrityError, connections
 from django.db.models.expressions import RawSQL
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
@@ -42,7 +42,7 @@ from documents.models import Document
 from offerings.models import Subscription, SubscriptionStatus
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.models import Country
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
@@ -76,6 +76,12 @@ from tokens.services.register_openings import _retain, prepare_link
 from tokens.services.register_particulars import prepare_particulars_change
 from tokens.services.register_reconciliation import acknowledge_discrepancy
 from tokens.services.settlement_context import configured_domain
+from tokens.tests.retained_guards import (
+    INSTRUCTION_GUARDS,
+    ISSUANCE_GUARDS,
+    PAUSE_GUARDS,
+    WALLET_GUARDS,
+)
 from tokens.tests.test_register_acknowledgement_authority import (
     staff_era_acknowledgement,
 )
@@ -214,18 +220,8 @@ def with_account_details(label, addresses):
 
 @contextmanager
 def predecessor_paid_issue_guards():
-    nested = connections["default"].in_atomic_block
-    with use_migrate():
-        if nested:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-        try:
-            yield migrate_to([("tokens", "0106_company_register_paid_issues")])
-        finally:
-            restore_every_migration()
-            if nested:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+    with use_migrate(), retained_rows(*(ISSUANCE_GUARDS + INSTRUCTION_GUARDS)):
+        yield apps
 
 
 def allotted_subscription(tenant, reviewer, document, allottee, label):
@@ -415,19 +411,8 @@ def linked(company, member, label):
 
 @contextmanager
 def predecessor_pause_guards():
-    nested = connections["default"].in_atomic_block
-    with use_migrate():
-        if nested:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-        try:
-            migrate_to([("tokens", "0104_company_register_pause_changes")])
-            yield
-        finally:
-            restore_every_migration()
-            if nested:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+    with use_migrate(), retained_rows(*(PAUSE_GUARDS + (("tokens_sharetoken", "tokens_pause_projection"),))):
+        yield
 
 
 def paused(company, token):
@@ -460,19 +445,8 @@ def paused(company, token):
 
 @contextmanager
 def predecessor_wallet_guards():
-    nested = connections["default"].in_atomic_block
-    with use_migrate():
-        if nested:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-        try:
-            migrate_to([("whitelist", "0010_company_wallet_instructions")])
-            yield
-        finally:
-            restore_every_migration()
-            if nested:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+    with use_migrate(), retained_rows(*WALLET_GUARDS):
+        yield
 
 
 def historical_approval_change(company, registry, holder, reviewer):
@@ -765,7 +739,7 @@ class ProducesPacks:
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackConsumerTest(ProducesPacks, TestCase):
+class CompanyPackConsumerTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.client.force_login(pack_staff("pack-consumer-staff"))
@@ -900,7 +874,7 @@ class CompanyPackConsumerTest(ProducesPacks, TestCase):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackTest(ProducesPacks, TestCase):
+class CompanyPackTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.staff = pack_staff("pack-staff")
@@ -1353,24 +1327,6 @@ class CompanyPackTest(ProducesPacks, TestCase):
                 insert(**{field: value})
         self.assertEqual(RegisterExport.objects.filter(kind="company_pack").count(), 2)
 
-    def test_downgrade_drops_the_preimage_function_only_while_no_company_pack_is_recorded(self):
-        migration = importlib.import_module("tokens.migrations.0080_company_pack")
-
-        with self.assertRaises(Undone), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_preimage(None, editor)
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT to_regprocedure('tokens_register_entry_preimage(tokens_registerentry)')")
-                self.assertIsNone(cursor.fetchone()[0])
-            raise Undone
-        self.pack()
-
-        with self.assertRaisesRegex(RuntimeError, "Retain company pack records"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_preimage(None, editor)
-
-        self.assertEqual(RegisterExport.objects.filter(kind="company_pack").count(), 2)
-
 
 def owed(sequence, kind, output, due_on):
     return {
@@ -1384,7 +1340,7 @@ def owed(sequence, kind, output, due_on):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackHistoryTest(ProducesPacks, TestCase):
+class CompanyPackHistoryTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.client.force_login(pack_staff("pack-history-staff"))
@@ -2037,7 +1993,7 @@ def export_records(fixture):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackAbsenceTest(ProducesPacks, TestCase):
+class CompanyPackAbsenceTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-a")
         self.client.force_login(pack_staff("pack-absence-staff"))

@@ -1,5 +1,5 @@
 from django.db import IntegrityError, transaction
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from companies.exceptions import OfferedDocumentException
@@ -16,7 +16,6 @@ from offerings.services.offering import NOT_ATTACHABLE
 from offerings.tests.factories import eligible_subscriber
 from offerings.tests.test_directory_documents import file_of, offer_document, publish
 from shared.db import use_migrate
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import an_acn, make_tenant, open_to_investors
 
 ADD = "/api/v1/offerings/{}/documents/"
@@ -24,7 +23,6 @@ PUBLISHED = (OfferingStatus.APPROVED, OfferingStatus.CLOSED)
 UNPUBLISHED = (OfferingStatus.DRAFT, OfferingStatus.SUBMITTED, OfferingStatus.UNDER_REVIEW, OfferingStatus.REJECTED)
 STAYS = "stays attached"
 KEEPS_ITS_COMPANY = "keeps its company"
-BEFORE_THE_RULE = [("offerings", "0008_subscription_snapshots")]
 
 
 def attached(offering):
@@ -266,25 +264,3 @@ class TheDatabaseKeepsPublishedDocumentsTest(TestCase):
             ),
             {other.company.pk},
         )
-
-
-class TheRuleMigrationReversesTest(TransactionTestCase):
-    def tearDown(self):
-        restore_every_migration()
-        super().tearDown()
-
-    def test_rolling_back_lifts_the_rule_and_reapplying_restores_it(self):
-        tenant = make_tenant("kept-migration")
-        memorandum = offer_document(tenant.company)
-        tenant.offering.documents.add(memorandum)
-        publish(tenant.offering)
-
-        migrate_to(BEFORE_THE_RULE)
-        tenant.offering.documents.remove(memorandum)
-        self.assertEqual(attached(tenant.offering), set())
-
-        restore_every_migration()
-        tenant.offering.documents.add(memorandum)
-        with self.assertRaisesMessage(IntegrityError, STAYS), transaction.atomic():
-            tenant.offering.documents.remove(memorandum)
-        self.assertEqual(attached(tenant.offering), {memorandum.uuid})

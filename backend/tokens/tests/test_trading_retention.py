@@ -9,7 +9,6 @@ from companies.models import Company
 from feature_flags.models import FeatureFlag
 from shared.db import APP_ALIAS, acting_for, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import (
     SYNTHETIC_SETTLEMENT_CONTRACT,
@@ -179,22 +178,6 @@ class TradingRetentionTest(APITransactionTestCase):
                 self.assertEqual(self.orders()["count"], 2)
                 self.assertEqual(self.row()["tokenSymbol"], self.original["tokenSymbol"])
                 self.assertEqual(self.swaps()["count"], 1)
-
-    def test_paused_legacy_swap_remains_visible_without_inventing_identity(self):
-        self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0038_order_action_submissions")])
-        restore_every_migration()
-        with use_operator():
-            self.assertEqual(SwapOrder.objects.get(pk=self.swap.pk).settlement_protocol_version, 0)
-        self.pause()
-        result = self.swaps()
-        self.assertEqual(result["count"], 1)
-        self.assertEqual([row["uuid"] for row in result["results"]], [str(self.swap.pk)])
-        row = result["results"][0]
-        self.assertEqual(row["uuid"], str(self.swap.pk))
-        self.assertIsNone(row["shareTokenName"])
-        self.assertIsNone(row["shareTokenSymbol"])
-        self.assertEqual(row["viewerParties"], [])
 
     def test_paused_order_pagination_keeps_every_owned_row(self):
         with use_operator():

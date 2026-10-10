@@ -1,5 +1,4 @@
 import hashlib
-import importlib
 import json
 from datetime import timedelta
 from io import StringIO
@@ -308,33 +307,6 @@ class PublishingToMembersTest(StubUploadDependencies, TestCase):
 
         self.assertEqual(Publication.objects.get(pk=publication.pk).title, TITLE)
         self.assertEqual(int(PublicationRecipient.objects.get(pk=row.pk).shares), int(row.shares))
-
-    def test_downgrade_refuses_to_discard_publications(self):
-        migration = importlib.import_module("shareholders.migrations.0001_publications")
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            migration.remove_guards(None, editor)
-        publication = published(self.world)
-
-        with self.assertRaisesRegex(RuntimeError, "Retain publications"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_guards(None, editor)
-
-        self.assertTrue(Publication.objects.filter(pk=publication.pk).exists())
-
-    def test_reversing_the_paused_class_guard_refuses_a_paused_class_again_and_keeps_what_was_published(self):
-        guard = importlib.import_module("shareholders.migrations.0006_publication_to_a_paused_class")
-        operation = guard.Migration.operations[0]
-        made = published(the_class_is_paused(self.world))
-
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            operation.reverse_code(None, editor)
-        with self.assertRaisesMessage(IntegrityError, "A publication requires a deployed share class"), atomic():
-            published(self.world)
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            operation.code(None, editor)
-
-        self.assertEqual(published(self.world).token_id, made.token_id)
-        self.assertEqual(Publication.objects.count(), 2)
 
     def test_the_roll_digest_reports_a_roll_that_no_longer_matches_what_was_published(self):
         publication = published(self.world)

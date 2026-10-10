@@ -3,7 +3,6 @@ from uuid import UUID, uuid4
 
 from django.conf import settings
 from django.db import connections
-from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from feature_flags.models import FeatureFlag
@@ -16,11 +15,10 @@ from shared.db import (
     use_operator,
 )
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant, open_to_investors
 from tokens.models import SwapOrder, TransferOrder
-from tokens.tests.market_fixtures import make_market_tenant
+from tokens.tests.market_fixtures import complete_market_trade, make_market_tenant
 from tokens.tests.test_market_summary import DIRECTORY, TRADING
 
 
@@ -33,16 +31,11 @@ class ScopedMarketReadsTest(RunsOnTheScopedConnection, APITransactionTestCase):
         with use_migrate():
             self.issuer = make_market_tenant("market-issuer")
             make_eligible(self.reader)
-            self.addCleanup(restore_every_migration)
-            historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-            historical.get_model("tokens", "SwapOrder").objects.filter(pk=self.issuer.swap.pk).update(
-                status="completed", completed_at=timezone.now()
-            )
-            restore_every_migration()
         make_eligible(self.issuer)
         issuer_decision = accept_company_eligibility(self.issuer)
         accept_company_eligibility(self.reader, issuer_decision=issuer_decision)
         open_to_investors(self.issuer)
+        complete_market_trade(self, self.issuer, "scoped-market-execution")
         self.client.force_authenticate(self.reader.user)
         self.statements = []
 

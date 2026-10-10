@@ -1,4 +1,3 @@
-from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.admin.sites import site
@@ -8,20 +7,11 @@ from django.db import DatabaseError
 from django.test import RequestFactory, TransactionTestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
-from eth_abi import encode
-from web3 import Web3
 
-from blockchain.tests.outgoing_fixtures import chain_client
 from shared.db import atomic
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
-from tokens.models import (
-    CapitalIncreaseRequest,
-    RequestStatus,
-    ShareIssuance,
-    ShareIssuanceRequest,
-)
-from tokens.services import capital_execution, issuance_execution, share_token_service
+from tokens.models import CapitalIncreaseRequest, RequestStatus, ShareIssuanceRequest
+from tokens.services import capital_execution, issuance_execution
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit, install_capital
 from tokens.tests.issuance_fixtures import FINALITY_POLICIES
 
@@ -206,74 +196,6 @@ class ReviewRequestAdminTest(TransactionTestCase):
         self.issuance.refresh_from_db()
         self.assertTrue(capital_admin.has_delete_permission(request, draft))
         self.assertTrue(issuance_admin.has_delete_permission(request, self.issuance))
-
-
-@override_settings(
-    STORAGES=TEST_STORAGES,
-    BLOCKCHAIN_OPERATOR_KEY=KEY,
-    BLOCKCHAIN_CHAIN_ID=CHAIN_ID,
-    WALLET_CHAIN_FINALITY_POLICIES=FINALITY_POLICIES,
-)
-class LegacyIssuanceAdminRecoveryTest(TransactionTestCase):
-    def setUp(self):
-        self.admin = User.objects.create_superuser(email="legacy-admin@example.test", password="pw-12345678")
-        self.client.force_login(self.admin)
-        self.tenant = make_tenant("legacy-owner")
-        self.issuance = ShareIssuanceRequest.objects.create(
-            token=self.tenant.deployed_token, recipient_address="0x" + "a" * 40, amount=10, reason="Original issuance"
-        )
-
-    def test_legacy_recovery_renders_the_hash_form_without_a_release_action(self):
-        try:
-            migrate_to([("tokens", "0047_issuance_execution")])
-            self.issuance = ShareIssuanceRequest.objects.create(
-                token=self.tenant.deployed_token,
-                recipient_address=self.issuance.recipient_address,
-                amount=10,
-                dispatch_id=None,
-            )
-            self.issuance.approve(self.admin)
-            self.issuance.mark_executing()
-            recorded = ShareIssuance.objects.create(
-                token=self.issuance.token,
-                recipient_address=self.issuance.recipient_address,
-                amount=str(self.issuance.amount),
-                initiated_by=self.admin,
-                status="processing",
-                idempotency_key=share_token_service.issuance_key(self.issuance),
-                processed_at=timezone.now() - timedelta(hours=1),
-            )
-            self.issuance.mark_failed("Synthetic provider acknowledgement loss")
-            recorded.status = "failed"
-            recorded.save(update_fields=["status", "updated_at"])
-        finally:
-            restore_every_migration()
-        ShareIssuanceRequest.objects.filter(pk=self.issuance.pk).update(updated_at=timezone.now() - timedelta(hours=1))
-        change = self.client.get(url(self.issuance, "change"))
-        self.assertContains(change, "Record legacy transaction hash")
-        self.assertNotContains(change, "Release claim")
-        with self.assertRaises(NoReverseMatch):
-            url(self.issuance, "release_claim")
-
-        page = self.client.get(url(self.issuance, "name_mint"))
-        self.assertContains(page, 'name="tx_hash"')
-        invalid = self.client.post(url(self.issuance, "name_mint"), {"tx_hash": "0x" + "z" * 64})
-        self.assertContains(invalid, "64 hexadecimal characters")
-        recorded.refresh_from_db()
-        self.assertIsNone(recorded.tx_hash)
-        historical_client = chain_client()
-        historical_client.get_transaction.return_value = {
-            "hash": "0x" + "ab" * 32,
-            "to": self.issuance.token.contract_address,
-            "value": 0,
-            "input": Web3.keccak(text="mint(address,uint256)")[:4]
-            + encode(["address", "uint256"], [self.issuance.recipient_address, 10]),
-        }
-        with patch("tokens.services.legacy_issuance.get_base_chain_client", return_value=historical_client):
-            response = self.client.post(url(self.issuance, "name_mint"), {"tx_hash": "0x" + "ab" * 32})
-        self.assertRedirects(response, url(self.issuance, "change"), fetch_redirect_response=False)
-        recorded.refresh_from_db()
-        self.assertEqual(recorded.tx_hash, "0x" + "ab" * 32)
 
 
 class CompanyIssueAdminRecoveryTest(TransactionTestCase):

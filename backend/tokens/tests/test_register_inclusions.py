@@ -13,8 +13,9 @@ from rest_framework.exceptions import NotFound, ValidationError
 from blockchain.models import TransactionStatus
 from blockchain.tests.outgoing_fixtures import BLOCK_HASH
 from integrations.blockchain.receipts import normalized_hash
+from shared.db import use_migrate, use_operator
 from shared.storage import private_storage
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     IssuanceExecutionStatus,
@@ -421,13 +422,13 @@ class RegisterInclusionTest(InclusionFixtures, TransactionTestCase):
         self.assertEqual(issuance_execution.recover(command.pk)["status"], "executing")
         command.refresh_from_db()
         self.assertEqual((command.status, command.transaction.status), ("executing", TransactionStatus.CONFIRMED))
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0065_register_opening")])
-        previous.get_model("tokens", "ShareIssuanceExecution").objects.filter(pk=command.pk).update(status="executed")
-        previous.get_model("tokens", "ShareIssuance").objects.filter(pk=command.issuance_id).update(
-            status="completed", completed_at=timezone.now()
-        )
-        restore_every_migration()
+        with use_migrate(), retained_rows(
+            ("tokens_shareissuanceexecution", "tokens_guard_issuance_finalized_receipt"),
+            ("tokens_shareissuanceexecution", "tokens_company_issue_execution"),
+            ("tokens_shareissuanceexecution", "tokens_company_issue_execution_effect"),
+        ), use_operator():
+            ShareIssuanceExecution.objects.filter(pk=command.pk).update(status="executed")
+            ShareIssuance.objects.filter(pk=command.issuance_id).update(status="completed", completed_at=timezone.now())
         historical = ShareIssuanceExecution.objects.select_related("transaction").get(pk=command.pk)
         self.assertEqual(historical.status, IssuanceExecutionStatus.EXECUTED)
         self.assertIsNone(historical.finalized_receipt)

@@ -1,5 +1,3 @@
-from string import hexdigits
-
 from django import forms
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
@@ -9,13 +7,7 @@ from django.urls import reverse
 from blockchain.models import BlockchainTransaction
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_display import action_buttons
-from tokens.exceptions import (
-    InvalidTokenStateException,
-    IssuanceExecutionConflict,
-    IssuanceExecutionUnresolved,
-)
-from tokens.models import RequestStatus, ShareIssuanceRequest
-from tokens.services import legacy_issuance
+from tokens.models import RequestStatus
 
 from ._helpers import status_badge
 
@@ -44,25 +36,6 @@ STATUS_ACTIONS = {
     RequestStatus.REJECTED: [("Request Rejected", None, "#e9ecef", "#6c757d")],
     RequestStatus.SUPERSEDED: [("Superseded", None, "#e9ecef", "#6c757d")],
 }
-
-
-UNNAMED_MINT_ACTIONS = [
-    ("Record legacy transaction hash", "name_mint", "#007bff"),
-]
-
-
-class NameMintForm(forms.Form):
-    tx_hash = forms.CharField(
-        label="Transaction hash found on chain",
-        max_length=66,
-        widget=forms.TextInput(attrs={"placeholder": "0x…"}),
-    )
-
-    def clean_tx_hash(self):
-        value = self.cleaned_data["tx_hash"].strip()
-        if not value.startswith("0x") or len(value) != 66 or any(character not in hexdigits for character in value[2:]):
-            raise forms.ValidationError("A transaction hash is 0x followed by 64 hexadecimal characters.")
-        return value
 
 
 class ApproveForm(forms.Form):
@@ -136,7 +109,6 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             *([] if self.approved_by_instruction else [("approve", "approve", self.approve_view)]),
             ("reject", "reject", self.reject_view),
             ("execute", "execute", self.execute_view),
-            ("name-mint", "name_mint", self.name_mint_view),
         ]
         custom = [
             admin_action_path(self, f"<uuid:uuid>/{slug}/", self._url_name(action), view)
@@ -174,8 +146,6 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             AWAITING_INSTRUCTION if self.approved_by_instruction and item is APPROVE else item
             for item in STATUS_ACTIONS.get(obj.status, [])
         ]
-        if self._has_an_unnamed_mint(obj):
-            items = items + UNNAMED_MINT_ACTIONS
         return action_buttons(
             [
                 (label, action and reverse(f"admin:{self._url_name(action)}", args=[obj.uuid]), *colors)
@@ -230,29 +200,3 @@ class ReviewWorkflowAdmin(admin.ModelAdmin):
             messages.warning(request, f"{self.label} rejected for {obj.token.symbol}")
             return HttpResponseRedirect(self._change_url(obj))
         return self._render(request, obj, "reject", form)
-
-    @staticmethod
-    def _has_an_unnamed_mint(obj):
-        if obj.status not in (RequestStatus.EXECUTING, RequestStatus.FAILED) or not isinstance(
-            obj, ShareIssuanceRequest
-        ):
-            return False
-        return legacy_issuance.unnamed_mint(obj) is not None
-
-    def name_mint_view(self, request, obj):
-        if not self._has_an_unnamed_mint(obj):
-            return self._refuse(request, obj, "record a transaction hash for")
-        form = NameMintForm(request.POST or None)
-        if request.method == "POST" and form.is_valid():
-            try:
-                legacy_issuance.name_the_mint(obj, form.cleaned_data["tx_hash"])
-            except (InvalidTokenStateException, IssuanceExecutionConflict, IssuanceExecutionUnresolved) as exc:
-                messages.error(request, str(exc.detail))
-                return HttpResponseRedirect(self._change_url(obj))
-            messages.info(
-                request,
-                f"Recorded {form.cleaned_data['tx_hash']} for {obj.token.symbol}. "
-                "The sweep will read its receipt and finish the request.",
-            )
-            return HttpResponseRedirect(self._change_url(obj))
-        return self._render(request, obj, "name mint", form)
