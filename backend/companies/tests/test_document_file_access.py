@@ -24,7 +24,10 @@ from companies.services.team import accept_team_invitation, issue_team_invitatio
 from companies.tests.registry_fixtures import matching_observation
 from companies.tests.test_authority_requests import evidence
 from shared.db import use_migrate
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.seeds.synthetic.authority import (
+    OWNER_PROVENANCE,
+    historical_owner_appointment,
+)
 from shared.tests.upload_fixtures import (
     PrivateDocumentFileChecks,
     StubUploadDependencies,
@@ -118,15 +121,11 @@ def admit_company_administrator(company, actor=None):
     )
 
 
-def legacy_company_administrators(*companies):
+def legacy_company_administrators(*companies, provenance=OWNER_PROVENANCE):
     with use_migrate():
         for company in companies:
             UserProfile.objects.get_or_create(user=company.owner, defaults={"full_name": company.owner.email})
-    try:
-        migrate_to([("companies", "0018_team_invitation_admission_guards")])
-    finally:
-        restore_every_migration()
-    return [company.appointments.get(legacy_owner__isnull=False) for company in companies]
+    return [historical_owner_appointment(company, provenance=provenance) for company in companies]
 
 
 class CompanyDocumentFileUrlTest(StubUploadDependencies, APITestCase):

@@ -210,8 +210,8 @@ accounts are outside this investor review queue.
 
 ## Wallet transfers and stale rows
 
-Use the recorded journal and the matching [EVM](../reference/evm-transfers.md) or
-[Bitcoin](../reference/bitcoin-transfers.md) protocol. Receipt confirmation and
+Use the recorded journal and the matching [EVM](../reference/wallet-transfers.md#evm) or
+[Bitcoin](../reference/wallet-transfers.md#bitcoin) protocol. Receipt confirmation and
 balance reconciliation are separate; a five-minute sweep requeues durable balance
 repair even after a transaction's status changes. See [wallet reconciliation](../reference/wallet-reconciliation.md).
 

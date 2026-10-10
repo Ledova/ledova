@@ -22,7 +22,7 @@ NATIVE_INPUT_FILES = frozenset(
 UNREAD_BY_DJANGO = ("dashboard/", "docs/", "marketing/", "mobile/", "packages/")
 UNREAD_FILES_BY_DJANGO = frozenset(("AGENTS.md", "CONTRIBUTING.md"))
 DOCUMENT = re.compile(rb"docs/[\w./-]+\.md|(?:AGENTS|CONTRIBUTING)\.md")
-JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard", "backend")}
+JOBS = {"native": ("android", "ios"), "django": ("backend-suite-shard", "backend", "backend-scoped", "backend-chain")}
 
 
 def changes_checkouts(path):

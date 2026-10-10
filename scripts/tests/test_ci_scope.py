@@ -1,12 +1,15 @@
 import importlib.util
 import json
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+import yaml
 
 SCRIPT = Path(__file__).resolve().parents[1] / "ci-scope.py"
 SPEC = importlib.util.spec_from_file_location("ci_scope", SCRIPT)
@@ -472,7 +475,20 @@ class DjangoVerdictTest(unittest.TestCase):
             "scope": {"result": "success", "outputs": {"required": required}},
             "backend-suite-shard": {"result": shards},
             "backend": {"result": shards if backend is None else backend},
+            "backend-scoped": {"result": shards},
+            "backend-chain": {"result": shards},
         }
+
+    def test_a_failed_chain_or_missing_scoped_job_cannot_pass(self):
+        needs = self.needs()
+        needs["backend-scoped"] = {"result": "success"}
+        needs["backend-chain"] = {"result": "failure"}
+        with self.subTest(chain="failure"):
+            self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+        needs["backend-chain"]["result"] = "success"
+        del needs["backend-scoped"]
+        with self.subTest(scoped="missing"):
+            self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
 
     def test_django_jobs_that_ran_or_were_rightly_skipped_pass_and_nothing_else_does(self):
         for required, shards, backend, passed in (
@@ -489,15 +505,187 @@ class DjangoVerdictTest(unittest.TestCase):
                 self.assertEqual(SCOPE.verdict(self.needs(required, shards, backend), SCOPE.JOBS["django"]), passed)
 
     def test_verdict_cli_judges_the_django_jobs(self):
-        for needs, status in ((self.needs("false", "skipped"), 0), (self.needs("true", "cancelled"), 1)):
+        failed_chain = self.needs()
+        failed_chain["backend-chain"]["result"] = "failure"
+        missing_scoped = self.needs()
+        del missing_scoped["backend-scoped"]
+        for needs, status in (
+            (json.dumps(self.needs("false", "skipped")), 0),
+            (json.dumps(self.needs("true", "cancelled")), 1),
+            (json.dumps(failed_chain), 1),
+            (json.dumps(missing_scoped), 1),
+            ("not-json", 1),
+        ):
             with self.subTest(needs=needs):
                 result = subprocess.run(
                     [sys.executable, str(SCRIPT), "verdict", "django"],
-                    env={**os.environ, "JOB_RESULTS": json.dumps(needs)},
+                    env={**os.environ, "JOB_RESULTS": needs},
                     capture_output=True,
                     text=True,
                 )
                 self.assertEqual(result.returncode, status)
+
+    def test_each_required_group_must_have_the_expected_result(self):
+        for required, good, bad in (
+            ("true", "success", ("failure", "cancelled", "skipped", "", None)),
+            ("false", "skipped", ("success", "failure", "cancelled", "", None)),
+        ):
+            for job in ("backend-suite-shard", "backend", "backend-scoped", "backend-chain"):
+                for result in bad:
+                    with self.subTest(required=required, job=job, result=result):
+                        needs = self.needs(required, good)
+                        needs[job]["result"] = result
+                        self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+                for malformed in (None, [], {}, "success"):
+                    with self.subTest(required=required, job=job, malformed=malformed):
+                        needs = self.needs(required, good)
+                        needs[job] = malformed
+                        self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+                with self.subTest(required=required, job=job, missing=True):
+                    needs = self.needs(required, good)
+                    del needs[job]
+                    self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+
+    def test_routing_failure_missing_and_invalid_output_cannot_pass(self):
+        for required, result in (("true", "success"), ("false", "skipped")):
+            for routing in ("failure", "cancelled", "skipped", "", None):
+                with self.subTest(required=required, routing=routing):
+                    needs = self.needs(required, result)
+                    needs["scope"]["result"] = routing
+                    self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+            for invalid in (None, True, "", "FALSE", "maybe"):
+                with self.subTest(required=required, invalid=invalid):
+                    needs = self.needs(required, result)
+                    needs["scope"]["outputs"]["required"] = invalid
+                    self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+        for needs in (None, [], {}, {"scope": {"result": "success", "outputs": None}}):
+            with self.subTest(needs=needs):
+                self.assertFalse(SCOPE.verdict(needs, SCOPE.JOBS["django"]))
+
+
+class DjangoWorkflowTest(unittest.TestCase):
+    def setUp(self):
+        path = SCRIPT.parent.parent / ".github" / "workflows" / "ci.yml"
+        self.jobs = yaml.safe_load(path.read_text())["jobs"]
+
+    def commands(self):
+        return [
+            (job, step, " ".join(step["run"].replace("\\\n", " ").split()))
+            for job, definition in self.jobs.items()
+            for step in definition["steps"]
+            if "run" in step
+        ]
+
+    def test_all_backend_groups_are_required_scope_only_siblings(self):
+        groups = ("backend-suite-shard", "backend", "backend-scoped", "backend-chain")
+        self.assertEqual(SCOPE.JOBS["django"], groups)
+        verdict = self.jobs["backend-suite"]
+        self.assertEqual(verdict["if"], "always()")
+        self.assertCountEqual(verdict["needs"], ("scope", *groups))
+        for name in groups:
+            with self.subTest(job=name):
+                job = self.jobs[name]
+                self.assertEqual(job["needs"], "scope")
+                self.assertEqual(job["if"], "needs.scope.outputs.required == 'true'")
+                self.assertFalse(job.get("continue-on-error", False))
+                self.assertTrue(all(not step.get("continue-on-error", False) for step in job["steps"]))
+
+    def test_scoped_coverage_is_unlabelled_required_and_runs_exactly_once(self):
+        matches = [row for row in self.commands() if "--settings=ledova_backend.settings.test_scoped" in row[2]]
+        self.assertEqual(len(matches), 1)
+        job, step, command = matches[0]
+        self.assertEqual(job, "backend-scoped")
+        self.assertNotIn("if", step)
+        self.assertEqual(
+            shlex.split(command),
+            [
+                "python",
+                "manage.py",
+                "test",
+                "--settings=ledova_backend.settings.test_scoped",
+                "--require-scoped-coverage",
+                "--parallel",
+                "4",
+                "--noinput",
+                "--durations",
+                "0",
+                "--verbosity",
+                "2",
+                "--timing",
+            ],
+        )
+
+    def test_real_engine_commands_and_redis_preflight_run_once_in_the_chain_job(self):
+        evm = [row for row in self.commands() if "make chain-test" in row[2]]
+        bitcoin = [row for row in self.commands() if "scripts/test-bitcoin-chain.py" in row[2]]
+        self.assertEqual((len(evm), len(bitcoin)), (1, 1))
+        job, step, command = evm[0]
+        self.assertEqual(job, "backend-chain")
+        self.assertNotIn("if", step)
+        self.assertEqual(step["working-directory"], ".")
+        self.assertEqual(step["env"]["REDIS_URL"], "redis://127.0.0.1:6379/0")
+        self.assertIn("timeout --kill-after=2s 10s python backend/manage.py shell --command", command)
+        self.assertIn("Redis.from_url(settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2).ping()", command)
+        self.assertTrue(command.endswith("make chain-test PYTHON=python"))
+        self.assertEqual(bitcoin[0][0], "backend-chain")
+        self.assertEqual(bitcoin[0][2], "python scripts/test-bitcoin-chain.py")
+        self.assertNotIn("if", bitcoin[0][1])
+
+    def test_new_jobs_keep_the_isolated_services_and_bootstrap_their_own_database(self):
+        commands = self.commands()
+        for name, bootstrap in (
+            ("backend-scoped", "python manage.py migrate --settings=ledova_backend.settings.test_postgres --noinput"),
+            ("backend-chain", "python manage.py migrate --noinput"),
+        ):
+            with self.subTest(job=name):
+                job = self.jobs[name]
+                self.assertEqual(job["runs-on"], "ubuntu-latest")
+                self.assertEqual(job["env"], self.jobs["backend"]["env"])
+                self.assertEqual(job["services"], self.jobs["backend"]["services"])
+                self.assertEqual(job["services"]["postgres"]["image"], "postgres:16")
+                self.assertEqual(job["services"]["redis"]["image"], "redis:7-alpine")
+                setup = next(step for step in job["steps"] if step.get("uses", "").startswith("actions/setup-python@"))
+                self.assertEqual(setup["with"]["python-version"], "3.13.15")
+                self.assertIn((name, bootstrap), [(owner, command) for owner, _, command in commands])
+                self.assertIn(
+                    (name, "pip install -r requirements-dev.txt -c schema/requirements.txt"),
+                    [(owner, command) for owner, _, command in commands],
+                )
+
+    def test_remaining_backend_boundaries_and_schema_artifact_stay_required(self):
+        runs = [(step, command) for name, step, command in self.commands() if name == "backend"]
+        for command in (
+            "pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-1845",
+            "make lint",
+            "python manage.py check",
+            "python manage.py makemigrations --check --dry-run",
+            "python manage.py check_rls_roles",
+            "python manage.py check_rls_catalogue",
+            "python manage.py export_api_schema --settings=ledova_backend.settings.test_postgres",
+            "python ../scripts/check-api-schema.py --schema /tmp/ledova-schema.json",
+            "python manage.py test authentication.tests.redis_throttle",
+            "python manage.py test shared.tests.redis_uploads",
+            "python manage.py test shared.tests.clamav_uploads",
+        ):
+            with self.subTest(command=command):
+                matches = [
+                    step
+                    for step, run in runs
+                    if command in run and (command != "python manage.py check" or run == command)
+                ]
+                self.assertEqual(len(matches), 1)
+                self.assertNotIn("if", matches[0])
+        cleanup = next(step for step, run in runs if "docker rm -f -v ledova-upload-clamav" in run)
+        self.assertEqual(cleanup["if"], "always()")
+        artifacts = [
+            (name, step)
+            for name, job in self.jobs.items()
+            for step in job["steps"]
+            if step.get("with", {}).get("name") == "api-schema-contract"
+        ]
+        self.assertEqual(len(artifacts), 1)
+        self.assertEqual(artifacts[0][0], "backend")
+        self.assertEqual(artifacts[0][1]["if"], "always()")
 
 
 if __name__ == "__main__":

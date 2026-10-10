@@ -2,9 +2,13 @@
 
 [Contributing](../../CONTRIBUTING.md) · [Standards](standards.md) · [Testing](testing.md)
 
-Start here when a check fails. Each section states the rule, remedy and limits;
-[gate internals](../reference/gate-internals.md) links implementations and regression
-controls. Commands run from the repository root unless stated otherwise.
+Start here when a check fails. Each section states the rule, the remedy and
+what the check does and does not establish. The source owns exact matchers and
+exception inventories: when extending a checker or investigating a false result,
+run `make test-gates`, and introduce a failing fixture and a valid control for a
+changed matcher. Counted historical debt must shrink and stale counts must fail;
+a justified exclusion needs a reason and coverage proving its boundary. Commands
+run from the repository root unless stated otherwise.
 
 ## Every gate, and where its rule is written
 
@@ -37,79 +41,53 @@ oversight, and documenting it here would fail the gate.
 
 Two rules are gated without a script of their own: one migration per model
 change, through CI's `makemigrations --check --dry-run`, and the generated
-design tokens, through `git diff --exit-code` after `make build`. Other
-checks run from the Makefile rather than from `scripts/`:
-`make check-mobile-test-awaits`, `npm --prefix mobile run check:resolution`,
-and, in `make test`, `dashboard/scripts/check-react-singleton.mjs`,
+design tokens, through `git diff --exit-code` after `make build`. Other checks
+run from the Makefile rather than from `scripts/`: `make check-mobile-test-awaits`,
+`npm --prefix mobile run check:resolution`, which checks the real native
+dependency graph including shared React/query peers (Jest and TypeScript
+resolution alone do not prove Metro resolution), and, in `make test`,
+`dashboard/scripts/check-react-singleton.mjs`,
 `mobile/scripts/shared-peer-resolution.test.mjs`, the negative control for the
-peer step of `check:resolution`, and
-`mobile/scripts/tests/relative-imports.test.mjs`, the control for its refusal
-of a relative import that climbs out of `mobile/` into a `node_modules`
-directory, such as the root copy of a package mobile also installs. It tests
-the rule, then runs the whole check on a fixture tree holding such an import,
-by passing `check-resolution.mjs` the fixture's `mobile/` directory.
+peer step of `check:resolution`, and `mobile/scripts/tests/relative-imports.test.mjs`,
+the control for its refusal of a relative import that climbs out of `mobile/`
+into a `node_modules` directory. `check-self-imports.mjs` prevents the shared
+package importing its own public barrel.
 
 ## The PR metadata gate
 
 `scripts/check-pr-metadata.py` requires a `type(#issue): description` title and a
-matching `Refs #issue` or `Closes #issue` as the first nonblank body line. It
-checks through GitHub that the referenced number is an issue in this repository,
-rather than a PR or an unavailable number. The types and ownership convention
-are in
+matching `Refs #issue` or `Closes #issue` as the first nonblank body line, and
+checks through GitHub that the number is an issue in this repository. The types
+and ownership convention are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
+A `Refs` PR must close no issue: the gate refuses one whose
+`closingIssuesReferences` list has an entry, or whose title or any commit's
+message carries one of GitHub's
+[closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
+followed by `#N`, `OWNER/REPO#N` or an issue URL, because squash merges copy
+commit messages into the squash commit (that is how #170 was closed by #172's
+squash commit while #172's list was empty). The refusal names each issue, title
+reference or commit; remove the phrase or link, or reword the title or commit.
+A `Closes` PR is checked against none of these, and a type prefix such as
+`fix(#123):` is not a closing phrase.
 
-A `Refs` PR must close no issue. The gate reads the PR's title,
-`closingIssuesReferences` and commits in one `gh pr view` call. The list covers an
-issue named by a closing phrase anywhere in the PR body, even a negated one such
-as "does not close #N", and one linked from the PR's Development sidebar. It
-leaves out commit messages, which still close an issue when they reach the default
-branch, and this repository's squash merges copy them into the squash commit. That
-is how #170 was closed by #172's squash commit while #172's list was empty. The
-title reaches the default branch too, as a merge commit's body and as the squash
-headline for a PR with several commits. So the gate also searches the title and
-each commit's headline and body for one of GitHub's
-[closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword),
-in any case and optionally followed by a colon, then whitespace and `#N`,
-`OWNER/REPO#N` or a `https://github.com/OWNER/REPO/issues/N` URL.
-
-A `Refs` PR with a list entry or such a phrase in its title or a commit is
-refused. The refusal names each issue, each reference in the title, or each commit
-by short SHA with its reference; remove the phrase or the link, or reword the
-title or the commit. A `Closes` PR is checked against none of these. A type
-prefix such as `fix(#123):` is not a closing phrase, because no whitespace follows
-the keyword. GitHub documents the keywords, the colon and the `#N` and
-`OWNER/REPO#N` forms, not URLs, `GH-N` or a missing space. The gate matches only
-the URL spelling above, and passes `GH-N`, `Closes#N` and other undocumented
-spellings. A message edited at merge time is not checked.
-
-In gh 2.100.0, `gh pr view` returns at most a PR's first 100 commits, so the gate
-also reads the PR's commit count from `repos/OWNER/REPO/pulls/N` in the REST API.
-Any PR, `Refs` or `Closes`, is refused when that count is missing, is not an
-integer or differs from the number of commits read, and the refusal shows the
-count it found and the number it read. A PR with more than 100 commits therefore
-cannot pass. A push between the two reads that changes the count is refused the
-same way, and every push starts a new run that reads both again.
-
-The separate `PR metadata` workflow runs on creation, edits, new commits,
-reopening and readiness changes, including bot PRs. It uses `pull_request_target`
-with read-only permissions and checks out only the repository's default branch.
-It never checks out or executes the PR's code. Titles, bodies and commit messages
-are fetched as data through the API, rather than interpolated into a shell
-command. Concurrent runs for the same PR cancel older runs; each check fetches
-the current metadata. Linking an issue from the sidebar starts no workflow, so a
-link added after the last check is seen only at the next of those events.
-
-This check needs GitHub access and is not part of `make check`; its regression
-tests run in `make test-gates`. To check a PR locally, run
-`python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER` with
-an authenticated `gh` CLI, version 2.72.0 or later. The gate verifies
-traceability, not whether the issue is a sensible match or whether its full scope has been completed. Review owns
-those judgments. The workflow starts enforcing once it is on the default branch.
+The gate reads the PR in one `gh pr view` call, which returns at most 100
+commits, so it also reads the commit count from the REST API and refuses a PR
+whose count is missing or differs from the commits read. It matches only
+GitHub's documented spellings and the issue-URL form, so `GH-N` and `Closes#N`
+pass, and a message edited at merge time is not checked. The `PR metadata`
+workflow runs on creation, edits, new commits, reopening and readiness changes,
+including bot PRs, under `pull_request_target` with read-only permissions: it
+checks out only the default branch and fetches titles, bodies and commits as
+data. The check needs GitHub access and is not part of `make check`; locally,
+run `python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER`
+with an authenticated `gh` 2.72.0 or later. It verifies traceability, not
+whether the issue is a sensible match; review owns that.
 
 ## The comment gate
 
 `make check-comments` parses comments and docstrings across governed source trees.
-Rename code or explain behavior through tests; source explanations belong in docs.
+Rename code or explain behaviour through tests; source explanations belong in docs.
 Configuration and documentation can retain comments. Root `scripts/` modules carry
 docstrings. Python uses tokenize/AST; client parsing distinguishes strings, regexes,
 JSX and template expressions. CSS, Solidity and native templates have their own scans.
@@ -120,9 +98,12 @@ The trees are, in full: `backend`, `dashboard/src`, `mobile/src`,
 `contracts/scripts`, `contracts/test`.
 
 That sentence is checked against `TREES`. Each tree's extension and recursion scope
-lives in the script; `NOT_SCANNED` names intentional omissions with reasons. Tests
-refuse source outside both lists. Admin templates are outside the scan and should
-also remain free of comments.
+lives in the script; `NOT_SCANNED` names intentional omissions with reasons. The
+[tree-coverage tests](../../scripts/tests/test_check_comments_trees.py) refuse
+source outside both lists, so dropping a recursive tree fails them. Native
+preprocessor code, URLs, regexes and JSX text are positive parsing controls, not
+comment exemptions. Admin templates are outside the scan and should also remain
+free of comments.
 
 Only functional directives are allowed: Python `# noqa`, `# type:`, `# pragma`,
 `# fmt:`, `# isort`, shebang/coding lines; JavaScript/TypeScript ESLint disable/enable,
@@ -136,63 +117,85 @@ Vitest/Jest environment directives, Istanbul/c8/v8 coverage pragmas, `/* global 
 checking no files. Use `tsc -b --noEmit` for a solution config with references;
 a config with no file set and no references must name its files. The checker
 resolves JSONC and inherited `files`/`include` independently, reports unreadable
-configuration, and accounts for every discovered workspace or explicit exclusion.
-It does not replace compilation. Install the correct workspace dependencies before
-running its type-check directly; `make check` installs missing ones.
+configuration, accounts for every discovered workspace or explicit exclusion,
+and distinguishes a successful empty check from a compiler error that already
+fails CI; compiler-calibrated fixtures preserve the difference between ordinary
+tsc and project-reference build mode. It does not replace compilation. Install
+the correct workspace
+dependencies before running its type-check directly; `make check` installs
+missing ones.
 
 ## The layer gate
 
 `make check-layers` enforces the [backend layer table](../architecture/backend.md#backend-layers):
 services orchestrate, querysets own queries, and views adapt HTTP. Follow the
 reference files named there. New/touched services use functions; existing class
-conversions are tracked debt. Stateful provider clients remain classes.
-Syntax checks have deliberate allowances; see [the implementation limits](../reference/gate-internals.md#layers-and-connection-binding).
+conversions are tracked debt. Stateful provider clients remain classes. The
+checker reads Python syntax and maintains rule-specific historical allowances;
+it is not a call graph, and a measured legacy site is not a general permission
+for new code.
 
 ## The connection-binding gate
 
 `make check-connection-binding` refuses default-bound transaction and cursor imports
 in backend production code. Use `shared.db.atomic`, `shared.db.on_commit` and an
 explicitly selected connection. A default-bound transaction can commit writes on
-another alias even when its own block rolls back. Test settings can conceal this;
-[scoped tests](testing.md#scoped-connection-evidence) prove the real boundary.
+another alias even when its own block rolls back. The checker refuses imports as
+well as known call spellings, including aliases and decorators; its allowances
+are the alias-aware helper implementation, principal handling and role checks,
+and tests and migrations have separate scope. Test settings can conceal a wrong
+alias; [scoped tests](testing.md#scoped-connection-evidence) prove the real boundary.
 
 ## The schema response gate
 
 `make check-schema-responses` requires explicit schema metadata when routed methods
 return another serializer or an action builds a literal success body. Fix the
-response declaration at the routed method, including private-helper responses.
-The gate establishes that metadata exists, not that it is accurate. Provider
-webhooks may be explicitly excluded. Non-DRF routes need another schema mechanism;
-the trading stream is covered by the schema postprocessing hook and its tests.
+response declaration at the routed method, including private-helper responses:
+the checker follows local private helpers to their routed callers. The gate
+establishes that metadata exists, not that it is accurate. Provider webhooks may
+be explicitly excluded. Non-DRF routes need another schema mechanism; the
+trading stream is covered by the
+[schema postprocessing hook](../../backend/shared/api/schema_hooks.py), which
+derives event names from the publisher catalogue, and its tests.
 
 ## The test shadowing gate
 
 `make check-test-shadowing` refuses helpers that override reserved
 `unittest.TestCase` methods, such as `fail`, and silently disable assertions.
 Rename the helper. The reserved set derives from `dir(TestCase)` and excludes
-intentional setup/teardown and runner hooks. This does not establish assertion quality.
+intentional setup/teardown and runner hooks; its regression controls establish
+which assertions become inert when `fail` is replaced. This does not establish
+assertion quality.
 
 ## The error body gate
 
 `make check-error-bodies` refuses caught exception text in API errors or public
-serialized failure fields. Raise the fixed API exception message or use an approved
-sanitizer, and keep bounded diagnostics on the operator side under the logging
-rules. The gate verifies selected receiver/serializer boundaries; it is not general
-interprocedural taint analysis. See [privacy checks](../reference/gate-internals.md#errors-and-logging).
+serialised failure fields. Raise the fixed API exception message or use an approved
+sanitizer, and keep bounded diagnostics in the log and on the operator-facing
+record under the logging rules. The checker follows caught exception values
+through local assignments, formatted messages and selected model failure
+writers, and resolves public serializer exposure. Sanitizer allowances assert a
+real safe transformation and need tests; moving text into a 200 response field
+does not make it safe to serve. The gate verifies selected receiver/serializer
+boundaries; it is not general interprocedural taint analysis.
 
 ## The logging privacy gate
 
 `make check-logging` refuses whole objects in client console calls, object
 serialization and request/response bodies interpolated into strings. Backend logs
 must not name private values or whole provider bodies. Use narrow identifiers and
-safe diagnostics, with logger names the checker scans (`logger`, `log`, `logging`).
-In the modules listed in `PROVIDER_FACING`, which call the EVM node whose URL
-carries the provider's key in its path, a log line never formats a caught
-exception except through `failure_summary()` (its class and the endpoint's host)
-or `type()`, and never prints a traceback (`logger.exception`, `exc_info`): a
-requests error's text names the URL it failed on, key included. The list names
-only files that exist.
-Syntax-based checks do not establish that arbitrary strings contain no secrets.
+safe diagnostics, with logger names the checker scans (`logger`, `log`, `logging`):
+renaming a logger silently drops its calls from coverage. The checker recognises
+whole-body attributes, subscripts, `.get()`, serialization and formatting
+wrappers; client string literals are not a blanket permission to interpolate
+provider bodies. In the modules listed in `PROVIDER_FACING`, which call the EVM
+node whose URL carries the provider's key in its path, a log line never formats
+a caught exception except through `failure_summary()` (its class and the
+endpoint's host) or `type()`, and never prints a traceback (`logger.exception`,
+`exc_info`): a requests error's text names the URL it failed on, key included.
+This gate and the error body gate are syntax analyses with bounded local
+reasoning: a passing result does not establish privacy through arbitrary helper
+calls or runtime-computed names, so read new data flows yourself.
 
 ## The documentation gate
 
@@ -203,9 +206,10 @@ of the backend's `@app.periodic` tasks, `def` or `async def`, and the gate inven
 above to `scripts/check-*`, in both directions. `check-port-free` is deliberately not
 a gate.
 
-The checker compares paths, anchors and names. It does not verify external URLs,
-cron values, arbitrary Markdown syntax or behavioral claims. New nested guides
-must remain discoverable from a parent; [documentation review](testing.md#documents-against-code)
+The checker compares paths, anchors and names, with GitHub's space-to-hyphen
+heading behaviour. It does not verify external URLs, cron values, arbitrary
+Markdown syntax or behavioural claims. New nested guides must remain
+discoverable from a parent; [documentation review](testing.md#documents-against-code)
 checks navigation and statements against source.
 
 ## The ordinary shard gate
@@ -213,44 +217,38 @@ checks navigation and statements against source.
 CI splits the ordinary suite across parallel jobs, one per shard named in
 [`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
 Each shard lists test name patterns, and its job passes each to `manage.py test`
-after `-k`, so it runs the tests whose ids match one of them.
+after `-k`, so it runs the tests whose ids match one of them. A test id is the
+module that defines its class, the class and the method, so `wallets.*` selects
+every test a module under `backend/wallets/` defines; a new app, or a module
+named outside its app's patterns, fails until a pattern covers it. Balance
+shards by moving patterns between them or splitting one into narrower ones. The
+gate counts test identities, not durations: `--run SHARD` runs a shard as its
+CI job does and emits the runner's method durations and setup timings, which
+exclude class/module fixtures and Django pre/post hooks.
+
 `scripts/check-ordinary-shards.py` runs once in the first matrix job before its
-suite. A gate failure fails that job and the Django verdict; all shard suites
-keep their existing selections. Through the same settings and test runner, the
-gate discovers the suite once with no patterns and once with each shard's
-patterns, each in a fresh interpreter. It
-counts each test id in every discovery, and refuses: a shard that does not list
-its patterns, each a string with no whitespace; a pattern that selects no test,
-such as one misspelt or left for a deleted app; a test id the unlabelled suite
-finds more than once, as when a factory builds two classes with one name; a
-module with a test id the shards find fewer or more times than the unlabelled
-suite; a test id a shard finds that the unlabelled suite does not; a module that
-fails to load; and a `backend-suite-shard` matrix that is anything but the file's
-shard names, such as one with an `include` or `exclude`.
-
-`-k` selects test methods by name, so a test that unittest builds without
-reading names is found by every shard, and the gate refuses it as duplicated.
-That covers the stand-in for a module that raises `SkipTest` as it is imported,
-a class whose only test is `runTest`, and an instance a `load_tests` adds. Skip a
-class rather than a module.
-
-A test id is the module that defines its class, the class and the method, so
-`wallets.*` selects every test a module under `backend/wallets/` defines. A new
-module whose tests match a shard's pattern is covered with no change. A new app,
-or a module named outside its app's patterns, fails until a pattern covers it.
-[Gate internals](../reference/gate-internals.md#layers-and-connection-binding)
-describes how. Balance shards by moving patterns between them, or by splitting
-one into narrower ones.
-
-The gate needs the backend requirements and a `SECRET_KEY` for the test settings,
-but no database. `make check` installs the requirements and runs it, through
-`make check-ordinary-shards`, from `backend/` with a generated key, as it runs
-`manage.py check`. `--run SHARD` runs that shard's suite as its CI job does. The
-gate counts test identities, not durations, so balance remains a measurement.
-Its `--run SHARD` command emits built-in method durations and setup timings
-without changing the selection. Those durations exclude class/module fixtures
-and Django pre/post hooks; retain complete identities and skipped-case counts
-independently when assessing cost.
+suite; a failure fails that job and the Django verdict. It discovers the suite
+with no patterns and with each shard's patterns, re-running itself with
+`--discover` in a fresh interpreter for each, because a `load_tests` that keeps
+state can find different tests the second time a module is loaded and each CI
+shard starts from nothing. It refuses a shard without patterns, a pattern that
+selects no test, a test id the unlabelled suite finds more than once (as when a
+factory builds two classes with one name), a module whose test ids the shards
+find fewer or more times than the unlabelled suite, a test id only a shard
+finds, a module that fails to import, which is discovered as one `_FailedTest`
+in every discovery and would otherwise look covered, and a `backend-suite-shard`
+matrix that is anything but the file's shard names. Django matches a pattern
+against the whole id, so a class one module imports from another is selected by
+the defining module's pattern, and a pattern without `*` matches anywhere in an
+id; the checker widens such a pattern the same way when it refuses one that
+selects no test. `-k` selects by name, so a test unittest builds without reading
+names (a module that raises `SkipTest` as it is imported, a class whose only
+test is `runTest`, an instance a `load_tests` adds) is found by every shard and
+refused as duplicated: skip a class rather than a module. The gate needs the backend
+requirements and a `SECRET_KEY` but no database; `make check` runs it from
+`backend/` with a generated key, and
+[its tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
+finding against a stand-in for Django's runner.
 
 ## The API type drift gate
 
@@ -261,30 +259,46 @@ environment, run `make install-schema-environment`, migrate a dedicated database
 using `ledova_backend.settings.test_postgres`, then run `make check-api-schema`.
 `POSTGRES_*` selects the database. Generation refuses other toolchains, SQLite,
 pending migrations, warnings and errors; it never migrates for you.
+`make update-api-schema` explicitly generates and checks before updating the
+snapshot; ordinary comparison never rewrites it. Mapping keys are canonicalised;
+array order, constraints, request/response metadata and nullability remain
+significant. Fix diagnostics through real declarations and existing enum
+definitions, without bypassing authorisation or suppressing warnings. The
+schema checker shares the tenancy route walker's administrative, static,
+API-root, format-duplicate and bodyless-method scope; its explicit
+provider-webhook exclusions are Alchemy, KYCAID identity, KYCAID crypto and
+Sumsub. Missing routes, phantom operations and stale exclusions fail; unused
+application routes and error-only compatibility routes still count.
 
-`make update-api-schema` explicitly generates and checks before updating the snapshot.
-Ordinary comparison never rewrites it. Mapping keys are canonicalized; array order,
-constraints, request/response metadata and nullability remain significant.
-Fix diagnostics through real declarations and existing enum definitions, without
-bypassing authorization or suppressing warnings.
+`make check-api-types` regenerates the
+[shared TypeScript contracts](../../packages/shared/src/generated/api.ts) from
+the committed snapshot with the pinned root `openapi-typescript` dependency and
+compares bytes; it does not write files. `make update-api-types` explicitly
+replaces the generated file, and `make update-api-schema` updates both.
+`API_TYPES_SCHEMA=...` selects another input. Read-only server fields are
+absent from generated requests and write-only inputs from responses;
+nullability, required fields, enums and exact decimal strings survive, binary
+payloads use `Blob`, and received objects remain mutable JavaScript data.
+Trading event types come from the stream extension: the invalidation map must
+account for every event and must not retain a removed event, and mutation tests
+exercise both. The shared, dashboard and mobile compiler checks validate
+consumers against those contracts.
 
-`make check-api-types` regenerates shared TypeScript contracts from the committed
-snapshot with the pinned root `openapi-typescript` dependency and compares bytes.
-It does not write files. `make update-api-types` explicitly replaces the generated
-file; `make update-api-schema` updates both the schema and generated types.
-`API_TYPES_SCHEMA=...` selects another input for the type target. The shared,
-dashboard and mobile compiler checks validate consumers against those contracts.
-Trading events come from the stream extension: the invalidation map must account
-for every event and must not retain a removed event. Mutation tests exercise both.
-
-`make check-client-operations` uses installed root Node dependencies and the committed
-schema to account for shared/dashboard/mobile HTTP operations and their successful
-response kinds, including 204, binary and streams. Each explicitly typed Axios
-response must accept a generated response variant from the method/path it calls.
-This preserves the old gate's endpoint binding while also checking nested values.
-Unresolved transports need explicit tested accounting, not a silent exemption.
-See [schema and operation internals](../reference/gate-internals.md#schema-and-client-operations).
-
-The owner accepted PR #562 as the clean-release checkpoint before this conversion;
-see [the recorded approval](https://github.com/Ledova/ledova/issues/115#issuecomment-5656632666)
-and [the type-generation decision](../decisions.md#clients-and-api-types).
+`make check-client-operations` uses installed root Node dependencies and the
+committed schema to account for shared, dashboard and mobile HTTP operations and
+their successful response kinds, including 204, binary and streams. It
+recognises Axios through locked compiler declarations, not the name of a `.get`
+method. Request replay sites cannot change destination, method or origin; the
+mobile stored-file download has explicit binary-route accounting, externally
+linked documents are not registered operations, and browser/mobile stream
+builders are accounted for. Every member of a typed Axios call's claimed
+response union must accept a generated successful response variant from the
+operation it calls, which covers nested values and arrays and rejects invented
+required fields; literal `blob`/`arraybuffer` decoders use their browser result
+types and bodyless responses remain `void`. Unavailable generated operations and unresolved
+explicit types fail closed; untyped calls stay in the route census without
+claiming a response-type proof, and unresolved transports need explicit tested
+accounting, not a silent exemption. The checker does not establish which
+response branch a runtime request selects or certify external destination
+policy. The type-generation decision and its checkpoint are recorded in
+[decisions](../decisions.md#clients-and-api-types).
