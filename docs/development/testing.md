@@ -134,9 +134,10 @@ CI's ordinary wrapper and strict scoped command emit the runner's
 records named method timings and overall test/database setup timings without a
 profiling framework or an extra suite. Method totals omit class/module fixtures
 and Django pre/post hooks, so they do not establish complete class costs or
-worker idle time; a duration report does not establish a scheduling improvement.
+worker idle time. Keep full inventories and declared skips separate from these
+measurements; a duration report does not establish a scheduling improvement.
 
-On a pull request, a scope job decides whether the Django jobs run: the six
+On a pull request, a scope job decides whether the Django jobs run: the
 ordinary shards, "Django checks & tests", strict scoped tests and genuine chain
 checks. They run unless every changed file is under
 `dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
