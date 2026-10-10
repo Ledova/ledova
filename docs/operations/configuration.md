@@ -159,12 +159,11 @@ scripts read `process.env` directly, and there is no dotenv loader in the
 package. Export the values you need into the deploying shell.
 `contracts/.env.example` is a checklist of the names, not a file Hardhat reads;
 `scripts/init-local-env.py` does not create `contracts/.env` and nothing would
-load it if you did. `DEPLOYER_PRIVATE_KEY` is a signing key: see
-[key management](chains.md#key-management).
+load it if you did.
 
 | Variable | Used by |
 | --- | --- |
-| `DEPLOYER_PRIVATE_KEY` (secret) | the `localhost` and `baseSepolia` account lists; blank against `localhost` falls back to the node's own accounts, blank against `baseSepolia` leaves it with no signer |
+| `DEPLOYER_PRIVATE_KEY` (secret) | the `localhost` and `baseSepolia` account lists; [key management](chains.md#key-management) says why it must be the backend's operator key |
 | `BASE_SEPOLIA_RPC_URL`, `ETHERSCAN_API_KEY`, `REPORT_GAS` | network URL, contract verification, gas reporting |
 | `FACTORY_ADDRESS`, `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS`, `RELAYER_ADDRESS`, `TOKEN_NAME`, `TOKEN_SYMBOL`, `COMPANY_ACN`, `AUTHORIZED_SHARES`, `INITIAL_MINT` | inputs to the individual deploy scripts |
 

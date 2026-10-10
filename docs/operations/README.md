@@ -6,13 +6,13 @@ Use these guides to run a synthetic local or public-testnet instance. Start with
 [getting started](../getting-started.md) for a new checkout. Operator procedures
 assume the API, worker and database run compatible code.
 
-These are runbooks for the current implementation, including staff workflows
-that the accepted [company-managed register plan](../architecture/company-managed-registers.md)
-will replace. The target is one registry product: companies and their appointed
-users administer their own registers, while platform staff handle infrastructure,
-support and specifically assigned payment or crypto operations. Private hosting
-uses the same software and company authority model. Do not grant company users
-platform-staff permissions to bridge missing company tools.
+Register commands are company-run: appointees prepare, approve and apply
+openings, imports, corrections, wallet links, particulars changes, grants,
+transfers, deployments, wallet approvals, capital changes and pauses under the
+[company-managed register plan](../architecture/company-managed-registers.md).
+Platform staff still review offerings, record payments, publish to members,
+prepare certificates, notice figures and the company pack, and review transfer
+instructions. Do not grant company users platform-staff permissions.
 
 | Task | Guide |
 | --- | --- |
@@ -22,7 +22,7 @@ platform-staff permissions to bridge missing company tools.
 | Read the current company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md) |
 | Verify a real Keystone wallet using a Mac camera and separate synthetic data | [Keystone on a Mac](keystone-mac.md) |
 | Read which real-chain test proves each step of the product's demonstration journey | [Demonstration journey](demonstration-journey.md) |
-| Seed data, configure the platform operator and work current staff queues | [Operator console](operator-console.md) |
+| Seed data, configure the operator record and work the remaining staff queues | [Operator console](operator-console.md) |
 | Read what transaction monitoring compares and when a customer counts as new | [Transaction monitoring](operator-console.md#transaction-monitoring) |
 | Follow the current staff workflow for publishing on company instruction | [Publishing to members](publications.md) |
 | Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
@@ -49,8 +49,8 @@ platform-staff permissions to bridge missing company tools.
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.
 
-The [stored register foundation](register-foundation.md) documents the staged
-#647 operator exercise and integrity checks. The
-[approval controls](approval-controls.md) record which test proves each of
-product §5's required behaviours, what the bypass review asked and answered,
-and the fresh-start redeploy rehearsal.
+The [stored register foundation](register-foundation.md) is the register
+runbook, with the #647 operator commands and integrity checks; the
+[approval controls](approval-controls.md) record the #648 evidence, closed on
+26 September 2026. [Upgrades](upgrades.md#before-and-after-an-upgrade) adds the
+upgrade-specific steps to the list above.
