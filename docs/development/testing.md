@@ -163,33 +163,43 @@ All four backend job groups must have their expected result before the verdict
 passes; a missing dependency fails it. Independent jobs may still queue, and
 their source topology alone does not establish an elapsed-time improvement.
 
-The manual capacity comparison uses only the exact execution branch
-`codex/943-trusted-selfhosted-pilot-runs` in `Ledova/ledova`. The existing scope
-router checks the real repository, full branch ref and `workflow_dispatch` event
-with case-sensitive comparisons. It selects the fixed x64 runner group/label for
-ordinary `tokens-2` and the fixed Linux ARM64 group/label for the complete strict
-scoped job. Public pull requests, pushes and every other manual context stay on
-standard runners. Chain, scanner, source, JavaScript and native routing remain
-unchanged; dispatching ordinary CI does not dispatch the separate native workflow.
+Preferred self-hosted routing uses only real `push` or `workflow_dispatch`
+events in `Ledova/ledova` on `refs/heads/main`. The scope router reads the actual
+GitHub repository, event, full ref, run ID and attempt with case-sensitive
+comparisons. It selects the fixed Linux x64 group/profile for whole ordinary
+`tokens-2` and the fixed Linux ARM64 group/profile for complete strict scoped.
+Each selection also requires `ledova-main-<run_id>-<run_attempt>` alongside its
+fixed label, binding a fresh registration to that run and attempt. Missing or
+invalid identity and every other context use standard runners. CLI event
+arguments cannot supply runner identity. Chain, scanner, source, JavaScript and
+native routing remain unchanged; ordinary CI does not dispatch native builds.
 
-Start with one ephemeral job per host on the same reviewed source, complete
-inventories and four workers. Selected manual jobs have a 130-minute timeout;
-the same jobs in other contexts retain their 360-minute default. Before dispatch, record the reviewed
-SHA/tree and exact execution branch in the sole dispatcher's execution ledger.
-The branch name alone does not pin its contents. Host owners provide a fresh
-disposable guest and restrict group access to the exact repository/workflow/ref
-for that session. An unavailable runner or failed installation remains a real
-failure; do not silently substitute workers, selectors or dependency versions.
+Keeping these jobs available requires disposing each used guest and replenishing
+a clean one-job guest under the same fixed resource and slot limits. Each new
+immutable policy binds the actual queued reviewed main source SHA/tree,
+repository, event, workflow/ref, run/attempt and assigned job/profile. A later
+main commit needs a new policy and registration. Do not widen or reload a live
+receipt. Keep registrations offline during separate group settings writes,
+read back exact repository/workflow/ref membership and access, then start the
+matching controller. Retain diagnostics and let busy work finish during drain.
+The existing dormant zero-policy sessions supply no job admission.
 
-Record the guest CPU and memory allocation, actual architecture, resolved tools,
-service images, IDs/skips, queue, setup, test and job timings, verdict and disposal
-evidence. ARM64 wheel metadata and smoke readiness do not prove the full scoped
-job fits four workers within that allocation. Do not equate method totals,
-different architectures or a single successful trial with repeatable wall-time
-improvement. Further trials need their own
-stable-source ledger and fresh one-job sessions; do not rerun the whole cohort.
+Complete inventories, commands, services and four workers remain unchanged.
+Selected jobs have a 130-minute execution timeout; their standard-runner
+contexts retain 360 minutes. An unavailable selected runner leaves work queued;
+GitHub's runner queue limit is 24 hours, separate from execution time. No automatic
+hosted fallback is implemented. Surface outage and replenishment failures rather
+than presenting queued or skipped work as success. Both secondary slots need
+separate compatible-job policy and full-load acceptance before their routing
+changes. Trusted PR preference needs a protected reusable definition and its own
+verified source admission; current PRs stay on standard runners.
+
+Record actual source/job/runner identities, guest CPU/memory, architecture,
+resolved tools/services, IDs/skips, queue/setup/test/job timing, verdict and
+fresh-guest disposal/replacement. Wheel metadata and smoke readiness do not
+prove a complete four-worker ARM run fits. A single successful operational
+acceptance or method total does not establish repeatable wall-time improvement.
 Managed paid capacity remains separately controlled and is unused by this route.
-Retire temporary routing through the normal reviewed workflow when it is obsolete.
 
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under

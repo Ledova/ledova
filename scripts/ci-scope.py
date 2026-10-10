@@ -111,19 +111,24 @@ SCOPES = {"native": native_scope, "django": django_scope}
 
 
 def django_runners(environment):
+    run_id = environment.get("GITHUB_RUN_ID", "")
+    attempt = environment.get("GITHUB_RUN_ATTEMPT", "")
     trusted = (
-        environment.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+        environment.get("GITHUB_EVENT_NAME") in ("push", "workflow_dispatch")
         and environment.get("GITHUB_REPOSITORY") == "Ledova/ledova"
-        and environment.get("GITHUB_REF") == "refs/heads/codex/943-trusted-selfhosted-pilot-runs"
+        and environment.get("GITHUB_REF") == "refs/heads/main"
+        and re.fullmatch(r"[1-9][0-9]*", run_id)
+        and re.fullmatch(r"[1-9][0-9]*", attempt)
     )
+    run_label = f"ledova-main-{run_id}-{attempt}"
     return {
         "tokens2_runner": (
-            {"group": "ledova-selfhosted-linux-pilot", "labels": "ledova-selfhosted-linux-x64-943-6c16g"}
+            {"group": "ledova-selfhosted-linux-pilot", "labels": ["ledova-selfhosted-linux-x64-943-6c16g", run_label]}
             if trusted
             else "ubuntu-latest"
         ),
         "scoped_runner": (
-            {"group": "ledova-mac-linux-arm64-pilot", "labels": "ledova-mac-linux-arm64-pilot"}
+            {"group": "ledova-mac-linux-arm64-pilot", "labels": ["ledova-mac-linux-arm64-pilot", run_label]}
             if trusted
             else "ubuntu-latest"
         ),
@@ -150,7 +155,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=("route", "verdict"))
     parser.add_argument("scope", choices=sorted(SCOPES))
-    parser.add_argument("--event", default=os.environ.get("GITHUB_EVENT_NAME"))
+    parser.add_argument("--event")
     parser.add_argument("--event-file", default=os.environ.get("GITHUB_EVENT_PATH"))
     parser.add_argument("--repository", type=Path, default=Path(__file__).resolve().parent.parent)
     args = parser.parse_args()
@@ -166,8 +171,9 @@ def main():
         payload = json.loads(Path(args.event_file).read_text())
     except (TypeError, ValueError, OSError):
         payload = None
-    decision = SCOPES[args.scope](args.event, payload, args.repository)
-    runners = django_runners(os.environ) if args.scope == "django" else {}
+    event = args.event if args.event is not None else os.environ.get("GITHUB_EVENT_NAME")
+    decision = SCOPES[args.scope](event, payload, args.repository)
+    runners = django_runners(os.environ if args.event is None else {}) if args.scope == "django" else {}
     decision.update(runners)
     print(json.dumps(decision))
     output = os.environ.get("GITHUB_OUTPUT")
