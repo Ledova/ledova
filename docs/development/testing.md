@@ -2,15 +2,15 @@
 
 [Contributing](../../CONTRIBUTING.md) · [Documentation](../README.md)
 
-Choose evidence for the behavior changed. A successful command establishes only
+Choose evidence for the behaviour changed. A successful command establishes only
 what it exercised. Record the commands, results, untested boundaries and tested
 commit in the PR.
 
 ## Commands
 
 Run root commands from the repository root unless the table says otherwise.
-Use an isolated PostgreSQL database with the required role privileges. Backend
-tests now use PostgreSQL in both ordinary and specialized settings.
+Use an isolated PostgreSQL database with the required role privileges; the
+backend suites run on PostgreSQL in both ordinary and specialised settings.
 
 | Area                            | Commands                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -18,7 +18,7 @@ tests now use PostgreSQL in both ordinary and specialized settings.
 | Gate unit tests                 | `make test-gates`                                                                                   |
 | Lint                            | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
 | JavaScript and contracts        | `make test`                                                                                         |
-| Backend suites                  | The three suites under [backend verification](#backend-verification), always together               |
+| Backend suites                  | The three suites under [backend verification](#backend-verification); CI runs all three             |
 | Migration drift                 | `cd backend && python manage.py makemigrations --check --dry-run`                                   |
 | Real EVM chain                  | `make chain-test`                                                                                   |
 | Real Bitcoin chain              | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL                                  |
@@ -120,51 +120,38 @@ refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
 
 CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
 one for each shard in
-[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
-The six shards are `tokens-1`, `tokens-2`, `tokens-3`, `shared-wallets`,
-`companies-users` and `others`. The `companies-users` shard selects `companies.*`
-and `users.*`; `others` covers the remaining apps.
-Each job has its own PostgreSQL 16, and runs the ordinary command above with
-`-k` and each of that shard's test name patterns appended. Before its suite, the
-first matrix job runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate)
-once for the whole matrix. A gate failure fails that job and the Django verdict.
-All six shard suites keep their existing selections. The gate refuses a
-test id defined by more than one test class, and holds the shards' test ids to a
-partition of the unlabelled suite's, so on the same commit their `Ran N tests`
-counts add up to the unsharded run's. Locally, run the unsharded command. To
-repeat one shard, run `python ../scripts/check-ordinary-shards.py --run NAME`.
+[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json),
+each with its own PostgreSQL 16, running the ordinary command above with `-k`
+and that shard's test name patterns appended. Before its suite, the first
+matrix job runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate)
+once for the whole matrix; that section describes the shard mechanics and the
+partition it holds the shards to. Locally, run the unsharded command. To repeat
+one shard, run `python ../scripts/check-ordinary-shards.py --run NAME` from
+`backend/`.
 
-CI's ordinary wrapper and strict scoped command emit the existing runner's
-`--durations 0 --verbosity 2 --timing` output during the necessary run. This
+CI's ordinary wrapper and strict scoped command emit the runner's
+`--durations 0 --verbosity 2 --timing` output during the necessary run, which
 records named method timings and overall test/database setup timings without a
 profiling framework or an extra suite. Method totals omit class/module fixtures
 and Django pre/post hooks, so they do not establish complete class costs or
 worker idle time. Keep full inventories and declared skips separate from these
 measurements; a duration report does not establish a scheduling improvement.
 
-On a pull request, a scope job decides whether the Django jobs run: the six
+On a pull request, a scope job decides whether the Django jobs run: the
 ordinary shards, "Django checks & tests", strict scoped tests and genuine chain
 checks. They run unless every changed file is under
 `dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
-the root `AGENTS.md` or `CONTRIBUTING.md`. Even then, two kinds of change run them:
-
-- A document that any file under `backend/` names, which is today the only way the
-  Django jobs read one: `check_rls_catalogue` names `docs/architecture/tenancy.md`,
-  and a test reads that document's heading. Backend references to either root
-  policy document also require Django.
-- Any `.gitattributes`, which can change how a document is checked out without
-  changing the document.
-
-The scope job compares the pull request's head with the base commit its event
-records. GitHub can leave that at the branch point after `main` moves, which still
-covers every file the pull request changes. A comparison it cannot complete runs
-them. Every push to `main` runs them whatever changed, which catches a test that
-reads a document through a path it builds.
-[`scripts/ci-scope.py`](../../scripts/ci-scope.py) makes the decision, and the same
-kind for the [native builds](mobile-builds.md). The "Django verdict" check fails
-unless the scope job succeeded and each Django job succeeded, or was skipped
-because the scope job found none needed; a failed, cancelled or wrongly skipped
-job fails it.
+the root `AGENTS.md` or `CONTRIBUTING.md`, except that a document any file
+under `backend/` names (`check_rls_catalogue` names `docs/architecture/tenancy.md`,
+and a test reads its heading; references to either root policy document count
+too) and any `.gitattributes` run them. The scope job compares the pull
+request's head with the base commit its event records, which still covers every
+changed file when GitHub leaves it at the branch point; a comparison it cannot
+complete runs them, and every push to `main` runs them whatever changed.
+[`scripts/ci-scope.py`](../../scripts/ci-scope.py) makes the decision, and the
+same kind for the [native builds](mobile-builds.md). The "Django verdict" check
+fails unless the scope job succeeded and each Django job succeeded or was
+skipped because none was needed.
 
 The scoped and chain jobs depend only on that scope decision and can run
 concurrently with each other and the remaining backend checks. Each has its own
@@ -178,12 +165,17 @@ their source topology alone does not establish an elapsed-time improvement.
 
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under
-[#943](https://github.com/Ledova/ledova/issues/943). The workflow retains
-every current test selection, required verdict and main-push check. JavaScript,
-native, scanner and general backend routing remain unchanged; scheduled broad
-checks and more selective pre-merge coverage need their own reviewed
-implementation. The under-five-minute documentation/configuration and
-15–25-minute routine-registry targets are not delivered measurements.
+[#943](https://github.com/Ledova/ledova/issues/943). Its delivered increments
+aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
+`CONTRIBUTING.md`) from the Django jobs and captured the timings above (#952),
+replaced routine historical schema rewinds in runtime company fixtures (#959)
+and gave the scoped and chain stages their own jobs (#960), while retaining
+every test selection, required verdict and main-push check. JavaScript, native,
+scanner and general backend routing remain unchanged. Scheduled broad checks,
+more selective pre-merge coverage and verification tiers need their own
+reviewed implementation, and the under-five-minute documentation/configuration
+and 15–25-minute routine-registry targets are goals, not delivered
+measurements. This guide describes only what runs today.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
@@ -199,7 +191,7 @@ verdict. Install the tools with `make install-backend` from the repository root
 
 ## Test traps
 
-- Red-prove a behavioral claim: remove the fix, observe a named failure, restore
+- Red-prove a behavioural claim: remove the fix, observe a named failure, restore
   it and observe success. Confirm the mutation actually applied. If a meaningful
   red proof cannot be made, state why in the PR.
 - An assertion of absence needs a positive control. A test should fail on a
@@ -210,7 +202,7 @@ verdict. Install the tools with `make install-backend` from the repository root
   response and resulting state.
 - Give mocks concrete return values before they reach serializers. An
   unconfigured `Mock` can recurse through DRF's `tolist()` handling indefinitely.
-- Concurrency tests use distinct objects/connections and prove database behavior,
+- Concurrency tests use distinct objects/connections and prove database behaviour,
   not accidental serialization through one shared Python object.
 - Mobile render/event helpers are async. Await them and settle deferred promises;
   the lint mutation control verifies that unawaited events fail. Clean mounted
@@ -250,62 +242,49 @@ provider/delivery fakes. See [tenancy](../architecture/tenancy.md).
 
 ## Company-managed register verification
 
-The [company-managed register plan](../architecture/company-managed-registers.md#acceptance-criteria)
-defines accepted future outcomes, not tests or workflows already delivered. Each
-implementation issue must identify the company/participant decision, its bounded
-executor and the failure cases it changes. Keep ordinary, scoped and role/catalogue
-verification above; a technical operator alias remains an execution boundary and
-does not prove a human company mandate.
+The [accepted plan](../architecture/company-managed-registers.md#acceptance-criteria)
+states the outcomes. Each delivered increment's guide under the
+[implementation index](../plans/company-managed-registers/README.md) records
+the admission, recovery and verification boundaries it carries and names its
+tests; product modes are retired and company authority is delivered, so their
+migration and contract evidence lives in those guides and the
+[upgrade notes](../operations/upgrades.md), not here. Each new increment
+identifies the company/participant decision, its bounded executor and the
+failure cases it changes, and keeps the ordinary, scoped and role/catalogue
+verification above; the operator alias remains an execution boundary and does
+not prove a human company mandate. Standing evidence rules:
 
-Select evidence for the increment:
+- **Authority and register commands:** exercise individual appointments,
+  prepare versus approve/apply capabilities, cross-company references,
+  revocation after preview and before a queued effect, stale evidence or terms,
+  direct SQL/ORM forgery, concurrent identical/changed retries and atomic
+  rollback. Global staff access and shareholder status must not substitute for
+  company authority.
+- **Issuance and dependent crypto actions:** keep receipt, issue authority,
+  execution, holding and register effect independently attributable, with
+  isolated real-chain checks where execution changes. A non-paid authorised
+  issue must not manufacture a receipt, and recovery of original signed
+  transactions after authority changes admits no new instruction.
+- **Participant access and outputs:** verify own-record privacy, access
+  independent of unrelated investment eligibility, and actions that need no
+  wallet; certificates and exports retain authority, sequence and provenance.
+- **Web/mobile acceptance:** complete the supported workflows from fresh company
+  and participant accounts without routine platform staff, global privilege
+  grants, admin screens or undocumented API calls.
 
-- **Mode removal:** migrate from each historical value without rewriting actor
-  history or discarding private files; verify evidence availability in both clients,
-  migration drift, generated schema/types and the coordinated API/client contract.
-- **Authority and register commands:** exercise individual company appointments,
-  prepare versus approve/apply capabilities, cross-company references, revocation
-  after preview and before a queued new effect, and stale evidence or terms. Include
-  direct SQL/ORM forgery, concurrent identical/changed retries and atomic rollback.
-  Global staff access and shareholder status must not substitute for company authority.
-- **Primary issuance and dependent crypto actions:** keep receipt, issue authority,
-  execution, holding and register effect independently attributable. Prove exact
-  company/class/recipient/quantity bindings, configured eligibility, headroom and
-  finality, with isolated real-chain checks where execution changes. A non-paid
-  authorised issue must not manufacture a receipt. Preserve recovery of original
-  signed transactions after authority changes without admitting a new instruction.
-- **Participant access and outputs:** verify own-record privacy, access independent
-  of unrelated investment eligibility, and actions that need no wallet. Certificates
-  and exports retain company authority, register sequence, evidence and provenance;
-  filing drafts cannot claim submitted/accepted status without genuine outcome evidence.
-- **Web/mobile acceptance:** start fresh company and participant accounts and complete
-  supported activation, publication, register action and certificate workflows without
-  routine platform staff, global privilege grants, admin screens or undocumented API
-  calls. Record unresolved provider checks and exceptional technical support separately.
+Seeded staff-assisted journeys remain historical controls and evidence; fresh
+company wallet admission refuses the historical no-key treasury target. A new
+recording follows working implementation and records its served commit,
+commands, results and limits.
 
-Seeded staff-assisted journeys remain useful historical controls and evidence.
-Fresh company wallet admission refuses the historical no-key treasury target;
-that earlier complete chain/market layer is not current company-workflow
-acceptance. Preserve its genuine historical controls without a source exemption. They do not satisfy the future company-managed acceptance
-journey. A new recording follows working implementation and records its served
-commit, commands, results and limits.
-
-## Reviewing and driving the product
-
-The PR title identifies both its change type and owning issue using
-`type(#issue): description`; its body starts with the matching `Refs #issue` or
-`Closes #issue`. This includes automated dependency PRs. The complete convention
-and type list live in
-[Pull request titles and issue ownership](../../CONTRIBUTING.md#pull-request-titles-and-issue-ownership).
-
-Review the diff and description at the named head. After a rebase, read the delta
-or prove the reviewed content is unchanged. State depth and omissions; an approval
-must not imply a read that did not occur. Read both intentions behind conflicts.
-[CONTRIBUTING](../../CONTRIBUTING.md#review-and-merge) owns review/merge policy.
+## Driving the product
 
 Before browser QA, prove which code is served using its build identity or file
 hash. Clear old sessions and network captures as needed; distinguish application
-requests from manual probes. “Works with policies bypassed” and “enforcement
-holds” are different claims. Leave shared stacks and fixtures as found.
+requests from manual probes. "Works with policies bypassed" and "enforcement
+holds" are different claims. Leave shared stacks and fixtures as found.
+[CONTRIBUTING](../../CONTRIBUTING.md#review-and-merge) owns the PR convention
+and review/merge policy.
 
 ## Documents against code
 

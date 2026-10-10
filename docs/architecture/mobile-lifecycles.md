@@ -68,6 +68,37 @@ presentation, physical camera shutdown, device settings/OEM behavior and global
 lock-overlay/input stacking are not established by these controls and remain
 under #13.
 
+## Android scanner sessions
+
+The three QR placements use the local Expo module in
+`mobile/modules/ledova-scanner`. Its native view stays mounted while permission
+is pending or the preview is paused, so it can observe its own window's focus,
+attachment and visibility. The iOS placements retain Expo Camera. Android
+requires a rebuilt Ledova app; Expo Go does not contain the local module and
+cannot open these scanners.
+
+The Android view owns a CameraX lifecycle for each admitted scan. Window loss,
+hidden ancestors, detachment, disposal or inactive preview props retire that
+session and unbind only its preview and analysis use cases. Neither Activity
+blur nor JavaScript delivery is needed to close a modal's camera. Provider
+completion and decoded QR results recheck the current native session, including
+after asynchronous work. The QR-only decoder uses the same CameraX 1.5.0-rc01
+and bundled ML Kit 17.3.0 versions already resolved for Expo Camera; upstream
+package source is unchanged.
+
+Every window transition advances a generation. Focus recovery needs fresh
+JavaScript admission for that generation, after the existing app-lock and
+permission checks. An old `active` prop cannot reopen a camera while JavaScript
+is stalled. Scan events also carry an admission ID, so queued results from an
+earlier preview cannot complete a new scan. Focus recovery reads permission
+without prompting again and preserves completed scans and partial UR decoding.
+Barcode delivery also asks the native view to validate the generation and scan
+ID on the Android UI thread, then rechecks JavaScript admission after the reply.
+This refuses events that waited in the JavaScript queue after native focus loss,
+even when the window-change notification has not reached JavaScript yet. The
+instrumentation that verifies this ownership is in
+[native probes](../development/native-probes.md#android-scanner-instrumentation).
+
 ## Identity-provider WebView lifetime
 
 The signup and profile verification forms mount their provider WebView only
@@ -281,4 +312,4 @@ replaces the share sheet to check that only the latest viewed copy remains. It
 drives neither system UI. Local/cloud-provider, low-storage and physical-device
 checks remain under #13.
 
-Next: [native scanner controls](../reference/native-scanner-probe.md) and [device checks](../development/native-probes.md).
+Next: [scanner instrumentation](../development/native-probes.md#android-scanner-instrumentation) and [device checks](../development/native-probes.md#pre-release-device-checks).

@@ -2,7 +2,7 @@
 
 [Reference](README.md) · [Documentation](../README.md)
 
-How to inspect legacy signing history before a future adapter cutover. Inventory does not authorize activation.
+How to inspect legacy signing history before a future adapter cutover. Inventory does not authorise activation.
 
 `inventory_outgoing_history` observes legacy operator history before the later
 signer cutover. Run it from `backend/` with the operator management connection:
@@ -36,9 +36,9 @@ update or permission to execute it.
 For saved #303 mint bytes, local validation records signature/envelope validity,
 the observed hash, chain, sender and nonce, exact target/value/mint calldata, and
 matching request linkage separately. These checks do not establish historical
-authorization. `ShareToken.chain` records a chain family such as `base`; the mint
+authorisation. `ShareToken.chain` records a chain family such as `base`; the mint
 journal has neither an independently expected historical numeric chain ID nor an
-authorized signer. Today's chain configuration and key cannot supply that
+authorised signer. Today's chain configuration and key cannot supply that
 history. Matching raw bytes, terms and source links therefore still carry
 `missing_chain_provenance` and `missing_signer_authorization` holds. Legacy admin
 hash naming continues to rely on the operator's verification; this inventory
@@ -65,16 +65,9 @@ exception text.
 
 An inventory is a point-in-time observation to revalidate after old signers
 drain. Historical pause/approval sends and offline or old CLI/binary key use are
-not fully observable in these tables. Unknown historical signer identity stays
-unassigned and can require a deployment-wide hold. Neither an empty mempool nor
-an unchanged-looking snapshot authorizes cutover. Later adoption must drain all
-old signing paths, revalidate provenance and coverage, then perform a separate
-guarded import/activation. Application requests will also need scoped
-authorization before a narrow operator handoff, with transaction-boundary checks
-on the originating connection. Those adapter changes remain future work.
-
-The [fresh Base Sepolia bootstrap](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
-is a separate first-admission path for a new key and isolated empty environment.
-It refuses historical outgoing sources and imported evidence, and cannot reopen
-an old signer or lift these holds. Empty captures retain their permanent coverage
-limitations; they do not supply authorization for that path.
+not fully observable in these tables, and unknown historical signer identity
+stays unassigned and can require a deployment-wide hold. Neither an empty
+mempool nor an unchanged-looking snapshot authorises cutover: the drain of old
+signers, revalidation of provenance and coverage, guarded activation and the
+separate fresh-admission path that cannot lift these holds are in the
+[outgoing signing foundation](../architecture/outgoing-signing.md).
