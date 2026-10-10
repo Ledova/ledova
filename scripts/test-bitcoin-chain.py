@@ -17,8 +17,10 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 VERSION = "31.1"
-ARCHIVE_HASH = "b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e"
-URL = f"https://bitcoincore.org/bin/bitcoin-core-{VERSION}/bitcoin-{VERSION}-x86_64-linux-gnu.tar.gz"
+ARCHIVE_HASHES = {
+    "x86_64": "b80d9c3e04da78fb6f0569685673418cf686fadba9042d926d13fb87ff503f9e",
+    "aarch64": "dcf1873f2208ba4f962f3398d47e154c39c0084be8f4553e05c940d0ace3d004",
+}
 DOWNLOAD_RETRY_DELAYS = (5, 15)
 
 
@@ -64,15 +66,17 @@ def bitcoin_binary(directory):
     if configured:
         binary = Path(configured).resolve(strict=True)
     else:
-        if platform.system() != "Linux" or platform.machine() != "x86_64":
+        architecture = platform.machine()
+        if platform.system() != "Linux" or architecture not in ARCHIVE_HASHES:
             raise RuntimeError(
                 "Set BITCOIN_TEST_BINARY to an installed Bitcoin Core 31.1 binary on this platform."
             )
         archive = directory / "bitcoin.tar.gz"
-        download(URL, archive)
+        url = f"https://bitcoincore.org/bin/bitcoin-core-{VERSION}/bitcoin-{VERSION}-{architecture}-linux-gnu.tar.gz"
+        download(url, archive)
         with archive.open("rb") as source:
             checksum = hashlib.file_digest(source, "sha256").hexdigest()
-        if checksum != ARCHIVE_HASH:
+        if checksum != ARCHIVE_HASHES[architecture]:
             raise RuntimeError(
                 "The Bitcoin Core release archive does not match its pinned SHA256."
             )

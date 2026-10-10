@@ -12,7 +12,9 @@ on:
 jobs:
   source-gates:
     name: Source gates
-    runs-on: ubuntu-latest
+    needs: scope
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['source-gates'] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -43,7 +45,9 @@ jobs:
 
   javascript:
     name: Build & test (JS workspaces + contracts)
-    runs-on: ubuntu-latest
+    needs: scope
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['javascript'] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -126,8 +130,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       required: ${{ steps.scope.outputs.required }}
-      scoped_runner: ${{ steps.scope.outputs.scoped_runner }}
-      scoped_timeout: ${{ steps.scope.outputs.scoped_timeout }}
+      runners: ${{ steps.scope.outputs.runners }}
+      runner_timeout: ${{ steps.scope.outputs.runner_timeout }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -140,8 +144,8 @@ jobs:
     name: Django ordinary shard (${{ matrix.shard }})
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)[format('backend-suite-shard-{0}', matrix.shard)] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     strategy:
       fail-fast: false
       matrix:
@@ -188,7 +192,8 @@ jobs:
     name: Django verdict
     needs: [scope, backend-suite-shard, backend, backend-scoped, backend-chain]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.scope.result == 'success' && fromJSON(needs.scope.outputs.runners)['backend-suite'] || 'ubuntu-latest' }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout || '360') }}
     steps:
       - uses: actions/checkout@v7
       - name: Every Django job succeeded, or the change needs none
@@ -200,7 +205,8 @@ jobs:
     name: Django checks & tests
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend'] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -317,8 +323,8 @@ jobs:
     name: Django strict scoped requests
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ${{ fromJSON(needs.scope.outputs.scoped_runner) }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.scoped_timeout) }}
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend-scoped'] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -369,7 +375,8 @@ jobs:
     name: Genuine EVM and Bitcoin checks
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend-chain'] }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
